@@ -20,19 +20,17 @@ from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLE
 from sentry.api.serializers.models.organization import TrustedRelaySerializer
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
-from sentry.models import (
-    AuditLogEntry,
-    Authenticator,
-    AuthProvider,
-    DeletedOrganization,
-    Organization,
-    OrganizationAvatar,
-    OrganizationOption,
-    OrganizationStatus,
-    RegionScheduledDeletion,
-    User,
-)
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.authenticator import Authenticator
+from sentry.models.authprovider import AuthProvider
+from sentry.models.avatars.organization_avatar import OrganizationAvatar
+from sentry.models.deletedorganization import DeletedOrganization
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationslugreservation import OrganizationSlugReservation
+from sentry.models.scheduledeletion import RegionScheduledDeletion
+from sentry.models.user import User
 from sentry.signals import project_created
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
@@ -826,7 +824,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert self.organization.get_option("sentry:store_crash_reports") is None
         assert b"storeCrashReports" in resp.content
 
-    def test_update_name_with_mapping(self):
+    def test_update_name_with_mapping_and_slug_reservation(self):
         response = self.get_success_response(self.organization.slug, name="SaNtRy")
 
         organization_id = response.data["id"]
@@ -839,10 +837,17 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             ).exists()
 
     def test_update_slug(self):
+        with outbox_runner():
+            pass
+
         with assume_test_silo_mode(SiloMode.CONTROL):
             organization_mapping = OrganizationMapping.objects.get(
-                organization_id=self.organization.id
+                organization_id=self.organization.id,
             )
+            org_slug_res = OrganizationSlugReservation.objects.get(
+                organization_id=self.organization.id, slug=self.organization.slug
+            )
+
         assert organization_mapping.slug == self.organization.slug
 
         desired_slug = "new-santry"
@@ -852,6 +857,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         organization_mapping.refresh_from_db()
         assert organization_mapping.slug == desired_slug
+        org_slug_res.refresh_from_db()
+        assert org_slug_res.slug == desired_slug
 
     def test_org_mapping_already_taken(self):
         self.create_organization(slug="taken")

@@ -9,15 +9,10 @@ from rest_framework import status
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils.channel import strip_channel_name
-from sentry.models import (
-    Environment,
-    Integration,
-    NeglectedRule,
-    Rule,
-    RuleActivity,
-    RuleActivityType,
-)
 from sentry.models.actor import Actor, get_actor_for_user
+from sentry.models.environment import Environment
+from sentry.models.integrations.integration import Integration
+from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -89,6 +84,10 @@ class ProjectRuleDetailsBaseTestCase(APITestCase):
                 provider="jira", name="Jira", external_id="jira:1"
             )
             self.jira_integration.add_organization(self.organization, self.user)
+            self.jira_server_integration = Integration.objects.create(
+                provider="jira_server", name="Jira Server", external_id="jira_server:1"
+            )
+            self.jira_server_integration.add_organization(self.organization, self.user)
         self.sentry_app = self.create_sentry_app(
             name="Pied Piper",
             organization=self.organization,
@@ -327,6 +326,65 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
                         "required": False,
                         "type": "select",
                         "url": f"/extensions/jira/search/{self.organization.slug}/{self.jira_integration.id}/",
+                    },
+                    {
+                        "choices": [
+                            ["Very High", "Very High"],
+                            ["High", "High"],
+                            ["Medium", "Medium"],
+                            ["Low", "Low"],
+                        ],
+                        "label": "Severity",
+                        "name": "customfield_severity",
+                        "required": True,
+                        "type": "select",
+                    },
+                ],
+            }
+        ]
+        data = {
+            "conditions": conditions,
+            "actions": actions,
+            "filter_match": "all",
+            "action_match": "all",
+            "frequency": 30,
+        }
+
+        self.rule.update(data=data)
+
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
+        )
+        # Expect that the choices get filtered to match the API: Array<string, string>
+        assert response.data["actions"][0].get("dynamic_form_fields")[0].get("choices") == [
+            ["EPIC-1", "Citizen Knope"],
+            ["EPIC-2", "The Comeback Kid"],
+        ]
+
+    @responses.activate
+    def test_with_jira_server_action_error(self):
+        conditions = [
+            {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
+            {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10},
+        ]
+        actions = [
+            {
+                "id": "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
+                "integration": self.jira_server_integration.id,
+                "customfield_epic_link": "EPIC-3",
+                "customfield_severity": "Medium",
+                "dynamic_form_fields": [
+                    {
+                        "choices": [
+                            ["EPIC-1", "Citizen Knope"],
+                            ["EPIC-2", "The Comeback Kid"],
+                            ["EPIC-3", {"key": None, "ref": None, "props": {}, "_owner": None}],
+                        ],
+                        "label": "Epic Link",
+                        "name": "customfield_epic_link",
+                        "required": False,
+                        "type": "select",
+                        "url": f"/extensions/jira/search/{self.organization.slug}/{self.jira_server_integration.id}/",
                     },
                     {
                         "choices": [

@@ -15,6 +15,7 @@ from arroyo.processing.strategies import MessageRejected
 from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
 from sentry.ratelimits.cardinality import CardinalityLimiter
+from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_option
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.consumers.indexer.batch import valid_metric_name
 from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MetricsBatchBuilder
@@ -300,6 +301,11 @@ def __translated_payload(
         indexer.resolve(use_case_id=use_case_id, org_id=org_id, string=k): v
         for k, v in payload["tags"].items()
     }
+
+    agg_option = get_aggregation_option(payload["name"])
+    if agg_option:
+        payload["aggregation_option"] = agg_option
+
     payload["metric_id"] = indexer.resolve(
         use_case_id=use_case_id, org_id=org_id, string=payload["name"]
     )
@@ -333,7 +339,7 @@ def test_process_messages() -> None:
 
     outer_message = Message(Value(message_batch, last.committable))
 
-    new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
+    new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message).data
     expected_new_batch = []
     for i, m in enumerate(message_batch):
         assert isinstance(m.value, BrokerValue)
@@ -472,7 +478,7 @@ def test_process_messages_invalid_messages(
     outer_message = Message(Value(message_batch, last.committable))
 
     with caplog.at_level(logging.ERROR):
-        new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
+        new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message).data
 
     # we expect just the valid counter_payload msg to be left
     expected_msg = message_batch[0]
@@ -537,7 +543,7 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
     raw_simple_string_indexer._strings[UseCaseID(rgx.group(2))][1]["rate_limited_test"] = None
 
     with caplog.at_level(logging.ERROR):
-        new_batch = message_processor.process_messages(outer_message=outer_message)
+        new_batch = message_processor.process_messages(outer_message=outer_message).data
 
     # we expect just the counter_payload msg to be left, as that one didn't
     # cause/depend on string writes that have been rate limited
@@ -609,7 +615,7 @@ def test_process_messages_cardinality_limited(
         outer_message = Message(Value(message_batch, last.committable))
 
         with caplog.at_level(logging.ERROR):
-            new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
+            new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message).data
 
         compare_message_batches_ignoring_metadata(new_batch, [])
 

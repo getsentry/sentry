@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
 import {GroupingConfigs} from 'sentry-fixture/groupingConfigs';
+import {Organization} from 'sentry-fixture/organization';
 
 import {
   act,
@@ -26,7 +27,7 @@ function getField(role, name) {
 }
 
 describe('projectGeneralSettings', function () {
-  const org = TestStubs.Organization();
+  const org = Organization();
   const project = TestStubs.Project({
     subjectPrefix: '[my-org]',
     resolveAge: 48,
@@ -224,7 +225,7 @@ describe('projectGeneralSettings', function () {
   });
 
   it('disables the form for users without write permissions', function () {
-    const readOnlyOrg = TestStubs.Organization({access: ['org:read']});
+    const readOnlyOrg = Organization({access: ['org:read']});
     routerContext.context.organization = readOnlyOrg;
 
     render(

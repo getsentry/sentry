@@ -10,16 +10,11 @@ from django.utils import timezone
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
-from sentry.models import (
-    Group,
-    GroupRedirect,
-    GroupRelease,
-    GroupSnooze,
-    GroupStatus,
-    Release,
-    get_group_with_redirect,
-)
-from sentry.models.release import _get_cache_key
+from sentry.models.group import Group, GroupStatus, get_group_with_redirect
+from sentry.models.groupredirect import GroupRedirect
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.release import Release, _get_cache_key
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import ReplaysSnubaTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format

@@ -30,23 +30,36 @@ digraph Models {
         node [shape="plaintext",style="none"]
         key1 [label=<<table border="0" cellpadding="2" cellspacing="0" cellborder="0">
             <tr><td align="right" port="i1">HybridCloudForeignKey</td></tr>
-            <tr><td align="right" port="i2">Explicit ForeignKey</td></tr>
-            <tr><td align="right" port="i3">Implicit ForeignKey</td></tr>
-            <tr><td align="right" port="i4">Control Silo Model</td></tr>
-            <tr><td align="right" port="i5">Region Silo Model</td></tr>
-            <tr><td align="right" port="i6">Unexported Model</td></tr>
+            <tr><td align="right" port="i2">HybridCloudForeignKey (nullable)</td></tr>
+            <tr><td align="right" port="i3">Explicit ForeignKey</td></tr>
+            <tr><td align="right" port="i4">Explicit ForeignKey (nullable)</td></tr>
+            <tr><td align="right" port="i5">Implicit ForeignKey</td></tr>
+            <tr><td align="right" port="i6">Implicit ForeignKey (nullable)</td></tr>
+            <tr><td align="right" port="i7">Control Silo Model</td></tr>
+            <tr><td align="right" port="i8">Control Silo Model (dangling)</td></tr>
+            <tr><td align="right" port="i9">Region Silo Model</td></tr>
+            <tr><td align="right" port="i10">Region Silo Model (dangling)</td></tr>
+            <tr><td align="right" port="i11">Unexported Model</td></tr>
         </table>>]
         key2 [label=<<table border="0" cellpadding="2" cellspacing="0" cellborder="0">
             <tr><td port="i1">&nbsp;</td></tr>
             <tr><td port="i2">&nbsp;</td></tr>
             <tr><td port="i3">&nbsp;</td></tr>
-            <tr><td port="i4" bgcolor="lightcoral">&nbsp;</td></tr>
-            <tr><td port="i5" bgcolor="lightblue">&nbsp;</td></tr>
-            <tr><td port="i6" bgcolor="grey">&nbsp;</td></tr>
+            <tr><td port="i4">&nbsp;</td></tr>
+            <tr><td port="i5">&nbsp;</td></tr>
+            <tr><td port="i6">&nbsp;</td></tr>
+            <tr><td port="i7" bgcolor="#ffb6c1ff">&nbsp;</td></tr>
+            <tr><td port="i8" bgcolor="#ffb6c166">&nbsp;</td></tr>
+            <tr><td port="i9" bgcolor="#add8e6ff">&nbsp;</td></tr>
+            <tr><td port="i10" bgcolor="#add8e666">&nbsp;</td></tr>
+            <tr><td port="i11" bgcolor="#c0c0c0ff">&nbsp;</td></tr>
         </table>>]
-        key1:i1:e -> key2:i1:w [color=green]
-        key1:i2:e -> key2:i2:w [color=blue]
-        key1:i3:e -> key2:i3:w [color=red]
+        key1:i1:e -> key2:i1:w [color="#008b00ff",style=solid]
+        key1:i2:e -> key2:i2:w [color="#008b0066",style=dashed]
+        key1:i3:e -> key2:i3:w [color="#0000eeff",style=solid]
+        key1:i4:e -> key2:i4:w [color="#0000ee66",style=dashed]
+        key1:i5:e -> key2:i5:w [color="#cd0000ff",style=solid]
+        key1:i6:e -> key2:i6:w [color="#cd000066",style=dashed]
     }
 
     $clusters
@@ -63,7 +76,7 @@ cluster = Template(
         shape="rectangle"
         fillcolor="$fill"
         fontsize="40"
-        color="grey"
+        color="#c0c0c0"
 
         $nodes
     }
@@ -73,28 +86,30 @@ cluster = Template(
 
 @unique
 class ClusterColor(Enum):
-    Purple = "lavenderblush"
-    Yellow = "khaki"
-    Green = "honeydew"
-    Blue = "lightsteelblue1"
+    Purple = "#fff0f5"  # lavenderblush
+    Yellow = "#f0e68c"  # khaki
+    Green = "#f0fff0"  # honeydew
+    Blue = "#cae1ff"  # lightsteelblue1
 
 
 @unique
 class NodeColor(Enum):
-    Red = "lightpink"
-    Blue = "lightblue"
+    Red = "#ffb6c1"  # lightpink
+    Blue = "#add8e6"  # lightblue
 
 
 @unique
 class EdgeColor(Enum):
-    Hybrid = "color=green"
-    Explicit = "color=blue"
-    Implicit = "color=red"
+    Hybrid = "#008b00"  # green4
+    Explicit = "#0000ee"  # blue2
+    Implicit = "#cd0000"  # red3
 
 
-def print_model_node(model: models.base.ModelBase, silo: SiloMode) -> str:
+def print_model_node(mr: ModelRelations, silo: SiloMode) -> str:
+    id = mr.model.__name__
     color = NodeColor.Red if silo == SiloMode.CONTROL else NodeColor.Blue
-    return f""""{model.__name__}" [fillcolor="{color.value}"];"""
+    opacity = "66" if mr.dangling else "ff"
+    return f""""{id}" [fillcolor="{color.value}{opacity}",color="#000000{opacity}"];"""
 
 
 def print_rel_scope_subgraph(
@@ -104,7 +119,7 @@ def print_rel_scope_subgraph(
         num=num,
         name=name,
         fill=color.value,
-        nodes="\n        ".join([print_model_node(mr.model, mr.silos[0]) for mr in rels]),
+        nodes="\n        ".join([print_model_node(mr, mr.silos[0]) for mr in rels]),
     )
 
 
@@ -123,7 +138,7 @@ def print_edge(src: models.base.ModelBase, dest: models.base.ModelBase, field: F
     elif field.kind == ForeignFieldKind.ImplicitForeignKey:
         color = EdgeColor.Implicit
     style = "dashed" if field.nullable else "solid"
-    return f""""{src.__name__}":e -> "{dest.__name__}":w [{color.value},style={style}];"""
+    return f""""{src.__name__}":e -> "{dest.__name__}":w [color="{color.value}",style={style}];"""
 
 
 def get_most_permissive_relocation_scope(mr: ModelRelations) -> RelocationScope:

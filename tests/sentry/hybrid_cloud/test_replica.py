@@ -1,12 +1,11 @@
-from sentry.models import (
-    AuthIdentity,
-    AuthIdentityReplica,
-    AuthProvider,
-    AuthProviderReplica,
-    OrganizationMemberTeamReplica,
-    TeamReplica,
-    outbox_context,
-)
+from sentry.hybridcloud.models import ApiKeyReplica
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authidentityreplica import AuthIdentityReplica
+from sentry.models.authprovider import AuthProvider
+from sentry.models.authproviderreplica import AuthProviderReplica
+from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
+from sentry.models.outbox import outbox_context
+from sentry.models.teamreplica import TeamReplica
 from sentry.services.hybrid_cloud.auth.serial import serialize_auth_provider
 from sentry.services.hybrid_cloud.replica import region_replica_service
 from sentry.silo import SiloMode
@@ -60,6 +59,28 @@ def test_replicate_auth_provider():
     region_replica_service.upsert_replicated_auth_provider(
         auth_provider=serialized, region_name="us"
     )
+
+
+@django_db_all(transaction=True)
+@all_silo_test(stable=True)
+def test_replicate_api_key():
+    org = Factories.create_organization()
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        api_key = Factories.create_api_key(org, scope_list=["a", "b"])
+
+    with assume_test_silo_mode(SiloMode.REGION):
+        replicated = ApiKeyReplica.objects.get(apikey_id=api_key.id)
+
+    assert replicated.get_scopes() == api_key.get_scopes()
+
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        api_key.scope_list = ["a", "b", "c"]
+        api_key.save()
+
+    with assume_test_silo_mode(SiloMode.REGION):
+        replicated = ApiKeyReplica.objects.get(apikey_id=api_key.id)
+
+    assert replicated.get_scopes() == api_key.get_scopes()
 
 
 @django_db_all(transaction=True)

@@ -21,9 +21,11 @@ from sentry.api.serializers.models.user import DetailedSelfUserSerializer
 from sentry.api.serializers.rest_framework import CamelSnakeModelSerializer, ListField
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LANGUAGES
-from sentry.models import OrganizationStatus, User, UserOption
+from sentry.models.options.user_option import UserOption
+from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.organization.model import RpcOrganizationDeleteState
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user

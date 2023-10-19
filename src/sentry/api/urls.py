@@ -22,9 +22,13 @@ from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
 )
 from sentry.api.endpoints.organization_spans_aggregation import OrganizationSpansAggregationEndpoint
+from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThresholdEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold_details import (
     ReleaseThresholdDetailsEndpoint,
+)
+from sentry.api.endpoints.release_thresholds.release_threshold_index import (
+    ReleaseThresholdIndexEndpoint,
 )
 from sentry.api.endpoints.release_thresholds.release_threshold_status_index import (
     ReleaseThresholdStatusIndexEndpoint,
@@ -446,10 +450,7 @@ from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
-from .endpoints.project_dynamic_sampling import (
-    ProjectDynamicSamplingDistributionEndpoint,
-    ProjectDynamicSamplingRateEndpoint,
-)
+from .endpoints.project_dynamic_sampling import ProjectDynamicSamplingRateEndpoint
 from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
 from .endpoints.project_environments import ProjectEnvironmentsEndpoint
 from .endpoints.project_event_details import EventJsonEndpoint, ProjectEventDetailsEndpoint
@@ -1492,6 +1493,7 @@ ORGANIZATION_URLS = [
         # remove these from the explicit endpoints
         method_dispatch(
             GET=OrganizationMonitorCheckInIndexEndpoint.as_view(),
+            OPTIONS=OrganizationMonitorCheckInIndexEndpoint.as_view(),
             POST=MonitorIngestCheckInIndexEndpoint.as_view(),  # Legacy ingest endpoint
             csrf_exempt=True,
         ),
@@ -1504,6 +1506,7 @@ ORGANIZATION_URLS = [
         # remove these from the explicit endpoints
         method_dispatch(
             PUT=MonitorIngestCheckInDetailsEndpoint.as_view(),  # Legacy ingest endpoint
+            OPTIONS=MonitorIngestCheckInDetailsEndpoint.as_view(),
             csrf_exempt=True,
         ),
         name="sentry-api-0-organization-monitor-check-in-details",
@@ -1512,6 +1515,7 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
         method_dispatch(
             GET=OrganizationMonitorCheckInAttachmentEndpoint.as_view(),
+            OPTIONS=OrganizationMonitorCheckInAttachmentEndpoint.as_view(),
             POST=MonitorIngestCheckinAttachmentEndpoint.as_view(),  # Legacy ingest endpoint
             csrf_exempt=True,
         ),
@@ -1623,6 +1627,11 @@ ORGANIZATION_URLS = [
         OrganizationReleasesEndpoint.as_view(),
         name="sentry-api-0-organization-releases",
     ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/release-thresholds/$",
+        ReleaseThresholdIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-release-thresholds",
+    ),
     # TODO: also integrate release threshold status into the releases response?
     re_path(
         r"^(?P<organization_slug>[^\/]+)/release-threshold-statuses/$",
@@ -1733,6 +1742,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/stats_v2/$",
         OrganizationStatsEndpointV2.as_view(),
         name="sentry-api-0-organization-stats-v2",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/stats-summary/$",
+        OrganizationStatsSummaryEndpoint.as_view(),
+        name="sentry-api-0-organization-stats-summary",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/teams/$",
@@ -2172,12 +2186,12 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-releases",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/thresholds/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/release-thresholds/$",
         ReleaseThresholdEndpoint.as_view(),
         name="sentry-api-0-project-release-thresholds",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/thresholds/(?P<release_threshold>[^/]+)/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/release-thresholds/(?P<release_threshold>[^/]+)/$",
         ReleaseThresholdDetailsEndpoint.as_view(),
         name="sentry-api-0-project-release-thresholds-details",
     ),
@@ -2522,11 +2536,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/dynamic-sampling/rate/$",
         ProjectDynamicSamplingRateEndpoint.as_view(),
         name="sentry-api-0-project-dynamic-sampling-rate",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/dynamic-sampling/distribution/$",
-        ProjectDynamicSamplingDistributionEndpoint.as_view(),
-        name="sentry-api-0-project-dynamic-sampling-distribution",
     ),
 ]
 

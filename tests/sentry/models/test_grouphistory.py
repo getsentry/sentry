@@ -1,4 +1,5 @@
-from sentry.models import GroupAssignee, GroupHistory, GroupHistoryStatus, get_prev_history
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, get_prev_history
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba

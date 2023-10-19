@@ -10,7 +10,7 @@ from sentry import options
 from sentry import ratelimits as ratelimiter
 from sentry.auth.authenticators.sms import SMSRateLimitExceeded
 from sentry.auth.authenticators.u2f import U2fInterface
-from sentry.models import Authenticator
+from sentry.models.authenticator import Authenticator
 from sentry.utils import auth, json
 from sentry.web.forms.accounts import TwoFactorForm
 from sentry.web.frontend.base import BaseView

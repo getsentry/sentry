@@ -33,7 +33,7 @@ PUSH_EVENT_EXAMPLE_INSTALLATION = r"""{
 
       ],
       "removed": [
-
+        "setup.jsx"
       ],
       "modified": [
         "hello.py"
@@ -57,7 +57,7 @@ PUSH_EVENT_EXAMPLE_INSTALLATION = r"""{
         "username": "baxterthehacker"
       },
       "added": [
-
+        "setup.jsx"
       ],
       "removed": [
 

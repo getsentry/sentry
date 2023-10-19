@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.models import ApiToken
+from sentry.models.apitoken import ApiToken
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test, region_silo_test

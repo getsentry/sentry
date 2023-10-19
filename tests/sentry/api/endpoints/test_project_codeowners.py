@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
-from sentry.models import ProjectCodeOwners
+from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 

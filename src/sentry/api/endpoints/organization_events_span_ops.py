@@ -7,7 +7,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.search.events.builder import QueryBuilder
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import raw_snql_query

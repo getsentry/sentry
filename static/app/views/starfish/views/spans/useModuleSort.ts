@@ -14,7 +14,6 @@ const SORTABLE_FIELDS = [
   `${SpanFunction.HTTP_ERROR_COUNT}()`,
   `${SpanFunction.SPM}()`,
   `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
-  `${SpanFunction.TIME_SPENT_PERCENTAGE}(local)`,
 ] as const;
 
 export type ValidSort = Sort & {

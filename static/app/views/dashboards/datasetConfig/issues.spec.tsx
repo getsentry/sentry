@@ -1,4 +1,5 @@
 import {GlobalSelection} from 'sentry-fixture/globalSelection';
+import {Organization} from 'sentry-fixture/organization';
 
 import {GroupStatus} from 'sentry/types';
 import {transformIssuesResponseToTable} from 'sentry/views/dashboards/datasetConfig/issues';
@@ -36,7 +37,7 @@ describe('transformIssuesResponseToTable', function () {
           conditions: 'assigned_or_suggested:#visibility timesSeen:>100',
           orderby: '',
         },
-        TestStubs.Organization(),
+        Organization(),
         GlobalSelection()
       )
     ).toEqual(

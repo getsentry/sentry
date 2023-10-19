@@ -1,9 +1,11 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import SearchBar from 'sentry/components/events/searchBar';
 import TagStore from 'sentry/stores/tagStore';
-import {Organization} from 'sentry/types';
+import {Organization as TOrganization} from 'sentry/types';
 
 const selectNthAutocompleteItem = async index => {
   await userEvent.click(screen.getByTestId('smart-search-input'), {delay: null});
@@ -28,11 +30,11 @@ async function setQuery(query) {
 describe('Events > SearchBar', function () {
   let options;
   let tagValuesMock;
-  let organization: Organization;
+  let organization: TOrganization;
   let props: React.ComponentProps<typeof SearchBar>;
 
   beforeEach(function () {
-    organization = TestStubs.Organization();
+    organization = Organization();
     props = {
       organization,
       projectIds: [1, 2],

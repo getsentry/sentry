@@ -7,14 +7,11 @@ from django.db.models import F, Q
 from django.utils import timezone
 from sentry_sdk import capture_exception
 
-from sentry.models import (
-    Environment,
-    Project,
-    Release,
-    ReleaseEnvironment,
-    ReleaseProjectEnvironment,
-    ReleaseStatus,
-)
+from sentry.models.environment import Environment
+from sentry.models.project import Project
+from sentry.models.release import Release, ReleaseStatus
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.release_health import release_monitor
 from sentry.release_health.release_monitor.base import Totals
 from sentry.tasks.base import instrumented_task

@@ -1,4 +1,4 @@
-import {forwardRef, useCallback} from 'react';
+import {forwardRef, Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {IconSettings, IconUser} from 'sentry/icons';
@@ -22,7 +22,6 @@ interface FlamegraphTreeTableRowProps {
   frameColor: string;
   node: VirtualizedTreeNode<FlamegraphFrame>;
   onClick: React.MouseEventHandler<HTMLDivElement>;
-  onContextMenu: React.MouseEventHandler<HTMLDivElement>;
   onExpandClick: (
     node: VirtualizedTreeNode<FlamegraphFrame>,
     expand: boolean,
@@ -33,102 +32,112 @@ interface FlamegraphTreeTableRowProps {
   referenceNode: FlamegraphFrame;
   style: React.CSSProperties;
   tabIndex: number;
+  onContextMenu?: React.MouseEventHandler<HTMLDivElement>;
 }
 
 export const FlamegraphTreeTableRow = forwardRef<
   HTMLDivElement,
   FlamegraphTreeTableRowProps
->(
-  (
-    {
-      node,
-      referenceNode,
-      onExpandClick,
-      onContextMenu,
-      formatDuration,
-      frameColor,
-      tabIndex,
-      onKeyDown,
-      onClick,
-      onMouseEnter,
-      style,
+>((props, ref) => {
+  return (
+    <FrameCallersRow
+      ref={ref}
+      style={props.style}
+      onContextMenu={props.onContextMenu}
+      tabIndex={props.tabIndex}
+      isSelected={props.tabIndex === 0}
+      onKeyDown={props.onKeyDown}
+      onClick={props.onClick}
+      onMouseEnter={props.onMouseEnter}
+    >
+      <FrameCallersFixedRows {...props} />
+      <FrameCallersFunctionRow {...props} />
+    </FrameCallersRow>
+  );
+});
+
+export function FrameCallersFunctionRow(
+  props: Omit<FlamegraphTreeTableRowProps, 'style'>
+) {
+  const handleExpanding = useCallback(
+    (evt: React.MouseEvent) => {
+      evt.stopPropagation();
+      props.onExpandClick(props.node, !props.node.expanded, {
+        expandChildren: evt.metaKey,
+      });
     },
-    ref
-  ) => {
-    const handleExpanding = useCallback(
-      (evt: React.MouseEvent) => {
-        evt.stopPropagation();
-        onExpandClick(node, !node.expanded, {expandChildren: evt.metaKey});
-      },
-      [node, onExpandClick]
-    );
+    [props]
+  );
 
-    const isSelected = tabIndex === 0;
-    return (
-      <FrameCallersRow
-        ref={ref}
-        style={style}
-        onContextMenu={onContextMenu}
-        tabIndex={tabIndex}
-        isSelected={isSelected}
-        onKeyDown={onKeyDown}
-        onClick={onClick}
-        onMouseEnter={onMouseEnter}
-      >
-        <FrameCallersTableCell isSelected={isSelected} textAlign="right">
-          {formatDuration(node.node.node.selfWeight)}
-          <Weight
-            isSelected={isSelected}
-            weight={computeRelativeWeight(
-              referenceNode.node.totalWeight,
-              node.node.node.selfWeight
-            )}
-          />
-        </FrameCallersTableCell>
-        <FrameCallersTableCell isSelected={isSelected} noPadding textAlign="right">
-          <FrameWeightTypeContainer>
-            <FrameWeightContainer>
-              {formatDuration(node.node.node.totalWeight)}
-              <Weight
-                padded
-                isSelected={isSelected}
-                weight={computeRelativeWeight(
-                  referenceNode.node.totalWeight,
-                  node.node.node.totalWeight
-                )}
-              />
-            </FrameWeightContainer>
-            <FrameTypeIndicator isSelected={isSelected}>
-              {node.node.node.frame.is_application ? (
-                <IconUser size="xs" />
-              ) : (
-                <IconSettings size="xs" />
-              )}
-            </FrameTypeIndicator>
-          </FrameWeightTypeContainer>
-        </FrameCallersTableCell>
-        <FrameCallersTableCell
-          // We stretch this table to 100% width.
-          style={{paddingLeft: node.depth * 14 + 8, width: '100%'}}
+  return (
+    <FrameCallersTableCell
+      // We stretch this table to 100% width.
+      style={{paddingLeft: props.node.depth * 14 + 8, width: '100%'}}
+      className="FrameCallersTableCell"
+    >
+      <FrameNameContainer>
+        {/* @TODO FIX COLOR */}
+        <FrameColorIndicator style={{backgroundColor: props.frameColor}} />
+        <FrameChildrenIndicator
+          tabIndex={-1}
+          onClick={handleExpanding}
+          open={props.node.expanded}
         >
-          <FrameNameContainer>
-            {/* @TODO FIX COLOR */}
-            <FrameColorIndicator style={{backgroundColor: frameColor}} />
-            <FrameChildrenIndicator
-              tabIndex={-1}
-              onClick={handleExpanding}
-              open={node.expanded}
-            >
-              {node.node.children.length > 0 ? '\u203A' : null}
-            </FrameChildrenIndicator>
-            <FrameName>{node.node.frame.name}</FrameName>
-          </FrameNameContainer>
-        </FrameCallersTableCell>
-      </FrameCallersRow>
-    );
-  }
-);
+          {props.node.node.children.length > 0 ? '\u203A' : null}
+        </FrameChildrenIndicator>
+        <FrameName>{props.node.node.frame.name}</FrameName>
+      </FrameNameContainer>
+    </FrameCallersTableCell>
+  );
+}
 
+export function FrameCallersFixedRows(props: Omit<FlamegraphTreeTableRowProps, 'style'>) {
+  return (
+    <Fragment>
+      <FrameCallersTableCell
+        className="FrameCallersTableCell"
+        isSelected={props.tabIndex === 0}
+        textAlign="right"
+      >
+        {props.formatDuration(props.node.node.node.selfWeight)}
+        <Weight
+          isSelected={props.tabIndex === 0}
+          weight={computeRelativeWeight(
+            props.referenceNode.node.totalWeight,
+            props.node.node.node.selfWeight
+          )}
+        />
+      </FrameCallersTableCell>
+      <FrameCallersTableCell
+        isSelected={props.tabIndex === 0}
+        noPadding
+        textAlign="right"
+        className="FrameCallersTableCell"
+      >
+        <FrameWeightTypeContainer>
+          <FrameWeightContainer>
+            {props.formatDuration(props.node.node.node.totalWeight)}
+            <Weight
+              padded
+              isSelected={props.tabIndex === 0}
+              weight={computeRelativeWeight(
+                props.referenceNode.node.totalWeight,
+                props.node.node.node.totalWeight
+              )}
+            />
+          </FrameWeightContainer>
+          <FrameTypeIndicator isSelected={props.tabIndex === 0}>
+            {props.node.node.node.frame.is_application ? (
+              <IconUser size="xs" />
+            ) : (
+              <IconSettings size="xs" />
+            )}
+          </FrameTypeIndicator>
+        </FrameWeightTypeContainer>
+      </FrameCallersTableCell>
+    </Fragment>
+  );
+}
 const Weight = styled(
   (props: {isSelected: boolean; weight: number; padded?: boolean}) => {
     const {weight, padded: __, isSelected: _, ...rest} = props;
@@ -185,7 +194,7 @@ const BackgroundWeightBar = styled('div')`
   width: 100%;
 `;
 
-const FrameCallersRow = styled('div')<{isSelected: boolean}>`
+export const FrameCallersRow = styled('div')<{isSelected: boolean}>`
   display: flex;
   width: 100%;
   color: ${p => (p.isSelected ? p.theme.white : 'inherit')};

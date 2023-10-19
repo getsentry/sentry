@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
@@ -15,14 +15,14 @@ import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import StrictClick from 'sentry/components/strictClick';
 import Tag from 'sentry/components/tag';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
-import {IconChevron, IconFlag, IconRefresh} from 'sentry/icons';
+import {IconChevron, IconOpen, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
 import {
   Frame,
   Organization,
-  PlatformType,
+  PlatformKey,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types';
@@ -58,6 +58,7 @@ export interface DeprecatedLineProps {
   frameMeta?: Record<any, any>;
   frameSourceResolutionResults?: FrameSourceMapDebuggerData;
   hiddenFrameCount?: number;
+  hideSourceMapDebugger?: boolean;
   image?: React.ComponentProps<typeof DebugImage>['image'];
   includeSystemFrames?: boolean;
   isANR?: boolean;
@@ -80,7 +81,7 @@ export interface DeprecatedLineProps {
   onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
   onShowFramesToggle?: (event: React.MouseEvent<HTMLElement>) => void;
   organization?: Organization;
-  platform?: PlatformType;
+  platform?: PlatformKey;
   prevFrame?: Frame;
   registersMeta?: Record<any, any>;
   showCompleteFunctionName?: boolean;
@@ -304,9 +305,6 @@ export class DeprecatedLine extends Component<Props, State> {
       hiddenFrameCount,
     } = this.props;
     const organization = this.props.organization;
-    const stacktraceChangesEnabled = !!organization?.features.includes(
-      'issue-details-stacktrace-improvements'
-    );
     const anrCulprit =
       isANR &&
       analyzeFrameForRootCause(
@@ -316,6 +314,7 @@ export class DeprecatedLine extends Component<Props, State> {
       );
 
     const shouldShowSourceMapDebuggerToggle =
+      !this.props.hideSourceMapDebugger &&
       data.inApp &&
       this.props.frameSourceResolutionResults &&
       (!this.props.frameSourceResolutionResults.frameIsResolved ||
@@ -337,12 +336,8 @@ export class DeprecatedLine extends Component<Props, State> {
           data-test-id="title"
           isSubFrame={!!isSubFrame}
           hasToggle={!!hiddenFrameCount}
-          stacktraceChangesEnabled={stacktraceChangesEnabled}
-          isNotInApp={!data.inApp}
         >
-          <DefaultLineTitleWrapper
-            stacktraceChangesEnabled={stacktraceChangesEnabled && !data.inApp}
-          >
+          <DefaultLineTitleWrapper isInAppFrame={data.inApp}>
             <LeftLineTitle>
               <div>
                 {this.renderLeadHint()}
@@ -362,53 +357,54 @@ export class DeprecatedLine extends Component<Props, State> {
                 {t('Suspect Frame')}
               </Tag>
             ) : null}
-            {stacktraceChangesEnabled ? this.renderShowHideToggle() : null}
+            {this.renderShowHideToggle()}
             {shouldShowSourceMapDebuggerToggle ? (
-              <SourceMapDebuggerToggle
-                icon={<IconFlag />}
-                to=""
-                tooltipText={t(
-                  'Learn how to show the original source code for this stack frame.'
-                )}
-                onClick={e => {
-                  e.stopPropagation();
+              <Fragment>
+                <SourceMapDebuggerModalButton
+                  size="zero"
+                  priority="primary"
+                  title={t(
+                    'Click to learn how to show the original source code for this stack frame.'
+                  )}
+                  onClick={e => {
+                    e.stopPropagation();
 
-                  trackAnalytics(
-                    'source_map_debug_blue_thunder.modal_opened',
-                    sourceMapDebuggerAmplitudeData
-                  );
+                    trackAnalytics(
+                      'source_map_debug_blue_thunder.modal_opened',
+                      sourceMapDebuggerAmplitudeData
+                    );
 
-                  openModal(
-                    modalProps => (
-                      <SourceMapsDebuggerModal
-                        analyticsParams={sourceMapDebuggerAmplitudeData}
-                        sourceResolutionResults={this.props.frameSourceResolutionResults!}
-                        {...modalProps}
-                      />
-                    ),
-                    {
-                      onClose: () => {
-                        trackAnalytics(
-                          'source_map_debug_blue_thunder.modal_closed',
-                          sourceMapDebuggerAmplitudeData
-                        );
-                      },
-                    }
-                  );
-                }}
-              >
-                {hasContextSource(data)
-                  ? t('Not your source code?')
-                  : t('No source code?')}
-              </SourceMapDebuggerToggle>
+                    openModal(
+                      modalProps => (
+                        <SourceMapsDebuggerModal
+                          analyticsParams={sourceMapDebuggerAmplitudeData}
+                          sourceResolutionResults={
+                            this.props.frameSourceResolutionResults!
+                          }
+                          {...modalProps}
+                        />
+                      ),
+                      {
+                        onClose: () => {
+                          trackAnalytics(
+                            'source_map_debug_blue_thunder.modal_closed',
+                            sourceMapDebuggerAmplitudeData
+                          );
+                        },
+                      }
+                    );
+                  }}
+                >
+                  <SourceMapDebuggerButtonText>
+                    {hasContextSource(data)
+                      ? t('Not your source code?')
+                      : t('No source code?')}
+                  </SourceMapDebuggerButtonText>
+                  <IconOpen size="xs" />
+                </SourceMapDebuggerModalButton>
+              </Fragment>
             ) : null}
-            {!data.inApp ? (
-              stacktraceChangesEnabled ? null : (
-                <Tag>{t('System')}</Tag>
-              )
-            ) : (
-              <Tag type="info">{t('In App')}</Tag>
-            )}
+            {data.inApp ? <Tag type="info">{t('In App')}</Tag> : null}
             {this.renderExpander()}
           </DefaultLineTagWrapper>
         </DefaultLine>
@@ -434,20 +430,14 @@ export class DeprecatedLine extends Component<Props, State> {
 
     const leadHint = this.renderLeadHint();
     const packageStatus = this.packageStatus();
-    const organization = this.props.organization;
-    const stacktraceChangesEnabled = !!organization?.features.includes(
-      'issue-details-stacktrace-improvements'
-    );
 
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
         <DefaultLine
           className="title as-table"
           data-test-id="title"
-          stacktraceChangesEnabled={stacktraceChangesEnabled}
           isSubFrame={!!isSubFrame}
           hasToggle={!!hiddenFrameCount}
-          isNotInApp={!data.inApp}
         >
           <NativeLineContent isFrameAfterLastNonApp={!!isFrameAfterLastNonApp}>
             <PackageInfo>
@@ -488,19 +478,11 @@ export class DeprecatedLine extends Component<Props, State> {
             />
           </NativeLineContent>
           <DefaultLineTagWrapper>
-            <DefaultLineTitleWrapper
-              stacktraceChangesEnabled={stacktraceChangesEnabled && !data.inApp}
-            >
+            <DefaultLineTitleWrapper isInAppFrame={data.inApp}>
               {this.renderExpander()}
             </DefaultLineTitleWrapper>
 
-            {!data.inApp ? (
-              stacktraceChangesEnabled ? null : (
-                <Tag>{t('System')}</Tag>
-              )
-            ) : (
-              <Tag type="info">{t('In App')}</Tag>
-            )}
+            {data.inApp ? <Tag type="info">{t('In App')}</Tag> : null}
           </DefaultLineTagWrapper>
         </DefaultLine>
       </StrictClick>
@@ -575,12 +557,12 @@ const RepeatedFrames = styled('div')`
   display: inline-block;
 `;
 
-const DefaultLineTitleWrapper = styled('div')<{stacktraceChangesEnabled: boolean}>`
+const DefaultLineTitleWrapper = styled('div')<{isInAppFrame: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: ${p => (p.stacktraceChangesEnabled ? p.theme.subText : '')};
-  font-style: ${p => (p.stacktraceChangesEnabled ? 'italic' : '')};
+  color: ${p => (!p.isInAppFrame ? p.theme.subText : '')};
+  font-style: ${p => (!p.isInAppFrame ? 'italic' : '')};
 `;
 
 const LeftLineTitle = styled('div')`
@@ -617,15 +599,12 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
 
 const DefaultLine = styled('div')<{
   hasToggle: boolean;
-  isNotInApp: boolean;
   isSubFrame: boolean;
-  stacktraceChangesEnabled: boolean;
 }>`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: ${p =>
-    p.stacktraceChangesEnabled && p.isSubFrame ? `${p.theme.surface100} !important` : ''};
+  background: ${p => (p.isSubFrame ? `${p.theme.surface100}` : '')};
 `;
 
 const StyledIconRefresh = styled(IconRefresh)`
@@ -673,14 +652,13 @@ const ToggleButton = styled(Button)`
   }
 `;
 
-const SourceMapDebuggerToggle = styled(Tag)`
-  cursor: pointer;
-  span {
-    color: ${p => p.theme.gray300};
+const SourceMapDebuggerButtonText = styled('span')`
+  margin-right: ${space(0.5)};
+`;
 
-    &:hover {
-      text-decoration: underline;
-      text-decoration-color: ${p => p.theme.gray200};
-    }
-  }
+const SourceMapDebuggerModalButton = styled(Button)`
+  font-weight: normal;
+  height: 20px;
+  padding: 0 ${space(0.75)};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;

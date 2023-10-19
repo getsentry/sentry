@@ -3,7 +3,8 @@ import re
 from django.urls import reverse
 
 import sentry.auth.idpmigration as idpmigration
-from sentry.models import AuthProvider, OrganizationMember
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organizationmember import OrganizationMember
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test

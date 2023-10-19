@@ -8,8 +8,10 @@ import {
 import {useQuery} from '@tanstack/react-query';
 
 import Placeholder from 'sentry/components/placeholder';
+import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
+import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import DomFilters from 'sentry/views/replays/detail/domMutations/domFilters';
@@ -29,21 +31,31 @@ const cellMeasurer = {
 };
 
 function useExtractedDomNodes({replay}: {replay: null | ReplayReader}) {
-  return useQuery(['getDomNodes', replay], () => replay?.getDomNodes() ?? [], {
-    enabled: Boolean(replay),
-    initialData: [],
-    cacheTime: Infinity,
-  });
+  return useQuery(
+    ['getDomNodes', replay],
+    () =>
+      extractDomNodes({
+        frames: replay?.getDOMFrames(),
+        rrwebEvents: replay?.getRRWebFrames(),
+        startTimestampMs: replay?.getReplay().started_at.getTime() ?? 0,
+      }),
+    {enabled: Boolean(replay), cacheTime: Infinity}
+  );
 }
 
 function DomMutations() {
   const {currentTime, currentHoverTime, replay} = useReplayContext();
-  const {data: actions, isFetching} = useExtractedDomNodes({replay});
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
+
+  const {data: frameToExtraction, isFetching} = useExtractedDomNodes({replay});
+  const actions = useMemo(
+    () => Array.from(frameToExtraction?.values() || []),
+    [frameToExtraction]
+  );
 
   const startTimestampMs = replay?.getReplay()?.started_at?.getTime() ?? 0;
 
-  const filterProps = useDomFilters({actions: actions || []});
+  const filterProps = useDomFilters({actions});
   const {items, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
 
@@ -81,6 +93,9 @@ function DomMutations() {
     );
   };
 
+  const showJumpUpButton = false;
+  const showJumpDownButton = false;
+
   return (
     <FluidHeight>
       <FilterLoadingIndicator isLoading={isFetching}>
@@ -113,6 +128,11 @@ function DomMutations() {
             )}
           </AutoSizer>
         )}
+        <JumpButtons
+          jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
+          onClick={() => {}}
+          tableHeaderHeight={0}
+        />
       </TabItemContainer>
     </FluidHeight>
   );

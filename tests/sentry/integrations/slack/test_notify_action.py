@@ -6,7 +6,8 @@ import responses
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
-from sentry.models import Integration, OrganizationIntegration
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.notifications.additional_attachment_manager import manager
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers import install_slack
@@ -340,7 +341,7 @@ class SlackNotifyActionTest(RuleTestCase):
     def test_disabled_org_integration(self):
         org = self.create_organization(owner=self.user)
         OrganizationIntegration.objects.create(organization_id=org.id, integration=self.integration)
-        OrganizationIntegration.objects.filter(
+        OrganizationIntegration.objects.get(
             integration=self.integration, organization_id=self.event.project.organization.id
         ).update(status=ObjectStatus.DISABLED)
         event = self.get_event()

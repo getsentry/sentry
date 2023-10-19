@@ -26,21 +26,19 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
 from sentry.constants import ObjectStatus
+from sentry.integrations.jira.actions.create_ticket import JiraCreateTicketAction
+from sentry.integrations.jira_server.actions.create_ticket import JiraServerCreateTicketAction
 from sentry.integrations.slack.utils import RedisRuleStatus
-from sentry.mediators import project_rules
-from sentry.models import (
-    NeglectedRule,
-    RegionScheduledDeletion,
-    RuleActivity,
-    RuleActivityType,
-    SentryAppComponent,
-    Team,
-    User,
-)
+from sentry.mediators.project_rules.updater import Updater
+from sentry.models.integrations.sentry_app_component import SentryAppComponent
 from sentry.models.integrations.sentry_app_installation import (
     SentryAppInstallation,
     prepare_ui_component,
 )
+from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
+from sentry.models.scheduledeletion import RegionScheduledDeletion
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.signals import alert_rule_edited
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
@@ -61,11 +59,11 @@ class ProjectRuleDetailsPutSerializer(serializers.Serializer):
     )
     conditions = serializers.ListField(
         child=RuleNodeField(type="condition/event"),
-        help_text="A list of triggers that determine when the rule fires. See [Create an Issue Alert Rule](/api/events/create-an-issue-alert-rule-for-a-project) for valid conditions.",
+        help_text="A list of triggers that determine when the rule fires. See [Create an Issue Alert Rule](/api/alerts/create-an-issue-alert-rule-for-a-project) for valid conditions.",
     )
     actions = serializers.ListField(
         child=RuleNodeField(type="action/event"),
-        help_text="A list of actions that take place when all required conditions and filters for the rule are met. See [Create an Issue Alert Rule](/api/events/create-an-issue-alert-rule-for-a-project) for valid actions.",
+        help_text="A list of actions that take place when all required conditions and filters for the rule are met. See [Create an Issue Alert Rule](/api/alerts/create-an-issue-alert-rule-for-a-project) for valid actions.",
     )
     frequency = serializers.IntegerField(
         min_value=5,
@@ -87,14 +85,14 @@ class ProjectRuleDetailsPutSerializer(serializers.Serializer):
     filters = serializers.ListField(
         child=RuleNodeField(type="filter/event"),
         required=False,
-        help_text="A list of filters that determine if a rule fires after the necessary conditions have been met. See [Create an Issue Alert Rule](/api/events/create-an-issue-alert-rule-for-a-project) for valid filters.",
+        help_text="A list of filters that determine if a rule fires after the necessary conditions have been met. See [Create an Issue Alert Rule](/api/alerts/create-an-issue-alert-rule-for-a-project) for valid filters.",
     )
     owner = ActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
     )
 
 
-@extend_schema(tags=["Events"])
+@extend_schema(tags=["Alerts"])
 @region_silo_endpoint
 class ProjectRuleDetailsEndpoint(RuleEndpoint):
     publish_status = {
@@ -158,8 +156,9 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 del action["_sentry_app_installation"]
                 del action["_sentry_app_component"]
 
-            # TODO(nisanthan): This is a temporary fix. We need to save both the label and value of the selected choice and not save all the choices.
-            if action.get("id") == "sentry.integrations.jira.notify_action.JiraCreateTicketAction":
+            # TODO(nisanthan): This is a temporary fix. We need to save both the label and value of
+            #                  the selected choice and not save all the choices.
+            if action.get("id") in (JiraCreateTicketAction.id, JiraServerCreateTicketAction.id):
                 for field in action.get("dynamic_form_fields", []):
                     if field.get("choices"):
                         field["choices"] = [
@@ -316,7 +315,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
 
             trigger_sentry_app_action_creators_for_issues(actions=kwargs.get("actions"))
 
-            updated_rule = project_rules.Updater.run(rule=rule, request=request, **kwargs)
+            updated_rule = Updater.run(rule=rule, request=request, **kwargs)
 
             RuleActivity.objects.create(
                 rule=updated_rule, user_id=request.user.id, type=RuleActivityType.UPDATED.value

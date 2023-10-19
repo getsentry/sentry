@@ -257,7 +257,7 @@ def get_local_region() -> Region:
 
 @control_silo_function
 def _find_orgs_for_user(user_id: int) -> Set[int]:
-    from sentry.models import OrganizationMemberMapping
+    from sentry.models.organizationmembermapping import OrganizationMemberMapping
 
     return {
         m["organization_id"]
@@ -265,6 +265,7 @@ def _find_orgs_for_user(user_id: int) -> Set[int]:
     }
 
 
+@control_silo_function
 def find_regions_for_orgs(org_ids: Container[int]) -> Set[str]:
     from sentry.models.organizationmapping import OrganizationMapping
 
@@ -291,7 +292,7 @@ def find_all_region_names() -> Iterable[str]:
     return load_global_regions().by_name.keys()
 
 
-def find_all_multitenant_region_names() -> Iterable[str]:
+def find_all_multitenant_region_names() -> List[str]:
     return [
         region.name
         for region in load_global_regions().regions

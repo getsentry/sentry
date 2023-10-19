@@ -50,7 +50,7 @@ class Buffer(Service):
 
     def process(self, model, columns, filters, extra=None, signal_only=None):
         from sentry.event_manager import ScoreClause
-        from sentry.models import Group
+        from sentry.models.group import Group
 
         created = False
 

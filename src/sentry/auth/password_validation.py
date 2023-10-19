@@ -2,19 +2,13 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.utils.functional import lazy
 from django.utils.html import format_html
-from django.utils.translation import gettext as _
 from django.utils.translation import ngettext
 
 from sentry.utils.imports import import_string
 
-_default_password_validators = None
-
 
 def get_default_password_validators():
-    global _default_password_validators
-    if _default_password_validators is None:
-        _default_password_validators = get_password_validators(settings.AUTH_PASSWORD_VALIDATORS)
-    return _default_password_validators
+    return get_password_validators(settings.AUTH_PASSWORD_VALIDATORS)
 
 
 def get_password_validators(validator_config):
@@ -30,7 +24,7 @@ def get_password_validators(validator_config):
     return validators
 
 
-def validate_password(password, password_validators=None):
+def validate_password(password, user=None, password_validators=None):
     """
     Validate whether the password meets all validator requirements.
 
@@ -42,7 +36,7 @@ def validate_password(password, password_validators=None):
         password_validators = get_default_password_validators()
     for validator in password_validators:
         try:
-            validator.validate(password)
+            validator.validate(password, user=user)
         except ValidationError as error:
             errors.append(error)
     if errors:
@@ -74,34 +68,6 @@ def _password_validators_help_text_html(password_validators=None):
 password_validators_help_text_html = lazy(_password_validators_help_text_html, str)
 
 
-class MinimumLengthValidator:
-    """
-    Validate whether the password is of a minimum length.
-    """
-
-    def __init__(self, min_length=8):
-        self.min_length = min_length
-
-    def validate(self, password):
-        if len(password) < self.min_length:
-            raise ValidationError(
-                ngettext(
-                    "This password is too short. It must contain at least %(min_length)d character.",
-                    "This password is too short. It must contain at least %(min_length)d characters.",
-                    self.min_length,
-                ),
-                code="password_too_short",
-                params={"min_length": self.min_length},
-            )
-
-    def get_help_text(self):
-        return ngettext(
-            "Your password must contain at least %(min_length)d character.",
-            "Your password must contain at least %(min_length)d characters.",
-            self.min_length,
-        ) % {"min_length": self.min_length}
-
-
 class MaximumLengthValidator:
     """
     Validate whether the password is of a maximum length.
@@ -110,7 +76,7 @@ class MaximumLengthValidator:
     def __init__(self, max_length=256):
         self.max_length = max_length
 
-    def validate(self, password):
+    def validate(self, password, user=None):
         if len(password) > self.max_length:
             raise ValidationError(
                 ngettext(
@@ -128,18 +94,3 @@ class MaximumLengthValidator:
             "Your password must contain no more than %(max_length)d characters.",
             self.max_length,
         ) % {"max_length": self.max_length}
-
-
-class NumericPasswordValidator:
-    """
-    Validate whether the password is alphanumeric.
-    """
-
-    def validate(self, password):
-        if password.isdigit():
-            raise ValidationError(
-                _("This password is entirely numeric."), code="password_entirely_numeric"
-            )
-
-    def get_help_text(self):
-        return _("Your password can't be entirely numeric.")

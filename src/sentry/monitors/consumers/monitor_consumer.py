@@ -20,7 +20,7 @@ from sentry_sdk.tracing import Span, Transaction
 from sentry import ratelimits
 from sentry.constants import ObjectStatus
 from sentry.killswitches import killswitch_matches_context
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.models import (
@@ -40,7 +40,7 @@ from sentry.monitors.utils import (
     get_new_timeout_at,
     get_timeout_at,
     signal_first_checkin,
-    signal_first_monitor_created,
+    signal_monitor_created,
     valid_duration,
 )
 from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator
@@ -107,7 +107,7 @@ def _ensure_monitor_with_config(
                 "config": validated_config,
             },
         )
-        signal_first_monitor_created(project, None, True)
+        signal_monitor_created(project, None, True)
 
     # Update existing monitor
     if monitor and not created and monitor.config != validated_config:
@@ -570,15 +570,20 @@ def _process_checkin(
         logger.exception("Failed to process check-in", exc_info=True)
 
 
-def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) -> None:
+def _process_message(
+    ts: datetime,
+    partition: int,
+    wrapper: CheckinMessage | ClockPulseMessage,
+) -> None:
+
     # XXX: Relay does not attach a message type, to properly discriminate the
-    # type we add it by default here. This can be removed once the message_type
-    # is guaranteed
+    # message_type we add it by default here. This can be removed once the
+    # message_type is guaranteed
     if "message_type" not in wrapper:
         wrapper["message_type"] = "check_in"
 
     try:
-        try_monitor_tasks_trigger(ts)
+        try_monitor_tasks_trigger(ts, partition)
     except Exception:
         logger.exception("Failed to trigger monitor tasks", exc_info=True)
 
@@ -608,7 +613,11 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
             assert isinstance(message.value, BrokerValue)
             try:
                 wrapper = msgpack.unpackb(message.payload.value)
-                _process_message(message.value.timestamp, wrapper)
+                _process_message(
+                    message.value.timestamp,
+                    message.value.partition.index,
+                    wrapper,
+                )
             except Exception:
                 logger.exception("Failed to process message payload")
 

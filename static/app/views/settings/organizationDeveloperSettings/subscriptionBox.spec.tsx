@@ -1,4 +1,5 @@
 import type {ComponentProps} from 'react';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -6,7 +7,7 @@ import SubscriptionBox from 'sentry/views/settings/organizationDeveloperSettings
 
 describe('SubscriptionBox', () => {
   const onChange = jest.fn();
-  let org = TestStubs.Organization();
+  let org = Organization();
 
   beforeEach(() => {
     onChange.mockReset();
@@ -62,7 +63,7 @@ describe('SubscriptionBox', () => {
     });
 
     it('checkbox visible with integrations-event-hooks flag', () => {
-      org = TestStubs.Organization({features: ['integrations-event-hooks']});
+      org = Organization({features: ['integrations-event-hooks']});
       renderComponent({resource: 'error', organization: org});
 
       expect(screen.getByRole('checkbox')).toBeEnabled();

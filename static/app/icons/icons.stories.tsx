@@ -4,6 +4,7 @@ import {PlatformIcon} from 'platformicons';
 
 import Input from 'sentry/components/input';
 import {Sticky} from 'sentry/components/sticky';
+import JSXNode from 'sentry/components/stories/jsxNode';
 import {Tooltip} from 'sentry/components/tooltip';
 import * as Icons from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -71,6 +72,7 @@ const platformToIcon = {
   javascript: 'javascript',
   'javascript-angular': 'angularjs',
   'javascript-angularjs': 'angularjs',
+  'javascript-astro': 'astro',
   'javascript-backbone': 'backbone',
   'javascript-browser': 'javascript',
   'javascript-capacitor': 'capacitor',
@@ -1368,7 +1370,7 @@ function Section({section}: {section: TSection}) {
           return (
             <Tooltip
               key={icon.id}
-              title={formatObjAsReactStatement(name, props)}
+              title={<JSXNode name={name} props={props} />}
               isHoverable
             >
               <Cell>
@@ -1400,7 +1402,7 @@ function PlatformIconsSection({searchTerm}: {searchTerm: string}) {
         {platforms.map(platform => (
           <Tooltip
             key={platform}
-            title={formatObjAsReactStatement('PlatformIcon', {platform})}
+            title={<JSXNode name="PlatformIcon" props={{platform}} />}
             isHoverable
           >
             <Cell>
@@ -1411,13 +1413,6 @@ function PlatformIconsSection({searchTerm}: {searchTerm: string}) {
       </Grid>
     </section>
   );
-}
-
-function formatObjAsReactStatement(name, props: Record<string, unknown>) {
-  const keyValues = Object.entries(props)
-    .map(([prop, val]) => (val === true ? prop : `${prop}=${JSON.stringify(val)}`))
-    .join(' ');
-  return `<${name} ${keyValues} />`;
 }
 
 const StyledSticky = styled(Sticky)`

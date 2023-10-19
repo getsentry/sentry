@@ -4,6 +4,10 @@ import styled from '@emotion/styled';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
+import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
+import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
+import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 type Props = {
@@ -11,13 +15,22 @@ type Props = {
 };
 
 function ReplayView({toggleFullscreen}: Props) {
+  const organization = useOrganization();
+  const hasNewTimeline = organization.features.includes('session-replay-new-timeline');
+  const isFullscreen = useIsFullscreen();
+
   return (
     <Fragment>
-      <ReplayCurrentUrl />
+      <ContextContainer>
+        <ReplayCurrentUrl />
+        <BrowserOSIcons />
+      </ContextContainer>
       <Panel>
         <ReplayPlayer />
       </Panel>
-      <ReplayController toggleFullscreen={toggleFullscreen} />
+      {isFullscreen || !hasNewTimeline ? (
+        <ReplayController toggleFullscreen={toggleFullscreen} />
+      ) : null}
     </Fragment>
   );
 }
@@ -27,6 +40,14 @@ const Panel = styled(FluidHeight)`
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
   box-shadow: ${p => p.theme.dropShadowMedium};
+`;
+
+const ContextContainer = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: 1fr max-content max-content;
+  align-items: center;
+  gap: ${space(1)};
 `;
 
 export default ReplayView;

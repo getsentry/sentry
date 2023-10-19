@@ -8,7 +8,7 @@ from sentry.integrations.slack.webhooks.command import (
     LINK_USER_FIRST_MESSAGE,
     TEAM_NOT_LINKED_MESSAGE,
 )
-from sentry.models import OrganizationIntegration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo import SiloMode
 from sentry.testutils.helpers import get_response_text, link_user
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -28,6 +28,14 @@ class SlackCommandsLinkTeamTestBase(SlackCommandsTest):
             body='{"ok": true}',
             status=status.HTTP_200_OK,
             content_type="application/json",
+        )
+
+        self.team_admin_user = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=self.team_admin_user,
+            role="member",
+            organization=self.organization,
         )
 
 
@@ -114,6 +122,17 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         data = self.send_slack_message("link team", user_id=OTHER_SLACK_ID)
         assert "Link your Sentry team to this Slack channel!" in get_response_text(data)
 
+    @responses.activate
+    def test_link_team_as_team_admin(self):
+        """
+        Test that when a user who is a team admin attempts to link a team we allow it.
+        """
+        self.login_as(self.team_admin_user)
+        link_user(self.team_admin_user, self.idp, slack_id=OTHER_SLACK_ID)
+
+        data = self.send_slack_message("link team", user_id=OTHER_SLACK_ID)
+        assert "Link your Sentry team to this Slack channel!" in get_response_text(data)
+
 
 @region_silo_test(stable=True)
 class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
@@ -123,6 +142,21 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
 
     @responses.activate
     def test_unlink_team(self):
+        data = self.send_slack_message(
+            "unlink team",
+            channel_name=self.channel_name,
+            channel_id=self.channel_id,
+        )
+        assert "Click here to unlink your team from this channel" in get_response_text(data)
+
+    @responses.activate
+    def test_unlink_team_as_team_admin(self):
+        """
+        Test that when a user who is a team admin attempts to unlink a team we allow it.
+        """
+        self.login_as(self.team_admin_user)
+        link_user(self.team_admin_user, self.idp, slack_id=OTHER_SLACK_ID)
+
         data = self.send_slack_message(
             "unlink team",
             channel_name=self.channel_name,

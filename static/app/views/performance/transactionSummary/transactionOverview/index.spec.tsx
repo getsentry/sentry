@@ -1,4 +1,5 @@
 import {browserHistory, InjectedRouter} from 'react-router';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
@@ -42,7 +43,7 @@ function initializeData({
 } = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
   const project = prj ?? TestStubs.Project({teams});
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
     projects: projects ? projects : [project],
   });
@@ -641,7 +642,7 @@ describe('Performance > TransactionSummary', function () {
           name: 'Project Name 2',
         }),
       ];
-      OrganizationStore.onUpdate(TestStubs.Organization({slug: 'org-slug'}), {
+      OrganizationStore.onUpdate(Organization({slug: 'org-slug'}), {
         replace: true,
       });
       const {organization, router, routerContext} = initializeData({projects});
@@ -954,9 +955,7 @@ describe('Performance > TransactionSummary', function () {
         body: [],
       });
 
-      const {organization, router, routerContext} = initializeData({
-        features: ['performance-suspect-spans-view'],
-      });
+      const {organization, router, routerContext} = initializeData();
 
       render(
         <TestComponent

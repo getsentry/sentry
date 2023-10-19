@@ -10,8 +10,11 @@ from sentry.api.bases import NoProjects
 from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.grouprelease import GroupReleaseWithStatsSerializer
-from sentry.models import Group, GroupRelease, ReleaseEnvironment, ReleaseProject
 from sentry.models.environment import Environment
+from sentry.models.group import Group
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.release import ReleaseProject
+from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.snuba import metrics_enhanced_performance
 from sentry.snuba.referrer import Referrer
 

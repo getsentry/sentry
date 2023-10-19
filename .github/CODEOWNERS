@@ -108,6 +108,7 @@ tsconfig.*                                               @getsentry/owners-js-bu
 webpack.config.*                                         @getsentry/owners-js-build
 babel.config.*                                           @getsentry/owners-js-build
 build-utils/                                             @getsentry/owners-js-build
+.volta.json                                              @getsentry/owners-js-deps
 package.json                                             @getsentry/owners-js-deps
 yarn.lock                                                @getsentry/owners-js-deps
 
@@ -165,6 +166,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_searches.py        @getsentry/issues
 /src/sentry/api/helpers/group_index.py                    @getsentry/issues
 /src/sentry/api/helpers/events.py                         @getsentry/issues
+/src/sentry/api/helpers/group_index/update.py             @getsentry/issues
 
 /src/sentry/snuba/models.py                               @getsentry/issues
 /src/sentry/snuba/query_subscription_consumer.py          @getsentry/issues
@@ -267,6 +269,7 @@ yarn.lock                                                @getsentry/owners-js-de
 
 /static/app/views/starfish/                                                         @getsentry/team-starfish
 /static/app/views/performance/database                                              @getsentry/team-starfish
+/static/app/views/performance/browser                                               @getsentry/team-starfish
 ## Endof Starfish
 
 
@@ -312,6 +315,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/endpoints/sentry_app/                                @getsentry/issues
 /src/sentry/api/endpoints/project_rule*.py                           @getsentry/issues
 /src/sentry/api/serializers/models/rule.py 							 @getsentry/issues
+/src/sentry/api/serializers/models/alert_rule.py 				     @getsentry/issues
 
 /static/app/views/organizationIntegrations                           @getsentry/issues
 /static/app/views/settings/project/projectOwnership/                 @getsentry/issues
@@ -368,7 +372,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/models/organization.py            @getsentry/data
 /src/sentry/models/organizationmember.py      @getsentry/data
 /src/sentry/models/organizationoption.py      @getsentry/data
-/src/sentry/models/project.py                 @getsentry/data
+/src/sentry/models/project.py                 @getsentry/data @getsentry/telemetry-experience
 /src/sentry/models/projectoption.py           @getsentry/data
 /src/sentry/models/release.py                 @getsentry/data
 /src/sentry/models/sentryapp.py               @getsentry/data @getsentry/issues
@@ -438,6 +442,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/endpoints/project_dynamic_sampling.py                            @getsentry/telemetry-experience
 /src/sentry/dynamic_sampling/                                                    @getsentry/telemetry-experience
 /src/sentry/release_health/metrics_sessions_v2.py                                @getsentry/telemetry-experience
+/src/sentry/utils/platform_categories.py                                         @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_metric_data.py                     @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_metric_details.py                  @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_metric_tag_details.py              @getsentry/telemetry-experience
@@ -448,15 +453,18 @@ yarn.lock                                                @getsentry/owners-js-de
 /tests/sentry/snuba/metrics/                                                     @getsentry/telemetry-experience
 /tests/snuba/api/endpoints/test_organization_sessions.py                         @getsentry/telemetry-experience
 
-/static/app/views/settings/project/dynamicSampling/                              @getsentry/telemetry-experience
-/static/app/views/performance/landing/dynamicSamplingMetricsAccuracyAlert.tsx    @getsentry/telemetry-experience
-/static/app/views/performance/landing/dynamicSamplingMetricsAccuracy.spec.tsx    @getsentry/telemetry-experience
-/static/app/utils/metrics/                                                       @getsentry/telemetry-experience
-/static/app/actionCreators/metrics.tsx                                           @getsentry/telemetry-experience
 /static/app/actionCreators/metrics.spec.tsx                                      @getsentry/telemetry-experience
-/static/app/types/metrics.tsx                                                    @getsentry/telemetry-experience
-
+/static/app/actionCreators/metrics.tsx                                           @getsentry/telemetry-experience
+/static/app/data/platformCategories.tsx                                          @getsentry/telemetry-experience
+/static/app/data/platformPickerCategories.tsx                                    @getsentry/telemetry-experience
+/static/app/data/platforms.tsx                                                   @getsentry/telemetry-experience
 /static/app/gettingStartedDocs/                                                  @getsentry/telemetry-experience
+/static/app/types/metrics.tsx                                                    @getsentry/telemetry-experience
+/static/app/types/project.tsx                                                    @getsentry/telemetry-experience
+/static/app/utils/metrics/                                                       @getsentry/telemetry-experience
+/static/app/views/performance/landing/dynamicSamplingMetricsAccuracy.spec.tsx    @getsentry/telemetry-experience
+/static/app/views/performance/landing/dynamicSamplingMetricsAccuracyAlert.tsx    @getsentry/telemetry-experience
+/static/app/views/settings/project/dynamicSampling/                              @getsentry/telemetry-experience
 ## End of Telemetry Experience
 
 

@@ -27,8 +27,9 @@ from sentry.incidents.serializers import (
     AlertRuleTriggerActionSerializer,
     AlertRuleTriggerSerializer,
 )
-from sentry.models import ACTOR_TYPES, Environment, Integration
-from sentry.models.actor import get_actor_for_user
+from sentry.models.actor import ACTOR_TYPES, get_actor_for_user
+from sentry.models.environment import Environment
+from sentry.models.integrations.integration import Integration
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.integration import integration_service

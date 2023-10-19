@@ -5,7 +5,7 @@ from functools import cached_property
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping
 from urllib.parse import urlparse, urlunparse
 
-from django.utils.html import escape
+from django.utils.html import format_html
 from django.utils.safestring import SafeString, mark_safe
 
 from sentry.db.models import Model
@@ -21,7 +21,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
-    from sentry.models import Activity
+    from sentry.models.activity import Activity
 
 
 class ActivityNotification(ProjectNotification, abc.ABC):
@@ -186,15 +186,15 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
 
         fmt = '<span class="avatar-container">{}</span> <strong>{}</strong>'
 
-        author = mark_safe(fmt.format(avatar_as_html(self.user), escape(name)))
+        author = format_html(fmt, mark_safe(avatar_as_html(self.user)), name)
 
-        issue_name = escape(self.group.qualified_short_id or "an issue")
-        an_issue = f'<a href="{escape(self.get_group_link())}">{issue_name}</a>'
+        issue_name = self.group.qualified_short_id or "an issue"
+        an_issue = format_html('<a href="{}">{}</a>', self.get_group_link(), issue_name)
 
         context = {"author": author, "an issue": an_issue}
         context.update(params)
 
-        return mark_safe(description.format(**context))
+        return format_html(description, **context)
 
     def get_title_link(self, recipient: RpcActor, provider: ExternalProviders) -> str | None:
         from sentry.integrations.message_builder import get_title_link

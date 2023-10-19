@@ -17,7 +17,12 @@ from sentry.integrations.message_builder import (
 from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT, SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
-from sentry.models import ActorTuple, Group, GroupStatus, Project, Rule, Team, User
+from sentry.models.actor import ActorTuple
+from sentry.models.group import Group, GroupStatus
+from sentry.models.project import Project
+from sentry.models.rule import Rule
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor

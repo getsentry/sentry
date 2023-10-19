@@ -14,7 +14,7 @@ from sentry.issues.escalating import (
 )
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import generate_issue_forecast, standard_version
-from sentry.models import Group
+from sentry.models.group import Group
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 

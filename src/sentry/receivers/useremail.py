@@ -1,7 +1,8 @@
 from django.db import IntegrityError
 from django.db.models.signals import post_save
 
-from sentry.models import User, UserEmail
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
 
 
 def create_user_email(instance, created, **kwargs):

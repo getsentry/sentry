@@ -10,7 +10,6 @@ import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
-import CircleIndicator from 'sentry/components/circleIndicator';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
@@ -39,7 +38,7 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
 import {DashboardFilters, DisplayType, Widget, WidgetType} from '../types';
-import {getWidgetIndicatorColor} from '../utils';
+import {getColoredWidgetIndicator, hasThresholdMaxValue} from '../utils';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 
 import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPContext';
@@ -75,6 +74,7 @@ type Props = WithRouterProps & {
   isWidgetInvalid?: boolean;
   noDashboardsMEPProvider?: boolean;
   noLazyLoad?: boolean;
+  onDataFetched?: (results: TableDataWithTitle[]) => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
   onEdit?: () => void;
@@ -222,6 +222,12 @@ class WidgetCard extends Component<Props, State> {
     timeseriesResultsTypes?: Record<string, AggregationOutputType>;
     totalIssuesCount?: string;
   }) => {
+    const {onDataFetched} = this.props;
+
+    if (onDataFetched && tableResults) {
+      onDataFetched(tableResults);
+    }
+
     this.setState({
       seriesData: timeseriesResults,
       tableData: tableResults,
@@ -310,15 +316,12 @@ class WidgetCard extends Component<Props, State> {
                         <WidgetTitle>{widget.title}</WidgetTitle>
                       </Tooltip>
                       {widget.thresholds &&
+                        hasThresholdMaxValue(widget.thresholds) &&
                         this.state.tableData &&
-                        organization.features.includes('dashboard-widget-indicators') && (
-                          <CircleIndicator
-                            color={getWidgetIndicatorColor(
-                              widget.thresholds,
-                              this.state.tableData
-                            )}
-                            size={12}
-                          />
+                        organization.features.includes('dashboard-widget-indicators') &&
+                        getColoredWidgetIndicator(
+                          widget.thresholds,
+                          this.state.tableData
                         )}
                     </WidgetTitleRow>
                     {widget.description && (

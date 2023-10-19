@@ -38,7 +38,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
+import {
+  QuickTraceEvent,
+  TraceErrorOrIssue,
+} from 'sentry/utils/performance/quickTrace/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
@@ -57,6 +60,7 @@ import {
   getFormattedTimeRangeWithLeadingAndTrailingZero,
   getSpanSubTimings,
   getTraceDateTimeRange,
+  isErrorPerformanceError,
   isGapSpan,
   isHiddenDataKey,
   isOrphanSpan,
@@ -87,7 +91,7 @@ type Props = {
   event: Readonly<EventTransaction>;
   isRoot: boolean;
   organization: Organization;
-  relatedErrors: TraceError[] | null;
+  relatedErrors: TraceErrorOrIssue[] | null;
   resetCellMeasureCache: () => void;
   scrollToHash: (hash: string) => void;
   span: ProcessedSpanType;
@@ -309,16 +313,23 @@ function SpanDetail(props: Props) {
       <Alert type={getCumulativeAlertLevelFromErrors(relatedErrors)} system>
         <ErrorMessageTitle>
           {tn(
-            '%s error event occurred in this span.',
-            '%s error events occurred in this span.',
+            '%s error event or performance issue is associated with this span.',
+            '%s error events or performance issues are associated with this span.',
             relatedErrors.length
           )}
         </ErrorMessageTitle>
         <ErrorMessageContent>
           {visibleErrors.map(error => (
             <Fragment key={error.event_id}>
-              <ErrorDot level={error.level} />
-              <ErrorLevel>{error.level}</ErrorLevel>
+              {isErrorPerformanceError(error) ? (
+                <ErrorDot level="error" />
+              ) : (
+                <Fragment>
+                  <ErrorDot level={error.level} />
+                  <ErrorLevel>{error.level}</ErrorLevel>
+                </Fragment>
+              )}
+
               <ErrorTitle>
                 <Link to={generateIssueEventTarget(error, organization)}>
                   {error.title}

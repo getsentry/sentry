@@ -19,7 +19,9 @@ from sentry.api.utils import generate_organization_url
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
-from sentry.models import AuthProvider, OrganizationMapping, OrganizationStatus
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.user import User
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service

@@ -25,13 +25,11 @@ from sentry.integrations import (
 )
 from sentry.integrations.jira_server.utils.choice import build_user_choice
 from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
-from sentry.models import (
-    ExternalIssue,
-    IntegrationExternalProject,
-    Organization,
-    OrganizationIntegration,
-    User,
-)
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration_external_project import IntegrationExternalProject
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.organization import Organization
+from sentry.models.user import User
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -79,6 +77,12 @@ FEATURE_DESCRIPTIONS = [
         Synchronize Comments on Sentry Issues directly to the linked Jira ticket.
         """,
         IntegrationFeatures.ISSUE_SYNC,
+    ),
+    FeatureDescription(
+        """
+        Automatically create Jira tickets based on Issue Alert conditions.
+        """,
+        IntegrationFeatures.TICKET_RULES,
     ),
 ]
 
@@ -872,7 +876,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         schema. Send this cleaned data to Jira. Finally, make another API call
         to Jira to make sure the issue was created and return basic issue details.
 
-        :param data: JiraCreateTicketAction object
+        :param data: JiraServerCreateTicketAction object
         :param kwargs: not used
         :return: simple object with basic Jira issue details
         """
@@ -1124,8 +1128,6 @@ class JiraServerIntegrationProvider(IntegrationProvider):
     integration_cls = JiraServerIntegration
 
     needs_default_identity = True
-
-    can_add = True
 
     features = frozenset([IntegrationFeatures.ISSUE_BASIC, IntegrationFeatures.ISSUE_SYNC])
 

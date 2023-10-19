@@ -24,7 +24,8 @@ from sentry.issues.grouptype import (
     PerformanceSlowDBQueryGroupType,
     PerformanceUncompressedAssetsGroupType,
 )
-from sentry.models import Organization, Project
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 
 from .types import PerformanceProblemsMap, Span
 

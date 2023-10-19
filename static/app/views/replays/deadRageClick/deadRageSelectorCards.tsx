@@ -1,30 +1,31 @@
 import {ComponentProps, ReactNode, useState} from 'react';
 import styled from '@emotion/styled';
 
+import Accordion from 'sentry/components/accordion/accordion';
 import {LinkButton} from 'sentry/components/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import FeatureBadge from 'sentry/components/featureBadge';
+import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconCursorArrow} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import {ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import Accordion from 'sentry/views/performance/landing/widgets/components/accordion';
 import {
   ContentContainer,
   HeaderContainer,
   HeaderTitleLegend,
-  StatusContainer,
   Subtitle,
   WidgetContainer,
 } from 'sentry/views/profiling/landing/styles';
 import ExampleReplaysList from 'sentry/views/replays/deadRageClick/exampleReplaysList';
 import {
+  ProjectInfo,
   SelectorLink,
   transformSelectorQuery,
 } from 'sentry/views/replays/deadRageClick/selectorTable';
@@ -37,13 +38,18 @@ function DeadRageSelectorCards() {
         header={
           <div>
             <StyledWidgetHeader>
-              {t('Most Dead Clicks')}
-              <QuestionTooltip
-                size="xs"
-                position="top"
-                title={t('The top selectors your users have dead clicked on.')}
-                isHoverable
-              />
+              <TitleTooltipContainer>
+                {t('Most Dead Clicks')}
+                <QuestionTooltip
+                  size="xs"
+                  position="top"
+                  title={t(
+                    'The top selectors your users have dead clicked on (i.e., a user click that does not result in any page activity after 7 seconds).'
+                  )}
+                  isHoverable
+                />
+              </TitleTooltipContainer>
+              <FeatureBadge type="beta" />
             </StyledWidgetHeader>
             <Subtitle>{t('Suggested replays to watch')}</Subtitle>
           </div>
@@ -55,13 +61,18 @@ function DeadRageSelectorCards() {
         header={
           <div>
             <StyledWidgetHeader>
-              {t('Most Rage Clicks')}
-              <QuestionTooltip
-                size="xs"
-                position="top"
-                title={t('The top selectors your users have rage clicked on.')}
-                isHoverable
-              />
+              <TitleTooltipContainer>
+                {t('Most Rage Clicks')}
+                <QuestionTooltip
+                  size="xs"
+                  position="top"
+                  title={t(
+                    'The top selectors your users have rage clicked on (i.e., 5 or more clicks on a dead element, which exhibits no page activity after 7 seconds).'
+                  )}
+                  isHoverable
+                />
+              </TitleTooltipContainer>
+              <FeatureBadge type="beta" />
             </StyledWidgetHeader>
             <Subtitle>{t('Suggested replays to watch')}</Subtitle>
           </div>
@@ -81,7 +92,7 @@ function AccordionWidget({
   deadOrRage: 'dead' | 'rage';
   header: ReactNode;
 }) {
-  const [selectedListIndex, setSelectListIndex] = useState(0);
+  const [selectedListIndex, setSelectListIndex] = useState(-1);
   const {isLoading, isError, data} = useDeadRageSelectors({
     per_page: 3,
     sort: `-${clickType}`,
@@ -101,34 +112,43 @@ function AccordionWidget({
         </ClickColor>
         {header}
       </StyledHeaderContainer>
-      {isLoading && (
-        <StatusContainer>
-          <LoadingIndicator />
-        </StatusContainer>
-      )}
-      {isError || (!isLoading && filteredData.length === 0) ? (
+      {isLoading ? (
+        <LoadingContainer>
+          <StyledPlaceholder />
+          <StyledPlaceholder />
+          <StyledPlaceholder />
+        </LoadingContainer>
+      ) : isError || (!isLoading && filteredData.length === 0) ? (
         <CenteredContentContainer>
           <EmptyStateWarning>
-            <p>{t('No results found')}</p>
+            <div>{t('No results found')}</div>
+            <EmptySubtitle>
+              {tct(
+                'There were no [type] clicks within this timeframe. Expand your timeframe, or increase your replay sample rate to see more data.',
+                {type: deadOrRage}
+              )}
+            </EmptySubtitle>
           </EmptyStateWarning>
         </CenteredContentContainer>
       ) : (
         <LeftAlignedContentContainer>
           <Accordion
             buttonOnLeft
+            collapsible
             expandedIndex={selectedListIndex}
             setExpandedIndex={setSelectListIndex}
             items={filteredData.map(d => {
               const selectorQuery = `${deadOrRage}.selector:"${transformSelectorQuery(
-                d.dom_element
+                d.dom_element.fullSelector
               )}"`;
               return {
                 header: () => (
                   <AccordionItemHeader
                     count={d[clickType] ?? 0}
-                    selector={d.dom_element}
+                    selector={d.dom_element.selector}
                     clickColor={clickColor}
                     selectorQuery={selectorQuery}
+                    id={d.project_id}
                   />
                 ),
                 content: () => (
@@ -136,6 +156,7 @@ function AccordionWidget({
                     location={location}
                     clickType={clickType}
                     selectorQuery={selectorQuery}
+                    projectId={d.project_id}
                   />
                 ),
               };
@@ -157,9 +178,11 @@ function AccordionItemHeader({
   clickColor,
   selector,
   selectorQuery,
+  id,
 }: {
   clickColor: ColorOrAlias;
   count: number;
+  id: number;
   selector: string;
   selectorQuery: string;
 }) {
@@ -171,8 +194,15 @@ function AccordionItemHeader({
   );
   return (
     <StyledAccordionHeader>
-      <SelectorLink value={selector} selectorQuery={selectorQuery} />
-      <RightAlignedCell>{clickCount}</RightAlignedCell>
+      <SelectorLink
+        value={selector}
+        selectorQuery={selectorQuery}
+        projectId={id.toString()}
+      />
+      <RightAlignedCell>
+        {clickCount}
+        <ProjectInfo id={id} isWidget />
+      </RightAlignedCell>
     </StyledAccordionHeader>
   );
 }
@@ -257,15 +287,21 @@ const StyledAccordionHeader = styled('div')`
   flex: 1;
 `;
 
+const TitleTooltipContainer = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+`;
+
 const StyledWidgetHeader = styled(HeaderTitleLegend)`
   display: grid;
-  gap: ${space(1)};
-  justify-content: start;
+  justify-content: space-between;
   align-items: center;
 `;
 
 const StyledWidgetContainer = styled(WidgetContainer)`
   margin-bottom: 0;
+  padding-top: ${space(1.5)};
 `;
 
 export const RightAlignedCell = styled('div')`
@@ -273,6 +309,24 @@ export const RightAlignedCell = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: ${space(1)};
+  padding-left: ${space(1)};
+`;
+
+const EmptySubtitle = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  line-height: 1.6em;
+  padding-left: ${space(1)};
+  padding-right: ${space(1)};
+`;
+
+const LoadingContainer = styled(ContentContainer)`
+  gap: ${space(0.25)};
+  padding: ${space(1)} ${space(0.5)} 3px ${space(0.5)};
+`;
+
+const StyledPlaceholder = styled(Placeholder)`
+  height: 34px;
 `;
 
 export default DeadRageSelectorCards;

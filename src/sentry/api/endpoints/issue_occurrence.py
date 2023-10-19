@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options

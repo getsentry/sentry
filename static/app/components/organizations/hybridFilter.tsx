@@ -48,6 +48,11 @@ export interface HybridFilterProps<Value extends React.Key>
   menuFooterMessage?: ((hasStagedChanges) => React.ReactNode) | React.ReactNode;
   multiple?: boolean;
   onReplace?: (selected: Value) => void;
+  /**
+   * Similar to onChange, but is called when the internal staged value changes (see
+   * `stagedValue` below).
+   */
+  onStagedValueChange?: (selected: Value[]) => void;
   onToggle?: (selected: Value[]) => void;
 }
 
@@ -66,6 +71,7 @@ export function HybridFilter<Value extends React.Key>({
   value,
   onClear,
   onChange,
+  onStagedValueChange,
   onSectionToggle,
   onReplace,
   onToggle,
@@ -85,6 +91,10 @@ export function HybridFilter<Value extends React.Key>({
 
   // Update `stagedValue` whenever the external `value` changes
   useEffect(() => setStagedValue(value), [value]);
+
+  useEffect(() => {
+    onStagedValueChange?.(stagedValue);
+  }, [onStagedValueChange, stagedValue]);
 
   /**
    * Whether there are staged, uncommitted changes. Used to determine whether we should
@@ -207,7 +217,7 @@ export function HybridFilter<Value extends React.Key>({
         ? menuFooterMessage(hasStagedChanges)
         : menuFooterMessage;
 
-    return menuFooter || hasStagedChanges || showModifierTip
+    return menuFooter || footerMessage || hasStagedChanges || showModifierTip
       ? ({closeOverlay}) => (
           <Fragment>
             {footerMessage && <FooterMessage>{footerMessage}</FooterMessage>}
@@ -365,6 +375,11 @@ const FooterWrap = styled('div')`
   display: grid;
   grid-auto-flow: column;
   gap: ${space(2)};
+
+  /* If there's FooterMessage above */
+  &:not(:first-child) {
+    margin-top: ${space(1)};
+  }
 `;
 
 const FooterMessage = styled('p')`

@@ -8,7 +8,7 @@ from snuba_sdk import AliasedExpression, Column, Condition, Function, Identifier
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.search.events import builder, constants, fields
-from sentry.search.events.datasets import field_aliases, function_aliases
+from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
 from sentry.snuba.metrics.naming_layer.mri import SpanMRI
@@ -28,6 +28,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
     ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
         return {
             constants.SPAN_DOMAIN_ALIAS: self._span_domain_filter_converter,
+            constants.DEVICE_CLASS_ALIAS: lambda search_filter: filter_aliases.device_class_converter(
+                self.builder, search_filter
+            ),
         }
 
     @property
@@ -36,6 +39,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             constants.SPAN_MODULE_ALIAS: self._resolve_span_module,
             constants.SPAN_DOMAIN_ALIAS: self._resolve_span_domain,
             constants.UNIQUE_SPAN_DOMAIN_ALIAS: self._resolve_unique_span_domains,
+            constants.DEVICE_CLASS_ALIAS: lambda alias: field_aliases.resolve_device_class(
+                self.builder, alias
+            ),
         }
 
     def resolve_metric(self, value: str) -> int:
@@ -141,7 +147,10 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         fields.with_default(
                             "span.self_time",
                             fields.MetricArg(
-                                "column", allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
+                                "column",
+                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS.union(
+                                    constants.SPAN_METRIC_BYTES_COLUMNS
+                                ),
                             ),
                         ),
                     ],
@@ -155,6 +164,48 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         alias,
                     ),
                     is_percentile=True,
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
+                    "avg_if",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
+                        ),
+                        fields.MetricArg(
+                            "if_col",
+                            allowed_columns=["release"],
+                        ),
+                        fields.SnQLStringArg(
+                            "if_val", unquote=True, unescape_quotes=True, optional_unquote=True
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: Function(
+                        "avgIf",
+                        [
+                            Column("value"),
+                            Function(
+                                "and",
+                                [
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            args["metric_id"],
+                                        ],
+                                    ),
+                                    Function(
+                                        "equals",
+                                        [self.builder.column(args["if_col"]), args["if_val"]],
+                                    ),
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),

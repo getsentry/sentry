@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -9,7 +11,7 @@ import {
 } from 'sentry/components/onboarding/productSelection';
 
 describe('Onboarding Product Selection', function () {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['session-replay', 'performance-view', 'profiling-view'],
   });
 

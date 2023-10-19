@@ -1,8 +1,10 @@
 import DateTime from 'sentry/components/dateTime';
 import {DataSection} from 'sentry/components/events/styles';
 import Link from 'sentry/components/links/link';
+import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t, tct} from 'sentry/locale';
-import {Event} from 'sentry/types';
+import {Event, Group, IssueType} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -13,9 +15,36 @@ import {
 
 type EventStatisticalDetectorMessageProps = {
   event: Event;
+  group: Group;
 };
 
-function EventStatisticalDetectorMessage({event}: EventStatisticalDetectorMessageProps) {
+function EventStatisticalDetectorMessage({
+  event,
+  group,
+}: EventStatisticalDetectorMessageProps) {
+  switch (group.issueType) {
+    case IssueType.PERFORMANCE_DURATION_REGRESSION: {
+      return (
+        <EventStatisticalDetectorRegressedPerformanceMessage
+          event={event}
+          group={group}
+        />
+      );
+    }
+    case IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL: {
+      return (
+        <EventStatisticalDetectorRegressedFunctionMessage event={event} group={group} />
+      );
+    }
+    default: {
+      return null;
+    }
+  }
+}
+
+function EventStatisticalDetectorRegressedPerformanceMessage({
+  event,
+}: EventStatisticalDetectorMessageProps) {
   const organization = useOrganization();
 
   const transactionName = event?.occurrence?.evidenceData?.transaction;
@@ -41,6 +70,37 @@ function EventStatisticalDetectorMessage({event}: EventStatisticalDetectorMessag
             ),
             amount: formatPercentage(
               event?.occurrence?.evidenceData?.trendPercentage - 1
+            ),
+            date: <DateTime date={detectionTime} dateOnly />,
+            time: <DateTime date={detectionTime} timeOnly />,
+          }
+        )}
+      </div>
+    </DataSection>
+  );
+}
+
+function EventStatisticalDetectorRegressedFunctionMessage({
+  event,
+}: EventStatisticalDetectorMessageProps) {
+  const evidenceData = event?.occurrence?.evidenceData;
+  const percentageChange = evidenceData?.trendPercentage;
+  const detectionTime = new Date(evidenceData?.breakpoint * 1000);
+
+  return (
+    <DataSection>
+      <div style={{display: 'inline'}}>
+        {tct(
+          'There was [change] in duration (P95) from [before] to [after] around [date] at [time]. The example profiles may indicate what changed in the regression.',
+          {
+            change: defined(percentageChange)
+              ? t('a %s increase', formatPercentage(percentageChange - 1))
+              : t('an increase'),
+            before: (
+              <PerformanceDuration nanoseconds={evidenceData?.aggregateRange1 ?? 0} />
+            ),
+            after: (
+              <PerformanceDuration nanoseconds={evidenceData?.aggregateRange2 ?? 0} />
             ),
             date: <DateTime date={detectionTime} dateOnly />,
             time: <DateTime date={detectionTime} timeOnly />,

@@ -12,7 +12,8 @@ describe('GettingStartedWithAzurefunctions', function () {
 
     // Steps
     for (const step of steps({
-      installSnippet: 'test-install-snippet',
+      installSnippetYarn: 'test-install-snippet-yarn',
+      installSnippetNpm: 'test-install-snippet-npm',
       importContent: 'test-import-content',
       initContent: 'test-init-content',
       sourceMapStep: {

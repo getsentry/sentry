@@ -81,6 +81,7 @@ export enum IssueType {
   PROFILE_REGEX_MAIN_THREAD = 'profile_regex_main_thread',
   PROFILE_FRAME_DROP = 'profile_frame_drop',
   PROFILE_FRAME_DROP_EXPERIMENTAL = 'profile_frame_drop_experimental',
+  PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL = 'profile_function_regression_exp',
 }
 
 export enum IssueTitle {
@@ -98,7 +99,7 @@ export enum IssueTitle {
   PERFORMANCE_DURATION_REGRESSION = 'Duration Regression',
 }
 
-export const getIssueTypeFromOccurenceType = (
+export const getIssueTypeFromOccurrenceType = (
   typeId: number | undefined
 ): IssueType | null => {
   const occurrenceTypeToIssueIdMap = {

@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -5,7 +7,7 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import {useMembers} from 'sentry/utils/useMembers';
 
 describe('useMembers', function () {
-  const org = TestStubs.Organization();
+  const org = Organization();
 
   const mockUsers = [TestStubs.User()];
 

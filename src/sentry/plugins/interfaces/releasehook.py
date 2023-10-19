@@ -6,7 +6,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.exceptions import HookValidationError
-from sentry.models import Activity, Release
+from sentry.models.activity import Activity
+from sentry.models.release import Release
 from sentry.types.activity import ActivityType
 
 

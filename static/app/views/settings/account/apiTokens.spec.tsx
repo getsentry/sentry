@@ -1,8 +1,10 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ApiTokens} from 'sentry/views/settings/account/apiTokens';
 
-const organization = TestStubs.Organization();
+const organization = Organization();
 
 describe('ApiTokens', function () {
   beforeEach(function () {

@@ -6,16 +6,13 @@ from django.test.utils import override_settings
 
 from sentry.db.models import BaseModel
 from sentry.db.models.outboxes import run_outbox_replications_for_self_hosted
-from sentry.models import (
-    AuthIdentity,
-    AuthIdentityReplica,
-    AuthProvider,
-    AuthProviderReplica,
-    ControlOutbox,
-    OrganizationMapping,
-    RegionOutbox,
-    outbox_context,
-)
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authidentityreplica import AuthIdentityReplica
+from sentry.models.authprovider import AuthProvider
+from sentry.models.authproviderreplica import AuthProviderReplica
+from sentry.models.organization import Organization
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.outbox import ControlOutbox, RegionOutbox, outbox_context
 from sentry.silo import SiloMode
 from sentry.tasks.backfill_outboxes import (
     backfill_outboxes_for,
@@ -44,7 +41,7 @@ def reset_processing_state():
 
 
 @django_db_all
-@control_silo_test(stable=True)
+@no_silo_test(stable=True)
 def test_processing_awaits_options():
     reset_processing_state()
     org = Factories.create_organization()
@@ -58,6 +55,14 @@ def test_processing_awaits_options():
         }
     ):
         assert backfill_outboxes_for(SiloMode.CONTROL, 0, 1)
+
+    assert not backfill_outboxes_for(SiloMode.REGION, 0, 1)
+    with override_options(
+        {
+            "outbox_replication.sentry_organization.replication_version": Organization.replication_version
+        }
+    ):
+        assert backfill_outboxes_for(SiloMode.REGION, 0, 1)
 
 
 @django_db_all

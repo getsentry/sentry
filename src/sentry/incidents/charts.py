@@ -14,7 +14,9 @@ from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
 from sentry.incidents.logic import translate_aggregate_field
 from sentry.incidents.models import AlertRule, Incident
-from sentry.models import ApiKey, Organization, User
+from sentry.models.apikey import ApiKey
+from sentry.models.organization import Organization
+from sentry.models.user import User
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
 from sentry.snuba.models import SnubaQuery

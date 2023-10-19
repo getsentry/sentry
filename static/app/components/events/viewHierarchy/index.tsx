@@ -25,7 +25,7 @@ function getNodeLabel({identifier, type}: ViewHierarchyWindow) {
 
 function onScrollToNode(
   node: VirtualizedTreeRenderedRow<ViewHierarchyWindow>,
-  scrollContainer: HTMLElement | null,
+  scrollContainer: HTMLElement | HTMLElement[] | null,
   coordinates: {depth: number; top: number} | undefined
 ) {
   if (node) {
@@ -41,9 +41,17 @@ function onScrollToNode(
     // When a user clicks on a wireframe node that's not rendered in the "overscroll"
     // we need to scroll to where the node would be rendered
     const left = coordinates.depth * 16;
-    scrollContainer?.scrollBy({
-      left,
-    });
+    if (Array.isArray(scrollContainer)) {
+      scrollContainer.forEach(container => {
+        container.scrollBy({
+          left,
+        });
+      });
+    } else if (scrollContainer) {
+      scrollContainer.scrollBy({
+        left,
+      });
+    }
   }
 }
 

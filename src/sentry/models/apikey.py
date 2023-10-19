@@ -13,8 +13,8 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel
-from sentry.models import OutboxCategory
 from sentry.models.apiscopes import HasApiScopes
+from sentry.models.outbox import OutboxCategory
 from sentry.services.hybrid_cloud.replica import region_replica_service
 
 
@@ -28,7 +28,7 @@ class ApiKeyStatus:
 class ApiKey(ReplicatedControlModel, HasApiScopes):
     __relocation_scope__ = RelocationScope.Global
     category = OutboxCategory.API_KEY_UPDATE
-    replication_version = 2
+    replication_version = 3
 
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade")
     label = models.CharField(max_length=64, blank=True, default="Default")

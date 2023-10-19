@@ -5,12 +5,9 @@ import responses
 from django.core import mail
 from django.urls import reverse
 
-from sentry.models import (
-    InviteStatus,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    OrganizationOption,
-)
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.testutils.cases import APITestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.slack import get_attachment_no_text
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin

@@ -27,7 +27,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
-from sentry.models import Environment
+from sentry.models.environment import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.silo import SiloLimit, SiloMode
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -44,7 +44,11 @@ from sentry.utils.http import (
 )
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
 
-from .authentication import ApiKeyAuthentication, OrgAuthTokenAuthentication, TokenAuthentication
+from .authentication import (
+    ApiKeyAuthentication,
+    OrgAuthTokenAuthentication,
+    UserAuthTokenAuthentication,
+)
 from .paginator import BadPaginationError, Paginator
 from .permissions import NoPermission
 
@@ -54,7 +58,6 @@ __all__ = [
     "StatsMixin",
     "control_silo_endpoint",
     "region_silo_endpoint",
-    "pending_silo_endpoint",
 ]
 
 from ..services.hybrid_cloud import rpcmetrics
@@ -76,7 +79,7 @@ CURSOR_LINK_HEADER = (
 )
 
 DEFAULT_AUTHENTICATION = (
-    TokenAuthentication,
+    UserAuthTokenAuthentication,
     OrgAuthTokenAuthentication,
     ApiKeyAuthentication,
     SessionAuthentication,
@@ -122,7 +125,10 @@ def allow_cors_options(func):
             "Content-Type, Authentication, Authorization, Content-Encoding, "
             "sentry-trace, baggage, X-CSRFToken"
         )
-        response["Access-Control-Expose-Headers"] = "X-Sentry-Error, Retry-After"
+        response["Access-Control-Expose-Headers"] = (
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "Endpoint, Retry-After, Link"
+        )
 
         if request.META.get("HTTP_ORIGIN") == "null":
             # if ORIGIN header is explicitly specified as 'null' leave it alone
@@ -681,14 +687,6 @@ Apply to endpoints that exist in REGION silo.
 If a request is received and the application is not in REGION
 mode 404s will be returned.
 """
-
-# Use this decorator to mark endpoints that still need to be marked as either
-# control_silo_endpoint or region_silo_endpoint. Marking a class with
-# pending_silo_endpoint keeps it from tripping SiloLimitCoverageTest, while ensuring
-# that the test will fail if a new endpoint is added with no decorator at all.
-# Eventually we should replace all instances of this decorator and delete it.
-pending_silo_endpoint = EndpointSiloLimit()
-
 
 all_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH)
 """

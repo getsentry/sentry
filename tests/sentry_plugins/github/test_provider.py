@@ -3,7 +3,8 @@ from unittest.mock import patch
 
 import responses
 
-from sentry.models import OrganizationIntegration, Repository
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test

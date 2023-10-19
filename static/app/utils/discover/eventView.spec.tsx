@@ -1,4 +1,5 @@
 import shuffle from 'lodash/shuffle';
+import {Organization} from 'sentry-fixture/organization';
 import {PageFilters} from 'sentry-fixture/pageFilters';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
@@ -2977,7 +2978,7 @@ describe('EventView.getResultsViewUrlTarget()', function () {
     display: 'previous',
     dataset: DiscoverDatasets.DISCOVER,
   };
-  const organization = TestStubs.Organization();
+  const organization = Organization();
 
   it('generates a URL with non-customer domain context', function () {
     window.__initialData.customerDomain = null;
@@ -3033,7 +3034,7 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
     display: 'previous',
     dataset: DiscoverDatasets.DISCOVER,
   };
-  const organization = TestStubs.Organization();
+  const organization = Organization();
 
   it('generates a URL with non-customer domain context', function () {
     window.__initialData.customerDomain = null;
@@ -3097,7 +3098,7 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
     display: 'previous',
     dataset: DiscoverDatasets.DISCOVER,
   };
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const showTransactions = EventsDisplayFilterName.P99;
   const breakdown = SpanOperationBreakdownFilter.HTTP;
   const webVital = WebVital.LCP;

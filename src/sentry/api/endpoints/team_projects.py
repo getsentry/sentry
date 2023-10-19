@@ -25,7 +25,7 @@ from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.signals import project_created
 from sentry.utils.snowflake import MaxSnowflakeRetryError
 

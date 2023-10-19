@@ -16,7 +16,7 @@ from sentry.digests.notifications import (
     split_key,
     unsplit_key,
 )
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test

@@ -6,8 +6,11 @@ from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
 from sentry.mediators.token_exchange.util import token_expiration
 from sentry.mediators.token_exchange.validator import Validator
-from sentry.models import ApiApplication, ApiToken, SentryApp, User
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.apitoken import ApiToken
+from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
 from sentry.utils.cache import memoize
 

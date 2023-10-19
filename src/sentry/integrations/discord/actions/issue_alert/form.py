@@ -8,7 +8,7 @@ from django.forms.fields import ChoiceField
 
 from sentry.integrations.discord.utils.channel import validate_channel_id
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import ApiTimeoutError, IntegrationError
 
 
 class DiscordNotifyServiceForm(forms.Form):
@@ -49,6 +49,7 @@ class DiscordNotifyServiceForm(forms.Form):
                     channel_id=channel_id,
                     guild_id=integration.external_id,
                     integration_id=integration.id,
+                    guild_name=integration.name,
                 )
             except ValidationError as e:
                 raise forms.ValidationError(
@@ -60,4 +61,6 @@ class DiscordNotifyServiceForm(forms.Form):
                     self._format_discord_error_message("; ".join(str(e))),
                     code="invalid",
                 )
+            except ApiTimeoutError:
+                raise forms.ValidationError("Discord channel lookup timed out")
         return cleaned_data

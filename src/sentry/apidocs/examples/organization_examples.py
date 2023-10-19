@@ -68,6 +68,50 @@ class OrganizationExamples:
         ),
     ]
 
+    RETRIEVE_SUMMARY_EVENT_COUNT = [
+        OpenApiExample(
+            "Get event counts for projects in an organization",
+            value={
+                "start": "2023-09-19T13:00:00Z",
+                "end": "2023-09-19T12:28:00Z",
+                "projects": [
+                    {
+                        "id": "1",
+                        "slug": "android-project",
+                        "stats": [
+                            {
+                                "category": "error",
+                                "outcomes": {
+                                    "accepted": 1930571,
+                                    "filtered": 1934881,
+                                    "rate_limited": 2506132,
+                                    "invalid": 0,
+                                    "abuse": 1938113,
+                                    "client_discard": 1942414,
+                                },
+                                "totals": {"dropped": 2506132, "sum(quantity)": 10252111},
+                            },
+                            {
+                                "category": "transaction",
+                                "outcomes": {
+                                    "accepted": 1909849,
+                                    "filtered": 1947142,
+                                    "rate_limited": 2458946,
+                                    "invalid": 0,
+                                    "abuse": 1927179,
+                                    "client_discard": 1931595,
+                                },
+                                "totals": {"dropped": 2458946, "sum(quantity)": 10174711},
+                            },
+                        ],
+                    },
+                ],
+            },
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
+
     UPDATE_ORG_MEMBER = [
         OpenApiExample(
             "Update Successful",

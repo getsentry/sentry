@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import merge from 'lodash/merge';
 import {GroupStats} from 'sentry-fixture/groupStats';
+import {Organization} from 'sentry-fixture/organization';
 import {Search} from 'sentry-fixture/search';
 import {Tags} from 'sentry-fixture/tags';
 
@@ -205,7 +206,7 @@ describe('IssueList', function () {
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
       expect(savedSearchesRequest).toHaveBeenCalledTimes(1);
 
-      await userEvent.click(await screen.findByRole('textbox'));
+      await userEvent.click(await screen.findByDisplayValue('is:unresolved'));
 
       // auxillary requests being made
       expect(recentSearchesRequest).toHaveBeenCalledTimes(1);
@@ -221,7 +222,7 @@ describe('IssueList', function () {
         })
       );
 
-      expect(screen.getByRole('textbox')).toHaveValue('is:unresolved ');
+      expect(screen.getByDisplayValue('is:unresolved')).toBeInTheDocument();
 
       expect(screen.getByRole('button', {name: /custom search/i})).toBeInTheDocument();
     });
@@ -258,7 +259,7 @@ describe('IssueList', function () {
         );
       });
 
-      expect(screen.getByRole('textbox')).toHaveValue('level:foo ');
+      expect(screen.getByDisplayValue('level:foo')).toBeInTheDocument();
 
       // Tab shows "custom search"
       expect(screen.getByRole('button', {name: 'Custom Search'})).toBeInTheDocument();
@@ -293,7 +294,7 @@ describe('IssueList', function () {
         );
       });
 
-      expect(screen.getByRole('textbox')).toHaveValue('is:resolved ');
+      expect(screen.getByDisplayValue('is:resolved')).toBeInTheDocument();
 
       // Organization saved search selector should have default saved search selected
       expect(screen.getByRole('button', {name: 'My Default Search'})).toBeInTheDocument();
@@ -314,7 +315,7 @@ describe('IssueList', function () {
         expect(issuesRequest).toHaveBeenCalled();
       });
 
-      expect(screen.getByRole('textbox')).toHaveValue('is:unresolved ');
+      expect(screen.getByDisplayValue('is:unresolved')).toBeInTheDocument();
 
       // TODO(workflow): remove this test when we remove the feature flag
       expect(screen.getByRole('tab', {name: 'Archived'})).toBeInTheDocument();
@@ -355,7 +356,7 @@ describe('IssueList', function () {
         );
       });
 
-      expect(screen.getByRole('textbox')).toHaveValue('assigned:me ');
+      expect(screen.getByDisplayValue('assigned:me')).toBeInTheDocument();
 
       // Organization saved search selector should have default saved search selected
       expect(screen.getByRole('button', {name: 'Assigned to Me'})).toBeInTheDocument();
@@ -392,7 +393,7 @@ describe('IssueList', function () {
         );
       });
 
-      expect(screen.getByRole('textbox')).toHaveValue('level:error ');
+      expect(screen.getByDisplayValue('level:error')).toBeInTheDocument();
 
       // Organization saved search selector should have default saved search selected
       expect(screen.getByRole('button', {name: 'Custom Search'})).toBeInTheDocument();
@@ -429,7 +430,7 @@ describe('IssueList', function () {
         );
       });
 
-      expect(screen.getByRole('textbox')).toHaveValue('is:resolved ');
+      expect(screen.getByDisplayValue('is:resolved')).toBeInTheDocument();
 
       // Organization saved search selector should have default saved search selected
       expect(screen.getByRole('button', {name: 'My Default Search'})).toBeInTheDocument();
@@ -479,8 +480,9 @@ describe('IssueList', function () {
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-      await userEvent.clear(screen.getByRole('textbox'));
-      await userEvent.type(screen.getByRole('textbox'), 'dogs{enter}');
+      const queryInput = screen.getByDisplayValue('is:resolved');
+      await userEvent.clear(queryInput);
+      await userEvent.type(queryInput, 'dogs{enter}');
 
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -517,8 +519,9 @@ describe('IssueList', function () {
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-      await userEvent.clear(screen.getByRole('textbox'));
-      await userEvent.type(screen.getByRole('textbox'), 'assigned:me level:fatal{enter}');
+      const queryInput = screen.getByDisplayValue('is:unresolved');
+      await userEvent.clear(queryInput);
+      await userEvent.type(queryInput, 'assigned:me level:fatal{enter}');
 
       expect((browserHistory.push as jest.Mock).mock.calls[0][0]).toEqual(
         expect.objectContaining({
@@ -911,8 +914,9 @@ describe('IssueList', function () {
         context: routerContext,
       });
 
-      await userEvent.clear(screen.getByRole('textbox'));
-      await userEvent.type(screen.getByRole('textbox'), 'is:ignored{enter}');
+      const queryInput = screen.getByDisplayValue('is:unresolved');
+      await userEvent.clear(queryInput);
+      await userEvent.type(queryInput, 'is:ignored{enter}');
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/',
@@ -1065,7 +1069,10 @@ describe('IssueList', function () {
 
       render(<IssueListOverview {...routerProps} {...props} />, {context: routerContext});
 
-      await userEvent.type(screen.getByRole('textbox'), ' level:error{enter}');
+      await userEvent.type(
+        screen.getByDisplayValue('is:unresolved'),
+        ' level:error{enter}'
+      );
 
       expect(
         await screen.findByText(/We couldn't find any issues that matched your filters/i)
@@ -1095,7 +1102,7 @@ describe('IssueList', function () {
           params: {},
           location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
         }),
-        organization: TestStubs.Organization({
+        organization: Organization({
           projects: [],
         }),
         ...moreProps,
@@ -1145,7 +1152,7 @@ describe('IssueList', function () {
       });
 
       await createWrapper({
-        organization: TestStubs.Organization({
+        organization: Organization({
           projects,
         }),
       });
@@ -1186,7 +1193,7 @@ describe('IssueList', function () {
         body: projects,
       });
       await createWrapper({
-        organization: TestStubs.Organization({
+        organization: Organization({
           projects,
         }),
       });
@@ -1237,7 +1244,7 @@ describe('IssueList', function () {
           environments: [],
           datetime: {period: '14d'},
         },
-        organization: TestStubs.Organization({
+        organization: Organization({
           projects,
         }),
       });
@@ -1284,7 +1291,7 @@ describe('IssueList', function () {
           environments: [],
           datetime: {period: '14d'},
         },
-        organization: TestStubs.Organization({
+        organization: Organization({
           projects,
         }),
       });

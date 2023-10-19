@@ -15,15 +15,18 @@ from sentry.api.authentication import (
     ApiKeyAuthentication,
     DSNAuthentication,
     OrgAuthTokenAuthentication,
-    TokenAuthentication,
+    UserAuthTokenAuthentication,
 )
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.constants import ObjectStatus
 from sentry.feedback.models import Feedback
-from sentry.models import Environment, Organization, ProjectKey
+from sentry.feedback.usecases.create_feedback import create_feedback_issue
+from sentry.models.environment import Environment
+from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 
@@ -96,7 +99,7 @@ class FeedbackIngestEndpoint(Endpoint):
     # Authentication code borrowed from the monitor endpoints (which will eventually be removed)
     authentication_classes = (
         DSNAuthentication,
-        TokenAuthentication,
+        UserAuthTokenAuthentication,
         OrgAuthTokenAuthentication,
         ApiKeyAuthentication,
     )
@@ -167,5 +170,10 @@ class FeedbackIngestEndpoint(Endpoint):
             name=result["environment"], organization_id=organization.id
         )[0]
         result["environment"] = env
+
+        # FOR NOW CREATE BOTH A FEEDBACK ISSUE AND A FEEDBACK OBJECT
+        # WE MAY NOT END UP NEEDING A FEEDBACK OBJECT, BUT IT'S HERE FOR NOW
         Feedback.objects.create(**result)
+        create_feedback_issue(request.data, project.id)
+
         return self.respond(status=201)

@@ -8,8 +8,10 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
-from sentry.models import GroupRuleStatus, GroupStatus, Rule
+from sentry.models.group import GroupStatus
+from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.types import ActionTargetType
 from sentry.rules import init_registry

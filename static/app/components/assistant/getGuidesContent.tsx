@@ -188,26 +188,17 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       ],
     },
     {
-      guide: 'new_page_filters',
-      requiredTargets: ['new_page_filter_button'],
-      expectedTargets: ['new_page_filter_pin'],
-      dateThreshold: new Date('2022-04-05'),
+      guide: 'new_project_filter',
+      requiredTargets: ['new_project_filter'],
+      dateThreshold: new Date('2023-09-29'),
       steps: [
         {
-          title: t('Selection filters here now'),
-          target: 'new_page_filter_button',
+          title: t('Improved project selector'),
+          target: 'new_project_filter',
           description: t(
-            "Selection filters were at the top of the page. Now they're here. Because this is what's getting filtered. Obvi."
+            'Rather than the prior "lock" experience, we now remember your selections across pages so you don\'t have to.'
           ),
           nextText: t('Sounds good'),
-        },
-        {
-          title: t('Pin your filters'),
-          target: 'new_page_filter_pin',
-          description: t(
-            "Want to keep the same filters between searches and sessions? Click this button. Don't want to? Don't click this button."
-          ),
-          nextText: t('Got it'),
         },
       ],
     },
@@ -270,6 +261,21 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
             "Archive this issue to move it out of the stream - but don't worry, we'll bring it back if it escalates."
           ),
           dismissText: t('Go Away'),
+        },
+      ],
+    },
+    {
+      guide: 'explain_archive_button_issue_stream',
+      requiredTargets: ['issue_stream_archive_button'],
+      dateThreshold: new Date('2023-10-02'),
+      steps: [
+        {
+          title: t('"Archive" is the new "Ignore"'),
+          target: 'issue_stream_archive_button',
+          description: t(
+            "Archive this issue to move it out of the stream - but don't worry, we'll bring it back if it escalates."
+          ),
+          dismissText: t('Got It'),
         },
       ],
     },

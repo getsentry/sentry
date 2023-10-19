@@ -2,6 +2,13 @@ from sentry.options import FLAG_AUTOMATOR_MODIFIABLE, register
 from sentry.utils.types import Bool, Int
 
 register(
+    "outbox_replication.sentry_organizationmember.replication_version",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "outbox_replication.sentry_team.replication_version",
     type=Int,
     default=0,
@@ -65,7 +72,35 @@ register(
 )
 
 register(
+    "outbox_replication.sentry_userpermission.replication_version",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "outbox_replication.sentry_useremail.replication_version",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "outbox_replication.auth_authenticator.replication_version",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "outbox_replication.sentry_userrole_users.replication_version",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "outbox_replication.sentry_organizationintegration.replication_version",
     type=Int,
     default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

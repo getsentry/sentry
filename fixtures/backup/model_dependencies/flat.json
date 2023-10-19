@@ -25,6 +25,7 @@
     "sentry.user"
   ],
   "sentry.actor": [
+    "sentry.team",
     "sentry.user"
   ],
   "sentry.alertrule": [
@@ -760,7 +761,6 @@
     "sentry.organization"
   ],
   "sentry.team": [
-    "sentry.actor",
     "sentry.organization"
   ],
   "sentry.teamavatar": [
@@ -807,8 +807,6 @@
     "sentry.user",
     "sentry.userrole"
   ],
-  "sessions.session": [],
-  "sites.site": [],
   "social_auth.usersocialauth": [
     "sentry.user"
   ]

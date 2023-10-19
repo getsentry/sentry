@@ -8,24 +8,24 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.hybridcloud.models import ApiKeyReplica
-from sentry.models import (
-    ApiKey,
-    AuthIdentity,
-    AuthIdentityReplica,
-    AuthProvider,
-    AuthProviderReplica,
-    Organization,
-    OrganizationMemberTeam,
-    OrganizationMemberTeamReplica,
-    OrganizationSlugReservationReplica,
-    OutboxCategory,
-    Team,
-    User,
+from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
+    RpcOrganizationSlugReservation,
 )
+from sentry.models.apikey import ApiKey
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authidentityreplica import AuthIdentityReplica
+from sentry.models.authprovider import AuthProvider
+from sentry.models.authproviderreplica import AuthProviderReplica
+from sentry.models.organization import Organization
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
+from sentry.models.organizationslugreservationreplica import OrganizationSlugReservationReplica
+from sentry.models.outbox import OutboxCategory
+from sentry.models.team import Team
 from sentry.models.teamreplica import TeamReplica
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import RpcApiKey, RpcAuthIdentity, RpcAuthProvider
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberTeam, RpcTeam
-from sentry.services.hybrid_cloud.organization_provisioning import RpcOrganizationSlugReservation
 from sentry.services.hybrid_cloud.replica.service import ControlReplicaService, RegionReplicaService
 
 
@@ -77,6 +77,9 @@ def get_conflicting_unique_columns(
     scope_controlled_columns: List[str]
     if scope == scope.USER_SCOPE:
         scope_controlled_columns = [get_foreign_key_column(destination, User)]
+
+        if isinstance(destination, AuthIdentityReplica):
+            scope_controlled_columns.append("ident")
     elif scope == scope.ORGANIZATION_SCOPE:
         scope_controlled_columns = list(
             get_foreign_key_columns(destination, Organization, AuthProvider)

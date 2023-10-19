@@ -52,9 +52,9 @@ const FLAMEGRAPH_SORTING_OPTIONS: FlamegraphSorting[] = [
 interface FlamegraphContextMenuProps {
   contextMenu: ReturnType<typeof useContextMenu>;
   hoveredNode: FlamegraphFrame | null;
-  isHighlightingAllOccurences: boolean;
+  isHighlightingAllOccurrences: boolean;
   onCopyFunctionNameClick: () => void;
-  onHighlightAllOccurencesClick: () => void;
+  onHighlightAllOccurrencesClick: () => void;
   profileGroup: ProfileGroup | null;
   disableCallOrderSort?: boolean;
 }
@@ -177,9 +177,9 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
             )}
             <ProfilingContextMenuItemCheckbox
               {...props.contextMenu.getMenuItemProps({
-                onClick: props.onHighlightAllOccurencesClick,
+                onClick: props.onHighlightAllOccurrencesClick,
               })}
-              checked={props.isHighlightingAllOccurences}
+              checked={props.isHighlightingAllOccurrences}
             >
               {t('Highlight all occurrences')}
             </ProfilingContextMenuItemCheckbox>

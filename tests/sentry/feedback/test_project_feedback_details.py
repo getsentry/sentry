@@ -32,6 +32,7 @@ class ProjectFeedbackDetailTest(APITestCase):
                     "message": "I really like this user-feedback feature!",
                     "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
                     "url": "https://docs.sentry.io/platforms/javascript/",
+                    "name": "Colton Allen",
                 },
                 "platform": "javascript",
                 "release": "version@1.3",
@@ -64,6 +65,7 @@ class ProjectFeedbackDetailTest(APITestCase):
                     "message": "I also really like this user-feedback feature!",
                     "replay_id": "zc3b5xy8b79f417596f7a1tt4fffa5d2",
                     "url": "https://docs.sentry.io/platforms/electron/",
+                    "name": "Michelle Zhang",
                 },
                 "platform": "electron",
                 "release": "version@1.3",
@@ -113,11 +115,12 @@ class ProjectFeedbackDetailTest(APITestCase):
         assert feedback["dist"] == "abc123"
         assert feedback["url"] == "https://docs.sentry.io/platforms/javascript/"
         assert feedback["message"] == "I really like this user-feedback feature!"
-        assert feedback["feedback_id"] == uuid.UUID(self.feedback_id_1)
+        assert feedback["feedback_id"] == str(uuid.UUID(self.feedback_id_1)).replace("-", "")
         assert feedback["platform"] == "javascript"
         assert feedback["sdk"]["name"] == "sentry.javascript.react"
         assert feedback["tags"]["key"] == "value"
         assert feedback["contact_email"] == "colton.allen@sentry.io"
+        assert feedback["name"] == "Colton Allen"
 
         # Get the other feedback
         path = reverse(
@@ -131,8 +134,9 @@ class ProjectFeedbackDetailTest(APITestCase):
         response = self.client.get(path)
         assert response.status_code == 200
         feedback = response.data
-        assert feedback["feedback_id"] == uuid.UUID(self.feedback_id_2)
+        assert feedback["feedback_id"] == str(uuid.UUID(self.feedback_id_2)).replace("-", "")
         assert feedback["contact_email"] == "michelle.zhang@sentry.io"
+        assert feedback["name"] == "Michelle Zhang"
 
     @with_feature(FEATURES)
     def test_no_feature_enabled(self):

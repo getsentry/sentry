@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import http
 import os
 import platform
 import shutil
@@ -8,6 +9,8 @@ import signal
 import subprocess
 import sys
 import time
+import urllib.error
+import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING, Any, Callable, Generator, Literal, NamedTuple, overload
 
@@ -275,10 +278,11 @@ def up(
                     )
                 )
             for future in as_completed(futures):
-                e = future.exception()
-                if e:
+                try:
+                    future.result()
+                except Exception as e:
                     click.secho(f"> Failed to start service: {e}", err=True, fg="red")
-                    raise e
+                    raise
 
     # Check health of services. Seperate from _start_services
     # in case there are dependencies needed for the health
@@ -290,14 +294,15 @@ def up(
                 executor.submit(
                     check_health,
                     name,
-                    containers,
+                    containers[name],
                 )
             )
         for future in as_completed(futures):
-            e = future.exception()
-            if e:
+            try:
+                future.result()
+            except Exception as e:
                 click.secho(f"> Failed to check health: {e}", err=True, fg="red")
-                raise e
+                raise
 
 
 def _prepare_containers(
@@ -464,10 +469,11 @@ def down(project: str, service: list[str]) -> None:
             for container in containers:
                 futures.append(executor.submit(_down, container))
             for future in as_completed(futures):
-                e = future.exception()
-                if e:
+                try:
+                    future.result()
+                except Exception as e:
                     click.secho(f"> Failed to stop service: {e}", err=True, fg="red")
-                    raise e
+                    raise
 
 
 @devservices.command()
@@ -556,7 +562,7 @@ Are you sure you want to continue?"""
                 network.remove()
 
 
-def check_health(service_name: str, containers: dict[str, Any]) -> None:
+def check_health(service_name: str, options: dict[str, Any]) -> None:
     healthcheck = service_healthchecks.get(service_name, None)
     if healthcheck is None:
         return
@@ -564,25 +570,37 @@ def check_health(service_name: str, containers: dict[str, Any]) -> None:
     click.secho(f"> Checking container health '{service_name}'", fg="yellow")
 
     def hc() -> None:
-        healthcheck.check(containers)
+        healthcheck.check(options)
 
     try:
-        run_with_retries(hc)
+        run_with_retries(
+            hc,
+            healthcheck.retries,
+            healthcheck.timeout,
+            f"Health check for '{service_name}' failed",
+        )
+        click.secho(f"  > '{service_name}' is healthy", fg="green")
     except subprocess.CalledProcessError:
-        click.secho(f"> '{service_name}' is not healthy", fg="red")
+        click.secho(f"  > '{service_name}' is not healthy", fg="red")
         raise
 
 
-def run_with_retries(cmd: Callable[[], object], retries: int = 3, timeout: int = 5) -> None:
+def run_with_retries(
+    cmd: Callable[[], object], retries: int = 3, timeout: int = 5, message: str = "Command failed"
+) -> None:
     for retry in range(1, retries + 1):
         try:
             cmd()
-        except (subprocess.CalledProcessError):
+        except (
+            subprocess.CalledProcessError,
+            urllib.error.HTTPError,
+            http.client.RemoteDisconnected,
+        ):
             if retry == retries:
                 raise
             else:
                 click.secho(
-                    f"  > Health check failed, retrying in {timeout}s (attempt {retry+1} of {retries})...",
+                    f"  > {message}, retrying in {timeout}s (attempt {retry+1} of {retries})...",
                     fg="yellow",
                 )
                 time.sleep(timeout)
@@ -590,13 +608,12 @@ def run_with_retries(cmd: Callable[[], object], retries: int = 3, timeout: int =
             return
 
 
-def check_postgres(containers: dict[str, Any]) -> None:
-    pg_options = containers["postgres"]
+def check_postgres(options: dict[str, Any]) -> None:
     subprocess.run(
         (
             "docker",
             "exec",
-            pg_options["name"],
+            options["name"],
             "pg_isready",
             "-U",
             "postgres",
@@ -607,8 +624,7 @@ def check_postgres(containers: dict[str, Any]) -> None:
     )
 
 
-def check_rabbitmq(containers: dict[str, Any]) -> None:
-    options = containers["rabbitmq"]
+def check_rabbitmq(options: dict[str, Any]) -> None:
     subprocess.run(
         (
             "docker",
@@ -624,13 +640,12 @@ def check_rabbitmq(containers: dict[str, Any]) -> None:
     )
 
 
-def check_redis(containers: dict[str, Any]) -> None:
-    redis_options = containers["redis"]
+def check_redis(options: dict[str, Any]) -> None:
     subprocess.run(
         (
             "docker",
             "exec",
-            redis_options["name"],
+            options["name"],
             "redis-cli",
             "ping",
         ),
@@ -640,12 +655,132 @@ def check_redis(containers: dict[str, Any]) -> None:
     )
 
 
+def check_vroom(options: dict[str, Any]) -> None:
+    (port,) = options["ports"].values()
+
+    # Vroom is a slim debian based image and does not have curl, wget or
+    # python3. Check health with a simple request on the host machine.
+    urllib.request.urlopen(f"http://{port[0]}:{port[1]}/health", timeout=1)
+
+
+def check_clickhouse(options: dict[str, Any]) -> None:
+    port = options["ports"]["8123/tcp"]
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            # Using wget instead of curl as that is what is available
+            # in the clickhouse image
+            "wget",
+            f"http://{port[0]}:{port[1]}/ping",
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def check_kafka(options: dict[str, Any]) -> None:
+    (port,) = options["ports"].values()
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            "kafka-topics",
+            "--bootstrap-server",
+            # Port is a tuple of (127.0.0.1, <port number>)
+            f"{port[0]}:{port[1]}",
+            "--list",
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def check_symbolicator(options: dict[str, Any]) -> None:
+    (port,) = options["ports"].values()
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            "curl",
+            f"http://{port[0]}:{port[1]}/healthcheck",
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def python_call_url_prog(url: str) -> str:
+    return f"""
+import urllib.request
+try:
+    req = urllib.request.urlopen({url!r}, timeout=1)
+except Exception as e:
+    raise SystemExit(f'service is not ready: {{e}}')
+else:
+    print('service is ready!')
+"""
+
+
+def check_chartcuterie(options: dict[str, Any]) -> None:
+    # Chartcuterie binds the internal port to a different port
+    internal_port = 9090
+    port = options["ports"][f"{internal_port}/tcp"]
+    url = f"http://{port[0]}:{internal_port}/api/chartcuterie/healthcheck/live"
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            "python3",
+            "-uc",
+            python_call_url_prog(url),
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def check_snuba(options: dict[str, Any]) -> None:
+    from django.conf import settings
+
+    url = f"{settings.SENTRY_SNUBA}/health_envoy"
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            "python3",
+            "-uc",
+            python_call_url_prog(url),
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
 class ServiceHealthcheck(NamedTuple):
     check: Callable[[dict[str, Any]], None]
+    retries: int = 3
+    timeout: int = 5
 
 
 service_healthchecks: dict[str, ServiceHealthcheck] = {
     "postgres": ServiceHealthcheck(check=check_postgres),
     "rabbitmq": ServiceHealthcheck(check=check_rabbitmq),
     "redis": ServiceHealthcheck(check=check_redis),
+    "clickhouse": ServiceHealthcheck(check=check_clickhouse),
+    "kafka": ServiceHealthcheck(check=check_kafka),
+    "vroom": ServiceHealthcheck(check=check_vroom),
+    "symbolicator": ServiceHealthcheck(check=check_symbolicator),
+    "chartcuterie": ServiceHealthcheck(check=check_chartcuterie),
+    "snuba": ServiceHealthcheck(check=check_snuba, retries=12, timeout=10),
 }

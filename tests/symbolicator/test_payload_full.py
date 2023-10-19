@@ -9,14 +9,14 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
 from sentry import eventstore
-from sentry.models import (
+from sentry.models.artifactbundle import (
     ArtifactBundle,
     DebugIdArtifactBundle,
-    File,
     ProjectArtifactBundle,
-    ProjectDebugFile,
     SourceFileType,
 )
+from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.files.file import File
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format

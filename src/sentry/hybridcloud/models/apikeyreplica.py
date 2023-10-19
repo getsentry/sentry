@@ -10,7 +10,8 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.models import ApiKeyStatus, HasApiScopes
+from sentry.models.apikey import ApiKeyStatus
+from sentry.models.apiscopes import HasApiScopes
 
 
 @region_silo_only_model

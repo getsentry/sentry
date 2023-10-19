@@ -19,12 +19,12 @@ from sentry.debug_files.artifact_bundle_indexing import (
     update_artifact_bundle_index,
 )
 from sentry.debug_files.artifact_bundles import get_redis_cluster_for_artifact_bundles
-from sentry.models import File
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     ArtifactBundleArchive,
     ArtifactBundleFlatFileIndex,
 )
+from sentry.models.files.file import File
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
@@ -383,8 +383,8 @@ class FlatFileIndexTest(FlatFileTestCase):
             }
         )
 
-        with ArtifactBundleArchive(artifact_bundle.file.getfile()) as bundle_archive:
-            debug_ids = bundle_archive.get_all_debug_ids()
+        with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
+            debug_ids = list({debug_id for debug_id, _ty in archive.get_all_debug_ids()})
 
         flat_file_index = FlatFileIndex()
         bundle_meta = BundleMeta(
@@ -493,8 +493,8 @@ class FlatFileIndexTest(FlatFileTestCase):
             }
         )
 
-        with ArtifactBundleArchive(artifact_bundle.file.getfile()) as bundle_archive:
-            debug_ids = bundle_archive.get_all_debug_ids()
+        with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
+            debug_ids = list({debug_id for debug_id, _ty in archive.get_all_debug_ids()})
 
         flat_file_index = FlatFileIndex()
         flat_file_index.from_json(json.dumps(existing_json_index))

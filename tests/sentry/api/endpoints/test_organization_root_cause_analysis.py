@@ -254,13 +254,14 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 "span_op": "django.middleware",
                 "span_group": "2b9cbb96dbf59baa",
                 "span_description": "middleware span",
-                "score_delta": 10.666666666666666,
+                "score_delta": 1578.0,
                 "freq_before": 1.0,
                 "freq_after": 3.0,
                 "freq_delta": 2.0,
-                "duration_delta": 2.888888888888889,
+                "duration_delta": 486.0,
                 "duration_before": 60.0,
-                "duration_after": 233.33333333333334,
+                "duration_after": 546.0,
+                "is_new_span": False,
             }
         ]
 
@@ -340,15 +341,200 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
         assert len(response.data) == 1
         assert response.data == [
             {
-                "span_op": "django.middleware",
-                "span_group": "2b9cbb96dbf59baa",
-                "score_delta": 0.6666666666666666,
-                "freq_before": 1.0,
+                "span_op": "db",
+                "span_group": "d77d5e503ad1439f",
+                "score_delta": 100.0,
+                "freq_before": 0,
                 "freq_after": 1.0,
-                "freq_delta": 0.0,
-                "duration_delta": 0.6666666666666666,
-                "duration_before": 60.0,
+                "freq_delta": 1.0,
+                "duration_delta": 100.0,
+                "duration_before": 0,
                 "duration_after": 100.0,
-                "span_description": "middleware span",
+                "span_description": "db",
+                "is_new_span": True,
             }
         ]
+
+    def test_analysis_leaves_a_buffer_around_breakpoint_to_ignore_mixed_transactions(self):
+        breakpoint_timestamp = self.now - timedelta(days=1)
+        before_timestamp = breakpoint_timestamp - timedelta(hours=1)
+        after_timestamp = breakpoint_timestamp + timedelta(hours=1)
+
+        # Before
+        self.create_transaction(
+            transaction="foo",
+            trace_id=self.trace_id,
+            span_id="a" * 16,
+            parent_span_id="b" * 16,
+            spans=[
+                {
+                    "parent_span_id": "a" * 16,
+                    "span_id": "e" * 16,
+                    "start_timestamp": iso_format(before_timestamp),
+                    "timestamp": iso_format(before_timestamp),
+                    "op": "django.middleware",
+                    "description": "middleware span",
+                    "exclusive_time": 60.0,
+                }
+            ],
+            project_id=self.project.id,
+            start_timestamp=before_timestamp,
+            duration=60,
+        )
+
+        # After
+        self.create_transaction(
+            transaction="foo",
+            trace_id=self.trace_id,
+            span_id="a" * 16,
+            parent_span_id="b" * 16,
+            spans=[
+                {
+                    "parent_span_id": "a" * 16,
+                    "span_id": "e" * 16,
+                    "start_timestamp": iso_format(after_timestamp),
+                    "timestamp": iso_format(after_timestamp),
+                    "op": "django.middleware",
+                    "description": "middleware span",
+                    "exclusive_time": 100.0,
+                },
+            ],
+            project_id=self.project.id,
+            start_timestamp=after_timestamp,
+            duration=200,
+        )
+
+        with self.feature(FEATURES):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "transaction": "foo",
+                    "project": self.project.id,
+                    "breakpoint": breakpoint_timestamp,
+                    "start": self.now - timedelta(days=3),
+                    "end": self.now,
+                },
+            )
+
+        assert response.status_code == 200, response.content
+
+        # The spans occur within 1 hour of the breakpoint, so they're ignored
+        # Before spans occur 1 hour before breakpoint
+        # After spans occur 1 hour after breakpoint
+        assert response.data == []
+
+    def test_geo_code(self):
+        breakpoint_timestamp = self.now - timedelta(days=1)
+
+        # Before
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            tags={"transaction": "bar", "geo.country_code": "US"},
+            org_id=self.org.id,
+            project_id=self.project.id,
+            value=10,
+            days_before_now=2,
+        )
+
+        # Not in after
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            tags={"transaction": "bar", "geo.country_code": "DE"},
+            org_id=self.org.id,
+            project_id=self.project.id,
+            value=10,
+            days_before_now=2,
+        )
+
+        # After
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            tags={"transaction": "bar", "geo.country_code": "US"},
+            org_id=self.org.id,
+            project_id=self.project.id,
+            value=100,
+            hours_before_now=6,
+        )
+
+        # Not in before
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            tags={"transaction": "bar", "geo.country_code": "MS"},
+            org_id=self.org.id,
+            project_id=self.project.id,
+            value=50,
+            hours_before_now=6,
+        )
+
+        with self.feature(FEATURES):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "transaction": "bar",
+                    "project": self.project.id,
+                    "breakpoint": breakpoint_timestamp,
+                    "start": self.now - timedelta(days=3),
+                    "end": self.now,
+                    "type": "geo",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data == [
+            {
+                "geo.country_code": "US",
+                "duration_before": 10.0,
+                "duration_after": 100.0,
+                "duration_delta": 90.0,
+                "score": 0.08333333333333334,
+            },
+            {
+                "geo.country_code": "MS",
+                "duration_before": 0.0,
+                "duration_after": 50.0,
+                "duration_delta": 50.0,
+                "score": 0.0462962962962963,
+            },
+        ]
+
+    def test_geo_code_anaysis_ignores_empty_string_country_code(self):
+        breakpoint_timestamp = self.now - timedelta(days=1)
+
+        # Before
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            tags={"transaction": "bar", "geo.country_code": ""},
+            org_id=self.org.id,
+            project_id=self.project.id,
+            value=10,
+            days_before_now=2,
+        )
+
+        # After
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            tags={"transaction": "bar", "geo.country_code": ""},
+            org_id=self.org.id,
+            project_id=self.project.id,
+            value=100,
+            hours_before_now=6,
+        )
+
+        with self.feature(FEATURES):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "transaction": "bar",
+                    "project": self.project.id,
+                    "breakpoint": breakpoint_timestamp,
+                    "start": self.now - timedelta(days=3),
+                    "end": self.now,
+                    "type": "geo",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0

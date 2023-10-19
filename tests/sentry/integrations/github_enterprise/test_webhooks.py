@@ -10,7 +10,11 @@ from fixtures.github_enterprise import (
     PULL_REQUEST_OPENED_EVENT_EXAMPLE,
     PUSH_EVENT_EXAMPLE_INSTALLATION,
 )
-from sentry.models import Commit, CommitAuthor, Integration, PullRequest, Repository
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.integrations.integration import Integration
+from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test

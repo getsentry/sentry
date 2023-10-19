@@ -10,7 +10,6 @@ import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import ContextIcon from 'sentry/components/replays/contextIcon';
 import {formatTime} from 'sentry/components/replays/utils';
-import StringWalker from 'sentry/components/replays/walker/stringWalker';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -290,14 +289,14 @@ export function ReplayCell({
   organization,
   referrer,
   replay,
-  showUrl,
   referrer_table,
+  isWidget,
 }: Props & {
   eventView: EventView;
   organization: Organization;
   referrer: string;
   referrer_table: ReferrerTableType;
-  showUrl: boolean;
+  isWidget?: boolean;
 }) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
@@ -319,13 +318,12 @@ export function ReplayCell({
     },
   };
 
-  const replayDetailsDOMEventsTab = {
+  const replayDetailsDeadRage = {
     pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
     query: {
       referrer,
       ...eventView.generateQueryStringObject(),
-      t_main: 'dom',
-      f_d_type: 'ui.slowClickDetected',
+      f_b_type: 'rageOrDead',
     },
   };
 
@@ -336,7 +334,7 @@ export function ReplayCell({
       case 'dead-table':
       case 'rage-table':
       case 'selector-widget':
-        return replayDetailsDOMEventsTab;
+        return replayDetailsDeadRage;
       default:
         return replayDetails;
     }
@@ -370,7 +368,6 @@ export function ReplayCell({
 
   const subText = (
     <Cols>
-      {showUrl ? <StringWalker urls={replay.urls} /> : undefined}
       <Row gap={1}>
         <Row gap={0.5}>
           {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
@@ -389,15 +386,15 @@ export function ReplayCell({
   );
 
   return (
-    <Item>
-      <UserBadgeFullWidth
+    <Item isWidget={isWidget}>
+      <UserBadge
         avatarSize={24}
         displayName={
           replay.is_archived ? (
-            replay.user.display_name || t('Unknown User')
+            replay.user.display_name || t('Anonymous User')
           ) : (
             <MainLink to={detailsTab} onClick={trackNavigationEvent}>
-              {replay.user.display_name || t('Unknown User')}
+              {replay.user.display_name || t('Anonymous User')}
             </MainLink>
           )
         }
@@ -411,11 +408,6 @@ export function ReplayCell({
 
 const StyledIconDelete = styled(IconDelete)`
   margin: ${space(0.25)};
-`;
-
-// Need to be full width for StringWalker to take up full width and truncate properly
-const UserBadgeFullWidth = styled(UserBadge)`
-  width: 100%;
 `;
 
 const Cols = styled('div')`
@@ -472,7 +464,7 @@ export function OSCell({replay, showDropdownFilters}: Props) {
   return (
     <Item>
       <Container>
-        <Tooltip title={`${name} ${version}`}>
+        <Tooltip title={`${name ?? ''} ${version ?? ''}`}>
           <ContextIcon
             name={name ?? ''}
             version={version && hasRoomForColumns ? version : undefined}
@@ -632,11 +624,14 @@ export function ActivityCell({replay, showDropdownFilters}: Props) {
   );
 }
 
-const Item = styled('div')<{isArchived?: boolean}>`
+const Item = styled('div')<{isArchived?: boolean; isWidget?: boolean}>`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  padding: ${space(1.5)};
+  ${p =>
+    p.isWidget
+      ? `padding: ${space(0.75)} ${space(1.5)} ${space(1.5)} ${space(1.5)};`
+      : `padding: ${space(1.5)};`};
   ${p => (p.isArchived ? 'opacity: 0.5;' : '')};
 `;
 

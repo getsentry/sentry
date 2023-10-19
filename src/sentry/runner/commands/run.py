@@ -201,34 +201,6 @@ def web(bind, workers, upgrade, with_lock, noinput):
         SentryHTTPServer(host=bind[0], port=bind[1], workers=workers).run()
 
 
-@run.command()
-@click.option(
-    "--bind",
-    "-b",
-    default=None,
-    help="Bind address.",
-    metavar="ADDRESS",
-    callback=_address_validate,
-)
-@click.option("--upgrade", default=False, is_flag=True, help="Upgrade before starting.")
-@click.option(
-    "--noinput", default=False, is_flag=True, help="Do not prompt the user for input of any kind."
-)
-@configuration
-def smtp(bind, upgrade, noinput):
-    "Run inbound email service."
-    if upgrade:
-        click.echo("Performing upgrade before service startup...")
-        from sentry.runner import call_command
-
-        call_command("sentry.runner.commands.upgrade.upgrade", verbosity=0, noinput=noinput)
-
-    from sentry.services.smtp import SentrySMTPServer
-
-    with managed_bgtasks(role="smtp"):
-        SentrySMTPServer(host=bind[0], port=bind[1]).run()
-
-
 def run_worker(**options):
     """
     This is the inner function to actually start worker.
@@ -686,7 +658,7 @@ def profiles_consumer(**options):
 @click.option(
     "--max-poll-interval-ms",
     type=int,
-    default=45000,
+    default=30000,
 )
 @click.option(
     "--group-instance-id",

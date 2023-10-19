@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from sentry.models import (
-    ApiKey,
-    AuthIdentity,
-    AuthIdentityReplica,
-    AuthProvider,
-    AuthProviderReplica,
-)
+from sentry.models.apikey import ApiKey
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authidentityreplica import AuthIdentityReplica
+from sentry.models.authprovider import AuthProvider
+from sentry.models.authproviderreplica import AuthProviderReplica
 from sentry.services.hybrid_cloud.auth import (
     RpcApiKey,
     RpcAuthIdentity,

@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {Organization} from 'sentry-fixture/organization';
 import {Repository} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
 
@@ -24,7 +25,7 @@ describe('IntegrationCodeMappings', function () {
     }),
   ];
 
-  const org = TestStubs.Organization();
+  const org = Organization();
   const integration = TestStubs.GitHubIntegration();
   const repos = [
     Repository({

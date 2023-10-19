@@ -125,8 +125,11 @@ class ConfigureIntegration extends DeprecatedAsyncView<Props, State> {
     );
   }
 
-  hasCodeOwners() {
-    return this.props.organization.features.includes('integrations-codeowners');
+  hasCodeOwners(provider: IntegrationProvider) {
+    return (
+      provider.features.includes('codeowners') &&
+      this.props.organization.features.includes('integrations-codeowners')
+    );
   }
 
   onTabChange = (value: Tab) => {
@@ -428,8 +431,8 @@ class ConfigureIntegration extends DeprecatedAsyncView<Props, State> {
     const tabs = [
       ['repos', t('Repositories')],
       ['codeMappings', t('Code Mappings')],
-      ...(this.hasCodeOwners() ? [['userMappings', t('User Mappings')]] : []),
-      ...(this.hasCodeOwners() ? [['teamMappings', t('Team Mappings')]] : []),
+      ...(this.hasCodeOwners(provider) ? [['userMappings', t('User Mappings')]] : []),
+      ...(this.hasCodeOwners(provider) ? [['teamMappings', t('Team Mappings')]] : []),
     ] as [id: Tab, label: string][];
 
     return (

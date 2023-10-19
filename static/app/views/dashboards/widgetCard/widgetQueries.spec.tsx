@@ -1,4 +1,5 @@
 import {EventsStats} from 'sentry-fixture/events';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -925,7 +926,7 @@ describe('Dashboards > WidgetQueries', function () {
   it('does not inject equation aliases for top N requests', async function () {
     const testData = initializeOrg({
       organization: {
-        ...TestStubs.Organization(),
+        ...Organization(),
       },
     });
     const eventsStatsMock = MockApiClient.addMockResponse({

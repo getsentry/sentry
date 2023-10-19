@@ -232,6 +232,7 @@ Found 4 errors in 1 file (checked 1 source file)
         pytest.param("csp_nonce", id="csp_nonce from csp.middleware"),
         pytest.param("is_sudo", id="is_sudo from sudo.middleware"),
         pytest.param("subdomain", id="subdomain from sentry.middleware.subdomain"),
+        pytest.param("superuser", id="superuser from sentry.middleware.superuser"),
     ),
 )
 def test_added_http_request_attribute(attr: str) -> None:

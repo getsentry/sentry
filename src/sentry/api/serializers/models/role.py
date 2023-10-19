@@ -4,7 +4,7 @@ from typing_extensions import TypedDict
 
 from sentry import features
 from sentry.api.serializers import Serializer
-from sentry.models import User
+from sentry.models.user import User
 from sentry.roles.manager import OrganizationRole, Role, TeamRole
 
 

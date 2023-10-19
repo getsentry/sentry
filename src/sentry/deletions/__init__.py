@@ -23,7 +23,7 @@ Scheduling Deletions
 The entrypoint into deletions for the majority of application code is via the ``ScheduledDeletion``
 model. This model lets you create deletion jobs that are run in the future.
 
->>> from sentry.models import ScheduledDeletion
+>>> from sentry.models.scheduledeltion import ScheduledDeletion
 >>> ScheduledDeletion.schedule(organization, days=1, hours=2)
 
 The above would schedule an organization to be deleted in 1 day and 2 hours.

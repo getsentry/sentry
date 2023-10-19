@@ -1,12 +1,13 @@
 from copy import deepcopy
 from datetime import datetime
-from typing import Mapping, Optional, Sequence, Set, Tuple, Union
+from typing import Collection, Mapping, Optional, Sequence, Set, Tuple, Union
 
 import sentry_sdk
 
 from sentry import features
 from sentry.models.organization import Organization
 from sentry.release_health.base import (
+    AllowedResolution,
     CrashFreeBreakdown,
     CurrentAndPreviousCrashFreeRates,
     EnvironmentName,
@@ -43,12 +44,7 @@ from sentry.snuba.sessions import (
     _get_release_sessions_time_bounds,
     get_current_and_previous_crash_free_rates,
 )
-from sentry.snuba.sessions_v2 import (
-    AllowedResolution,
-    QueryDefinition,
-    _run_sessions_query,
-    massage_sessions_result,
-)
+from sentry.snuba.sessions_v2 import QueryDefinition, _run_sessions_query, massage_sessions_result
 
 
 class SessionsReleaseHealthBackend(ReleaseHealthBackend):
@@ -130,7 +126,7 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
 
     def check_has_health_data(
         self,
-        projects_list: Sequence[ProjectOrRelease],
+        projects_list: Collection[ProjectOrRelease],
         now: Optional[datetime] = None,
     ) -> Set[ProjectOrRelease]:
         return _check_has_health_data(projects_list, now=now)

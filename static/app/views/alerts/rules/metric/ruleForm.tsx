@@ -1,4 +1,4 @@
-import {ReactNode} from 'react';
+import {Fragment, ReactNode} from 'react';
 import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -10,6 +10,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {fetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
@@ -18,9 +19,11 @@ import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent
 import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {t} from 'sentry/locale';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t, tct} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import {space} from 'sentry/styles/space';
 import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry/types';
@@ -45,6 +48,10 @@ import {
   isValidOnDemandMetricAlert,
 } from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {AlertRuleType} from 'sentry/views/alerts/types';
+import {
+  hasMigrationFeatureFlag,
+  ruleNeedsMigration,
+} from 'sentry/views/alerts/utils/migrationUi';
 import {
   AlertWizardAlertNames,
   DatasetMEPAlertQueryTypes,
@@ -607,7 +614,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       transaction.setTag('operation', !rule.id ? 'create' : 'edit');
       for (const trigger of sanitizedTriggers) {
         for (const action of trigger.actions) {
-          if (action.type === 'slack') {
+          if (action.type === 'slack' || action.type === 'discord') {
             transaction.setTag(action.type, true);
           }
         }
@@ -636,7 +643,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             : {}),
           // Remove eventTypes as it is no longer required for crash free
           eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
-          dataset: this.state.dataset,
+          dataset: this.determinePerformanceDataset(),
         },
         {
           duplicateRule: this.isDuplicateRule ? 'true' : 'false',
@@ -811,6 +818,24 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     return Dataset.GENERIC_METRICS;
   };
 
+  // We are not allowing the creation of new transaction alerts
+  determinePerformanceDataset = () => {
+    // TODO: once all alerts are migrated to MEP, we can set the default to GENERIC_METRICS and remove this as well as
+    // logic in handleMEPDataset, handleTimeSeriesDataFetched and checkOnDemandMetricsDataset
+    const {dataset} = this.state;
+    const {ruleId, organization} = this.props;
+    const hasMetricsFeatureFlags =
+      organization.features.includes('mep-rollout-flag') ||
+      organization.features.includes('on-demand-metrics-extraction');
+
+    const isCreatingRule = !ruleId;
+
+    if (isCreatingRule && hasMetricsFeatureFlags && dataset === Dataset.TRANSACTIONS) {
+      return Dataset.GENERIC_METRICS;
+    }
+    return dataset;
+  };
+
   renderLoading() {
     return this.renderBody();
   }
@@ -951,6 +976,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const formDisabled = loading || !hasAlertWrite;
     const submitDisabled = formDisabled || !this.state.isQueryValid;
 
+    const showMigrationWarning =
+      hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
+
     return (
       <Main fullWidth>
         <PermissionAlert access={['alerts:write']} project={project} />
@@ -1024,6 +1052,40 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             />
             <AlertListItem>{t('Set thresholds')}</AlertListItem>
             {thresholdTypeForm(formDisabled)}
+            {showMigrationWarning && (
+              <Alert
+                type="warning"
+                showIcon
+                trailingItems={
+                  <Button size="xs" type="submit">
+                    {t('Looks good to me!')}
+                  </Button>
+                }
+              >
+                {tct(
+                  'Check the chart above and make sure the current thresholds are still valid, given that this alert is now based on [tooltip:total events].',
+                  {
+                    tooltip: (
+                      <Tooltip
+                        showUnderline
+                        isHoverable
+                        title={
+                          <Fragment>
+                            {t(
+                              'Performance alerts are based on all the events you send to Sentry, not just the ones that are stored'
+                            )}
+                            <br />
+                            <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/">
+                              {t('Learn more')}
+                            </ExternalLink>
+                          </Fragment>
+                        }
+                      />
+                    ),
+                  }
+                )}
+              </Alert>
+            )}
             {triggerForm(formDisabled)}
             {ruleNameOwnerForm(formDisabled)}
           </List>

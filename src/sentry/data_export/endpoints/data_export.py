@@ -12,7 +12,7 @@ from sentry.api.serializers import serialize
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Environment
+from sentry.models.environment import Environment
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset

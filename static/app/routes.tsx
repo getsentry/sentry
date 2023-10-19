@@ -1470,6 +1470,30 @@ function buildRoutes() {
       </Route>
     </Fragment>
   );
+  const releaseThresholdRoutes = (
+    <Fragment>
+      {usingCustomerDomain && (
+        <Route
+          path="/release-thresholds/"
+          component={withDomainRequired(NoOp)}
+          key="orgless-release-thresholds-route"
+        >
+          <IndexRoute
+            component={make(() => import('sentry/views/releases/thresholdsList'))}
+          />
+        </Route>
+      )}
+      <Route
+        path="/organizations/:orgId/release-thresholds/"
+        component={withDomainRedirect(NoOp)}
+        key="org-release-thresholds"
+      >
+        <IndexRoute
+          component={make(() => import('sentry/views/releases/thresholdsList'))}
+        />
+      </Route>
+    </Fragment>
+  );
 
   const activityRoutes = (
     <Fragment>
@@ -1630,6 +1654,22 @@ function buildRoutes() {
               import('sentry/views/performance/browser/webVitals/webVitalsLandingPage')
           )}
         />
+        <Route path="resources/">
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/performance/browser/resources/index')
+            )}
+          />
+          <Route
+            path="resource/:groupId/"
+            component={make(
+              () =>
+                import(
+                  'sentry/views/performance/browser/resources/resourceSummaryPage/index'
+                )
+            )}
+          />
+        </Route>
       </Route>
       <Route path="summary/">
         <IndexRoute
@@ -1762,6 +1802,12 @@ function buildRoutes() {
       <Route path="pageload/">
         <IndexRoute
           component={make(() => import('sentry/views/starfish/modules/mobile/pageload'))}
+        />
+        <Route
+          path="spans/"
+          component={make(
+            () => import('sentry/views/starfish/views/screens/screenLoadSpans')
+          )}
         />
       </Route>
       <Route path="responsiveness/">
@@ -2269,6 +2315,7 @@ function buildRoutes() {
       {cronsRoutes}
       {replayRoutes}
       {releasesRoutes}
+      {releaseThresholdRoutes}
       {activityRoutes}
       {statsRoutes}
       {discoverRoutes}

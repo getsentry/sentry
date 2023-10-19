@@ -1,5 +1,6 @@
 import selectEvent from 'react-select-event';
 import pick from 'lodash/pick';
+import {Organization} from 'sentry-fixture/organization';
 import {VercelProvider} from 'sentry-fixture/vercelIntegration';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -11,12 +12,12 @@ describe('IntegrationOrganizationLink', () => {
   it('selecting org from dropdown loads the org through the API', async () => {
     const {routerProps} = initializeOrg();
 
-    const org1 = TestStubs.Organization({
+    const org1 = Organization({
       slug: 'org1',
       name: 'Organization 1',
     });
 
-    const org2 = TestStubs.Organization({
+    const org2 = Organization({
       slug: 'org2',
       name: 'Organization 2',
     });

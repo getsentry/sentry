@@ -14,7 +14,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
-from sentry.models import FileBlob
+from sentry.models.files.fileblob import FileBlob
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.utils.files import get_max_file_size
 from sentry.utils.http import absolute_uri

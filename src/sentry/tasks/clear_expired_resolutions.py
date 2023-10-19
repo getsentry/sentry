@@ -1,6 +1,8 @@
 from django.db.models import Q
 
-from sentry.models import Activity, GroupResolution, Release
+from sentry.models.activity import Activity
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.release import Release
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType

@@ -1,5 +1,6 @@
 import selectEvent from 'react-select-event';
 import {Authenticators} from 'sentry-fixture/authenticators';
+import {Organization} from 'sentry-fixture/organization';
 import {OrgRoleList} from 'sentry-fixture/roleList';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -120,7 +121,7 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Can Edit', function () {
-    const organization = TestStubs.Organization({teams, features: ['team-roles']});
+    const organization = Organization({teams, features: ['team-roles']});
 
     beforeEach(function () {
       TeamStore.init();
@@ -234,7 +235,7 @@ describe('OrganizationMemberDetail', function () {
 
     it('cannot leave org role team if missing org:admin', function () {
       const {routerContext, routerProps} = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           teams,
           features: ['team-roles'],
           access: [],
@@ -256,7 +257,7 @@ describe('OrganizationMemberDetail', function () {
 
     it('cannot join org role team if missing org:admin', async function () {
       const {routerContext, routerProps} = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           teams,
           features: ['team-roles'],
           access: ['org:write'],
@@ -341,7 +342,7 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Cannot Edit', function () {
-    const organization = TestStubs.Organization({teams, access: ['org:read']});
+    const organization = Organization({teams, access: ['org:read']});
 
     beforeEach(function () {
       TeamStore.init();
@@ -387,7 +388,7 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Display status', function () {
-    const organization = TestStubs.Organization({teams, access: ['org:read']});
+    const organization = Organization({teams, access: ['org:read']});
 
     beforeEach(function () {
       TeamStore.init();
@@ -447,7 +448,7 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Show resend button', function () {
-    const organization = TestStubs.Organization({teams, access: ['org:read']});
+    const organization = Organization({teams, access: ['org:read']});
 
     beforeEach(function () {
       TeamStore.init();
@@ -551,7 +552,7 @@ describe('OrganizationMemberDetail', function () {
       }),
     });
 
-    const organization = TestStubs.Organization({teams});
+    const organization = Organization({teams});
 
     beforeEach(function () {
       MockApiClient.clearMockResponses();
@@ -728,7 +729,7 @@ describe('OrganizationMemberDetail', function () {
       ...teamAssignment,
     });
 
-    const organization = TestStubs.Organization({teams, features: ['team-roles']});
+    const organization = Organization({teams, features: ['team-roles']});
 
     beforeEach(() => {
       MockApiClient.clearMockResponses();

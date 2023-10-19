@@ -6,16 +6,13 @@ from django.urls import reverse
 
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.models import (
-    Authenticator,
-    AuthProvider,
-    InviteStatus,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    SentryAppInstallationToken,
-    UserOption,
-)
+from sentry.models.authenticator import Authenticator
+from sentry.models.authprovider import AuthProvider
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.models.options.user_option import UserOption
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
@@ -722,6 +719,12 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
         assert not OrganizationMember.objects.filter(
             user_id=member_user.id, organization=self.organization
         ).exists()
+
+    def test_can_delete_pending_invite(self):
+        invite = self.create_member(
+            organization=self.organization, user=None, email="invitee@example.com", role="member"
+        )
+        self.get_success_response(self.organization.slug, invite.id)
 
 
 @region_silo_test(stable=True)

@@ -1,3 +1,4 @@
+import {Organization} from 'sentry-fixture/organization';
 import {SentryApp} from 'sentry-fixture/sentryApp';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -32,7 +33,7 @@ describe('SentryAppDetailsModal', function () {
         closeModal={jest.fn()}
         isInstalled={false}
         onInstall={jest.fn()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         sentryApp={sentryApp}
       />
     );
@@ -48,7 +49,7 @@ describe('SentryAppDetailsModal', function () {
         closeModal={jest.fn()}
         isInstalled={false}
         onInstall={jest.fn()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         sentryApp={sentryApp}
       />
     );
@@ -72,7 +73,7 @@ describe('SentryAppDetailsModal', function () {
         closeModal={jest.fn()}
         isInstalled={false}
         onInstall={jest.fn()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         sentryApp={sentryApp}
       />
     );
@@ -90,7 +91,7 @@ describe('SentryAppDetailsModal', function () {
         closeModal={handleCloseModal}
         isInstalled={false}
         onInstall={jest.fn()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         sentryApp={sentryApp}
       />
     );
@@ -110,7 +111,7 @@ describe('SentryAppDetailsModal', function () {
         closeModal={jest.fn()}
         isInstalled={false}
         onInstall={handleOnInstall}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         sentryApp={sentryApp}
       />
     );
@@ -123,7 +124,7 @@ describe('SentryAppDetailsModal', function () {
   it('does not display the Install button, when the User does not have permission to install Integrations', function () {
     renderMockRequests({sentryAppSlug: sentryApp.slug});
 
-    const noAccessOrg = TestStubs.Organization({access: []});
+    const noAccessOrg = Organization({access: []});
 
     render(
       <SentryAppDetailsModal
@@ -149,7 +150,7 @@ describe('SentryAppDetailsModal', function () {
         closeModal={jest.fn()}
         isInstalled
         onInstall={jest.fn()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         sentryApp={sentryApp}
       />
     );
@@ -165,7 +166,7 @@ describe('SentryAppDetailsModal', function () {
         closeModal={jest.fn()}
         isInstalled={false}
         onInstall={jest.fn()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         sentryApp={{...sentryApp, scopes: []}}
       />
     );

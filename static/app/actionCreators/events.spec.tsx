@@ -1,8 +1,10 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {doEventsRequest} from 'sentry/actionCreators/events';
 
 describe('Events ActionCreator', function () {
   const api = new MockApiClient();
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const project = TestStubs.Project();
   const opts = {
     organization,

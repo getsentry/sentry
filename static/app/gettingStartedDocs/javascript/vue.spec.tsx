@@ -3,7 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
-import {GettingStartedWithVue, nextSteps, steps} from './vue';
+import {GettingStartedWithVue, nextSteps, steps, VueVersion} from './vue';
 
 describe('GettingStartedWithVue', function () {
   it('all products are selected', function () {
@@ -19,7 +19,10 @@ describe('GettingStartedWithVue', function () {
     );
 
     // Steps
-    for (const step of steps()) {
+    for (const step of steps({
+      vueVersion: VueVersion.V3,
+      sentryInitContent: 'test-init-content',
+    })) {
       expect(
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();

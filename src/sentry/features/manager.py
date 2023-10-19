@@ -27,7 +27,9 @@ from .exceptions import FeatureNotRegistered
 
 if TYPE_CHECKING:
     from sentry.features.handler import FeatureHandler
-    from sentry.models import Organization, Project, User
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
+    from sentry.models.user import User
 
 
 class RegisteredFeatureManager:

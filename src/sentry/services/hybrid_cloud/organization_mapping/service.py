@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import List, Optional, cast
+from typing import List, Optional
 
 from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMapping,
@@ -25,35 +25,6 @@ class OrganizationMappingService(RpcService):
         )
 
         return DatabaseBackedOrganizationMappingService()
-
-    @rpc_method
-    @abstractmethod
-    def create(
-        self,
-        *,
-        organization_id: int,
-        slug: str,
-        name: str,
-        region_name: str,
-        idempotency_key: Optional[str] = "",
-        customer_id: Optional[str],
-        user: Optional[int] = None,
-    ) -> Optional[RpcOrganizationMapping]:
-        """
-        This method returns a new or recreated OrganizationMapping object.
-        If a record already exists with the same slug, the organization_id can only be
-        updated IF the idempotency key is identical.
-        Will raise IntegrityError if the slug already exists.
-
-        :param organization_id:
-        The org id to create the slug for
-        :param slug:
-        A slug to reserve for this organization
-        :param customer_id:
-        A unique per customer billing identifier
-        :return:
-        """
-        pass
 
     @rpc_method
     @abstractmethod
@@ -78,15 +49,8 @@ class OrganizationMappingService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def verify_mappings(self, *, organization_id: int, slug: str) -> None:
-        pass
-
-    @rpc_method
-    @abstractmethod
     def delete(self, *, organization_id: int) -> None:
         pass
 
 
-organization_mapping_service: OrganizationMappingService = cast(
-    OrganizationMappingService, OrganizationMappingService.create_delegation()
-)
+organization_mapping_service = OrganizationMappingService.create_delegation()

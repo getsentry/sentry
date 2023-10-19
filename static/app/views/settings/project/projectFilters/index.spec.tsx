@@ -1,3 +1,4 @@
+import {Organization} from 'sentry-fixture/organization';
 import {ProjectFilters as ProjectFiltersFixture} from 'sentry-fixture/projectFilters';
 import {Tombstones} from 'sentry-fixture/tombstones';
 
@@ -264,7 +265,7 @@ describe('ProjectFilters', function () {
         params={{projectId: project.slug, filterType: ''}}
         project={project}
       />,
-      {organization: TestStubs.Organization({access: []})}
+      {organization: Organization({access: []})}
     );
 
     const checkboxes = await screen.findAllByRole('checkbox');
@@ -301,7 +302,7 @@ describe('ProjectFilters', function () {
       ...project,
       features: ['discard-groups'],
     });
-    const discardOrg = TestStubs.Organization({access: [], features: ['discard-groups']});
+    const discardOrg = Organization({access: [], features: ['discard-groups']});
 
     render(
       <ProjectFilters

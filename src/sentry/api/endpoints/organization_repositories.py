@@ -11,7 +11,7 @@ from sentry.api.bases.organization import (
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models import Repository
+from sentry.models.repository import Repository
 from sentry.plugins.base import bindings
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 from sentry.services.hybrid_cloud.integration import integration_service

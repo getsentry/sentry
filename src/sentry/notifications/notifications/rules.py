@@ -11,7 +11,7 @@ from sentry import analytics, features
 from sentry.db.models import Model
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import GROUP_CATEGORIES_CUSTOM_EMAIL, GroupCategory
-from sentry.models import Group
+from sentry.models.group import Group
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
     ActionTargetType,

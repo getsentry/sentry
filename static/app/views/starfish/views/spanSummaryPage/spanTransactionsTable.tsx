@@ -43,7 +43,7 @@ import type {ValidSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 type Row = {
   'avg(span.self_time)': number;
   'spm()': number;
-  'time_spent_percentage(local)': number;
+  'time_spent_percentage()': number;
   transaction: string;
   transactionMethod: string;
 } & SpanTransactionMetrics;
@@ -71,13 +71,14 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
     isLoading,
     pageLinks,
   } = useSpanTransactionMetrics(
-    span[SpanMetricsField.SPAN_GROUP],
     {
-      transactions: endpoint ? [endpoint] : undefined,
-      sorts: [sort],
+      'span.group': span[SpanMetricsField.SPAN_GROUP],
+      transaction: endpoint,
+      'transaction.method': endpointMethod,
     },
-    undefined,
-    cursor
+    [sort],
+    cursor,
+    Boolean(span[SpanMetricsField.SPAN_GROUP])
   );
 
   const spanTransactionsWithMetrics = spanTransactionMetrics.map(row => {
@@ -97,13 +98,16 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
       const pathname = `${routingContext.baseURL}/${
         extractRoute(location) ?? 'spans'
       }/span/${encodeURIComponent(span[SpanMetricsField.SPAN_GROUP])}`;
-      const query = {
+      const query: {[key: string]: string | undefined} = {
         ...location.query,
         endpoint,
         endpointMethod,
         transaction: row.transaction,
-        transactionMethod: row.transactionMethod,
       };
+
+      if (row.transactionMethod) {
+        query.transactionMethod = row.transactionMethod;
+      }
 
       return (
         <Link
@@ -125,11 +129,14 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
     }
 
     const renderer = getFieldRenderer(column.key, meta.fields, false);
-    const rendered = renderer(row, {
-      location,
-      organization,
-      unit: meta.units?.[column.key],
-    });
+    const rendered = renderer(
+      {...row, 'span.op': span['span.op']},
+      {
+        location,
+        organization,
+        unit: meta.units?.[column.key],
+      }
+    );
 
     return rendered;
   };
@@ -173,7 +180,7 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
               query: omit(location.query, 'endpoint'),
             }}
           >
-            {t('View More Endpoints')}
+            {t('View More')}
           </Button>
         )}
         <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} />
@@ -190,7 +197,7 @@ const getColumnOrder = (
 ): TableColumnHeader[] => [
   {
     key: 'transaction',
-    name: 'Found In Endpoints',
+    name: t('Found In'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -213,7 +220,7 @@ const getColumnOrder = (
       ] as TableColumnHeader[])
     : []),
   {
-    key: 'time_spent_percentage(local)',
+    key: 'time_spent_percentage()',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },

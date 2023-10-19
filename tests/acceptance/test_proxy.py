@@ -7,7 +7,9 @@ from django.urls import reverse
 from pytest_django.live_server_helper import LiveServer
 from rest_framework.test import APIClient
 
-from sentry.models import ApiKey, Organization, Team
+from sentry.models.apikey import ApiKey
+from sentry.models.organization import Organization
+from sentry.models.team import Team
 from sentry.silo import SiloMode
 from sentry.testutils.asserts import assert_status_code
 from sentry.testutils.cases import TransactionTestCase

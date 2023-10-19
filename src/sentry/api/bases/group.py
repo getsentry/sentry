@@ -8,7 +8,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Group, GroupLink, GroupStatus, Organization, get_group_with_redirect
+from sentry.models.group import Group, GroupStatus, get_group_with_redirect
+from sentry.models.grouplink import GroupLink
+from sentry.models.organization import Organization
 from sentry.tasks.integrations import create_comment, update_comment
 from sentry.utils.sdk import bind_organization_context, configure_scope
 

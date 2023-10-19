@@ -13,7 +13,11 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
-from sentry.models import LostPasswordHash, NotificationSetting, Project, User, UserEmail
+from sentry.models.lostpasswordhash import LostPasswordHash
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.project import Project
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.security import capture_security_activity
 from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
@@ -107,7 +111,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
         return render_to_response(get_template(mode, "failure"), {}, request)
 
     if request.method == "POST":
-        form = ChangePasswordRecoverForm(request.POST)
+        form = ChangePasswordRecoverForm(request.POST, user=user)
         if form.is_valid():
             with transaction.atomic(router.db_for_write(User)):
                 user.set_password(form.cleaned_data["password"])
@@ -134,7 +138,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
 
             return login_redirect(request)
     else:
-        form = ChangePasswordRecoverForm()
+        form = ChangePasswordRecoverForm(user=user)
 
     return render_to_response(get_template(mode, "confirm"), {"form": form}, request)
 

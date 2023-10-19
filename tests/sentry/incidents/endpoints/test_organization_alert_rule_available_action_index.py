@@ -1,9 +1,14 @@
+from typing import Any, Mapping
+
 from sentry.constants import ObjectStatus, SentryAppStatus
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     build_action_response,
 )
 from sentry.incidents.models import AlertRuleTriggerAction
-from sentry.models import Integration, OrganizationIntegration
+from sentry.models.integrations import SentryAppComponent, SentryAppInstallation
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -24,7 +29,7 @@ METADATA = {
 }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-alert-rule-available-actions"
     email = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.EMAIL)
@@ -37,7 +42,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         super().setUp()
         self.login_as(self.user)
 
-    def install_new_sentry_app(self, name, **kwargs):
+    def install_new_sentry_app(self, name, **kwargs) -> SentryAppInstallation:
         kwargs.update(
             name=name, organization=self.organization, is_alertable=True, verify_install=False
         )
@@ -108,11 +113,29 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
     def test_build_action_response_sentry_app(self):
         installation = self.install_new_sentry_app("foo")
 
-        data = build_action_response(self.sentry_app, sentry_app_installation=installation)
+        data = build_action_response(
+            self.sentry_app, sentry_app_installation=serialize_sentry_app_installation(installation)
+        )
 
         assert data["type"] == "sentry_app"
         assert data["allowedTargetTypes"] == ["sentry_app"]
         assert data["status"] == SentryAppStatus.UNPUBLISHED_STR
+
+    def test_build_action_response_sentry_app_with_component(self):
+        installation = self.install_new_sentry_app("foo")
+        test_settings: Mapping[str, Any] = {"test-settings": []}
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            SentryAppComponent.objects.create(
+                sentry_app=installation.sentry_app,
+                type="alert-rule-action",
+                schema={"settings": test_settings},
+            )
+
+        data = build_action_response(
+            self.sentry_app, sentry_app_installation=serialize_sentry_app_installation(installation)
+        )
+
+        assert data["settings"] == test_settings
 
     def test_no_integrations(self):
         with self.feature("organizations:incidents"):
@@ -179,7 +202,10 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         assert len(response.data) == 2
         assert build_action_response(self.email) in response.data
         assert (
-            build_action_response(self.sentry_app, sentry_app_installation=installation)
+            build_action_response(
+                self.sentry_app,
+                sentry_app_installation=serialize_sentry_app_installation(installation),
+            )
             in response.data
         )
 
@@ -192,7 +218,10 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
 
         assert len(response.data) == 2
         assert (
-            build_action_response(self.sentry_app, sentry_app_installation=installation)
+            build_action_response(
+                self.sentry_app,
+                sentry_app_installation=serialize_sentry_app_installation(installation),
+            )
             in response.data
         )
 

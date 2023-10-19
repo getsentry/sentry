@@ -11,7 +11,8 @@ from sentry.api.serializers.models import ControlSiloOrganizationSerializer
 from sentry.auth.provider import Provider
 from sentry.exceptions import NotRegistered
 from sentry.identity import is_login_provider
-from sentry.models import AuthIdentity, Identity
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.identity import Identity
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from social_auth.models import UserSocialAuth
 

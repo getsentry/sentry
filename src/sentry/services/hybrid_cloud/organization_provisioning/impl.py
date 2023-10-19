@@ -4,14 +4,9 @@ from django.db import IntegrityError, router, transaction
 from sentry_sdk import capture_exception
 
 from sentry import roles
-from sentry.models import (
-    Organization,
-    OrganizationMember,
-    OutboxCategory,
-    OutboxScope,
-    RegionOutbox,
-    outbox_context,
-)
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.services.hybrid_cloud.organization_actions.impl import (

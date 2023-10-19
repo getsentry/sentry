@@ -204,6 +204,7 @@ export function Content({
           meta={meta?.[excIdx]?.stacktrace}
           threadId={threadId}
           frameSourceMapDebuggerData={frameSourceMapDebuggerData}
+          stackType={type}
         />
       </div>
     );

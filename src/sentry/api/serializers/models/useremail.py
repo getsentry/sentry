@@ -1,5 +1,5 @@
 from sentry.api.serializers import Serializer, register
-from sentry.models import UserEmail
+from sentry.models.useremail import UserEmail
 
 
 @register(UserEmail)

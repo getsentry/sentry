@@ -1,11 +1,13 @@
 import {TabList, Tabs} from 'sentry/components/tabs';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 interface Props {
   selected: 'replays' | 'selectors';
 }
 
-const SELECTOR_IDX_ROUTE = 'selectors';
+const SELECTOR_IDX_ROUTE = 'selectors/';
 const REPLAY_IDX_ROUTE = '';
 
 const TABS = [
@@ -18,6 +20,7 @@ export default function ReplayTabs({selected}: Props) {
   const hasDeadClickFeature = organization.features.includes(
     'session-replay-rage-dead-selectors'
   );
+  const location = useLocation();
 
   return hasDeadClickFeature ? (
     <Tabs value={selected}>
@@ -25,7 +28,13 @@ export default function ReplayTabs({selected}: Props) {
         {TABS.map(tab => (
           <TabList.Item
             key={tab.key}
-            to={`/organizations/${organization.slug}/replays/${tab.to}`}
+            to={{
+              ...location,
+              query: location.query,
+              pathname: normalizeUrl(
+                `/organizations/${organization.slug}/replays/${tab.to}`
+              ),
+            }}
           >
             {tab.label}
           </TabList.Item>

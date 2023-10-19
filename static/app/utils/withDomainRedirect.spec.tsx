@@ -1,4 +1,5 @@
 import {RouteComponentProps} from 'react-router';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -28,15 +29,10 @@ describe('withDomainRedirect', function () {
   }
 
   beforeEach(function () {
-    Object.defineProperty(window, 'location', {
-      writable: true,
-      value: {
-        replace: jest.fn(),
-        pathname: '/organizations/albertos-apples/issues/',
-        search: '?q=123',
-        hash: '#hash',
-      },
-    });
+    window.location.pathname = '/organizations/albertos-apples/issues/';
+    window.location.search = '?q=123';
+    window.location.hash = '#hash';
+
     window.__initialData = {
       customerDomain: {
         subdomain: 'albertos-apples',
@@ -91,7 +87,7 @@ describe('withDomainRedirect', function () {
   });
 
   it('redirects to sentryUrl on org slug mistmatch', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       slug: 'bobs-bagels',
       features: ['customer-domains'],
     });
@@ -129,7 +125,7 @@ describe('withDomainRedirect', function () {
   });
 
   it('redirects to sentryUrl on missing customer domain feature', function () {
-    const organization = TestStubs.Organization({slug: 'albertos-apples', features: []});
+    const organization = Organization({slug: 'albertos-apples', features: []});
 
     const params = {
       orgId: organization.slug,
@@ -164,7 +160,7 @@ describe('withDomainRedirect', function () {
   });
 
   it('redirect when :orgId is present in the routes', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       slug: 'albertos-apples',
       features: ['customer-domains'],
     });
@@ -202,7 +198,7 @@ describe('withDomainRedirect', function () {
   });
 
   it('does not redirect when :orgId is not present in the routes', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       slug: 'albertos-apples',
       features: ['customer-domains'],
     });
@@ -242,5 +238,47 @@ describe('withDomainRedirect', function () {
 
     expect(screen.getByText('Org slug: no org slug')).toBeInTheDocument();
     expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it('updates path when :orgId is present in the routes and there is no subdomain', function () {
+    const organization = TestStubs.Organization({
+      slug: 'albertos-apples',
+      features: ['customer-domains'],
+    });
+    window.__initialData.customerDomain = {
+      organizationUrl: 'https://sentry.io',
+      sentryUrl: 'https://sentry.io',
+      subdomain: '',
+    };
+
+    const params = {
+      orgId: organization.slug,
+      projectId: 'react',
+    };
+    const {router, route, routerContext} = initializeOrg({
+      organization,
+      router: {
+        params,
+        routes: projectRoutes,
+      },
+    });
+
+    const WrappedComponent = withDomainRedirect(MyComponent);
+    render(
+      <OrganizationContext.Provider value={organization}>
+        <WrappedComponent
+          router={router}
+          location={router.location}
+          params={params}
+          routes={router.routes}
+          routeParams={router.params}
+          route={route}
+        />
+      </OrganizationContext.Provider>,
+      {context: routerContext}
+    );
+
+    expect(router.replace).toHaveBeenCalledTimes(1);
+    expect(router.replace).toHaveBeenCalledWith('/settings/react/alerts/?q=123#hash');
   });
 });

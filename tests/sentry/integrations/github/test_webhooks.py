@@ -10,8 +10,12 @@ from fixtures.github import (
 )
 from sentry import options
 from sentry.constants import ObjectStatus
-from sentry.models import Commit, CommitAuthor, GroupLink, PullRequest, Repository
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.grouplink import GroupLink
+from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -37,7 +41,7 @@ class WebhookTest(APITestCase):
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="UnregisteredEvent",
-            HTTP_X_HUB_SIGNATURE="sha1=f834c327e17e6ef77f7882f948022747b379a1e3",
+            HTTP_X_HUB_SIGNATURE="sha1=2b116e7c1f7510b62727673b0f9acc0db951263a",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -81,7 +85,7 @@ class PushEventWebhookTest(APITestCase):
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
-            HTTP_X_HUB_SIGNATURE="sha1=f834c327e17e6ef77f7882f948022747b379a1e3",
+            HTTP_X_HUB_SIGNATURE="sha1=2b116e7c1f7510b62727673b0f9acc0db951263a",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -90,7 +94,7 @@ class PushEventWebhookTest(APITestCase):
     def test_simple(self):
         project = self.project  # force creation
 
-        Repository.objects.create(
+        repo = Repository.objects.create(
             organization_id=project.organization.id,
             external_id="35129377",
             provider="integrations:github",
@@ -128,7 +132,10 @@ class PushEventWebhookTest(APITestCase):
         assert commit.date_added == datetime(2015, 5, 5, 23, 40, 15, tzinfo=timezone.utc)
 
         commit_filechanges = CommitFileChange.objects.all()
-        assert len(commit_filechanges) == 2
+        assert len(commit_filechanges) == 4
+
+        repo.refresh_from_db()
+        assert set(repo.languages) == {"python", "javascript"}
 
     @patch("sentry.integrations.github.webhook.metrics")
     def test_creates_missing_repo(self, mock_metrics):
@@ -165,7 +172,7 @@ class PushEventWebhookTest(APITestCase):
     def test_anonymous_lookup(self):
         project = self.project  # force creation
 
-        Repository.objects.create(
+        repo = Repository.objects.create(
             organization_id=project.organization.id,
             external_id="35129377",
             provider="integrations:github",
@@ -207,7 +214,10 @@ class PushEventWebhookTest(APITestCase):
         assert commit.date_added == datetime(2015, 5, 5, 23, 40, 15, tzinfo=timezone.utc)
 
         commit_filechanges = CommitFileChange.objects.all()
-        assert len(commit_filechanges) == 2
+        assert len(commit_filechanges) == 4
+
+        repo.refresh_from_db()
+        assert set(repo.languages) == {"python", "javascript"}
 
     def test_multiple_orgs(self):
         project = self.project  # force creation
@@ -253,7 +263,7 @@ class PushEventWebhookTest(APITestCase):
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
-            HTTP_X_HUB_SIGNATURE="sha1=f834c327e17e6ef77f7882f948022747b379a1e3",
+            HTTP_X_HUB_SIGNATURE="sha1=2b116e7c1f7510b62727673b0f9acc0db951263a",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -296,13 +306,13 @@ class PushEventWebhookTest(APITestCase):
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
-            HTTP_X_HUB_SIGNATURE="sha1=f834c327e17e6ef77f7882f948022747b379a1e3",
+            HTTP_X_HUB_SIGNATURE="sha1=2b116e7c1f7510b62727673b0f9acc0db951263a",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204
 
-        repos = Repository.objects.all()
+        repos = Repository.objects.all().order_by("date_added")
         assert len(repos) == 2
 
         assert repos[0].organization_id == project.organization.id
@@ -343,7 +353,7 @@ class PushEventWebhookTest(APITestCase):
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
-            HTTP_X_HUB_SIGNATURE="sha1=f834c327e17e6ef77f7882f948022747b379a1e3",
+            HTTP_X_HUB_SIGNATURE="sha1=2b116e7c1f7510b62727673b0f9acc0db951263a",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 

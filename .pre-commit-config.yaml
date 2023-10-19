@@ -1,3 +1,5 @@
+default_install_hook_types: ["pre-commit", "pre-push"]
+
 exclude: >
     (?x)(
         LICENSE$|
@@ -57,6 +59,18 @@ repos:
       language: pygrep
       types: [python]
       exclude: ^src/sentry/metrics/minimetrics.py$
+    - id: prevent-push
+      name: prevent pushing master
+      stages: [pre-push]
+      entry: bash -c 'test "$PRE_COMMIT_REMOTE_BRANCH" != "refs/heads/master"'
+      always_run: true
+      pass_filenames: false
+      language: system
+
+-   repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.10.0
+    hooks:
+    -   id: python-use-type-annotations
 
 -   repo: https://github.com/python-jsonschema/check-jsonschema
     rev: 0.24.1

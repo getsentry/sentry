@@ -1,5 +1,5 @@
 from sentry.incidents.models import IncidentSubscription
-from sentry.models import GroupSubscription
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.linksign import generate_signed_link

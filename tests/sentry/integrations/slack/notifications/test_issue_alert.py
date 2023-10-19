@@ -9,15 +9,11 @@ import sentry
 from sentry.constants import ObjectStatus
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
-from sentry.models import (
-    ExternalActor,
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    OrganizationIntegration,
-    Rule,
-)
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.rule import Rule
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -145,7 +141,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_disabled_org_integration_for_user(self, mock_func):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            OrganizationIntegration.objects.filter(integration=self.integration).update(
+            OrganizationIntegration.objects.get(integration=self.integration).update(
                 status=ObjectStatus.DISABLED
             )
 
@@ -318,7 +314,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            OrganizationIntegration.objects.filter(integration=self.integration).update(
+            OrganizationIntegration.objects.get(integration=self.integration).update(
                 status=ObjectStatus.DISABLED
             )
 

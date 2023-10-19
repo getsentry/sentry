@@ -6,7 +6,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.constants import DS_DENYLIST, PROTECTED_TAG_KEYS
-from sentry.models import Environment
+from sentry.models.environment import Environment
 
 
 @region_silo_endpoint

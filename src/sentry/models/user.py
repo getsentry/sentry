@@ -60,8 +60,8 @@ class UserManager(BaseManager, DjangoUserManager):
         For a given organization, get the list of members that are only
         connected to a single integration.
         """
-        from sentry.models import OrganizationMemberMapping
         from sentry.models.integrations.organization_integration import OrganizationIntegration
+        from sentry.models.organizationmembermapping import OrganizationMemberMapping
 
         org_user_ids = OrganizationMemberMapping.objects.filter(
             organization_id=organization_id
@@ -190,7 +190,7 @@ class User(BaseModel, AbstractBaseUser):
     def delete(self):
         if self.username == "sentry":
             raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
-        with outbox_context(transaction.atomic(using=router.db_for_write(User)), flush=False):
+        with outbox_context(transaction.atomic(using=router.db_for_write(User))):
             avatar = self.avatar.first()
             if avatar:
                 avatar.delete()
@@ -199,13 +199,13 @@ class User(BaseModel, AbstractBaseUser):
             return super().delete()
 
     def update(self, *args, **kwds):
-        with outbox_context(transaction.atomic(using=router.db_for_write(User)), flush=False):
+        with outbox_context(transaction.atomic(using=router.db_for_write(User))):
             for outbox in self.outboxes_for_update():
                 outbox.save()
             return super().update(*args, **kwds)
 
     def save(self, *args, **kwargs):
-        with outbox_context(transaction.atomic(using=router.db_for_write(User)), flush=False):
+        with outbox_context(transaction.atomic(using=router.db_for_write(User))):
             if not self.username:
                 self.username = self.email
             result = super().save(*args, **kwargs)
@@ -310,16 +310,14 @@ class User(BaseModel, AbstractBaseUser):
 
     def merge_to(from_user, to_user):
         # TODO: we could discover relations automatically and make this useful
-        from sentry.models import (
-            AuditLogEntry,
-            Authenticator,
-            AuthIdentity,
-            Identity,
-            OrganizationMemberMapping,
-            UserAvatar,
-            UserEmail,
-            UserOption,
-        )
+        from sentry.models.auditlogentry import AuditLogEntry
+        from sentry.models.authenticator import Authenticator
+        from sentry.models.authidentity import AuthIdentity
+        from sentry.models.avatars.user_avatar import UserAvatar
+        from sentry.models.identity import Identity
+        from sentry.models.options.user_option import UserOption
+        from sentry.models.organizationmembermapping import OrganizationMemberMapping
+        from sentry.models.useremail import UserEmail
 
         audit_logger.info(
             "user.merge", extra={"from_user_id": from_user.id, "to_user_id": to_user.id}
@@ -383,7 +381,7 @@ class User(BaseModel, AbstractBaseUser):
             request.session["_nonce"] = self.session_nonce
 
     def has_org_requiring_2fa(self) -> bool:
-        from sentry.models import OrganizationStatus
+        from sentry.models.organization import OrganizationStatus
 
         return OrganizationMemberMapping.objects.filter(
             user_id=self.id,
@@ -405,22 +403,26 @@ class User(BaseModel, AbstractBaseUser):
         if old_pk is None:
             return None
 
-        # New users are always unclaimed.
-        self.is_unclaimed = True
-
-        # Give the user a cryptographically secure random password. The purpose here is to have a
-        # password that NO ONE knows - the only way to log into this account is to use the "claim
-        # your account" flow to create a new password (or to click "lost password" and end up there
-        # anyway), at which point we'll detect the user's `is_unclaimed`` status and prompt them to
-        # change their `username` as well.
-        self.set_password(
-            "".join(secrets.choice(RANDOM_PASSWORD_ALPHABET) for _ in range(RANDOM_PASSWORD_LENGTH))
-        )
-
         if scope not in {ImportScope.Config, ImportScope.Global}:
             self.is_staff = False
             self.is_superuser = False
             self.is_managed = False
+
+        # No need to mark users newly "unclaimed" when doing a global backup/restore.
+        if scope != ImportScope.Global or self.is_unclaimed:
+            # New users are marked unclaimed.
+            self.is_unclaimed = True
+
+            # Give the user a cryptographically secure random password. The purpose here is to have
+            # a password that NO ONE knows - the only way to log into this account is to use the
+            # "claim your account" flow to create a new password (or to click "lost password" and
+            # end up there anyway), at which point we'll detect the user's `is_unclaimed` status and
+            # prompt them to change their `username` as well.
+            self.set_password(
+                "".join(
+                    secrets.choice(RANDOM_PASSWORD_ALPHABET) for _ in range(RANDOM_PASSWORD_LENGTH)
+                )
+            )
 
         return old_pk
 

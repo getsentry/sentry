@@ -8,14 +8,16 @@ from sentry.api.authentication import (
     ApiKeyAuthentication,
     DSNAuthentication,
     OrgAuthTokenAuthentication,
-    TokenAuthentication,
+    UserAuthTokenAuthentication,
 )
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
 from sentry.constants import ObjectStatus
-from sentry.models import Organization, Project, ProjectKey
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
@@ -40,7 +42,7 @@ class ProjectMonitorPermission(ProjectPermission):
 
 class MonitorEndpoint(Endpoint):
     """
-    Base endpoint class for monitors which will lookup the monitor and
+    Base endpoint class for monitors which will look up the monitor and
     convert it to a Monitor object.
 
     [!!]: This base endpoint is NOT used for legacy ingestion endpoints, see
@@ -112,7 +114,7 @@ class MonitorIngestEndpoint(Endpoint):
 
     authentication_classes = (
         DSNAuthentication,
-        TokenAuthentication,
+        UserAuthTokenAuthentication,
         OrgAuthTokenAuthentication,
         ApiKeyAuthentication,
     )
@@ -178,7 +180,7 @@ class MonitorIngestEndpoint(Endpoint):
                 # create this monitor, we can't raise an error in that case
                 if not self.allow_auto_create_monitors:
                     # This error is a bit confusing, because this may also mean
-                    # that we've failed to lookup their monitor by slug.
+                    # that we've failed to look up their monitor by slug.
                     raise ParameterValidationError("Invalid monitor UUID")
 
         if not monitor and not self.allow_auto_create_monitors:

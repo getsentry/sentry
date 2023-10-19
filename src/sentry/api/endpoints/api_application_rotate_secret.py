@@ -7,8 +7,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import ApiApplication, ApiApplicationStatus
-from sentry.models.apiapplication import generate_token
+from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus, generate_token
 
 
 @control_silo_endpoint

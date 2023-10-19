@@ -6,8 +6,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
-from sentry.models import User
 from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.user import User
 
 
 @control_silo_endpoint

@@ -1,4 +1,4 @@
-from sentry.models import GroupAssignee
+from sentry.models.groupassignee import GroupAssignee
 from sentry.rules.filters.assigned_to import AssignedToFilter
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba

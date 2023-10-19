@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def _get_user_from_email(group, email):
-    from sentry.models import User
+    from sentry.models.user import User
 
     # TODO(dcramer): we should encode the userid in emails so we can avoid this
     for user in User.objects.filter(email__iexact=email):
@@ -31,7 +31,7 @@ def _get_user_from_email(group, email):
 )
 def process_inbound_email(mailfrom, group_id, payload):
     """ """
-    from sentry.models import Group
+    from sentry.models.group import Group
     from sentry.web.forms import NewNoteForm
 
     try:

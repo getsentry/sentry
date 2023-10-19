@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
@@ -61,9 +63,7 @@ describe('EventOrGroupTitle', function () {
   });
 
   it('renders with title override', function () {
-    const routerContext = TestStubs.routerContext([
-      {organization: TestStubs.Organization()},
-    ]);
+    const routerContext = TestStubs.routerContext([{organization: Organization()}]);
 
     render(
       <EventOrGroupTitle
@@ -140,9 +140,7 @@ describe('EventOrGroupTitle', function () {
     } as BaseGroup;
 
     it('should correctly render title', () => {
-      const routerContext = TestStubs.routerContext([
-        {organization: TestStubs.Organization()},
-      ]);
+      const routerContext = TestStubs.routerContext([{organization: Organization()}]);
 
       render(<EventOrGroupTitle data={perfData} />, {context: routerContext});
 

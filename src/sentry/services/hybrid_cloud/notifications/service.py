@@ -4,13 +4,12 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import List, Mapping, MutableMapping, Optional, Sequence, Tuple, cast
+from typing import List, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 from sentry.notifications.types import (
     NotificationScopeType,
     NotificationSettingEnum,
     NotificationSettingOptionValues,
-    NotificationSettingsOptionEnum,
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import RpcActor
@@ -145,7 +144,7 @@ class NotificationsService(RpcService):
         user_id: int,
         project_ids: List[int],
         type: NotificationSettingEnum,
-    ) -> Mapping[int, Tuple[bool, bool]]:
+    ) -> Mapping[int, Tuple[bool, bool, bool]]:
         pass
 
     @rpc_method
@@ -154,10 +153,10 @@ class NotificationsService(RpcService):
         self,
         *,
         recipients: List[RpcActor],
-        project_ids: Optional[List[int]],
-        organization_id: Optional[int],
         type: NotificationSettingEnum,
-    ) -> MutableMapping[int, MutableMapping[ExternalProviders, NotificationSettingsOptionEnum]]:
+        project_ids: Optional[List[int]] = None,
+        organization_id: Optional[int] = None,
+    ) -> MutableMapping[int, MutableMapping[int, str]]:
         pass
 
     @rpc_method
@@ -181,6 +180,4 @@ class NotificationsService(RpcService):
         pass
 
 
-notifications_service: NotificationsService = cast(
-    NotificationsService, NotificationsService.create_delegation()
-)
+notifications_service = NotificationsService.create_delegation()

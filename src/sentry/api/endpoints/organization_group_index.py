@@ -29,15 +29,11 @@ from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnub
 from sentry.api.utils import InvalidParams, get_date_range_from_stats_period
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import (
-    QUERY_STATUS_LOOKUP,
-    Environment,
-    Group,
-    GroupEnvironment,
-    GroupInbox,
-    GroupStatus,
-    Project,
-)
+from sentry.models.environment import Environment
+from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.groupinbox import GroupInbox
+from sentry.models.project import Project
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import get_search_filter
@@ -232,7 +228,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                                           issues belong to.
         :auth: required
         :qparam list expand: an optional list of strings to opt in to additional data. Supports `inbox`
-        :qparam list collapse: an optional list of strings to opt out of certain pieces of data. Supports `stats`, `lifetime`, `base`
+        :qparam list collapse: an optional list of strings to opt out of certain pieces of data. Supports `stats`, `lifetime`, `base`, `unhandled`
         """
         stats_period = request.GET.get("groupStatsPeriod")
         try:

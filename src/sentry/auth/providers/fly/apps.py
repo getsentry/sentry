@@ -15,9 +15,9 @@ class Config(AppConfig):
 
         options.register(
             "auth-fly.client-id",
-            flags=options.FLAG_ALLOW_EMPTY | options.FLAG_PRIORITIZE_DISK,  # type: ignore
+            flags=options.FLAG_ALLOW_EMPTY | options.FLAG_PRIORITIZE_DISK,
         )
         options.register(
             "auth-fly.client-secret",
-            flags=options.FLAG_ALLOW_EMPTY | options.FLAG_PRIORITIZE_DISK,  # type: ignore
+            flags=options.FLAG_ALLOW_EMPTY | options.FLAG_PRIORITIZE_DISK,
         )

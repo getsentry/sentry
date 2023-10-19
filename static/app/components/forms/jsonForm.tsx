@@ -8,10 +8,12 @@ import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
-import FormPanel from './formPanel';
-import {Field, FieldObject, JsonFormObject} from './types';
+import FormPanel, {FormPanelProps} from './formPanel';
+import type {Field, FieldObject, JsonFormObject} from './types';
 
-type Props = {
+interface JsonFormProps
+  extends WithRouterProps,
+    Omit<FormPanelProps, 'highlighted' | 'fields' | 'additionalFieldProps'> {
   additionalFieldProps?: {[key: string]: any};
 
   /**
@@ -24,18 +26,29 @@ type Props = {
    * Fields that are grouped by "section"
    */
   forms?: JsonFormObject[];
-} & WithRouterProps &
-  Omit<
-    React.ComponentProps<typeof FormPanel>,
-    'highlighted' | 'fields' | 'additionalFieldProps'
-  >;
+}
 
 type State = {
   // Field name that should be highlighted
   highlighted?: string;
 };
 
-class JsonForm extends Component<Props, State> {
+interface ChildFormPanelProps
+  extends Pick<
+    FormPanelProps,
+    | 'access'
+    | 'disabled'
+    | 'features'
+    | 'additionalFieldProps'
+    | 'renderFooter'
+    | 'renderHeader'
+    | 'initiallyCollapsed'
+    | 'collapsible'
+  > {
+  highlighted?: State['highlighted'];
+}
+
+class JsonForm extends Component<JsonFormProps, State> {
   state: State = {
     // location.hash is optional because of tests.
     highlighted: this.props.location?.hash,
@@ -45,7 +58,7 @@ class JsonForm extends Component<Props, State> {
     this.scrollToHash();
   }
 
-  componentDidUpdate(prevProps: Props) {
+  componentDidUpdate(prevProps: JsonFormProps) {
     if (this.props.location && this.props.location.hash !== prevProps.location.hash) {
       const hash = this.props.location.hash;
       this.scrollToHash(hash);
@@ -74,10 +87,10 @@ class JsonForm extends Component<Props, State> {
     }
   }
 
-  shouldDisplayForm(fields: FieldObject[]) {
+  shouldDisplayForm(fields: FieldObject[]): boolean {
     const fieldsWithVisibleProp = fields.filter(
-      field => typeof field !== 'function' && defined(field?.visible)
-    ) as Array<Omit<Field, 'visible'> & Required<Pick<Field, 'visible'>>>;
+      (field): field is Field => typeof field !== 'function' && defined(field?.visible)
+    );
 
     if (fields.length === fieldsWithVisibleProp.length) {
       const {additionalFieldProps, ...props} = this.props;
@@ -102,17 +115,7 @@ class JsonForm extends Component<Props, State> {
     initiallyCollapsed,
   }: {
     fields: FieldObject[];
-    formPanelProps: Pick<
-      Props,
-      | 'access'
-      | 'disabled'
-      | 'features'
-      | 'additionalFieldProps'
-      | 'renderFooter'
-      | 'renderHeader'
-      | 'initiallyCollapsed'
-    > &
-      Pick<State, 'highlighted'>;
+    formPanelProps: ChildFormPanelProps;
     initiallyCollapsed?: boolean;
     title?: React.ReactNode;
   }) {
@@ -156,7 +159,7 @@ class JsonForm extends Component<Props, State> {
       ...otherProps
     } = this.props;
 
-    const formPanelProps = {
+    const formPanelProps: ChildFormPanelProps = {
       access,
       disabled,
       features,

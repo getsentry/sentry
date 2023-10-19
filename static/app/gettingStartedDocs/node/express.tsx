@@ -17,7 +17,8 @@ interface StepsParams {
   hasPerformanceMonitoring: boolean;
   importContent: string;
   initContent: string;
-  installSnippet: string;
+  installSnippetNpm: string;
+  installSnippetYarn: string;
   sourceMapStep: StepProps;
 }
 
@@ -29,7 +30,8 @@ const performanceIntegrations: string[] = [
 ];
 
 export const steps = ({
-  installSnippet,
+  installSnippetYarn,
+  installSnippetNpm,
   importContent,
   initContent,
   hasPerformanceMonitoring,
@@ -40,8 +42,20 @@ export const steps = ({
     description: t('Add the Sentry Node SDK as a dependency:'),
     configurations: [
       {
-        language: 'bash',
-        code: installSnippet,
+        code: [
+          {
+            label: 'npm',
+            value: 'npm',
+            language: 'bash',
+            code: installSnippetNpm,
+          },
+          {
+            label: 'yarn',
+            value: 'yarn',
+            language: 'bash',
+            code: installSnippetYarn,
+          },
+        ],
       },
     ],
   },
@@ -128,7 +142,6 @@ export function GettingStartedWithExpress({
 }: ModuleProps) {
   const productSelection = getProductSelectionMap(activeProductSelection);
 
-  const installSnippet = getInstallSnippet({productSelection});
   const imports = getDefaultNodeImports({productSelection});
   imports.push('import express from "express";');
 
@@ -151,7 +164,8 @@ export function GettingStartedWithExpress({
   return (
     <Layout
       steps={steps({
-        installSnippet,
+        installSnippetNpm: getInstallSnippet({productSelection, packageManager: 'npm'}),
+        installSnippetYarn: getInstallSnippet({productSelection, packageManager: 'yarn'}),
         importContent: imports.join('\n'),
         initContent,
         hasPerformanceMonitoring: productSelection['performance-monitoring'],

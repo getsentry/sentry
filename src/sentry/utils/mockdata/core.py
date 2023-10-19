@@ -20,34 +20,31 @@ from sentry.constants import ObjectStatus
 from sentry.event_manager import HashDiscarded
 from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger, create_incident
 from sentry.incidents.models import AlertRuleThresholdType, IncidentType
-from sentry.models import (
-    TOMBSTONE_FIELDS_FROM_GROUP,
-    Activity,
-    Broadcast,
-    Commit,
-    CommitAuthor,
-    Deploy,
-    Environment,
-    EventAttachment,
-    File,
-    Group,
-    GroupRelease,
-    GroupTombstone,
-    Organization,
-    OrganizationAccessRequest,
-    OrganizationMember,
-    Project,
-    Release,
-    ReleaseCommit,
-    ReleaseEnvironment,
-    ReleaseFile,
-    ReleaseProjectEnvironment,
-    Repository,
-    Team,
-    User,
-    UserReport,
-)
+from sentry.models.activity import Activity
+from sentry.models.broadcast import Broadcast
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.deploy import Deploy
+from sentry.models.environment import Environment
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.files.file import File
+from sentry.models.group import Group
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.grouptombstone import TOMBSTONE_FIELDS_FROM_GROUP, GroupTombstone
+from sentry.models.organization import Organization
+from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releasefile import ReleaseFile
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.repository import Repository
+from sentry.models.team import Team
+from sentry.models.user import User
+from sentry.models.userreport import UserReport
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -1049,7 +1046,7 @@ def create_mock_transactions(
                     "span_id": uuid4().hex[:16],
                     "hash": "858fea692d4d93e9",
                     "data": {
-                        "http.transfer_size": 1_000_000,
+                        "http.response_transfer_size": 1_000_000,
                         "http.response_content_length": 1_000_000,
                         "http.decoded_response_content_length": 1_000_000,
                     },

@@ -188,7 +188,7 @@ export function updateNote(
   id: string,
   oldText: string
 ) {
-  GroupStore.updateActivity(group.id, id, {data: {text: note.text}});
+  GroupStore.updateActivity(group.id, id, {text: note.text});
 
   const promise = api.requestPromise(
     `/organizations/${orgSlug}/issues/${group.id}/comments/${id}/`,
@@ -198,7 +198,7 @@ export function updateNote(
     }
   );
 
-  promise.catch(() => GroupStore.updateActivity(group.id, id, {data: {text: oldText}}));
+  promise.catch(() => GroupStore.updateActivity(group.id, id, {text: oldText}));
 
   return promise;
 }
@@ -413,13 +413,15 @@ export type GroupTagsResponse = GroupTagResponseItem[];
 
 type FetchIssueTagsParameters = {
   environment: string[];
-  limit: number;
   orgSlug: string;
-  readable: boolean;
   groupId?: string;
   isStatisticalDetector?: boolean;
+  limit?: number;
+  readable?: boolean;
   statisticalDetectorParameters?: {
     durationBaseline: number;
+    end: string;
+    start: string;
     transaction: string;
   };
 };
@@ -440,9 +442,11 @@ const makeFetchStatisticalDetectorTagsQueryKey = ({
   environment,
   statisticalDetectorParameters,
 }: FetchIssueTagsParameters): ApiQueryKey => {
-  const {transaction, durationBaseline} = statisticalDetectorParameters ?? {
+  const {transaction, durationBaseline, start, end} = statisticalDetectorParameters ?? {
     transaction: '',
     durationBaseline: 0,
+    start: undefined,
+    end: undefined,
   };
   return [
     `/organizations/${orgSlug}/events-facets/`,
@@ -452,6 +456,8 @@ const makeFetchStatisticalDetectorTagsQueryKey = ({
         transaction,
         includeAll: true,
         query: getSampleEventQuery({transaction, durationBaseline, addUpperBound: false}),
+        start,
+        end,
       },
     },
   ];
@@ -481,6 +487,7 @@ type FetchIssueTagValuesParameters = {
   groupId: string;
   orgSlug: string;
   tagKey: string;
+  cursor?: string;
   environment?: string[];
   sort?: string | string[];
 };
@@ -491,9 +498,10 @@ export const makeFetchIssueTagValuesQueryKey = ({
   tagKey,
   environment,
   sort,
+  cursor,
 }: FetchIssueTagValuesParameters): ApiQueryKey => [
   `/organizations/${orgSlug}/issues/${groupId}/tags/${tagKey}/values/`,
-  {query: {environment, sort}},
+  {query: {environment, sort, cursor}},
 ];
 
 export function useFetchIssueTagValues(

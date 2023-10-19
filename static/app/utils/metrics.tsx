@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {InjectedRouter} from 'react-router';
 import moment from 'moment';
 
@@ -9,7 +9,7 @@ import {formatPercentage, getDuration} from 'sentry/utils/formatters';
 import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {PageFilters} from '../types/core';
+import {DateString, PageFilters} from '../types/core';
 
 // TODO(ddm): reuse from types/metrics.tsx
 type MetricMeta = {
@@ -95,16 +95,13 @@ export function useMetricsTagValues(
 }
 
 export type MetricsQuery = {
+  datetime: PageFilters['datetime'];
+  environments: PageFilters['environments'];
   mri: string;
+  projects: PageFilters['projects'];
   groupBy?: string[];
   op?: string;
   query?: string;
-};
-
-export type MetricsDataProps = MetricsQuery & {
-  datetime: PageFilters['datetime'];
-  environments: PageFilters['environments'];
-  projects: PageFilters['projects'];
 };
 
 // TODO(ddm): reuse from types/metrics.tsx
@@ -132,7 +129,7 @@ export function useMetricsData({
   environments,
   query,
   groupBy,
-}: MetricsDataProps) {
+}: MetricsQuery) {
   const {slug} = useOrganization();
   const useCase = getUseCaseFromMri(mri);
   const field = op ? `${op}(${mri})` : mri;
@@ -171,6 +168,57 @@ export function useMetricsData({
       },
     }
   );
+}
+
+// Wraps useMetricsData and provides two additional features:
+// 1. return data is undefined only during the initial load
+// 2. provides a callback to trim the data to a specific time range when chart zoom is used
+export function useMetricsDataZoom(props: MetricsQuery) {
+  const [metricsData, setMetricsData] = useState<MetricsData | undefined>();
+  const {data: rawData, isLoading, isError, error} = useMetricsData(props);
+
+  useEffect(() => {
+    if (rawData) {
+      setMetricsData(rawData);
+    }
+  }, [rawData]);
+
+  const trimData = (start, end): MetricsData | undefined => {
+    if (!metricsData) {
+      return metricsData;
+    }
+    // find the index of the first interval that is greater than the start time
+    const startIndex = metricsData.intervals.findIndex(interval => interval >= start) - 1;
+    const endIndex = metricsData.intervals.findIndex(interval => interval >= end);
+
+    if (startIndex === -1 || endIndex === -1) {
+      return metricsData;
+    }
+
+    return {
+      ...metricsData,
+      intervals: metricsData.intervals.slice(startIndex, endIndex),
+      groups: metricsData.groups.map(group => ({
+        ...group,
+        series: Object.fromEntries(
+          Object.entries(group.series).map(([seriesName, series]) => [
+            seriesName,
+            series.slice(startIndex, endIndex),
+          ])
+        ),
+      })),
+    };
+  };
+
+  return {
+    data: metricsData,
+    isLoading,
+    isError,
+    error,
+    onZoom: (start: DateString, end: DateString) => {
+      setMetricsData(trimData(start, end));
+    },
+  };
 }
 
 function getDateTimeParams({start, end, period}: PageFilters['datetime']) {
@@ -301,5 +349,12 @@ export function updateQuery(router: InjectedRouter, partialQuery: Record<string,
       ...router.location.query,
       ...partialQuery,
     },
+  });
+}
+
+export function clearQuery(router: InjectedRouter) {
+  router.push({
+    ...router.location,
+    query: {},
   });
 }

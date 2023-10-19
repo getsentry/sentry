@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -5,7 +7,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {getCurrentLandingDisplay} from 'sentry/views/performance/landing/utils';
 
 function initializeData(projects, query = {}) {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: [],
     projects,
   });

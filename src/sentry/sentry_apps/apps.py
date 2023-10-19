@@ -18,22 +18,19 @@ from sentry import analytics, audit_log, options
 from sentry.constants import SentryAppStatus
 from sentry.coreapi import APIError
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.models import (
-    ApiApplication,
-    ApiToken,
-    IntegrationFeature,
-    SentryApp,
-    SentryAppComponent,
-    SentryAppInstallation,
-    User,
-)
-from sentry.models.integrations.integration_feature import IntegrationTypes
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.apitoken import ApiToken
+from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.models.integrations.sentry_app import (
     EVENT_EXPANSION,
     REQUIRED_EVENT_PERMISSIONS,
+    SentryApp,
     default_uuid,
     generate_slug,
 )
+from sentry.models.integrations.sentry_app_component import SentryAppComponent
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.user import User
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,

@@ -67,14 +67,6 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
         type=OpenApiTypes.DATETIME,
         description="The end of the period of time for the query, expected in ISO-8601 format. For example `2001-12-14T12:34:56.7890`.",
     )
-    PROJECT = OpenApiParameter(
-        name="project",
-        location="query",
-        required=False,
-        many=True,
-        type=int,
-        description="The IDs of projects to filter by. `-1` means all available projects. If this parameter is omitted, the request will default to using 'My Projects'.",
-    )
     ENVIRONMENT = OpenApiParameter(
         name="environment",
         location="query",
@@ -95,6 +87,32 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
         )
 
 
+class OrganizationParams:
+    PROJECT_SLUG = OpenApiParameter(
+        name="project_slug",
+        location="query",
+        required=False,
+        many=True,
+        type=str,
+        description="""The project slugs to filter by. Use `$all` to include all available projects. For example the following are valid parameters:
+- `/?projectSlug=$all`
+- `/?projectSlug=android&projectSlug=javascript-react`
+""",
+    )
+    PROJECT = OpenApiParameter(
+        name="project",
+        location="query",
+        required=False,
+        many=True,
+        type=int,
+        description="""The IDs of projects to filter by. `-1` means all available projects.
+For example the following are valid parameters:
+- `/?project=1234&project=56789`
+- `/?project=-1`
+""",
+    )
+
+
 class SCIMParams:
     TEAM_ID = OpenApiParameter(
         name="team_id",
@@ -108,6 +126,16 @@ class SCIMParams:
 class IssueAlertParams:
     ISSUE_RULE_ID = OpenApiParameter(
         name="rule_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the rule you'd like to query.",
+    )
+
+
+class MetricAlertParams:
+    METRIC_RULE_ID = OpenApiParameter(
+        name="alert_rule_id",
         location="path",
         required=True,
         type=int,
@@ -270,4 +298,63 @@ class ReplayParams:
         required=True,
         type=OpenApiTypes.UUID,
         description="""The ID of the replay you'd like to retrieve.""",
+    )
+
+
+class NotificationParams:
+    TRIGGER_TYPE = OpenApiParameter(
+        name="triggerType",
+        location="query",
+        required=False,
+        type=str,
+        description="Type of the trigger that causes the notification. The only supported value right now is: `spike-protection`",
+    )
+    ACTION_ID = OpenApiParameter(
+        name="action_id",
+        location="path",
+        required=True,
+        type=int,
+        description="ID of the notification action to retrieve",
+    )
+
+
+class IntegrationParams:
+    PROVIDER_KEY = OpenApiParameter(
+        name="providerKey",
+        location="query",
+        required=False,
+        type=str,
+        description="""Specific integration provider to filter by such as `slack`. See our [Integrations Documentation](/product/integrations/) for an updated list of providers.""",
+    )
+    FEATURES = OpenApiParameter(
+        name="features",
+        location="query",
+        required=False,
+        type=str,
+        many=True,
+        description="""Integration features to filter by. See our [Integrations Documentation](/product/integrations/) for an updated list of features. Current available ones are:
+- alert-rule
+- chat-unfurl
+- codeowners
+- commits
+- data-forwarding
+- deployment
+- enterprise-alert-rule
+- enterprise-incident-management
+- incident-management
+- issue-basic
+- issue-sync
+- mobile
+- serverless
+- session-replay
+- stacktrace-link
+- ticket-rules
+    """,
+    )
+    INCLUDE_CONFIG = OpenApiParameter(
+        name="includeConfig",
+        location="query",
+        required=False,
+        type=bool,
+        description="""Specify `True` to fetch third-party integration configurations. Note that this can add several seconds to the response time.""",
     )

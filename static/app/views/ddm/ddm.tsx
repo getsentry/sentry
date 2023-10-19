@@ -1,12 +1,11 @@
 import styled from '@emotion/styled';
 
 import ButtonBar from 'sentry/components/buttonBar';
-import {CompactSelect} from 'sentry/components/compactSelect';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
@@ -14,18 +13,16 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {defaultMetricDisplayType, MetricDisplayType} from 'sentry/utils/metrics';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
-import MetricsExplorer from 'sentry/views/ddm/metricsExplorer';
+import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
+import {ScratchpadSelector} from 'sentry/views/ddm/scratchpadSelector';
 
 function DDM() {
   const organization = useOrganization();
-  const router = useRouter();
 
   return (
     <SentryDocumentTitle title={t('DDM')} orgSlug={organization.slug}>
-      <PageFiltersContainer>
+      <PageFiltersContainer disablePersistence>
         <Layout.Page>
           <Layout.Header>
             <Layout.HeaderContent>
@@ -52,36 +49,9 @@ function DDM() {
                   <EnvironmentPageFilter />
                   <DatePageFilter />
                 </PageFilterBar>
-                <CompactSelect
-                  triggerProps={{prefix: t('Display')}}
-                  value={router.location.query.display ?? defaultMetricDisplayType}
-                  options={[
-                    {
-                      value: MetricDisplayType.LINE,
-                      label: t('Line Chart'),
-                    },
-                    {
-                      value: MetricDisplayType.AREA,
-                      label: t('Area Chart'),
-                    },
-                    {
-                      value: MetricDisplayType.BAR,
-                      label: t('Bar Chart'),
-                    },
-                  ]}
-                  onChange={({value}) => {
-                    router.push({
-                      ...router.location,
-                      query: {
-                        ...router.location.query,
-                        cursor: undefined,
-                        display: value,
-                      },
-                    });
-                  }}
-                />
+                <ScratchpadSelector />
               </PaddedContainer>
-              <MetricsExplorer />
+              <MetricScratchpad />
             </Layout.Main>
           </Layout.Body>
         </Layout.Page>

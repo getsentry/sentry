@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectContext} from 'sentry/views/projects/projectContext';
@@ -9,7 +11,7 @@ jest.mock('sentry/actionCreators/modal', () => ({
 
 describe('projectContext component', function () {
   const project = TestStubs.Project();
-  const org = TestStubs.Organization();
+  const org = Organization();
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();

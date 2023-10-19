@@ -6,13 +6,15 @@ from mistune import markdown
 from rest_framework.response import Response
 
 from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
-from sentry.models import Activity, User
+from sentry.models.activity import Activity
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 
 if TYPE_CHECKING:
-    from sentry.models import ExternalIssue, Group
+    from sentry.models.group import Group
+    from sentry.models.integrations.external_issue import ExternalIssue
 
 
 class VstsIssueSync(IssueSyncMixin):

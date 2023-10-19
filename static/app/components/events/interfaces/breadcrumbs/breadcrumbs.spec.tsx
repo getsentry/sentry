@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -37,7 +39,7 @@ describe('Breadcrumbs', () => {
     });
 
     props = {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
       event: TestStubs.Event({entries: [], projectID: project.id}),
       data: {
         values: [

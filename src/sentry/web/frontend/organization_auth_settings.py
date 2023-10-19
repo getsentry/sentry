@@ -13,15 +13,10 @@ from rest_framework.request import Request
 from sentry import audit_log, features, roles
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
-from sentry.models import (
-    AuthProvider,
-    Organization,
-    OrganizationMember,
-    OutboxCategory,
-    OutboxScope,
-    RegionOutbox,
-    outbox_context,
-)
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.plugins.base import Response
 from sentry.services.hybrid_cloud.auth import RpcAuthProvider, auth_service
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service

@@ -1,8 +1,7 @@
 from rest_framework import status
 
-from sentry.models import EventError
+from sentry.models.eventerror import EventError
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
@@ -20,23 +19,6 @@ class ActionableItemsEndpointTestCase(APITestCase):
         self.login_as(self.user)
         return super().setUp()
 
-    def test_no_feature_flag(self):
-        event = self.store_event(
-            data={"event_id": "a" * 32},
-            project_id=self.project.id,
-        )
-        resp = self.get_error_response(
-            self.organization.slug,
-            self.project.slug,
-            event.event_id,
-            status_code=status.HTTP_404_NOT_FOUND,
-        )
-        assert (
-            resp.data["detail"]
-            == "Endpoint not available without 'organizations:actionable-items' feature flag"
-        )
-
-    @with_feature("organizations:actionable-items")
     def test_missing_event(self):
         resp = self.get_error_response(
             self.organization.slug,
@@ -46,7 +28,6 @@ class ActionableItemsEndpointTestCase(APITestCase):
         )
         assert resp.data["detail"] == "Event not found"
 
-    @with_feature("organizations:actionable-items")
     def test_orders_event_errors_by_priority(self):
         event = self.store_event(
             data={

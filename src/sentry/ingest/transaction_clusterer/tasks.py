@@ -1,3 +1,4 @@
+import logging
 from itertools import islice
 from typing import Any, Sequence
 
@@ -5,7 +6,7 @@ import sentry_sdk
 
 from sentry import features
 from sentry.ingest.transaction_clusterer.base import ReplacementRule
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 
@@ -13,6 +14,8 @@ from . import ClustererNamespace, rules
 from .datasource import redis
 from .meta import track_clusterer_run
 from .tree import TreeClusterer
+
+logger_transactions = logging.getLogger("sentry.ingest.transaction_clusterer.tasks")
 
 #: Minimum number of children in the URL tree which triggers a merge.
 #: See ``TreeClusterer`` for more information.
@@ -59,6 +62,7 @@ def spawn_clusterers(**kwargs: Any) -> None:
     time_limit=PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT + 2,  # extra 2s to emit metrics
 )
 def cluster_projects(projects: Sequence[Project]) -> None:
+    pending = set(projects)
     num_clustered = 0
     try:
         for project in projects:
@@ -86,6 +90,7 @@ def cluster_projects(projects: Sequence[Project]) -> None:
                 # Clear transaction names to prevent the set from picking up
                 # noise over a long time range.
                 redis.clear_samples(ClustererNamespace.TRANSACTIONS, project)
+            pending.remove(project)
             num_clustered += 1
     finally:
         metrics.incr(
@@ -102,9 +107,14 @@ def cluster_projects(projects: Sequence[Project]) -> None:
                 tags={"clustered": False},
                 sample_rate=1.0,
             )
-            sentry_sdk.set_tag("projects.total", len(projects))
-            sentry_sdk.set_tag("projects.unclustered", unclustered)
-            sentry_sdk.capture_message("Transaction clusterer missed projects", level="error")
+            logger_transactions.error(
+                "Transaction clusterer missed projects",
+                extra={
+                    "projects.total": len(projects),
+                    "projects.unclustered.number": unclustered,
+                    "projects.unclustered.ids": [p.id for p in pending],
+                },
+            )
 
 
 @instrumented_task(

@@ -4,7 +4,8 @@ from unittest import mock
 from django.utils import timezone
 
 from sentry.dynamic_sampling.rules.biases.custom_rule_bias import CustomRuleBias
-from sentry.models import CustomDynamicSamplingRule, Project
+from sentry.models.dynamicsampling import CustomDynamicSamplingRule
+from sentry.models.project import Project
 from sentry.testutils.helpers.datetime import freeze_time
 
 

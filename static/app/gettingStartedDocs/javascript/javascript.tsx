@@ -34,8 +34,7 @@ new Sentry.BrowserTracing({
 
 const performanceOtherConfig = `
 // Performance Monitoring
-tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
-`;
+tracesSampleRate: 1.0, // Capture 100% of the transactions`;
 
 export const steps = ({
   sentryInitContent,
@@ -49,13 +48,20 @@ export const steps = ({
     configurations: [
       {
         language: 'bash',
-        code: `
-# Using yarn
-yarn add @sentry/browser
-
-# Using npm
-npm install --save @sentry/browser
-        `,
+        code: [
+          {
+            label: 'npm',
+            value: 'npm',
+            language: 'bash',
+            code: 'npm install --save @sentry/browser',
+          },
+          {
+            label: 'yarn',
+            value: 'yarn',
+            language: 'bash',
+            code: 'yarn add @sentry/browser',
+          },
+        ],
       },
     ],
   },

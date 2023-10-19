@@ -30,12 +30,9 @@ new Sentry.BrowserTracing({
 
 const performanceOtherConfig = `
 // Performance Monitoring
-tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
-`;
+tracesSampleRate: 1.0, // Capture 100% of the transactions`;
 
-const prismaConfig = `
-new Sentry.Integrations.Prisma({ client: prisma })
-`;
+const prismaIntegration = `new Sentry.Integrations.Prisma({ client: prisma }),`;
 
 export const steps = ({
   sentryInitContent,
@@ -46,26 +43,48 @@ export const steps = ({
 } = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: t(
-      'Sentry captures data by using an SDK within your application’s runtime.'
+    description: (
+      <p>
+        {tct(
+          'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]:',
+          {
+            codeYarn: <code />,
+            codeNpm: <code />,
+          }
+        )}
+      </p>
     ),
     configurations: [
       {
         language: 'bash',
-        code: `
-# Using yarn
-yarn add @sentry/remix
-
-# Using npm
-npm install --save @sentry/remix
-        `,
+        code: [
+          {
+            label: 'npm',
+            value: 'npm',
+            language: 'bash',
+            code: 'npm install --save @sentry/remix',
+          },
+          {
+            label: 'yarn',
+            value: 'yarn',
+            language: 'bash',
+            code: 'yarn add @sentry/remix',
+          },
+        ],
       },
     ],
   },
   {
     type: StepType.CONFIGURE,
-    description: t(
-      'Import and initialize Sentry in your Remix entry points for both the client and server:'
+    description: (
+      <p>
+        {tct(
+          'Import and initialize Sentry in your Remix entry points for the client ([clientFile:entry.client.tsx]):',
+          {
+            clientFile: <code />,
+          }
+        )}
+      </p>
     ),
     configurations: [
       {
@@ -85,7 +104,7 @@ npm install --save @sentry/remix
         description: (
           <p>
             {tct(
-              `Initialize Sentry in your entry point for the server to capture exceptions and get performance metrics for your [action] and [loader] functions. You can also initialize Sentry's database integrations, such as Prisma, to get spans for your database calls:`,
+              `Initialize Sentry in your entry point for the server ([serverFile:entry.server.tsx]) to capture exceptions and get performance metrics for your [action] and [loader] functions. You can also initialize Sentry's database integrations, such as Prisma, to get spans for your database calls:`,
               {
                 action: (
                   <ExternalLink href="https://remix.run/docs/en/v1/api/conventions#action" />
@@ -93,6 +112,7 @@ npm install --save @sentry/remix
                 loader: (
                   <ExternalLink href="https://remix.run/docs/en/1.18.1/api/conventions#loader" />
                 ),
+                serverFile: <code />,
               }
             )}
           </p>
@@ -157,9 +177,11 @@ export default withSentry(App);
     ),
     configurations: [
       {
-        language: 'javascript',
+        language: 'jsx',
         code: `
-        return <button onClick={() => methodDoesNotExist()}>Break the world</button>;
+<button type="button" onClick={() => { throw new Error("Sentry Frontend Error") }}>
+  Throw Test Error
+</button>
         `,
       },
     ],
@@ -200,14 +222,16 @@ export function GettingStartedWithRemix({
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
 
+  const serverIntegrations: string[] = [];
+  const otherConfigsServer: string[] = [];
+
   let nextStepDocs = [...nextSteps];
-  const sentryInitContentServer: string[] = [`dsn: "${dsn}",`];
 
   if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {
     integrations.push(performanceIntegration.trim());
     otherConfigs.push(performanceOtherConfig.trim());
-    sentryInitContentServer.push(prismaConfig.trim());
-    sentryInitContentServer.push(performanceOtherConfig.trim());
+    serverIntegrations.push(prismaIntegration.trim());
+    otherConfigsServer.push(performanceOtherConfig.trim());
     nextStepDocs = nextStepDocs.filter(
       step => step.id !== ProductSolution.PERFORMANCE_MONITORING
     );
@@ -222,13 +246,26 @@ export function GettingStartedWithRemix({
   }
 
   let sentryInitContent: string[] = [`dsn: "${dsn}",`];
+  let sentryInitContentServer: string[] = [`dsn: "${dsn}",`];
 
   if (integrations.length > 0) {
     sentryInitContent = sentryInitContent.concat('integrations: [', integrations, '],');
   }
 
+  if (serverIntegrations.length) {
+    sentryInitContentServer = sentryInitContentServer.concat(
+      'integrations: [',
+      serverIntegrations,
+      '],'
+    );
+  }
+
   if (otherConfigs.length > 0) {
     sentryInitContent = sentryInitContent.concat(otherConfigs);
+  }
+
+  if (otherConfigsServer.length) {
+    sentryInitContentServer = sentryInitContentServer.concat(otherConfigsServer);
   }
 
   return (

@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
@@ -29,7 +31,7 @@ export function initializeData(settings?: InitializeDataSettings) {
   };
   const {query, features, projects, selectedProject: project} = _settings;
 
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
     projects,
   });

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Iterable, Mapping, MutableMapping, Tuple, Union
+from typing import Iterable, Mapping, MutableMapping, Union
 
 from django.db.models import Q
 
@@ -9,12 +9,13 @@ from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.team import Team
 from sentry.notifications.helpers import (
-    get_provider_defaults,
+    get_default_for_provider,
     get_type_defaults,
     recipient_is_team,
     recipient_is_user,
 )
 from sentry.notifications.types import (
+    GroupSubscriptionStatus,
     NotificationScopeEnum,
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
@@ -23,12 +24,27 @@ from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS_REVERSE,
+    PERSONAL_NOTIFICATION_PROVIDERS,
     ExternalProviderEnum,
     ExternalProviders,
 )
 
 Recipient = Union[RpcActor, Team, RpcUser]
-Scope = Tuple[NotificationScopeEnum, Union[int, Recipient]]
+
+
+def sort_settings_by_scope(setting: NotificationSettingOption | NotificationSettingProvider) -> int:
+    """
+    Sorts settings by scope type, with the most specific scope last.
+    """
+    if setting.scope_type == NotificationScopeEnum.PROJECT.value:
+        return 4
+    if setting.scope_type == NotificationScopeEnum.ORGANIZATION.value:
+        return 3
+    if setting.scope_type == NotificationScopeEnum.USER.value:
+        return 2
+    if setting.scope_type == NotificationScopeEnum.TEAM.value:
+        return 1
+    return 0
 
 
 class NotificationController:
@@ -43,20 +59,25 @@ class NotificationController:
         type: NotificationSettingEnum | None = None,
         provider: ExternalProviderEnum | None = None,
     ) -> None:
-        # TODO(snigdha): Do we want to support querying without recipients?
         self.recipients = recipients
         self.project_ids = project_ids
         self.organization_id = organization_id
         self.type = type
         self.provider = provider
 
-        query = self._get_query()
-        type_filter = Q(type=self.type.value) if self.type else Q()
-        provider_filter = Q(provider=self.provider.value) if self.provider else Q()
-        self._setting_options = list(NotificationSettingOption.objects.filter(query & type_filter))
-        self._setting_providers = list(
-            NotificationSettingProvider.objects.filter(query & type_filter & provider_filter)
-        )
+        if recipients:
+            query = self._get_query()
+            type_filter = Q(type=self.type.value) if self.type else Q()
+            provider_filter = Q(provider=self.provider.value) if self.provider else Q()
+            self._setting_options = list(
+                NotificationSettingOption.objects.filter(query & type_filter)
+            )
+            self._setting_providers = list(
+                NotificationSettingProvider.objects.filter(query & type_filter & provider_filter)
+            )
+        else:
+            self._setting_options = []
+            self._setting_providers = []
 
     @property
     def get_all_setting_options(self) -> Iterable[NotificationSettingOption]:
@@ -116,50 +137,32 @@ class NotificationController:
 
         return project_settings | org_settings | team_or_user_settings
 
-    def _get_scope_for_layering(
-        self, recipient: RpcActor | Team | RpcUser
-    ) -> Tuple[NotificationScopeEnum, Iterable[int | RpcActor | Team | RpcUser]]:
-        if self.project_ids:
-            return (NotificationScopeEnum.PROJECT, self.project_ids)
-        if self.organization_id is not None:
-            return (NotificationScopeEnum.ORGANIZATION, [self.organization_id])
-        if recipient_is_user(recipient):
-            return (NotificationScopeEnum.USER, [recipient])
-        if recipient_is_team(recipient):
-            return (NotificationScopeEnum.TEAM, [recipient])
-
-        raise ValueError(f"Recipient is of unsupported type: {recipient}")
-
     def _filter_options(
         self,
-        settings: Iterable[NotificationSettingOption],
         **kwargs,
     ) -> list[NotificationSettingOption]:
         return [
             setting
-            for setting in settings
+            for setting in self.get_all_setting_options
             if all(getattr(setting, arg) == kwargs[arg] for arg in kwargs)
         ]
 
     def _filter_providers(
         self,
-        settings: Iterable[NotificationSettingProvider],
         **kwargs,
     ) -> list[NotificationSettingProvider]:
         return [
             setting
-            for setting in settings
+            for setting in self.get_all_setting_providers
             if all(getattr(setting, arg) == kwargs[arg] for arg in kwargs)
         ]
 
     def _get_layered_setting_options(
         self,
+        project_id: int | None = None,
         **kwargs,
     ) -> MutableMapping[
-        Recipient,
-        MutableMapping[
-            Scope, MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum]
-        ],
+        Recipient, MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum]
     ]:
         """
         Returns a mapping of the most specific notification setting options for the given recipients and scopes.
@@ -168,140 +171,196 @@ class NotificationController:
         Args:
             setting_type: If specified, only return settings of this type.
         """
-        settings = self.get_all_setting_options
-        project_settings = self._filter_options(
-            settings=settings, scope_type=NotificationScopeEnum.PROJECT.value, **kwargs
-        )
-        org_settings = self._filter_options(
-            settings=settings, scope_type=NotificationScopeEnum.ORGANIZATION.value, **kwargs
-        )
-        user_settings = self._filter_options(
-            settings=settings, scope_type=NotificationScopeEnum.USER.value, **kwargs
-        )
-        scoped_settings = [project_settings, org_settings, user_settings]
+        if self.project_ids and len(list(self.project_ids)) > 1 and not project_id:
+            raise Exception("Must specify project_id if controller has more than 1 projects")
 
-        defaults = get_type_defaults()
-        layered_setting_options: MutableMapping[
-            Recipient,
-            MutableMapping[
-                Scope, MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum]
-            ],
-        ] = defaultdict(lambda: defaultdict(dict))
+        most_specific_setting_options: MutableMapping[
+            Recipient, MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum]
+        ] = defaultdict(
+            lambda: defaultdict(
+                lambda: NotificationSettingsOptionEnum.DEFAULT
+            )  # Use lambda to return the default enum value
+        )
+
         for recipient in self.recipients:
-            (scope_type, scope_items) = self._get_scope_for_layering(recipient)
-            for item in scope_items:
-                scope: Scope = (scope_type, item)
-                for type in NotificationSettingEnum:
-                    most_specific_setting = None
-                    for setting in scoped_settings:
-                        user_or_team_settings = []
-                        if recipient_is_user(recipient):
-                            user_or_team_settings = self._filter_options(
-                                settings=setting, user_id=recipient.id, type=type.value
-                            )
-                        elif recipient_is_team(recipient):
-                            user_or_team_settings = self._filter_options(
-                                settings=setting, team_id=recipient.id, type=type.value
-                            )
+            # get the settings for this user/team
+            filter_kwargs = kwargs.copy()
+            if recipient_is_user(recipient):
+                filter_kwargs["user_id"] = recipient.id
+            elif recipient_is_team(recipient):
+                filter_kwargs["team_id"] = recipient.id
+            local_settings = self._filter_options(**filter_kwargs)
+            local_settings.sort(key=sort_settings_by_scope)
+            most_specific_recipient_options = most_specific_setting_options[recipient]
 
-                        if len(user_or_team_settings) > 0:
-                            most_specific_setting = NotificationSettingsOptionEnum(
-                                user_or_team_settings[0].value
-                            )
-                            break
-
-                    if most_specific_setting is None and type in defaults:
-                        most_specific_setting = defaults[type]
-
-                    if most_specific_setting is None:
+            for setting in local_settings:
+                # if we have a project_id, make sure the setting is for that project since
+                # the controller can be scoped for multiple projects
+                if (
+                    project_id is not None
+                    and setting.scope_type == NotificationScopeEnum.PROJECT.value
+                ):
+                    if setting.scope_identifier != project_id:
                         continue
 
-                    layered_setting_options[recipient][scope][type] = most_specific_setting
+                # sort the settings by scope type, with the most specific scope last so we override with the most specific value
+                most_specific_recipient_options[
+                    NotificationSettingEnum(setting.type)
+                ] = NotificationSettingsOptionEnum(setting.value)
 
-        return layered_setting_options
+            # if we have no settings for this user/team, use the defaults
+            for type, default in get_type_defaults().items():
+                if type not in most_specific_recipient_options:
+                    most_specific_recipient_options[type] = default
+
+        return most_specific_setting_options
 
     def _get_layered_setting_providers(
         self,
+        project_id: int | None = None,
         **kwargs,
     ) -> MutableMapping[
         Recipient,
         MutableMapping[
-            Scope,
-            MutableMapping[
-                NotificationSettingEnum,
-                MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
-            ],
+            NotificationSettingEnum,
+            MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
         ],
     ]:
         """
         Returns a mapping of the most specific notification setting providers for the given recipients and scopes.
         Note that this includes default settings for any notification types that are not set.
         """
+        if self.project_ids and len(list(self.project_ids)) > 2 and not project_id:
+            raise Exception("Must specify project_id if controller has more than 2 projects")
 
-        settings = self.get_all_setting_providers
-        project_settings = self._filter_providers(
-            settings=settings, scope_type=NotificationScopeEnum.PROJECT.value, **kwargs
-        )
-        org_settings = self._filter_providers(
-            settings=settings, scope_type=NotificationScopeEnum.ORGANIZATION.value, **kwargs
-        )
-        user_settings = self._filter_providers(
-            settings=settings, scope_type=NotificationScopeEnum.USER.value, **kwargs
-        )
-        scoped_settings = [project_settings, org_settings, user_settings]
-
-        defaults = get_provider_defaults()
-        layered_setting_providers: MutableMapping[
+        # Now, define your variable using the outermost defaultdict
+        most_specific_setting_providers: MutableMapping[
             Recipient,
             MutableMapping[
-                Scope,
-                MutableMapping[
-                    NotificationSettingEnum,
-                    MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
-                ],
+                NotificationSettingEnum,
+                MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
             ],
-        ] = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
+        ] = defaultdict(
+            lambda: defaultdict(
+                lambda: defaultdict(
+                    lambda: NotificationSettingsOptionEnum.DEFAULT
+                )  # Use lambda to return the default enum value
+            )
+        )
+
         for recipient in self.recipients:
-            (scope_type, scope_items) = self._get_scope_for_layering(recipient)
-            for item in scope_items:
-                scope = (scope_type, item)
-                for type in NotificationSettingEnum:
-                    for provider in ExternalProviderEnum:
-                        most_specific_setting = None
-                        for setting in scoped_settings:
-                            user_or_team_settings = []
-                            if recipient_is_user(recipient):
-                                user_or_team_settings = self._filter_providers(
-                                    settings=setting, user_id=recipient.id, type=type.value
-                                )
-                            elif recipient_is_team(recipient):
-                                user_or_team_settings = self._filter_providers(
-                                    settings=setting, team_id=recipient.id, type=type.value
-                                )
+            # get the settings for this user/team
+            filter_kwargs = kwargs.copy()
+            if recipient_is_user(recipient):
+                filter_kwargs["user_id"] = recipient.id
+            elif recipient_is_team(recipient):
+                filter_kwargs["team_id"] = recipient.id
 
-                            if len(user_or_team_settings) > 0:
-                                most_specific_setting = NotificationSettingsOptionEnum(
-                                    user_or_team_settings[0].value
-                                )
-                                break
+            local_settings = self._filter_providers(**filter_kwargs)
+            local_settings.sort(key=sort_settings_by_scope)
 
-                        if most_specific_setting is None:
-                            most_specific_setting = (
-                                NotificationSettingsOptionEnum.ALWAYS
-                                if provider in defaults
-                                else NotificationSettingsOptionEnum.NEVER
-                            )
+            most_specific_recipient_providers = most_specific_setting_providers[recipient]
+            for setting in local_settings:
+                # if we have a project_id, make sure the setting is for that project since
+                # the controller can be scoped for multiple projects
+                if (
+                    project_id is not None
+                    and setting.scope_type == NotificationScopeEnum.PROJECT.value
+                ):
+                    if setting.scope_identifier != project_id:
+                        continue
 
-                        layered_setting_providers[recipient][scope][type].update(
-                            {provider: most_specific_setting}
-                        )
+                # sort the settings by scope type, with the most specific scope last so we override with the most specific value
+                most_specific_recipient_providers[NotificationSettingEnum(setting.type)][
+                    ExternalProviderEnum(setting.provider)
+                ] = NotificationSettingsOptionEnum(setting.value)
 
-        return layered_setting_providers
+            # if we have no settings for this user, use the defaults
+            for type in NotificationSettingEnum:
+                for provider_str in PERSONAL_NOTIFICATION_PROVIDERS:
+                    provider = ExternalProviderEnum(provider_str)
+                    if provider not in most_specific_recipient_providers[type]:
+                        # TODO: fix so team defaults don't have different logic
+                        if recipient_is_team(recipient):
+                            most_specific_recipient_providers[type][
+                                provider
+                            ] = NotificationSettingsOptionEnum.NEVER
+                        else:
+                            most_specific_recipient_providers[type][
+                                provider
+                            ] = get_default_for_provider(type, provider)
+
+        return most_specific_setting_providers
+
+    def get_combined_settings(
+        self,
+        type: NotificationSettingEnum | None = None,
+        actor_type: ActorType | None = None,
+        project_id: int | None = None,
+    ) -> MutableMapping[
+        Recipient,
+        MutableMapping[
+            NotificationSettingEnum,
+            MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+        ],
+    ]:
+        """
+        Returns the co-leaved settings between the setting options and setting providers
+        It is as nested as _get_layered_setting_providers by applying the value from the options
+        to the provider map.
+        """
+        if self.type and type != self.type:
+            raise Exception("Type mismatch: the provided type differs from the controller type")
+
+        kwargs: MutableMapping[str, str] = {}
+        if type:
+            kwargs["type"] = type.value
+
+        types_to_search = [type] if type else list(NotificationSettingEnum)
+
+        setting_options_map = self._get_layered_setting_options(project_id=project_id, **kwargs)
+        setting_providers_map = self._get_layered_setting_providers(project_id=project_id, **kwargs)
+
+        result: MutableMapping[
+            Recipient,
+            MutableMapping[
+                NotificationSettingEnum,
+                MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+            ],
+        ] = defaultdict(
+            lambda: defaultdict(
+                lambda: defaultdict(
+                    lambda: NotificationSettingsOptionEnum.DEFAULT
+                )  # Use lambda to return the default enum value
+            )
+        )
+        for recipient, recipient_options_map in setting_options_map.items():
+            # check actor type against recipient type
+            if actor_type:
+                if actor_type == ActorType.USER and recipient_is_team(recipient):
+                    continue
+                if actor_type == ActorType.TEAM and recipient_is_user(recipient):
+                    continue
+
+            for type in types_to_search:
+                option_value = recipient_options_map[type]
+                if option_value == NotificationSettingsOptionEnum.NEVER:
+                    continue
+
+                provider_options_map = setting_providers_map[recipient][type]
+                for provider, provider_value in provider_options_map.items():
+                    if provider_value == NotificationSettingsOptionEnum.NEVER:
+                        continue
+                    # use the option value here as it has more specific information
+                    result[recipient][type][provider] = option_value
+
+        return result
 
     def get_notification_recipients(
         self,
         type: NotificationSettingEnum,
         actor_type: ActorType | None = None,
+        project_id: int | None = None,
     ) -> Mapping[ExternalProviders, set[RpcActor]]:
         """
         Returns the recipients that should be notified for each provider,
@@ -310,82 +369,24 @@ class NotificationController:
         Args:
             type: The notification type to filter providers and recipients by.
         """
-        if self.type and type != self.type:
-            raise Exception("Type mismatch: the provided type differs from the controller type")
-
-        setting_options = self._get_layered_setting_options(type=type.value)
-        setting_providers = self._get_layered_setting_providers(type=type.value)
-
+        combined_settings = self.get_combined_settings(
+            type=type, actor_type=actor_type, project_id=project_id
+        )
         recipients: Mapping[ExternalProviders, set[RpcActor]] = defaultdict(set)
-        for recipient, setting_option in setting_options.items():
+        for recipient, type_map in combined_settings.items():
             actor = RpcActor.from_object(recipient)
-            if actor_type and actor.actor_type != actor_type:
-                continue
-
-            for scope, setting in setting_option.items():
-                for type, value in setting.items():
-                    # Skip notifications that are off
+            for type, provider_map in type_map.items():
+                for provider, value in provider_map.items():
                     if value == NotificationSettingsOptionEnum.NEVER:
                         continue
 
-                    recipient_providers = setting_providers[recipient][scope][type]
-                    for provider, value in recipient_providers.items():
-                        # skip providers that are off
-                        if value == NotificationSettingsOptionEnum.NEVER:
-                            continue
-                        recipients[EXTERNAL_PROVIDERS_REVERSE[provider]].add(actor)
+                    recipients[EXTERNAL_PROVIDERS_REVERSE[provider]].add(actor)
         return recipients
 
-    def get_all_enabled_settings(
+    def get_settings_for_user_by_projects(
         self,
-        **kwargs,
-    ) -> MutableMapping[
-        Recipient,
-        MutableMapping[
-            Scope,
-            MutableMapping[
-                NotificationSettingEnum,
-                MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
-            ],
-        ],
-    ]:
-        """
-        Returns a mapping of all enabled notification setting providers for the enabled options.
-        Note that this includes default settings for any notification types that are not set.
-        """
-
-        setting_options = self._get_layered_setting_options(**kwargs)
-        setting_providers = self._get_layered_setting_providers(**kwargs)
-
-        setting_option_and_providers: MutableMapping[
-            Recipient,
-            MutableMapping[
-                Scope,
-                MutableMapping[
-                    NotificationSettingEnum,
-                    MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
-                ],
-            ],
-        ] = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
-        for recipient, setting_option in setting_options.items():
-            for scope, setting in setting_option.items():
-                for type, option_value in setting.items():
-                    if option_value == NotificationSettingsOptionEnum.NEVER:
-                        continue
-
-                    recipient_providers = setting_providers[recipient][scope][type]
-                    for provider, provider_value in recipient_providers.items():
-                        if provider_value == NotificationSettingsOptionEnum.NEVER:
-                            continue
-
-                        setting_option_and_providers[recipient][scope][type][
-                            provider
-                        ] = provider_value
-
-        return setting_option_and_providers
-
-    def get_settings_options_for_user_by_projects(
-        self, user: Recipient
+        user: Recipient,
+        type: NotificationSettingEnum | None = None,
     ) -> MutableMapping[
         int,
         MutableMapping[
@@ -394,24 +395,33 @@ class NotificationController:
         ],
     ]:
         """
-        Returns a mapping of project IDs to enabled notification settings for the given user.
+        Returns a mapping of project IDs to enabled notification settings for the given user
+        with an optional type filter
         """
         if not self.project_ids:
             raise Exception("Must specify project_ids")
 
-        notification_settings = self.get_all_enabled_settings()
-        user_settings = notification_settings[user]
+        result: MutableMapping[
+            int,
+            MutableMapping[
+                NotificationSettingEnum,
+                MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+            ],
+        ] = defaultdict(
+            lambda: defaultdict(
+                lambda: defaultdict(
+                    lambda: NotificationSettingsOptionEnum.DEFAULT
+                )  # Use lambda to return the default enum value
+            )
+        )
+        for project_id in self.project_ids:
+            if not isinstance(project_id, int):
+                raise Exception("project_ids must be a list of integers")
 
-        result = {}
-        for scope, setting in user_settings.items():
-            (scope_type, scope_identifier) = scope
-            if scope_type != NotificationScopeEnum.PROJECT:
-                continue
+            combined_settings = self.get_combined_settings(type=type, project_id=project_id)
 
-            if not isinstance(scope_identifier, int) or scope_identifier not in self.project_ids:
-                continue
-
-            result[scope_identifier] = setting
+            # take the settings for this user and apply it to the project
+            result[project_id] = combined_settings[user]
 
         return result
 
@@ -420,16 +430,16 @@ class NotificationController:
         user: Recipient,
         project_ids: Iterable[int],
         type: NotificationSettingEnum | None = None,
-    ) -> Mapping[int, Tuple[bool, bool]]:
+    ) -> Mapping[int, GroupSubscriptionStatus]:
         """
         Returns whether the user is subscribed for each project.
-        {project_id -> (is_disabled, is_active)}
+        {project_id -> (is_disabled, is_active, has only inactive subscriptions)}
         """
         setting_type = type or self.type
         if not setting_type:
             raise Exception("Must specify type")
 
-        enabled_settings = self.get_settings_options_for_user_by_projects(user)
+        enabled_settings = self.get_settings_for_user_by_projects(user, type=type)
         subscription_status_for_projects = {}
         for project, type_setting in enabled_settings.items():
             has_setting = False
@@ -441,15 +451,21 @@ class NotificationController:
                     continue
 
                 has_setting = True
-                subscription_status_for_projects[project] = (
-                    setting == {},
-                    any(
+
+                subscription_status_for_projects[project] = GroupSubscriptionStatus(
+                    is_disabled=setting == {},
+                    is_active=any(
                         value == NotificationSettingsOptionEnum.ALWAYS for value in setting.values()
+                    ),
+                    has_only_inactive_subscriptions=all(
+                        value == NotificationSettingsOptionEnum.NEVER for value in setting.values()
                     ),
                 )
 
             if not has_setting:
-                subscription_status_for_projects[project] = (False, False)
+                subscription_status_for_projects[project] = GroupSubscriptionStatus(
+                    is_disabled=True, is_active=False, has_only_inactive_subscriptions=True
+                )
 
         return subscription_status_for_projects
 
@@ -466,22 +482,21 @@ class NotificationController:
         if not self.type:
             raise Exception("Must specify type")
 
-        enabled_settings = self.get_all_enabled_settings(type=self.type.value)
+        combined_settings = self.get_combined_settings(type=self.type)
         user_to_providers: MutableMapping[
             RpcActor, MutableMapping[ExternalProviders, NotificationSettingsOptionEnum]
         ] = defaultdict(dict)
-        for recipient, setting in enabled_settings.items():
+        for recipient, setting_map in combined_settings.items():
+            # TODO: make work for teams
             if not recipient_is_user(recipient):
                 continue
 
             actor = RpcActor.from_object(recipient)
-            for type_map in setting.values():
-                for provider_map in type_map.values():
-                    user_to_providers[actor] = {
-                        EXTERNAL_PROVIDERS_REVERSE[provider]: value
-                        for provider, value in provider_map.items()
-                        if value != NotificationSettingsOptionEnum.NEVER
-                    }
+            provider_map = setting_map[self.type]
+            user_to_providers[actor] = {
+                EXTERNAL_PROVIDERS_REVERSE[provider]: value
+                for provider, value in provider_map.items()
+            }
 
         return user_to_providers
 
@@ -520,15 +535,10 @@ class NotificationController:
         if self.type and type != self.type:
             raise Exception("Type mismatch: the provided type differs from the controller type")
 
-        setting_options = self._get_layered_setting_options(type=type.value)
-        for _, setting in setting_options[recipient].items():
-            value = setting[type]
-            # Skip notifications that are off
-            if value == NotificationSettingsOptionEnum.NEVER:
-                continue
-            return value
-
-        return NotificationSettingsOptionEnum.NEVER
+        option_value_by_recipient_by_type = self._get_layered_setting_options(type=type.value)
+        option_value_by_type = option_value_by_recipient_by_type[recipient]
+        value = option_value_by_type[type]
+        return value
 
     def get_notification_provider_value_for_recipient_and_type(
         self, recipient: Recipient, type: NotificationSettingEnum, provider: ExternalProviderEnum
@@ -544,15 +554,7 @@ class NotificationController:
             raise Exception("Type mismatch: the provided type differs from the controller type")
 
         setting_providers = self._get_layered_setting_providers(type=type.value)
-        for _, recipient_mapping in setting_providers[recipient].items():
-            type_mapping = recipient_mapping[type]
-            value = type_mapping[provider]
-            if value == NotificationSettingsOptionEnum.NEVER:
-                continue
-
-            return value
-
-        return NotificationSettingsOptionEnum.NEVER
+        return setting_providers[recipient][type][provider]
 
     def get_users_for_weekly_reports(self) -> list[int]:
         if not self.organization_id:
@@ -561,19 +563,11 @@ class NotificationController:
         if self.type != NotificationSettingEnum.REPORTS:
             raise Exception(f"Type mismatch: the controller was initialized with type: {self.type}")
 
-        enabled_settings = self.get_all_enabled_settings(type=NotificationSettingEnum.REPORTS.value)
-        users = []
-        for recipient, setting in enabled_settings.items():
-            if not recipient_is_user(recipient):
-                continue
-
-            for type_map in setting.values():
-                provider_map = type_map[NotificationSettingEnum.REPORTS]
-                if (
-                    ExternalProviderEnum.EMAIL in provider_map
-                    and provider_map[ExternalProviderEnum.EMAIL]
-                    == NotificationSettingsOptionEnum.ALWAYS
-                ):
-                    users.append(recipient.id)
-
-        return users
+        recipient_set = self.get_notification_recipients(
+            type=NotificationSettingEnum.REPORTS,
+            # only look at users
+            actor_type=ActorType.USER,
+        )[
+            ExternalProviders.EMAIL
+        ]  # email only
+        return [recipient.id for recipient in recipient_set]

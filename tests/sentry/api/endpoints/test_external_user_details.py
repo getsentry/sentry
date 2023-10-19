@@ -1,9 +1,9 @@
-from sentry.models import ExternalActor
+from sentry.models.integrations.external_actor import ExternalActor
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import region_silo_test
 
 
-@control_silo_test  # TODO(hybrid-cloud): blocked on org membership mapping
+@region_silo_test(stable=True)
 class ExternalUserDetailsTest(APITestCase):
     endpoint = "sentry-api-0-organization-external-user-details"
     method = "put"

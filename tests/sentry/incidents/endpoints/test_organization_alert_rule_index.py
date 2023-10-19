@@ -15,13 +15,16 @@ from sentry.incidents.models import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
-from sentry.models import AuditLogEntry, Integration, outbox_context
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.outbox import outbox_context
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
+from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
@@ -31,7 +34,9 @@ from sentry.testutils.skips import requires_snuba
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
-class AlertRuleBase:
+class AlertRuleBase(APITestCase):
+    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+
     @cached_property
     def organization(self):
         return self.create_organization()
@@ -76,10 +81,12 @@ class AlertRuleBase:
 
 
 class AlertRuleIndexBase(AlertRuleBase):
+    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+
     endpoint = "sentry-api-0-organization-alert-rules"
 
 
-class AlertRuleListEndpointTest(AlertRuleIndexBase, APITestCase):
+class AlertRuleListEndpointTest(AlertRuleIndexBase):
     def test_simple(self):
         self.create_team(organization=self.organization, members=[self.user])
         alert_rule = self.create_alert_rule()
@@ -99,7 +106,7 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, APITestCase):
 
 @region_silo_test(stable=True)
 @freeze_time()
-class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
+class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
     method = "post"
 
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -704,10 +711,43 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         # Did not increment from the last assertion because we early out on the validation error
         assert mock_get_channel_id.call_count == 3
 
+    def test_performance_dataset(self):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:mep-rollout-flag",
+            ]
+        ):
+            test_params = {**self.alert_rule_dict, "dataset": "generic_metrics"}
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **test_params,
+            )
+
+            assert "id" in resp.data
+            alert_rule = AlertRule.objects.get(id=resp.data["id"])
+            assert resp.data == serialize(alert_rule, self.user)
+
+            test_params = {**self.alert_rule_dict, "dataset": "transactions"}
+
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                **test_params,
+            )
+
+            assert (
+                resp.data["dataset"][0]
+                == "Performance alerts must use the `generic_metrics` dataset"
+            )
+
 
 # TODO(Gabe): Rewrite this test to properly annotate the silo mode
 @freeze_time()
-class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase, APITestCase):
+class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
     method = "post"
 
     def setUp(self):

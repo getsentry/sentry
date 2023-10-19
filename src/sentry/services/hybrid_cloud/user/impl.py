@@ -5,7 +5,7 @@ from typing import Any, Callable, List, MutableMapping, Optional
 from uuid import uuid4
 
 from django.db import router, transaction
-from django.db.models import Q, QuerySet
+from django.db.models import F, Q, QuerySet
 from django.utils.text import slugify
 
 from sentry.api.serializers import (
@@ -15,14 +15,12 @@ from sentry.api.serializers import (
 )
 from sentry.api.serializers.base import Serializer, serialize
 from sentry.db.models.query import in_iexact
-from sentry.models import (
-    OrganizationMapping,
-    OrganizationMemberMapping,
-    OrganizationStatus,
-    UserEmail,
-)
 from sentry.models.authidentity import AuthIdentity
+from sentry.models.organization import OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.user import User
+from sentry.models.useremail import UserEmail
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import (
     FilterQueryDatabaseImpl,
@@ -117,8 +115,8 @@ class DatabaseBackedUserService(UserService):
         only_visible: bool = False,
     ) -> List[RpcOrganizationMapping]:
         if user_id is None:
-            # This is impossible if type hints are followed or Pydantic enforces
-            # type-checking on serialization, but is still possible if we make a call
+            # This is impossible if type hints are followed or Pydantic enforces type-checking
+            # on serialization, but is still possible if we make a call
             # from non-Mypy-checked code on the same silo. It can occur easily if
             # `request.user.id` is passed as an argument where the user is an
             # AnonymousUser. Check explicitly to guard against returning mappings
@@ -189,6 +187,7 @@ class DatabaseBackedUserService(UserService):
                 user_signup.send_robust(
                     sender=self, user=user, source="api", referrer=referrer or "unknown"
                 )
+                user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
             else:
                 # Users are not supposed to have the same email but right now our auth pipeline let this happen
                 # So let's not break the user experience. Instead return the user with auth identity of ident or

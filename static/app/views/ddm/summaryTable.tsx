@@ -1,11 +1,11 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import colorFn from 'color';
 
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconLightning, IconReleases} from 'sentry/icons';
+import {IconArrow, IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -13,32 +13,69 @@ import {formatMetricsUsingUnitAndOp, getNameFromMRI} from 'sentry/utils/metrics'
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {Series} from 'sentry/views/ddm/metricsExplorer';
+import {DEFAULT_SORT_STATE} from 'sentry/views/ddm/constants';
+import {MetricWidgetDisplayConfig, Series} from 'sentry/views/ddm/widget';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+
+type SortState = MetricWidgetDisplayConfig['sort'];
 
 export function SummaryTable({
   series,
   operation,
-  onClick,
+  onRowClick,
+  onSortChange,
+  sort = DEFAULT_SORT_STATE as SortState,
   setHoveredLegend,
 }: {
-  onClick: (seriesName: string) => void;
+  onRowClick: (seriesName: string) => void;
+  onSortChange: (sortState: SortState) => void;
   series: Series[];
   setHoveredLegend: React.Dispatch<React.SetStateAction<string>> | undefined;
   operation?: string;
+  sort?: SortState;
 }) {
   const {selection} = usePageFilters();
-  const router = useRouter();
   const {slug} = useOrganization();
+
   const hasActions = series.some(s => s.release || s.transaction);
+
+  const router = useRouter();
   const {start, end, statsPeriod, project, environment} = router.location.query;
+
+  const hasMultipleSeries = series.length > 1;
+
+  const changeSort = useCallback(
+    (name: SortState['name']) => {
+      if (sort.name === name) {
+        if (sort.order === 'desc') {
+          onSortChange(DEFAULT_SORT_STATE as SortState);
+        } else if (sort.order === 'asc') {
+          onSortChange({
+            name,
+            order: 'desc',
+          });
+        } else {
+          onSortChange({
+            name,
+            order: 'asc',
+          });
+        }
+      } else {
+        onSortChange({
+          name,
+          order: 'asc',
+        });
+      }
+    },
+    [sort, onSortChange]
+  );
 
   const releaseTo = (release: string) => {
     return {
       pathname: `/organizations/${slug}/releases/${encodeURIComponent(release)}/`,
       query: {
-        start,
-        end,
+        pageStart: start,
+        pageEnd: end,
         pageStatsPeriod: statsPeriod,
         project,
         environment,
@@ -64,32 +101,89 @@ export function SummaryTable({
       },
     });
 
+  const rows = series
+    .map(s => {
+      return {
+        ...s,
+        ...getValues(s.data),
+        name: getNameFromMRI(s.seriesName),
+      };
+    })
+    .sort((a, b) => {
+      const {name, order} = sort;
+
+      if (name === 'name') {
+        return order === 'asc'
+          ? a.name.localeCompare(b.name)
+          : b.name.localeCompare(a.name);
+      }
+      const aValue = a[name] ?? 0;
+      const bValue = b[name] ?? 0;
+
+      return order === 'asc' ? aValue - bValue : bValue - aValue;
+    });
+
   return (
     <SummaryTableWrapper hasActions={hasActions}>
-      <HeaderCell />
-      <HeaderCell>{t('Name')}</HeaderCell>
-      <HeaderCell right>{t('Avg')}</HeaderCell>
-      <HeaderCell right>{t('Min')}</HeaderCell>
-      <HeaderCell right>{t('Max')}</HeaderCell>
-      <HeaderCell right>{t('Sum')}</HeaderCell>
-      {hasActions && <HeaderCell right>{t('Actions')}</HeaderCell>}
+      <HeaderCell disabled />
+      <SortableHeaderCell onClick={changeSort} sortState={sort} name="name">
+        {t('Name')}
+      </SortableHeaderCell>
+      <SortableHeaderCell onClick={changeSort} sortState={sort} name="avg" right>
+        {t('Avg')}
+      </SortableHeaderCell>
+      <SortableHeaderCell onClick={changeSort} sortState={sort} name="min" right>
+        {t('Min')}
+      </SortableHeaderCell>
+      <SortableHeaderCell onClick={changeSort} sortState={sort} name="max" right>
+        {t('Max')}
+      </SortableHeaderCell>
+      <SortableHeaderCell onClick={changeSort} sortState={sort} name="sum" right>
+        {t('Sum')}
+      </SortableHeaderCell>
+      {hasActions && (
+        <HeaderCell disabled right>
+          {t('Actions')}
+        </HeaderCell>
+      )}
 
-      {series
-        .sort((a, b) => a.seriesName.localeCompare(b.seriesName))
-        .map(({seriesName, color, hidden, unit, data, transaction, release}) => {
-          const {avg, min, max, sum} = getValues(data);
-
+      {rows.map(
+        ({
+          name,
+          seriesName,
+          color,
+          hidden,
+          unit,
+          transaction,
+          release,
+          avg,
+          min,
+          max,
+          sum,
+        }) => {
           return (
             <Fragment key={seriesName}>
               <CellWrapper
-                onClick={() => onClick(seriesName)}
-                onMouseEnter={() => setHoveredLegend?.(seriesName)}
-                onMouseLeave={() => setHoveredLegend?.('')}
+                onClick={() => {
+                  if (hasMultipleSeries) {
+                    onRowClick(seriesName);
+                  }
+                }}
+                onMouseEnter={() => {
+                  if (hasMultipleSeries) {
+                    setHoveredLegend?.(seriesName);
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (hasMultipleSeries) {
+                    setHoveredLegend?.('');
+                  }
+                }}
               >
                 <Cell>
                   <ColorDot color={color} isHidden={!!hidden} />
                 </Cell>
-                <Cell>{getNameFromMRI(seriesName)}</Cell>
+                <TextOverflowCell>{name}</TextOverflowCell>
                 {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
                 <Cell right>{formatMetricsUsingUnitAndOp(avg, unit, operation)}</Cell>
                 <Cell right>{formatMetricsUsingUnitAndOp(min, unit, operation)}</Cell>
@@ -123,8 +217,41 @@ export function SummaryTable({
               )}
             </Fragment>
           );
-        })}
+        }
+      )}
     </SummaryTableWrapper>
+  );
+}
+
+function SortableHeaderCell({
+  sortState,
+  name,
+  right,
+  children,
+  onClick,
+}: {
+  children: React.ReactNode;
+  name: SortState['name'];
+  onClick: (name: SortState['name']) => void;
+  sortState: SortState;
+  right?: boolean;
+}) {
+  const sortIcon =
+    sortState.name === name ? (
+      <IconArrow size="xs" direction={sortState.order === 'asc' ? 'up' : 'down'} />
+    ) : (
+      ''
+    );
+
+  return (
+    <HeaderCell
+      onClick={() => {
+        onClick(name);
+      }}
+      right={right}
+    >
+      {sortIcon} {children}
+    </HeaderCell>
   );
 }
 
@@ -156,11 +283,14 @@ function getValues(seriesData: Series['data']) {
 const SummaryTableWrapper = styled(`div`)<{hasActions: boolean}>`
   display: grid;
   grid-template-columns: ${p =>
-    p.hasActions ? '24px 8fr 1fr 1fr 1fr 1fr 1fr' : '24px 8fr 1fr 1fr 1fr 1fr'};
+    p.hasActions ? '24px 8fr repeat(5, 1fr)' : '24px 8fr repeat(4, 1fr)'};
+  max-height: 200px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 `;
 
 // TODO(ddm): This is a copy of PanelTableHeader, try to figure out how to reuse it
-const HeaderCell = styled('div')<{right?: boolean}>`
+const HeaderCell = styled('div')<{disabled?: boolean; right?: boolean}>`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
@@ -168,10 +298,16 @@ const HeaderCell = styled('div')<{right?: boolean}>`
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   line-height: 1;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-align: ${p => (p.right ? 'right' : 'left')};
+  flex-direction: row;
+  justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
   padding: ${space(0.5)} ${space(1)};
+  gap: ${space(0.5)};
+  user-select: none;
+
+  :hover {
+    cursor: ${p => (p.disabled ? 'auto' : 'pointer')};
+    background-color: ${p => (p.disabled ? p.theme.background : p.theme.bodyBackground)};
+  }
 `;
 
 const Cell = styled('div')<{right?: boolean}>`
@@ -179,6 +315,12 @@ const Cell = styled('div')<{right?: boolean}>`
   padding: ${space(0.25)} ${space(1)};
   align-items: center;
   justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
+`;
+
+const TextOverflowCell = styled(Cell)`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const ColorDot = styled(`div`)<{color: string; isHidden: boolean}>`
@@ -194,7 +336,7 @@ const CellWrapper = styled('div')`
   display: contents;
   &:hover {
     cursor: pointer;
-    ${Cell} {
+    ${Cell}, ${TextOverflowCell} {
       background-color: ${p => p.theme.bodyBackground};
     }
   }

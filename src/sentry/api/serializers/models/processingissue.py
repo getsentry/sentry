@@ -1,5 +1,5 @@
 from sentry.api.serializers import Serializer, register
-from sentry.models import ProcessingIssue
+from sentry.models.processingissue import ProcessingIssue
 
 
 @register(ProcessingIssue)

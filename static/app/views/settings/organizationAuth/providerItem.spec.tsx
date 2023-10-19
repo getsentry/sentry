@@ -1,4 +1,5 @@
 import {AuthProviders} from 'sentry-fixture/authProviders';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -7,7 +8,7 @@ import ProviderItem from 'sentry/views/settings/organizationAuth/providerItem';
 
 describe('ProviderItem', function () {
   const provider = AuthProviders()[0];
-  const org = TestStubs.Organization({
+  const org = Organization({
     features: [descopeFeatureName(provider.requiredFeature)],
   });
   const routerContext = TestStubs.routerContext([{organization: org}]);
