@@ -5,6 +5,7 @@ import {
   DiscoverQueryProps,
   useGenericDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -26,6 +27,7 @@ export const useProjectWebVitalsTimeseriesQuery = ({transaction}: Props) => {
         'p75(measurements.cls)',
         'p75(measurements.ttfb)',
         'p75(measurements.fid)',
+        'count()',
       ],
       name: 'Web Vitals',
       query:
@@ -33,6 +35,7 @@ export const useProjectWebVitalsTimeseriesQuery = ({transaction}: Props) => {
       version: 2,
       fields: [],
       interval: getInterval(pageFilters.selection.datetime, 'low'),
+      dataset: DiscoverDatasets.METRICS,
     },
     pageFilters.selection
   );
