@@ -938,6 +938,9 @@ def _map_field_name(search_key: str) -> str:
     # Run a schema-aware check for tags. Always use the resolver output,
     # since it accounts for passing `tags[foo]` as key.
     resolved = (resolve_column(Dataset.Transactions))(search_key)
+    if resolved == "transaction_name":
+        transaction_field = _SEARCH_TO_PROTOCOL_FIELDS.get("transaction")
+        return f"event.{transaction_field}"
     if resolved.startswith("tags["):
         return f"event.tags.{resolved[5:-1]}"
 
