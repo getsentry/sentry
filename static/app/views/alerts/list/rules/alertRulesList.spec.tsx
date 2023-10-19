@@ -254,7 +254,7 @@ describe('AlertRulesList', () => {
       'ascending'
     );
 
-    expect(rulesMock).toHaveBeenCalledTimes(1);
+    expect(rulesMock).toHaveBeenCalledTimes(2);
     expect(rulesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/combined-rules/',
       expect.objectContaining({

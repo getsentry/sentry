@@ -9,6 +9,7 @@ import {
   addMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
+import Alert from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
@@ -16,8 +17,8 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import Pagination from 'sentry/components/pagination';
 import PanelTable from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconArrow} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconArrow, IconWarning} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -35,6 +36,11 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+import {
+  hasMigrationFeatureFlag,
+  ruleNeedsMigration,
+  useOrgNeedsMigration,
+} from 'sentry/views/alerts/utils/migrationUi';
 
 import FilterBar from '../../filterBar';
 import {AlertRuleType, CombinedMetricIssueAlerts} from '../../types';
@@ -91,6 +97,8 @@ function AlertRulesList() {
       staleTime: 0,
     }
   );
+  const hasMigrationUIFeatureFlag = hasMigrationFeatureFlag(organization);
+  const showMigrationUI = useOrgNeedsMigration();
 
   const handleChangeFilter = (activeFilters: string[]) => {
     const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
@@ -195,8 +203,17 @@ function AlertRulesList() {
         <AlertHeader router={router} activeTab="rules" />
         <Layout.Body>
           <Layout.Main fullWidth>
+            {showMigrationUI ? (
+              <Alert showIcon type="warning">
+                {tct(
+                  'Our performance alerts just got a lot more accurate, which is why we recommend you review the thresholds of all rules marked with a “[warningIcon]“',
+                  {warningIcon: <StyledIconWarning />}
+                )}
+              </Alert>
+            ) : null}
             <FilterBar
               location={location}
+              showMigrationWarning={showMigrationUI}
               onChangeDataset={handleChangeDataset}
               onChangeFilter={handleChangeFilter}
               onChangeSearch={handleChangeSearch}
@@ -261,6 +278,9 @@ function AlertRulesList() {
                         key={`${
                           isIssueAlert(rule) ? AlertRuleType.METRIC : AlertRuleType.ISSUE
                         }-${rule.id}`}
+                        showMigrationWarning={
+                          hasMigrationUIFeatureFlag && ruleNeedsMigration(rule)
+                        }
                         projectsLoaded={initiallyLoaded}
                         projects={projects as Project[]}
                         rule={rule}
@@ -324,4 +344,9 @@ const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: minmax(250px, 4fr) auto auto 60px auto;
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const StyledIconWarning = styled(IconWarning)`
+  vertical-align: middle;
+  color: ${p => p.theme.yellow400};
 `;
