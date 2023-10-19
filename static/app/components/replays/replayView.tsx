@@ -83,7 +83,7 @@ const PlayerContainer = styled('div')`
   grid-auto-flow: row;
   grid-template-rows: auto 1fr;
   gap: ${space(1)};
-  width: 100%;
+  flex-grow: 1;
 `;
 
 const BreadcrumbContainer = styled('div')`
