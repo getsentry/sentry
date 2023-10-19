@@ -69,7 +69,7 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
     def _check_proxying(self) -> None:
         assert len(responses.calls) == 1
         request = responses.calls[0].request
-        assert request.headers[PROXY_OI_HEADER] == str(self.integration.id)
+        assert request.headers[PROXY_OI_HEADER] == str(self.organization_integration.id)
         assert request.headers[PROXY_BASE_URL_HEADER] == "https://slack.com/api"
         assert PROXY_SIGNATURE_HEADER in request.headers
 
