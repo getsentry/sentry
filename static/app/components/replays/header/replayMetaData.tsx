@@ -38,6 +38,22 @@ function ReplayMetaData({replayErrors, replayRecord}: Props) {
 
   return (
     <KeyMetrics>
+      <KeyMetricLabel>{t('Start Time')}</KeyMetricLabel>
+      <KeyMetricData>
+        {replayRecord ? (
+          <TimeContainer>
+            <IconCalendar color="gray300" size="sm" />
+            <TimeSince
+              date={replayRecord.started_at}
+              isTooltipHoverable
+              unitStyle="regular"
+            />
+          </TimeContainer>
+        ) : (
+          <HeaderPlaceholder width="80px" height="16px" />
+        )}
+      </KeyMetricData>
+
       <KeyMetricLabel>{t('Dead Clicks')}</KeyMetricLabel>
       <KeyMetricData>
         {replayRecord?.count_dead_clicks ? (
@@ -63,22 +79,6 @@ function ReplayMetaData({replayErrors, replayRecord}: Props) {
           </Link>
         ) : (
           <Count>0</Count>
-        )}
-      </KeyMetricData>
-
-      <KeyMetricLabel>{t('Start Time')}</KeyMetricLabel>
-      <KeyMetricData>
-        {replayRecord ? (
-          <TimeContainer>
-            <IconCalendar color="gray300" size="sm" />
-            <TimeSince
-              date={replayRecord.started_at}
-              isTooltipHoverable
-              unitStyle="regular"
-            />
-          </TimeContainer>
-        ) : (
-          <HeaderPlaceholder width="80px" height="16px" />
         )}
       </KeyMetricData>
 
