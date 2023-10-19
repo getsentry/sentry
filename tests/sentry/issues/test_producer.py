@@ -85,15 +85,18 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
 
     def test_with_invalid_payloads(self) -> None:
         with pytest.raises(ValueError):
+            # Should raise an error because the occurrence is not provided for the OCCURRENCE payload type.
             produce_occurrence_to_kafka(
                 payload_type=PayloadType.OCCURRENCE,
             )
 
+            # Should raise an error because the status_change object is not provided for the STATUS_CHANGE payload type.
             produce_occurrence_to_kafka(
                 payload_type=PayloadType.STATUS_CHANGE,
             )
 
         with pytest.raises(NotImplementedError):
+            # Should raise an error because the payload type is not supported.
             produce_occurrence_to_kafka(payload_type="invalid")  # type: ignore
 
     def test_with_no_status_change(self) -> None:
