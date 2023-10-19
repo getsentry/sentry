@@ -32,7 +32,7 @@ function renderSpanSamples(span: AggregateSpanType, project: Project | undefined
     return null;
   }
 
-  return span.samples.map(([transactionId, spanId], index) => (
+  return span.samples?.map(([transactionId, spanId], index) => (
     <Link
       key={`${transactionId}-${spanId}`}
       to={`/performance/${project.slug}:${transactionId}#span-${spanId}`}

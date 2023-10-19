@@ -91,6 +91,10 @@ class TestCreatesOndemandMetricSpec:
             ("failure_rate()", "transaction.duration:>100"),
             ("apdex(10)", "transaction.duration:>100"),
             (
+                "count_web_vitals(measurements.fcp,any)",
+                "transaction.duration:>0",
+            ),  # count_web_vitals supported by on demand
+            (
                 "apdex(10)",
                 "",
             ),  # apdex with specified threshold is on-demand metric even without query
@@ -123,10 +127,6 @@ class TestCreatesOndemandMetricSpec:
                 "transaction.duration:>0",
             ),  # equation not supported by on demand
             ("p75(measurements.lcp)", "!event.type:transaction"),  # supported by standard metrics
-            (
-                "count_web_vitals(measurements.fcp,any)",
-                "transaction.duration:>0",
-            ),  # count_web_vitals not supported by on demand
             # supported by standard metrics
             ("p95(measurements.lcp)", ""),
             ("avg(spans.http)", ""),
