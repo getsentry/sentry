@@ -896,7 +896,9 @@ class OnDemandMetricSpec:
     @staticmethod
     def _get_op(function: str, args: Sequence[str]) -> MetricOperationType:
         if function == "percentile":
-            function = _get_percentile_op(args)
+            percentile_op = _get_percentile_op(args)
+            if percentile_op is not None:
+                function = cast(str, percentile_op)
 
         op = _SEARCH_TO_METRIC_AGGREGATES.get(function) or _SEARCH_TO_DERIVED_METRIC_AGGREGATES.get(
             function
