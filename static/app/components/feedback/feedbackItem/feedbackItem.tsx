@@ -9,7 +9,6 @@ import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
-import useDeleteFeedback from 'sentry/components/feedback/feedbackItem/useDeleteFeedback';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
@@ -27,8 +26,6 @@ interface Props {
 
 export default function FeedbackItem({feedbackItem}: Props) {
   const organization = useOrganization();
-
-  const {onDelete} = useDeleteFeedback({feedbackItem});
 
   return (
     <Fragment>
@@ -106,11 +103,6 @@ export default function FeedbackItem({feedbackItem}: Props) {
                     key: 'mark unread',
                     label: t('Mark as unread'),
                     onAction: () => {},
-                  },
-                  {
-                    key: 'delete',
-                    label: t('Delete'),
-                    onAction: onDelete,
                   },
                 ]}
               />
