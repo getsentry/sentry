@@ -2251,7 +2251,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
                 internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
                 entity="metrics_counters",
-                tags={"query_hash": spec.query_hash, "quality": "matches_hash"},
+                tags={"query_hash": spec.query_hash, "measurement_rating": "matches_hash"},
                 timestamp=self.start + datetime.timedelta(hours=hour),
             )
             # These should not add to the total

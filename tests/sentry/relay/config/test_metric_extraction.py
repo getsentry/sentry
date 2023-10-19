@@ -433,12 +433,14 @@ def test_get_metric_extraction_config_with_apdex(default_project):
 
 
 @django_db_all
-@pytest.mark.parametrize("quality", ["good", "meh", "poor", "any"])
+@pytest.mark.parametrize("measurement_rating", ["good", "meh", "poor", "any"])
 @pytest.mark.parametrize("measurement", ["measurements.lcp"])
-def test_get_metric_extraction_config_with_count_web_vitals(default_project, quality, measurement):
+def test_get_metric_extraction_config_with_count_web_vitals(
+    default_project, measurement_rating, measurement
+):
     with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
-            [f"count_web_vitals({measurement}, {quality})"],
+            [f"count_web_vitals({measurement}, {measurement_rating})"],
             "transaction.duration:>=1000",
             default_project,
         )
@@ -450,7 +452,7 @@ def test_get_metric_extraction_config_with_count_web_vitals(default_project, qua
         assert config
         assert len(config["metrics"]) == 1
 
-        if quality == "good":
+        if measurement_rating == "good":
             assert config["metrics"][0] == {
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
@@ -463,14 +465,14 @@ def test_get_metric_extraction_config_with_count_web_vitals(default_project, qua
                             "op": "lt",
                             "value": VITAL_THRESHOLDS[vital]["meh"],
                         },
-                        "key": "quality",
+                        "key": "measurement_rating",
                         "value": "matches_hash",
                     },
                     {"key": "query_hash", "value": ANY},
                 ],
             }
 
-        if quality == "meh":
+        if measurement_rating == "meh":
             assert config["metrics"][0] == {
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
@@ -493,14 +495,14 @@ def test_get_metric_extraction_config_with_count_web_vitals(default_project, qua
                             ],
                             "op": "and",
                         },
-                        "key": "quality",
+                        "key": "measurement_rating",
                         "value": "matches_hash",
                     },
                     {"key": "query_hash", "value": ANY},
                 ],
             }
 
-        if quality == "poor":
+        if measurement_rating == "poor":
             assert config["metrics"][0] == {
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
@@ -513,14 +515,14 @@ def test_get_metric_extraction_config_with_count_web_vitals(default_project, qua
                             "op": "gte",
                             "value": VITAL_THRESHOLDS[vital]["poor"],
                         },
-                        "key": "quality",
+                        "key": "measurement_rating",
                         "value": "matches_hash",
                     },
                     {"key": "query_hash", "value": ANY},
                 ],
             }
 
-        if quality == "any":
+        if measurement_rating == "any":
             assert config["metrics"][0] == {
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
@@ -533,14 +535,14 @@ def test_get_metric_extraction_config_with_count_web_vitals(default_project, qua
                             "op": "gte",
                             "value": 0,
                         },
-                        "key": "quality",
+                        "key": "measurement_rating",
                         "value": "matches_hash",
                     },
                     {"key": "query_hash", "value": ANY},
                 ],
             }
 
-        if quality == "":
+        if measurement_rating == "":
             assert config["metrics"][0] == {
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},

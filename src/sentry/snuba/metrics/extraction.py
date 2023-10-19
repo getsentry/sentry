@@ -655,25 +655,25 @@ def count_web_vitals_spec(project: Project, arguments: Optional[Sequence[str]]) 
     if len(arguments) != 2:
         raise Exception("count web vitals requires a vital name and vital rating")
 
-    measurement, quality = arguments
+    measurement, measurement_rating = arguments
 
     field = _map_field_name(measurement)
     _, vital = measurement.split(".")
 
     thresholds = VITAL_THRESHOLDS[vital]
 
-    if quality == "good":
+    if measurement_rating == "good":
         return [
             {
-                "key": "quality",
+                "key": "measurement_rating",
                 "value": "matches_hash",
                 "condition": {"name": field, "op": "lt", "value": thresholds["meh"]},
             }
         ]
-    elif quality == "meh":
+    elif measurement_rating == "meh":
         return [
             {
-                "key": "quality",
+                "key": "measurement_rating",
                 "value": "matches_hash",
                 "condition": {
                     "inner": [
@@ -684,18 +684,18 @@ def count_web_vitals_spec(project: Project, arguments: Optional[Sequence[str]]) 
                 },
             }
         ]
-    elif quality == "poor":
+    elif measurement_rating == "poor":
         return [
             {
-                "key": "quality",
+                "key": "measurement_rating",
                 "value": "matches_hash",
                 "condition": {"name": field, "op": "gte", "value": thresholds["poor"]},
             }
         ]
     return [
-        # 'any' quality
+        # 'any' measurement_rating
         {
-            "key": "quality",
+            "key": "measurement_rating",
             "value": "matches_hash",
             "condition": {"name": field, "op": "gte", "value": 0},
         }

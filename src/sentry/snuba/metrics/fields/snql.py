@@ -983,8 +983,8 @@ def on_demand_apdex_snql_factory(
 def on_demand_count_web_vitals_snql_factory(
     aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str] = None
 ) -> Function:
-    # This function only queries the tag "quality: matches_hash" since the extracted metric query hash contains the quality
-    # and extraction only happens for that specific quality. The query-hash is already specified in the where clause.
+    # This function only queries the tag "measurement_rating: matches_hash" since the extracted metric query hash contains the measurement_rating
+    # and extraction only happens for that specific measurement_rating. The query-hash is already specified in the where clause.
     return Function(
         "sumIf",
         [
@@ -995,7 +995,7 @@ def on_demand_count_web_vitals_snql_factory(
                     Function(
                         "equals",
                         [
-                            Column(resolve_tag_key(use_case_id, org_id, "quality")),
+                            Column(resolve_tag_key(use_case_id, org_id, "measurement_rating")),
                             resolve_tag_value(use_case_id, org_id, "matches_hash"),
                         ],
                     ),
