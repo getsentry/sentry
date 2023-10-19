@@ -91,6 +91,18 @@ def get_all_pii_configs(project):
 
 def scrub_data(project, event):
     for config in get_all_pii_configs(project):
+
+        job = []
+
+
+
+        # Increasing a counter
+        metrics.incr(
+            "events.discarded",
+            tags={"platform": job["platform"]},
+        )
+
+
         metrics.timing(
             "datascrubbing.config.num_applications", len(config.get("applications") or ())
         )
