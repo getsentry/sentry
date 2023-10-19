@@ -45,7 +45,6 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
             "https://api.github.com/app/installations/github_external_id/access_tokens",
             json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
         )
-
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/sentry/assignees",
@@ -56,6 +55,32 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
         assert self.integration.get_allowed_assignees(repo) == (
             ("", "Unassigned"),
             ("MeredithAnya", "MeredithAnya"),
+        )
+
+        request = responses.calls[0].request
+        assert request.headers["Authorization"] == "Bearer jwt_token_1"
+
+        request = responses.calls[1].request
+        assert request.headers["Authorization"] == "Bearer token_1"
+
+    @responses.activate
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    def test_get_repo_labels(self, mock_get_jwt):
+        responses.add(
+            responses.POST,
+            "https://api.github.com/app/installations/github_external_id/access_tokens",
+            json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/sentry/labels",
+            json=[{"name": "bug"}, {"name": "enhancement"}],
+        )
+
+        repo = "getsentry/sentry"
+        assert self.integration.get_repo_labels(repo) == (
+            ("bug", "bug"),
+            ("enhancement", "enhancement"),
         )
 
         request = responses.calls[0].request
@@ -103,7 +128,12 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
         request = responses.calls[1].request
         assert request.headers["Authorization"] == "Bearer token_1"
         payload = json.loads(request.body)
-        assert payload == {"body": "This is the description", "assignee": None, "title": "hello"}
+        assert payload == {
+            "body": "This is the description",
+            "assignee": None,
+            "title": "hello",
+            "labels": None,
+        }
 
     def test_performance_issues_content(self):
         """Test that a GitHub issue created from a performance issue has the expected title and description"""
@@ -223,11 +253,15 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
             "https://api.github.com/app/installations/github_external_id/access_tokens",
             json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
         )
-
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/sentry/assignees",
             json=[{"login": "MeredithAnya"}],
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/sentry/labels",
+            json=[{"name": "bug"}, {"name": "enhancement"}],
         )
 
         responses.add(
@@ -249,6 +283,11 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
             responses.GET,
             "https://api.github.com/repos/getsentry/hello/assignees",
             json=[{"login": "MeredithAnya"}],
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/hello/labels",
+            json=[{"name": "bug"}, {"name": "enhancement"}],
         )
 
         # create an issue
@@ -342,6 +381,11 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
             responses.GET,
             "https://api.github.com/repos/getsentry/sentry/assignees",
             json=[{"login": "MeredithAnya"}],
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/sentry/labels",
+            json=[{"name": "bug"}, {"name": "enhancement"}],
         )
         responses.add(
             responses.POST,
