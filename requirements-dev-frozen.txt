@@ -174,10 +174,11 @@ sentry-kafka-schemas==0.1.32
 sentry-redis-tools==0.1.7
 sentry-relay==0.8.32
 sentry-sdk==1.31.0
+sentry-usage-accountant==0.0.10
 simplejson==3.17.6
 six==1.16.0
 sniffio==1.2.0
-snuba-sdk==2.0.4
+snuba-sdk==2.0.5
 sortedcontainers==2.4.0
 soupsieve==2.3.2.post1
 sqlparse==0.4.4

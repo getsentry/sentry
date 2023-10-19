@@ -1703,7 +1703,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
                 event=event,
             )
             assert kafka_producer.return_value.publish.call_count == 0
-            incr.assert_called_with("post_process.process_replay_link.id_sampled")
+            incr.assert_any_call("post_process.process_replay_link.id_sampled")
 
     def test_0_sample_rate_replays(self, incr, kafka_producer, kafka_publisher):
 
@@ -1759,7 +1759,8 @@ class PostProcessGroupErrorTest(
 
     @with_feature("organizations:escalating-metrics-backend")
     @patch("sentry.sentry_metrics.client.generic_metrics_backend.counter")
-    def test_generic_metrics_backend_counter(self, generic_metrics_backend_mock):
+    @patch("sentry.utils.metrics.incr")
+    def test_generic_metrics_backend_counter(self, metric_incr_mock, generic_metrics_backend_mock):
         min_ago = iso_format(before_now(minutes=1))
         event = self.create_event(
             data={
@@ -1782,6 +1783,10 @@ class PostProcessGroupErrorTest(
         )
 
         assert generic_metrics_backend_mock.call_count == 1
+        metric_incr_mock.assert_any_call(
+            "sentry.tasks.post_process.post_process_group.completed",
+            tags={"issue_category": "error", "pipeline": "process_rules"},
+        )
 
 
 @region_silo_test

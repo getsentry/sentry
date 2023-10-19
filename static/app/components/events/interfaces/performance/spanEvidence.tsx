@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
   EventTransaction,
-  getIssueTypeFromOccurenceType,
+  getIssueTypeFromOccurrenceType,
   Organization,
 } from 'sentry/types';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
@@ -42,7 +42,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
 
   const hasProfilingFeature = organization.features.includes('profiling');
 
-  const issueType = getIssueTypeFromOccurenceType(event.occurrence?.type);
+  const issueType = getIssueTypeFromOccurrenceType(event.occurrence?.type);
   const issueTitle = event.occurrence?.issueTitle;
   const sanitizedIssueTitle = issueTitle && sanitizeQuerySelector(issueTitle);
 

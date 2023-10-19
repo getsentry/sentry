@@ -4,6 +4,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+import pytest
+
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_status_change import OccurrenceStatusChange
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka

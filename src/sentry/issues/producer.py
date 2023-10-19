@@ -25,6 +25,10 @@ class PayloadType(ValueEqualityEnum):
     STATUS_CHANGE = "status_change"
 
 
+class PayloadType(ValueEqualityEnum):
+    OCCURRENCE = "occurrence"
+
+
 def _get_occurrence_producer() -> KafkaProducer:
     cluster_name = get_topic_definition(settings.KAFKA_INGEST_OCCURRENCES)["cluster"]
     producer_config = get_kafka_producer_cluster_options(cluster_name)
