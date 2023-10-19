@@ -35,10 +35,10 @@ export function SpanFrequencyBox({span}: Props) {
     <StyledBox frequency={frequency ?? 0}>
       <Tooltip
         isHoverable
-        title={tct(
-          'This span occurs in [x] out of every [total] events ([percentage] frequency)',
-          {x: count, total, percentage: formatPercentage(frequency ?? 0, 0)}
-        )}
+        title={tct('This span occured in [x] out of [total] events aggregated', {
+          x: count,
+          total,
+        })}
       >
         {formatPercentage(frequency ?? 0, 0)}
       </Tooltip>
