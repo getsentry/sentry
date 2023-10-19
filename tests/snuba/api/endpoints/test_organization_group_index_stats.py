@@ -3,7 +3,7 @@ import uuid
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers import parse_link_header
+from sentry.testutils.helpers import parse_link_header, with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -67,6 +67,36 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert "userCount" in response_data[0]
         assert "lifetime" in response_data[0]
         assert "filtered" in response_data[0]
+        assert "isUnhandled" not in response_data[0]
+
+    @with_feature("organizations:issue-stream-performance")
+    def test_unhandled(self):
+        self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        group_a = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=1)), "fingerprint": ["group-a"]},
+            project_id=self.project.id,
+        ).group
+
+        self.login_as(user=self.user)
+        response = self.get_response(query="is:unresolved", groups=[group_a.id])
+
+        response_data = sorted(response.data, key=lambda x: x["firstSeen"], reverse=True)
+
+        assert response.status_code == 200
+        assert len(response_data) == 1
+        assert "title" not in response_data[0]
+        assert "hasSeen" not in response_data[0]
+        assert "stats" in response_data[0]
+        assert "firstSeen" in response_data[0]
+        assert "lastSeen" in response_data[0]
+        assert "count" in response_data[0]
+        assert "userCount" in response_data[0]
+        assert "lifetime" in response_data[0]
+        assert "filtered" in response_data[0]
+        assert "isUnhandled" in response_data[0]
 
     def test_issue_platform_issue(self):
         event_id = uuid.uuid4().hex
