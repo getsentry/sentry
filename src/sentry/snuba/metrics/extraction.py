@@ -351,17 +351,17 @@ def _get_percentile_op(args: Sequence[str]) -> Optional[MetricOperationType]:
 
     percentile = args[1]
 
-    if percentile == "0.5":
+    if percentile in ["0.5", "0.50"]:
         return "p50"
     if percentile == "0.75":
         return "p75"
-    if percentile == "0.9":
+    if percentile == ["0.9", "0.90"]:
         return "p90"
     if percentile == "0.95":
         return "p95"
     if percentile == "0.99":
         return "p99"
-    if percentile == "1":
+    if percentile == ["1", "1.0"]:
         return "p100"
 
     return None
