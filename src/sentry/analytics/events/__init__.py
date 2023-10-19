@@ -22,6 +22,7 @@ from .first_transaction_sent import *  # noqa: F401,F403
 from .first_user_context_sent import *  # noqa: F401,F403
 from .groupowner_assignment import *  # noqa: F401,F403
 from .inapp_request import *  # noqa: F401,F403
+from .integration_commit_context_all_frames import *  # noqa: F401,F403
 from .integration_failed_to_fetch_commit_context import *  # noqa: F401,F403
 from .integration_pipeline_step import *  # noqa: F401,F403
 from .integration_serverless_setup import *  # noqa: F401,F403
