@@ -272,7 +272,12 @@ def test_detect_transaction_trends(
         for i, ts in enumerate(timestamps)
     ]
 
-    with override_options({"statistical_detectors.enable": True}), TaskRunner():
+    with override_options(
+        {
+            "statistical_detectors.enable": True,
+            "statistical_detectors.enable.projects.performance": [project.id],
+        }
+    ), TaskRunner():
         for ts in timestamps:
             detect_transaction_trends([organization.id], [project.id], ts)
     assert detect_transaction_change_points.apply_async.called

@@ -246,6 +246,10 @@ def _detect_transaction_change_points(
 def _detect_transaction_trends(
     org_ids: List[int], project_ids: List[int], start: datetime
 ) -> Generator[Tuple[Optional[TrendType], DetectorPayload], None, None]:
+    enabled_performance_projects: Set[int] = set(
+        options.get("statistical_detectors.enable.projects.performance")
+    )
+
     unique_project_ids: Set[int] = set()
 
     transactions_count = 0
@@ -267,6 +271,9 @@ def _detect_transaction_trends(
     all_transaction_payloads = query_transactions(
         org_ids, project_ids, start, end, TRANSACTIONS_PER_PROJECT
     )
+
+    projects = Project.objects.filter(id__in=project_ids).select_related("organization")
+    project_by_id = {project.id: project for project in projects}
 
     for payloads in chunked(all_transaction_payloads, 100):
         transactions_count += len(payloads)
@@ -297,7 +304,17 @@ def _detect_transaction_trends(
 
             unique_project_ids.add(payload.project_id)
 
-            yield (trend_type, payload)
+            project = project_by_id.get(payload.project_id)
+            if payload.project_id in enabled_performance_projects or (
+                project is not None
+                and features.has(
+                    "organizations:performance-statistical-detectors-breakpoint",
+                    project.organization,
+                )
+            ):
+                # if the feature is not enabled, do not yield the results so it
+                # does not continue on to the breakpoint detection
+                yield (trend_type, payload)
 
         detector_store.bulk_write_states(payloads, states)
 
@@ -553,6 +570,10 @@ def detect_function_change_points(
 def _detect_function_trends(
     project_ids: List[int], start: datetime
 ) -> Generator[Tuple[Optional[TrendType], DetectorPayload], None, None]:
+    enabled_profiling_projects: Set[int] = set(
+        options.get("statistical_detectors.enable.projects.profiling")
+    )
+
     unique_project_ids: Set[int] = set()
 
     functions_count = 0
@@ -568,7 +589,9 @@ def _detect_function_trends(
 
     detector_store = redis.RedisDetectorStore()
 
-    for payloads in chunked(all_function_payloads(project_ids, start), 100):
+    projects = Project.objects.filter(id__in=project_ids).select_related("organization")
+    project_by_id = {project.id: project for project in projects}
+    for payloads in chunked(all_function_payloads(projects, start), 100):
         functions_count += len(payloads)
 
         raw_states = detector_store.bulk_read_states(payloads)
@@ -598,7 +621,16 @@ def _detect_function_trends(
 
             unique_project_ids.add(payload.project_id)
 
-            yield (trend_type, payload)
+            project = project_by_id.get(payload.project_id)
+            if payload.project_id in enabled_profiling_projects or (
+                project is not None
+                and features.has(
+                    "organizations:profiling-statistical-detectors-breakpoint", project.organization
+                )
+            ):
+                # if the feature is not enabled, do not yield the results so it
+                # does not continue on to the breakpoint detection
+                yield (trend_type, payload)
 
         detector_store.bulk_write_states(payloads, states)
 
@@ -752,27 +784,13 @@ def emit_function_regression_issue(
 
 
 def all_function_payloads(
-    project_ids: List[int],
+    projects: List[Project],
     start: datetime,
 ) -> Generator[DetectorPayload, None, None]:
-    enabled_profiling_projects: Set[int] = set(
-        options.get("statistical_detectors.enable.projects.profiling")
-    )
-
     projects_per_query = options.get("statistical_detectors.query.batch_size")
     assert projects_per_query > 0
 
-    selected_projects = Project.objects.filter(id__in=project_ids).select_related("organization")
-    selected_projects = filter(
-        lambda project: (
-            features.has(
-                "organizations:profiling-statistical-detectors-breakpoint", project.organization
-            )
-            or project.id in enabled_profiling_projects
-        ),
-        selected_projects,
-    )
-    for projects in chunked(selected_projects, projects_per_query):
+    for projects in chunked(projects, projects_per_query):
         try:
             yield from query_functions(projects, start)
         except Exception as e:
@@ -826,26 +844,6 @@ def query_transactions(
     end: datetime,
     transactions_per_project: int,
 ) -> List[DetectorPayload]:
-    enabled_performance_projects: Set[int] = set(
-        options.get("statistical_detectors.enable.projects.performance")
-    )
-
-    projects = [
-        project
-        for project in Project.objects.filter(id__in=project_ids).select_related("organization")
-        if (
-            project.id in enabled_performance_projects
-            or features.has(
-                "organizations:performance-statistical-detectors-breakpoint", project.organization
-            )
-        )
-    ]
-    project_ids = [project.id for project in projects]
-    org_ids = list({project.organization_id for project in projects})
-
-    if not project_ids or not org_ids:
-        return []
-
     use_case_id = UseCaseID.TRANSACTIONS
 
     # both the metric and tag that we are using are hardcoded values in sentry_metrics.indexer.strings
