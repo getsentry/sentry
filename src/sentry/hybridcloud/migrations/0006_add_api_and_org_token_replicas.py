@@ -60,6 +60,7 @@ class Migration(CheckedMigration):
                             "member:read",
                             "member:write",
                             "member:admin",
+                            "org:integrations",
                         ],
                         default=None,
                     ),
