@@ -171,16 +171,19 @@ const StyledPanelTable = styled(PanelTable)`
   }
 
   grid-template-columns:
-    minmax(150px, 1fr) minmax(150px, 1fr) minmax(150px, 1fr) minmax(200px, 4fr)
+    minmax(100px, 1fr) minmax(100px, 1fr) minmax(250px, 1fr) minmax(200px, 4fr)
     minmax(150px, auto);
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeMedium};
-  > *:nth-last-child(n + 1) {
-    // border-bottom: 1px solid ${p => p.theme.border};
+  > * {
     border-bottom: inherit;
   }
   > *:last-child {
-    border-bottom: none;
+    > *:last-child {
+      // NOTE: targets the last 'add row' element in the table
+      border-radius: 0 0 ${p => p.theme.borderRadius} 0;
+      border-bottom: 0;
+    }
   }
 `;
 

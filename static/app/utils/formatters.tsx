@@ -269,6 +269,45 @@ export function getExactDuration(
   return `0${abbreviation ? SUFFIX_ABBR[precision] : minSuffix}`;
 }
 
+const SEC_IN_WK = 604800;
+const SEC_IN_DAY = 86400;
+const SEC_IN_HR = 3600;
+const SEC_IN_MIN = 60;
+
+type Level = [lvlSfx: string, denominator: number];
+
+type ParsedLargestSuffix = [val: number, suffix: string];
+/**
+ * Given a length of time in seconds, provide me the largest divisible suffix and value for that time period.
+ * eg. 60 -> [1, 'minutes']
+ * eg. 7200 -> [2, 'hours']
+ * eg. 7260 -> [121, 'minutes']
+ *
+ * @param seconds
+ * @param maxSuffix     determines the largest suffix we should pin the response to
+ */
+export function parseLargestSuffix(
+  seconds: number,
+  maxSuffix: string = 'days'
+): ParsedLargestSuffix {
+  const levels: Level[] = [
+    ['minutes', SEC_IN_MIN],
+    ['hours', SEC_IN_HR],
+    ['days', SEC_IN_DAY],
+    ['weeks', SEC_IN_WK],
+  ];
+  let val = seconds;
+  let suffix = 'seconds';
+  for (const [lvlSfx, denominator] of levels) {
+    if (seconds % denominator || lvlSfx === maxSuffix) {
+      break;
+    }
+    val = seconds / denominator;
+    suffix = lvlSfx;
+  }
+  return [val, suffix];
+}
+
 export function formatSecondsToClock(
   seconds: number,
   {padAll}: {padAll: boolean} = {padAll: true}

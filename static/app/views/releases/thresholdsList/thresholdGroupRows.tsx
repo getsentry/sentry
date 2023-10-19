@@ -2,11 +2,12 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {IconAdd, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {getExactDuration} from 'sentry/utils/formatters';
+import {getExactDuration, parseLargestSuffix} from 'sentry/utils/formatters';
 
 import {Threshold} from '../utils/types';
 
@@ -18,8 +19,15 @@ type Props = {
   thresholds: Threshold[];
 };
 
+type EditingThreshold = {
+  windowSuffix?: string;
+  windowValue?: number;
+};
+
 export function ThresholdGroupRows({thresholds, columns}: Props) {
-  const [editingThresholds, setEditingThresholds] = useState({});
+  const [editingThresholds, setEditingThresholds] = useState<{
+    [key: string]: Threshold & EditingThreshold;
+  }>({});
   const [newThresholdIterator, setNewThresholdIterator] = useState<number>(0); // used simply to initialize new threshold
   const projectId = thresholds[0].project;
   const environment = thresholds[0].environment;
@@ -50,6 +58,8 @@ export function ThresholdGroupRows({thresholds, columns}: Props) {
       threshold_type: '',
       trigger_type: '',
       value: 0,
+      windowDuration: 'seconds',
+      windowValue: 0,
     };
     const updatedEditingThresholds = {...editingThresholds};
     updatedEditingThresholds[thresholdId] = newThreshold;
@@ -59,7 +69,13 @@ export function ThresholdGroupRows({thresholds, columns}: Props) {
 
   const enableEditThreshold = thresholdId => {
     const updatedEditingThresholds = {...editingThresholds};
-    updatedEditingThresholds[thresholdId] = thresholdsById[thresholdId];
+    const threshold = JSON.parse(JSON.stringify(thresholdsById[thresholdId]));
+    const [windowValue, windowSuffix] = parseLargestSuffix(threshold.window_in_seconds);
+    updatedEditingThresholds[thresholdId] = {
+      ...threshold,
+      windowValue,
+      windowSuffix,
+    };
     setEditingThresholds(updatedEditingThresholds);
   };
 
@@ -97,21 +113,21 @@ export function ThresholdGroupRows({thresholds, columns}: Props) {
     setEditingThresholds(updatedEditingThresholds);
   };
 
-  // const editThreshold = (thresholdId, key, value) => {};
-
-  // const renderEditableColumns = threshold => (
-  //   <Fragment>
-  //     <FlexCenter>
-  //       <input value={threshold.window_in_seconds} onChange={editThreshold} />
-  //     </FlexCenter>
-  //     <FlexCenter>Condition</FlexCenter>
-  //   </Fragment>
-  // );
+  const editThreshold = (thresholdId, key, value) => {
+    if (editingThresholds[thresholdId]) {
+      const updateEditing = JSON.parse(JSON.stringify(editingThresholds));
+      updateEditing[thresholdId][key] = value;
+      setEditingThresholds(updateEditing);
+    }
+  };
 
   return (
     <StyledThresholdGroup columns={columns}>
       {Array.from(thresholdIdSet).map((tId: string, idx: number) => {
         const threshold = editingThresholds[tId] || thresholdsById[tId];
+        // const [windowValue, windowSuffix] = parseLargestSuffix(
+        //   threshold.window_in_seconds
+        // );
         return (
           <StyledRow key={threshold.id} lastRow={idx === thresholdIdSet.size - 1}>
             <FlexCenter style={{borderBottom: 0}}>
@@ -130,14 +146,98 @@ export function ThresholdGroupRows({thresholds, columns}: Props) {
               {idx === 0 ? threshold.environment.name || 'None' : ''}
             </FlexCenter>
             {/* FOLLOWING COLUMNS ARE EDITABLE */}
-            <FlexCenter>
-              {getExactDuration(threshold.window_in_seconds, false, 'seconds')}
-            </FlexCenter>
-            <FlexCenter>
-              <div>{threshold.threshold_type}</div>
-              <div>{threshold.trigger_type === 'over' ? '>' : '<'}</div>
-              <div>{threshold.value}</div>
-            </FlexCenter>
+            {editingThresholds[threshold.id] ? (
+              <Fragment>
+                <FlexCenter>
+                  {/* TODO: grab window_in_seconds & determine what suffix & value should be */}
+                  <input
+                    style={{width: '50%'}}
+                    value={threshold.windowValue}
+                    type="number"
+                    min={0}
+                    onChange={e =>
+                      editThreshold(threshold.id, 'windowValue', e.target.value)
+                    }
+                  />
+                  <CompactSelect
+                    style={{width: '50%'}}
+                    value={threshold.windowSuffix}
+                    onChange={selectedOption =>
+                      editThreshold(threshold.id, 'windowSuffix', selectedOption.value)
+                    }
+                    options={[
+                      {
+                        value: 'seconds',
+                        textValue: 'seconds',
+                        label: 's',
+                      },
+                      {
+                        value: 'minutes',
+                        textValue: 'minutes',
+                        label: 'min',
+                      },
+                      {
+                        value: 'hours',
+                        textValue: 'hours',
+                        label: 'hrs',
+                      },
+                      {
+                        value: 'days',
+                        textValue: 'days',
+                        label: 'days',
+                      },
+                    ]}
+                  />
+                </FlexCenter>
+                <FlexCenter>
+                  <CompactSelect
+                    value={threshold.threshold_type}
+                    onChange={selectedOption =>
+                      editThreshold(threshold.id, 'threshold_type', selectedOption.value)
+                    }
+                    options={[
+                      {
+                        value: 'total_error_count',
+                        textValue: 'Errors',
+                        label: 'Error Count',
+                      },
+                    ]}
+                  />
+                  {/* TODO: don't use CompactSelect - just a toggle button? */}
+                  {threshold.trigger_type === 'over' ? (
+                    <Button
+                      onClick={() => editThreshold(threshold.id, 'trigger_type', 'under')}
+                    >
+                      &gt;
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => editThreshold(threshold.id, 'trigger_type', 'over')}
+                    >
+                      &lt;
+                    </Button>
+                  )}
+                  <input
+                    value={threshold.value}
+                    type="number"
+                    min={0}
+                    onChange={e => editThreshold(threshold.id, 'value', e.target.value)}
+                  />
+                </FlexCenter>
+              </Fragment>
+            ) : (
+              <Fragment>
+                <FlexCenter>
+                  {getExactDuration(threshold.window_in_seconds, false, 'seconds')}
+                </FlexCenter>
+                <FlexCenter>
+                  <div>{threshold.threshold_type}</div>
+                  <div>{threshold.trigger_type === 'over' ? '>' : '<'}</div>
+                  <div>{threshold.value}</div>
+                </FlexCenter>
+              </Fragment>
+            )}
+            {/* END OF EDITABLE COLUMNS */}
             <ActionsColumn>
               {editingThresholds[threshold.id] ? (
                 <Fragment>
@@ -205,15 +305,12 @@ const StyledRow = styled('div')<StyledThresholdRowProps>`
 
 const NewRowBtn = styled(Button)`
   display: flex;
-  grid-column-start: 1;
+  grid-column-start: 3;
   grid-column-end: -1;
   align-items: center;
   justify-content: center;
   background: ${p => p.theme.backgroundSecondary};
   border-radius: 0;
-  &:last-child {
-    border-radius: ${p => p.theme.borderRadiusBottom};
-  }
 `;
 
 const FlexCenter = styled('div')`
