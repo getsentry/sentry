@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Any, List, Optional, cast
+from typing import Any, List, Optional
 
 from sentry.services.hybrid_cloud.region import ByOrganizationId
 from sentry.services.hybrid_cloud.repository import RpcRepository
@@ -96,4 +96,4 @@ class RepositoryService(RpcService):
         pass
 
 
-repository_service = cast(RepositoryService, RepositoryService.create_delegation())
+repository_service = RepositoryService.create_delegation()
