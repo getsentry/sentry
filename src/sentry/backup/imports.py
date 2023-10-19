@@ -232,20 +232,38 @@ def _import(
 
             do_write(pk_map, model_name, json_data)
 
+    # Resolves slugs for all imported organization models via the PrimaryKeyMap and reconciles
+    # their slug globally via control silo by issuing a slug update.
+    def resolve_org_slugs_from_pk_map(pk_map: PrimaryKeyMap):
+        from sentry.services.organization import organization_provisioning_service
+
+        org_model_name = get_model_name(Organization)
+        org_pk_mapping = pk_map.mapping[str(org_model_name)]
+        if not org_pk_mapping:
+            return
+
+        org_ids_and_slugs: set[(int, str)] = set()
+        for old_primary_key in org_pk_mapping:
+            org_id, _, org_slug = org_pk_mapping[old_primary_key]
+
+            org_ids_and_slugs.add((org_id, org_slug))
+
+        if len(org_ids_and_slugs) > 0:
+            organization_provisioning_service.bulk_create_organization_slugs(
+                org_ids_and_slugs=org_ids_and_slugs
+            )
+
     pk_map = PrimaryKeyMap()
     if SiloMode.get_current_mode() == SiloMode.MONOLITH and not is_split_db():
         with unguarded_write(using="default"), transaction.atomic(using="default"):
             do_writes(pk_map)
-
-        # TODO(GabeVillalobos): Make RPC call here.
-        if deferred_org_auth_tokens:
-            do_write(pk_map, org_auth_token_model_name, deferred_org_auth_tokens)
     else:
         do_writes(pk_map)
 
-        # TODO(GabeVillalobos): Make RPC call here.
-        if deferred_org_auth_tokens:
-            do_write(pk_map, org_auth_token_model_name, deferred_org_auth_tokens)
+    resolve_org_slugs_from_pk_map(pk_map)
+
+    if deferred_org_auth_tokens:
+        do_write(pk_map, org_auth_token_model_name, deferred_org_auth_tokens)
 
 
 def import_in_user_scope(
