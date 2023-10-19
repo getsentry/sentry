@@ -10,6 +10,7 @@ import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedba
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
 import useDeleteFeedback from 'sentry/components/feedback/feedbackItem/useDeleteFeedback';
+import useResolveFeedback from 'sentry/components/feedback/feedbackItem/useResolveFeedback';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
@@ -29,6 +30,7 @@ export default function FeedbackItem({feedbackItem}: Props) {
   const organization = useOrganization();
 
   const {onDelete} = useDeleteFeedback({feedbackItem});
+  const {onResolve} = useResolveFeedback({feedbackItem});
 
   return (
     <Fragment>
@@ -67,7 +69,9 @@ export default function FeedbackItem({feedbackItem}: Props) {
             <ErrorBoundary mini>
               <DropdownMenu
                 position="bottom-end"
-                triggerLabel="Unresolved"
+                triggerLabel={
+                  feedbackItem.status === 'unresolved' ? t('Unresolved') : t('Resolved')
+                }
                 triggerProps={{
                   'aria-label': t('Resolve or Archive Menu'),
                   showChevron: true,
@@ -76,8 +80,11 @@ export default function FeedbackItem({feedbackItem}: Props) {
                 items={[
                   {
                     key: 'resolve',
-                    label: t('Resolve'),
-                    onAction: () => {},
+                    label:
+                      feedbackItem.status === 'unresolved'
+                        ? t('Resolve')
+                        : t('Unresolve'),
+                    onAction: onResolve,
                   },
                   {
                     key: 'archive',
