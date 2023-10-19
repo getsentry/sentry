@@ -53,11 +53,6 @@ class GroupTypeRegistry:
     def all(self) -> List[Type[GroupType]]:
         return list(self._registry.values())
 
-    def get_auto_resolve_enabled(self) -> List[Type[GroupType]]:
-        return list(
-            group_type for group_type in self._registry.values() if group_type.enable_auto_resolve
-        )
-
     def get_visible(
         self, organization: Organization, actor: Optional[Any] = None
     ) -> List[Type[GroupType]]:
@@ -125,7 +120,7 @@ class GroupType:
     # decide if this is released.
     released: bool = False
 
-    # Allow automatic resolution of an issue type
+    # Allow automatic resolution of an issue type, using the project-level option.
     enable_auto_resolve: bool = False
     creation_quota: Quota = Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
 
@@ -183,10 +178,6 @@ class GroupType:
     @classmethod
     def build_post_process_group_feature_name(cls) -> str:
         return f"{cls.build_base_feature_name()}-post-process-group"
-
-
-def get_auto_resolve_enabled() -> List[type[GroupType]]:
-    return registry.get_auto_resolve_enabled()
 
 
 def get_all_group_type_ids() -> Set[int]:

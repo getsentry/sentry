@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
 from time import time
-from typing import Mapping
+from typing import List, Mapping, Type
 
 from django.utils import timezone
 
@@ -38,7 +38,9 @@ def schedule_auto_resolution():
     for opt in options:
         opts_by_project[opt.project_id][opt.key] = opt.value
 
-    auto_resolve_enabled_issue_types = grouptype.registry.get_auto_resolve_enabled()
+    auto_resolve_enabled_issue_types = list(
+        group_type for group_type in grouptype.registry.all() if group_type.enable_auto_resolve
+    )
     cutoff = time() - ONE_HOUR
     for project_id, options in opts_by_project.items():
         if not options.get("sentry:resolve_age"):
@@ -67,7 +69,11 @@ def schedule_auto_resolution():
 )
 @log_error_if_queue_has_items
 def auto_resolve_project_issues(
-    project_id, enabled_issue_types, cutoff=None, chunk_size=1000, **kwargs
+    project_id,
+    enabled_issue_types: List[Type[grouptype.GroupType]],
+    cutoff=None,
+    chunk_size=1000,
+    **kwargs,
 ):
     project = Project.objects.get_from_cache(id=project_id)
 
