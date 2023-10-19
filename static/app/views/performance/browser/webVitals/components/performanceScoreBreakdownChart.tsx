@@ -30,10 +30,7 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
   const {data, isLoading} = useProjectWebVitalsTimeseriesQuery({transaction});
 
   const period = pageFilters.selection.datetime.period;
-  const performanceScoreSubtext =
-    period && Object.keys(DEFAULT_RELATIVE_PERIODS).includes(period)
-      ? DEFAULT_RELATIVE_PERIODS[period]
-      : '';
+  const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
 
   return (
     <ChartContainer>

@@ -47,24 +47,15 @@ export function PerformanceScoreChart({projectScore, webVital, transaction}: Pro
   if (webVital) {
     const index = ORDER.indexOf(webVital);
     ringSegmentColors = ringSegmentColors.map((color, i) => {
-      if (i !== index) {
-        return theme.gray200;
-      }
-      return color;
+      return i === index ? color : theme.gray200;
     });
     ringBackgroundColors = ringBackgroundColors.map((color, i) => {
-      if (i !== index) {
-        return `${theme.gray200}33`;
-      }
-      return color;
+      return i === index ? color : `${theme.gray200}33`;
     });
   }
 
   const period = pageFilters.selection.datetime.period;
-  const performanceScoreSubtext =
-    period && Object.keys(DEFAULT_RELATIVE_PERIODS).includes(period)
-      ? DEFAULT_RELATIVE_PERIODS[period]
-      : '';
+  const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
 
   const [mousePosition, setMousePosition] = useState({x: 0, y: 0});
   const elem = useRef<HTMLDivElement>(null);
