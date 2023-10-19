@@ -35,6 +35,9 @@ class MetricsDatasetConfig(DatasetConfig):
             "tags[transaction]": self._transaction_filter_converter,
             constants.TITLE_ALIAS: self._transaction_filter_converter,
             constants.RELEASE_ALIAS: self._release_filter_converter,
+            constants.DEVICE_CLASS_ALIAS: lambda search_filter: filter_aliases.device_class_converter(
+                self.builder, search_filter
+            ),
         }
 
     @property
@@ -47,6 +50,9 @@ class MetricsDatasetConfig(DatasetConfig):
             constants.PROJECT_THRESHOLD_CONFIG_ALIAS: lambda _: self._resolve_project_threshold_config,
             "transaction": self._resolve_transaction_alias,
             "tags[transaction]": self._resolve_transaction_alias,
+            constants.DEVICE_CLASS_ALIAS: lambda alias: field_aliases.resolve_device_class(
+                self.builder, alias
+            ),
         }
 
     def resolve_metric(self, value: str) -> int:
@@ -117,6 +123,48 @@ class MetricsDatasetConfig(DatasetConfig):
                     ),
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "avg_if",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=constants.METRIC_DURATION_COLUMNS,
+                        ),
+                        fields.MetricArg(
+                            "if_col",
+                            allowed_columns=["release"],
+                        ),
+                        fields.SnQLStringArg(
+                            "if_val", unquote=True, unescape_quotes=True, optional_unquote=True
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: Function(
+                        "avgIf",
+                        [
+                            Column("value"),
+                            Function(
+                                "and",
+                                [
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            args["metric_id"],
+                                        ],
+                                    ),
+                                    Function(
+                                        "equals",
+                                        [self.builder.column(args["if_col"]), args["if_val"]],
+                                    ),
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
                 ),
                 fields.MetricsFunction(
                     "count_miserable",

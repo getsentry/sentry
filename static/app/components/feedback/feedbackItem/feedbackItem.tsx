@@ -9,8 +9,6 @@ import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
-import ResolveButton from 'sentry/components/feedback/feedbackItem/resolveButton';
-import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
 import useDeleteFeedback from 'sentry/components/feedback/feedbackItem/useDeleteFeedback';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -22,7 +20,6 @@ import {space} from 'sentry/styles/space';
 import {getShortEventId} from 'sentry/utils/events';
 import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 
 interface Props {
   feedbackItem: HydratedFeedbackItem;
@@ -30,16 +27,8 @@ interface Props {
 
 export default function FeedbackItem({feedbackItem}: Props) {
   const organization = useOrganization();
-  const {projects} = useProjects();
-  const {onDelete} = useDeleteFeedback({
-    feedbackItem,
-  });
 
-  const project = projects.find(p => p.id === String(feedbackItem.project_id));
-  if (!project) {
-    return null;
-  }
-  const slug = project?.slug;
+  const {onDelete} = useDeleteFeedback({feedbackItem});
 
   return (
     <Fragment>
@@ -48,17 +37,22 @@ export default function FeedbackItem({feedbackItem}: Props) {
           <Flex column>
             <Flex align="center" gap={space(0.5)}>
               <FeedbackItemUsername feedbackItem={feedbackItem} detailDisplay />
-              {feedbackItem.contact_email ? (
+              {feedbackItem.metadata.contact_email ? (
                 <CopyToClipboardButton
                   size="xs"
                   iconSize="xs"
-                  text={feedbackItem.contact_email}
+                  text={feedbackItem.metadata.contact_email}
                 />
               ) : null}
             </Flex>
             <Flex gap={space(1)}>
               <Flex align="center" gap={space(0.5)}>
-                <ProjectAvatar project={project} size={12} title={slug} /> {slug}
+                <ProjectAvatar
+                  project={feedbackItem.project}
+                  size={12}
+                  title={feedbackItem.project.slug}
+                />
+                {feedbackItem.project.slug}
               </Flex>
               <Flex align="center" gap={space(1)}>
                 <IconChevron direction="right" size="xs" />
@@ -71,13 +65,33 @@ export default function FeedbackItem({feedbackItem}: Props) {
               <FeedbackViewers feedbackItem={feedbackItem} />
             </ErrorBoundary>
             <ErrorBoundary mini>
-              <ResolveButton feedbackItem={feedbackItem} />
+              <DropdownMenu
+                position="bottom-end"
+                triggerLabel="Unresolved"
+                triggerProps={{
+                  'aria-label': t('Resolve or Archive Menu'),
+                  showChevron: true,
+                  size: 'xs',
+                }}
+                items={[
+                  {
+                    key: 'resolve',
+                    label: t('Resolve'),
+                    onAction: () => {},
+                  },
+                  {
+                    key: 'archive',
+                    label: t('Archive'),
+                    onAction: () => {},
+                  },
+                ]}
+              />
             </ErrorBoundary>
             <ErrorBoundary mini>
               <DropdownMenu
                 position="bottom-end"
                 triggerProps={{
-                  'aria-label': t('Feedback Actions Menu'),
+                  'aria-label': t('Read or Delete Menu'),
                   icon: <IconEllipsis size="xs" />,
                   showChevron: false,
                   size: 'xs',
@@ -107,13 +121,13 @@ export default function FeedbackItem({feedbackItem}: Props) {
       <OverflowPanelItem>
         <Section title={t('Description')}>
           <Blockquote>
-            <pre>{feedbackItem.message}</pre>
+            <pre>{feedbackItem.metadata.message}</pre>
           </Blockquote>
         </Section>
 
         <Section icon={<IconLink size="xs" />} title={t('Url')}>
           <ErrorBoundary mini>
-            <TextCopyInput size="sm">{feedbackItem.url}</TextCopyInput>
+            <TextCopyInput size="sm">{'TODO'}</TextCopyInput>
           </ErrorBoundary>
         </Section>
 
@@ -121,7 +135,7 @@ export default function FeedbackItem({feedbackItem}: Props) {
           <ReplaySection organization={organization} replayId={feedbackItem.replay_id} />
         ) : null}
 
-        <TagsSection tags={feedbackItem.tags} />
+        {/* <TagsSection tags={feedbackItem.tags} /> */}
 
         <Section icon={<IconJson size="xs" />} title={t('Raw')}>
           <ObjectInspector
