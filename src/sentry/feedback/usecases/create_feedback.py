@@ -3,7 +3,7 @@ from uuid import uuid4
 
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-from sentry.issues.producer import produce_occurrence_to_kafka
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.utils.dates import ensure_aware
 
 
@@ -78,4 +78,6 @@ def create_feedback_issue(event, project_id):
     }
     _fix_for_issue_platform(event_data)
 
-    produce_occurrence_to_kafka(occurrence, event_data=event_data)
+    produce_occurrence_to_kafka(
+        payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_data
+    )
