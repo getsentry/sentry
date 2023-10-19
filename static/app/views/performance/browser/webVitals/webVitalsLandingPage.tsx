@@ -45,17 +45,20 @@ export default function WebVitalsLandingPage() {
     webVital: null,
   });
 
-  const {data: projectData, isLoading} = useProjectWebVitalsQuery({transaction});
+  const {data: projectData, isLoading} = useProjectWebVitalsQuery({});
 
-  const projectScore = isLoading
-    ? undefined
-    : calculatePerformanceScore({
-        lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
-        fcp: projectData?.data[0]['p75(measurements.fcp)'] as number,
-        cls: projectData?.data[0]['p75(measurements.cls)'] as number,
-        ttfb: projectData?.data[0]['p75(measurements.ttfb)'] as number,
-        fid: projectData?.data[0]['p75(measurements.fid)'] as number,
-      });
+  const noTransactions = !isLoading && projectData?.data[0]['count()'] === 0;
+
+  const projectScore =
+    isLoading || noTransactions
+      ? undefined
+      : calculatePerformanceScore({
+          lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
+          fcp: projectData?.data[0]['p75(measurements.fcp)'] as number,
+          cls: projectData?.data[0]['p75(measurements.cls)'] as number,
+          ttfb: projectData?.data[0]['p75(measurements.ttfb)'] as number,
+          fid: projectData?.data[0]['p75(measurements.fid)'] as number,
+        });
 
   return (
     <ModulePageProviders title={[t('Performance'), t('Web Vitals')].join(' — ')}>
@@ -98,7 +101,13 @@ export default function WebVitalsLandingPage() {
               <DatePageFilter />
             </PageFilterBar>
           </TopMenuContainer>
-          <PerformanceScoreChart projectScore={projectScore} transaction={transaction} />
+          <PerformanceScoreChartContainer>
+            <PerformanceScoreChart
+              projectScore={projectScore}
+              transaction={transaction}
+              isProjectScoreLoading={isLoading}
+            />
+          </PerformanceScoreChartContainer>
           <WebVitalMeters
             projectData={projectData}
             projectScore={projectScore}
@@ -125,4 +134,8 @@ const ViewAllPagesButton = styled(LinkButton)`
 
 const TopMenuContainer = styled('div')`
   display: flex;
+`;
+
+const PerformanceScoreChartContainer = styled('div')`
+  margin-bottom: ${space(1)};
 `;
