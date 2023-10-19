@@ -11,4 +11,4 @@ nodestore: 0002_nodestore_no_dictfield
 replays: 0003_add_size_to_recording_segment
 sentry: 0576_add_missing_org_integration_scope
 social_auth: 0002_default_auto_field
-hybridcloud: 0005_add_api_and_org_token_replicas
+hybridcloud: 0006_add_api_and_org_token_replicas
