@@ -334,24 +334,15 @@ def _get_blames_from_all_integrations(
         try:
             blames = install.get_commit_context_all_frames(files)
             file_blames.extend(blames)
-        except ApiError as e:
+        except ApiError:
             logger.exception(
                 "process_commit_context_all_frames.api_error",
                 extra={
                     **extra,
+                    "project_id": project_id,
                     "provider": integration.provider,
                     "integration_id": integration.id,
                 },
-            )
-            analytics.record(
-                "integrations.failed_to_fetch_commit_context_all_frames",
-                organization_id=organization_id,
-                project_id=project_id,
-                group_id=extra["group"],
-                installation_id=install.model.id,
-                num_frames=len(files),
-                provider=integration.provider,
-                error_message=e.text,
             )
 
     return file_blames, integration_to_install_mapping
