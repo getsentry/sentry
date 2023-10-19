@@ -289,6 +289,7 @@ detailed_project = {
             "profile-image-decode-main-thread-visible",
             "performance-issues-render-blocking-assets-detector",
             "performance-m-n-plus-one-db-queries-ingest",
+            "anr-rate",
             "auto-enable-codecov",
             "ondemand-budgets",
             "profile-file-io-main-thread-post-process-group",
