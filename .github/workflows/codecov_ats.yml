@@ -97,7 +97,6 @@ jobs:
         # The base commit will be the parent commit (apparently commits on master don't exist in codecov)
         - name: Codecov Automated Test Selection
           id: codecov_automated_test_selection
-          continue-on-error: true
           run: |
             BASE_COMMIT=$(git rev-parse ${{ github.sha }}^)
             echo $BASE_COMMIT
@@ -116,22 +115,22 @@ jobs:
               tee <<< "ATS failed. Can't get list of tests to run. Fallback to all tests" "$GITHUB_STEP_SUMMARY"
               # We need not forget to add the search options in the fallback command, otherwise pytest might run more tests than expected
               # These search options match what's defined in codecov.yml:105
-              cat >> "$GITHUB_OUTPUT" <<EOF
-              ATS_TESTS_TO_RUN=$(
-                jq -c @json <<< '[
-                  "--cov-context=test",
-                  "tests/sentry",
-                  "tests/integration",
-                  "--ignore=tests/sentry/eventstream/kafka",
-                  "--ignore=tests/sentry/post_process_forwarder",
-                  "--ignore=tests/sentry/snuba",
-                  "--ignore=tests/sentry/search/events",
-                  "--ignore=tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py",
-                  "--ignore=tests/sentry/region_to_control/test_region_to_control_kafka.py"
-                ]'
-              )
-              ATS_TESTS_TO_SKIP='[]'
-              EOF
+              echo 'ATS_TESTS_TO_RUN<<EOF' >> $GITHUB_OUTPUT
+              jq -c @json <<< '[
+                "--cov-context=test",
+                "tests/sentry",
+                "tests/integration",
+                "--ignore=tests/sentry/eventstream/kafka",
+                "--ignore=tests/sentry/post_process_forwarder",
+                "--ignore=tests/sentry/snuba",
+                "--ignore=tests/sentry/search/events",
+                "--ignore=tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py",
+                "--ignore=tests/sentry/region_to_control/test_region_to_control_kafka.py"
+              ]' >> $GITHUB_OUTPUT
+              echo 'EOF' >> $GITHUB_OUTPUT
+              echo ATS_TESTS_TO_SKIP="'[]'" >> "$GITHUB_OUTPUT"
+              echo "::error ATS failed"
+              exit 1
             fi
           env:
             CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -141,6 +140,7 @@ jobs:
     debug:
       runs-on: ubuntu-latest
       needs: coverage-ats
+      if: ${{ always() }}
       steps:
         - name: Debug ATS_TESTS_TO_RUN
           run: |
