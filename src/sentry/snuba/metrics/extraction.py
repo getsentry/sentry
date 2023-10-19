@@ -31,6 +31,7 @@ from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.search.events import fields
 from sentry.search.events.builder import UnresolvedQuery
+from sentry.search.events.constants import VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
@@ -127,6 +128,7 @@ _SEARCH_TO_DERIVED_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
     "failure_count": "on_demand_failure_count",
     "failure_rate": "on_demand_failure_rate",
     "apdex": "on_demand_apdex",
+    "count_web_vitals": "on_demand_count_web_vitals",
     "epm": "on_demand_epm",
     "eps": "on_demand_eps",
     "user_misery": "on_demand_user_misery",
@@ -148,12 +150,12 @@ _AGGREGATE_TO_METRIC_TYPE = {
     # With on demand metrics, evaluated metrics are actually stored, thus we have to choose a concrete metric type.
     "failure_count": "c",
     "failure_rate": "c",
+    "count_web_vitals": "c",
     "apdex": "c",
     "epm": "c",
     "eps": "c",
     "user_misery": "s",
 }
-
 
 _NO_ARG_METRICS = [
     "on_demand_epm",
@@ -161,7 +163,7 @@ _NO_ARG_METRICS = [
     "on_demand_failure_count",
     "on_demand_failure_rate",
 ]
-_MULTIPLE_ARGS_METRICS = ["on_demand_apdex", "on_demand_user_misery"]
+_MULTIPLE_ARGS_METRICS = ["on_demand_apdex", "on_demand_count_web_vitals", "on_demand_user_misery"]
 
 # Query fields that on their own do not require on-demand metric extraction but if present in an on-demand query
 # will be converted to metric extraction conditions.
@@ -687,6 +689,60 @@ def apdex_tag_spec(project: Project, arguments: Optional[Sequence[str]]) -> list
     ]
 
 
+def count_web_vitals_spec(project: Project, arguments: Optional[Sequence[str]]) -> list[TagSpec]:
+    if not arguments:
+        raise Exception("count_web_vitals requires arguments")
+
+    if len(arguments) != 2:
+        raise Exception("count web vitals requires a vital name and vital rating")
+
+    measurement, measurement_rating = arguments
+
+    field = _map_field_name(measurement)
+    _, vital = measurement.split(".")
+
+    thresholds = VITAL_THRESHOLDS[vital]
+
+    if measurement_rating == "good":
+        return [
+            {
+                "key": "measurement_rating",
+                "value": "matches_hash",
+                "condition": {"name": field, "op": "lt", "value": thresholds["meh"]},
+            }
+        ]
+    elif measurement_rating == "meh":
+        return [
+            {
+                "key": "measurement_rating",
+                "value": "matches_hash",
+                "condition": {
+                    "inner": [
+                        {"name": field, "op": "gte", "value": thresholds["meh"]},
+                        {"name": field, "op": "lt", "value": thresholds["poor"]},
+                    ],
+                    "op": "and",
+                },
+            }
+        ]
+    elif measurement_rating == "poor":
+        return [
+            {
+                "key": "measurement_rating",
+                "value": "matches_hash",
+                "condition": {"name": field, "op": "gte", "value": thresholds["poor"]},
+            }
+        ]
+    return [
+        # 'any' measurement_rating
+        {
+            "key": "measurement_rating",
+            "value": "matches_hash",
+            "condition": {"name": field, "op": "gte", "value": 0},
+        }
+    ]
+
+
 def user_misery_tag_spec(project: Project, arguments: Optional[Sequence[str]]) -> List[TagSpec]:
     """A metric that counts the number of unique users who were frustrated; "frustration" is
     measured as a response time four times the satisfactory response time threshold (in milliseconds).
@@ -710,6 +766,7 @@ _DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator | None] = {
     "on_demand_apdex": apdex_tag_spec,
     "on_demand_epm": None,
     "on_demand_eps": None,
+    "on_demand_count_web_vitals": count_web_vitals_spec,
     "on_demand_user_misery": user_misery_tag_spec,
 }
 
@@ -758,7 +815,7 @@ class OnDemandMetricSpec:
 
     @property
     def field_to_extract(self):
-        if self.op in ("on_demand_apdex"):
+        if self.op in ("on_demand_apdex", "on_demand_count_web_vitals"):
             return None
 
         if self.op in ("on_demand_user_misery"):
