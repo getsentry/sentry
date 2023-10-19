@@ -6,7 +6,6 @@ class Row(TypedDict):
     span_group: str
     transaction_count: int
     p95_self_time: float
-    sample_event_id: str
     span_count: int
     period: str
 
@@ -71,15 +70,10 @@ def span_analysis(data: List[Row]):
 
         # We're only interested in span changes if they positively impacted duration
         if score_delta > 0:
-            sample_event_id = row1 and row1["sample_event_id"] or row2 and row2["sample_event_id"]
-            if not sample_event_id:
-                continue
-
             problem_spans.append(
                 {
                     "span_op": key.split(",")[0],
                     "span_group": key.split(",")[1],
-                    "sample_event_id": sample_event_id,
                     "score_delta": score_delta,
                     "freq_before": row1["relative_freq"] if row1 else 0,
                     "freq_after": row2["relative_freq"] if row2 else 0,

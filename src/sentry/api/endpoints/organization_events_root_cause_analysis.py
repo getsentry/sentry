@@ -3,7 +3,7 @@ from datetime import timedelta
 
 import sentry_sdk
 from rest_framework.response import Response
-from snuba_sdk import Column, Condition, Function, LimitBy, Op
+from snuba_sdk import And, Column, Condition, Function, LimitBy, Op
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -35,8 +35,6 @@ def init_query_builder(params, transaction, regression_breakpoint, type):
         "percentileArray(spans_exclusive_time, 0.95) as p95_self_time",
         "array_join(spans_op) as span_op",
         "array_join(spans_group) as span_group",
-        # want a single event id to fetch from nodestore for the span description
-        "any(id) as sample_event_id",
     ]
 
     builder = QueryBuilder(
@@ -114,14 +112,66 @@ def query_spans(transaction, regression_breakpoint, params):
     return span_results
 
 
-def fetch_span_analysis_results(transaction_name, regression_breakpoint, params, project_id):
+def fetch_sample_event_ids(span_analysis_results, params, transaction):
+    builder = QueryBuilder(
+        dataset=Dataset.Transactions,
+        params=params,
+        selected_columns=[
+            "any(id) as sample_event_id",
+            "array_join(spans_op) as span_op",
+            "array_join(spans_group) as span_group",
+        ],
+        equations=[],
+        query=f"transaction:{transaction}",
+        limit=QUERY_LIMIT,
+        config=QueryBuilderConfig(
+            auto_aggregations=True,
+            use_aggregate_conditions=True,
+            functions_acl=[
+                "array_join",
+                "sumArray",
+                "percentileArray",
+            ],
+        ),
+    )
+
+    conditions = []
+    for result in span_analysis_results:
+        conditions.append(
+            And(
+                [
+                    Condition(Column("span_op"), Op.EQ, result["span_op"]),
+                    Condition(Column("span_group"), Op.EQ, result["span_group"]),
+                ]
+            )
+        )
+
+    builder.add_conditions(conditions)
+
+    return raw_snql_query(builder.get_snql_query(), f"{BASE_REFERRER}-fetch-sample-ids").get(
+        "data", []
+    )
+
+
+def fetch_span_analysis_results(transaction_name, regression_breakpoint, params, project_id, limit):
     span_data = query_spans(
         transaction=transaction_name,
         regression_breakpoint=regression_breakpoint,
         params=params,
     )
 
-    span_analysis_results = span_analysis(span_data)
+    span_analysis_results = span_analysis(span_data)[:limit]
+
+    relevant_sample_events = fetch_sample_event_ids(span_analysis_results, params, transaction_name)
+    keyed_relevant_sample_events = {
+        f'{result["span_op"]},{result["span_group"]}': result["sample_event_id"]
+        for result in relevant_sample_events
+    }
+
+    for result in span_analysis_results:
+        result["sample_event_id"] = keyed_relevant_sample_events[
+            f'{result["span_op"]},{result["span_group"]}'
+        ]
 
     for result in span_analysis_results:
         result["span_description"] = get_span_description(
@@ -133,7 +183,7 @@ def fetch_span_analysis_results(transaction_name, regression_breakpoint, params,
     return span_analysis_results
 
 
-def fetch_geo_analysis_results(transaction_name, regression_breakpoint, params, project_id):
+def fetch_geo_analysis_results(transaction_name, regression_breakpoint, params, limit):
     def get_geo_data(period):
         # Copy the params so we aren't modifying the base params each time
         adjusted_params = {**params}
@@ -192,7 +242,7 @@ def fetch_geo_analysis_results(transaction_name, regression_breakpoint, params, 
             )
 
     analysis_results.sort(key=lambda x: x["score"], reverse=True)
-    return analysis_results
+    return analysis_results[:limit]
 
 
 @region_silo_endpoint
@@ -214,6 +264,7 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
         project_id = request.GET.get("project")
         regression_breakpoint = request.GET.get("breakpoint")
         analysis_type = request.GET.get("type", SPAN_ANALYSIS)
+        limit = int(request.GET.get("per_page", DEFAULT_LIMIT))
         if not transaction_name or not project_id or not regression_breakpoint:
             # Project ID is required to ensure the events we query for are
             # the same transaction
@@ -238,12 +289,11 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
         results = []
         if analysis_type == SPAN_ANALYSIS:
             results = fetch_span_analysis_results(
-                transaction_name, regression_breakpoint, params, project_id
+                transaction_name, regression_breakpoint, params, project_id, limit
             )
         elif analysis_type == GEO_ANALYSIS:
             results = fetch_geo_analysis_results(
-                transaction_name, regression_breakpoint, params, project_id
+                transaction_name, regression_breakpoint, params, limit
             )
 
-        limit = int(request.GET.get("per_page", DEFAULT_LIMIT))
-        return Response(results[:limit], status=200)
+        return Response(results, status=200)
