@@ -1,4 +1,3 @@
-from copy import deepcopy
 from uuid import uuid4
 
 from drf_spectacular.utils import extend_schema
@@ -21,7 +20,6 @@ from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.lang.native.sources import (
     REDACTED_SOURCE_SCHEMA,
     REDACTED_SOURCES_SCHEMA,
-    SOURCE_SCHEMA,
     VALID_CASINGS,
     VALID_FILE_TYPES,
     VALID_LAYOUTS,
@@ -33,13 +31,6 @@ from sentry.lang.native.sources import (
 )
 from sentry.models.project import Project
 from sentry.utils import json
-
-
-def _get_sources_schema_with_optional_id() -> dict:
-    schema = deepcopy(SOURCE_SCHEMA)
-    for schema in schema["oneOf"]:
-        schema["required"].remove("id")
-    return schema
 
 
 class LayoutSerializer(serializers.Serializer):
@@ -345,6 +336,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
             if sources[i]["id"] == id:
                 found = True
                 sources[i] = source
+                break
 
         if not found:
             return Response(data={"error": f"Unknown source id: {id}"}, status=404)
