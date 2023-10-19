@@ -14,6 +14,7 @@ from sentry.models.dashboard_widget import (
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.relay.config.metric_extraction import get_metric_extraction_config
+from sentry.search.events.constants import VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.helpers import Feature
@@ -430,6 +431,126 @@ def test_get_metric_extraction_config_with_apdex(default_project):
                 {"key": "query_hash", "value": ANY},
             ],
         }
+
+
+@django_db_all
+@pytest.mark.parametrize("measurement_rating", ["good", "meh", "poor", "any"])
+@pytest.mark.parametrize("measurement", ["measurements.lcp"])
+def test_get_metric_extraction_config_with_count_web_vitals(
+    default_project, measurement_rating, measurement
+):
+    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+        create_widget(
+            [f"count_web_vitals({measurement}, {measurement_rating})"],
+            "transaction.duration:>=1000",
+            default_project,
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        vital = measurement.split(".")[1]
+
+        assert config
+        assert len(config["metrics"]) == 1
+
+        if measurement_rating == "good":
+            assert config["metrics"][0] == {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {
+                        "condition": {
+                            "name": f"event.{measurement}.value",
+                            "op": "lt",
+                            "value": VITAL_THRESHOLDS[vital]["meh"],
+                        },
+                        "key": "measurement_rating",
+                        "value": "matches_hash",
+                    },
+                    {"key": "query_hash", "value": ANY},
+                ],
+            }
+
+        if measurement_rating == "meh":
+            assert config["metrics"][0] == {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {
+                        "condition": {
+                            "inner": [
+                                {
+                                    "name": f"event.{measurement}.value",
+                                    "op": "gte",
+                                    "value": VITAL_THRESHOLDS[vital]["meh"],
+                                },
+                                {
+                                    "name": f"event.{measurement}.value",
+                                    "op": "lt",
+                                    "value": VITAL_THRESHOLDS[vital]["poor"],
+                                },
+                            ],
+                            "op": "and",
+                        },
+                        "key": "measurement_rating",
+                        "value": "matches_hash",
+                    },
+                    {"key": "query_hash", "value": ANY},
+                ],
+            }
+
+        if measurement_rating == "poor":
+            assert config["metrics"][0] == {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {
+                        "condition": {
+                            "name": f"event.{measurement}.value",
+                            "op": "gte",
+                            "value": VITAL_THRESHOLDS[vital]["poor"],
+                        },
+                        "key": "measurement_rating",
+                        "value": "matches_hash",
+                    },
+                    {"key": "query_hash", "value": ANY},
+                ],
+            }
+
+        if measurement_rating == "any":
+            assert config["metrics"][0] == {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {
+                        "condition": {
+                            "name": f"event.{measurement}.value",
+                            "op": "gte",
+                            "value": 0,
+                        },
+                        "key": "measurement_rating",
+                        "value": "matches_hash",
+                    },
+                    {"key": "query_hash", "value": ANY},
+                ],
+            }
+
+        if measurement_rating == "":
+            assert config["metrics"][0] == {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [],
+            }
 
 
 @django_db_all
