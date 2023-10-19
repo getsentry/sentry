@@ -80,7 +80,10 @@ function FilterBar({
               <SegmentedControl.Item key={DatasetOption.SESSIONS}>
                 {t('Sessions')}
               </SegmentedControl.Item>
-              <SegmentedControl.Item key={DatasetOption.PERFORMANCE}>
+              <SegmentedControl.Item
+                textValue={t('Performance')}
+                key={DatasetOption.PERFORMANCE}
+              >
                 {t('Performance')}
                 {showMigrationWarning ? <StyledIconWarning /> : null}
               </SegmentedControl.Item>
