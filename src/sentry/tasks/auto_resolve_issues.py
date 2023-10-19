@@ -39,7 +39,9 @@ def schedule_auto_resolution():
         opts_by_project[opt.project_id][opt.key] = opt.value
 
     auto_resolve_enabled_issue_types = list(
-        group_type for group_type in grouptype.registry.all() if group_type.enable_auto_resolve
+        group_type.type_id
+        for group_type in grouptype.registry.all()
+        if group_type.enable_auto_resolve
     )
     cutoff = time() - ONE_HOUR
     for project_id, options in opts_by_project.items():
@@ -89,16 +91,17 @@ def auto_resolve_project_issues(
         cutoff = timezone.now() - timedelta(hours=int(age))
 
     queryset = list(
-        Group.objects.filter(project=project, last_seen__lte=cutoff, status=GroupStatus.UNRESOLVED)[
-            :chunk_size
-        ]
+        Group.objects.filter(
+            project=project,
+            type__in=enabled_issue_types,
+            last_seen__lte=cutoff,
+            status=GroupStatus.UNRESOLVED,
+        )[:chunk_size]
     )
 
     might_have_more = len(queryset) == chunk_size
 
     for group in queryset:
-        if group.issue_type not in enabled_issue_types:
-            continue
         happened = Group.objects.filter(id=group.id, status=GroupStatus.UNRESOLVED).update(
             status=GroupStatus.RESOLVED,
             resolved_at=timezone.now(),
