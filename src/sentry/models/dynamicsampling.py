@@ -7,12 +7,12 @@ from django.db.models import Q
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.utils import json
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
-
 
 # max number of custom rules that can be created per organization
 MAX_CUSTOM_RULES = 2000
@@ -79,27 +79,6 @@ class CustomDynamicSamplingRuleProject(Model):
 
 
 @region_silo_only_model
-class CustomDynamicSamplingRuleUser(Model):
-    """
-    Many-to-many relationship between a custom dynamic sampling rule and a user.
-    """
-
-    __relocation_scope__ = RelocationScope.Organization
-
-    custom_dynamic_sampling_rule = FlexibleForeignKey(
-        "sentry.CustomDynamicSamplingRule", on_delete=models.CASCADE
-    )
-    user = FlexibleForeignKey("sentry.User")
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_customdynamicsamplingruleuser"
-        unique_together = (("custom_dynamic_sampling_rule", "user"),)
-
-    __repr__ = sane_repr("custom_dynamic_sampling_rule", "user_id")
-
-
-@region_silo_only_model
 class CustomDynamicSamplingRule(Model):
     """
     This represents a custom dynamic sampling rule that is created by the user based
@@ -127,7 +106,7 @@ class CustomDynamicSamplingRule(Model):
     condition_hash = models.CharField(max_length=40)
     # the raw query field from the request
     query = models.TextField(null=True)
-    users = models.ManyToManyField("sentry.User", through="sentry.CustomDynamicSamplingRuleUser")
+    created_by_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE", null=True, blank=True)
 
     @property
     def external_rule_id(self) -> int:
