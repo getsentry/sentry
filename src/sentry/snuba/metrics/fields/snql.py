@@ -1002,7 +1002,7 @@ def on_demand_user_misery_snql_factory(
     miserable_users = uniq_if_column_snql(
         aggregate_filter, org_id, use_case_id, "satisfaction", "frustrated"
     )
-    unique_users = Function("uniq", [Column("value")])
+    unique_users = Function("uniqIf", [Column("value"), aggregate_filter])
     # (count_miserable(users, threshold) + 5.8875) / (count_unique(users) + 5.8875 + 111.8625)
     # https://github.com/getsentry/sentry/blob/b29efaef31605e2e2247128de0922e8dca576a22/src/sentry/search/events/datasets/discover.py#L206-L230
     return Function(
