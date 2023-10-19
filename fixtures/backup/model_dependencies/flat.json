@@ -156,6 +156,10 @@
     "sentry.customdynamicsamplingrule",
     "sentry.project"
   ],
+  "sentry.customdynamicsamplingruleuser": [
+    "sentry.customdynamicsamplingrule",
+    "sentry.user"
+  ],
   "sentry.dashboard": [
     "sentry.organization",
     "sentry.user"

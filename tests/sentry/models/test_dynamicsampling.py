@@ -31,6 +31,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
             organization_id=self.organization.id,
             num_samples=100,
             sample_rate=0.5,
+            query="environment:prod",
         )
 
         end2 = timezone.now() + timedelta(hours=1)
@@ -42,6 +43,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
             organization_id=self.organization.id,
             num_samples=100,
             sample_rate=0.5,
+            query="environment:prod",
         )
 
         assert rule.id == updated_rule.id
@@ -64,6 +66,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
                 organization_id=self.organization.id,
                 num_samples=100,
                 sample_rate=0.5,
+                query=f"environment:prod{env_idx}",
             )
 
         rule_ids = set()
@@ -116,6 +119,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
                 organization_id=self.organization.id,
                 num_samples=100,
                 sample_rate=0.5,
+                query=f"environment:prod{idx}",
             )
 
         for i in range(10):
@@ -160,6 +164,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
             organization_id=self.organization.id,
             num_samples=100,
             sample_rate=0.5,
+            query="environment:prod",
         )
 
         rule = CustomDynamicSamplingRule.get_rule_for_org(
@@ -204,6 +209,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
                 organization_id=org_id,
                 num_samples=100,
                 sample_rate=0.5,
+                query=f"environment:prod{idx[0]}",
             )
 
         valid_project_rule = create_rule([self.project.id, self.second_project.id])
@@ -243,6 +249,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
             organization_id=self.organization.id,
             num_samples=100,
             sample_rate=0.5,
+            query="environment:prod",
         )
 
         end2 = timezone.now() + timedelta(hours=1)

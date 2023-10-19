@@ -79,6 +79,25 @@ class CustomDynamicSamplingRuleProject(Model):
 
 
 @region_silo_only_model
+class CustomDynamicSamplingRuleUser(Model):
+    """
+    Many-to-many relationship between a custom dynamic sampling rule and a user.
+    """
+
+    __relocation_scope__ = RelocationScope.Organization
+
+    custom_dynamic_sampling_rule = FlexibleForeignKey(
+        "sentry.CustomDynamicSamplingRule", on_delete=models.CASCADE
+    )
+    user = FlexibleForeignKey("sentry.User")
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_customdynamicsamplingruleuser"
+        unique_together = (("custom_dynamic_sampling_rule", "user"),)
+
+
+@region_silo_only_model
 class CustomDynamicSamplingRule(Model):
     """
     This represents a custom dynamic sampling rule that is created by the user based
@@ -104,6 +123,8 @@ class CustomDynamicSamplingRule(Model):
     end_date = models.DateTimeField()
     num_samples = models.IntegerField()
     condition_hash = models.CharField(max_length=40)
+    # the raw query field from the request
+    query = models.TextField(null=True)
 
     @property
     def external_rule_id(self) -> int:
@@ -160,6 +181,7 @@ class CustomDynamicSamplingRule(Model):
         organization_id: int,
         num_samples: int,
         sample_rate: float,
+        query: str,
     ) -> "CustomDynamicSamplingRule":
 
         from sentry.models.project import Project
@@ -195,6 +217,7 @@ class CustomDynamicSamplingRule(Model):
                     condition_hash=rule_hash,
                     is_active=True,
                     is_org_level=is_org_level,
+                    query=query,
                 )
 
                 rule.save()

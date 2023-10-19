@@ -1146,6 +1146,34 @@
       ]
     ]
   },
+  "sentry.customdynamicsamplingruleuser": {
+    "dangling": false,
+    "foreign_keys": {
+      "custom_dynamic_sampling_rule": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.customdynamicsamplingrule",
+        "nullable": false
+      },
+      "user": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.user",
+        "nullable": false
+      }
+    },
+    "model": "sentry.customdynamicsamplingruleuser",
+    "relocation_dependencies": [],
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_customdynamicsamplingruleuser",
+    "uniques": [
+      [
+        "custom_dynamic_sampling_rule",
+        "user"
+      ]
+    ]
+  },
   "sentry.dashboard": {
     "dangling": false,
     "foreign_keys": {
