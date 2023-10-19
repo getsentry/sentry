@@ -11,7 +11,7 @@ from rest_framework.response import Response
 
 from sentry.utils import metrics
 
-from ..services.hybrid_cloud.auth import AuthenticatedToken
+from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from . import is_frontend_request
 
 api_access_logger = logging.getLogger("sentry.access.api")
