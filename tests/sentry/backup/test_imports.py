@@ -269,9 +269,16 @@ class SanitizationTests(ImportTestCase):
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert (
-                OrganizationSlugReservation.objects.filter(slug__icontains="some-org").count() == 2
+                OrganizationSlugReservation.objects.filter(
+                    slug__icontains="some-org",
+                    reservation_type=OrganizationSlugReservationType.PRIMARY,
+                ).count()
+                == 2
             )
+
             assert OrganizationSlugReservation.objects.filter(slug__iexact="some-org").count() == 1
+            # Assert that the slug update RPC has completed and generated a valid matching primary
+            # slug reservation.
             slug_reservation = OrganizationSlugReservation.objects.filter(
                 slug__icontains="some-org-",
                 reservation_type=OrganizationSlugReservationType.PRIMARY,
@@ -489,6 +496,8 @@ class SignalingTests(ImportTestCase):
         assert ProjectOption.objects.filter(key="sentry:option-epoch").exists()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
+            # An organization slug reservation with a valid primary reservation type
+            # signals that we've synchronously resolved the slug update RPC correctly.
             assert OrganizationSlugReservation.objects.filter(
                 organization_id=imported_organization.id,
                 slug="some-org",

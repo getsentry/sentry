@@ -77,23 +77,19 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
 
     user = user_service.get_first_superuser()
 
-    with outbox_context(flush=False):
-        org, _ = Organization.objects.get_or_create(slug="sentry", defaults={"name": "Sentry"})
+    with transaction.atomic(router.db_for_write(Organization)):
+        with outbox_context(flush=False):
+            org, _ = Organization.objects.get_or_create(slug="sentry", defaults={"name": "Sentry"})
 
-    # We need to provision an organization slug in control silo, so we do
-    # this by "changing" the slug, then re-replicating the org data
-    organization_provisioning_service.change_organization_slug(
-        organization_id=org.id, slug="sentry"
-    )
+        if user:
+            OrganizationMember.objects.get_or_create(
+                user_id=user.id, organization=org, role="owner"
+            )
 
-    if user:
-        OrganizationMember.objects.get_or_create(user_id=user.id, organization=org, role="owner")
+        team, _ = Team.objects.get_or_create(
+            organization=org, slug="sentry", defaults={"name": "Sentry"}
+        )
 
-    team, _ = Team.objects.get_or_create(
-        organization=org, slug="sentry", defaults={"name": "Sentry"}
-    )
-
-    with transaction.atomic(router.db_for_write(Project)):
         project = Project.objects.create(
             id=id, public=False, name=name, slug=slug, organization=team.organization, **kwargs
         )
@@ -110,6 +106,12 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
         connection = connections[project._state.db]
         cursor = connection.cursor()
         cursor.execute(PROJECT_SEQUENCE_FIX)
+
+    # We need to provision an organization slug in control silo, so we do
+    # this by "changing" the slug, then re-replicating the org data
+    organization_provisioning_service.change_organization_slug(
+        organization_id=org.id, slug="sentry"
+    )
 
     project.update_option("sentry:origins", ["*"])
 

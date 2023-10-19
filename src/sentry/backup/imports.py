@@ -237,7 +237,6 @@ def _import(
     def resolve_org_slugs_from_pk_map(pk_map: PrimaryKeyMap):
         from sentry.services.organization import organization_provisioning_service
 
-        org_model_name = get_model_name(Organization)
         org_pk_mapping = pk_map.mapping[str(org_model_name)]
         if not org_pk_mapping:
             return
