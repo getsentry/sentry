@@ -49,15 +49,12 @@ export default function useDeleteFeedback({feedbackItem}: Props) {
 
   const api = useApi();
   const organization = useOrganization();
-  const {getParamValue: getFeedbackSlug, setParamValue: setFeedbackSlug} =
-    useUrlParams('feedbackSlug');
+  const {setParamValue: setFeedbackSlug} = useUrlParams('feedbackSlug');
   const {setFeedback} = useInfiniteFeedbackListData();
 
   const url = useMemo(() => {
-    const feedbackSlug = getFeedbackSlug();
-    const projectSlug = feedbackSlug?.split(':')[0];
-    return `/projects/${organization.slug}/${projectSlug}/feedback/${feedbackId}/`;
-  }, [feedbackId, getFeedbackSlug, organization]);
+    return `/organizations/${organization.slug}/issues/${feedbackId}/`;
+  }, [feedbackId, organization]);
 
   const handleDelete = useCallback(async () => {
     addLoadingMessage(t('Deleting feedback...'));
