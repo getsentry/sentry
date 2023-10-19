@@ -3,18 +3,13 @@ import {Fragment} from 'react';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
-  BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
-// import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
-const platformOptions = {} satisfies BasePlatformOptions;
-
-type PlatformOptions = typeof platformOptions;
-type Params = DocsParams<PlatformOptions>;
+type Params = DocsParams;
 
 const getSdkSetupSnippet = (params: Params) => `
 import { defineConfig } from "astro/config";
@@ -51,7 +46,7 @@ const getVerifyAstroSnippet = () => `
 </button>
 `;
 
-const onboarding: OnboardingConfig<PlatformOptions> = {
+const onboarding: OnboardingConfig = {
   introduction: () =>
     tct("Sentry's integration with [astroLink:Astro] supports Astro 3.0.0 and above.", {
       astroLink: <ExternalLink href="https://astro.build/" />,
@@ -193,9 +188,8 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   ],
 };
 
-const docs: Docs<PlatformOptions> = {
+const docs: Docs = {
   onboarding,
-  platformOptions,
 };
 
 export default docs;
