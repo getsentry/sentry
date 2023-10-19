@@ -24,6 +24,7 @@ import {
   IconMute,
   IconNot,
   IconUser,
+  IconWarning,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -52,6 +53,7 @@ type Props = {
   projects: Project[];
   projectsLoaded: boolean;
   rule: CombinedMetricIssueAlerts;
+  showMigrationWarning: boolean;
 };
 
 function RuleListRow({
@@ -62,6 +64,7 @@ function RuleListRow({
   onDelete,
   onOwnerChange,
   hasEditAccess,
+  showMigrationWarning,
 }: Props) {
   const {teams: userTeams} = useUserTeams();
   const [assignee, setAssignee] = useState<string>('');
@@ -316,6 +319,13 @@ function RuleListRow({
     <ErrorBoundary>
       <AlertNameWrapper isIssueAlert={isIssueAlert(rule)}>
         <FlexCenter>
+          {showMigrationWarning && (
+            <Tooltip
+              title={t('The current thresholds for this alert could use some review')}
+            >
+              <StyledIconWarning />
+            </Tooltip>
+          )}
           <Tooltip
             title={
               isIssueAlert(rule)
@@ -517,6 +527,11 @@ const MenuItemWrapper = styled('div')`
 
 const Label = styled(TextOverflow)`
   margin-left: 6px;
+`;
+
+const StyledIconWarning = styled(IconWarning)`
+  margin-right: ${space(1)};
+  color: ${p => p.theme.yellow400};
 `;
 
 export default RuleListRow;
