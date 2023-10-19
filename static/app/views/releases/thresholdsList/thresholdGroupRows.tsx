@@ -50,16 +50,18 @@ export function ThresholdGroupRows({thresholds, columns}: Props) {
 
   const initializeNewThreshold = () => {
     const thresholdId = `${NEW_THRESHOLD_PREFIX}-${newThresholdIterator}`;
+    const [windowValue, windowSuffix] = parseLargestSuffix(defaultWindow);
     const newThreshold = {
       id: thresholdId,
       environment,
       project: projectId,
       window_in_seconds: defaultWindow,
-      threshold_type: '',
-      trigger_type: '',
+      windowValue,
+      windowSuffix,
+      threshold_type: 'total_error_count',
+      trigger_type: 'over',
       value: 0,
       windowDuration: 'seconds',
-      windowValue: 0,
     };
     const updatedEditingThresholds = {...editingThresholds};
     updatedEditingThresholds[thresholdId] = newThreshold;
@@ -125,9 +127,6 @@ export function ThresholdGroupRows({thresholds, columns}: Props) {
     <StyledThresholdGroup columns={columns}>
       {Array.from(thresholdIdSet).map((tId: string, idx: number) => {
         const threshold = editingThresholds[tId] || thresholdsById[tId];
-        // const [windowValue, windowSuffix] = parseLargestSuffix(
-        //   threshold.window_in_seconds
-        // );
         return (
           <StyledRow key={threshold.id} lastRow={idx === thresholdIdSet.size - 1}>
             <FlexCenter style={{borderBottom: 0}}>
@@ -149,7 +148,6 @@ export function ThresholdGroupRows({thresholds, columns}: Props) {
             {editingThresholds[threshold.id] ? (
               <Fragment>
                 <FlexCenter>
-                  {/* TODO: grab window_in_seconds & determine what suffix & value should be */}
                   <input
                     style={{width: '50%'}}
                     value={threshold.windowValue}
@@ -203,7 +201,6 @@ export function ThresholdGroupRows({thresholds, columns}: Props) {
                       },
                     ]}
                   />
-                  {/* TODO: don't use CompactSelect - just a toggle button? */}
                   {threshold.trigger_type === 'over' ? (
                     <Button
                       onClick={() => editThreshold(threshold.id, 'trigger_type', 'under')}
