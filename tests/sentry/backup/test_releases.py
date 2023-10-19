@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import tempfile
 from pathlib import Path
 
@@ -18,12 +19,14 @@ from sentry.testutils.helpers.backups import (
     export_to_file,
 )
 from sentry.testutils.pytest.fixtures import read_snapshot_file
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from tests.sentry.backup import mark, targets
 
 RELEASE_TESTED: set[NormalizedModelName] = set()
 
 
+@region_silo_test(stable=True)
 class ReleaseTests(BackupTestCase):
     """
     Ensure that exports from the last two released versions of self-hosted are still able to be
@@ -36,7 +39,10 @@ class ReleaseTests(BackupTestCase):
     @classmethod
     def get_snapshot_path(cls, release: str) -> str:
         root_dir = os.path.dirname(os.path.realpath(__file__))
-        return f"{root_dir}/snapshots/{cls.__name__}/test_at_{release.replace('.', '_')}.pysnap"
+
+        # Use the same data for monolith and region mode.
+        class_name = re.sub("__InRegionMode", "", cls.__name__)
+        return f"{root_dir}/snapshots/{class_name}/test_at_{release.replace('.', '_')}.pysnap"
 
     # Note: because we are using the 'insta_snapshot` feature of pysnap, the files will be
     # saved as annotated YAML files, not JSON. While this is not strictly a supported format
@@ -60,7 +66,8 @@ class ReleaseTests(BackupTestCase):
     def test_at_head(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             # Convert the existing snapshot from YAML to an equivalent temporary JSON file.
-            _, snapshot_refval = read_snapshot_file(self.get_snapshot_path("head"))
+            snapshot_path = self.get_snapshot_path("head")
+            _, snapshot_refval = read_snapshot_file(snapshot_path)
             snapshot_data = yaml.safe_load(snapshot_refval) or dict()
             tmp_refval_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.refval.json")
             with open(tmp_refval_path, "w") as f:
@@ -81,7 +88,11 @@ class ReleaseTests(BackupTestCase):
 
             # Ensure that the exported data matches the original snapshot (that is, that importing
             # and then exporting produces a validation with no findings).
-            self.insta_snapshot(exported, inequality_comparator=self.snapshot_inequality_comparator)
+            self.insta_snapshot(
+                exported,
+                inequality_comparator=self.snapshot_inequality_comparator,
+                reference_file=snapshot_path,
+            )
 
             # Return the export so that we can ensure that all models were seen.
             return exported

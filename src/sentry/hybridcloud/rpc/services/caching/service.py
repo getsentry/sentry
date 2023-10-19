@@ -14,7 +14,6 @@ from typing import (
     Type,
     TypeVar,
     Union,
-    cast,
 )
 
 import pydantic
@@ -108,7 +107,7 @@ def back_with_silo_cache(
     return wrapper
 
 
-region_caching_service = cast(RegionCachingService, RegionCachingService.create_delegation())
+region_caching_service = RegionCachingService.create_delegation()
 
 
 class ControlCachingService(RpcService):
@@ -127,4 +126,4 @@ class ControlCachingService(RpcService):
         pass
 
 
-control_caching_service = cast(ControlCachingService, ControlCachingService.create_delegation())
+control_caching_service = ControlCachingService.create_delegation()

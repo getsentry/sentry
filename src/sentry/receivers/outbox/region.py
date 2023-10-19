@@ -11,6 +11,7 @@ from typing import Any
 
 from django.dispatch import receiver
 
+from sentry.models.actor import Actor
 from sentry.models.authproviderreplica import AuthProviderReplica
 from sentry.models.organization import Organization
 from sentry.models.outbox import OutboxCategory, process_region_outbox
@@ -49,6 +50,13 @@ def process_project_updates(object_identifier: int, **kwds: Any):
     if (proj := maybe_process_tombstone(Project, object_identifier)) is None:
         return
     proj
+
+
+@receiver(process_region_outbox, sender=OutboxCategory.ACTOR_UPDATE)
+def process_actor_updates(object_identifier: int, **kwds: Any):
+    if (actor := maybe_process_tombstone(Actor, object_identifier)) is None:
+        return
+    actor
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE)

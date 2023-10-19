@@ -106,6 +106,8 @@ class OutboxCategory(IntEnum):
     ORGANIZATION_SLUG_RESERVATION_UPDATE = 27
     API_KEY_UPDATE = 28
     PARTNER_ACCOUNT_UPDATE = 29
+    SENTRY_APP_UPDATE = 30
+    ACTOR_UPDATE = 31
 
     @classmethod
     def as_choices(cls):
@@ -292,6 +294,8 @@ class OutboxScope(IntEnum):
             OutboxCategory.ORGANIZATION_MEMBER_TEAM_UPDATE,
             OutboxCategory.API_KEY_UPDATE,
             OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE,
+            OutboxCategory.PARTNER_ACCOUNT_UPDATE,
+            OutboxCategory.ACTOR_UPDATE,
         },
     )
     USER_SCOPE = scope_categories(
@@ -323,6 +327,7 @@ class OutboxScope(IntEnum):
         {
             OutboxCategory.API_APPLICATION_UPDATE,
             OutboxCategory.SENTRY_APP_INSTALLATION_UPDATE,
+            OutboxCategory.SENTRY_APP_UPDATE,
         },
     )
     # Deprecate?
@@ -334,7 +339,6 @@ class OutboxScope(IntEnum):
         8,
         {
             OutboxCategory.PROVISION_ORGANIZATION,
-            OutboxCategory.PARTNER_ACCOUNT_UPDATE,
         },
     )
     SUBSCRIPTION_SCOPE = scope_categories(9, {OutboxCategory.SUBSCRIPTION_UPDATE})
