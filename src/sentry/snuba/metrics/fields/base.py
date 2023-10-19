@@ -65,6 +65,7 @@ from sentry.snuba.metrics.fields.snql import (
     on_demand_eps_snql_factory,
     on_demand_failure_count_snql_factory,
     on_demand_failure_rate_snql_factory,
+    on_demand_user_misery_snql_factory,
     rate_snql_factory,
     satisfaction_count_transaction,
     session_duration_filters,
@@ -1822,6 +1823,12 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             op="on_demand_failure_rate",
             can_orderby=True,
             snql_func=on_demand_failure_rate_snql_factory,
+            default_null_value=0,
+        ),
+        DerivedOp(
+            op="on_demand_user_misery",
+            can_orderby=True,
+            snql_func=on_demand_user_misery_snql_factory,
             default_null_value=0,
         ),
     ]

@@ -127,6 +127,7 @@ _SEARCH_TO_DERIVED_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
     "apdex": "on_demand_apdex",
     "epm": "on_demand_epm",
     "eps": "on_demand_eps",
+    "user_misery": "on_demand_user_misery",
 }
 
 # Mapping to infer metric type from Discover function.
@@ -145,7 +146,9 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "apdex": "c",
     "epm": "c",
     "eps": "c",
+    "user_misery": "s",
 }
+
 
 _NO_ARG_METRICS = [
     "on_demand_epm",
@@ -153,7 +156,7 @@ _NO_ARG_METRICS = [
     "on_demand_failure_count",
     "on_demand_failure_rate",
 ]
-_MULTIPLE_ARGS_METRICS = ["on_demand_apdex"]
+_MULTIPLE_ARGS_METRICS = ["on_demand_apdex", "on_demand_user_misery"]
 
 # Query fields that on their own do not require on-demand metric extraction but if present in an on-demand query
 # will be converted to metric extraction conditions.
@@ -591,7 +594,6 @@ TagsSpecsGenerator = Callable[[Project, Optional[Sequence[str]]], List[TagSpec]]
 
 
 def _get_threshold(arguments: Optional[Sequence[str]]) -> int:
-    # The widget does not allow NOT passing an argument but just in case
     if not arguments:
         raise Exception("Threshold parameter required.")
 
@@ -645,6 +647,22 @@ def apdex_tag_spec(project: Project, arguments: Optional[Sequence[str]]) -> list
     ]
 
 
+def user_misery_tag_spec(project: Project, arguments: Optional[Sequence[str]]) -> List[TagSpec]:
+    """A metric that counts the number of unique users who were frustrated; "frustration" is
+    measured as a response time four times the satisfactory response time threshold (in milliseconds).
+    It highlights transactions that have the highest impact on users."""
+    threshold = _get_threshold(arguments)
+    field = _map_field_name(_get_satisfactory_threshold_and_metric(project)[1])
+
+    return [
+        {
+            "key": "satisfaction",
+            "value": "frustrated",
+            "condition": {"name": field, "op": "gt", "value": threshold * 4},
+        }
+    ]
+
+
 # This is used to map a metric to a function which generates a specification
 _DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator | None] = {
     "on_demand_failure_count": failure_tag_spec,
@@ -652,6 +670,7 @@ _DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator | None] = {
     "on_demand_apdex": apdex_tag_spec,
     "on_demand_epm": None,
     "on_demand_eps": None,
+    "on_demand_user_misery": user_misery_tag_spec,
 }
 
 
@@ -701,6 +720,9 @@ class OnDemandMetricSpec:
     def field_to_extract(self):
         if self.op in ("on_demand_apdex"):
             return None
+
+        if self.op in ("on_demand_user_misery"):
+            return _map_field_name("user.id")
 
         if not self._arguments:
             return None
