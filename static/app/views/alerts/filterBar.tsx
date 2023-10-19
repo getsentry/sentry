@@ -6,6 +6,7 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
+import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -19,6 +20,7 @@ interface Props {
   hasStatusFilters?: boolean;
   onChangeDataset?: (dataset: DatasetOption) => void;
   onChangeStatus?: (status: string) => void;
+  showMigrationWarning?: boolean;
 }
 
 function FilterBar({
@@ -28,6 +30,7 @@ function FilterBar({
   onChangeStatus,
   onChangeDataset,
   hasStatusFilters,
+  showMigrationWarning,
 }: Props) {
   const selectedTeams = getTeamParams(location.query.team);
   const selectedStatus = getQueryStatus(location.query.status);
@@ -79,6 +82,7 @@ function FilterBar({
               </SegmentedControl.Item>
               <SegmentedControl.Item key={DatasetOption.PERFORMANCE}>
                 {t('Performance')}
+                {showMigrationWarning ? <StyledIconWarning /> : null}
               </SegmentedControl.Item>
             </SegmentedControl>
           </SegmentedControlWrapper>
@@ -120,4 +124,11 @@ const FilterButtons = styled(ButtonBar)`
 
 const SegmentedControlWrapper = styled('div')`
   width: max-content;
+`;
+
+const StyledIconWarning = styled(IconWarning)`
+  vertical-align: middle;
+  margin-top: -${space(0.5)};
+  margin-left: ${space(0.5)};
+  color: ${p => p.theme.yellow400};
 `;
