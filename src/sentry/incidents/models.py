@@ -523,6 +523,7 @@ class IncidentTrigger(Model):
         app_label = "sentry"
         db_table = "sentry_incidenttrigger"
         unique_together = (("incident", "alert_rule_trigger"),)
+        index_together = (("alert_rule_trigger", "incident_id"),)
 
 
 class AlertRuleTriggerManager(BaseManager):
