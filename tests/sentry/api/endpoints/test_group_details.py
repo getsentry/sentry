@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from sentry import buffer, tsdb
 from sentry.buffer.redis import RedisBuffer
-from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
+from sentry.issues.grouptype import FeedbackGroup, PerformanceSlowDBQueryGroupType
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.environment import Environment
@@ -703,6 +703,22 @@ class GroupDeleteTest(APITestCase):
         # Ensure it's still there
         assert Group.objects.filter(id=group.id).exists()
         assert GroupHash.objects.filter(group_id=group.id).exists()
+
+    def test_delete_feedback_issue(self):
+        """Test that a feedback issue can be deleted"""
+        self.login_as(user=self.user)
+
+        group = self.create_group(type=FeedbackGroup.type_id)
+        GroupHash.objects.create(project=group.project, hash="x" * 32, group=group)
+
+        url = f"/api/0/issues/{group.id}/"
+
+        response = self.client.delete(url, format="json")
+        assert response.status_code == 202, response.content
+
+        # Ensure it's not there
+        assert not Group.objects.filter(id=group.id).exists()
+        assert not GroupHash.objects.filter(group_id=group.id).exists()
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_ratelimit(self):

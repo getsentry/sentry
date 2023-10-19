@@ -10,7 +10,11 @@ from django.utils import timezone
 from rest_framework import status
 
 from sentry import options
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, PerformanceSlowDBQueryGroupType
+from sentry.issues.grouptype import (
+    FeedbackGroup,
+    PerformanceNPlusOneGroupType,
+    PerformanceSlowDBQueryGroupType,
+)
 from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken
 from sentry.models.group import Group, GroupStatus
@@ -3566,3 +3570,29 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         for group in groups:
             assert Group.objects.filter(id=group.id).exists()
             assert GroupHash.objects.filter(group_id=group.id).exists()
+
+    def test_bulk_delete_feedback_issues(self):
+        groups = []
+        for i in range(10, 41):
+            groups.append(
+                self.create_group(
+                    project=self.project,
+                    status=GroupStatus.RESOLVED,
+                    type=FeedbackGroup.type_id,
+                )
+            )
+
+        hashes = []
+        for group in groups:
+            hash = uuid4().hex
+            hashes.append(hash)
+            GroupHash.objects.create(project=group.project, hash=hash, group=group)
+
+        self.login_as(user=self.user)
+
+        response = self.get_response(qs_params={"query": ""})
+        assert response.status_code == 204
+
+        for group in groups:
+            assert not Group.objects.filter(id=group.id).exists()
+            assert not GroupHash.objects.filter(group_id=group.id).exists()

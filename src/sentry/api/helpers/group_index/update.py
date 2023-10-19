@@ -69,9 +69,15 @@ def handle_discard(
         if not features.has("projects:discard-groups", project, actor=user):
             return Response({"detail": ["You do not have that feature enabled"]}, status=400)
 
-    if any(group.issue_category != GroupCategory.ERROR for group in group_list):
+    if any(
+        (
+            (group.issue_category != GroupCategory.ERROR)
+            or (group.issue_category != GroupCategory.FEEDBACK)
+        )
+        for group in group_list
+    ):
         raise rest_framework.exceptions.ValidationError(
-            detail="Only error issues can be discarded.", code=400
+            detail="Only error and feedback issues can be discarded.", code=400
         )
     # grouped by project_id
     groups_to_delete = defaultdict(list)
