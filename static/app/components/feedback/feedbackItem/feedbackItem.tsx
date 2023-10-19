@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -28,6 +28,7 @@ interface Props {
 export default function FeedbackItem({feedbackItem}: Props) {
   const organization = useOrganization();
   const {onResolve} = useResolveFeedback({feedbackItem});
+  const [isResolved, setIsResolved] = useState(feedbackItem.status === 'resolved');
 
   return (
     <Fragment>
@@ -66,9 +67,7 @@ export default function FeedbackItem({feedbackItem}: Props) {
             <ErrorBoundary mini>
               <DropdownMenu
                 position="bottom-end"
-                triggerLabel={
-                  feedbackItem.status === 'unresolved' ? t('Unresolved') : t('Resolved')
-                }
+                triggerLabel={isResolved ? t('Resolved') : t('Unresolved')}
                 triggerProps={{
                   'aria-label': t('Resolve or Archive Menu'),
                   showChevron: true,
@@ -77,11 +76,11 @@ export default function FeedbackItem({feedbackItem}: Props) {
                 items={[
                   {
                     key: 'resolve',
-                    label:
-                      feedbackItem.status === 'unresolved'
-                        ? t('Resolve')
-                        : t('Unresolve'),
-                    onAction: onResolve,
+                    label: isResolved ? t('Unresolve') : t('Resolve'),
+                    onAction: () => {
+                      onResolve();
+                      setIsResolved(!isResolved);
+                    },
                   },
                   {
                     key: 'archive',
