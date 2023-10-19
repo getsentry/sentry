@@ -74,7 +74,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               label: 'bash',
               value: 'bash',
               language: 'bash',
-              code: `astro add @sentry/astro`,
+              code: `npx astro add @sentry/astro`,
             },
           ],
         },
