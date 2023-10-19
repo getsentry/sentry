@@ -1,28 +1,33 @@
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import DatePageFilter from 'sentry/components/datePageFilter';
 import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
-import {RateUnits} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {PaddedContainer} from 'sentry/views/performance/browser/resources';
+import ResourceInfo from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceInfo';
 import ResourceSummaryCharts from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceSummaryCharts';
 import ResourceSummaryTable from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceSummaryTable';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
-import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
-import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
-import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
-import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
+
+const {
+  SPAN_SELF_TIME,
+  SPAN_OP,
+  SPAN_DESCRIPTION,
+  HTTP_DECODED_RESPONSE_BODY_LENGTH,
+  HTTP_RESPONSE_CONTENT_LENGTH,
+  HTTP_RESPONSE_TRANSFER_SIZE,
+} = SpanMetricsField;
 
 function ResourceSummary() {
   const organization = useOrganization();
@@ -31,10 +36,13 @@ function ResourceSummary() {
     query: {transaction},
   } = useLocation();
   const {data: spanMetrics} = useSpanMetrics(groupId, {}, [
-    'avg(span.self_time)',
+    `avg(${SPAN_SELF_TIME})`,
+    `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
+    `avg(${HTTP_DECODED_RESPONSE_BODY_LENGTH})`,
+    `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
     'spm()',
-    'span.op',
-    'span.description',
+    SPAN_OP,
+    SPAN_DESCRIPTION,
   ]);
 
   return (
@@ -76,26 +84,26 @@ function ResourceSummary() {
             <PaddedContainer>
               <PageFilterBar condensed>
                 <ProjectPageFilter />
-                <DatePageFilter alignDropdown="left" />
+                <DatePageFilter />
               </PageFilterBar>
             </PaddedContainer>
-            <BlockContainer>
-              <Block title={DataTitles.avg}>
-                <DurationCell
-                  milliseconds={spanMetrics?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
-                />
-              </Block>
-              <Block title={getThroughputTitle('http')}>
-                <ThroughputCell
-                  rate={spanMetrics?.[`${SpanFunction.SPM}()`] * 60}
-                  unit={RateUnits.PER_SECOND}
-                />
-              </Block>
-            </BlockContainer>
+            <ResourceInfo
+              avgContentLength={spanMetrics['avg(http.response_content_length)']}
+              avgDecodedContentLength={
+                spanMetrics['avg(http.decoded_response_body_length)']
+              }
+              avgTransferSize={spanMetrics['avg(http.response_transfer_size)']}
+              avgDuration={spanMetrics[`avg(${SPAN_SELF_TIME})`]}
+              throughput={spanMetrics['spm()']}
+            />
           </HeaderContainer>
           <ResourceSummaryCharts groupId={groupId} />
           <ResourceSummaryTable />
-          <SampleList groupId={groupId} transactionName={transaction as string} />
+          <SampleList
+            transactionRoute="/performance/browser/pageloads/"
+            groupId={groupId}
+            transactionName={transaction as string}
+          />
         </Layout.Main>
       </Layout.Body>
     </ModulePageProviders>

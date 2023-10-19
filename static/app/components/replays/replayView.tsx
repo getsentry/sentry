@@ -5,6 +5,8 @@ import ReplayController from 'sentry/components/replays/replayController';
 import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
+import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
@@ -13,6 +15,10 @@ type Props = {
 };
 
 function ReplayView({toggleFullscreen}: Props) {
+  const organization = useOrganization();
+  const hasNewTimeline = organization.features.includes('session-replay-new-timeline');
+  const isFullscreen = useIsFullscreen();
+
   return (
     <Fragment>
       <ContextContainer>
@@ -22,7 +28,9 @@ function ReplayView({toggleFullscreen}: Props) {
       <Panel>
         <ReplayPlayer />
       </Panel>
-      <ReplayController toggleFullscreen={toggleFullscreen} />
+      {isFullscreen || !hasNewTimeline ? (
+        <ReplayController toggleFullscreen={toggleFullscreen} />
+      ) : null}
     </Fragment>
   );
 }

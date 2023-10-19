@@ -27,6 +27,7 @@ type Props = {
   onClose?: () => void;
   spanDescription?: string;
   transactionMethod?: string;
+  transactionRoute?: string;
 };
 
 export function SampleList({
@@ -35,6 +36,7 @@ export function SampleList({
   transactionMethod,
   spanDescription,
   onClose,
+  transactionRoute = '/performance/summary/',
 }: Props) {
   const router = useRouter();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
@@ -75,7 +77,7 @@ export function SampleList({
       ? `${transactionMethod} ${transactionName}`
       : transactionName;
 
-  const link = `/performance/summary/?${qs.stringify({
+  const link = `${transactionRoute}?${qs.stringify({
     project: query.project,
     transaction: transactionName,
   })}`;
@@ -154,15 +156,22 @@ const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
 
 const HeaderContainer = styled('div')`
   width: 100%;
-  display: flex;
-  flex-direction: row;
   padding-bottom: ${space(2)};
   padding-top: ${space(1)};
+
+  display: grid;
+  grid-template-rows: auto auto auto;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-rows: auto;
+    grid-template-columns: auto 1fr auto;
+  }
 `;
 
 const TitleContainer = styled('div')`
   width: 100%;
   position: relative;
+  height: 40px;
 `;
 
 const Title = styled('h4')`
@@ -171,9 +180,10 @@ const Title = styled('h4')`
   margin-bottom: 0;
 `;
 
-const SpanDescription = styled('span')`
+const SpanDescription = styled('div')`
   display: inline-block;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 35vw;
 `;

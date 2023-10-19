@@ -3,8 +3,8 @@ import {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
-import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -63,7 +63,6 @@ function ScreenLoadSpans() {
   const {
     spanGroup,
     primaryRelease,
-    secondaryRelease,
     transaction: transactionName,
     spanDescription,
   } = location.query;
@@ -84,7 +83,7 @@ function ScreenLoadSpans() {
               <StarfishPageFiltersContainer>
                 <Container>
                   <PageFilterBar condensed>
-                    <DatePageFilter alignDropdown="left" />
+                    <DatePageFilter />
                   </PageFilterBar>
                   <ReleaseComparisonSelector />
                   <ScreenMetricsRibbon />
@@ -98,7 +97,6 @@ function ScreenLoadSpans() {
               <ScreenLoadSpansTable
                 transaction={transactionName}
                 primaryRelease={primaryRelease}
-                secondaryRelease={secondaryRelease}
               />
               {spanGroup && (
                 <SampleList

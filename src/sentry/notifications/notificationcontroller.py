@@ -171,9 +171,8 @@ class NotificationController:
         Args:
             setting_type: If specified, only return settings of this type.
         """
-
-        if self.project_ids and len(list(self.project_ids)) > 2 and not project_id:
-            raise Exception("Must specify project_id if controller has more than 2 projects")
+        if self.project_ids and len(list(self.project_ids)) > 1 and not project_id:
+            raise Exception("Must specify project_id if controller has more than 1 projects")
 
         most_specific_setting_options: MutableMapping[
             Recipient, MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum]

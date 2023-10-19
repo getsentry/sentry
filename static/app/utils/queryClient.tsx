@@ -1,7 +1,12 @@
 import * as reactQuery from '@tanstack/react-query';
-import {QueryClientConfig} from '@tanstack/react-query';
+import {
+  QueryClientConfig,
+  QueryFunctionContext,
+  useInfiniteQuery,
+} from '@tanstack/react-query';
 
-import {ApiResult, ResponseMeta} from 'sentry/api';
+import {ApiResult, Client, ResponseMeta} from 'sentry/api';
+import parseLinkHeader, {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
@@ -16,6 +21,7 @@ const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
 };
 
 type QueryKeyEndpointOptions = {
+  headers?: Record<string, string>;
   query?: Record<string, any>;
 };
 
@@ -106,6 +112,7 @@ function useApiQuery<TResponseData, TError = RequestError>(
     api.requestPromise(path, {
       method: 'GET',
       query: endpointOptions?.query,
+      headers: endpointOptions?.headers,
       includeAllArgs: true,
     });
 
@@ -165,6 +172,42 @@ function setApiQueryData<TResponseData>(
   return newResponse[0];
 }
 
+function doFetch<TResponseData>(api: Client) {
+  return function apiFetch({
+    pageParam,
+    queryKey,
+  }: QueryFunctionContext<ApiQueryKey, undefined | ParsedHeader>): Promise<
+    ApiResult<TResponseData>
+  > {
+    const [url, endpointOptions] = queryKey;
+    return api.requestPromise(url, {
+      includeAllArgs: true,
+      headers: endpointOptions?.headers,
+      query: {
+        ...endpointOptions?.query,
+        cursor: pageParam?.cursor,
+      },
+    });
+  };
+}
+
+function parsePageParam(dir: 'previous' | 'next') {
+  return ([, , resp]: ApiResult<unknown>) => {
+    const parsed = parseLinkHeader(resp?.getResponseHeader('Link') ?? null);
+    return parsed[dir].results ? parsed[dir] : null;
+  };
+}
+
+function useInfiniteApiQuery<TResponseData>({queryKey}: {queryKey: ApiQueryKey}) {
+  const api = useApi();
+  return useInfiniteQuery({
+    queryKey,
+    queryFn: doFetch<TResponseData>(api),
+    getPreviousPageParam: parsePageParam('previous'),
+    getNextPageParam: parsePageParam('next'),
+  });
+}
+
 // eslint-disable-next-line import/export
 export * from '@tanstack/react-query';
 
@@ -173,6 +216,7 @@ export {
   DEFAULT_QUERY_CLIENT_CONFIG,
   useApiQuery,
   setApiQueryData,
+  useInfiniteApiQuery,
   UseApiQueryOptions,
   ApiQueryKey,
 };

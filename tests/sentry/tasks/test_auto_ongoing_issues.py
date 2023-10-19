@@ -208,6 +208,66 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
             tags={"count": 0},
         )
 
+    @freeze_time("2023-07-12 18:40:00Z")
+    @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
+    @mock.patch("sentry.tasks.auto_ongoing_issues.logger")
+    def test_unordered_ids(self, mock_logger, mock_backend):
+        """
+        Group ids can be non-chronological with first_seen time (ex. as a result of merging).
+        Test that in this case, only groups that are >= TRANSITION_AFTER_DAYS days old are
+        transitioned.
+        """
+        now = datetime.now(tz=timezone.utc)
+        organization = self.organization
+        project = self.create_project(organization=organization)
+
+        # Create group with id x and first_seen < TRANSITION_AFTER_DAYS
+        group_new = self.create_group(
+            project=project, status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW
+        )
+        group_new.first_seen = now - timedelta(days=TRANSITION_AFTER_DAYS - 1, hours=1)
+        group_new.save()
+
+        # Create group with id x+1 and first_seen > TRANSITION_AFTER_DAYS
+        # This could happen if an older group is merged into a newer group
+        group_old = self.create_group(
+            project=project, status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW
+        )
+        group_old.first_seen = now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1)
+        group_old.save()
+
+        mock_backend.get_size.return_value = 0
+
+        with self.tasks():
+            schedule_auto_transition_to_ongoing()
+
+        group_new.refresh_from_db()
+        assert group_new.status == GroupStatus.UNRESOLVED
+        assert group_new.substatus == GroupSubStatus.NEW
+
+        group_old.refresh_from_db()
+        assert group_old.status == GroupStatus.UNRESOLVED
+        assert group_old.substatus == GroupSubStatus.ONGOING
+        assert not GroupInbox.objects.filter(group=group_old).exists()
+
+        set_ongoing_activity = Activity.objects.filter(
+            group=group_old, type=ActivityType.AUTO_SET_ONGOING.value
+        ).get()
+        assert set_ongoing_activity.data == {"after_days": 7}
+
+        assert GroupHistory.objects.filter(
+            group=group_old, status=GroupHistoryStatus.ONGOING
+        ).exists()
+
+        mock_logger.info.assert_called_once_with(
+            "auto_transition_issues_new_to_ongoing started",
+            extra={
+                "first_seen_lte": 1688582400,
+                "first_seen_lte_datetime": datetime(2023, 7, 5, 18, 40, tzinfo=timezone.utc),
+                "issue_first_seen": datetime(2023, 7, 5, 17, 40, tzinfo=timezone.utc),
+            },
+        )
+
 
 @apply_feature_flag_on_cls("organizations:escalating-issues")
 class ScheduleAutoRegressedOngoingIssuesTest(TestCase):

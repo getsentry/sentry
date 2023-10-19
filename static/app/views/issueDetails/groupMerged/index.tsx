@@ -135,14 +135,18 @@ class GroupMergedView extends Component<Props, State> {
         <Layout.Main fullWidth>
           <HeaderWrapper>
             <Title>
-              {tct('Merged fingerprints with latest event [count]', {
+              {tct('Fingerprints included in this issue [count]', {
                 count: <QueryCount count={fingerprintsWithLatestEvent.length} />,
               })}
             </Title>
             <small>
-              {t(
-                'This is an experimental feature. Data may not be immediately available while we process unmerges.'
-              )}
+              {
+                // TODO: Once clickhouse is upgraded and the lag is no longer an issue, revisit this wording.
+                // See https://github.com/getsentry/sentry/issues/56334.
+                t(
+                  'This is an experimental feature. All changes may take up to 24 hours take effect.'
+                )
+              }
             </small>
           </HeaderWrapper>
 
