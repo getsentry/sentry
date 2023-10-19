@@ -8,6 +8,7 @@ from sentry.testutils.silo import region_silo_test
 EMAIL_ACTION = "sentry.mail.actions.NotifyEmailAction"
 APP_ACTION = "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"
 JIRA_ACTION = "sentry.integrations.jira.notify_action.JiraCreateTicketAction"
+JIRA_SERVER_ACTION = "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction"
 AZURE_DEV_OPS_ACTION = "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction"
 SENTRY_APP_ALERT_ACTION = "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
 
@@ -27,7 +28,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         self.create_project(teams=[team], name="baz")
 
         response = self.get_success_response(self.organization.slug, project1.slug)
-        assert len(response.data["actions"]) == 9
+        assert len(response.data["actions"]) == 10
         assert len(response.data["conditions"]) == 7
         assert len(response.data["filters"]) == 8
 
@@ -95,7 +96,8 @@ class ProjectRuleConfigurationTest(APITestCase):
 
         action_ids = [action["id"] for action in response.data["actions"]]
         assert EMAIL_ACTION in action_ids
-        assert JIRA_ACTION in action_ids
+        for action in self.ticket_actions:
+            assert action in action_ids
 
     def test_ticket_rules_not_in_available_actions(self):
         with self.feature({"organizations:integrations-ticket-rules": False}):
@@ -115,7 +117,7 @@ class ProjectRuleConfigurationTest(APITestCase):
             self.organization.slug, self.project.slug, includeAllTickets=True
         )
         disabled_ticket_actions = response.data["disabledTicketActions"]
-        assert len(disabled_ticket_actions) == 2
+        assert len(disabled_ticket_actions) == 3
         for ticket in self.ticket_actions:
             assert ticket in disabled_ticket_actions
 
@@ -134,7 +136,7 @@ class ProjectRuleConfigurationTest(APITestCase):
 
         response = self.get_success_response(self.organization.slug, project1.slug)
 
-        assert len(response.data["actions"]) == 10
+        assert len(response.data["actions"]) == 11
         assert {
             "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
             "label": "Send a notification via {service}",
@@ -164,7 +166,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         )
         response = self.get_success_response(self.organization.slug, project1.slug)
 
-        assert len(response.data["actions"]) == 10
+        assert len(response.data["actions"]) == 11
         assert {
             "id": SENTRY_APP_ALERT_ACTION,
             "service": sentry_app.slug,
@@ -180,7 +182,7 @@ class ProjectRuleConfigurationTest(APITestCase):
 
     def test_issue_type_and_category_filter_feature(self):
         response = self.get_success_response(self.organization.slug, self.project.slug)
-        assert len(response.data["actions"]) == 9
+        assert len(response.data["actions"]) == 10
         assert len(response.data["conditions"]) == 7
         assert len(response.data["filters"]) == 8
 

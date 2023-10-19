@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Callable, List, Optional, Set, Type, cast
+from typing import Callable, List, Optional, Set, Type
 
 from django.db.models.base import Model
 
@@ -134,6 +134,4 @@ class ImportExportService(RpcService):
         pass
 
 
-import_export_service: ImportExportService = cast(
-    ImportExportService, ImportExportService.create_delegation()
-)
+import_export_service = ImportExportService.create_delegation()
