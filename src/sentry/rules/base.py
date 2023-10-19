@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 from collections import namedtuple
-from typing import Any, Callable, ClassVar, Dict, Generator, Mapping, Optional, Sequence, Type
+from typing import Any, Callable, ClassVar, Dict, Mapping, Sequence, Type
 
 from django import forms
 
@@ -106,14 +106,6 @@ class RuleBase(abc.ABC):
     def passes_activity(
         self, condition_activity: ConditionActivity, event_map: Dict[str, Any]
     ) -> bool:
-        raise NotImplementedError
-
-    def passes(self, event: GroupEvent, state: EventState) -> bool:
-        raise NotImplementedError
-
-    def after(
-        self, event: GroupEvent, state: EventState, notification_uuid: Optional[str] = None
-    ) -> Generator[CallbackFuture, None, None]:
         raise NotImplementedError
 
 
