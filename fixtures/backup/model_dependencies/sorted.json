@@ -49,8 +49,6 @@
   "sentry.userpermission",
   "sentry.userrole",
   "sentry.userroleuser",
-  "sessions.session",
-  "sites.site",
   "social_auth.usersocialauth",
   "sentry.savedsearch",
   "sentry.release",

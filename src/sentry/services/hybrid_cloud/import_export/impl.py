@@ -5,8 +5,12 @@
 
 from typing import List, Optional, Set
 
-from django.core.serializers import serialize
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.serializers import deserialize, serialize
+from django.core.serializers.base import DeserializationError
+from django.db import DatabaseError, IntegrityError, connections, router, transaction
 from django.db.models import Q
+from rest_framework.serializers import ValidationError as DjangoRestFrameworkValidationError
 
 from sentry.backup.dependencies import (
     ImportKind,
@@ -17,7 +21,7 @@ from sentry.backup.dependencies import (
     get_model_name,
 )
 from sentry.backup.findings import InstanceID
-from sentry.backup.helpers import DatetimeSafeDjangoJSONEncoder, Filter
+from sentry.backup.helpers import EXCLUDED_APPS, DatetimeSafeDjangoJSONEncoder, Filter
 from sentry.backup.scopes import ExportScope
 from sentry.models.user import User
 from sentry.models.userpermission import UserPermission
@@ -29,6 +33,12 @@ from sentry.services.hybrid_cloud.import_export.model import (
     RpcExportResult,
     RpcExportScope,
     RpcFilter,
+    RpcImportError,
+    RpcImportErrorKind,
+    RpcImportFlags,
+    RpcImportOk,
+    RpcImportResult,
+    RpcImportScope,
     RpcPrimaryKeyMap,
 )
 from sentry.services.hybrid_cloud.import_export.service import ImportExportService
@@ -49,6 +59,175 @@ class UniversalImportExportService(ImportExportService):
         else:
             ImportExportService.get_local_implementation().export_by_model(...)
     """
+
+    def import_by_model(
+        self,
+        *,
+        model_name: str,
+        scope: Optional[RpcImportScope] = None,
+        flags: RpcImportFlags,
+        filter_by: List[RpcFilter],
+        pk_map: RpcPrimaryKeyMap,
+        json_data: str,
+    ) -> RpcImportResult:
+        import_flags = flags.from_rpc()
+        batch_model_name = NormalizedModelName(model_name)
+        model = get_model(batch_model_name)
+        if model is None:
+            return RpcImportError(
+                kind=RpcImportErrorKind.UnknownModel,
+                on=InstanceID(model_name),
+                reason=f"The model `{model_name}` could not be found",
+            )
+
+        silo_mode = SiloMode.get_current_mode()
+        model_modes = model._meta.silo_limit.modes  # type: ignore
+        if silo_mode != SiloMode.MONOLITH and silo_mode not in model_modes:
+            return RpcImportError(
+                kind=RpcImportErrorKind.IncorrectSiloModeForModel,
+                on=InstanceID(model_name),
+                reason=f"The model `{model_name}` was forwarded to the incorrect silo (it cannot be imported from the {silo_mode} silo)",
+            )
+
+        if scope is None:
+            return RpcImportError(
+                kind=RpcImportErrorKind.UnspecifiedScope,
+                on=InstanceID(model_name),
+                reason="The RPC was called incorrectly, please set an `ImportScope` parameter",
+            )
+
+        import_scope = scope.from_rpc()
+        in_pk_map = pk_map.from_rpc()
+        filters: List[Filter] = []
+        for fb in filter_by:
+            if NormalizedModelName(fb.model_name) == batch_model_name:
+                filters.append(fb.from_rpc())
+
+        try:
+            using = router.db_for_write(model)
+            with transaction.atomic(using=using):
+                ok_relocation_scopes = import_scope.value
+                out_pk_map = PrimaryKeyMap()
+                max_pk = 0
+                counter = 0
+                for deserialized_object in deserialize("json", json_data, use_natural_keys=False):
+                    counter += 1
+                    model_instance = deserialized_object.object
+                    if model_instance._meta.app_label not in EXCLUDED_APPS or model_instance:
+                        if model_instance.get_possible_relocation_scopes() & ok_relocation_scopes:
+                            inst_model_name = get_model_name(model_instance)
+                            if inst_model_name != batch_model_name:
+                                return RpcImportError(
+                                    kind=RpcImportErrorKind.UnexpectedModel,
+                                    on=InstanceID(model=str(inst_model_name), ordinal=1),
+                                    left_pk=model_instance.pk,
+                                    reason=f"Received model of kind `{str(inst_model_name)}` when `{str(batch_model_name)}` was expected",
+                                )
+
+                            for f in filters:
+                                if getattr(model_instance, f.field, None) not in f.values:
+                                    break
+                            else:
+                                try:
+                                    # We can only be sure `get_relocation_scope()` will be correct
+                                    # if it is fired AFTER normalization, as some
+                                    # `get_relocation_scope()` methods rely on being able to
+                                    # correctly resolve foreign keys, which is only possible after
+                                    # normalization.
+                                    old_pk = model_instance.normalize_before_relocation_import(
+                                        in_pk_map, import_scope, import_flags
+                                    )
+                                    if old_pk is None:
+                                        continue
+
+                                    # Now that the model has been normalized, we can ensure that
+                                    # this particular instance has a `RelocationScope` that permits
+                                    # importing.
+                                    if (
+                                        not model_instance.get_relocation_scope()
+                                        in ok_relocation_scopes
+                                    ):
+                                        continue
+
+                                    # Perform the actual database write.
+                                    written = model_instance.write_relocation_import(
+                                        import_scope, import_flags
+                                    )
+                                    if written is None:
+                                        continue
+
+                                    # For models that may have circular references to themselves
+                                    # (unlikely), keep track of the new pk in the input map as well.
+                                    new_pk, import_kind = written
+                                    slug = getattr(model_instance, "slug", None)
+                                    in_pk_map.insert(
+                                        inst_model_name, old_pk, new_pk, import_kind, slug
+                                    )
+                                    out_pk_map.insert(
+                                        inst_model_name, old_pk, new_pk, import_kind, slug
+                                    )
+                                    if new_pk > max_pk:
+                                        max_pk = new_pk
+
+                                except DjangoValidationError as e:
+                                    errs = {field: error for field, error in e.message_dict.items()}
+                                    return RpcImportError(
+                                        kind=RpcImportErrorKind.ValidationError,
+                                        on=InstanceID(model_name, ordinal=counter),
+                                        left_pk=model_instance.pk,
+                                        reason=f"Django validation error encountered: {errs}",
+                                    )
+
+                                except DjangoRestFrameworkValidationError as e:
+                                    return RpcImportError(
+                                        kind=RpcImportErrorKind.ValidationError,
+                                        on=InstanceID(model_name, ordinal=counter),
+                                        left_pk=model_instance.pk,
+                                        reason=str(e),
+                                    )
+
+            # If we wrote at least one model, make sure to update the sequences too.
+            if counter > 0:
+                table = model_instance._meta.db_table
+                seq = f"{table}_id_seq"
+                with connections[using].cursor() as cursor:
+                    cursor.execute(f"SELECT setval(%s, (SELECT MAX(id) FROM {table}))", [seq])
+
+            return RpcImportOk(
+                mapped_pks=RpcPrimaryKeyMap.into_rpc(out_pk_map),
+                max_pk=max_pk,
+                num_imported=counter,
+            )
+
+        except DeserializationError:
+            return RpcImportError(
+                kind=RpcImportErrorKind.DeserializationFailed,
+                on=InstanceID(model_name),
+                reason="The submitted JSON could not be deserialized into Django model instances",
+            )
+
+        # Catch `IntegrityError` before `DatabaseError`, since the former is a subclass of the
+        # latter.
+        except IntegrityError as e:
+            return RpcImportError(
+                kind=RpcImportErrorKind.IntegrityError,
+                on=InstanceID(model_name),
+                reason=str(e),
+            )
+
+        except DatabaseError as e:
+            return RpcImportError(
+                kind=RpcImportErrorKind.DatabaseError,
+                on=InstanceID(model_name),
+                reason=str(e),
+            )
+
+        except Exception as e:
+            return RpcImportError(
+                kind=RpcImportErrorKind.Unknown,
+                on=InstanceID(model_name),
+                reason=f"Unknown internal error occurred: {e}",
+            )
 
     def export_by_model(
         self,
@@ -94,7 +273,7 @@ class UniversalImportExportService(ImportExportService):
             allowed_relocation_scopes = export_scope.value
             possible_relocation_scopes = model.get_possible_relocation_scopes()
             includable = possible_relocation_scopes & allowed_relocation_scopes
-            if not includable or model._meta.proxy:
+            if not includable:
                 return RpcExportError(
                     kind=RpcExportErrorKind.UnexportableModel,
                     on=InstanceID(model_name),
@@ -142,7 +321,9 @@ class UniversalImportExportService(ImportExportService):
                             # For models that may have circular references to themselves (unlikely),
                             # keep track of the new pk in the input map as well.
                             nonlocal max_pk
-                            max_pk = item.pk
+                            if item.pk > max_pk:
+                                max_pk = item.pk
+
                             in_pk_map.insert(model_name, item.pk, item.pk, ImportKind.Inserted)
                             out_pk_map.insert(model_name, item.pk, item.pk, ImportKind.Inserted)
                             yield item

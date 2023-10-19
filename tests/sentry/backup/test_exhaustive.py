@@ -16,12 +16,14 @@ from sentry.testutils.helpers.backups import (
     clear_database,
     export_to_file,
 )
+from sentry.testutils.silo import region_silo_test
 from tests.sentry.backup import mark, targets
 
 EXHAUSTIVELY_TESTED: set[NormalizedModelName] = set()
 UNIQUENESS_TESTED: set[NormalizedModelName] = set()
 
 
+@region_silo_test(stable=True)
 class ExhaustiveTests(BackupTestCase):
     """
     Ensure that a database with all exportable models filled out still works.
@@ -38,6 +40,7 @@ class ExhaustiveTests(BackupTestCase):
         return self.import_export_then_validate(self._testMethodName, reset_pks=False)
 
 
+@region_silo_test(stable=True)
 class UniquenessTests(BackupTestCase):
     """
     Ensure that required uniqueness (ie, model fields marked `unique=True`) is honored.

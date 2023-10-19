@@ -130,7 +130,9 @@ class ScopingTests(ExportTestCase):
             assert unencrypted == self.export_and_encrypt(tmp_dir, scope=ExportScope.Global)
 
 
-@region_silo_test(stable=True)
+# Filters should work identically in both silo and monolith modes, so no need to repeat the tests
+# here.
+@region_silo_test
 class FilteringTests(ExportTestCase):
     """
     Ensures that filtering operations include the correct models.
