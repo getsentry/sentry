@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import math
 from datetime import timezone
-from typing import List
+from typing import List, Tuple
 from unittest import mock
 
 import pytest
@@ -22,13 +22,19 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_value
-from sentry.snuba.dataset import Dataset
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.extraction import QUERY_HASH_KEY, OnDemandMetricSpec
 from sentry.snuba.metrics.naming_layer import TransactionMetricKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 
 pytestmark = pytest.mark.sentry_metrics
+
+
+def _user_misery_formula(miserable_users: int, unique_users: int) -> float:
+    return (miserable_users + constants.MISERY_ALPHA) / (
+        unique_users + constants.MISERY_ALPHA + constants.MISERY_BETA
+    )
 
 
 def _metric_percentile_definition(
@@ -2297,6 +2303,87 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             {"name": "time", "type": "DateTime('Universal')"},
             {"name": "eps", "type": "Float64"},
         ]
+
+    def _test_user_misery(
+        self, user_to_frustration: list[Tuple[str, bool]], expected_user_misery: float
+    ) -> None:
+        threshold = 300
+        field = f"user_misery({threshold})"
+        query_s = "transaction.duration:>=10"
+        spec = OnDemandMetricSpec(field=field, query=query_s)
+
+        for hour in range(0, 2):
+            for name, frustrated in user_to_frustration:
+                tags = (
+                    {"query_hash": spec.query_hash, "satisfaction": "frustrated"}
+                    if frustrated
+                    else {"query_hash": spec.query_hash}
+                )
+                self.store_transaction_metric(
+                    value=name,
+                    metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                    # It's a set on demand because of using the users field
+                    internal_metric=TransactionMRI.SET_ON_DEMAND.value,
+                    entity=EntityKey.MetricsSets.value,
+                    tags=tags,
+                    timestamp=self.start + datetime.timedelta(hours=hour),
+                )
+
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=3600,
+            query=query_s,
+            selected_columns=[field],
+            config=QueryBuilderConfig(on_demand_metrics_enabled=True),
+        )
+        assert query._on_demand_metric_spec
+        metrics_query = query._get_metrics_query_from_on_demand_spec(
+            spec=query._on_demand_metric_spec, require_time_range=True
+        )
+
+        assert len(metrics_query.select) == 1
+        assert metrics_query.select[0].op == "on_demand_user_misery"
+        assert metrics_query.where
+        assert metrics_query.where[0].lhs.name == "query_hash"  # type: ignore
+        # hashed "on_demand_user_misery:300;{'name': 'event.duration', 'op': 'gte', 'value': 10.0}"
+        assert metrics_query.where[0].rhs == "f9a20ff3"
+        assert metrics_query.where[0].rhs == spec.query_hash
+
+        result = query.run_query("test_query")
+        assert result["data"][:3] == [
+            {
+                "time": self.start.isoformat(),
+                "user_misery_300": expected_user_misery,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
+                "user_misery_300": expected_user_misery,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
+                "user_misery_300": 0,
+            },
+        ]
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime('Universal')"},
+                {"name": "user_misery_300", "type": "Float64"},
+            ],
+        )
+
+    def test_run_query_with_on_demand_user_misery(self) -> None:
+        self._test_user_misery(
+            [("happy user", False), ("sad user", True)],
+            _user_misery_formula(1, 2),
+        )
+
+    def test_run_query_with_on_demand_user_misery_no_miserable_users(self) -> None:
+        self._test_user_misery(
+            [("happy user", False), ("ok user", False)],
+            _user_misery_formula(0, 2),
+        )
 
 
 class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):

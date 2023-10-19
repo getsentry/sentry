@@ -1427,6 +1427,8 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues-v2": False,
     # Enable emiting escalating data to the metrics backend
     "organizations:escalating-metrics-backend": False,
+    # Enable querying Snuba to get the EventUser
+    "organizations:eventuser-from-snuba": False,
     # Enable the frontend to request from region & control silo domains.
     "organizations:frontend-domainsplit": False,
     # Allows an org to have a larger set of project ownership rules per project
@@ -1493,6 +1495,8 @@ SENTRY_FEATURES = {
     "organizations:issue-search-use-cdc-secondary": False,
     # Whether to make a side/parallel query against events -> group_attributes when searching issues
     "organizations:issue-search-group-attributes-side-query": False,
+    # Enable issue stream performance improvements
+    "organizations:issue-stream-performance": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
@@ -1760,8 +1764,6 @@ SENTRY_FEATURES = {
     "organizations:anr-rate": False,
     # Enable tag improvements in the issue details page
     "organizations:issue-details-tag-improvements": False,
-    # Enable updates to the stacktrace ui
-    "organizations:issue-details-stacktrace-improvements": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
     # Enable team insights page
