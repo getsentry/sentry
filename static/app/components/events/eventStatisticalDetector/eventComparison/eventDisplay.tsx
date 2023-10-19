@@ -39,7 +39,7 @@ export function getSampleEventQuery({
   transaction: string;
   addUpperBound?: boolean;
 }) {
-  const baseQuery = `event.type:transaction transaction:"${transaction}" transaction.duration:>=${
+  const baseQuery = `event.type:transaction transaction:["${transaction}"] transaction.duration:>=${
     durationBaseline * 0.5
   }ms`;
 
