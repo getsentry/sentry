@@ -73,7 +73,7 @@ jobs:
             pg-version: 14
         - name: Download Codecov CLI
           run: |
-            pip install --extra-index-url https://pypi.org/simple --no-cache-dir codecov-cli==0.3.8
+            pip install --extra-index-url https://pypi.org/simple --no-cache-dir codecov-cli==0.4.0
         # Creates the commit and report objects in codecov
         - name: Codecov startup
           run: |
@@ -104,15 +104,11 @@ jobs:
             output=$(codecovcli --codecov-yml-path=codecov.yml label-analysis --dry-run --token=${CODECOV_STATIC_TOKEN} --base-sha=${BASE_COMMIT}) || true
             if [ -n "${output}" ];
             then
-              # TODO: With https://github.com/codecov/codecov-cli/pull/292 there will be an option to get JSON output
-              # Directly from codecov cli and this json_output will be unecessary
-              # But while pinned to codecov-cli==0.3.8 this is needed
-              json_output=$(echo $output | grep -o -e "{.*}")
 
-              echo ATS_TESTS_TO_RUN=$(jq <<< $json_output '.runner_options + .ats_tests_to_run | @json | @sh' --raw-output) >> "$GITHUB_OUTPUT"
-              echo ATS_TESTS_TO_SKIP=$(jq <<< $json_output '.runner_options + .ats_tests_to_skip | @json | @sh' --raw-output) >> "$GITHUB_OUTPUT"
+              echo ATS_TESTS_TO_RUN=$(jq <<< $output '.runner_options + .ats_tests_to_run | @json | @sh' --raw-output) >> "$GITHUB_OUTPUT"
+              echo ATS_TESTS_TO_SKIP=$(jq <<< $output '.runner_options + .ats_tests_to_skip | @json | @sh' --raw-output) >> "$GITHUB_OUTPUT"
 
-              testcount() { jq <<< $json_output ".$1 | length"; }
+              testcount() { jq <<< $output ".$1 | length"; }
               run_count=$(testcount ats_tests_to_run)
               skip_count=$(testcount ats_tests_to_skip)
               tee <<< "Selected $run_count / $(($run_count + $skip_count)) tests to run" "$GITHUB_STEP_SUMMARY"
@@ -120,8 +116,22 @@ jobs:
               tee <<< "ATS failed. Can't get list of tests to run. Fallback to all tests" "$GITHUB_STEP_SUMMARY"
               # We need not forget to add the search options in the fallback command, otherwise pytest might run more tests than expected
               # These search options match what's defined in codecov.yml:105
-              echo ATS_TESTS_TO_RUN="'[\"--cov-context=test\", \"tests/sentry\", \"tests/integration\", \"--ignore=tests/sentry/eventstream/kafka\", \"--ignore=tests/sentry/post_process_forwarder\", \"--ignore=tests/sentry/snuba\", \"--ignore=tests/sentry/search/events\", \"--ignore=tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py\", \"--ignore=tests/sentry/region_to_control/test_region_to_control_kafka.py\"]'" >> "$GITHUB_OUTPUT"
-              echo ATS_TESTS_TO_SKIP="'[]'" >> "$GITHUB_OUTPUT"
+              cat >> "$GITHUB_OUTPUT" <<EOF
+              ATS_TESTS_TO_RUN=$(
+                jq -c @json <<< '[
+                  "--cov-context=test",
+                  "tests/sentry",
+                  "tests/integration",
+                  "--ignore=tests/sentry/eventstream/kafka",
+                  "--ignore=tests/sentry/post_process_forwarder",
+                  "--ignore=tests/sentry/snuba",
+                  "--ignore=tests/sentry/search/events",
+                  "--ignore=tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py",
+                  "--ignore=tests/sentry/region_to_control/test_region_to_control_kafka.py"
+                ]'
+              )
+              ATS_TESTS_TO_SKIP='[]'
+              EOF
             fi
           env:
             CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
