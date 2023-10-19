@@ -251,6 +251,9 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
                         "span.group": "B",
                         "span.description": "connect",
                     },
+                    "sentry_tags": {
+                        "description": "connect",
+                    },
                 },
                 {
                     "same_process_as_parent": True,
@@ -266,6 +269,9 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
                         "span.group": "C",
                         "span.description": "connect",
                     },
+                    "sentry_tags": {
+                        "description": "connect",
+                    },
                 },
                 {
                     "same_process_as_parent": True,
@@ -280,6 +286,9 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
                         "offset": 0.057,
                         "span.group": "D",
                         "span.description": "resolve_orderby",
+                    },
+                    "sentry_tags": {
+                        "description": "resolve_orderby",
                     },
                 },
                 {
@@ -330,6 +339,9 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
                         "span.group": "B",
                         "span.description": "connect",
                     },
+                    "sentry_tags": {
+                        "description": "connect",
+                    },
                 },
                 {
                     "same_process_as_parent": True,
@@ -344,6 +356,9 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
                         "offset": 0.015,
                         "span.group": "C",
                         "span.description": "connect",
+                    },
+                    "sentry_tags": {
+                        "description": "connect",
                     },
                 },
                 {
@@ -360,6 +375,9 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
                         "span.group": "D",
                         "span.description": "resolve_orderby",
                     },
+                    "sentry_tags": {
+                        "description": "resolve_orderby",
+                    },
                 },
                 {
                     "same_process_as_parent": True,
@@ -374,6 +392,9 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
                         "offset": 1.055,
                         "span.group": "D",
                         "span.description": "resolve_orderby",
+                    },
+                    "sentry_tags": {
+                        "description": "resolve_orderby",
                     },
                 },
                 {
@@ -489,7 +510,7 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
             data = response.data
             root_fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-discover.snql").hexdigest()[:16]
             assert root_fingerprint in data
-            assert data[root_fingerprint]["description"] == "resolve_columns"
+            assert data[root_fingerprint]["description"] == ""
             assert data[root_fingerprint]["count()"] == 2
 
     @mock.patch("sentry.api.endpoints.organization_spans_aggregation.raw_snql_query")
