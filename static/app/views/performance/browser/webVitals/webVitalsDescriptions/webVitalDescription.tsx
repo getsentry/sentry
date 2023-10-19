@@ -10,10 +10,7 @@ import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {getScoreColor} from 'sentry/views/performance/browser/webVitals/utils/getScoreColor';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
-import {
-  vitalDescription,
-  vitalSupportedBrowsers,
-} from 'sentry/views/performance/vitalDetail/utils';
+import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
 
 type Props = {
   score: number;
@@ -21,7 +18,7 @@ type Props = {
   webVital: WebVitals;
 };
 
-const webVitalFullNameMap = {
+const WEB_VITAL_FULL_NAME_MAP = {
   cls: t('Cumulative Layout Shift'),
   fcp: t('First Contentful Paint'),
   fid: t('First Input Delay'),
@@ -29,18 +26,32 @@ const webVitalFullNameMap = {
   ttfb: t('Time to First Byte'),
 };
 
+const VITAL_DESCRIPTIONS: Partial<Record<WebVital, string>> = {
+  [WebVital.FCP]: t(
+    'First Contentful Paint (FCP) measures the amount of time the first content takes to render in the viewport. Like FP, this could also show up in any form from the document object model (DOM), such as images, SVGs, or text blocks.'
+  ),
+  [WebVital.CLS]: t(
+    'Cumulative Layout Shift (CLS) is the sum of individual layout shift scores for every unexpected element shift during the rendering process. Imagine navigating to an article and trying to click a link before the page finishes loading. Before your cursor even gets there, the link may have shifted down due to an image rendering. Rather than using duration for this Web Vital, the CLS score represents the degree of disruptive and visually unstable shifts.'
+  ),
+  [WebVital.FID]: t(
+    'First Input Delay (FID) measures the response time when the user tries to interact with the viewport. Actions maybe include clicking a button, link or other custom Javascript controller. It is key in helping the user determine if a page is usable or not.'
+  ),
+  [WebVital.LCP]: t(
+    'Largest Contentful Paint (LCP) measures the render time for the largest content to appear in the viewport. This may be in any form from the document object model (DOM), such as images, SVGs, or text blocks. It’s the largest pixel area in the viewport, thus most visually defining. LCP helps developers understand how long it takes to see the main content on the page.'
+  ),
+  [WebVital.TTFB]: t(
+    'Time to First Byte (TTFB) is a foundational metric for measuring connection setup time and web server responsiveness in both the lab and the field. It helps identify when a web server is too slow to respond to requests. In the case of navigation requests—that is, requests for an HTML document—it precedes every other meaningful loading performance metric.'
+  ),
+};
+
 export function WebVitalDescription({score, value, webVital}: Props) {
   const theme = useTheme();
-  const description: string = vitalDescription[WebVital[webVital.toUpperCase()]];
-  const descriptionWithoutBrowserNote = description.slice(
-    0,
-    description.indexOf('At the moment')
-  );
+  const description: string = VITAL_DESCRIPTIONS[WebVital[webVital.toUpperCase()]];
   return (
     <div>
       <Header>
         <span>
-          <WebVitalName>{`${webVitalFullNameMap[webVital]} (P75)`}</WebVitalName>
+          <WebVitalName>{`${WEB_VITAL_FULL_NAME_MAP[webVital]} (P75)`}</WebVitalName>
           <Value>{value}</Value>
         </span>
         <ProgressRing
@@ -57,7 +68,7 @@ export function WebVitalDescription({score, value, webVital}: Props) {
           backgroundColor={`${getScoreColor(score, theme)}33`}
         />
       </Header>
-      <p>{descriptionWithoutBrowserNote}</p>
+      <p>{description}</p>
       <p>
         <b>
           {tct(
