@@ -78,6 +78,12 @@ FEATURE_DESCRIPTIONS = [
         """,
         IntegrationFeatures.ISSUE_SYNC,
     ),
+    FeatureDescription(
+        """
+        Automatically create Jira tickets based on Issue Alert conditions.
+        """,
+        IntegrationFeatures.TICKET_RULES,
+    ),
 ]
 
 setup_alert = {
@@ -870,7 +876,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         schema. Send this cleaned data to Jira. Finally, make another API call
         to Jira to make sure the issue was created and return basic issue details.
 
-        :param data: JiraCreateTicketAction object
+        :param data: JiraServerCreateTicketAction object
         :param kwargs: not used
         :return: simple object with basic Jira issue details
         """
