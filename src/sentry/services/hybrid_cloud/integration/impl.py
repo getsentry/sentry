@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Set, Tuple
 
+from django.utils import timezone
+
 from sentry import analytics
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import AppPlatformEvent
@@ -259,6 +261,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
         if not integration_kwargs:
             return []
+        integration_kwargs["date_updated"] = timezone.now()
 
         integrations.update(**integration_kwargs)
 
