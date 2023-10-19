@@ -272,6 +272,13 @@ const platforms: PlatformIntegration[] = [
   //   link: 'https://docs.sentry.io/platforms/javascript/guides/astro/',
   // },
   {
+    id: 'javascript-astro',
+    name: 'Astro',
+    type: 'framework',
+    language: 'javascript',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/astro/',
+  },
+  {
     id: 'javascript-ember',
     name: 'Ember',
     type: 'framework',

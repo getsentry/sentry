@@ -108,6 +108,10 @@ export const platformProductAvailability = {
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
   ],
+  'javascript-astro': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
   node: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'node-azurefunctions': [
     ProductSolution.PERFORMANCE_MONITORING,
@@ -336,7 +340,10 @@ export function ProductSelection({
   // The package manager info is only shown for javascript platforms
   // until we improve multi snippet suppport
   const showPackageManagerInfo =
-    platform?.indexOf('javascript') === 0 || platform?.indexOf('node') === 0;
+    (platform?.indexOf('javascript') === 0 || platform?.indexOf('node') === 0) &&
+    platform !== 'javascript-astro';
+
+  const showAstroInfo = platform === 'javascript-astro';
 
   return (
     <Fragment>
@@ -350,6 +357,13 @@ export function ProductSelection({
                 npm: <strong>npm</strong>,
                 yarn: <strong>yarn</strong>,
               })}
+        </TextBlock>
+      )}
+      {showAstroInfo && (
+        <TextBlock noMargin>
+          {tct("In this quick guide you'll use the [astrocli:astro] CLI to set up:", {
+            astrocli: <strong />,
+          })}
         </TextBlock>
       )}
       <Products>
