@@ -185,7 +185,7 @@ export default function GroupSidebar({
     );
 
     return (
-      <SidebarSection.Wrap>
+      <SmallerSidebarWrap>
         <SidebarSection.Title>
           {t('Participants')} <TitleNumber>({getParticipantTitle()})</TitleNumber>
           <QuestionTooltip
@@ -215,7 +215,7 @@ export default function GroupSidebar({
             />
           )}
         </SidebarSection.Content>
-      </SidebarSection.Wrap>
+      </SmallerSidebarWrap>
     );
   };
 
@@ -244,7 +244,7 @@ export default function GroupSidebar({
     );
 
     return (
-      <SidebarSection.Wrap>
+      <SmallerSidebarWrap>
         <SidebarSection.Title>
           {t('Viewers')}
           <TitleNumber>({displayUsers.length})</TitleNumber>
@@ -263,7 +263,7 @@ export default function GroupSidebar({
             avatars
           )}
         </SidebarSection.Content>
-      </SidebarSection.Wrap>
+      </SmallerSidebarWrap>
     );
   };
 
@@ -334,4 +334,9 @@ const StyledAvatarList = styled(AvatarList)`
 
 const TitleNumber = styled('span')`
   font-weight: normal;
+`;
+
+// Using 22px + space(1) = space(4)
+const SmallerSidebarWrap = styled(SidebarSection.Wrap)`
+  margin-bottom: 22px;
 `;
