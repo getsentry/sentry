@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {space} from 'sentry/styles/space';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import A11y from 'sentry/views/replays/detail/accessibility/index';
@@ -20,7 +19,6 @@ type Props = {};
 
 function FocusArea({}: Props) {
   const {getActiveTab} = useActiveReplayTab();
-  const {replay} = useReplayContext();
 
   switch (getActiveTab()) {
     case TabKey.A11Y:
@@ -48,12 +46,7 @@ function FocusArea({}: Props) {
       return <TagPanel />;
     case TabKey.BREADCRUMBS:
     default: {
-      return (
-        <Breadcrumbs
-          frames={replay?.getChapterFrames()}
-          startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
-        />
-      );
+      return <Breadcrumbs />;
     }
   }
 }

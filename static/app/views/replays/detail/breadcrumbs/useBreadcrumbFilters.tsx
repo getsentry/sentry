@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {RefObject, useCallback, useMemo, useRef} from 'react';
 import uniq from 'lodash/uniq';
 
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
@@ -16,6 +16,7 @@ type Options = {
 };
 
 type Return = {
+  expandPathsRef: RefObject<Map<number, Set<string>>>;
   getBreadcrumbTypes: () => {label: string; value: string}[];
   items: ReplayFrame[];
   searchTerm: string;
@@ -81,6 +82,15 @@ const FILTERS = {
 function useBreadcrumbFilters({frames}: Options): Return {
   const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
 
+  // Keep a reference of object paths that are expanded (via <ObjectInspector>)
+  // by log row, so they they can be restored as the Console pane is scrolling.
+  // Due to virtualization, components can be unmounted as the user scrolls, so
+  // state needs to be remembered.
+  //
+  // Note that this is intentionally not in state because we do not want to
+  // re-render when items are expanded/collapsed, though it may work in state as well.
+  const expandPathsRef = useRef(new Map<number, Set<string>>());
+
   const type = useMemo(() => decodeList(query.f_b_type), [query.f_b_type]);
   const searchTerm = decodeScalar(query.f_b_search, '').toLowerCase();
 
@@ -125,6 +135,7 @@ function useBreadcrumbFilters({frames}: Options): Return {
   );
 
   return {
+    expandPathsRef,
     getBreadcrumbTypes,
     items,
     searchTerm,
