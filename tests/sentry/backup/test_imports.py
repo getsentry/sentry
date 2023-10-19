@@ -261,12 +261,14 @@ class SanitizationTests(ImportTestCase):
         assert Organization.objects.filter(slug__icontains="some-org").count() == 2
         assert Organization.objects.filter(slug__iexact="some-org").count() == 1
         assert Organization.objects.filter(slug__icontains="some-org-").count() == 1
+        # TODO(GabeVillalobos): Add `OrganizationSlugReservationReplica` checks.
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert OrganizationMapping.objects.count() == 2
             assert OrganizationMapping.objects.filter(slug__icontains="some-org").count() == 2
             assert OrganizationMapping.objects.filter(slug__iexact="some-org").count() == 1
             assert OrganizationMapping.objects.filter(slug__icontains="some-org-").count() == 1
+            # TODO(GabeVillalobos): Add `OrganizationSlugReservation` checks here.
 
     def test_generate_suffix_for_already_taken_username(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -453,6 +455,7 @@ class SignalingTests(ImportTestCase):
 
         assert Organization.objects.count() == 1
         assert Organization.objects.filter(slug="some-org").exists()
+        # TODO(GabeVillalobos): Add `OrganizationSlugReservationReplica` checks here.
 
         assert OrganizationMember.objects.count() == 3
 
@@ -470,6 +473,7 @@ class SignalingTests(ImportTestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert OrganizationMapping.objects.count() == 1
             assert OrganizationMapping.objects.filter(slug="some-org").exists()
+            # TODO(GabeVillalobos): Add `OrganizationSlugReservation` checks here.
 
             assert OrganizationMemberMapping.objects.count() == 3
 
