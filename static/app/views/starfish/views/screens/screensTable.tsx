@@ -196,11 +196,13 @@ export function useTableQuery({
   enabled,
   referrer,
   initialData,
+  limit,
 }: {
   eventView: EventView;
   enabled?: boolean;
   excludeOther?: boolean;
   initialData?: TableData;
+  limit?: number;
   referrer?: string;
 }) {
   const location = useLocation();
@@ -210,7 +212,7 @@ export function useTableQuery({
     eventView,
     location,
     orgSlug: organization.slug,
-    limit: 25,
+    limit: limit ?? 25,
     referrer,
     options: {
       refetchOnWindowFocus: false,
