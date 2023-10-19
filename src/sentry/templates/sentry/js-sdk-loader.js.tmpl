@@ -23,7 +23,7 @@
     var queue = [];
     // Create a namespace and attach function that will store captured exception
     // Because functions are also objects, we can attach the queue itself straight to it and save some bytes
-    var enqueue = function (item) {
+    function enqueue(item) {
         if (lazy &&
             (queueIsError(item) ||
                 queueIsPromiseRejection(item) ||
@@ -35,7 +35,7 @@
             injectCDNScriptTag();
         }
         queue.push(item);
-    };
+    }
     function onError() {
         // Use keys as "data type" to save some characters"
         enqueue({

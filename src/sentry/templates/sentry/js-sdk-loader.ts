@@ -53,7 +53,7 @@ declare const __LOADER__IS_LAZY__: any;
 
   // Create a namespace and attach function that will store captured exception
   // Because functions are also objects, we can attach the queue itself straight to it and save some bytes
-  const enqueue = function (item: QueueItem) {
+  function enqueue(item: QueueItem) {
     if (
       lazy &&
       (queueIsError(item) ||
@@ -67,7 +67,7 @@ declare const __LOADER__IS_LAZY__: any;
       injectCDNScriptTag();
     }
     queue.push(item);
-  };
+  }
 
   function onError() {
     // Use keys as "data type" to save some characters"
