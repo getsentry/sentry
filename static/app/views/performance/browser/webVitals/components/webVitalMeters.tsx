@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getDuration} from 'sentry/utils/formatters';
 import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/performance/browser/webVitals/utils/performanceScoreColors';
@@ -12,9 +13,8 @@ import {
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 
 type Props = {
-  // TODO: type
-  projectData: any;
   onClick?: (webVital: WebVitals) => void;
+  projectData?: TableData;
   projectScore?: ProjectScore;
   transaction?: string;
 };
@@ -29,7 +29,7 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
       <Flex>
         <MeterBarContainer key="lcp" onClick={() => onClick?.('lcp')}>
           <MeterBarBody>
-            <MeterHeader>{t('Largest Contentful Paint (P75)')}</MeterHeader>
+            <MeterHeader>{t('Largest Contentful Paint')}</MeterHeader>
             <MeterValueText>
               {getFormattedDuration(
                 (projectData?.data?.[0]?.['p75(measurements.lcp)'] as number) / 1000
@@ -40,7 +40,7 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
         </MeterBarContainer>
         <MeterBarContainer key="fcp" onClick={() => onClick?.('fcp')}>
           <MeterBarBody>
-            <MeterHeader>{t('First Contentful Paint (P75)')}</MeterHeader>
+            <MeterHeader>{t('First Contentful Paint')}</MeterHeader>
             <MeterValueText>
               {getFormattedDuration(
                 (projectData?.data?.[0]?.['p75(measurements.fcp)'] as number) / 1000
@@ -51,7 +51,7 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
         </MeterBarContainer>
         <MeterBarContainer key="fid" onClick={() => onClick?.('fid')}>
           <MeterBarBody>
-            <MeterHeader>{t('First Input Delay (P75)')}</MeterHeader>
+            <MeterHeader>{t('First Input Delay')}</MeterHeader>
             <MeterValueText>
               {getFormattedDuration(
                 (projectData?.data?.[0]?.['p75(measurements.fid)'] as number) / 1000
@@ -62,7 +62,7 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
         </MeterBarContainer>
         <MeterBarContainer key="cls" onClick={() => onClick?.('cls')}>
           <MeterBarBody>
-            <MeterHeader>{t('Cumulative Layout Shift (P75)')}</MeterHeader>
+            <MeterHeader>{t('Cumulative Layout Shift')}</MeterHeader>
             <MeterValueText>
               {Math.round(
                 (projectData?.data?.[0]?.['p75(measurements.cls)'] as number) * 100
@@ -73,7 +73,7 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
         </MeterBarContainer>
         <MeterBarContainer key="ttfb" onClick={() => onClick?.('ttfb')}>
           <MeterBarBody>
-            <MeterHeader>{t('Time To First Byte (P75)')}</MeterHeader>
+            <MeterHeader>{t('Time To First Byte')}</MeterHeader>
             <MeterValueText>
               {getFormattedDuration(
                 (projectData?.data?.[0]?.['p75(measurements.ttfb)'] as number) / 1000
@@ -99,10 +99,11 @@ const Container = styled('div')`
 const Flex = styled('div')<{gap?: number}>`
   display: flex;
   flex-direction: row;
-  justify-content: space-between;
+  justify-content: center;
   width: 100%;
   gap: ${p => (p.gap ? `${p.gap}px` : space(2))};
   align-items: center;
+  flex-wrap: wrap;
 `;
 
 const MeterBarContainer = styled('div')`
@@ -111,7 +112,8 @@ const MeterBarContainer = styled('div')`
   position: relative;
   padding: 0;
   cursor: pointer;
-  min-width: 200px;
+  min-width: 180px;
+  max-width: 280px;
 `;
 
 const MeterBarBody = styled('div')`

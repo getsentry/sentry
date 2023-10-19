@@ -292,6 +292,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.ORGANIZATION_MEMBER_TEAM_UPDATE,
             OutboxCategory.API_KEY_UPDATE,
             OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE,
+            OutboxCategory.PARTNER_ACCOUNT_UPDATE,
         },
     )
     USER_SCOPE = scope_categories(
@@ -334,7 +335,6 @@ class OutboxScope(IntEnum):
         8,
         {
             OutboxCategory.PROVISION_ORGANIZATION,
-            OutboxCategory.PARTNER_ACCOUNT_UPDATE,
         },
     )
     SUBSCRIPTION_SCOPE = scope_categories(9, {OutboxCategory.SUBSCRIPTION_UPDATE})

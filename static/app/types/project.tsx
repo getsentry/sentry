@@ -176,6 +176,7 @@ export type PlatformKey =
   | 'javascript'
   | 'javascript-angular'
   | 'javascript-angularjs'
+  | 'javascript-astro'
   | 'javascript-backbone'
   | 'javascript-browser'
   | 'javascript-capacitor'

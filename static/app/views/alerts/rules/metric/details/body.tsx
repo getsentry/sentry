@@ -6,6 +6,7 @@ import moment from 'moment';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
+import {LinkButton} from 'sentry/components/button';
 import {getInterval} from 'sentry/components/charts/utils';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
@@ -13,6 +14,7 @@ import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
+import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
@@ -23,6 +25,10 @@ import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/u
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 import {AlertRuleStatus, Incident} from 'sentry/views/alerts/types';
+import {
+  hasMigrationFeatureFlag,
+  ruleNeedsMigration,
+} from 'sentry/views/alerts/utils/migrationUi';
 
 import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
 
@@ -146,6 +152,14 @@ export default function MetricDetailsBody({
   const ruleActionCategory = getAlertRuleActionCategory(rule);
 
   const isOnDemandAlert = isOnDemandMetricAlert(dataset, aggregate, query);
+  const showMigrationWarning =
+    hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
+
+  const editThresholdLink =
+    rule &&
+    `/organizations/${organization.slug}/alerts/metric-rules/${
+      project?.slug ?? rule?.projects?.[0]
+    }/${rule.id}/`;
 
   return (
     <Fragment>
@@ -184,6 +198,24 @@ export default function MetricDetailsBody({
             showAbsolute={false}
             disallowArbitraryRelativeRanges
           />
+
+          {showMigrationWarning ? (
+            <Alert
+              type="warning"
+              showIcon
+              trailingItems={
+                <LinkButton
+                  to={editThresholdLink}
+                  size="xs"
+                  icon={<IconEdit size="xs" />}
+                >
+                  {t('Edit')}
+                </LinkButton>
+              }
+            >
+              {t('The current thresholds for this alert could use some review')}
+            </Alert>
+          ) : null}
 
           <MetricChart
             api={api}
