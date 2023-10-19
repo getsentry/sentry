@@ -130,7 +130,7 @@ export function FlamegraphTreeTable({
     ]);
   }, [canvasPoolManager, clickedContextMenuNode]);
 
-  const onHighlightAllOccurencesClick = useCallback(() => {
+  const onHighlightAllOccurrencesClick = useCallback(() => {
     if (!clickedContextMenuNode) {
       return;
     }
@@ -330,7 +330,7 @@ export function FlamegraphTreeTable({
         </FrameCallersTableHeader>
         <FlamegraphTreeContextMenu
           onZoomIntoFrameClick={handleZoomIntoFrameClick}
-          onHighlightAllFramesClick={onHighlightAllOccurencesClick}
+          onHighlightAllFramesClick={onHighlightAllOccurrencesClick}
           contextMenu={contextMenu}
         />
         <TableItemsContainer>

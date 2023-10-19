@@ -63,10 +63,21 @@ class TestCreatesOndemandMetricSpec:
         [
             # transaction duration not supported by standard metrics
             ("count()", "transaction.duration:>0"),
+            ("count()", "user.ip:192.168.0.1"),
+            ("count()", "user.username:foobar"),
             ("count()", "transaction.duration:>0 event.type:transaction project:abc"),
             ("count()", "(transaction.duration:>0) AND (event.type:transaction)"),
             ("p75(measurements.fp)", "transaction.duration:>0"),
             ("p75(transaction.duration)", "transaction.duration:>0"),
+            ("p100(transaction.duration)", "transaction.duration:>0"),
+            # we dont support custom percentiles that can be mapped to one of standard percentiles
+            ("percentile(transaction.duration, 0.5)", "transaction.duration>0"),
+            ("percentile(transaction.duration, 0.50)", "transaction.duration>0"),
+            ("percentile(transaction.duration, 0.9)", "transaction.duration>0"),
+            ("percentile(transaction.duration, 0.90)", "transaction.duration>0"),
+            ("percentile(transaction.duration, 0.95)", "transaction.duration>0"),
+            ("percentile(transaction.duration, 0.99)", "transaction.duration>0"),
+            ("percentile(transaction.duration, 1)", "transaction.duration>0"),
             ("count_if(transaction.duration,equals,0)", "transaction.duration:>0"),
             ("count_if(transaction.duration,notEquals,0)", "transaction.duration:>0"),
             (
@@ -83,6 +94,7 @@ class TestCreatesOndemandMetricSpec:
                 "apdex(10)",
                 "",
             ),  # apdex with specified threshold is on-demand metric even without query
+            ("count()", "transaction.duration:>0 my-transaction"),
         ],
     )
     def test_creates_on_demand_spec(self, aggregate, query):
@@ -99,6 +111,8 @@ class TestCreatesOndemandMetricSpec:
             ("last_seen()", "transaction.duration:>0"),  # last_seen not supported by on demand
             ("any(user)", "transaction.duration:>0"),  # any not supported by on demand
             ("p95(transaction.duration)", ""),  # p95 without query is supported by standard metrics
+            # we do not support custom percentiles that can not be mapped to one of standard percentiles
+            ("percentile(transaction.duration, 0.123)", "transaction.duration>0"),
             (
                 "count()",
                 "p75(transaction.duration):>0",
