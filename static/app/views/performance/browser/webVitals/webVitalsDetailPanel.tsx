@@ -400,6 +400,9 @@ export function WebVitalsDetailPanel({
                       ? {}
                       : {axisLabel: {formatter: getFormattedDuration}}
                   }
+                  tooltip={
+                    webVital === 'cls' ? {} : {valueFormatter: getFormattedDuration}
+                  }
                 />
               )}
             </ChartZoom>
