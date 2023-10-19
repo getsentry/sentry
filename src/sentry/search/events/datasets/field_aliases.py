@@ -127,8 +127,8 @@ def resolve_span_module(builder, alias: str) -> SelectType:
 
 
 def resolve_device_class(builder: builder.QueryBuilder, alias: str) -> SelectType:
-    values = []
-    keys = []
+    values: List[str] = []
+    keys: List[str] = []
     for device_key, device_values in DEVICE_CLASS.items():
         values.extend(device_values)
         keys.extend([device_key] * len(device_values))
