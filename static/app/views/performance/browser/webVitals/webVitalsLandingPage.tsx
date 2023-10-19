@@ -45,7 +45,7 @@ export default function WebVitalsLandingPage() {
     webVital: null,
   });
 
-  const {data: projectData, isLoading} = useProjectWebVitalsQuery({});
+  const {data: projectData, isLoading} = useProjectWebVitalsQuery({transaction});
 
   const noTransactions = !isLoading && projectData?.data[0]['count()'] === 0;
 
