@@ -500,7 +500,7 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
             code_mapping=self.code_mapping,
             lineno=39,
             commit=CommitInfo(
-                commitId="asdfwreqr",
+                commitId="existing-commit",
                 committedDate=datetime.now(tz=datetime_timezone.utc) - timedelta(days=7),
                 commitMessage="placeholder commit message",
                 commitAuthorName=None,
@@ -527,7 +527,7 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
         "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
     )
     @with_feature("organizations:suspect-commits-all-frames")
-    def test_simple_success(self, mock_get_commit_context, mock_record):
+    def test_success_existing_commit(self, mock_get_commit_context, mock_record):
         """
         Tests a simple successful case, where get_commit_context_all_frames returns
         a single blame item. A GroupOwner should be created, but Commit and CommitAuthor
@@ -536,8 +536,14 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
         mock_get_commit_context.return_value = [self.blame_existing_commit]
         with self.tasks():
             assert not GroupOwner.objects.filter(group=self.event.group).exists()
-            assert Commit.objects.count() == 1
-            assert CommitAuthor.objects.count() == 1
+            existing_commit = self.create_commit(
+                project=self.project,
+                repo=self.repo,
+                author=self.commit_author,
+                key="existing-commit",
+            )
+            existing_commit.update(message="")
+            assert Commit.objects.count() == 2
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
@@ -554,12 +560,15 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         )
 
-        assert Commit.objects.count() == 1
-        assert CommitAuthor.objects.count() == 1
-        assert Commit.objects.get(key="asdfwreqr") == self.commit
+        # Number of commit objects should remain the same
+        assert Commit.objects.count() == 2
+        commit = Commit.objects.get(key="existing-commit")
+
+        # Message should be updated
+        assert commit.message == "placeholder commit message"
 
         assert created_group_owner
-        assert created_group_owner.context == {"commitId": self.commit.id}
+        assert created_group_owner.context == {"commitId": existing_commit.id}
 
         mock_record.assert_any_call(
             "integrations.successfully_fetched_commit_context_all_frames",
