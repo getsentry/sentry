@@ -161,4 +161,3 @@ class RpcActor(RpcModel):
             return Team.objects.filter(id=self.id).first()
         if self.actor_type == ActorType.USER:
             return user_service.get_user(user_id=self.id)
-        return None

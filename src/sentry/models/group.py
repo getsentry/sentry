@@ -844,10 +844,7 @@ class Group(Model):
 
         assigned_actor: RpcActor = group_assignee.assigned_actor()
 
-        try:
-            return assigned_actor.resolve()
-        except assigned_actor.type.DoesNotExist:
-            return None
+        return assigned_actor.resolve()
 
     @property
     def times_seen_with_pending(self) -> int:
