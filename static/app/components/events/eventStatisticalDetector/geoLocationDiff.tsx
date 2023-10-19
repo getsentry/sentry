@@ -144,20 +144,24 @@ function GeoLocationDiff({event, projectId}: {event: Event; projectId: string}) 
                   </span>
                   <div style={{justifySelf: 'end'}}>
                     <Tooltip
-                      title={tct('From [previousDuration] to [currentDuration]', {
-                        previousDuration: (
-                          <PerformanceDuration
-                            milliseconds={row.duration_before}
-                            abbreviation
-                          />
-                        ),
-                        currentDuration: (
-                          <PerformanceDuration
-                            milliseconds={row.duration_after}
-                            abbreviation
-                          />
-                        ),
-                      })}
+                      title={
+                        <div data-test-id="geo-duration-change-tooltip-content">
+                          {tct('From [previousDuration] to [currentDuration]', {
+                            previousDuration: (
+                              <PerformanceDuration
+                                milliseconds={row.duration_before}
+                                abbreviation
+                              />
+                            ),
+                            currentDuration: (
+                              <PerformanceDuration
+                                milliseconds={row.duration_after}
+                                abbreviation
+                              />
+                            ),
+                          })}
+                        </div>
+                      }
                       showUnderline
                     >
                       <Link to={transactionSummaryLink}>
