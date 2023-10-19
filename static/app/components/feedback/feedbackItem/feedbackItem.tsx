@@ -9,7 +9,6 @@ import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
-import useDeleteFeedback from 'sentry/components/feedback/feedbackItem/useDeleteFeedback';
 import useResolveFeedback from 'sentry/components/feedback/feedbackItem/useResolveFeedback';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -28,8 +27,6 @@ interface Props {
 
 export default function FeedbackItem({feedbackItem}: Props) {
   const organization = useOrganization();
-
-  const {onDelete} = useDeleteFeedback({feedbackItem});
   const {onResolve} = useResolveFeedback({feedbackItem});
 
   return (
@@ -98,7 +95,7 @@ export default function FeedbackItem({feedbackItem}: Props) {
               <DropdownMenu
                 position="bottom-end"
                 triggerProps={{
-                  'aria-label': t('Read or Delete Menu'),
+                  'aria-label': t('Read Menu'),
                   icon: <IconEllipsis size="xs" />,
                   showChevron: false,
                   size: 'xs',
@@ -113,11 +110,6 @@ export default function FeedbackItem({feedbackItem}: Props) {
                     key: 'mark unread',
                     label: t('Mark as unread'),
                     onAction: () => {},
-                  },
-                  {
-                    key: 'delete',
-                    label: t('Delete'),
-                    onAction: onDelete,
                   },
                 ]}
               />

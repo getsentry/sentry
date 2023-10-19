@@ -69,7 +69,7 @@ function HasSelection({checked}) {
           <DropdownMenu
             position="bottom-end"
             triggerProps={{
-              'aria-label': t('Read or Delete Menu'),
+              'aria-label': t('Read Menu'),
               icon: <IconEllipsis size="xs" />,
               showChevron: false,
               size: 'xs',
@@ -83,11 +83,6 @@ function HasSelection({checked}) {
               {
                 key: 'mark unread',
                 label: t('Mark as unread'),
-                onAction: () => {},
-              },
-              {
-                key: 'delete',
-                label: t('Delete'),
                 onAction: () => {},
               },
             ]}
