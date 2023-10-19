@@ -154,7 +154,7 @@ class RpcActor(RpcModel):
             and self.actor_type == other.actor_type
         )
 
-    def resolve(self) -> Optional[Union[Team, RpcUser]]:
+    def resolve(self) -> Optional[Union["Team", "RpcUser"]]:
         from sentry.models.team import Team
 
         if self.actor_type == ActorType.TEAM:
