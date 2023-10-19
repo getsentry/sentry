@@ -209,12 +209,11 @@ function TeamStatsControls({
         />
       )}
       <StyledPageTimeRangeSelector
-        organization={organization}
         relative={period ?? ''}
         start={start ?? null}
         end={end ?? null}
         utc={utc ?? null}
-        onUpdate={handleUpdateDatetime}
+        onChange={handleUpdateDatetime}
         showAbsolute={false}
         relativeOptions={{
           '14d': t('Last 2 weeks'),

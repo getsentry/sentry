@@ -337,12 +337,11 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         />
 
         <StyledPageTimeRangeSelector
-          organization={organization}
           relative={period ?? ''}
           start={start ?? null}
           end={end ?? null}
           utc={utc ?? null}
-          onUpdate={this.handleUpdateDatetime}
+          onChange={this.handleUpdateDatetime}
           relativeOptions={omit(DEFAULT_RELATIVE_PERIODS, ['1h'])}
         />
       </SelectorGrid>

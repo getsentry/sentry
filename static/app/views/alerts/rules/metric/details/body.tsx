@@ -189,12 +189,11 @@ export default function MetricDetailsBody({
             </Alert>
           )}
           <StyledPageTimeRangeSelector
-            organization={organization}
             relative={timePeriod.period ?? ''}
             start={(timePeriod.custom && timePeriod.start) || null}
             end={(timePeriod.custom && timePeriod.end) || null}
             utc={null}
-            onUpdate={handleTimePeriodChange}
+            onChange={handleTimePeriodChange}
             relativeOptions={relativeOptions}
             showAbsolute={false}
             disallowArbitraryRelativeRanges

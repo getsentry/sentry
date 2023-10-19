@@ -462,12 +462,11 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
             </Alert>
           )}
           <StyledPageTimeRangeSelector
-            organization={organization}
             relative={period ?? ''}
             start={start ?? null}
             end={end ?? null}
             utc={utc ?? null}
-            onUpdate={handleUpdateDatetime}
+            onChange={handleUpdateDatetime}
           />
           <ErrorBoundary>
             <IssueAlertDetailsChart
