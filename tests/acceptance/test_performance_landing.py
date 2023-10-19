@@ -4,7 +4,7 @@ from unittest.mock import patch
 from django.db.models import F
 
 from fixtures.page_objects.base import BasePage
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
@@ -48,7 +48,6 @@ class PerformanceLandingTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until_not(
                 '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
             )
-            self.browser.snapshot("performance landing - with data")
 
     @patch("django.utils.timezone.now")
     def test_with_data_and_new_widget_designs(self, mock_now):
@@ -73,4 +72,3 @@ class PerformanceLandingTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until_not(
                 '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
             )
-            self.browser.snapshot("new widget performance landing - with data")

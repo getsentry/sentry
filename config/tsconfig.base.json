@@ -97,6 +97,7 @@
     "baseUrl": "../",
     "paths": {
       "sentry/*": ["static/app/*"],
+      "sentry-fixture/*": ["fixtures/js-stubs/*"],
       "sentry-test/*": ["tests/js/sentry-test/*"],
       "sentry-images/*": ["static/images/*"],
       "sentry-locale/*": ["src/sentry/locale/*"],

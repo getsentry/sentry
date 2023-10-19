@@ -1,7 +1,5 @@
 import {Component, createRef, VFC} from 'react';
-import TextareaAutosize from 'react-autosize-textarea';
 import {WithRouterProps} from 'react-router';
-import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
@@ -48,7 +46,7 @@ import {
   FieldValueType,
   getFieldDefinition,
 } from 'sentry/utils/fields';
-import getDynamicComponent from 'sentry/utils/getDynamicComponent';
+import SearchBoxTextArea from 'sentry/utils/search/searchBoxTextArea';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
@@ -1896,6 +1894,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         disabled={disabled}
         maxLength={maxQueryLength}
         spellCheck={false}
+        maxRows={query ? undefined : 1}
       />
     );
 
@@ -2110,15 +2109,7 @@ const Highlight = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
 `;
 
-const SearchInput = styled(
-  getDynamicComponent<typeof TextareaAutosize>({
-    value: TextareaAutosize,
-    fixed: 'textarea',
-  }),
-  {
-    shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
-  }
-)`
+const SearchInput = styled(SearchBoxTextArea)`
   position: relative;
   display: flex;
   resize: none;
@@ -2139,6 +2130,11 @@ const SearchInput = styled(
   }
   &::placeholder {
     color: ${p => p.theme.formPlaceholder};
+  }
+  :placeholder-shown {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   [disabled] {

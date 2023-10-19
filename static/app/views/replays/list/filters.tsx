@@ -1,27 +1,14 @@
-import type {ReactNode} from 'react';
-import styled from '@emotion/styled';
-
-import DatePageFilter from 'sentry/components/datePageFilter';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import ProjectPageFilter from 'sentry/components/projectPageFilter';
-import {space} from 'sentry/styles/space';
+import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 
-export default function ReplaysFilters({children}: {children?: ReactNode}) {
+export default function ReplaysFilters() {
   return (
-    <FiltersContainer>
-      <PageFilterBar condensed>
-        <ProjectPageFilter resetParamsOnChange={['cursor']} />
-        <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
-        <DatePageFilter alignDropdown="left" resetParamsOnChange={['cursor']} />
-      </PageFilterBar>
-      {children}
-    </FiltersContainer>
+    <PageFilterBar condensed>
+      <ProjectPageFilter resetParamsOnChange={['cursor']} />
+      <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
+      <DatePageFilter resetParamsOnChange={['cursor']} />
+    </PageFilterBar>
   );
 }
-
-const FiltersContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(2)};
-`;

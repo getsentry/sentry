@@ -1,6 +1,7 @@
 from django.db.models import F
 
-from sentry.models import AuthProvider, Organization
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import Organization
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
@@ -26,7 +27,6 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
         self.login_as(self.user)
         self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
         self.browser.wait_until('[data-test-id="accept-invite"]')
-        self.browser.snapshot(name="accept organization invite")
         assert self.browser.element_exists('[data-test-id="join-organization"]')
 
     def test_invite_not_authenticated(self):

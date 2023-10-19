@@ -3,17 +3,14 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelTable from 'sentry/components/panels/panelTable';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import HeaderCell from 'sentry/views/replays/replayTable/headerCell';
@@ -30,8 +27,6 @@ import {
 } from 'sentry/views/replays/replayTable/tableCell';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
-
-export const MIN_DEAD_RAGE_CLICK_SDK = '7.60.1';
 
 type Props = {
   fetchError: undefined | Error;
@@ -59,16 +54,6 @@ function ReplayTable({
   const routes = useRoutes();
   const newLocation = useLocation();
   const organization = useOrganization();
-
-  const {
-    selection: {projects},
-  } = usePageFilters();
-
-  const needSDKUpgrade = useProjectSdkNeedsUpdate({
-    minVersion: MIN_DEAD_RAGE_CLICK_SDK,
-    organization,
-    projectId: projects.map(String),
-  });
 
   const location: Location = saveLocation
     ? {
@@ -101,31 +86,6 @@ function ReplayTable({
             : t(
                 'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
               )}
-        </StyledAlert>
-      </StyledPanelTable>
-    );
-  }
-
-  if (
-    needSDKUpgrade.needsUpdate &&
-    (visibleColumns.includes(ReplayColumn.MOST_DEAD_CLICKS) ||
-      visibleColumns.includes(ReplayColumn.MOST_RAGE_CLICKS))
-  ) {
-    return (
-      <StyledPanelTable
-        headers={tableHeaders}
-        visibleColumns={visibleColumns}
-        data-test-id="replay-table"
-        gridRows={undefined}
-        loader={<LoadingIndicator style={{margin: '54px auto'}} />}
-        disablePadding
-      >
-        <StyledAlert type="info" showIcon>
-          {tct('[data] requires [sdkPrompt]. [link:Upgrade now.]', {
-            data: <strong>Rage and dead clicks</strong>,
-            sdkPrompt: <strong>{t('SDK version >= 7.60.1')}</strong>,
-            link: <ExternalLink href="https://docs.sentry.io/platforms/javascript/" />,
-          })}
         </StyledAlert>
       </StyledPanelTable>
     );
@@ -240,7 +200,6 @@ function ReplayTable({
                       eventView={eventView}
                       organization={organization}
                       referrer={referrer}
-                      showUrl
                       referrer_table="main"
                     />
                   );
@@ -261,7 +220,6 @@ function ReplayTable({
                       replay={replay}
                       organization={organization}
                       referrer={referrer}
-                      showUrl={false}
                       eventView={eventView}
                       referrer_table="rage-table"
                     />
@@ -274,7 +232,6 @@ function ReplayTable({
                       replay={replay}
                       organization={organization}
                       referrer={referrer}
-                      showUrl={false}
                       eventView={eventView}
                       referrer_table="dead-table"
                     />
@@ -287,7 +244,6 @@ function ReplayTable({
                       replay={replay}
                       organization={organization}
                       referrer={referrer}
-                      showUrl={false}
                       eventView={eventView}
                       referrer_table="errors-table"
                     />

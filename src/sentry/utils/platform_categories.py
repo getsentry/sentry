@@ -1,38 +1,7 @@
-# Mirrors sentry/static/app/data/platformCategories.tsx
-# When changing this file, make sure to keep sentry/static/app/data/platformCategories.tsx in sync.
-
 from django.utils.translation import gettext_lazy as _
 
-POPULAR_PLATFORM_CATEGORIES = [
-    "javascript",
-    "javascript-react",
-    "javascript-nextjs",
-    "python-django",
-    "python",
-    "python-flask",
-    "python-fastapi",
-    "ruby-rails",
-    "node-express",
-    "php-laravel",
-    "java",
-    "java-spring-boot",
-    "dotnet",
-    "dotnet-aspnetcore",
-    "csharp",
-    "go",
-    "php",
-    "ruby",
-    "node",
-    "react-native",
-    "javascript-angular",
-    "javascript-vue",
-    "android",
-    "apple-ios",
-    "flutter",
-    "dart-flutter",
-    "unity",
-]
-
+# Mirrors `const frontend` in sentry/static/app/data/platformCategories.tsx
+# When changing this file, make sure to keep sentry/static/app/data/platformCategories.tsx in sync.
 FRONTEND = [
     "dart",
     "javascript",
@@ -47,9 +16,12 @@ FRONTEND = [
     "javascript-remix",
     "javascript-svelte",
     "javascript-sveltekit",
+    "javascript-astro",
     "unity",
 ]
 
+# Mirrors `const mobile` in sentry/static/app/data/platformCategories.tsx
+# When changing this file, make sure to keep sentry/static/app/data/platformCategories.tsx in sync.
 MOBILE = [
     "android",
     "apple-ios",
@@ -71,10 +43,13 @@ MOBILE = [
     "cocoa-swift",
 ]
 
+# Mirrors `const backend` in sentry/static/app/data/platformCategories.tsx
+# When changing this file, make sure to keep sentry/static/app/data/platformCategories.tsx in sync.
 BACKEND = [
+    "bun",
     "dotnet",
-    "dotnet-aspnetcore",
     "dotnet-aspnet",
+    "dotnet-aspnetcore",
     "elixir",
     "go",
     "go-http",
@@ -84,188 +59,85 @@ BACKEND = [
     "java-log4j2",
     "java-logback",
     "java-logging",
-    "java-spring",
     "java-spring-boot",
+    "java-spring",
+    "kotlin",
     "native",
     "node",
+    "node-connect",
     "node-express",
     "node-koa",
-    "node-connect",
     "perl",
-    "php",
     "php-laravel",
     "php-monolog",
-    "php-symfony2",
+    "php-symfony",
+    "php",
     "python",
-    "python-django",
-    "python-flask",
-    "python-fastapi",
-    "python-starlette",
-    "python-sanic",
-    "python-celery",
     "python-aiohttp",
+    "python-bottle",
+    "python-celery",
     "python-chalice",
+    "python-django",
     "python-falcon",
+    "python-fastapi",
+    "python-flask",
+    "python-pylons",
+    "python-pymongo",
+    "python-pyramid",
     "python-quart",
+    "python-rq",
+    "python-sanic",
+    "python-starlette",
+    "python-tornado",
     "python-tryton",
     "python-wsgi",
-    "python-bottle",
-    "python-pylons",
-    "python-pyramid",
-    "python-tornado",
-    "python-rq",
-    "python-pymongo",
     "ruby",
-    "ruby-rails",
     "ruby-rack",
+    "ruby-rails",
     "rust",
-    "kotlin",
 ]
 
+# Mirrors `const serverless` in sentry/static/app/data/platformCategories.tsx
+# When changing this file, make sure to keep sentry/static/app/data/platformCategories.tsx in sync.
 SERVERLESS = [
+    "dotnet-awslambda",
+    "dotnet-gcpfunctions",
+    "node-awslambda",
+    "node-azurefunctions",
+    "node-gcpfunctions",
     "python-awslambda",
     "python-azurefunctions",
     "python-gcpfunctions",
     "python-serverless",
-    "node-awslambda",
-    "node-azurefunctions",
-    "node-gcpfunctions",
-    "dotnet-awslambda",
-    "dotnet-gcpfunctions",
 ]
 
+# Mirrors `const desktop` in sentry/static/app/data/platformCategories.tsx
+# When changing this file, make sure to keep sentry/static/app/data/platformCategories.tsx in sync.
 DESKTOP = [
     "apple-macos",
     "dotnet",
+    "dotnet-maui",
     "dotnet-winforms",
     "dotnet-wpf",
-    "dotnet-maui",
-    "java",
     "electron",
+    "flutter",
+    "java",
     "javascript-electron",
+    "kotlin",
+    "minidump",
     "native",
-    "native-crashpad",
     "native-breakpad",
+    "native-crashpad",
     "native-minidump",
     "native-qt",
-    "minidump",
     "unity",
-    "flutter",
-    "kotlin",
     "unreal",
 ]
 
 CATEGORY_LIST = [
-    {id: "popular", "name": _("Popular"), "platforms": POPULAR_PLATFORM_CATEGORIES},
     {id: "browser", "name": _("Browser"), "platforms": FRONTEND},
     {id: "server", "name": _("Server"), "platforms": BACKEND},
     {id: "mobile", "name": _("Mobile"), "platforms": MOBILE},
     {id: "desktop", "name": _("Desktop"), "platforms": DESKTOP},
     {id: "serverless", "name": _("Serverless"), "platforms": SERVERLESS},
 ]
-
-SOURCE_MAPS = FRONTEND + [
-    "react-native",
-    "cordova",
-    "electron",
-]
-
-TRACING = [
-    "python-tracing",
-    "node-tracing",
-    "react-native-tracing",
-]
-
-PERFORMANCE = [
-    "javascript",
-    "javascript-ember",
-    "javascript-react",
-    "javascript-vue",
-    "php",
-    "php-laravel",
-    "python",
-    "python-django",
-    "python-flask",
-    "python-fastapi",
-    "python-starlette",
-    "python-sanic",
-    "python-celery",
-    "python-bottle",
-    "python-pylons",
-    "python-pyramid",
-    "python-tornado",
-    "python-rq",
-    "node",
-    "node-express",
-    "node-koa",
-    "node-connect",
-]
-
-# List of platforms that have performance onboarding checklist content
-WITH_PERFORMANCE_ONBOARDING = [
-    "javascript",
-    "javascript-react",
-]
-
-# List of platforms that do not have performance support. We make use of this list in the product to not provide any Performance
-# views such as Performance onboarding checklist.
-WITHOUT_PERFORMANCE_SUPPORT = [
-    "elixir",
-    "minidump",
-]
-
-RELEASE_HEALTH = [
-    # frontend
-    "javascript",
-    "javascript-react",
-    "javascript-angular",
-    "javascript-angularjs",
-    "javascript-backbone",
-    "javascript-ember",
-    "javascript-gatsby",
-    "javascript-vue",
-    "javascript-nextjs",
-    "javascript-remix",
-    "javascript-svelte",
-    "javascript-sveltekit",
-    # mobile
-    "android",
-    "apple-ios",
-    "cordova",
-    "javascript-cordova",
-    "react-native",
-    "flutter",
-    "dart-flutter",
-    # backend
-    "native",
-    "node",
-    "node-express",
-    "node-koa",
-    "node-connect",
-    "python",
-    "python-django",
-    "python-flask",
-    "python-fastapi",
-    "python-starlette",
-    "python-sanic",
-    "python-celery",
-    "python-bottle",
-    "python-pylons",
-    "python-pyramid",
-    "python-tornado",
-    "python-rq",
-    "python-pymongo",
-    "rust",
-    # serverless
-    # desktop
-    "apple-macos",
-    "native",
-    "native-crashpad",
-    "native-breakpad",
-    "native-qt",
-]
-
-# Additional aliases used for filtering in the platform picker
-FILTER_ALIAS = {
-    "native": ["cpp", "c++"],
-}

@@ -23,13 +23,13 @@ from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.utils.encoding import force_str
 
-from sentry import eventtypes, features
+from sentry import eventtypes
 from sentry.db.models import NodeData
 from sentry.grouping.result import CalculatedHashes
 from sentry.interfaces.base import Interface, get_interfaces
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.models import EventDict
+from sentry.models.event import EventDict
 from sentry.snuba.events import Columns
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import json
@@ -177,7 +177,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         return self.get_tag("transaction")
 
     def get_environment(self) -> Environment:
-        from sentry.models import Environment
+        from sentry.models.environment import Environment
 
         if not hasattr(self, "_environment_cache"):
             self._environment_cache = Environment.objects.get(
@@ -282,7 +282,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def project(self) -> Project:
-        from sentry.models import Project
+        from sentry.models.project import Project
 
         if not hasattr(self, "_project_cache"):
             self._project_cache = Project.objects.get(id=self.project_id)
@@ -419,11 +419,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         """
         from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 
-        normalize_stacktraces_for_grouping(
-            self.data,
-            grouping_config,
-            load_stacktrace_from_cache=self.org_can_load_stacktrace_from_cache,
-        )
+        normalize_stacktraces_for_grouping(self.data, grouping_config)
 
         # We have modified event data, so any cached interfaces have to be reset:
         self.__dict__.pop("interfaces", None)
@@ -490,10 +486,6 @@ class BaseEvent(metaclass=abc.ABCMeta):
     @property
     def organization(self) -> Organization:
         return self.project.organization
-
-    @property
-    def org_can_load_stacktrace_from_cache(self) -> bool:
-        return features.has("organizations:stacktrace-processing-caching", self.organization)
 
     @property
     def version(self) -> str:
@@ -648,7 +640,7 @@ class Event(BaseEvent):
     # properties need to be stripped out in __getstate__.
     @property
     def group(self) -> Group | None:
-        from sentry.models import Group
+        from sentry.models.group import Group
 
         if not self.group_id:
             return None
@@ -663,7 +655,7 @@ class Event(BaseEvent):
 
     @property
     def groups(self) -> Sequence[Group]:
-        from sentry.models import Group
+        from sentry.models.group import Group
 
         if getattr(self, "_groups_cache"):
             return self._groups_cache

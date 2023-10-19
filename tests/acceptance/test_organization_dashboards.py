@@ -12,8 +12,8 @@ from fixtures.page_objects.dashboard_detail import (
     WIDGET_TITLE_FIELD,
     DashboardDetailPage,
 )
-from sentry.models import (
-    Dashboard,
+from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
@@ -57,15 +57,12 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         Necessary for verifying that the layout persists after saving.
         """
         self.page.wait_until_loaded()
-        self.browser.snapshot(screenshot_name)
         self.browser.refresh()
         self.page.wait_until_loaded()
-        self.browser.snapshot(f"{screenshot_name} (refresh)")
 
     def test_default_overview_dashboard_layout(self):
         with self.feature(FEATURE_NAMES):
             self.page.visit_default_overview()
-            self.browser.snapshot("dashboards - default overview layout")
 
     def test_add_and_move_new_widget_on_existing_dashboard(self):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
@@ -357,7 +354,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             self.page.visit_dashboard_detail()
 
             self.page.wait_until_loaded()
-            self.browser.snapshot("dashboards - default layout when widgets do not have layout set")
 
     def test_duplicate_widget_in_view_mode(self):
         existing_widget = DashboardWidget.objects.create(
@@ -392,8 +388,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             wait = WebDriverWait(self.browser.driver, 5)
             wait.until_not(EC.alert_is_present())
 
-            self.browser.snapshot("dashboard widget - duplicate with grid")
-
     def test_delete_widget_in_view_mode(self):
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
@@ -418,8 +412,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             self.browser.element('[data-test-id="confirm-button"]').click()
 
             self.page.wait_until_loaded()
-
-            self.browser.snapshot("dashboard widget - delete with grid")
 
     def test_cancel_without_changes_does_not_trigger_confirm_with_custom_widget_through_header(
         self,
@@ -594,10 +586,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 
             self.page.save_dashboard()
 
-            self.browser.snapshot(
-                "dashboards - change from big number to area chart increases widget to min height"
-            )
-
     @pytest.mark.skip(reason="flaky behaviour due to loading spinner")
     def test_changing_number_widget_larger_than_min_height_for_area_chart_keeps_height(
         self,
@@ -631,11 +619,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 
             self.page.wait_until_loaded()
 
-            # This snapshot is flaky due to the loading spinner
-            self.browser.snapshot(
-                "dashboards - change from big number to other chart of more than 2 rows keeps height"
-            )
-
             # Try to decrease height by >1 row, should be at 2 rows
             self.page.enter_edit_state()
             resizeHandle = self.browser.element(WIDGET_RESIZE_HANDLE)
@@ -643,10 +626,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             action.drag_and_drop_by_offset(resizeHandle, 0, -400).perform()
 
             self.page.save_dashboard()
-
-            self.browser.snapshot(
-                "dashboards - change from big number to other chart enforces min height of 2"
-            )
 
     @pytest.mark.skip(reason="flaky: DD-1211")
     def test_changing_area_widget_larger_than_min_height_for_number_chart_keeps_height(
@@ -681,8 +660,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 
             self.page.wait_until_loaded()
 
-            self.browser.snapshot("dashboards - change from area chart to big number keeps height")
-
             # Decrease height by >1 row, should stop at 1 row
             self.page.enter_edit_state()
             resizeHandle = self.browser.element(WIDGET_RESIZE_HANDLE)
@@ -690,10 +667,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             action.drag_and_drop_by_offset(resizeHandle, 0, -400).perform()
 
             self.page.save_dashboard()
-
-            self.browser.snapshot(
-                "dashboards - change from area chart to big number allows min height of 1"
-            )
 
 
 @no_silo_test(stable=True)
@@ -735,7 +708,6 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.browser.get(self.default_path)
             self.wait_until_loaded()
-            self.browser.snapshot("dashboards - manage overview")
 
     def test_dashboard_manager_with_unset_layouts_and_defined_layouts(self):
         dashboard_with_layouts = Dashboard.objects.create(
@@ -767,4 +739,3 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.browser.get(self.default_path)
             self.wait_until_loaded()
-            self.browser.snapshot("dashboards - manage overview with grid layout")

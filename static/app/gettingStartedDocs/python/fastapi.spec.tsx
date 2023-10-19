@@ -6,7 +6,7 @@ import {GettingStartedWithFastApi, steps} from './fastapi';
 
 describe('GettingStartedWithFastApi', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithFastApi dsn="test-dsn" />);
+    render(<GettingStartedWithFastApi dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({sentryInitContent: 'test-init-content'})) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithFastApi', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

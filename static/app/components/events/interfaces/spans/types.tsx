@@ -32,6 +32,14 @@ export type RawSpanType = {
   tags?: {[key: string]: string};
 };
 
+export type AggregateSpanType = RawSpanType & {
+  count: number;
+  frequency: number;
+  samples: Array<[string, string]>;
+  total: number;
+  type: 'aggregate';
+};
+
 /**
  * Extendeds the Raw type from json with a type for discriminating the union.
  */
@@ -60,7 +68,7 @@ export type OrphanSpanType = RawSpanType & {
   type: 'orphan';
 };
 
-export type SpanType = BaseSpanType | OrphanSpanType;
+export type SpanType = BaseSpanType | OrphanSpanType | AggregateSpanType;
 
 // this type includes natural spans which are part of the transaction event payload,
 // and as well as pseudo-spans (e.g. gap spans)
@@ -150,10 +158,13 @@ export type ParsedTraceType = {
   traceEndTimestamp: number;
   traceID: string;
   traceStartTimestamp: number;
+  count?: number;
   description?: string;
   exclusiveTime?: number;
+  frequency?: number;
   hash?: string;
   parentSpanID?: string;
+  total?: number;
 };
 
 export enum TickAlignment {
@@ -163,13 +174,16 @@ export enum TickAlignment {
 }
 
 export type TraceContextType = {
+  count?: number;
   description?: string;
   exclusive_time?: number;
+  frequency?: number;
   hash?: string;
   op?: string;
   parent_span_id?: string;
   span_id?: string;
   status?: string;
+  total?: number;
   trace_id?: string;
   type?: 'trace';
 };

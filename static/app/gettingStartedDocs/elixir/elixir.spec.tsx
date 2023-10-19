@@ -6,7 +6,7 @@ import {GettingStartedWithElixir, steps} from './elixir';
 
 describe('GettingStartedWithElixir', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithElixir dsn="test-dsn" />);
+    render(<GettingStartedWithElixir dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithElixir', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

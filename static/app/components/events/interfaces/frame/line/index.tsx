@@ -4,7 +4,11 @@ import classNames from 'classnames';
 
 import ListItem from 'sentry/components/list/listItem';
 import StrictClick from 'sentry/components/strictClick';
-import {PlatformType, SentryAppComponent} from 'sentry/types';
+import {
+  PlatformKey,
+  SentryAppComponent,
+  SentryAppSchemaStacktraceLink,
+} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
@@ -32,7 +36,7 @@ type Props = Omit<
     React.ComponentProps<typeof Default>,
     'onToggleContext' | 'isExpandable' | 'leadsToApp' | 'hasGroupingBadge'
   > & {
-    components: Array<SentryAppComponent>;
+    components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
     event: Event;
     registers: Record<string, string>;
     emptySourceNotation?: boolean;
@@ -66,7 +70,7 @@ function Line({
 }: Props) {
   // Prioritize the frame platform but fall back to the platform
   // of the stack trace / exception
-  const platform = getPlatform(frame.platform, props.platform ?? 'other') as PlatformType;
+  const platform = getPlatform(frame.platform, props.platform ?? 'other') as PlatformKey;
   const leadsToApp = !frame.inApp && ((nextFrame && nextFrame.inApp) || !nextFrame);
 
   const expandable =

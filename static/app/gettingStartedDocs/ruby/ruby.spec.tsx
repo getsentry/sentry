@@ -6,7 +6,7 @@ import {GettingStartedWithRuby, steps} from './ruby';
 
 describe('GettingStartedWithRuby', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithRuby dsn="test-dsn" />);
+    render(<GettingStartedWithRuby dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithRuby', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

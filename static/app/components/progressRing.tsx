@@ -159,7 +159,9 @@ const RingBar = styled('circle')<{
   stroke-dasharray: ${p => p.circumference} ${p => p.circumference};
   transform: rotate(-90deg);
   transform-origin: 50% 50%;
-  transition: stroke-dashoffset 200ms, stroke 100ms;
+  transition:
+    stroke-dashoffset 200ms,
+    stroke 100ms;
 `;
 
 export default ProgressRing;

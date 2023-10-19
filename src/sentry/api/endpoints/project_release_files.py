@@ -15,8 +15,10 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import MAX_RELEASE_FILES_OFFSET
-from sentry.models import Distribution, File, Release, ReleaseFile
-from sentry.models.releasefile import read_artifact_index
+from sentry.models.distribution import Distribution
+from sentry.models.files.file import File
+from sentry.models.release import Release
+from sentry.models.releasefile import ReleaseFile, read_artifact_index
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 from sentry.utils.db import atomic_transaction
 

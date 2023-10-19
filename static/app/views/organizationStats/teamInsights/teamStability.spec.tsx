@@ -1,3 +1,6 @@
+import {Organization} from 'sentry-fixture/organization';
+import {SessionStatusCountByProjectInPeriod} from 'sentry-fixture/sessions';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TeamStability from 'sentry/views/organizationStats/teamInsights/teamStability';
@@ -8,18 +11,14 @@ describe('TeamStability', () => {
     MockApiClient.clearMockResponses();
     sessionsApi = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/sessions/`,
-      body: TestStubs.SessionStatusCountByProjectInPeriod(),
+      body: SessionStatusCountByProjectInPeriod(),
     });
   });
 
   it('should compare selected past crash rate with current week', async () => {
     const project = TestStubs.Project({hasSessions: true, id: 123});
     render(
-      <TeamStability
-        projects={[project]}
-        organization={TestStubs.Organization()}
-        period="2w"
-      />
+      <TeamStability projects={[project]} organization={Organization()} period="2w" />
     );
 
     expect(screen.getByText('project-slug')).toBeInTheDocument();
@@ -33,7 +32,7 @@ describe('TeamStability', () => {
     render(
       <TeamStability
         projects={[noSessionProject]}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         period="7d"
       />
     );
@@ -42,9 +41,7 @@ describe('TeamStability', () => {
   });
 
   it('should render no projects', () => {
-    render(
-      <TeamStability projects={[]} organization={TestStubs.Organization()} period="7d" />
-    );
+    render(<TeamStability projects={[]} organization={Organization()} period="7d" />);
 
     expect(
       screen.getByText('No projects with release health enabled')

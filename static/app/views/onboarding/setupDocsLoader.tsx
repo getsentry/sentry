@@ -14,9 +14,10 @@ import {
   ProductSelection,
   ProductSolution,
 } from 'sentry/components/onboarding/productSelection';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import type {PlatformKey} from 'sentry/types';
 import {Organization, Project, ProjectKey} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
@@ -142,12 +143,15 @@ export function SetupDocsLoader({
 
   return (
     <Fragment>
-      <ProductSelectionAvailabilityHook
-        organization={organization}
-        lazyLoader
-        skipLazyLoader={close}
-        platform={currentPlatform}
-      />
+      <Header>
+        <ProductSelectionAvailabilityHook
+          organization={organization}
+          lazyLoader
+          skipLazyLoader={close}
+          platform={currentPlatform}
+        />
+      </Header>
+      <Divider />
       {projectKeyUpdateError && (
         <LoadingError
           message={t('Failed to update the project key with the selected products.')}
@@ -204,19 +208,19 @@ Sentry.onLoad(function() {
     // You can add any additional configuration here`
       : ''
   }${
-      hasPerformance
-        ? `
+    hasPerformance
+      ? `
     // Performance Monitoring
-    tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!`
-        : ''
-    }${
-      hasSessionReplay
-        ? `
+    tracesSampleRate: 1.0, // Capture 100% of the transactions`
+      : ''
+  }${
+    hasSessionReplay
+      ? `
     // Session Replay
     replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
     replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
-        : ''
-    }
+      : ''
+  }
   });
 });
 </script>`,
@@ -272,7 +276,7 @@ Sentry.onLoad(function() {
           <div>
             <p>
               {t(
-                "Initialise Sentry as early as possible in your application's lifecycle."
+                "Initialize Sentry as early as possible in your application's lifecycle."
               )}
             </p>
             <CodeSnippet dark language="html">
@@ -339,6 +343,12 @@ Sentry.onLoad(function() {
 
 const DocsWrapper = styled(motion.div)``;
 
+const Header = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+`;
+
 const OptionalConfigWrapper = styled('div')`
   display: flex;
   cursor: pointer;
@@ -349,4 +359,11 @@ const ToggleButton = styled(Button)`
   :hover {
     color: ${p => p.theme.gray500};
   }
+`;
+
+const Divider = styled('hr')<{withBottomMargin?: boolean}>`
+  height: 1px;
+  width: 100%;
+  background: ${p => p.theme.border};
+  border: none;
 `;

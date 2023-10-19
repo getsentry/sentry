@@ -11,10 +11,7 @@ const user = TestStubs.User();
 describe('JsonForm', function () {
   describe('form prop', function () {
     it('default', function () {
-      const {container} = render(
-        <JsonForm forms={accountDetailsFields} additionalFieldProps={{user}} />
-      );
-      expect(container).toSnapshot();
+      render(<JsonForm forms={accountDetailsFields} additionalFieldProps={{user}} />);
     });
 
     it('initiallyCollapsed json form prop collapses forms', function () {
@@ -172,8 +169,7 @@ describe('JsonForm', function () {
     const jsonFormFields = [fields.name, fields.platform];
 
     it('default', function () {
-      const {container} = render(<JsonForm fields={jsonFormFields} />);
-      expect(container).toSnapshot();
+      render(<JsonForm fields={jsonFormFields} />);
     });
 
     it('missing additionalFieldProps required in "valid" prop', function () {

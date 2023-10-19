@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {
   render,
   renderGlobalModal,
@@ -15,16 +17,12 @@ import ProjectPerformance, {
 } from 'sentry/views/settings/projectPerformance/projectPerformance';
 
 describe('projectPerformance', function () {
-  const org = TestStubs.Organization({
-    features: [
-      'performance-view',
-      'performance-issues-dev',
-      'project-performance-settings-admin',
-    ],
+  const org = Organization({
+    features: ['performance-view', 'performance-issues-dev'],
   });
   const project = TestStubs.Project();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
-  let getMock, postMock, deleteMock, performanceIssuesMock;
+  let getMock, postMock, deleteMock;
 
   const router = TestStubs.router();
   const routerProps = {
@@ -68,7 +66,7 @@ describe('projectPerformance', function () {
       body: {},
       statusCode: 200,
     });
-    performanceIssuesMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
       method: 'GET',
       body: {},
@@ -131,23 +129,6 @@ describe('projectPerformance', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Reset All'}));
     expect(deleteMock).toHaveBeenCalled();
-  });
-
-  it('does not get performance issues settings without the feature flag', function () {
-    const orgWithoutPerfIssues = TestStubs.Organization({
-      features: ['performance-view', 'performance-issues-dev'],
-    });
-
-    render(
-      <ProjectPerformance
-        params={{projectId: project.slug}}
-        organization={orgWithoutPerfIssues}
-        project={project}
-        {...routerProps}
-      />
-    );
-
-    expect(performanceIssuesMock).not.toHaveBeenCalled();
   });
 
   it('renders detector threshold configuration - admin ui', async function () {

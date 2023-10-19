@@ -1,7 +1,7 @@
 from rest_framework import status
 
-from sentry.models import Rule
 from sentry.models.projectteam import ProjectTeam
+from sentry.models.rule import Rule
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test

@@ -3,11 +3,11 @@ from datetime import timedelta
 
 import pytest
 from django.utils import timezone
-from freezegun import freeze_time
 
-from sentry.models import Group, GroupSnooze
+from sentry.models.group import Group
+from sentry.models.groupsnooze import GroupSnooze
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data

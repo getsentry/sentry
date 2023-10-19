@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {LineSeriesOption} from 'echarts';
 import * as echarts from 'echarts/core';
 import {
+  MarkLineOption,
   TooltipFormatterCallback,
   TopLevelFormatterParams,
   XAXisOption,
@@ -61,10 +62,6 @@ export const STARFISH_FIELDS: Record<string, {outputType: AggregationOutputType}
   [SpanMetricsField.SPAN_SELF_TIME]: {
     outputType: 'duration',
   },
-  // local is only used with `time_spent_percentage` function
-  local: {
-    outputType: 'duration',
-  },
 };
 
 type Props = {
@@ -82,11 +79,13 @@ type Props = {
   forwardedRef?: RefObject<ReactEchartsRef>;
   grid?: AreaChartProps['grid'];
   height?: number;
+  hideYAxis?: boolean;
   hideYAxisSplitLine?: boolean;
   isBarChart?: boolean;
   isLineChart?: boolean;
   legendFormatter?: (name: string) => string;
   log?: boolean;
+  markLine?: MarkLineOption;
   onClick?: EChartClickHandler;
   onDataZoom?: EChartDataZoomHandler;
   onHighlight?: EChartHighlightHandler;
@@ -456,6 +455,7 @@ function Chart({
               additionalSeries={transformedThroughput}
               xAxis={xAxis}
               stacked={stacked}
+              colors={colors}
               onClick={onClick}
               {...areaChartProps}
               onLegendSelectChanged={onLegendSelectChanged}

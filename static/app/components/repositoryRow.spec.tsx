@@ -1,3 +1,6 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Repository} from 'sentry-fixture/repository';
+
 import {
   render,
   renderGlobalModal,
@@ -6,21 +9,22 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import RepositoryRow from 'sentry/components/repositoryRow';
+import {RepositoryStatus} from 'sentry/types';
 
 describe('RepositoryRow', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  const repository = TestStubs.Repository();
-  const pendingRepo = TestStubs.Repository({
-    status: 'pending_deletion',
+  const repository = Repository();
+  const pendingRepo = Repository({
+    status: RepositoryStatus.PENDING_DELETION,
   });
 
   const api = new MockApiClient();
 
   describe('rendering with access', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       access: ['org:integrations'],
     });
 
@@ -55,7 +59,7 @@ describe('RepositoryRow', function () {
   });
 
   describe('rendering without access', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       access: ['org:write'],
     });
 
@@ -81,7 +85,7 @@ describe('RepositoryRow', function () {
   });
 
   describe('deletion', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       access: ['org:integrations'],
     });
 
@@ -108,7 +112,7 @@ describe('RepositoryRow', function () {
   });
 
   describe('cancel deletion', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       access: ['org:integrations'],
     });
 

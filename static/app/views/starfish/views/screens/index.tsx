@@ -5,7 +5,6 @@ import Color from 'color';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
-import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -15,14 +14,13 @@ import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/ch
 import EventView from 'sentry/utils/discover/eventView';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
-import {useReleases} from 'sentry/views/starfish/queries/useReleases';
+import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
+import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
 
 export enum YAxis {
@@ -32,6 +30,8 @@ export enum YAxis {
   TTFD,
   SLOW_FRAME_RATE,
   FROZEN_FRAME_RATE,
+  THROUGHPUT,
+  COUNT,
 }
 
 export const YAXIS_COLUMNS: Readonly<Record<YAxis, string>> = {
@@ -41,6 +41,8 @@ export const YAXIS_COLUMNS: Readonly<Record<YAxis, string>> = {
   [YAxis.TTFD]: 'avg(measurements.time_to_full_display)',
   [YAxis.SLOW_FRAME_RATE]: 'avg(measurements.frames_slow_rate)',
   [YAxis.FROZEN_FRAME_RATE]: 'avg(measurements.frames_frozen_rate)',
+  [YAxis.THROUGHPUT]: 'tpm()',
+  [YAxis.COUNT]: 'count()',
 };
 
 export const READABLE_YAXIS_LABELS: Readonly<Record<YAxis, string>> = {
@@ -50,6 +52,8 @@ export const READABLE_YAXIS_LABELS: Readonly<Record<YAxis, string>> = {
   [YAxis.TTFD]: 'avg(time_to_full_display)',
   [YAxis.SLOW_FRAME_RATE]: 'avg(frames_slow_rate)',
   [YAxis.FROZEN_FRAME_RATE]: 'avg(frames_frozen_rate)',
+  [YAxis.THROUGHPUT]: 'tpm()',
+  [YAxis.COUNT]: 'count()',
 };
 
 export const CHART_TITLES: Readonly<Record<YAxis, string>> = {
@@ -59,6 +63,8 @@ export const CHART_TITLES: Readonly<Record<YAxis, string>> = {
   [YAxis.TTFD]: t('Time To Full Display'),
   [YAxis.SLOW_FRAME_RATE]: t('Slow Frame Rate'),
   [YAxis.FROZEN_FRAME_RATE]: t('Frozen Frame Rate'),
+  [YAxis.THROUGHPUT]: t('Throughput'),
+  [YAxis.COUNT]: t('Count'),
 };
 
 export const OUTPUT_TYPE: Readonly<Record<YAxis, AggregationOutputType>> = {
@@ -68,6 +74,8 @@ export const OUTPUT_TYPE: Readonly<Record<YAxis, AggregationOutputType>> = {
   [YAxis.TTFD]: 'duration',
   [YAxis.SLOW_FRAME_RATE]: 'percentage',
   [YAxis.FROZEN_FRAME_RATE]: 'percentage',
+  [YAxis.THROUGHPUT]: 'number',
+  [YAxis.COUNT]: 'number',
 };
 
 const DEVICE_CLASS_BREAKDOWN_INDEX = {
@@ -76,38 +84,31 @@ const DEVICE_CLASS_BREAKDOWN_INDEX = {
   low: 2,
 };
 
-export function ScreensView({yAxes}: {yAxes: YAxis[]}) {
-  const pageFilter = usePageFilters();
-  const location = useLocation();
+const EMPTY = '';
+const UNKNOWN = 'unknown';
+type Props = {
+  yAxes: YAxis[];
+  additionalFilters?: string[];
+  chartHeight?: number;
+};
 
-  const {data: releases, isLoading: isReleasesLoading} = useReleases();
+export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
+  const pageFilter = usePageFilters();
 
   const yAxisCols = yAxes.map(val => YAXIS_COLUMNS[val]);
 
-  const primaryRelease =
-    decodeScalar(location.query.primaryRelease) ?? releases?.[0]?.version ?? undefined;
+  const {
+    primaryRelease,
+    secondaryRelease,
+    isLoading: isReleasesLoading,
+  } = useReleaseSelection();
 
-  const secondaryRelease =
-    decodeScalar(location.query.secondaryRelease) ?? releases?.[0]?.version ?? undefined;
-
-  const query = new MutableSearch(['event.type:transaction', 'transaction.op:ui.load']);
-
-  let queryString: string = query.formatString();
-  if (
-    defined(primaryRelease) &&
-    defined(secondaryRelease) &&
-    primaryRelease !== secondaryRelease
-  ) {
-    queryString = query
-      .copy()
-      .addStringFilter(`release:[${primaryRelease},${secondaryRelease}]`)
-      .formatString();
-  } else if (defined(primaryRelease)) {
-    queryString = query
-      .copy()
-      .addStringFilter(`release:${primaryRelease}`)
-      .formatString();
-  }
+  const query = new MutableSearch([
+    'event.type:transaction',
+    'transaction.op:ui.load',
+    ...(additionalFilters ?? []),
+  ]);
+  const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
 
   useSynchronizeCharts();
   const {
@@ -165,26 +166,30 @@ export function ScreensView({yAxes}: {yAxes: YAxis[]}) {
         const release = releaseArray.join(',');
         const isPrimary = release === primaryRelease;
 
-        Object.keys(releaseSeries[seriesName]).forEach(yAxis => {
-          const label = `${deviceClass}, ${release}`;
-          if (yAxis in transformedReleaseSeries) {
-            const data =
-              releaseSeries[seriesName][yAxis]?.data.map(datum => {
-                return {
-                  name: datum[0] * 1000,
-                  value: datum[1][0].count,
-                } as SeriesDataUnit;
-              }) ?? [];
+        if (release !== EMPTY) {
+          Object.keys(releaseSeries[seriesName]).forEach(yAxis => {
+            const label = `${deviceClass === EMPTY ? UNKNOWN : deviceClass}, ${release}`;
+            if (yAxis in transformedReleaseSeries) {
+              const data =
+                releaseSeries[seriesName][yAxis]?.data.map(datum => {
+                  return {
+                    name: datum[0] * 1000,
+                    value: datum[1][0].count,
+                  } as SeriesDataUnit;
+                }) ?? [];
 
-            transformedReleaseSeries[yAxis][release][deviceClass] = {
-              seriesName: label,
-              color: isPrimary
-                ? CHART_PALETTE[5][index]
-                : Color(CHART_PALETTE[5][index]).lighten(0.5).string(),
-              data,
-            };
-          }
-        });
+              transformedReleaseSeries[yAxis][release][
+                deviceClass === EMPTY ? UNKNOWN : deviceClass
+              ] = {
+                seriesName: label,
+                color: isPrimary
+                  ? CHART_PALETTE[5][index]
+                  : Color(CHART_PALETTE[5][index]).lighten(0.5).string(),
+                data,
+              };
+            }
+          });
+        }
       });
     }
 
@@ -195,9 +200,9 @@ export function ScreensView({yAxes}: {yAxes: YAxis[]}) {
             <ChartsContainerItem key={val}>
               <MiniChartPanel title={CHART_TITLES[val]}>
                 <Chart
-                  height={180}
+                  height={chartHeight ?? 180}
                   data={
-                    ['high', 'medium', 'low']
+                    ['high', 'medium', 'low', UNKNOWN]
                       .flatMap(deviceClass => {
                         return [primaryRelease, secondaryRelease].map(r => {
                           if (r) {
@@ -238,16 +243,10 @@ export function ScreensView({yAxes}: {yAxes: YAxis[]}) {
 
   return (
     <div data-test-id="starfish-mobile-view">
-      <StyledRow minSize={300}>
-        <ChartsContainer>{renderCharts()}</ChartsContainer>
-      </StyledRow>
+      <ChartsContainer>{renderCharts()}</ChartsContainer>
     </div>
   );
 }
-
-const StyledRow = styled(PerformanceLayoutBodyRow)`
-  margin-bottom: ${space(2)};
-`;
 
 const ChartsContainer = styled('div')`
   display: flex;

@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from functools import cached_property
 from typing import Mapping, Sequence
 from unittest import mock
+from unittest.mock import ANY
 
 import pytz
 from django.contrib.auth.models import AnonymousUser
@@ -19,24 +20,22 @@ from sentry.event_manager import EventManager, get_event_type
 from sentry.issues.grouptype import MonitorCheckInFailure
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.mail import build_subject_prefix, mail_adapter
-from sentry.models import (
-    Activity,
-    GroupRelease,
-    Integration,
-    NotificationSetting,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-    ProjectOption,
-    Repository,
-    Rule,
-    User,
-    UserEmail,
-    UserOption,
-    UserReport,
-)
+from sentry.models.activity import Activity
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.integrations.integration import Integration
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.options.user_option import UserOption
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.repository import Repository
+from sentry.models.rule import Rule
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
+from sentry.models.userreport import UserReport
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -49,10 +48,12 @@ from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
 from sentry.replays.testutils import mock_replay
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.silo import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, ReplaysSnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.types.integrations import ExternalProviders
@@ -61,6 +62,8 @@ from sentry.utils.dates import ensure_aware
 from sentry.utils.email import MessageBuilder, get_email_addresses
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 from tests.sentry.mail import make_event_data, mock_notify
+
+pytestmark = requires_snuba
 
 
 class BaseMailAdapterTest(TestCase, PerformanceIssueTestCase):
@@ -170,7 +173,8 @@ class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest):
 
 
 class MailAdapterNotifyTest(BaseMailAdapterTest):
-    def test_simple_notification(self):
+    @mock.patch("sentry.analytics.record")
+    def test_simple_notification(self, mock_record):
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
@@ -189,6 +193,31 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert isinstance(msg.alternatives[0][0], str)
         assert "my rule" in msg.alternatives[0][0]
         assert "notification_uuid" in msg.body
+        mock_record.assert_any_call(
+            "integrations.email.notification_sent",
+            category="issue_alert",
+            target_type=ANY,
+            target_identifier=None,
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            group_id=event.group_id,
+            actor_id=ANY,
+            user_id=ANY,
+            id=ANY,
+            actor_type="User",
+            notification_uuid=ANY,
+            alert_id=rule.id,
+        )
+        mock_record.assert_called_with(
+            "alert.sent",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            provider="email",
+            alert_id=rule.id,
+            alert_type="issue_alert",
+            external_id=ANY,
+            notification_uuid=ANY,
+        )
 
     def test_simple_snooze(self):
         """Test that notification for alert snoozed by user is not send to that user."""
@@ -756,7 +785,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         self.assert_notify(event, [user.email], ActionTargetType.MEMBER, str(user.id))
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
     def create_assert_delete_projectownership(
         self,
@@ -822,14 +851,15 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         event_single_user = self.store_event(data=make_event_data("foo.jx"), project_id=project.id)
         self.assert_notify(event_single_user, [user2.email])
 
-        # Make sure that disabling mail alerts works as expected
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
-            user_id=user2.id,
-            project=project,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # Make sure that disabling mail alerts works as expected
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.NEVER,
+                user_id=user2.id,
+                project=project,
+            )
 
         with self.feature("organizations:notification-all-recipients"):
             event_all_users = self.store_event(
@@ -856,14 +886,15 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
             self.create_member(user=u, organization=organization, teams=[team2])
             for u in [user3, user4, user5]
         ]
-        for u in [user, user2, user3, user4, user5]:
-            # disable slack
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.NEVER,
-                user_id=u.id,
-            )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            for u in [user, user2, user3, user4, user5]:
+                # disable slack
+                NotificationSetting.objects.update_settings(
+                    ExternalProviders.SLACK,
+                    NotificationSettingTypes.ISSUE_ALERTS,
+                    NotificationSettingOptionValues.NEVER,
+                    user_id=u.id,
+                )
 
         with self.feature("organizations:notification-all-recipients"):
             self.create_assert_delete_projectownership(
@@ -918,13 +949,14 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
             for u in [user3, user4, user5]
         ]
 
-        for u in [user, user2, user3, user4, user5]:
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.NEVER,
-                user_id=u.id,
-            )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            for u in [user, user2, user3, user4, user5]:
+                NotificationSetting.objects.update_settings(
+                    ExternalProviders.SLACK,
+                    NotificationSettingTypes.ISSUE_ALERTS,
+                    NotificationSettingOptionValues.NEVER,
+                    user_id=u.id,
+                )
 
         with self.feature("organizations:notification-all-recipients"):
             self.create_assert_delete_projectownership(
@@ -1068,13 +1100,14 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         users = [user, user_star, user_username, user_username_star]
         for u in users:
             self.create_member(user=u, organization=organization, teams=[team])
-        for u in users:
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.NEVER,
-                user_id=u.id,
-            )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            for u in users:
+                NotificationSetting.objects.update_settings(
+                    ExternalProviders.SLACK,
+                    NotificationSettingTypes.ISSUE_ALERTS,
+                    NotificationSettingOptionValues.NEVER,
+                    user_id=u.id,
+                )
 
         """
             tags.user.username:someemail@example.com sentryuser@example.com
@@ -1221,6 +1254,9 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
 
         message = mail.outbox[0]
         assert "List-ID" in message.message()
+        assert isinstance(message, EmailMultiAlternatives)
+        assert isinstance(message.alternatives[0][0], str)
+        assert "notification_uuid" in message.alternatives[0][0]
 
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_notify_digest_replay_id(self, notify):
@@ -1270,6 +1306,9 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
 
         message = mail.outbox[0]
         assert "View Replays" in message.message().as_string()
+        assert isinstance(message, EmailMultiAlternatives)
+        assert isinstance(message.alternatives[0][0], str)
+        assert "notification_uuid" in message.alternatives[0][0]
 
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_dont_notify_digest_snoozed(self, notify):

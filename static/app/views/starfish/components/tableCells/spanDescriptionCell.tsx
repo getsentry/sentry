@@ -57,7 +57,7 @@ export function SpanDescriptionCell({
 
 const NULL_DESCRIPTION = <span>&lt;null&gt;</span>;
 
-const WiderHovercard = styled(
+export const WiderHovercard = styled(
   ({
     children,
     className,
@@ -75,7 +75,7 @@ const WiderHovercard = styled(
 )`
   &.wider {
     width: auto;
-    max-width: 500px;
+    max-width: 550px;
   }
 `;
 

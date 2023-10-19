@@ -6,7 +6,7 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project, ProjectKey} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -44,12 +44,12 @@ export function OtherPlatformsInfo({
         "We cannot provide instructions for '%s' projects. However, please find below the DSN key for this project, which is required to instrument Sentry.",
         platform
       )}
-      <CodeSnippet dark language="bash">
+      <CodeSnippet dark language="properties">
         {t('dsn: %s', data[0].dsn.public)}
       </CodeSnippet>
       <Suggestion>
         {t(
-          'Since it can be a lot work creating a Sentry SDK from scratch, we suggest you review the following SDKs which are applicable for a wide variety of applications:'
+          'Since it can be a lot of work creating a Sentry SDK from scratch, we suggest you review the following SDKs which are applicable for a wide variety of applications:'
         )}
         <List symbol="bullet">
           <ListItem>
@@ -79,6 +79,24 @@ export function OtherPlatformsInfo({
           </ListItem>
         </List>
       </Suggestion>
+      <div>
+        {tct(
+          "Also there's a rich ecosystem of [link:community suported SDKs] (including NestJS, Nuxt2, Perl, CFML and Clojure).",
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/platforms/#community-supported" />
+            ),
+          }
+        )}
+      </div>
+      <div>
+        {tct(
+          'Your favorite language or framework still cannot be found? Then we encourage you to consider [link:writing your own SDK].',
+          {
+            link: <ExternalLink href="https://develop.sentry.dev/sdk" />,
+          }
+        )}
+      </div>
     </Wrapper>
   );
 }

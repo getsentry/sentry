@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -105,7 +107,7 @@ describe('OrganizationContextContainer', function () {
   });
 
   it('fetches new org when router params change', async function () {
-    const newOrg = TestStubs.Organization({slug: 'new-slug'});
+    const newOrg = Organization({slug: 'new-slug'});
 
     const {rerender} = renderComponent();
     expect(await screen.findByText(organization.slug)).toBeInTheDocument();
@@ -225,10 +227,7 @@ describe('OrganizationContextContainer', function () {
         params: {orgId: ''},
         useLastOrganization: true,
         organizationsLoading: false,
-        organizations: [
-          TestStubs.Organization({slug: 'foo'}),
-          TestStubs.Organization({slug: 'bar'}),
-        ],
+        organizations: [Organization({slug: 'foo'}), Organization({slug: 'bar'})],
       })
     );
 
@@ -243,7 +242,7 @@ describe('OrganizationContextContainer', function () {
     jest.mocked(ConfigStore.get).mockImplementation(() => 'my-last-org');
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/my-last-org/',
-      body: TestStubs.Organization({slug: 'my-last-org'}),
+      body: Organization({slug: 'my-last-org'}),
     });
     getProjectsMock = MockApiClient.addMockResponse({
       url: '/organizations/my-last-org/projects/',
@@ -270,10 +269,7 @@ describe('OrganizationContextContainer', function () {
         params: {orgId: ''},
         useLastOrganization: true,
         organizationsLoading: false,
-        organizations: [
-          TestStubs.Organization({slug: 'foo'}),
-          TestStubs.Organization({slug: 'bar'}),
-        ],
+        organizations: [Organization({slug: 'foo'}), Organization({slug: 'bar'})],
       })
     );
 
@@ -298,10 +294,7 @@ describe('OrganizationContextContainer', function () {
       makeComponent({
         params: {orgId: 'org-slug'},
         organizationsLoading: false,
-        organizations: [
-          TestStubs.Organization({slug: 'foo'}),
-          TestStubs.Organization({slug: 'bar'}),
-        ],
+        organizations: [Organization({slug: 'foo'}), Organization({slug: 'bar'})],
       })
     );
 

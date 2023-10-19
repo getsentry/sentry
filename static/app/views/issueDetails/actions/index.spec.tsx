@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
+import {Organization} from 'sentry-fixture/organization';
 
 import {
   render,
@@ -30,7 +31,7 @@ const group = TestStubs.Group({
   project,
 });
 
-const organization = TestStubs.Organization({
+const organization = Organization({
   id: '4660',
   slug: 'org',
   features: ['reprocessing-v2'],
@@ -50,7 +51,7 @@ describe('GroupActions', function () {
 
   describe('render()', function () {
     it('renders correctly', function () {
-      const wrapper = render(
+      render(
         <GroupActions
           group={group}
           project={project}
@@ -58,7 +59,6 @@ describe('GroupActions', function () {
           disabled={false}
         />
       );
-      expect(wrapper.container).toSnapshot();
     });
   });
 
@@ -208,10 +208,10 @@ describe('GroupActions', function () {
   });
 
   it('opens delete confirm modal from more actions dropdown', async () => {
-    const org = {
+    const org = Organization({
       ...organization,
       access: [...organization.access, 'event:admin'],
-    };
+    });
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/issues/`,
       method: 'PUT',

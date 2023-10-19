@@ -1,3 +1,6 @@
+import {AuditLogs} from 'sentry-fixture/auditLogs';
+import {AuditLogsApiEventNames} from 'sentry-fixture/auditLogsApiEventNames';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -23,7 +26,7 @@ describe('OrganizationAuditLog', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: {rows: TestStubs.AuditLogs(), options: TestStubs.AuditLogsApiEventNames()},
+      body: {rows: AuditLogs(), options: AuditLogsApiEventNames()},
     });
   });
 
@@ -46,7 +49,7 @@ describe('OrganizationAuditLog', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: {rows: [], options: TestStubs.AuditLogsApiEventNames()},
+      body: {rows: [], options: AuditLogsApiEventNames()},
     });
 
     render(<OrganizationAuditLog location={router.location} />, {
@@ -70,7 +73,7 @@ describe('OrganizationAuditLog', function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: {
-        rows: TestStubs.AuditLogs(),
+        rows: AuditLogs(),
         options: ['rule.edit', 'alertrule.edit', 'member.add'],
       },
     });
@@ -114,7 +117,7 @@ describe('OrganizationAuditLog', function () {
             data: {},
           },
         ],
-        options: TestStubs.AuditLogsApiEventNames(),
+        options: AuditLogsApiEventNames(),
       },
     });
 

@@ -433,6 +433,33 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                   />
                 </NestedForm>
               </PanelItem>
+              <PanelItem noPadding>
+                <NestedForm
+                  apiMethod="PUT"
+                  apiEndpoint={projectEndpoint}
+                  initialData={{
+                    'filters:chunk-load-error':
+                      project.options?.['filters:chunk-load-error'],
+                  }}
+                  saveOnBlur
+                  onSubmitSuccess={(
+                    response // This will update our project context
+                  ) => ProjectsStore.onUpdateSuccess(response)}
+                >
+                  <FieldFromConfig
+                    getData={getOptionsData}
+                    field={{
+                      type: 'boolean',
+                      name: 'filters:chunk-load-error',
+                      label: t('Filter out ChunkLoadError(s)'),
+                      help: t(
+                        "ChunkLoadErrors can happen in Webpack-powered applications when code chunks can't be found on the server. This often occurs during a redeploy of the website while users have the old page open. A page refresh usually resolves the issue."
+                      ),
+                      disabled: !hasAccess,
+                    }}
+                  />
+                </NestedForm>
+              </PanelItem>
             </PanelBody>
           </Panel>
 

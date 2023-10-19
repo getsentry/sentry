@@ -10,9 +10,8 @@ const TEN_SECONDS = 10 * 1000;
 
 describe('replayInlineOnboardingPanel', () => {
   it('should render by default', async () => {
-    const {container} = render(<ReplayInlineOnboardingPanel />);
+    render(<ReplayInlineOnboardingPanel />);
     expect(await screen.findByText('Configure Session Replay')).toBeInTheDocument();
-    expect(container).toSnapshot();
   });
 
   it('should not render if hideUntil is set', async () => {

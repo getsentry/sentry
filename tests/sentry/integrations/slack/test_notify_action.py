@@ -6,12 +6,16 @@ import responses
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
-from sentry.models import Integration, OrganizationIntegration
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.notifications.additional_attachment_manager import manager
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers import install_slack
+from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 
 def additional_attachment_generator(integration, organization):
@@ -337,7 +341,7 @@ class SlackNotifyActionTest(RuleTestCase):
     def test_disabled_org_integration(self):
         org = self.create_organization(owner=self.user)
         OrganizationIntegration.objects.create(organization_id=org.id, integration=self.integration)
-        OrganizationIntegration.objects.filter(
+        OrganizationIntegration.objects.get(
             integration=self.integration, organization_id=self.event.project.organization.id
         ).update(status=ObjectStatus.DISABLED)
         event = self.get_event()
@@ -348,16 +352,26 @@ class SlackNotifyActionTest(RuleTestCase):
         assert len(results) == 0
 
     @responses.activate
-    def test_additional_attachment(self):
+    @mock.patch("sentry.analytics.record")
+    def test_additional_attachment(self, mock_record):
         with mock.patch.dict(
             manager.attachment_generators,
             {ExternalProviders.SLACK: additional_attachment_generator},
         ):
             event = self.get_event()
 
-            rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
+            rule = self.get_rule(
+                data={
+                    "workspace": self.integration.id,
+                    "channel": "#my-channel",
+                    "channel_id": "123",
+                }
+            )
 
-            results = list(rule.after(event=event, state=self.get_state()))
+            notification_uuid = "123e4567-e89b-12d3-a456-426614174000"
+            results = list(
+                rule.after(event=event, state=self.get_state(), notification_uuid=notification_uuid)
+            )
             assert len(results) == 1
 
             responses.add(
@@ -379,6 +393,25 @@ class SlackNotifyActionTest(RuleTestCase):
             assert attachments[0]["title"] == event.title
             assert attachments[1]["title"] == self.organization.slug
             assert attachments[1]["text"] == self.integration.id
+            mock_record.assert_called_with(
+                "alert.sent",
+                provider="slack",
+                alert_id="",
+                alert_type="issue_alert",
+                organization_id=self.organization.id,
+                project_id=event.project_id,
+                external_id="123",
+                notification_uuid=notification_uuid,
+            )
+            mock_record.assert_any_call(
+                "integrations.slack.notification_sent",
+                category="issue_alert",
+                organization_id=self.organization.id,
+                project_id=event.project_id,
+                group_id=event.group_id,
+                notification_uuid=notification_uuid,
+                alert_id=None,
+            )
 
     @responses.activate
     def test_multiple_integrations(self):

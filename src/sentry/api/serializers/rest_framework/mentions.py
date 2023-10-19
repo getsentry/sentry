@@ -4,17 +4,23 @@ from typing import Sequence
 
 from rest_framework import serializers
 
-from sentry.models import ActorTuple, OrganizationMember, OrganizationMemberTeam, Team, User
+from sentry.models.actor import ActorTuple
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.util import region_silo_function
 
 
+@region_silo_function
 def extract_user_ids_from_mentions(organization_id, mentions):
     """
     Extracts user ids from a set of mentions. Mentions should be a list of
-    `ActorTuple` instances. Returns a dictionary with 'users' and 'team_users' keys.
-    'users' is the user ids for all explicitly mentioned users, and 'team_users'
+    `ActorTuple` instances. Returns a dictionary with 'users', 'team_users', and 'teams' keys.
+    'users' is the user ids for all explicitly mentioned users, 'team_users'
     is all user ids from explicitly mentioned teams, excluding any already
-    mentioned users.
+    mentioned users, and 'teams' is the team ids for all explicitly mentioned teams.
     """
     actors: Sequence[RpcUser | Team] = ActorTuple.resolve_many(mentions)
     actor_mentions = separate_resolved_actors(actors)
@@ -33,6 +39,7 @@ def extract_user_ids_from_mentions(organization_id, mentions):
     return {
         "users": {user.id for user in actor_mentions["users"]},
         "team_users": set(mentioned_team_users),
+        "teams": {team.id for team in actor_mentions["teams"]},
     }
 
 

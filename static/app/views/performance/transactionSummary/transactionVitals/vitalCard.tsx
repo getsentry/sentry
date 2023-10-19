@@ -226,7 +226,7 @@ class VitalCard extends Component<Props, State> {
               })}
             onClick={this.trackOpenAllEventsClicked}
           >
-            {t('View All Events')}
+            {t('View Sampled Events')}
           </Button>
         </div>
       </CardSummary>

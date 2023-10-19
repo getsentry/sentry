@@ -1,7 +1,11 @@
 import {StringAccumulator} from 'sentry/views/starfish/utils/sqlish/formatters/stringAccumulator';
 import type {Token} from 'sentry/views/starfish/utils/sqlish/types';
 
-export function string(tokens: Token[]): string {
+interface Options {
+  maxLineLength?: number;
+}
+
+export function string(tokens: Token[], options: Options = {}): string {
   const accumulator = new StringAccumulator();
 
   let precedingNonWhitespaceToken: Token | undefined = undefined;
@@ -69,7 +73,7 @@ export function string(tokens: Token[]): string {
   }
 
   tokens.forEach(contentize);
-  return accumulator.toString();
+  return accumulator.toString(options.maxLineLength);
 }
 
 // Keywords that always trigger a newline

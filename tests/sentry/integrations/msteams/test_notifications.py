@@ -3,20 +3,26 @@ from unittest.mock import MagicMock, Mock, call, patch
 import responses
 
 from sentry.integrations.msteams.notifications import send_notification_as_msteams
-from sentry.models import Activity
+from sentry.models.activity import Activity
 from sentry.notifications.notifications.activity.note import NoteActivityNotification
+from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import MSTeamsActivityNotificationTest, TestCase
 from sentry.testutils.helpers.notifications import (
     DummyNotification,
     DummyNotificationWithMoreFields,
 )
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 TEST_CARD = {"type": "test_card"}
 
 
+@control_silo_test(stable=True)
 @patch(
     "sentry.integrations.msteams.MSTeamsNotificationsMessageBuilder.build_notification_card",
     Mock(return_value=TEST_CARD),
@@ -34,7 +40,6 @@ TEST_CARD = {"type": "test_card"}
     Mock(return_value={"members": [{"user": "some_user", "tenantId": "some_tenant_id"}]}),
 )
 @patch("sentry.integrations.msteams.MsTeamsClientMixin.send_card")
-@control_silo_test
 class MSTeamsNotificationTest(TestCase):
     def _install_msteams_personal(self):
         self.tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"
@@ -92,8 +97,10 @@ class MSTeamsNotificationTest(TestCase):
         self._install_msteams_personal()
 
         notification = DummyNotification(self.organization)
+        with assume_test_silo_mode(SiloMode.REGION):
+            recipients = RpcActor.many_from_object([self.user_1])
         with self.tasks():
-            send_notification_as_msteams(notification, [self.user_1], {}, {})
+            send_notification_as_msteams(notification, recipients, {}, {})
 
         mock_send_card.assert_called_once_with("some_conversation_id", TEST_CARD)
 
@@ -105,12 +112,15 @@ class MSTeamsNotificationTest(TestCase):
 
         notification = DummyNotification(self.organization)
 
+        with assume_test_silo_mode(SiloMode.REGION):
+            recipients = RpcActor.many_from_object([self.user_1])
+
         with patch(
             "sentry.integrations.msteams.notifications.SUPPORTED_NOTIFICATION_TYPES",
             [DummyNotificationWithMoreFields],
         ):
             with self.tasks():
-                send_notification_as_msteams(notification, [self.user_1], {}, {})
+                send_notification_as_msteams(notification, recipients, {}, {})
 
         mock_send_card.assert_not_called()
 
@@ -123,8 +133,11 @@ class MSTeamsNotificationTest(TestCase):
             mock_get_user_conversation_id.return_value = "some_conversation_id"
 
             notification = DummyNotification(self.organization)
+            with assume_test_silo_mode(SiloMode.REGION):
+                recipients = RpcActor.many_from_object([self.user_1])
+
             with self.tasks():
-                send_notification_as_msteams(notification, [self.user_1], {}, {})
+                send_notification_as_msteams(notification, recipients, {}, {})
 
             mock_get_user_conversation_id.assert_called_once_with(self.user_id_1, "some_tenant_id")
             mock_send_card.assert_called_once_with("some_conversation_id", TEST_CARD)
@@ -139,8 +152,11 @@ class MSTeamsNotificationTest(TestCase):
         self.create_identity(user=user_2, identity_provider=self.idp, external_id=self.team_id)
 
         notification = DummyNotification(self.organization)
+        with assume_test_silo_mode(SiloMode.REGION):
+            recipients = RpcActor.many_from_object([user_2])
+
         with self.tasks():
-            send_notification_as_msteams(notification, [user_2], {}, {})
+            send_notification_as_msteams(notification, recipients, {}, {})
 
         mock_send_card.assert_not_called()
 
@@ -152,8 +168,11 @@ class MSTeamsNotificationTest(TestCase):
         self.create_identity(user=user_2, identity_provider=self.idp, external_id=user_id_2)
 
         notification = DummyNotification(self.organization)
+        with assume_test_silo_mode(SiloMode.REGION):
+            recipients = RpcActor.many_from_object([self.user_1, user_2])
+
         with self.tasks():
-            send_notification_as_msteams(notification, [self.user_1, user_2], {}, {})
+            send_notification_as_msteams(notification, recipients, {}, {})
 
         mock_send_card.assert_has_calls(
             [call("some_conversation_id", TEST_CARD), call("some_conversation_id", TEST_CARD)]

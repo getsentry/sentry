@@ -10,8 +10,16 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import UserNotificationsSerializer
-from sentry.models import NotificationSetting, UserEmail, UserOption
-from sentry.notifications.types import FineTuningAPIKey
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.options.user_option import UserOption
+from sentry.models.useremail import UserEmail
+from sentry.notifications.types import (
+    FineTuningAPIKey,
+    NotificationScopeEnum,
+    NotificationSettingEnum,
+    NotificationSettingsOptionEnum,
+)
 from sentry.notifications.utils.legacy_mappings import (
     get_option_value_from_int,
     get_type_from_fine_tuning_key,
@@ -134,6 +142,18 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
                 value.remove(org_id)
             elif not enabled:
                 value.add(org_id)
+
+            NotificationSettingOption.objects.create_or_update(
+                scope_type=NotificationScopeEnum.ORGANIZATION.value,
+                scope_identifier=org_id,
+                user_id=user.id,
+                type=NotificationSettingEnum.REPORTS.value,
+                values={
+                    "value": NotificationSettingsOptionEnum.ALWAYS.value
+                    if enabled
+                    else NotificationSettingsOptionEnum.NEVER.value,
+                },
+            )
 
         user_option.update(value=list(value))
         return Response(status=status.HTTP_204_NO_CONTENT)

@@ -168,7 +168,7 @@ class OrgAuthTokenEditTest(APITestCase):
             self.organization.slug, token.id, status_code=status.HTTP_400_BAD_REQUEST, **payload
         )
         assert response.content
-        assert response.data == {"detail": ["The name cannot be blank."]}
+        assert response.data == {"detail": "The name cannot be blank."}
 
         tokenNew = OrgAuthToken.objects.get(id=token.id)
         assert tokenNew.name == "token 1"
@@ -189,7 +189,7 @@ class OrgAuthTokenEditTest(APITestCase):
             self.organization.slug, token.id, status_code=status.HTTP_400_BAD_REQUEST, **payload
         )
         assert response.content
-        assert response.data == {"detail": ["The name cannot be longer than 255 characters."]}
+        assert response.data == {"detail": "The name cannot be longer than 255 characters."}
 
         tokenNew = OrgAuthToken.objects.get(id=token.id)
         assert tokenNew.name == "token 1"
@@ -210,7 +210,7 @@ class OrgAuthTokenEditTest(APITestCase):
             self.organization.slug, token.id, status_code=status.HTTP_400_BAD_REQUEST, **payload
         )
         assert response.content
-        assert response.data == {"detail": ["The name cannot be blank."]}
+        assert response.data == {"detail": "The name cannot be blank."}
 
         tokenNew = OrgAuthToken.objects.get(id=token.id)
         assert tokenNew.name == "token 1"

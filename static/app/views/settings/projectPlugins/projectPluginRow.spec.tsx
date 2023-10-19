@@ -1,23 +1,20 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectPluginRow from 'sentry/views/settings/projectPlugins/projectPluginRow';
 
 describe('ProjectPluginRow', function () {
   const plugin = TestStubs.Plugin();
-  const org = TestStubs.Organization({access: ['project:write']});
+  const org = Organization({access: ['project:write']});
   const project = TestStubs.Project();
   const params = {orgId: org.slug, projectId: project.slug};
   const routerContext = TestStubs.routerContext([{organization: org, project}]);
 
   it('renders', function () {
-    const {container} = render(
-      <ProjectPluginRow {...params} {...plugin} project={project} />,
-      {
-        context: routerContext,
-      }
-    );
-
-    expect(container).toSnapshot();
+    render(<ProjectPluginRow {...params} {...plugin} project={project} />, {
+      context: routerContext,
+    });
   });
 
   it('calls `onChange` when clicked', async function () {
@@ -39,7 +36,7 @@ describe('ProjectPluginRow', function () {
     render(
       <ProjectPluginRow {...params} {...plugin} onChange={onChange} project={project} />,
       {
-        organization: TestStubs.Organization({access: []}),
+        organization: Organization({access: []}),
       }
     );
 

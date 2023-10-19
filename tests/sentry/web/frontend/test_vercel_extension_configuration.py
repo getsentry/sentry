@@ -5,7 +5,7 @@ from django.db import router
 
 from sentry.identity.vercel import VercelIdentityProvider
 from sentry.integrations.vercel import VercelClient
-from sentry.models import OrganizationMember
+from sentry.models.organizationmember import OrganizationMember
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature

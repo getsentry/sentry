@@ -2,21 +2,9 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
-
-const profilingConfiguration = `    # Set profiles_sample_rate to 1.0 to profile 100%
-    # of sampled transactions.
-    # We recommend adjusting this value in production.
-    profiles_sample_rate=1.0,`;
-
-const performanceConfiguration = `    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
-    # We recommend adjusting this value in production.
-    traces_sample_rate=1.0,`;
-
 const introduction = (
   <p>
     {tct('The Tryton integration adds support for the [link:Tryton Framework Server].', {
@@ -45,14 +33,13 @@ export const steps = ({
     configurations: [
       {
         language: 'python',
-        code: `
-# wsgi.py
+        code: `# wsgi.py
 import sentry_sdk
-import sentry_sdk.integrations.trytond
+from sentry_sdk.integrations.trytond import TrytondWSGIIntegration
 
 sentry_sdk.init(
-${sentryInitContent}
-)
+  ${sentryInitContent}
+  )
 
 from trytond.application import app as application
 
@@ -86,11 +73,7 @@ def _(app, request, e):
 ];
 // Configuration End
 
-export function GettingStartedWithTryton({
-  dsn,
-  activeProductSelection = [],
-  ...props
-}: ModuleProps) {
+export function GettingStartedWithTryton({dsn, ...props}: ModuleProps) {
   const otherConfigs: string[] = [];
 
   let sentryInitContent: string[] = [
@@ -99,14 +82,6 @@ export function GettingStartedWithTryton({
     `        sentry_sdk.integrations.trytond.TrytondWSGIIntegration(),`,
     `    ],`,
   ];
-
-  if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {
-    otherConfigs.push(performanceConfiguration);
-  }
-
-  if (activeProductSelection.includes(ProductSolution.PROFILING)) {
-    otherConfigs.push(profilingConfiguration);
-  }
 
   sentryInitContent = sentryInitContent.concat(otherConfigs);
 

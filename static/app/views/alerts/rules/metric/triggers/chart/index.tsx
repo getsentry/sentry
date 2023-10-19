@@ -294,6 +294,12 @@ class TriggersChart extends PureComponent<Props, State> {
     const isExtrapolatedChartData =
       seriesAdditionalInfo?.[timeseriesData[0]?.seriesName]?.isExtrapolatedData;
 
+    const totalCountLabel = isSessionAggregate(aggregate)
+      ? SESSION_AGGREGATE_TO_HEADING[aggregate]
+      : isExtrapolatedChartData
+      ? t('Estimated Transactions')
+      : t('Total Transactions');
+
     return (
       <Fragment>
         {header}
@@ -327,11 +333,7 @@ class TriggersChart extends PureComponent<Props, State> {
 
         <ChartControls>
           <InlineContainer data-test-id="alert-total-events">
-            <SectionHeading>
-              {isSessionAggregate(aggregate)
-                ? SESSION_AGGREGATE_TO_HEADING[aggregate]
-                : t('Total Events')}
-            </SectionHeading>
+            <SectionHeading>{totalCountLabel}</SectionHeading>
             <SectionValue>
               {totalCount !== null ? totalCount.toLocaleString() : '\u2014'}
             </SectionValue>

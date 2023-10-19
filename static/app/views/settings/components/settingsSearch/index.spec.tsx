@@ -1,3 +1,6 @@
+import {Members} from 'sentry-fixture/members';
+import {Organization} from 'sentry-fixture/organization';
+
 import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -23,7 +26,7 @@ describe('SettingsSearch', function () {
     MockApiClient.clearMockResponses();
     orgsMock = MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [TestStubs.Organization({slug: 'billy-org', name: 'billy org'})],
+      body: [Organization({slug: 'billy-org', name: 'billy org'})],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -35,7 +38,7 @@ describe('SettingsSearch', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: TestStubs.Members(),
+      body: Members(),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/plugins/?plugins=_all',

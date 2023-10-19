@@ -1,5 +1,7 @@
 from sentry.constants import ObjectStatus
-from sentry.models import Integration, Organization, Repository
+from sentry.models.integrations.integration import Integration
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.repository import repository_service
@@ -10,14 +12,14 @@ from sentry.tasks.integrations import logger
 
 @instrumented_task(
     name="sentry.tasks.integrations.migrate_repo",
-    queue="integrations",
+    queue="integrations.control",
     default_retry_delay=60 * 5,
     max_retries=5,
     silo_mode=SiloMode.CONTROL,
 )
 @retry(exclude=(Integration.DoesNotExist, Repository.DoesNotExist, Organization.DoesNotExist))
 def migrate_repo(repo_id: int, integration_id: int, organization_id: int) -> None:
-    from sentry.mediators.plugins import Migrator
+    from sentry.mediators.plugins.migrator import Migrator
 
     integration = integration_service.get_integration(integration_id=integration_id)
     if integration is None:

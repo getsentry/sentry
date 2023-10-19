@@ -23,6 +23,10 @@ from sentry.utils.cursors import Cursor, CursorResult
 ALLOWED_AGGREGATE_COLUMNS = {
     "transaction.duration",
     "measurements.lcp",
+    "measurements.cls",
+    "measurements.fcp",
+    "measurements.fid",
+    "measurements.inp",
     "spans.browser",
     "spans.http",
     "spans.db",

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -8,7 +8,7 @@ import responses
 from django.db import router
 from django.test import override_settings
 
-from sentry.models import OrganizationMapping
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.auth import AuthService
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
@@ -180,9 +180,11 @@ class DispatchRemoteCallTest(TestCase):
     def test_control_to_region_happy_path(self):
         user = self.create_user()
         serial = serialize_rpc_user(user)
-        self._set_up_mock_response("user/get_user", serial.dict(), address="http://na.sentry.io")
+        self._set_up_mock_response(
+            "user/get_first_superuser", serial.dict(), address="http://na.sentry.io"
+        )
 
-        result = dispatch_remote_call(_REGIONS[0], "user", "get_user", {"id": 0})
+        result = dispatch_remote_call(_REGIONS[0], "user", "get_first_superuser", {})
         assert result == serial
 
     @responses.activate
@@ -205,8 +207,6 @@ class DispatchRemoteCallTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL, DEV_HYBRID_CLOUD_RPC_SENDER={"is_allowed": True})
     def test_early_halt_from_null_region_resolution(self):
         with override_settings(SILO_MODE=SiloMode.CONTROL):
-            org_service_delgn = cast(
-                OrganizationService, OrganizationService.create_delegation(use_test_client=False)
-            )
+            org_service_delgn = OrganizationService.create_delegation(use_test_client=False)
         result = org_service_delgn.get_org_by_slug(slug="this_is_not_a_valid_slug")
         assert result is None

@@ -65,7 +65,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 integration_key=service["integration_key"],
             )
             try:
-                resp = client.send_trigger(event)
+                resp = client.send_trigger(event, notification_uuid=notification_uuid)
             except ApiError as e:
                 self.logger.info(
                     "rule.fail.pagerduty_trigger",
@@ -78,6 +78,9 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                     },
                 )
                 raise e
+            rules = [f.rule for f in futures]
+            rule = rules[0] if rules else None
+            self.record_notification_sent(event, str(service["id"]), rule, notification_uuid)
 
             # TODO(meredith): Maybe have a generic success log statements for
             # first-party integrations similar to plugin `notification.dispatched`

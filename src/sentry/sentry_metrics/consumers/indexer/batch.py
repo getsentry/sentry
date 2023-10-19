@@ -1,6 +1,5 @@
 import logging
 import random
-import re
 from collections import defaultdict
 from typing import (
     Any,
@@ -35,7 +34,7 @@ from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageB
 from sentry.sentry_metrics.consumers.indexer.parsed_message import ParsedMessage
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.indexer.base import Metadata
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID, extract_use_case_id
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -45,7 +44,6 @@ logger = logging.getLogger(__name__)
 MAX_NAME_LENGTH = MAX_INDEXED_COLUMN_LENGTH
 
 ACCEPTED_METRIC_TYPES = {"s", "c", "d"}  # set, counter, distribution
-MRI_RE_PATTERN = re.compile("^([c|s|d|g|e]):([a-zA-Z0-9_]+)/.*$")
 
 OrgId = int
 Headers = MutableSequence[Tuple[str, bytes]]
@@ -68,18 +66,6 @@ def valid_metric_name(name: Optional[str]) -> bool:
 def _should_sample_debug_log() -> bool:
     rate: float = settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE
     return (rate > 0) and random.random() <= rate
-
-
-# TODO: Move this to where we do use case registration
-def extract_use_case_id(mri: str) -> UseCaseID:
-    """
-    Returns the use case ID given the MRI, returns None if MRI is invalid.
-    """
-    if matched := MRI_RE_PATTERN.match(mri):
-        use_case_str = matched.group(2)
-        if use_case_str in {id.value for id in UseCaseID}:
-            return UseCaseID(use_case_str)
-    raise ValidationError(f"Invalid mri: {mri}")
 
 
 class IndexerBatch:
@@ -115,15 +101,18 @@ class IndexerBatch:
         self.skipped_offsets: Set[PartitionIdxOffset] = set()
         self.parsed_payloads_by_offset: MutableMapping[PartitionIdxOffset, ParsedMessage] = {}
 
+        disabled_msgs_cnt: MutableMapping[str, int] = defaultdict(int)
+
         for msg in self.outer_message.payload:
             assert isinstance(msg.value, BrokerValue)
             partition_offset = PartitionIdxOffset(msg.value.partition.index, msg.value.offset)
 
-            if namespace := self._extract_namespace(msg.payload.headers) in options.get(
+            if (namespace := self._extract_namespace(msg.payload.headers)) in options.get(
                 "sentry-metrics.indexer.disabled-namespaces"
             ):
+                assert namespace
                 self.skipped_offsets.add(partition_offset)
-                metrics.incr("process_messages.namespace_disabled", tags={"namespace": namespace})
+                disabled_msgs_cnt[namespace] += 1
                 continue
             try:
                 parsed_payload: ParsedMessage = json.loads(
@@ -178,6 +167,13 @@ class IndexerBatch:
             _: IngestMetric = parsed_payload
 
             self.parsed_payloads_by_offset[partition_offset] = parsed_payload
+
+        for namespace, cnt in disabled_msgs_cnt.items():
+            metrics.incr(
+                "process_messages.namespace_disabled",
+                amount=cnt,
+                tags={"namespace": namespace},
+            )
 
     @metrics.wraps("process_messages.filter_messages")
     def filter_messages(self, keys_to_remove: Sequence[PartitionIdxOffset]) -> None:
@@ -287,7 +283,8 @@ class IndexerBatch:
         mapping: Mapping[UseCaseID, Mapping[OrgId, Mapping[str, Optional[int]]]],
         bulk_record_meta: Mapping[UseCaseID, Mapping[OrgId, Mapping[str, Metadata]]],
     ) -> IndexerOutputMessageBatch:
-        new_messages: IndexerOutputMessageBatch = []
+        new_messages: MutableSequence[Message[Union[RoutingPayload, KafkaPayload]]] = []
+        cogs_usage: MutableMapping[UseCaseID, int] = defaultdict(int)
 
         for message in self.outer_message.payload:
             used_tags: Set[str] = set()
@@ -303,6 +300,7 @@ class IndexerBatch:
             metric_name = old_payload_value["name"]
             org_id = old_payload_value["org_id"]
             use_case_id = old_payload_value["use_case_id"]
+            cogs_usage[use_case_id] += 1
             sentry_sdk.set_tag("sentry_metrics.organization_id", org_id)
             tags = old_payload_value.get("tags", {})
             used_tags.add(metric_name)
@@ -492,4 +490,4 @@ class IndexerBatch:
                 self.__message_size_max[use_case_id],
                 tags={"use_case_id": use_case_id.value},
             )
-        return new_messages
+        return IndexerOutputMessageBatch(new_messages, cogs_usage)

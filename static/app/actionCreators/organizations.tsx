@@ -4,6 +4,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
 import {Client} from 'sentry/api';
 import {usingCustomerDomain} from 'sentry/constants';
+import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
 import LatestContextStore from 'sentry/stores/latestContextStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
@@ -202,4 +203,24 @@ export async function fetchOrganizationDetails(
   }
 
   return data;
+}
+
+/**
+ * Get all organizations for the current user.
+ *
+ * Will perform a fan-out across all multi-tenant regions,
+ * and single-tenant regions the user has membership in.
+ */
+export async function fetchOrganizations(api: Client, query?: Record<string, any>) {
+  const regions = ConfigStore.get('regions');
+  const results = await Promise.all(
+    regions.map(region =>
+      api.requestPromise(`/organizations/`, {
+        // TODO(hybridcloud) Revisit this once domain splitting is working
+        host: region.url,
+        query,
+      })
+    )
+  );
+  return results.reduce((acc, response) => acc.concat(response), []);
 }

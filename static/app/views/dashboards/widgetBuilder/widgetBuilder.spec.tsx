@@ -1,5 +1,8 @@
 import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
+import {MetricsField} from 'sentry-fixture/metrics';
+import {SessionsField} from 'sentry-fixture/sessions';
+import {Tags} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -13,6 +16,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as modals from 'sentry/actionCreators/modal';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {
@@ -70,6 +74,8 @@ function renderTestComponent({
       },
     },
   });
+
+  ProjectsStore.loadInitialData(organization.projects);
 
   render(
     <WidgetBuilder
@@ -206,23 +212,19 @@ describe('WidgetBuilder', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/sessions/',
-      body: TestStubs.SessionsField({
-        field: `sum(session)`,
-      }),
+      body: SessionsField(`sum(session)`),
     });
 
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.MetricsField({
-        field: 'sum(sentry.sessions.session)',
-      }),
+      body: MetricsField('session.all'),
     });
 
     tagsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
-      body: TestStubs.Tags(),
+      body: Tags(),
     });
 
     MockApiClient.addMockResponse({
@@ -1069,7 +1071,7 @@ describe('WidgetBuilder', function () {
 
     expect(await screen.findByTestId('page-filter-timerange-selector')).toBeDisabled();
     expect(screen.getByTestId('page-filter-environment-selector')).toBeDisabled();
-    expect(screen.getByTestId('page-filter-project-selector-loading')).toBeDisabled();
+    expect(screen.getByTestId('page-filter-project-selector')).toBeDisabled();
     expect(mockReleases).toHaveBeenCalled();
 
     expect(screen.getByRole('button', {name: /all releases/i})).toBeDisabled();
@@ -1240,7 +1242,7 @@ describe('WidgetBuilder', function () {
 
   it('does not fetch tags when tag store is not empty', async function () {
     await act(async () => {
-      TagStore.loadTagsSuccess(TestStubs.Tags());
+      TagStore.loadTagsSuccess(Tags());
       renderTestComponent();
       await tick();
     });

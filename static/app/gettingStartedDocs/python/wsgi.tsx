@@ -8,16 +8,14 @@ import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
+const performanceConfiguration = `    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    traces_sample_rate=1.0,`;
 
 const profilingConfiguration = `    # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`;
-
-const performanceConfiguration = `    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
-    # We recommend adjusting this value in production.
-    traces_sample_rate=1.0,`;
 
 export const steps = ({
   sentryInitContent,
@@ -50,16 +48,64 @@ export const steps = ({
 import sentry_sdk
 from sentry_sdk.integrations.wsgi import SentryWsgiMiddleware
 
-from myapp import wsgi_app
+from my_wsgi_app import app
 
 sentry_sdk.init(
 ${sentryInitContent}
 )
 
-wsgi_app = SentryWsgiMiddleware(wsgi_app)
+app = SentryWsgiMiddleware(app)
         `,
       },
     ],
+  },
+  {
+    type: StepType.VERIFY,
+    description: t(
+      'You can easily verify your Sentry installation by creating a route that triggers an error:'
+    ),
+    configurations: [
+      {
+        language: 'python',
+        code: `import sentry_sdk
+from sentry_sdk.integrations.wsgi import SentryWsgiMiddleware
+
+sentry_sdk.init(
+${sentryInitContent}
+)
+
+def app(env, start_response):
+    start_response('200 OK', [('Content-Type', 'text/plain')])
+    response_body = 'Hello World'
+    1/0  # this raises an error
+    return [response_body.encode()]
+
+app = SentryWsgiMiddleware(app)
+
+# Run the application in a mini WSGI server.
+from wsgiref.simple_server import make_server
+make_server('', 8000, app).serve_forever()
+        `,
+      },
+    ],
+    additionalInfo: (
+      <div>
+        <p>
+          {tct(
+            'When you point your browser to [link:http://localhost:8000/] a transaction in the Performance section of Sentry will be created.',
+            {
+              link: <ExternalLink href="http://localhost:8000/" />,
+            }
+          )}
+        </p>
+        <p>
+          {t(
+            'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+          )}
+        </p>
+        <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
+      </div>
+    ),
   },
 ];
 // Configuration End

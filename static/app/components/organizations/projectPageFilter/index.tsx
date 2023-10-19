@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
@@ -18,7 +18,7 @@ import {
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconOpen, IconSettings} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -60,6 +60,12 @@ export interface ProjectPageFilterProps
    */
   resetParamsOnChange?: string[];
 }
+
+/**
+ * Maximum number of projects that can be selected at a time (due to server limits). This
+ * does not apply to special values like "My Projects" and "All Projects".
+ */
+const SELECTION_COUNT_LIMIT = 50;
 
 export function ProjectPageFilter({
   onChange,
@@ -293,7 +299,6 @@ export function ProjectPageFilter({
             label:
               memberProjects.length > 0 ? t('Other') : t("Projects I Don't Belong To"),
             options: sortBy(nonMemberProjects, listSort).map(getProjectItem),
-            showToggleAllButton: allowMultiple && memberProjects.length > 0,
           },
         ]
       : sortBy(memberProjects, listSort).map(getProjectItem);
@@ -331,7 +336,28 @@ export function ProjectPageFilter({
     )}em`;
   }, [options, desynced]);
 
+  const [stagedValue, setStagedValue] = useState<number[]>(value);
+  const selectionLimitExceeded = useMemo(() => {
+    const mappedValue = mapNormalValueToURLValue(stagedValue);
+    return mappedValue.length > SELECTION_COUNT_LIMIT;
+  }, [stagedValue, mapNormalValueToURLValue]);
+
+  const menuFooterMessage = useMemo(() => {
+    if (selectionLimitExceeded) {
+      return hasStagedChanges =>
+        hasStagedChanges
+          ? tct(
+              'Only up to [limit] projects can be selected at a time. You can still press “Clear” to see all projects.',
+              {limit: SELECTION_COUNT_LIMIT}
+            )
+          : footerMessage;
+    }
+
+    return footerMessage;
+  }, [selectionLimitExceeded, footerMessage]);
+
   const hasProjectWrite = organization.access.includes('project:write');
+
   return (
     <HybridFilter
       {...selectProps}
@@ -340,10 +366,12 @@ export function ProjectPageFilter({
       options={options}
       value={value}
       onChange={handleChange}
+      onStagedValueChange={setStagedValue}
       onClear={handleClear}
       onReplace={onReplace}
       onToggle={onToggle}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
+      disableCommit={selectionLimitExceeded}
       sizeLimit={sizeLimit ?? 25}
       sizeLimitMessage={sizeLimitMessage ?? t('Use search to find more projects…')}
       emptyMessage={emptyMessage ?? t('No projects found')}
@@ -358,7 +386,7 @@ export function ProjectPageFilter({
           />
         )
       }
-      menuFooterMessage={footerMessage}
+      menuFooterMessage={menuFooterMessage}
       trigger={
         trigger ??
         ((triggerProps, isOpen) => (

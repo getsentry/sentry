@@ -11,7 +11,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import DocIntegrationSerializer
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import DocIntegration
+from sentry.models.integrations.doc_integration import DocIntegration
 
 logger = logging.getLogger(__name__)
 
@@ -40,12 +40,13 @@ class DocIntegrationsEndpoint(DocIntegrationsBaseEndpoint):
         data = request.json_body
         data["is_draft"] = True
         data["metadata"] = self.generate_incoming_metadata(request)
-
         serializer = DocIntegrationSerializer(data=data)
-        if serializer.is_valid():
-            doc_integration = serializer.save()
-            return Response(
-                serialize(doc_integration, request.user),
-                status=status.HTTP_201_CREATED,
-            )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        doc_integration = serializer.save()
+        return Response(
+            serialize(doc_integration, request.user),
+            status=status.HTTP_201_CREATED,
+        )

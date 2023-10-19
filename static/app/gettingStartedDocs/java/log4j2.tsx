@@ -5,16 +5,42 @@ import Link from 'sentry/components/links/link';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import {t, tct} from 'sentry/locale';
 
-interface StepProps {
+export enum PackageManager {
+  GRADLE = 'gradle',
+  MAVEN = 'maven',
+}
+
+type PlaformOptionKey = 'packageManager';
+
+interface StepsParams {
   dsn: string;
+  packageManager: PackageManager;
   organizationSlug?: string;
   projectSlug?: string;
   sourcePackageRegistries?: ModuleProps['sourcePackageRegistries'];
 }
 
 // Configuration Start
+const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
+  packageManager: {
+    label: t('Package Manager'),
+    items: [
+      {
+        label: t('Gradle'),
+        value: PackageManager.GRADLE,
+      },
+      {
+        label: t('Maven'),
+        value: PackageManager.MAVEN,
+      },
+    ],
+  },
+};
+
 const introduction = (
   <p>
     {tct(
@@ -35,11 +61,13 @@ export const steps = ({
   sourcePackageRegistries,
   projectSlug,
   organizationSlug,
-}: StepProps): LayoutProps['steps'] => [
+  packageManager,
+}: StepsParams): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: t(
-      "Install Sentry's integration with Log4j 2.x using either Maven or Gradle:"
+      "Install Sentry's integration with Log4j 2.x using %s:",
+      packageManager === PackageManager.GRADLE ? 'Gradle' : 'Maven'
     ),
     configurations: [
       {
@@ -54,29 +82,26 @@ export const steps = ({
           </p>
         ),
         language: 'bash',
-        code: `
-SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___
-            `,
+        code: 'SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___',
       },
-      {
-        description: <h5>{t('Gradle')}</h5>,
-        configurations: [
-          {
-            description: (
-              <p>
-                {tct(
-                  'The [link:Sentry Gradle Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:build.gradle] file:',
-                  {
-                    code: <code />,
-                    link: (
-                      <ExternalLink href="https://github.com/getsentry/sentry-android-gradle-plugin" />
-                    ),
-                  }
-                )}
-              </p>
-            ),
-            language: 'groovy',
-            code: `
+      ...(packageManager === PackageManager.GRADLE
+        ? [
+            {
+              description: (
+                <p>
+                  {tct(
+                    'The [link:Sentry Gradle Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:build.gradle] file:',
+                    {
+                      code: <code />,
+                      link: (
+                        <ExternalLink href="https://github.com/getsentry/sentry-android-gradle-plugin" />
+                      ),
+                    }
+                  )}
+                </p>
+              ),
+              language: 'groovy',
+              code: `
 buildscript {
   repositories {
     mavenCentral()
@@ -102,17 +127,17 @@ sentry {
   projectName = "${projectSlug}"
   authToken = System.getenv("SENTRY_AUTH_TOKEN")
 }
-            `,
-          },
-        ],
-      },
-      {
-        description: <h5>{t('Maven')}</h5>,
-        configurations: [
-          {
-            language: 'xml',
-            partialLoading: sourcePackageRegistries?.isLoading,
-            code: `
+          `,
+            },
+          ]
+        : []),
+      ...(packageManager === PackageManager.MAVEN
+        ? [
+            {
+              language: 'xml',
+              partialLoading: sourcePackageRegistries?.isLoading,
+              description: t("Add the Sentry SDK to your project's dependencies"),
+              code: `
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry-log4j2</artifactId>
@@ -123,14 +148,14 @@ sentry {
   }</version>
 </dependency>
           `,
-          },
-          {
-            language: 'xml',
-            partialLoading: sourcePackageRegistries?.isLoading,
-            description: t(
-              'To upload your source code to Sentry so it can be shown in stack traces, use our Maven plugin.'
-            ),
-            code: `
+            },
+            {
+              language: 'xml',
+              partialLoading: sourcePackageRegistries?.isLoading,
+              description: t(
+                'To upload your source code to Sentry so it can be shown in stack traces, use our Maven plugin.'
+              ),
+              code: `
 <build>
   <plugins>
     <plugin>
@@ -168,9 +193,9 @@ sentry {
   ...
 </build>
         `,
-          },
-        ],
-      },
+            },
+          ]
+        : []),
     ],
   },
   {
@@ -262,9 +287,13 @@ sentry {
     ),
     configurations: [
       {
-        description: <h5>Java</h5>,
         language: 'java',
-        code: `
+        code: [
+          {
+            language: 'java',
+            label: 'Java',
+            value: 'java',
+            code: `
 import java.lang.Exception;
 import io.sentry.Sentry;
 
@@ -272,13 +301,13 @@ try {
   throw new Exception("This is a test.");
 } catch (Exception e) {
   Sentry.captureException(e);
-}
-        `,
-      },
-      {
-        description: <h5>Kotlin</h5>,
-        language: 'java',
-        code: `
+}`,
+          },
+          {
+            language: 'java',
+            label: 'Kotlin',
+            value: 'kotlin',
+            code: `
 import java.lang.Exception
 import io.sentry.Sentry
 
@@ -286,8 +315,9 @@ try {
   throw Exception("This is a test.")
 } catch (e: Exception) {
   Sentry.captureException(e)
-}
-        `,
+}`,
+          },
+        ],
       },
     ],
     additionalInfo: (
@@ -324,6 +354,7 @@ export function GettingStartedWithLog4j2({
   organization,
   ...props
 }: ModuleProps) {
+  const optionValues = useUrlPlatformOptions(platformOptions);
   const nextStepDocs = [...nextSteps];
 
   return (
@@ -333,9 +364,12 @@ export function GettingStartedWithLog4j2({
         sourcePackageRegistries,
         projectSlug: projectSlug ?? '___PROJECT_SLUG___',
         organizationSlug: organization?.slug ?? '___ORG_SLUG___',
+        packageManager: optionValues.packageManager as PackageManager,
       })}
       nextSteps={nextStepDocs}
       introduction={introduction}
+      platformOptions={platformOptions}
+      projectSlug={projectSlug}
       {...props}
     />
   );

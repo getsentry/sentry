@@ -1,27 +1,47 @@
-import styled from '@emotion/styled';
-
-import List from 'sentry/components/list/';
-import ListItem from 'sentry/components/list/listItem';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization, PlatformKey} from 'sentry/types';
+
+export enum AngularVersion {
+  V10 = 'v10',
+  V12 = 'v12',
+}
+
+type PlaformOptionKey = 'angularVersion';
 
 type StepProps = {
+  angularVersion: AngularVersion;
   errorHandlerProviders: string;
-  newOrg: boolean;
-  organization: Organization;
-  platformKey: PlatformKey;
-  projectId: string;
   sentryInitContent: string;
+  newOrg?: boolean;
+  organization?: Organization;
+  platformKey?: PlatformKey;
+  projectId?: string;
 };
 
 // Configuration Start
+const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
+  angularVersion: {
+    label: t('Spring Boot Version'),
+    items: [
+      {
+        label: t('Angular 12+'),
+        value: AngularVersion.V12,
+      },
+      {
+        label: t('Angular 10 and 11'),
+        value: AngularVersion.V10,
+      },
+    ],
+  },
+};
+
 const replayIntegration = `
 new Sentry.Replay(),
 `;
@@ -42,8 +62,7 @@ new Sentry.BrowserTracing({
 
 const performanceOtherConfig = `
 // Performance Monitoring
-tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
-`;
+tracesSampleRate: 1.0, // Capture 100% of the transactions`;
 
 const performanceErrorHandler = `
 {
@@ -58,57 +77,48 @@ const performanceErrorHandler = `
 },
 `;
 
+function getNpmPackage(angularVersion: AngularVersion) {
+  return angularVersion === AngularVersion.V12
+    ? '@sentry/angular-ivy'
+    : '@sentry/angular';
+}
+
 export const steps = ({
   sentryInitContent,
   errorHandlerProviders,
+  angularVersion,
   ...props
-}: Partial<StepProps> = {}): LayoutProps['steps'] => [
+}: StepProps): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
-      <InstallDescription>
-        <p>
-          {tct(
-            "To use Sentry with your Angular application, you'll need [sentryAngularIvyCode:@sentry/angular-ivy] or [sentryAngularCode:@sentry/angular], Sentry’s Browser Angular SDKs:",
-            {
-              sentryAngularIvyCode: <code />,
-              sentryAngularCode: <code />,
-            }
-          )}
-        </p>
-        <List symbol="bullet">
-          <ListItem>
-            {tct("If you're using Angular 12 or newer, use [code:@sentry/angular-ivy]", {
-              code: <code />,
-            })}
-          </ListItem>
-          <ListItem>
-            {tct("If you're using Angular 10 or 11, use [code:@sentry/angular]", {
-              code: <code />,
-            })}
-          </ListItem>
-        </List>
-        <p>
-          {tct('Add the Sentry SDK as a dependency using [code:yarn] or [code:npm]:', {
-            code: <code />,
-          })}
-        </p>
-      </InstallDescription>
+      <p>
+        {tct(
+          'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]:',
+          {
+            codeYarn: <code />,
+            codeNpm: <code />,
+          }
+        )}
+      </p>
     ),
     configurations: [
       {
         language: 'bash',
-        code: `
-# Using yarn (Angular 12+)
-yarn add @sentry/angular-ivy
-# Using yarn (Angular 10 and 11)
-yarn add @sentry/angular
-
-# Using npm (Angular 12+)
-npm install --save @sentry/angular-ivy
-# Using npm (Angular 10 and 11)
-npm install --save @sentry/angular
-        `,
+        code: [
+          {
+            label: 'npm',
+            value: 'npm',
+            language: 'bash',
+            code: `npm install --save ${getNpmPackage(angularVersion)}`,
+          },
+          {
+            label: 'yarn',
+            value: 'yarn',
+            language: 'bash',
+            code: `yarn add ${getNpmPackage(angularVersion)}`,
+          },
+        ],
       },
     ],
   },
@@ -121,23 +131,22 @@ npm install --save @sentry/angular
       {
         language: 'javascript',
         code: `
-        import { enableProdMode } from "@angular/core";
-        import { platformBrowserDynamic } from "@angular/platform-browser-dynamic";
-        // import * as Sentry from "@sentry/angular" // for Angular 10/11 instead
-        import * as Sentry from "@sentry/angular-ivy";
+import { enableProdMode } from "@angular/core";
+import { platformBrowserDynamic } from "@angular/platform-browser-dynamic";
+import * as Sentry from "${getNpmPackage(angularVersion)}";
 
-        import { AppModule } from "./app/app.module";
+import { AppModule } from "./app/app.module";
 
-        Sentry.init({
-          ${sentryInitContent}
-        });
+Sentry.init({
+  ${sentryInitContent}
+});
 
-        enableProdMode();
-        platformBrowserDynamic()
-          .bootstrapModule(AppModule)
-          .then((success) => console.log('Bootstrap success'))
-          .catch((err) => console.error(err));
-        `,
+enableProdMode();
+platformBrowserDynamic()
+  .bootstrapModule(AppModule)
+  .then((success) => console.log('Bootstrap success'))
+  .catch((err) => console.error(err));
+`,
       },
       {
         description: t(
@@ -145,25 +154,23 @@ npm install --save @sentry/angular
         ),
         language: 'javascript',
         code: `
-        import { APP_INITIALIZER, ErrorHandler, NgModule } from "@angular/core";
-        import { Router } from "@angular/router";
-        // import * as Sentry from "@sentry/angular" // for Angular 10/11 instead
-        import * as Sentry from "@sentry/angular-ivy";
+import { APP_INITIALIZER, ErrorHandler, NgModule } from "@angular/core";
+import { Router } from "@angular/router";
+import * as Sentry from "${getNpmPackage(angularVersion)}";
 
-        @NgModule({
-          // ...
-          providers: [
-            {
-              provide: ErrorHandler,
-              useValue: Sentry.createErrorHandler({
-                showDialog: true,
-              }),
-            },${errorHandlerProviders}
-          ],
-          // ...
-        })
-        export class AppModule {}
-        `,
+@NgModule({
+  // ...
+  providers: [
+    {
+      provide: ErrorHandler,
+      useValue: Sentry.createErrorHandler({
+        showDialog: true,
+      }),
+    },${errorHandlerProviders}
+  ],
+  // ...
+})
+export class AppModule {}`,
       },
     ],
   },
@@ -218,7 +225,9 @@ export function GettingStartedWithAngular({
   newOrg,
   platformKey,
   projectId,
+  ...props
 }: ModuleProps) {
+  const optionValues = useUrlPlatformOptions(platformOptions);
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
 
@@ -257,22 +266,19 @@ export function GettingStartedWithAngular({
       steps={steps({
         sentryInitContent: sentryInitContent.join('\n'),
         errorHandlerProviders: errorHandlerProviders.join('\n'),
+        angularVersion: optionValues.angularVersion as AngularVersion,
         organization,
         newOrg,
         platformKey,
         projectId,
       })}
       nextSteps={nextStepDocs}
+      platformOptions={platformOptions}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }
 
 export default GettingStartedWithAngular;
-
-const InstallDescription = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;

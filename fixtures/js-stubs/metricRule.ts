@@ -1,7 +1,7 @@
+import {IncidentTrigger} from 'sentry-fixture/incidentTrigger';
+
 import type {MetricRule as TMetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-
-import {IncidentTrigger} from './incidentTrigger';
 
 export function MetricRule(params: Partial<TMetricRule> = {}): TMetricRule {
   return {

@@ -79,7 +79,6 @@ export type IssueEventParameters = {
   'issue_details.external_issue_modal_opened': ExternalIssueParams;
   'issue_details.header_view_replay_clicked': GroupEventParams;
   'issue_details.issue_status_docs_clicked': {};
-  'issue_details.open_replay_details_clicked': GroupEventParams;
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
   'issue_details.sourcemap_wizard_copy': SourceMapWizardParam;
@@ -131,12 +130,6 @@ export type IssueEventParameters = {
     platform?: string;
   };
   'issue_group_details.tags.bar.clicked': {
-    is_mobile: boolean;
-    tag: string;
-    value: string;
-    platform?: string;
-  };
-  'issue_group_details.tags.bar.hovered': {
     is_mobile: boolean;
     tag: string;
     value: string;
@@ -281,7 +274,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_group_details.tags.switcher.clicked':
     'Issue Group Details: Tags switcher clicked',
   'issue_group_details.tags.bar.clicked': 'Issue Group Details: Tags value bar clicked',
-  'issue_group_details.tags.bar.hovered': 'Issue Group Details: Tags value bar hovered',
   'issue_group_details.tags_distribution.bar.clicked':
     'Issue Group Details: Tags distribution value bar clicked',
   'integrations.integration_reinstall_clicked': 'Integration Reinstall Button Clicked',
@@ -311,6 +303,4 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.sourcemap_wizard_copy': 'Issue Details: Sourcemap Wizard Copy',
   'issue_details.sourcemap_wizard_learn_more':
     'Issue Details: Sourcemap Wizard Learn More',
-  'issue_details.open_replay_details_clicked':
-    'Issue Details: Open Replay Details Clicked',
 };

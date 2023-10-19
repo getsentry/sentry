@@ -13,14 +13,17 @@ from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderB
 from snuba_sdk import Request as SnubaRequest
 
 from sentry.integrations.github.client import GitHubAppsClient
-from sentry.models import Group, GroupOwnerType, Project
+from sentry.models.group import Group
+from sentry.models.groupowner import GroupOwnerType
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.silo import SiloMode
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
@@ -28,7 +31,7 @@ from sentry.types.referrer_ids import GITHUB_PR_BOT_REFERRER
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.query import RangeQuerySetWrapper
-from sentry.utils.snuba import Dataset, raw_snql_query
+from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
 

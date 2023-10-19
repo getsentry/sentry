@@ -4,14 +4,17 @@ import {LocationDescriptor} from 'history';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {KeyValueTable} from 'sentry/components/keyValueTable';
-import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayTagsTableRow from 'sentry/components/replays/replayTagsTableRow';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
+import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
+import TagFilters from 'sentry/views/replays/detail/tagPanel/tagFilters';
+import useTagFilters from 'sentry/views/replays/detail/tagPanel/useTagFilters';
 
 const notTags = [
   'browser.name',
@@ -39,6 +42,10 @@ function TagPanel() {
   const organization = useOrganization();
   const {replay} = useReplayContext();
   const replayRecord = replay?.getReplay();
+  const tags = replayRecord?.tags;
+
+  const filterProps = useTagFilters({tags: tags || {}});
+  const {items} = filterProps;
 
   const generateUrl = useCallback(
     (name: string, value: ReactNode) =>
@@ -49,43 +56,47 @@ function TagPanel() {
             ? `${name}:"${value}"`
             : `tags["${name}"]:"${value}"`,
         },
-      } as LocationDescriptor),
+      }) as LocationDescriptor,
     [organization.slug]
   );
 
   if (!replayRecord) {
     return <Placeholder testId="replay-tags-loading-placeholder" height="100%" />;
   }
-
-  const tags = Object.entries(replayRecord.tags);
+  const filteredTags = Object.entries(items);
 
   return (
-    <StyledPanel>
-      <FluidPanel>
-        {tags.length ? (
-          <KeyValueTable noMargin>
-            {tags.map(([key, values]) => (
-              <ReplayTagsTableRow
-                key={key}
-                name={key}
-                values={values}
-                generateUrl={generateUrl}
-              />
-            ))}
-          </KeyValueTable>
-        ) : (
-          <EmptyMessage>{t('No tags for this replay were found.')}</EmptyMessage>
-        )}
-      </FluidPanel>
-    </StyledPanel>
+    <FluidHeight>
+      <TagFilters tags={tags} {...filterProps} />
+      <TabItemContainer>
+        <StyledPanel>
+          <FluidPanel>
+            {filteredTags.length ? (
+              <KeyValueTable noMargin>
+                {filteredTags.map(([key, values]) => (
+                  <ReplayTagsTableRow
+                    key={key}
+                    name={key}
+                    values={values}
+                    generateUrl={generateUrl}
+                  />
+                ))}
+              </KeyValueTable>
+            ) : (
+              <EmptyMessage>{t('No tags for this replay were found.')}</EmptyMessage>
+            )}
+          </FluidPanel>
+        </StyledPanel>
+      </TabItemContainer>
+    </FluidHeight>
   );
 }
 
-const StyledPanel = styled(Panel)`
-  width: 100%;
+const StyledPanel = styled('div')`
+  position: relative;
   height: 100%;
-  overflow: hidden;
-  margin-bottom: 0;
+  overflow: auto;
+  display: grid;
 `;
 
 export default TagPanel;

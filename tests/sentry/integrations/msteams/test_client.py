@@ -7,7 +7,7 @@ import responses
 from django.test import override_settings
 
 from sentry.integrations.msteams.client import MsTeamsClient
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase

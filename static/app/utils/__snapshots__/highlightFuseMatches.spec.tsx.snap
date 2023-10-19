@@ -2,9 +2,9 @@
 
 exports[`highlightFuseMatches matches whole word 1`] = `
 [
-  <mark>
+  <Mark>
     foo
-  </mark>,
+  </Mark>,
 ]
 `;
 
@@ -13,21 +13,21 @@ exports[`highlightFuseMatches renders a highlighted string 1`] = `
   <span>
     Auth
   </span>,
-  <mark>
+  <Mark>
     ent
-  </mark>,
+  </Mark>,
   <span>
     icati
   </span>,
-  <mark>
+  <Mark>
     on
-  </mark>,
+  </Mark>,
   <span>
      
   </span>,
-  <mark>
+  <Mark>
     to
-  </mark>,
+  </Mark>,
   <span>
     kens allow you to perform actions
   </span>,

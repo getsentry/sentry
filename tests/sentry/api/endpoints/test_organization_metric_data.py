@@ -7,7 +7,6 @@ from unittest import mock
 from unittest.mock import patch
 
 import pytest
-from freezegun import freeze_time
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -20,6 +19,7 @@ from sentry.snuba.metrics.naming_layer.public import (
     TransactionTagsKey,
 )
 from sentry.testutils.cases import MetricsAPIBaseTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
 from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
@@ -51,9 +51,9 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.project.organization.id, TransactionMRI.MEASUREMENTS_LCP.value
         )
         org_id = self.organization.id
-        self.session_metric = rh_indexer_record(org_id, SessionMRI.SESSION.value)
+        self.session_metric = rh_indexer_record(org_id, SessionMRI.RAW_SESSION.value)
         self.session_duration = rh_indexer_record(org_id, SessionMRI.DURATION.value)
-        self.session_error_metric = rh_indexer_record(org_id, SessionMRI.ERROR.value)
+        self.session_error_metric = rh_indexer_record(org_id, SessionMRI.RAW_ERROR.value)
 
     @property
     def now(self):
@@ -466,7 +466,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         assert response.status_code == 400
         assert (
             response.data["detail"]
-            == "Failed to parse query: Release Health Queries don't support wildcards"
+            == "Failed to parse conditions: Release Health Queries don't support wildcards"
         )
 
     def test_pagination_offset_without_orderby(self):
@@ -1205,7 +1205,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         within the limit, and that are also with complete data from across the entities
         """
         self.store_release_health_metric(
-            name=SessionMRI.SESSION.value,
+            name=SessionMRI.RAW_SESSION.value,
             tags={"tag3": "value1"},
             value=10,
         )
@@ -1249,7 +1249,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         """
         for tag, tag_value in (("tag1", "group1"), ("tag1", "group2")):
             self.store_release_health_metric(
-                name=SessionMRI.SESSION.value,
+                name=SessionMRI.RAW_SESSION.value,
                 tags={tag: tag_value},
                 value=10,
             )
@@ -1260,7 +1260,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         ):
             for value in numbers:
                 self.store_release_health_metric(
-                    name=SessionMRI.ERROR.value,
+                    name=SessionMRI.RAW_ERROR.value,
                     tags={tag: tag_value},
                     value=value,
                 )
@@ -1304,7 +1304,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             ("tag2", "C1"),
         ):
             self.store_release_health_metric(
-                name=SessionMRI.SESSION.value,
+                name=SessionMRI.RAW_SESSION.value,
                 tags={tag: tag_value},
                 value=10,
                 minutes_before_now=4,
@@ -1318,7 +1318,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         ):
             for value in numbers:
                 self.store_release_health_metric(
-                    name=SessionMRI.ERROR.value,
+                    name=SessionMRI.RAW_ERROR.value,
                     tags={tag: tag_value},
                     value=value,
                 )
@@ -1505,9 +1505,9 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         self.login_as(user=self.user)
         org_id = self.organization.id
         self.session_duration_metric = rh_indexer_record(org_id, SessionMRI.RAW_DURATION.value)
-        self.session_metric = rh_indexer_record(org_id, SessionMRI.SESSION.value)
-        self.session_user_metric = rh_indexer_record(org_id, SessionMRI.USER.value)
-        self.session_error_metric = rh_indexer_record(org_id, SessionMRI.ERROR.value)
+        self.session_metric = rh_indexer_record(org_id, SessionMRI.RAW_SESSION.value)
+        self.session_user_metric = rh_indexer_record(org_id, SessionMRI.RAW_USER.value)
+        self.session_error_metric = rh_indexer_record(org_id, SessionMRI.RAW_ERROR.value)
         self.session_status_tag = rh_indexer_record(org_id, "session.status")
         self.release_tag = rh_indexer_record(self.organization.id, "release")
         self.tx_metric = perf_indexer_record(org_id, TransactionMRI.DURATION.value)
@@ -1574,8 +1574,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         )
         assert response.status_code == 400
         assert response.json()["detail"] == (
-            "Failed to parse 'crash_free_fake'. Must be something like 'sum(my_metric)', "
-            "or a supported aggregate derived metric like `session.crash_free_rate`"
+            "Failed to parse 'crash_free_fake'. The metric name must belong to a public metric."
         )
 
     def test_crash_free_percentage(self):
@@ -1686,14 +1685,14 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             ("init", 15),
         ):
             self.store_release_health_metric(
-                name=SessionMRI.SESSION.value,
+                name=SessionMRI.RAW_SESSION.value,
                 tags={"session.status": tag_value},
                 value=value,
                 minutes_before_now=4,
             )
         for value in range(3):
             self.store_release_health_metric(
-                name=SessionMRI.ERROR.value,
+                name=SessionMRI.RAW_ERROR.value,
                 tags={"release": "foo"},
                 value=value,
             )
@@ -1734,7 +1733,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             ("bar", 3, 2),
         ):
             self.store_release_health_metric(
-                name=SessionMRI.SESSION.value,
+                name=SessionMRI.RAW_SESSION.value,
                 tags={"session.status": "abnormal", "release": tag_value},
                 value=value,
                 minutes_before_now=minutes,
@@ -1763,7 +1762,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         ):
             for value in values:
                 self.store_release_health_metric(
-                    name=SessionMRI.USER.value,
+                    name=SessionMRI.RAW_USER.value,
                     tags={"session.status": "crashed", "release": tag_value},
                     value=value,
                 )
@@ -1787,7 +1786,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_all_user_sessions(self):
         for value in [1, 2, 4]:
             self.store_release_health_metric(
-                name=SessionMRI.USER.value,
+                name=SessionMRI.RAW_USER.value,
                 tags={},
                 value=value,
             )
@@ -1810,7 +1809,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         for tags, values in cases:
             for value in values:
                 self.store_release_health_metric(
-                    name=SessionMRI.USER.value,
+                    name=SessionMRI.RAW_USER.value,
                     tags=tags,
                     value=value,
                 )
@@ -1833,7 +1832,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         ):
             for value in values:
                 self.store_release_health_metric(
-                    name=SessionMRI.USER.value,
+                    name=SessionMRI.RAW_USER.value,
                     tags=tags,
                     value=value,
                 )
@@ -1867,7 +1866,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         ):
             for value in values:
                 self.store_release_health_metric(
-                    name=SessionMRI.USER.value,
+                    name=SessionMRI.RAW_USER.value,
                     tags=tags,
                     value=value,
                 )
@@ -1883,7 +1882,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             ("crashed", "foobar@2.0", 3, 2),
         ):
             self.store_release_health_metric(
-                name=SessionMRI.SESSION.value,
+                name=SessionMRI.RAW_SESSION.value,
                 tags={"session.status": tag_value, "release": release_tag_value},
                 value=value,
             )
@@ -1921,14 +1920,14 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             ({"session.status": "init", "release": "foo"}, 10),
         ):
             self.store_release_health_metric(
-                name=SessionMRI.SESSION.value,
+                name=SessionMRI.RAW_SESSION.value,
                 tags=tags,
                 value=value,
             )
 
         for value in range(3):
             self.store_release_health_metric(
-                name=SessionMRI.ERROR.value,
+                name=SessionMRI.RAW_ERROR.value,
                 tags={"release": "foo"},
                 value=value,
             )
@@ -1950,7 +1949,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             ("init", 10),
         ):
             self.store_release_health_metric(
-                name=SessionMRI.SESSION.value,
+                name=SessionMRI.RAW_SESSION.value,
                 tags={"session.status": tag_value, "release": "foo"},
                 value=value,
             )
@@ -1982,7 +1981,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         ):
             for value in values:
                 self.store_release_health_metric(
-                    name=SessionMRI.USER.value,
+                    name=SessionMRI.RAW_USER.value,
                     tags={"session.status": tag_value},
                     value=value,
                 )
@@ -2003,7 +2002,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         # Errored = -3
         for value in [1, 2, 4]:
             self.store_release_health_metric(
-                name=SessionMRI.USER.value,
+                name=SessionMRI.RAW_USER.value,
                 tags={"session.status": "crashed"},
                 value=value,
             )
@@ -2027,7 +2026,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         for tags, values in cases:
             for value in values:
                 self.store_release_health_metric(
-                    name=SessionMRI.USER.value,
+                    name=SessionMRI.RAW_USER.value,
                     tags=tags,
                     value=value,
                 )
@@ -2046,7 +2045,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         # init = 0
         # errored_all = 1
         self.store_release_health_metric(
-            name=SessionMRI.USER.value,
+            name=SessionMRI.RAW_USER.value,
             tags={"session.status": "errored"},
             value=1,
         )
@@ -2071,8 +2070,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         )
 
         assert response.data["detail"] == (
-            "Failed to parse 'transaction.all'. Must be something like 'sum(my_metric)', "
-            "or a supported aggregate derived metric like `session.crash_free_rate`"
+            "Failed to parse 'transaction.all'. The metric name must belong to a public metric."
         )
 
     def test_failure_rate_transaction(self):
@@ -2152,8 +2150,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 interval="6m",
             )
             assert response.data["detail"] == (
-                f"Failed to parse '{private_name}'. Must be something like 'sum(my_metric)', "
-                "or a supported aggregate derived metric like `session.crash_free_rate`"
+                f"Failed to parse '{private_name}'. The metric name must belong to a public metric."
             )
 
     def test_apdex_transactions(self):

@@ -6,7 +6,7 @@ import {GettingStartedWithAIOHTTP, steps} from './aiohttp';
 
 describe('GettingStartedWithAIOHTTP', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithAIOHTTP dsn="test-dsn" />);
+    render(<GettingStartedWithAIOHTTP dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({sentryInitContent: 'test-init-content'})) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithAIOHTTP', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

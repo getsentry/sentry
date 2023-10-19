@@ -15,7 +15,9 @@ from sentry.api.validators.external_actor import (
     validate_integration_id,
 )
 from sentry.api.validators.integrations import validate_provider
-from sentry.models import Actor, ExternalActor, Organization, Team, get_actor_for_user
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.organization import Organization
+from sentry.models.team import Team
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -23,6 +25,7 @@ from sentry.types.integrations import ExternalProviders, get_provider_choices
 
 AVAILABLE_PROVIDERS = {
     ExternalProviders.GITHUB,
+    ExternalProviders.GITHUB_ENTERPRISE,
     ExternalProviders.GITLAB,
     ExternalProviders.SLACK,
     ExternalProviders.MSTEAMS,
@@ -65,18 +68,14 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):
     def get_actor_params(self, validated_data: MutableMapping[str, Any]) -> Mapping[str, int]:
         actor_model = validated_data.pop(self._actor_key)
         if isinstance(actor_model, Team):
-            actor = Actor.objects.get(**{"team_id": actor_model.id})
-            return dict(team_id=actor_model.id, actor_id=actor.id)
+            return dict(team_id=actor_model.id)
         else:
-            actor = get_actor_for_user(actor_model)
-            return dict(user_id=actor_model.id, actor_id=actor.id)
+            return dict(user_id=actor_model.id)
 
     def create(self, validated_data: MutableMapping[str, Any]) -> ExternalActor:
         actor_params = self.get_actor_params(validated_data)
-        actor_id = actor_params.pop("actor_id")
         return ExternalActor.objects.get_or_create(
             **validated_data,
-            actor_id=actor_id,
             organization=self.organization,
             defaults=actor_params,
         )

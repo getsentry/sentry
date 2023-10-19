@@ -26,7 +26,7 @@ def invalidate_project_configs(percentage):
     NOTE: This will increase load on the relay_config_bulk Celery queue.
     """
     configure()
-    from sentry.models import Organization
+    from sentry.models.organization import Organization
     from sentry.tasks.relay import schedule_invalidate_project_config
     from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 

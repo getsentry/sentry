@@ -1,6 +1,7 @@
 from unittest import mock
 
 import pytest
+from django.test import override_settings
 
 from sentry.models.projectkey import ProjectKey, ProjectKeyManager, ProjectKeyStatus
 from sentry.testutils.cases import TestCase
@@ -18,17 +19,23 @@ class ProjectKeyTest(TestCase):
 
     def test_get_dsn_custom_prefix(self):
         key = ProjectKey(project_id=self.project.id, public_key="public", secret_key="secret")
-        with self.options({"system.url-prefix": "http://example.com"}):
+        with self.options(
+            {"system.url-prefix": "http://example.com", "system.region-api-url-template": ""}
+        ):
             self.assertEqual(key.get_dsn(), f"http://public:secret@example.com/{self.project.id}")
 
     def test_get_dsn_with_ssl(self):
         key = ProjectKey(project_id=self.project.id, public_key="public", secret_key="secret")
-        with self.options({"system.url-prefix": "https://example.com"}):
+        with self.options(
+            {"system.url-prefix": "https://example.com", "system.region-api-url-template": ""}
+        ):
             self.assertEqual(key.get_dsn(), f"https://public:secret@example.com/{self.project.id}")
 
     def test_get_dsn_with_port(self):
         key = ProjectKey(project_id=self.project.id, public_key="public", secret_key="secret")
-        with self.options({"system.url-prefix": "http://example.com:81"}):
+        with self.options(
+            {"system.url-prefix": "http://example.com:81", "system.region-api-url-template": ""}
+        ):
             self.assertEqual(
                 key.get_dsn(), f"http://public:secret@example.com:81/{self.project.id}"
             )
@@ -82,24 +89,58 @@ class ProjectKeyTest(TestCase):
         assert self.model(project=self.project, status=ProjectKeyStatus.ACTIVE).is_active is True
 
     def test_get_dsn(self):
-        key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
-        assert key.dsn_private == f"http://abc:xyz@testserver/{self.project.id}"
-        assert key.dsn_public == f"http://abc@testserver/{self.project.id}"
-        assert (
-            key.csp_endpoint
-            == f"http://testserver/api/{self.project.id}/csp-report/?sentry_key=abc"
-        )
-        assert (
-            key.minidump_endpoint
-            == f"http://testserver/api/{self.project.id}/minidump/?sentry_key=abc"
-        )
-        assert key.unreal_endpoint == f"http://testserver/api/{self.project.id}/unreal/abc/"
-        assert key.js_sdk_loader_cdn_url == "http://testserver/js-sdk-loader/abc.min.js"
+        with self.options({"system.region-api-url-template": ""}):
+            key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
+            assert key.dsn_private == f"http://abc:xyz@testserver/{self.project.id}"
+            assert key.dsn_public == f"http://abc@testserver/{self.project.id}"
+            assert (
+                key.csp_endpoint
+                == f"http://testserver/api/{self.project.id}/csp-report/?sentry_key=abc"
+            )
+            assert (
+                key.minidump_endpoint
+                == f"http://testserver/api/{self.project.id}/minidump/?sentry_key=abc"
+            )
+            assert key.unreal_endpoint == f"http://testserver/api/{self.project.id}/unreal/abc/"
+            assert key.js_sdk_loader_cdn_url == "http://testserver/js-sdk-loader/abc.min.js"
 
     def test_get_dsn_org_subdomain(self):
-        with self.feature("organizations:org-subdomains"):
+        with self.feature("organizations:org-subdomains"), self.options(
+            {"system.region-api-url-template": ""}
+        ):
             key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
             host = f"o{key.project.organization_id}.ingest.testserver"
+
+            assert key.dsn_private == f"http://abc:xyz@{host}/{self.project.id}"
+            assert key.dsn_public == f"http://abc@{host}/{self.project.id}"
+            assert (
+                key.csp_endpoint
+                == f"http://{host}/api/{self.project.id}/csp-report/?sentry_key=abc"
+            )
+            assert (
+                key.minidump_endpoint
+                == f"http://{host}/api/{self.project.id}/minidump/?sentry_key=abc"
+            )
+            assert key.unreal_endpoint == f"http://{host}/api/{self.project.id}/unreal/abc/"
+
+    @override_settings(SENTRY_REGION="us", SILO_MODE="REGION")
+    def test_get_dsn_multiregion(self):
+        key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
+        host = "us.testserver"
+
+        assert key.dsn_private == f"http://abc:xyz@{host}/{self.project.id}"
+        assert key.dsn_public == f"http://abc@{host}/{self.project.id}"
+        assert key.csp_endpoint == f"http://{host}/api/{self.project.id}/csp-report/?sentry_key=abc"
+        assert (
+            key.minidump_endpoint == f"http://{host}/api/{self.project.id}/minidump/?sentry_key=abc"
+        )
+        assert key.unreal_endpoint == f"http://{host}/api/{self.project.id}/unreal/abc/"
+
+    @override_settings(SENTRY_REGION="us", SILO_MODE="REGION")
+    def test_get_dsn_org_subdomain_and_multiregion(self):
+        with self.feature("organizations:org-subdomains"):
+            key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
+            host = f"o{key.project.organization_id}.ingest.us.testserver"
 
             assert key.dsn_private == f"http://abc:xyz@{host}/{self.project.id}"
             assert key.dsn_public == f"http://abc@{host}/{self.project.id}"

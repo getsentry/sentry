@@ -12,15 +12,12 @@ from sentry.auth.helper import (
     AuthIdentityHandler,
 )
 from sentry.auth.providers.dummy import DummyProvider
-from sentry.models import (
-    AuditLogEntry,
-    AuthIdentity,
-    AuthProvider,
-    InviteStatus,
-    OrganizationMember,
-    UserEmail,
-    outbox_context,
-)
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.outbox import outbox_context
+from sentry.models.useremail import UserEmail
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase

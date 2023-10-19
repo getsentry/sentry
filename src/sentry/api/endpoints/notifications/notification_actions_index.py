@@ -2,18 +2,24 @@ import logging
 from typing import Dict
 
 from django.db.models import Q
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.base import serialize
+from sentry.api.serializers.models.notification_action import OutgoingNotificationActionSerializer
 from sentry.api.serializers.rest_framework.notification_action import NotificationActionSerializer
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.apidocs.examples import notification_examples
+from sentry.apidocs.parameters import GlobalParams, NotificationParams, OrganizationParams
 from sentry.models.notificationaction import NotificationAction
 from sentry.models.organization import Organization
 
@@ -42,11 +48,15 @@ class NotificationActionsPermission(OrganizationPermission):
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Alerts"])
 class NotificationActionsIndexEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
     }
+
+    owner = ApiOwner.ENTERPRISE
+
     """
     View existing NotificationActions or create a new one.
     GET: Returns paginated, serialized NotificationActions for an organization
@@ -55,7 +65,30 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
 
     permission_classes = (NotificationActionsPermission,)
 
+    @extend_schema(
+        operation_id="List Spike Protection Notifications",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            OrganizationParams.PROJECT,
+            OrganizationParams.PROJECT_SLUG,
+            NotificationParams.TRIGGER_TYPE,
+        ],
+        responses={
+            201: OutgoingNotificationActionSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+        },
+        examples=notification_examples.CREATE_NOTIFICATION_ACTION,
+    )
     def get(self, request: Request, organization: Organization) -> Response:
+        """
+        Returns all Spike Protection Notification Actions for an organization.
+
+        Notification Actions notify a set of members when an action has been triggered through a notification service such as Slack or Sentry.
+        For example, organization owners and managers can receive an email when a spike occurs.
+
+        You can use either the `project` or `projectSlug` query parameter to filter for certain projects. Note that if both are present, `projectSlug` takes priority.
+        """
         queryset = NotificationAction.objects.filter(organization_id=organization.id)
         # If a project query is specified, filter out non-project-specific actions
         # otherwise, include them but still ensure project permissions are enforced
@@ -85,7 +118,26 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
+    @extend_schema(
+        operation_id="Create a Spike Protection Notification Action",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+        ],
+        request=NotificationActionSerializer,
+        responses={
+            201: OutgoingNotificationActionSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+        },
+        examples=notification_examples.CREATE_NOTIFICATION_ACTION,
+    )
     def post(self, request: Request, organization: Organization) -> Response:
+        """
+        Creates a new Notification Action for Spike Protection.
+
+        Notification Actions notify a set of members when an action has been triggered through a notification service such as Slack or Sentry.
+        For example, organization owners and managers can receive an email when a spike occurs.
+        """
         # team admins and regular org members don't have project:write on an org level
         if not request.access.has_scope("project:write"):
             # check if user has access to create notification actions for all requested projects

@@ -4,16 +4,15 @@ from unittest.mock import ANY
 import pytest
 
 from sentry.incidents.models import AlertRule
-from sentry.models import (
-    Dashboard,
+from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
     DashboardWidgetTypes,
-    Project,
-    ProjectTransactionThreshold,
-    TransactionMetric,
 )
+from sentry.models.project import Project
+from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.relay.config.metric_extraction import get_metric_extraction_config
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery
@@ -357,6 +356,38 @@ def test_get_metric_extraction_config_alerts_and_widgets(default_project):
 
 
 @django_db_all
+def test_get_metric_extraction_config_with_failure_count(default_project):
+    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+        create_widget(["failure_count()"], "transaction.duration:>=1000", default_project)
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 1
+        assert config["metrics"][0] == {
+            "category": "transaction",
+            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [
+                {
+                    "condition": {
+                        "inner": {
+                            "name": "event.contexts.trace.status",
+                            "op": "eq",
+                            "value": ["ok", "cancelled", "unknown"],
+                        },
+                        "op": "not",
+                    },
+                    "key": "failure",
+                    "value": "true",
+                },
+                {"key": "query_hash", "value": ANY},
+            ],
+        }
+
+
+@django_db_all
 def test_get_metric_extraction_config_with_apdex(default_project):
     with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
         create_alert("apdex(10)", "transaction.duration:>=1000", default_project)
@@ -397,6 +428,25 @@ def test_get_metric_extraction_config_with_apdex(default_project):
                 },
                 {"key": "query_hash", "value": ANY},
             ],
+        }
+
+
+@django_db_all
+@pytest.mark.parametrize("metric", [("epm()"), ("eps()")])
+def test_get_metric_extraction_config_with_no_tag_spec(default_project, metric):
+    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+        create_widget([metric], "transaction.duration:>=1000", default_project)
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 1
+        assert config["metrics"][0] == {
+            "category": "transaction",
+            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": ANY}],
         }
 
 

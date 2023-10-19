@@ -6,7 +6,7 @@ import {GettingStartedWithCordova, steps} from './cordova';
 
 describe('GettingStartedWithCordova', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithCordova dsn="test-dsn" />);
+    render(<GettingStartedWithCordova dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithCordova', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

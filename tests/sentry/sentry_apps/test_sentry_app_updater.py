@@ -5,7 +5,10 @@ from django.utils import timezone
 
 from sentry.constants import SentryAppStatus
 from sentry.coreapi import APIError
-from sentry.models import ApiToken, SentryApp, SentryAppComponent, ServiceHook
+from sentry.models.apitoken import ApiToken
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.integrations.sentry_app_component import SentryAppComponent
+from sentry.models.servicehook import ServiceHook
 from sentry.sentry_apps.apps import SentryAppUpdater, expand_events
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase

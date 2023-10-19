@@ -1,21 +1,46 @@
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {PlatformKey} from 'sentry/data/platformCategories';
-import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import {t, tct} from 'sentry/locale';
+import type {Organization, PlatformKey} from 'sentry/types';
+
+export enum VueVersion {
+  V3 = 'v3',
+  V2 = 'v2',
+}
+
+type PlaformOptionKey = 'vueVersion';
 
 type StepProps = {
-  newOrg: boolean;
-  organization: Organization;
-  platformKey: PlatformKey;
-  projectId: string;
   sentryInitContent: string;
+  vueVersion: VueVersion;
+  newOrg?: boolean;
+  organization?: Organization;
+  platformKey?: PlatformKey;
+  projectId?: string;
 };
 
 // Configuration Start
+const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
+  vueVersion: {
+    label: t('Spring Boot Version'),
+    items: [
+      {
+        label: t('Vue 3'),
+        value: VueVersion.V3,
+      },
+      {
+        label: t('Vue 2'),
+        value: VueVersion.V2,
+      },
+    ],
+  },
+};
+
 const replayIntegration = `
 new Sentry.Replay(),
 `;
@@ -36,28 +61,43 @@ new Sentry.BrowserTracing({
 
 const performanceOtherConfig = `
 // Performance Monitoring
-tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
-`;
+tracesSampleRate: 1.0, // Capture 100% of the transactions`;
 
 export const steps = ({
   sentryInitContent,
+  vueVersion,
   ...props
-}: Partial<StepProps> = {}): LayoutProps['steps'] => [
+}: StepProps): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: t(
-      'Sentry captures data by using an SDK within your application’s runtime.'
+    description: (
+      <p>
+        {tct(
+          'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]:',
+          {
+            codeYarn: <code />,
+            codeNpm: <code />,
+          }
+        )}
+      </p>
     ),
     configurations: [
       {
         language: 'bash',
-        code: `
-# Using yarn
-yarn add @sentry/vue
-
-# Using npm
-npm install --save @sentry/vue
-        `,
+        code: [
+          {
+            label: 'npm',
+            value: 'npm',
+            language: 'bash',
+            code: 'npm install --save @sentry/vue',
+          },
+          {
+            label: 'yarn',
+            value: 'yarn',
+            language: 'bash',
+            code: 'yarn add @sentry/vue',
+          },
+        ],
       },
     ],
   },
@@ -66,11 +106,12 @@ npm install --save @sentry/vue
     description: t(
       "Initialize Sentry as early as possible in your application's lifecycle."
     ),
-    configurations: [
-      {
-        description: <h5>Vue 3</h5>,
-        language: 'javascript',
-        code: `
+    configurations:
+      vueVersion === VueVersion.V3
+        ? [
+            {
+              language: 'javascript',
+              code: `
         import { createApp } from "vue";
         import { createRouter } from "vue-router";
         import * as Sentry from "@sentry/vue";
@@ -90,11 +131,12 @@ npm install --save @sentry/vue
         app.use(router);
         app.mount("#app");
         `,
-      },
-      {
-        description: <h5>Vue 2</h5>,
-        language: 'javascript',
-        code: `
+            },
+          ]
+        : [
+            {
+              language: 'javascript',
+              code: `
         import Vue from "vue";
         import Router from "vue-router";
         import * as Sentry from "@sentry/vue";
@@ -117,8 +159,8 @@ npm install --save @sentry/vue
           render: (h) => h(App),
         }).$mount("#app");
         `,
-      },
-    ],
+            },
+          ],
   },
   getUploadSourceMapsStep({
     guideLink: 'https://docs.sentry.io/platforms/javascript/guides/vue/sourcemaps/',
@@ -177,7 +219,9 @@ export function GettingStartedWithVue({
   newOrg,
   platformKey,
   projectId,
+  ...props
 }: ModuleProps) {
+  const optionValues = useUrlPlatformOptions(platformOptions);
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
 
@@ -213,6 +257,7 @@ export function GettingStartedWithVue({
     <Layout
       steps={steps({
         sentryInitContent: sentryInitContent.join('\n'),
+        vueVersion: optionValues.vueVersion as VueVersion,
         organization,
         newOrg,
         platformKey,
@@ -221,6 +266,8 @@ export function GettingStartedWithVue({
       nextSteps={nextStepDocs}
       newOrg={newOrg}
       platformKey={platformKey}
+      platformOptions={platformOptions}
+      {...props}
     />
   );
 }

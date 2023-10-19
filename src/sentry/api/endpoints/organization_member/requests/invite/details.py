@@ -13,7 +13,8 @@ from sentry.api.endpoints.organization_member.index import OrganizationMemberSer
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
 from sentry.exceptions import UnableToAcceptMemberInvitationException
-from sentry.models import InviteStatus, Organization, OrganizationMember
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.utils.audit import get_api_key_for_audit_log
 
 from ... import get_allowed_org_roles, save_team_assignments

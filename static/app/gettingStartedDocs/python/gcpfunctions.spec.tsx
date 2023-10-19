@@ -6,7 +6,7 @@ import {GettingStartedWithGCPFunctions, steps} from './gcpfunctions';
 
 describe('GettingStartedWithGCPFunctions', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithGCPFunctions dsn="test-dsn" />);
+    render(<GettingStartedWithGCPFunctions dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({sentryInitContent: 'test-init-content', dsn: 'test-dsn'})) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithGCPFunctions', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import sentry_sdk
 
@@ -28,10 +28,12 @@ def query(
     orderby: Optional[List[str]] = None,
     offset: int = 0,
     limit: int = 50,
+    limitby: Optional[Tuple[str, int]] = None,
     referrer: str = "",
     auto_fields: bool = False,
     auto_aggregations: bool = False,
     use_aggregate_conditions: bool = False,
+    conditions=None,
     allow_metric_aggregates: bool = False,
     transform_alias_to_input_format: bool = False,
     has_metrics: bool = False,
@@ -50,6 +52,7 @@ def query(
         selected_columns=selected_columns,
         orderby=orderby,
         limit=limit,
+        limitby=limitby,
         offset=offset,
         config=QueryBuilderConfig(
             auto_fields=False,
@@ -59,6 +62,8 @@ def query(
             functions_acl=functions_acl,
         ),
     )
+    if conditions is not None:
+        builder.add_conditions(conditions)
     result = builder.process_results(builder.run_query(referrer))
     result["meta"]["tips"] = transform_tips(builder.tips)
     return result
@@ -117,7 +122,7 @@ def timeseries_query(
 def top_events_timeseries(
     timeseries_columns,
     selected_columns,
-    query,
+    user_query,
     params,
     orderby,
     rollup,
@@ -135,7 +140,18 @@ def top_events_timeseries(
     assert not include_other, "Other is not supported"  # TODO: support other
 
     if top_events is None:
-        assert top_events, "Need to provide top events"  # TODO: support this use case
+        with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
+            top_events = query(
+                selected_columns,
+                query=user_query,
+                params=params,
+                equations=equations,
+                orderby=orderby,
+                limit=limit,
+                referrer=referrer,
+                auto_aggregations=True,
+                use_aggregate_conditions=True,
+            )
 
     top_functions_builder = ProfileTopFunctionsTimeseriesQueryBuilder(
         dataset=Dataset.Functions,
@@ -143,7 +159,7 @@ def top_events_timeseries(
         interval=rollup,
         top_events=top_events["data"],
         other=False,
-        query=query,
+        query=user_query,
         selected_columns=selected_columns,
         timeseries_columns=timeseries_columns,
         equations=equations,
@@ -157,6 +173,7 @@ def top_events_timeseries(
         assert False, "Other is not supported"  # TODO: support other
 
     result = top_functions_builder.run_query(referrer)
+
     return format_top_events_timeseries_results(
         result,
         top_functions_builder,
@@ -198,7 +215,7 @@ def format_top_events_timeseries_results(
         op="discover.discover", description="top_events.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        result = query_builder.process_results(result)
+        processed_result = query_builder.process_results(result)
 
         if result_key_order is None:
             result_key_order = query_builder.translated_groupby
@@ -209,7 +226,7 @@ def format_top_events_timeseries_results(
         for index, item in enumerate(top_events["data"]):
             result_key = create_result_key(item, result_key_order)
             results[result_key] = {"order": index, "data": []}
-        for row in result["data"]:
+        for row in processed_result["data"]:
             result_key = create_result_key(row, result_key_order)
             if result_key in results:
                 results[result_key]["data"].append(row)
@@ -226,6 +243,14 @@ def format_top_events_timeseries_results(
                     if zerofill_results
                     else item["data"],
                     "order": item["order"],
+                    "meta": {
+                        "fields": {
+                            value["name"]: get_json_meta_type(
+                                value["name"], value.get("type"), query_builder
+                            )
+                            for value in result["meta"]
+                        }
+                    },
                 },
                 params["start"],
                 params["end"],

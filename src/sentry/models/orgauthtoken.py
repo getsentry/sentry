@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.utils.encoding import force_str
 
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import PrimaryKeyMap, get_model_name
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.conf.server import SENTRY_SCOPES
 from sentry.db.models import (
     ArrayField,
@@ -16,6 +20,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.orgauthtoken import orgauthtoken_service
 
 MAX_NAME_LENGTH = 255
@@ -75,6 +80,41 @@ class OrgAuthToken(Model):
 
     def is_active(self) -> bool:
         return self.date_deactivated is None
+
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[int]:
+        # TODO(getsentry/team-ospo#190): Prevents a circular import; could probably split up the
+        # source module in such a way that this is no longer an issue.
+        from sentry.api.utils import generate_region_url
+        from sentry.utils.security.orgauthtoken_token import (
+            SystemUrlPrefixMissingException,
+            generate_token,
+            hash_token,
+        )
+
+        # If there is a token collision, or the token does not exist for some reason, generate a new
+        # one.
+        matching_token_hashed = self.__class__.objects.filter(
+            token_hashed=self.token_hashed
+        ).first()
+        if (not self.token_hashed) or matching_token_hashed:
+            org_slug = pk_map.get_slug(get_model_name(Organization), self.organization_id)
+            if org_slug is None:
+                return None
+
+            try:
+                token_str = generate_token(org_slug, generate_region_url())
+            except SystemUrlPrefixMissingException:
+                return None
+            self.token_hashed = hash_token(token_str)
+            self.token_last_characters = token_str[-4:]
+
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+
+        return old_pk
 
 
 def is_org_auth_token_auth(auth: object) -> bool:

@@ -4,8 +4,10 @@ from unittest.mock import patch
 from django.core.files.base import ContentFile
 from django.urls import reverse
 
-from sentry.models import ApiToken, FileBlob, FileBlobOwner
+from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
+from sentry.models.files.fileblob import FileBlob
+from sentry.models.files.fileblobowner import FileBlobOwner
 from sentry.silo import SiloMode
 from sentry.tasks.assemble import ChunkFileState, assemble_artifacts
 from sentry.testutils.cases import APITestCase
@@ -83,6 +85,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
                 "checksum": total_checksum,
                 "project_ids": [],
                 "upload_as_artifact_bundle": False,
+                "is_release_bundle_migration": False,
             }
         )
 
@@ -161,6 +164,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
             "chunks": [blob1.checksum],
             "project_ids": [self.project.id],
             "upload_as_artifact_bundle": True,
+            "is_release_bundle_migration": True,
         }
         mock_assemble_artifacts.apply_async.assert_called_once_with(kwargs=kwargs)
         # actually call through to assemble :-)

@@ -1,11 +1,10 @@
 from rest_framework import status
 
-from sentry.models import NotificationSetting
+from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
 
@@ -125,7 +124,6 @@ class UserNotificationSettingsUpdateTest(UserNotificationSettingsTestBase):
             == NotificationSettingOptionValues.ALWAYS
         )
 
-    @with_feature("organizations:notifications-double-write")
     def test_double_write(self):
         org = self.create_organization()
         self.create_member(user=self.user, organization=org)
@@ -179,6 +177,73 @@ class UserNotificationSettingsUpdateTest(UserNotificationSettingsTestBase):
         assert NotificationSettingProvider.objects.filter(
             **query_args, value="never", provider="slack"
         )
+
+    def test_double_write_with_email_off(self):
+        org = self.create_organization()
+        self.create_member(user=self.user, organization=org)
+        project2 = self.create_project(organization=org)
+
+        self.get_success_response(
+            "me",
+            deploy={
+                "user": {
+                    "me": {"email": "never", "slack": "committed_only"}
+                },  # committed_only for slack
+                "project": {
+                    project2.id: {"email": "never", "slack": "always"},  # enabled
+                    self.project.id: {"email": "never", "slack": "never"},  # disabled
+                },
+            },
+            status_code=status.HTTP_204_NO_CONTENT,
+        )
+
+        # check user first
+        base_query_args = {
+            "user_id": self.user.id,
+            "team_id": None,
+            "type": "deploy",
+        }
+        query_args = {
+            **base_query_args,
+            "scope_type": "user",
+            "scope_identifier": self.user.id,
+        }
+        assert NotificationSettingOption.objects.filter(
+            **query_args, value="committed_only"
+        ).exists()
+        assert NotificationSettingProvider.objects.filter(
+            **query_args, provider="email", value="never"
+        ).exists()
+        assert NotificationSettingProvider.objects.filter(
+            **query_args, provider="slack", value="always"
+        ).exists()
+        assert not NotificationSettingProvider.objects.filter(
+            **query_args,
+            provider="msteams",
+        ).exists()
+
+        # check project1
+        query_args = {
+            **base_query_args,
+            "scope_type": "project",
+            "scope_identifier": self.project.id,
+        }
+        assert NotificationSettingOption.objects.filter(**query_args, value="never").exists()
+        # should not make project scoped provider settings
+        assert not NotificationSettingProvider.objects.filter(
+            **query_args,
+        ).exists()
+
+        # check project 2
+        query_args = {
+            **base_query_args,
+            "scope_type": "project",
+            "scope_identifier": project2.id,
+        }
+        assert NotificationSettingOption.objects.filter(**query_args, value="always").exists()
+        assert not NotificationSettingProvider.objects.filter(
+            **query_args,
+        ).exists()
 
     def test_empty_payload(self):
         self.get_error_response("me", status_code=status.HTTP_400_BAD_REQUEST)

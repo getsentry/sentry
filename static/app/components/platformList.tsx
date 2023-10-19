@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {Tooltip} from 'sentry/components/tooltip';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {tn} from 'sentry/locale';
+import type {PlatformKey} from 'sentry/types';
 import getPlatformName from 'sentry/utils/getPlatformName';
 
 type Props = {

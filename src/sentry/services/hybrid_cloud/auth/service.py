@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
-from typing import Any, List, Mapping, Optional, cast
+from typing import Any, List, Mapping, Optional
 
 from sentry.services.hybrid_cloud.auth import (
     AuthenticationContext,
@@ -13,10 +13,8 @@ from sentry.services.hybrid_cloud.auth import (
     RpcApiKey,
     RpcAuthenticatorType,
     RpcAuthProvider,
-    RpcAuthState,
     RpcOrganizationAuthConfig,
 )
-from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberSummary
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
@@ -48,18 +46,6 @@ class AuthService(RpcService):
     def get_org_auth_config(
         self, *, organization_ids: List[int]
     ) -> List[RpcOrganizationAuthConfig]:
-        pass
-
-    @rpc_method
-    @abc.abstractmethod
-    def get_user_auth_state(
-        self,
-        *,
-        user_id: int,
-        is_superuser: bool,
-        organization_id: Optional[int],
-        org_member: Optional[RpcOrganizationMemberSummary],
-    ) -> RpcAuthState:
         pass
 
     # TODO: Denormalize this scim enabled flag onto organizations?
@@ -132,4 +118,4 @@ class AuthService(RpcService):
         pass
 
 
-auth_service: AuthService = cast(AuthService, AuthService.create_delegation())
+auth_service = AuthService.create_delegation()

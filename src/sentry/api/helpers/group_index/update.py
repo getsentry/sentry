@@ -24,34 +24,25 @@ from sentry.issues.ignored import handle_archived_until_escalating, handle_ignor
 from sentry.issues.merge import handle_merge
 from sentry.issues.status_change import handle_status_update
 from sentry.issues.update_inbox import update_inbox
-from sentry.models import (
-    TOMBSTONE_FIELDS_FROM_GROUP,
-    Activity,
-    Actor,
-    ActorTuple,
-    Group,
-    GroupAssignee,
-    GroupBookmark,
-    GroupHash,
-    GroupLink,
-    GroupRelease,
-    GroupResolution,
-    GroupSeen,
-    GroupShare,
-    GroupStatus,
-    GroupSubscription,
-    GroupTombstone,
-    Project,
-    Release,
-    Team,
-    User,
-    follows_semver_versioning_scheme,
-    remove_group_from_inbox,
-)
-from sentry.models.activity import ActivityIntegration
-from sentry.models.group import STATUS_UPDATE_CHOICES
+from sentry.models.activity import Activity, ActivityIntegration
+from sentry.models.actor import Actor, ActorTuple
+from sentry.models.group import STATUS_UPDATE_CHOICES, Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupbookmark import GroupBookmark
+from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import record_group_history_from_activity_type
-from sentry.models.groupinbox import GroupInboxRemoveAction
+from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
+from sentry.models.grouplink import GroupLink
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupseen import GroupSeen
+from sentry.models.groupshare import GroupShare
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.grouptombstone import TOMBSTONE_FIELDS_FROM_GROUP, GroupTombstone
+from sentry.models.project import Project
+from sentry.models.release import Release, follows_semver_versioning_scheme
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -121,7 +112,7 @@ def self_subscribe_and_assign_issue(
     # representation of current user
     if acting_user:
         GroupSubscription.objects.subscribe(
-            user=acting_user, group=group, reason=GroupSubscriptionReason.status_change
+            subscriber=acting_user, group=group, reason=GroupSubscriptionReason.status_change
         )
 
         if self_assign_issue == "1" and not group.assignee_set.exists():
@@ -173,7 +164,7 @@ def get_current_release_version_of_group(
 
 def update_groups(
     request: Request,
-    group_ids: Sequence[int],
+    group_ids: Sequence[int] | None,
     projects: Sequence[Project],
     organization_id: int,
     search_fn: SearchFunction | None,
@@ -720,13 +711,13 @@ def handle_is_subscribed(
 
 def handle_is_bookmarked(
     is_bookmarked: bool,
-    group_list: Sequence[Group],
+    group_list: Sequence[Group] | None,
     group_ids: Sequence[Group],
     project_lookup: Dict[int, Project],
     acting_user: User | None,
 ) -> None:
     """
-    Creates bookmarks and subscriptions for a user, or deletes the exisitng bookmarks.
+    Creates bookmarks and subscriptions for a user, or deletes the existing bookmarks and subscriptions.
     """
     if is_bookmarked:
         for group in group_list:
@@ -736,13 +727,19 @@ def handle_is_bookmarked(
                 user_id=acting_user.id if acting_user else None,
             )
             GroupSubscription.objects.subscribe(
-                user=acting_user, group=group, reason=GroupSubscriptionReason.bookmark
+                subscriber=acting_user, group=group, reason=GroupSubscriptionReason.bookmark
             )
     elif is_bookmarked is False:
         GroupBookmark.objects.filter(
             group__in=group_ids,
             user_id=acting_user.id if acting_user else None,
         ).delete()
+        if group_list:
+            if features.has("organizations:participants-purge", group_list[0].organization):
+                GroupSubscription.objects.filter(
+                    user_id=acting_user.id,
+                    group__in=group_ids,
+                ).delete()
 
 
 def handle_has_seen(
@@ -841,6 +838,9 @@ def handle_assigned_to(
     if assigned_actor:
         for group in group_list:
             resolved_actor: RpcUser | Team = assigned_actor.resolve()
+
+            if features.has("organizations:participants-purge", group.organization):
+                GroupAssignee.objects.deassign(group, acting_user, resolved_actor, extra=extra)
 
             assignment = GroupAssignee.objects.assign(
                 group, resolved_actor, acting_user, extra=extra

@@ -7,7 +7,6 @@ import pytest
 from django.core.cache import cache
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.db.models.manager import BaseManager
 from sentry.incidents.logic import delete_alert_rule, update_alert_rule
@@ -26,6 +25,7 @@ from sentry.incidents.models import (
 )
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 
 

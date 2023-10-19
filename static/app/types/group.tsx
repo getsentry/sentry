@@ -1,12 +1,11 @@
 import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
-import type {PlatformKey} from 'sentry/data/platformCategories';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
 import type {Commit, PullRequest, Repository} from './integrations';
 import type {Team} from './organization';
-import type {Project} from './project';
+import type {PlatformKey, Project} from './project';
 import type {AvatarUser, User} from './user';
 
 export type EntryData = Record<string, any | Array<any>>;
@@ -47,6 +46,7 @@ export enum SavedSearchType {
   EVENT = 1,
   SESSION = 2,
   REPLAY = 3,
+  METRIC = 4,
 }
 
 export enum IssueCategory {
@@ -79,6 +79,9 @@ export enum IssueType {
   PROFILE_IMAGE_DECODE_MAIN_THREAD = 'profile_image_decode_main_thread',
   PROFILE_JSON_DECODE_MAIN_THREAD = 'profile_json_decode_main_thread',
   PROFILE_REGEX_MAIN_THREAD = 'profile_regex_main_thread',
+  PROFILE_FRAME_DROP = 'profile_frame_drop',
+  PROFILE_FRAME_DROP_EXPERIMENTAL = 'profile_frame_drop_experimental',
+  PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL = 'profile_function_regression_exp',
 }
 
 export enum IssueTitle {
@@ -555,6 +558,14 @@ interface ReprocessingStatusDetails {
   pendingEvents: number;
 }
 
+export interface UserParticipant extends User {
+  type: 'user';
+}
+
+export interface TeamParticipant extends Team {
+  type: 'team';
+}
+
 /**
  * The payload sent when marking reviewed
  */
@@ -564,6 +575,7 @@ export interface MarkReviewed {
 /**
  * The payload sent when updating a group's status
  */
+
 export interface GroupStatusResolution {
   status: GroupStatus.RESOLVED | GroupStatus.UNRESOLVED | GroupStatus.IGNORED;
   statusDetails: ResolvedStatusDetails | IgnoredStatusDetails | {};
@@ -607,7 +619,7 @@ export interface BaseGroup {
   logger: string | null;
   metadata: EventMetadata;
   numComments: number;
-  participants: User[];
+  participants: Array<UserParticipant | TeamParticipant>;
   permalink: string;
   platform: PlatformKey;
   pluginActions: any[]; // TODO(ts)

@@ -1,4 +1,6 @@
 from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.user import User
 from sentry.notifications.types import (
     NotificationScopeType,
@@ -19,8 +21,10 @@ def _get_kwargs(kwargs):
     )
 
 
-def assert_no_notification_settings(**kwargs):
-    assert NotificationSetting.objects._filter(**kwargs).count() == 0
+def assert_no_notification_settings():
+    assert NotificationSetting.objects.all().count() == 0
+    assert NotificationSettingOption.objects.all().count() == 0
+    assert NotificationSettingProvider.objects.all().count() == 0
 
 
 def create_setting(**kwargs):
@@ -76,7 +80,7 @@ class NotificationSettingTest(TestCase):
             organization=self.organization,
             organization_id_for_team=self.organization.id,
         )
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.REGION), outbox_runner():
             self.organization.delete()
         assert_no_notification_settings()
 

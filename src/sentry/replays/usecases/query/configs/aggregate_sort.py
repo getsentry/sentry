@@ -5,6 +5,8 @@ abstraction.  We can pass any valid Snuba expression and the query will be sorte
 """
 from __future__ import annotations
 
+from datetime import datetime
+
 from snuba_sdk import Column, Function
 
 from sentry.replays.usecases.query.conditions.activity import aggregate_activity
@@ -16,13 +18,29 @@ def any_if(column_name):
     )
 
 
+def _click_count_sum_if_after(column_name: str) -> Function:
+    return Function(
+        "sumIf",
+        parameters=[
+            Column(column_name),
+            Function(
+                "greaterOrEquals",
+                [Column("timestamp"), datetime(year=2023, month=7, day=24)],
+            ),
+        ],
+    )
+
+
 sort_config = {
     "activity": aggregate_activity(),
     "browser.name": any_if("browser_name"),
     "browser.version": any_if("browser_version"),
-    "count_dead_clicks": Function("sum", parameters=[Column("click_is_dead")]),
+    "count_dead_clicks": _click_count_sum_if_after("click_is_dead"),
     "count_errors": Function("sum", parameters=[Column("count_errors")]),
-    "count_rage_clicks": Function("sum", parameters=[Column("click_is_rage")]),
+    "new_count_errors": Function("sum", parameters=[Column("count_error_events")]),
+    "count_warnings": Function("sum", parameters=[Column("count_warning_events")]),
+    "count_infos": Function("sum", parameters=[Column("count_info_events")]),
+    "count_rage_clicks": _click_count_sum_if_after("click_is_rage"),
     "count_urls": Function("sum", parameters=[Column("count_urls")]),
     "device.brand": any_if("device_brand"),
     "device.family": any_if("device_family"),

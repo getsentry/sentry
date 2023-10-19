@@ -34,6 +34,9 @@ interface MemoryChartProps extends Props {
 const formatTimestamp = timestamp =>
   getFormattedDate(timestamp, 'MMM D, YYYY hh:mm:ss A z', {local: false});
 
+const formatTimestampTrim = timestamp =>
+  getFormattedDate(timestamp, 'MMM D hh:mm', {local: false});
+
 function MemoryChart({
   forwardedRef,
   memoryFrames,
@@ -42,7 +45,6 @@ function MemoryChart({
   setCurrentHoverTime,
 }: MemoryChartProps) {
   const theme = useTheme();
-
   if (!memoryFrames) {
     return (
       <MemoryChartWrapper>
@@ -53,13 +55,15 @@ function MemoryChart({
 
   if (!memoryFrames.length) {
     return (
-      <EmptyMessage
-        data-test-id="replay-details-memory-tab"
-        title={t('No memory metrics found')}
-        description={t(
-          'Memory metrics are only captured within Chromium based browser sessions.'
-        )}
-      />
+      <MemoryChartWrapper>
+        <EmptyMessage
+          data-test-id="replay-details-memory-tab"
+          title={t('No memory metrics found')}
+          description={t(
+            'Memory metrics are only captured within Chromium based browser sessions.'
+          )}
+        />
+      </MemoryChartWrapper>
     );
   }
 
@@ -80,8 +84,8 @@ function MemoryChart({
           value => `
             <div>
               <span className="tooltip-label">${value.marker}<strong>${
-            value.seriesName
-          }</strong></span>
+                value.seriesName
+              }</strong></span>
           ${formatBytesBase2(value.data[1])}
             </div>
           `
@@ -110,7 +114,7 @@ function MemoryChart({
     xAxis: XAxis({
       type: 'time',
       axisLabel: {
-        formatter: formatTimestamp,
+        formatter: formatTimestampTrim,
       },
       theme,
     }),
@@ -119,10 +123,11 @@ function MemoryChart({
       name: t('Heap Size'),
       theme,
       nameTextStyle: {
-        padding: 8,
+        padding: [8, 8, 8, -25],
         fontSize: theme.fontSizeLarge,
         fontWeight: 600,
         lineHeight: 1.2,
+        fontFamily: theme.text.family,
         color: theme.gray300,
       },
       // input is in bytes, minInterval is a megabyte
@@ -224,8 +229,10 @@ function MemoryChart({
 }
 
 const MemoryChartWrapper = styled(FluidHeight)`
-  border-radius: ${space(0.5)};
   border: 1px solid ${p => p.theme.border};
+  border-radius: ${space(0.5)};
+  justify-content: center;
+  padding: ${space(1)};
 `;
 
 const MemoizedMemoryChart = memo(

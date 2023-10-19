@@ -6,13 +6,8 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, EnvironmentMixin, region_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.serializers import (
-    SharedEventSerializer,
-    SharedGroupSerializer,
-    SharedProjectSerializer,
-    serialize,
-)
-from sentry.models import Group
+from sentry.api.serializers import SharedGroupSerializer, serialize
+from sentry.models.group import Group
 
 
 @region_silo_endpoint
@@ -44,12 +39,10 @@ class SharedGroupDetailsEndpoint(Endpoint, EnvironmentMixin):
 
         if organization_slug:
             if organization_slug != group.organization.slug:
-                return ResourceDoesNotExist
+                raise ResourceDoesNotExist
 
         if group.organization.flags.disable_shared_issues:
             raise ResourceDoesNotExist
-
-        event = group.get_latest_event()
 
         context = serialize(
             group,
@@ -58,7 +51,4 @@ class SharedGroupDetailsEndpoint(Endpoint, EnvironmentMixin):
                 environment_func=self._get_environment_func(request, group.project.organization_id)
             ),
         )
-        # TODO(dcramer): move latestEvent/project into SharedGroupSerializer
-        context["latestEvent"] = serialize(event, request.user, SharedEventSerializer())
-        context["project"] = serialize(group.project, request.user, SharedProjectSerializer())
         return Response(context)

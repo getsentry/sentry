@@ -11,7 +11,9 @@ from sentry.incidents.models import (
     IncidentStatus,
     TriggerStatus,
 )
-from sentry.models import Organization, Project, User
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.user import User
 from sentry.snuba.models import SnubaQuery
 
 from .mail import MailPreviewView

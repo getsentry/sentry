@@ -1,4 +1,4 @@
-from sentry.models import OrganizationAvatar
+from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.web.frontend.base import AvatarPhotoView, region_silo_view
 
 

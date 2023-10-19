@@ -1,8 +1,8 @@
 {
   "get": {
     "tags": ["Events"],
-    "description": "Return a list of events bound to a project.",
-    "operationId": "List a Project's Events",
+    "description": "Return a list of error events bound to a project.",
+    "operationId": "List a Project's Error Events",
     "parameters": [
       {
         "name": "organization_slug",

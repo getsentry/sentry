@@ -6,6 +6,7 @@ import sortBy from 'lodash/sortBy';
 import {PlatformIcon} from 'platformicons';
 
 import onboardingFrameworkSelectionDotnet from 'sentry-images/spot/onboarding-framework-selection-dotnet.svg';
+import onboardingFrameworkSelectionGo from 'sentry-images/spot/onboarding-framework-selection-go.svg';
 import onboardingFrameworkSelectionJava from 'sentry-images/spot/onboarding-framework-selection-java.svg';
 import onboardingFrameworkSelectionJavascript from 'sentry-images/spot/onboarding-framework-selection-javascript.svg';
 import onboardingFrameworkSelectionNode from 'sentry-images/spot/onboarding-framework-selection-node.svg';
@@ -19,7 +20,7 @@ import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Radio from 'sentry/components/radio';
-import categoryList from 'sentry/data/platformCategories';
+import categoryList, {createablePlatforms} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -126,6 +127,7 @@ export const languageDetails = {
     description: t(
       'Our Go framework SDKs include all the features of our Go SDK with instructions specific to that framework'
     ),
+    topFrameworksImage: onboardingFrameworkSelectionGo,
   },
 };
 
@@ -154,7 +156,9 @@ export function FrameworkSuggestionModal({
 
   const frameworks = platforms.filter(
     platform =>
-      platform.type === 'framework' && platform.language === selectedPlatform.key
+      createablePlatforms.has(platform.id) &&
+      platform.type === 'framework' &&
+      platform.language === selectedPlatform.key
   );
 
   const [topFrameworks, otherFrameworks] = partition(frameworks, framework => {
@@ -269,7 +273,7 @@ export function FrameworkSuggestionModal({
                 (framework, index) => {
                   const frameworkCategory =
                     categoryList.find(category => {
-                      return category.platforms.includes(framework.id as never);
+                      return category.platforms?.has(framework.id);
                     })?.id ?? 'all';
 
                   return (
@@ -332,7 +336,8 @@ const Header = styled('header')`
 `;
 
 const TopFrameworksImage = styled('img')`
-  margin-bottom: ${space(2)};
+  width: 256px;
+  margin: 0px auto ${space(2)};
 `;
 
 const Heading = styled('h6')`
@@ -346,7 +351,9 @@ const Description = styled(TextBlock)`
 `;
 
 const Frameworks = styled(List)`
+  display: block; /* Needed to prevent list item from stretching if the list is scrollable (Safari) */
   overflow-y: auto;
+  max-height: 550px;
 `;
 
 const StyledPanel = styled(Panel)`
@@ -362,7 +369,7 @@ const StyledPanelBody = styled(PanelBody)`
 `;
 
 const Framework = styled(ListItem)`
-  height: 40px;
+  min-height: 40px;
   display: grid;
   text-align: left;
   cursor: pointer;

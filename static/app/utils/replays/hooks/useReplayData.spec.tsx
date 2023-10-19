@@ -1,4 +1,5 @@
 import {duration} from 'moment';
+import {ReplayError} from 'sentry-fixture/replayError';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
@@ -182,14 +183,14 @@ describe('useReplayData', () => {
     });
 
     const mockErrorResponse1 = [
-      TestStubs.ReplayError({
+      ReplayError({
         id: ERROR_IDS[0],
         issue: 'JAVASCRIPT-123E',
         timestamp: startedAt.toISOString(),
       }),
     ];
     const mockErrorResponse2 = [
-      TestStubs.ReplayError({
+      ReplayError({
         id: ERROR_IDS[1],
         issue: 'JAVASCRIPT-789Z',
         timestamp: startedAt.toISOString(),
@@ -269,7 +270,7 @@ describe('useReplayData', () => {
       timestamp: startedAt,
     });
     const mockErrorResponse = [
-      TestStubs.ReplayError({
+      ReplayError({
         id: ERROR_ID,
         issue: 'JAVASCRIPT-123E',
         timestamp: startedAt.toISOString(),

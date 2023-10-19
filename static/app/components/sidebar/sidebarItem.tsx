@@ -11,6 +11,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import localStorage from 'sentry/utils/localStorage';
 import useRouter from 'sentry/utils/useRouter';
@@ -122,28 +123,11 @@ function SidebarItem({
   if (isValidElement(label)) {
     labelString = label?.props?.children ?? label;
   }
-  // take off the query params for matching
-  const toPathWithoutReferrer = to?.split('?')[0];
   // If there is no active panel open and if path is active according to react-router
   const isActiveRouter =
-    (!hasPanel &&
-      router &&
-      toPathWithoutReferrer &&
-      (exact
-        ? location.pathname === normalizeUrl(toPathWithoutReferrer)
-        : location.pathname.startsWith(normalizeUrl(toPathWithoutReferrer)))) ||
-    (labelString === 'Discover' && location.pathname.includes('/discover/')) ||
-    (labelString === 'Dashboards' &&
-      (location.pathname.includes('/dashboards/') ||
-        location.pathname.includes('/dashboard/')) &&
-      !location.pathname.startsWith('/settings/')) ||
-    // TODO: this won't be necessary once we remove settingsHome
-    (labelString === 'Settings' && location.pathname.startsWith('/settings/')) ||
-    (labelString === 'Alerts' &&
-      location.pathname.includes('/alerts/') &&
-      !location.pathname.startsWith('/settings/'));
+    !hasPanel && router && isItemActive({to, label: labelString}, exact);
 
-  const isActive = active || isActiveRouter;
+  const isActive = defined(active) ? active : isActiveRouter;
   const isTop = orientation === 'top';
   const placement = isTop ? 'bottom' : 'right';
 
@@ -160,9 +144,9 @@ function SidebarItem({
 
   const badges = (
     <Fragment>
-      {showIsNew && <FeatureBadge type="new" tooltipProps={{disabled: true}} />}
-      {isBeta && <FeatureBadge type="beta" tooltipProps={{disabled: true}} />}
-      {isAlpha && <FeatureBadge type="alpha" tooltipProps={{disabled: true}} />}
+      {showIsNew && <FeatureBadge type="new" />}
+      {isBeta && <FeatureBadge type="beta" />}
+      {isAlpha && <FeatureBadge type="alpha" />}
     </Fragment>
   );
 
@@ -226,6 +210,33 @@ function SidebarItem({
         </SidebarItemWrapper>
       </StyledSidebarItem>
     </Tooltip>
+  );
+}
+
+export function isItemActive(
+  item: Pick<SidebarItemProps, 'to' | 'label'>,
+  exact?: boolean
+): boolean {
+  // take off the query params for matching
+  const toPathWithoutReferrer = item?.to?.split('?')[0];
+  if (!toPathWithoutReferrer) {
+    return false;
+  }
+
+  return (
+    (exact
+      ? location.pathname === normalizeUrl(toPathWithoutReferrer)
+      : location.pathname.startsWith(normalizeUrl(toPathWithoutReferrer))) ||
+    (item?.label === 'Discover' && location.pathname.includes('/discover/')) ||
+    (item?.label === 'Dashboards' &&
+      (location.pathname.includes('/dashboards/') ||
+        location.pathname.includes('/dashboard/')) &&
+      !location.pathname.startsWith('/settings/')) ||
+    // TODO: this won't be necessary once we remove settingsHome
+    (item?.label === 'Settings' && location.pathname.startsWith('/settings/')) ||
+    (item?.label === 'Alerts' &&
+      location.pathname.includes('/alerts/') &&
+      !location.pathname.startsWith('/settings/'))
   );
 }
 

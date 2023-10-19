@@ -1,6 +1,7 @@
 import pytest
 
-from sentry.models import OrganizationMapping, OrganizationStatus
+from sentry.models.organization import OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.testutils.cases import TestMigrations
 from sentry.testutils.outbox import outbox_runner
 

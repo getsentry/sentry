@@ -1,15 +1,14 @@
-import freezegun
 import pytest
 
 from sentry.constants import DataCategory
-from sentry.models import ProjectKey
+from sentry.models.projectkey import ProjectKey
 from sentry.testutils.cases import APITestCase, OutcomesSnubaTest, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.outcomes import Outcome
 
 
-@freezegun.freeze_time("2022-01-01 03:30:00")
+@freeze_time("2022-01-01 03:30:00")
 @region_silo_test(stable=True)
 class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
     def setUp(self):
@@ -82,7 +81,7 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
         # Find the bucket with data.
         # The index of this bucket can shift when we run tests at UTC midnight
         result = [bucket for bucket in response.data if bucket["total"] > 0][0]
-        assert type(result["ts"]) == int
+        assert isinstance(result["ts"], int)
         assert result["total"] == 8, response.data
         assert result["filtered"] == 1, response.data
         assert result["dropped"] == 5, response.data
@@ -166,7 +165,7 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
         assert response.status_code == 200, response.content
 
         result = [bucket for bucket in response.data if bucket["total"] > 0][0]
-        assert type(result["ts"]) == int
+        assert isinstance(result["ts"], int)
         assert result["total"] == 2, response.data
         assert result["filtered"] == 0, response.data
         assert result["dropped"] == 0, response.data

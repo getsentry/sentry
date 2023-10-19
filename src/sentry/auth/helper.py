@@ -35,7 +35,10 @@ from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.auth.superuser import is_active_superuser
 from sentry.locks import locks
-from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, User, outbox_context
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.models.outbox import outbox_context
+from sentry.models.user import User
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.pipeline.provider import PipelineProvider
 from sentry.services.hybrid_cloud.organization import (
@@ -977,33 +980,6 @@ class AuthHelper(Pipeline):
             target_object=self.organization.id,
             event=audit_log.get_event_id("ORG_EDIT"),
             data={"require_2fa": "to False when enabling SSO"},
-        )
-
-
-def EnablePartnerSSO(provider_key, sentry_org, provider_config):
-    """
-    Simplified abstraction from AuthHelper for enabling an SSO AuthProvider for a Sentry organization.
-    Fires appropriate Audit Log and signal emitter for SSO Enabled
-    """
-    with transaction.atomic(router.db_for_write(AuthProvider)):
-        provider_model = AuthProvider.objects.create(
-            organization_id=sentry_org.id, provider=provider_key, config=provider_config
-        )
-
-        # TODO: Analytics requires a user id
-        # At provisioning time, no user is available so we cannot provide any user
-        # sso_enabled.send_robust(
-        #     organization=sentry_org,
-        #     provider=provider_key,
-        #     sender="EnablePartnerSSO",
-        # )
-
-        AuditLogEntry.objects.create(
-            organization_id=sentry_org.id,
-            actor_label=f"partner_provisioning_api:{provider_key}",
-            target_object=provider_model.id,
-            event=audit_log.get_event_id("SSO_ENABLE"),
-            data=provider_model.get_audit_log_data(),
         )
 
 

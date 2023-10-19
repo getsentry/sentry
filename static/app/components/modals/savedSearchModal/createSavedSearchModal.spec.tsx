@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -14,7 +15,7 @@ import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('CreateSavedSearchModal', function () {
   let createMock;
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     access: ['org:write'],
   });
 
@@ -103,7 +104,7 @@ describe('CreateSavedSearchModal', function () {
 
   describe('visibility', () => {
     it('only allows owner-level visibility without org:write permission', async function () {
-      const org = TestStubs.Organization({
+      const org = Organization({
         access: [],
       });
 
@@ -135,7 +136,7 @@ describe('CreateSavedSearchModal', function () {
   });
 
   it('can change to org-level visibility with org:write permission', async function () {
-    const org = TestStubs.Organization({
+    const org = Organization({
       access: ['org:write'],
     });
     render(<CreateSavedSearchModal {...defaultProps} organization={org} />);

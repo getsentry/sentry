@@ -7,21 +7,20 @@ from uuid import uuid4
 
 from django.core.files.base import ContentFile
 from django.urls import reverse
-from freezegun import freeze_time
 
-from sentry.models import (
+from sentry.models.artifactbundle import (
     ArtifactBundle,
     DebugIdArtifactBundle,
-    File,
-    FileBlob,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
-    ReleaseFile,
     SourceFileType,
 )
-from sentry.models.releasefile import read_artifact_index, update_artifact_index
+from sentry.models.files.file import File
+from sentry.models.files.fileblob import FileBlob
+from sentry.models.releasefile import ReleaseFile, read_artifact_index, update_artifact_index
 from sentry.tasks.assemble import assemble_artifacts
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
 
 

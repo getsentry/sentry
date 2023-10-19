@@ -1,3 +1,7 @@
+import {Organization} from 'sentry-fixture/organization';
+import {TeamIssuesBreakdown} from 'sentry-fixture/teamIssuesBreakdown';
+import {TeamResolutionTime} from 'sentry-fixture/teamResolutionTime';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -59,11 +63,11 @@ describe('TeamStatsIssues', () => {
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/time-to-resolution/`,
-      body: TestStubs.TeamResolutionTime(),
+      body: TeamResolutionTime(),
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/issue-breakdown/`,
-      body: TestStubs.TeamIssuesBreakdown(),
+      body: TeamIssuesBreakdown(),
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/alerts-triggered-index/`,
@@ -71,11 +75,11 @@ describe('TeamStatsIssues', () => {
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/time-to-resolution/`,
-      body: TestStubs.TeamResolutionTime(),
+      body: TeamResolutionTime(),
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/issue-breakdown/`,
-      body: TestStubs.TeamIssuesBreakdown(),
+      body: TeamIssuesBreakdown(),
     });
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -129,7 +133,7 @@ describe('TeamStatsIssues', () => {
     teams = teams ?? [team1, team2, team3];
     projects = projects ?? [project1, project2];
     ProjectsStore.loadInitialData(projects);
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       teams,
       projects,
     });

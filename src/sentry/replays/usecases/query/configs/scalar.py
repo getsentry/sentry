@@ -5,13 +5,24 @@ from typing import Union
 
 from sentry.api.event_search import ParenExpression, SearchFilter
 from sentry.replays.lib.new_query.conditions import IPv4Scalar, StringArray, StringScalar, UUIDArray
-from sentry.replays.lib.new_query.fields import ColumnField, StringColumnField, UUIDColumnField
+from sentry.replays.lib.new_query.fields import FieldProtocol, StringColumnField, UUIDColumnField
 from sentry.replays.lib.new_query.parsers import parse_str, parse_uuid
-from sentry.replays.usecases.query.conditions import ErrorIdsArray
-from sentry.replays.usecases.query.fields import ComputedField, TagField
+from sentry.replays.lib.selector.parse import parse_selector
+from sentry.replays.usecases.query.conditions import (
+    ClickSelectorComposite,
+    DeadClickSelectorComposite,
+    ErrorIdsArray,
+    RageClickSelectorComposite,
+)
+from sentry.replays.usecases.query.fields import ComputedField
+
+
+def string_field(column_name: str) -> StringColumnField:
+    return StringColumnField(column_name, parse_str, StringScalar)
+
 
 # Static Search Config
-static_search_config: dict[str, ColumnField] = {
+static_search_config: dict[str, FieldProtocol] = {
     "browser.name": StringColumnField("browser_name", parse_str, StringScalar),
     "browser.version": StringColumnField("browser_version", parse_str, StringScalar),
     "device.brand": StringColumnField("device_brand", parse_str, StringScalar),
@@ -28,6 +39,9 @@ static_search_config: dict[str, ColumnField] = {
     "sdk.name": StringColumnField("sdk_name", parse_str, StringScalar),
     "sdk.version": StringColumnField("sdk_version", parse_str, StringScalar),
 }
+# Aliases
+static_search_config["release"] = static_search_config["releases"]
+
 
 # Varying Search Config
 #
@@ -35,7 +49,7 @@ static_search_config: dict[str, ColumnField] = {
 # multiple conditions are strung together.  By isolating these values into a separate config we
 # are codifying a rule which should be enforced elsewhere in code: "only one condition from this
 # config allowed".
-varying_search_config: dict[str, Union[ColumnField, ComputedField, TagField]] = {
+varying_search_config: dict[str, FieldProtocol] = {
     "error_ids": ComputedField(parse_uuid, ErrorIdsArray),
     "trace_ids": UUIDColumnField("trace_ids", parse_uuid, UUIDArray),
     "urls": StringColumnField("urls", parse_str, StringArray),
@@ -45,7 +59,33 @@ varying_search_config: dict[str, Union[ColumnField, ComputedField, TagField]] = 
     "user.username": StringColumnField("user_name", parse_str, StringScalar),
 }
 
+# Aliases
+varying_search_config["error_id"] = varying_search_config["error_ids"]
+varying_search_config["trace_id"] = varying_search_config["trace_ids"]
+varying_search_config["trace"] = varying_search_config["trace_ids"]
+varying_search_config["url"] = varying_search_config["urls"]
+varying_search_config["user.ip"] = varying_search_config["user.ip_address"]
 
+
+# Click Search Config
+click_search_config: dict[str, FieldProtocol] = {
+    "click.alt": string_field("click_alt"),
+    "click.class": StringColumnField("click_class", parse_str, StringArray),
+    "click.id": string_field("click_id"),
+    "click.label": string_field("click_aria_label"),
+    "click.role": string_field("click_role"),
+    "click.tag": string_field("click_tag"),
+    "click.testid": string_field("click_testid"),
+    "click.textContent": string_field("click_text"),
+    "click.title": string_field("click_title"),
+    "click.selector": ComputedField(parse_selector, ClickSelectorComposite),
+    "dead.selector": ComputedField(parse_selector, DeadClickSelectorComposite),
+    "rage.selector": ComputedField(parse_selector, RageClickSelectorComposite),
+}
+
+
+# Clicks are omitted from the scalar search config because they do not share the same row like
+# the other configs do.
 scalar_search_config = {**static_search_config, **varying_search_config}
 
 

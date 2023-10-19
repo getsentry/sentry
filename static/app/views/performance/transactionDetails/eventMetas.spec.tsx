@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EventMetas from './eventMetas';
@@ -10,7 +12,7 @@ describe('EventMetas', () => {
       dateCreated: '2017-05-21T18:02:48.762Z',
     };
     const routerContext = TestStubs.routerContext([]);
-    const organization = TestStubs.Organization({});
+    const organization = Organization({});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],

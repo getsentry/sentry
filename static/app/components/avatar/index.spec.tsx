@@ -1,3 +1,6 @@
+import {Organization} from 'sentry-fixture/organization';
+import {SentryApp} from 'sentry-fixture/sentryApp';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import AvatarComponent from 'sentry/components/avatar';
@@ -139,9 +142,9 @@ describe('Avatar', function () {
     });
 
     it('can display an organization Avatar', function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         slug: 'test-organization',
-        avatar: {avatarType: 'letter_avatar'},
+        avatar: {avatarType: 'letter_avatar', avatarUuid: ''},
       });
 
       render(<AvatarComponent organization={organization} />);
@@ -151,7 +154,7 @@ describe('Avatar', function () {
     });
 
     it('can display an organization Avatar upload', function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         slug: 'test-organization',
         avatar: {
           avatarType: 'upload',
@@ -210,10 +213,14 @@ describe('Avatar', function () {
     });
 
     it('renders the correct SentryApp depending on its props', async function () {
-      const colorAvatar = {avatarUuid: 'abc', avatarType: 'upload', color: true};
-      const simpleAvatar = {avatarUuid: 'def', avatarType: 'upload', color: false};
+      const colorAvatar = {avatarUuid: 'abc', avatarType: 'upload' as const, color: true};
+      const simpleAvatar = {
+        avatarUuid: 'def',
+        avatarType: 'upload' as const,
+        color: false,
+      };
 
-      const sentryApp = TestStubs.SentryApp({
+      const sentryApp = SentryApp({
         avatars: [colorAvatar, simpleAvatar],
       });
 
@@ -236,8 +243,8 @@ describe('Avatar', function () {
     });
 
     it('renders the correct fallbacks for SentryAppAvatars', async function () {
-      const colorAvatar = {avatarUuid: 'abc', avatarType: 'upload', color: true};
-      const sentryApp = TestStubs.SentryApp({avatars: []});
+      const colorAvatar = {avatarUuid: 'abc', avatarType: 'upload' as const, color: true};
+      const sentryApp = SentryApp({avatars: []});
 
       // No existing avatars
       const avatar1 = render(<AvatarComponent sentryApp={sentryApp} isColor />);
@@ -245,7 +252,7 @@ describe('Avatar', function () {
       avatar1.unmount();
 
       // No provided `isColor` attribute
-      sentryApp.avatars.push(colorAvatar);
+      sentryApp.avatars!.push(colorAvatar);
       const avatar2 = render(<AvatarComponent sentryApp={sentryApp} />);
       expect(await screen.findByRole('img')).toHaveAttribute(
         'src',
@@ -254,7 +261,7 @@ describe('Avatar', function () {
       avatar2.unmount();
 
       // avatarType of `default`
-      sentryApp.avatars[0].avatarType = 'default';
+      sentryApp.avatars![0].avatarType = 'default';
       render(<AvatarComponent sentryApp={sentryApp} isColor />);
       expect(screen.getByTestId('default-sentry-app-avatar')).toBeInTheDocument();
     });

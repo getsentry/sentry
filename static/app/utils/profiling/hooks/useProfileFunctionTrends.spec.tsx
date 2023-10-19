@@ -1,19 +1,18 @@
 import {ReactElement, useMemo} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import {useProfileFunctionTrends} from 'sentry/utils/profiling/hooks/useProfileFunctionTrends';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 function TestContext({children}: {children: ReactElement}) {
   const {organization} = useMemo(() => initializeOrg(), []);
-  // ensure client is rebuilt on each render otherwise caching will interfere with subsequent tests
-  const client = useMemo(() => new QueryClient(), []);
 
   return (
-    <QueryClientProvider client={client}>
+    <QueryClientProvider client={makeTestQueryClient()}>
       <OrganizationContext.Provider value={organization}>
         {children}
       </OrganizationContext.Provider>

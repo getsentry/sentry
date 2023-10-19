@@ -1,6 +1,6 @@
-import {type Entry as TEntry, EntryType} from 'sentry/types';
+import {EventEntry as MockEventEntry} from 'sentry-fixture/eventEntry';
 
-import {EventEntry as MockEventEntry} from './eventEntry';
+import {type Entry as TEntry, EntryType} from 'sentry/types';
 
 export function Entries123Target(): TEntry[] {
   return [

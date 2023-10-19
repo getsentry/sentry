@@ -2449,6 +2449,77 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert field_meta["count()"] == "integer"
         assert field_meta["count_unique(user)"] == "integer"
 
+    def test_avg_compare(self):
+        self.store_transaction_metric(
+            100,
+            timestamp=self.min_ago,
+            tags={"release": "foo"},
+        )
+        self.store_transaction_metric(
+            10,
+            timestamp=self.min_ago,
+            tags={"release": "bar"},
+        )
+
+        for function_name in [
+            "avg_compare(transaction.duration, release, foo, bar)",
+            'avg_compare(transaction.duration, release, "foo", "bar")',
+        ]:
+            response = self.do_request(
+                {
+                    "field": [function_name],
+                    "query": "",
+                    "project": self.project.id,
+                    "dataset": "metrics",
+                }
+            )
+            assert response.status_code == 200, response.content
+
+            data = response.data["data"]
+            meta = response.data["meta"]
+
+            assert len(data) == 1
+            assert data[0][function_name] == -0.9
+
+            assert meta["dataset"] == "metrics"
+            assert meta["fields"][function_name] == "percent_change"
+
+    def test_avg_if(self):
+        self.store_transaction_metric(
+            100,
+            timestamp=self.min_ago,
+            tags={"release": "foo"},
+        )
+        self.store_transaction_metric(
+            200,
+            timestamp=self.min_ago,
+            tags={"release": "foo"},
+        )
+        self.store_transaction_metric(
+            10,
+            timestamp=self.min_ago,
+            tags={"release": "bar"},
+        )
+
+        response = self.do_request(
+            {
+                "field": ["avg_if(transaction.duration, release, foo)"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert len(data) == 1
+        assert data[0]["avg_if(transaction.duration, release, foo)"] == 150
+
+        assert meta["dataset"] == "metrics"
+        assert meta["fields"]["avg_if(transaction.duration, release, foo)"] == "duration"
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
@@ -2473,3 +2544,11 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     def test_maintain_sort_order_across_datasets(self):
         """You may need to run this test a few times to get it to fail"""
         super().test_maintain_sort_order_across_datasets()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_avg_compare(self):
+        super().test_avg_compare()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_avg_if(self):
+        super().test_avg_if()

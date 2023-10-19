@@ -2,7 +2,7 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
-from sentry.models import EventUser
+from sentry.models.eventuser import EventUser
 from sentry.testutils.silo import region_silo_test
 
 

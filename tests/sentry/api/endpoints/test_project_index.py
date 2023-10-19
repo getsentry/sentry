@@ -3,8 +3,10 @@ from django.urls import reverse
 from rest_framework import status
 
 from sentry.constants import ObjectStatus
-from sentry.models import Project, ProjectKey, SentryAppInstallationToken
 from sentry.models.apitoken import ApiToken
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
 from sentry.silo import unguarded_write
 from sentry.testutils.cases import APITestCase
 

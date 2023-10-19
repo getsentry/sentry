@@ -10,7 +10,6 @@ body:
       description: What are you observing
       options:
         - Timeout
-        - Visual Snapshot
         - Jest Snapshot
         - Insta Snapshot
         - Assertion failure

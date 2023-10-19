@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import toPercent from 'sentry/utils/number/toPercent';
-import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {SpanFrame} from 'sentry/utils/replays/types';
 
 type Props = {
@@ -38,7 +38,7 @@ function ReplayTimelineSpans({className, durationMs, frames, startTimestampMs}: 
   const {setActiveTab} = useActiveReplayTab();
   const isDark = ConfigStore.get('theme') === 'dark';
 
-  const handleClick = useCallback(() => setActiveTab('network'), [setActiveTab]);
+  const handleClick = useCallback(() => setActiveTab(TabKey.NETWORK), [setActiveTab]);
 
   return (
     <Spans isDark={isDark} className={className}>
@@ -59,7 +59,6 @@ function ReplayTimelineSpans({className, durationMs, frames, startTimestampMs}: 
               </CountTooltipContent>
             }
             skipWrapper
-            disableForVisualTest
             position="bottom"
           >
             <Span

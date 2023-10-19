@@ -21,6 +21,8 @@ STRINGS_THAT_LOOK_LIKE_TAG_VALUES = (
 
 @pytest.fixture(autouse=True)
 def control_metrics_access(monkeypatch, request, set_sentry_option):
+    from snuba_sdk import MetricsQuery
+
     from sentry.sentry_metrics import indexer
     from sentry.sentry_metrics.indexer.mock import MockIndexer
     from sentry.snuba import tasks
@@ -60,8 +62,11 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
                 # We only support snql queries, and metrics only go through snql
                 return old_build_results(*args, **kwargs)
             query = args[0][0][0].query
-            is_performance_metrics = query.match.name.startswith("generic_metrics")
-            is_metrics = "metrics" in query.match.name
+            if isinstance(query, MetricsQuery):
+                is_performance_metrics = is_metrics = False
+            else:
+                is_performance_metrics = query.match.name.startswith("generic_metrics")
+                is_metrics = "metrics" in query.match.name
 
             if is_performance_metrics:
                 _validate_query(query, True)

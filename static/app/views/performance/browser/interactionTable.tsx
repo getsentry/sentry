@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {Link} from 'react-router';
+import * as qs from 'query-string';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -8,6 +9,7 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import {useLocation} from 'sentry/utils/useLocation';
+import {BrowserStarfishFields} from 'sentry/views/performance/browser/useBrowserFilters';
 import {ValidSort} from 'sentry/views/performance/browser/useBrowserSort';
 import {useInteractionsQuery} from 'sentry/views/performance/browser/useInteractionsQuery';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
@@ -53,9 +55,14 @@ function InteractionsTable({sort}: Props) {
   const renderBodyCell = (col: Column, row: Row) => {
     const {key} = col;
     if (key === 'span.group') {
-      const spanGroup = row['span.group'];
       return (
-        <Link to={`/performance/browser/interactions/${spanGroup}`}>
+        <Link
+          to={`/performance/browser/interactions/summary/?${qs.stringify({
+            [BrowserStarfishFields.COMPONENT]: row.interactionElement,
+            [BrowserStarfishFields.PAGE]: row.transaction,
+            [BrowserStarfishFields.TRANSACTION_OP]: row['transaction.op'],
+          })}`}
+        >
           {getActionName(row['transaction.op'])}
           <span style={{fontWeight: 'bold'}}> {row.interactionElement}</span>
         </Link>
@@ -98,7 +105,7 @@ function InteractionsTable({sort}: Props) {
   );
 }
 
-const getActionName = (transactionOp: string) => {
+export const getActionName = (transactionOp: string) => {
   switch (transactionOp) {
     case 'ui.action.click':
       return 'Click';

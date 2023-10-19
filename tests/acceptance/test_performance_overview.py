@@ -4,7 +4,7 @@ from unittest.mock import patch
 from django.db.models import F
 
 from fixtures.page_objects.base import BasePage
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
@@ -38,7 +38,6 @@ class PerformanceOverviewTest(AcceptanceTestCase, SnubaTestCase):
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.path)
             self.page.wait_until_loaded()
-            self.browser.snapshot("performance overview - onboarding")
 
     @patch("django.utils.timezone.now")
     def test_with_data(self, mock_now):
@@ -57,4 +56,3 @@ class PerformanceOverviewTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until_not(
                 '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
             )
-            self.browser.snapshot("performance overview - with data")

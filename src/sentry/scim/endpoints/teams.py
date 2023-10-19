@@ -5,12 +5,11 @@ from typing import Any, List
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from django.utils.text import slugify
-from drf_spectacular.utils import extend_schema, inline_serializer
+from drf_spectacular.utils import extend_schema, extend_schema_serializer, inline_serializer
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from typing_extensions import TypedDict
 
 from sentry import audit_log
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -33,7 +32,10 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams, SCIMParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import Organization, OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import Team, TeamStatus
 from sentry.utils import json, metrics
 from sentry.utils.cursors import SCIMCursor
 
@@ -53,6 +55,7 @@ from .utils import (
     SCIMApiError,
     SCIMEndpoint,
     SCIMFilterError,
+    SCIMListBaseResponse,
     SCIMQueryParamSerializer,
     parse_filter_conditions,
 )
@@ -60,6 +63,7 @@ from .utils import (
 delete_logger = logging.getLogger("sentry.deletions.api")
 
 
+@extend_schema_serializer(dict)
 class SCIMTeamPatchOperationSerializer(serializers.Serializer):
     op = serializers.CharField(required=True)
     value = serializers.JSONField(required=False)
@@ -74,12 +78,71 @@ class SCIMTeamPatchOperationSerializer(serializers.Serializer):
         raise serializers.ValidationError(f'"{value}" is not a valid choice')
 
 
+@extend_schema_serializer(exclude_fields="schemas")
 class SCIMTeamPatchRequestSerializer(serializers.Serializer):
     # we don't actually use "schemas" for anything atm but its part of the spec
     schemas = serializers.ListField(child=serializers.CharField(), required=True)
-
     Operations = serializers.ListField(
-        child=SCIMTeamPatchOperationSerializer(), required=True, source="operations"
+        child=SCIMTeamPatchOperationSerializer(),
+        required=True,
+        source="operations",
+        help_text="""The list of operations to perform. Valid operations are:
+* Renaming a team:
+```json
+{
+    "Operations": [{
+        "op": "replace",
+        "value": {
+            "id": 23,
+            "displayName": "newName"
+        }
+    }]
+}
+```
+* Adding a member to a team:
+```json
+{
+    "Operations": [{
+        "op": "add",
+        "path": "members",
+        "value": [
+            {
+                "value": 23,
+                "display": "testexample@example.com"
+            }
+        ]
+    }]
+}
+```
+* Removing a member from a team:
+```json
+{
+    "Operations": [{
+        "op": "remove",
+        "path": "members[value eq \"23\"]"
+    }]
+}
+```
+* Replacing an entire member set of a team:
+```json
+{
+    "Operations": [{
+        "op": "replace",
+        "path": "members",
+        "value": [
+            {
+                "value": 23,
+                "display": "testexample2@sentry.io"
+            },
+            {
+                "value": 24,
+                "display": "testexample3@sentry.io"
+            }
+        ]
+    }]
+}
+```
+""",
     )
 
 
@@ -87,11 +150,7 @@ def _team_expand(excluded_attributes):
     return None if "members" in excluded_attributes else ["members"]
 
 
-class SCIMListResponseDict(TypedDict):
-    schemas: List[str]
-    totalResults: int
-    startIndex: int
-    itemsPerPage: int
+class SCIMListTeamsResponse(SCIMListBaseResponse):
     Resources: List[OrganizationTeamSCIMSerializerResponse]
 
 
@@ -110,7 +169,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "SCIMListResponseEnvelopeSCIMTeamIndexResponse", SCIMListResponseDict
+                "SCIMListResponseEnvelopeSCIMTeamIndexResponse", SCIMListTeamsResponse
             ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -121,9 +180,9 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
     def get(self, request: Request, organization: Organization, **kwds: Any) -> Response:
         """
         Returns a paginated list of teams bound to a organization with a SCIM Groups GET Request.
-        - Note that the members field will only contain up to 10000 members.
-        """
 
+        Note that the members field will only contain up to 10,000 members.
+        """
         query_params = self.get_query_parameters(request)
 
         queryset = Team.objects.filter(
@@ -157,9 +216,10 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
         request=inline_serializer(
             name="SCIMTeamRequestBody",
             fields={
-                "schemas": serializers.ListField(child=serializers.CharField()),
-                "displayName": serializers.CharField(),
-                "members": serializers.ListField(child=serializers.IntegerField()),
+                "displayName": serializers.CharField(
+                    help_text="The slug of the team that is shown in the UI.",
+                    required=True,
+                ),
             },
         ),
         responses={
@@ -172,9 +232,11 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
     )
     def post(self, request: Request, organization: Organization, **kwds: Any) -> Response:
         """
-        Create a new team bound to an organization via a SCIM Groups POST Request.
+        Create a new team bound to an organization via a SCIM Groups POST
+        Request. The slug will have a normalization of uppercases/spaces to
+        lowercases and dashes.
+
         Note that teams are always created with an empty member set.
-        The endpoint will also do a normalization of uppercase / spaces to lowercase and dashes.
         """
         # shim displayName from SCIM api in order to work with
         # our regular team index POST
@@ -235,7 +297,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
         "PATCH": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationSCIMTeamPermission,)
@@ -352,63 +414,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     )
     def patch(self, request: Request, organization, team):
         """
-        Update a team's attributes with a SCIM Group PATCH Request. Valid operations are:
-
-        * Renaming a team:
-        ```json
-        {
-            "Operations": [{
-                "op": "replace",
-                "value": {
-                    "id": 23,
-                    "displayName": "newName"
-                }
-            }]
-        }
-        ```
-        * Adding a member to a team:
-        ```json
-        {
-            "Operations": [{
-                "op": "add",
-                "path": "members",
-                "value": [
-                    {
-                        "value": 23,
-                        "display": "testexample@example.com"
-                    }
-                ]
-            }]
-        }
-        ```
-        * Removing a member from a team:
-        ```json
-        {
-            "Operations": [{
-                "op": "remove",
-                "path": "members[value eq \"23\"]"
-            }]
-        }
-        ```
-        * Replacing an entire member set of a team:
-        ```json
-        {
-            "Operations": [{
-                "op": "replace",
-                "path": "members",
-                "value": [
-                    {
-                        "value": 23,
-                        "display": "testexample2@sentry.io"
-                    },
-                    {
-                        "value": 24,
-                        "display": "testexample3@sentry.io"
-                    }
-                ]
-            }]
-        }
-        ```
+        Update a team's attributes with a SCIM Group PATCH Request.
         """
 
         serializer = SCIMTeamPatchRequestSerializer(data=request.data)
@@ -440,8 +446,10 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                             # delete all the current team members
                             # and replace with the ones in the operation list
                             with transaction.atomic(router.db_for_write(OrganizationMember)):
-                                queryset = OrganizationMemberTeam.objects.filter(team_id=team.id)
-                                queryset.delete()
+                                existing = list(
+                                    OrganizationMemberTeam.objects.filter(team_id=team.id)
+                                )
+                                OrganizationMemberTeam.objects.bulk_delete(existing)
                                 self._add_members_operation(request, operation, team)
                         # azure and okta handle team name change operation differently
                         elif path is None:

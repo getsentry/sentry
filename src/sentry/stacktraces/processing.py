@@ -6,7 +6,8 @@ from typing import Any, Callable, Mapping, MutableMapping, NamedTuple, Optional,
 
 import sentry_sdk
 
-from sentry.models import Project, Release
+from sentry.models.project import Project
+from sentry.models.release import Release
 from sentry.stacktraces.functions import set_in_app, trim_function_name
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
@@ -301,7 +302,7 @@ def _normalize_in_app(stacktrace: Sequence[dict[str, str]]) -> str:
 
 
 def normalize_stacktraces_for_grouping(
-    data: MutableMapping[str, Any], grouping_config=None, load_stacktrace_from_cache: bool = False
+    data: MutableMapping[str, Any], grouping_config=None
 ) -> None:
     """
     Applies grouping enhancement rules and ensure in_app is set on all frames.
@@ -341,11 +342,7 @@ def normalize_stacktraces_for_grouping(
             for frames, stacktrace_container in zip(stacktrace_frames, stacktrace_containers):
                 # This call has a caching mechanism when the same stacktrace and rules are used
                 grouping_config.enhancements.apply_modifications_to_frame(
-                    frames,
-                    platform,
-                    stacktrace_container,
-                    extra_fingerprint=grouping_config.id,
-                    load_stacktrace_from_cache=load_stacktrace_from_cache,
+                    frames, platform, stacktrace_container, extra_fingerprint=grouping_config.id
                 )
 
     # normalize `in_app` values, noting and storing the event's mix of in-app and system frames, so

@@ -26,7 +26,6 @@ import * as echarts from 'echarts/core';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
-import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import {space} from 'sentry/styles/space';
 import {
   EChartChartReadyHandler,
@@ -500,7 +499,6 @@ function BaseChartUnwrapped({
 
   const chartOption = {
     ...options,
-    animation: IS_ACCEPTANCE_TEST ? false : options.animation ?? true,
     useUTC: utc,
     color,
     grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
@@ -544,7 +542,7 @@ function BaseChartUnwrapped({
         rendered: (props, instance) => onRendered?.(props, instance),
         legendselectchanged: (props, instance) =>
           onLegendSelectChanged?.(props, instance),
-      } as ReactEchartProps['onEvents']),
+      }) as ReactEchartProps['onEvents'],
     [
       onClick,
       onHighlight,

@@ -3,27 +3,44 @@ import {PlatformIcon} from 'platformicons';
 
 import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
+import {Button} from 'sentry/components/button';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 import {NewMonitorButton} from './newMonitorButton';
 
+export type SupportedPlatform =
+  | 'python-celery'
+  | 'php'
+  | 'php-laravel'
+  | 'python'
+  | 'node'
+  | 'go'
+  | 'java'
+  | 'java-spring-boot';
+
 interface SDKPlatformInfo {
   label: string;
-  platform: PlatformKey;
+  platform: SupportedPlatform;
 }
 
-const CRON_SDK_PLATFORMS: SDKPlatformInfo[] = [
+export const CRON_SDK_PLATFORMS: SDKPlatformInfo[] = [
   {platform: 'python-celery', label: 'Celery'},
   {platform: 'php', label: 'PHP'},
   {platform: 'php-laravel', label: 'Laravel'},
   {platform: 'python', label: 'Python'},
   {platform: 'node', label: 'Node'},
+  {platform: 'go', label: 'Go'},
+  {platform: 'java', label: 'Java'},
+  {platform: 'java-spring-boot', label: 'Spring Boot'},
 ];
 
-export function PlatformPickerPanel() {
+interface Props {
+  onSelect: (platform: SupportedPlatform | null) => void;
+}
+
+export function PlatformPickerPanel({onSelect}: Props) {
   return (
     <OnboardingPanel image={<img src={onboardingImg} />}>
       <OnboardingTitle>{t('Monitor Your Cron Jobs')}</OnboardingTitle>
@@ -38,6 +55,7 @@ export function PlatformPickerPanel() {
           <PlatformOption key={platform}>
             <PlatformButton
               priority="default"
+              onClick={() => onSelect(platform)}
               aria-label={t('Create %s Monitor', platform)}
             >
               <PlatformIcon platform={platform} format="lg" size="100%" />
@@ -74,12 +92,13 @@ const SectionTitle = styled('h5')`
 const Actions = styled('div')`
   display: flex;
   gap: ${space(2)};
+  flex-wrap: wrap;
 `;
 
-const PlatformButton = styled(NewMonitorButton)`
-  width: 64px;
-  height: 64px;
-  padding: ${space(1)};
+const PlatformButton = styled(Button)`
+  width: 80px;
+  height: 80px;
+  padding: ${space(1.5)};
 `;
 
 const PlatformOption = styled('div')`

@@ -4,7 +4,7 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
-from sentry.models import ProjectKey
+from sentry.models.projectkey import ProjectKey
 from sentry.web.helpers import render_to_response
 
 

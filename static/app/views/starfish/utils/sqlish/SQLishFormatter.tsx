@@ -4,6 +4,8 @@ import {simpleMarkup} from 'sentry/views/starfish/utils/sqlish/formatters/simple
 import {string} from 'sentry/views/starfish/utils/sqlish/formatters/string';
 import {SQLishParser} from 'sentry/views/starfish/utils/sqlish/SQLishParser';
 
+type StringFormatterOptions = Parameters<typeof string>[1];
+
 enum Format {
   STRING = 'string',
   SIMPLE_MARKUP = 'simpleMarkup',
@@ -21,17 +23,17 @@ export class SQLishFormatter {
     this.parser = new SQLishParser();
   }
 
-  toString(sql: string) {
-    return this.toFormat(sql, Format.STRING);
+  toString(sql: string, options?: StringFormatterOptions) {
+    return this.toFormat(sql, Format.STRING, options);
   }
 
   toSimpleMarkup(sql: string) {
     return this.toFormat(sql, Format.SIMPLE_MARKUP);
   }
 
-  toFormat(sql: string, format: Format.STRING): string;
+  toFormat(sql: string, format: Format.STRING, options?: StringFormatterOptions): string;
   toFormat(sql: string, format: Format.SIMPLE_MARKUP): React.ReactElement[];
-  toFormat(sql: string, format: Format) {
+  toFormat(sql: string, format: Format, options?: StringFormatterOptions) {
     let tokens;
 
     const sentryTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
@@ -58,7 +60,7 @@ export class SQLishFormatter {
       return sql;
     }
 
-    const formattedString = FORMATTERS[format](tokens);
+    const formattedString = FORMATTERS[format](tokens, options);
     sentrySpan?.finish();
 
     return formattedString;

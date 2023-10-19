@@ -35,7 +35,7 @@ class PagerDutyProxyClient(IntegrationProxyClient):
             headers = {"Content-Type": "application/json"}
         return self._request(method, *args, headers=headers, **kwargs)
 
-    def send_trigger(self, data):
+    def send_trigger(self, data, notification_uuid: str | None = None):
         # expected payload: https://v2.developer.pagerduty.com/docs/send-an-event-events-api-v2
         if isinstance(data, (Event, GroupEvent)):
             source = data.transaction or data.culprit or "<unknown>"
@@ -43,6 +43,9 @@ class PagerDutyProxyClient(IntegrationProxyClient):
             level = data.get_tag("level") or "error"
             custom_details = serialize(data, None, ExternalEventSerializer())
             summary = custom_details["message"][:1024] or custom_details["title"]
+            link_params = {"referrer": "pagerduty_integration"}
+            if notification_uuid:
+                link_params["notification_uuid"] = notification_uuid
             payload = {
                 "routing_key": self.integration_key,
                 "event_action": "trigger",
@@ -56,9 +59,7 @@ class PagerDutyProxyClient(IntegrationProxyClient):
                 },
                 "links": [
                     {
-                        "href": group.get_absolute_url(
-                            params={"referrer": "pagerduty_integration"}
-                        ),
+                        "href": group.get_absolute_url(params=link_params),
                         "text": "View Sentry Issue Details",
                     }
                 ],

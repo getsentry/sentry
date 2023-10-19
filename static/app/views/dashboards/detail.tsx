@@ -692,7 +692,6 @@ class DashboardDetail extends Component<Props, State> {
                 organization={organization}
                 eventView={EventView.fromLocation(location)}
                 location={location}
-                hideLoadingIndicator
               >
                 {metricsDataSide => (
                   <MEPSettingProvider
@@ -826,7 +825,6 @@ class DashboardDetail extends Component<Props, State> {
                       organization={organization}
                       eventView={eventView}
                       location={location}
-                      hideLoadingIndicator
                     >
                       {metricsDataSide => (
                         <MEPSettingProvider

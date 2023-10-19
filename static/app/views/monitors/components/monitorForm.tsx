@@ -54,7 +54,11 @@ const DEFAULT_CRONTAB = '0 0 * * *';
 const RULE_TARGET_MAP = {team: 'Team', member: 'Member'} as const;
 const RULES_SELECTOR_MAP = {Team: 'team', Member: 'member'} as const;
 
+// In minutes
 export const DEFAULT_MAX_RUNTIME = 30;
+export const DEFAULT_CHECKIN_MARGIN = 1;
+const CHECKIN_MARGIN_MINIMUM = 1;
+const TIMEOUT_MINIMUM = 1;
 
 const getIntervals = (n: number): SelectValue<string>[] => [
   {value: 'minute', label: tn('minute', 'minutes', n)},
@@ -376,13 +380,23 @@ function MonitorForm({
             <PanelBody>
               <NumberField
                 name="config.checkin_margin"
-                placeholder="Defaults to 0 minutes"
+                min={CHECKIN_MARGIN_MINIMUM}
+                placeholder={tn(
+                  'Defaults to %s minute',
+                  'Defaults to %s minutes',
+                  DEFAULT_CHECKIN_MARGIN
+                )}
                 help={t('Number of minutes before a check-in is considered missed.')}
                 label={t('Grace Period')}
               />
               <NumberField
                 name="config.max_runtime"
-                placeholder={`Defaults to ${DEFAULT_MAX_RUNTIME} minutes`}
+                min={TIMEOUT_MINIMUM}
+                placeholder={tn(
+                  'Defaults to %s minute',
+                  'Defaults to %s minutes',
+                  DEFAULT_MAX_RUNTIME
+                )}
                 help={t(
                   'Number of a minutes before an in-progress check-in is marked timed out.'
                 )}
@@ -418,12 +432,14 @@ function MonitorForm({
                 <Fragment>
                   <NumberField
                     name="config.failure_issue_threshold"
+                    min={1}
                     placeholder="1"
                     help={t('Create an issue after this many missed or error check-ins')}
                     label={t('Tolerate Failures')}
                   />
                   <NumberField
                     name="config.recovery_threshold"
+                    min={1}
                     placeholder="1"
                     help={t('Recover monitor status after this many healthy check-ins')}
                     label={t('Recovery Threshold')}

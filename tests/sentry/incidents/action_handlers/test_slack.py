@@ -2,11 +2,11 @@ from unittest.mock import patch
 from urllib.parse import parse_qs
 
 import responses
-from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.action_handlers import SlackActionHandler
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 

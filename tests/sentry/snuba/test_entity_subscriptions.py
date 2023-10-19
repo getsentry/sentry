@@ -29,16 +29,18 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.skips import requires_snuba
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
+@pytest.mark.snuba_ci
 class EntitySubscriptionTestCase(TestCase):
     def setUp(self) -> None:
         super().setUp()
         for tag in [
-            SessionMRI.SESSION.value,
-            SessionMRI.USER.value,
+            SessionMRI.RAW_SESSION.value,
+            SessionMRI.RAW_USER.value,
             "session.status",
             "init",
             "crashed",

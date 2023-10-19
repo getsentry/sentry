@@ -1,6 +1,7 @@
 from django.core import mail
 
-from sentry.models import AuthProvider, OrganizationMember
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organizationmember import OrganizationMember
 from sentry.silo import SiloMode
 from sentry.tasks.auth import (
     email_missing_links,
@@ -105,10 +106,10 @@ class EmailUnlinkNotificationsTest(TestCase):
         with self.tasks():
             email_unlink_notifications(self.organization.id, self.user.id, self.provider.provider)
 
-        assert len(mail.outbox) == 2
-        message = mail.outbox[0]
-        assert f"can now login using your email {self.user.email}, and password" in message.body
-        assert "you'll first have to set a password" not in message.body
+        emails = sorted(message.body for message in mail.outbox)
+        assert len(emails) == 2
+        assert f"can now login using your email {self.user.email}, and password" in emails[0]
+        assert "you'll first have to set a password" not in emails[0]
 
     def test_email_unlink_notifications_without_password(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -118,7 +119,8 @@ class EmailUnlinkNotificationsTest(TestCase):
         with self.tasks():
             email_unlink_notifications(self.organization.id, self.user.id, self.provider.provider)
 
-        assert len(mail.outbox) == 2
-        message = mail.outbox[0]
-        assert "you'll first have to set a password" in message.body
-        assert f"can now login using your email {self.user.email}, and password" not in message.body
+        emails = sorted(message.body for message in mail.outbox)
+        assert len(emails) == 2
+        assert "you'll first have to set a password" in emails[0]
+        assert f"can now login using your email {self.user.email}, and password" not in emails[0]
+        assert f"can now login using your email {self.user2.email}, and password" in emails[1]

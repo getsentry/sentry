@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import DatePageFilter from 'sentry/components/datePageFilter';
 import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,6 +17,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
+import {RELEASE_LEVEL} from 'sentry/views/performance/database/settings';
 import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
@@ -90,7 +92,7 @@ function SpanSummaryPage({params}: Props) {
     [SpanMetricsField.SPAN_OP]: string;
     [SpanMetricsField.SPAN_DESCRIPTION]: string;
     [SpanMetricsField.SPAN_ACTION]: string;
-    [SpanMetricsField.SPAN_DOMAIN]: string;
+    [SpanMetricsField.SPAN_DOMAIN]: string[];
     [SpanMetricsField.SPAN_GROUP]: string;
   };
 
@@ -125,7 +127,7 @@ function SpanSummaryPage({params}: Props) {
                 preservePageFilters: true,
               },
               {
-                label: 'Database',
+                label: 'Queries',
                 to: normalizeUrl(
                   `/organizations/${organization.slug}/performance/database`
                 ),
@@ -138,7 +140,7 @@ function SpanSummaryPage({params}: Props) {
           />
           <Layout.Title>
             {t('Query Summary')}
-            <FeatureBadge type="alpha" />
+            <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>
@@ -148,7 +150,8 @@ function SpanSummaryPage({params}: Props) {
           <HeaderContainer>
             <PaddedContainer>
               <PageFilterBar condensed>
-                <DatePageFilter alignDropdown="left" />
+                <EnvironmentPageFilter />
+                <DatePageFilter />
               </PageFilterBar>
             </PaddedContainer>
 
@@ -231,7 +234,7 @@ const CHART_HEIGHT = 160;
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
-  field: 'time_spent_percentage(local)',
+  field: 'time_spent_percentage()',
 };
 
 const PaddedContainer = styled('div')`

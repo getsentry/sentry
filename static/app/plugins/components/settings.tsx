@@ -34,7 +34,7 @@ type State = {
 
 class PluginSettings<
   P extends Props = Props,
-  S extends State = State
+  S extends State = State,
 > extends PluginComponentBase<P, S> {
   constructor(props: P, context: any) {
     super(props, context);

@@ -37,7 +37,8 @@ from sentry.ingest.transaction_clusterer.rules import (
     get_sorted_rules,
 )
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
-from sentry.models import Project, ProjectKey
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
 from sentry.relay.config.metric_extraction import (
     get_metric_conditional_tagging_rules,
     get_metric_extraction_config,
@@ -47,11 +48,14 @@ from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
 
-from .measurements import CUSTOM_MEASUREMENT_LIMIT, get_measurements_config
+from .measurements import CUSTOM_MEASUREMENT_LIMIT
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
     "projects:span-metrics-extraction",
+    "projects:span-metrics-extraction-ga-modules",
+    "projects:span-metrics-extraction-all-modules",
+    "projects:span-metrics-extraction-resource",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:transaction-name-normalize",
     "organizations:profiling",
@@ -133,7 +137,10 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
 
         error_messages += project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}") or []
 
-    enable_react = project.get_option("filters:react-hydration-errors")
+    # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
+    # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
+    # why the value true is determined by either "1" or True.
+    enable_react = project.get_option("filters:react-hydration-errors") in ("1", True)
     if enable_react:
         # 418 - Hydration failed because the initial UI does not match what was rendered on the server.
         # 419 - The server could not finish this Suspense boundary, likely due to an error during server rendering. Switched to client rendering.
@@ -143,6 +150,11 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         error_messages += [
             "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*"
         ]
+
+    if project.get_option("filters:chunk-load-error") == "1":
+        # ChunkLoadError: Loading chunk 3662 failed.\n(error:
+        # https://xxx.com/_next/static/chunks/29107295-0151559bd23117ba.js)
+        error_messages += ["ChunkLoadError: Loading chunk *"]
 
     if error_messages:
         filter_settings["errorMessages"] = {"patterns": error_messages}
@@ -351,10 +363,6 @@ def _get_project_config(
     # of events forwarded by Relay, because dynamic sampling will stop filtering
     # anything.
     add_experimental_config(config, "dynamicSampling", get_dynamic_sampling_config, project)
-
-    if not features.has("organizations:projconfig-exclude-measurements", project.organization):
-        # Limit the number of custom measurements
-        add_experimental_config(config, "measurements", get_measurements_config)
 
     # Rules to replace high cardinality transaction names
     add_experimental_config(config, "txNameRules", get_transaction_names_config, project)
@@ -583,8 +591,8 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
 #: Version of the transaction metrics extraction.
 #: When you increment this version, outdated Relays will stop extracting
 #: transaction metrics.
-#: See https://github.com/getsentry/relay/blob/4f3e224d5eeea8922fe42163552e8f20db674e86/relay-server/src/metrics_extraction/transactions.rs#L71
-TRANSACTION_METRICS_EXTRACTION_VERSION = 1
+#: See https://github.com/getsentry/relay/blob/6181c6e80b9485ed394c40bc860586ae934704e2/relay-dynamic-config/src/metrics.rs#L85
+TRANSACTION_METRICS_EXTRACTION_VERSION = 3
 
 
 class CustomMeasurementSettings(TypedDict):
@@ -638,12 +646,8 @@ def get_transaction_metrics_settings(
     except Exception:
         capture_exception()
 
-    version = TRANSACTION_METRICS_EXTRACTION_VERSION
-    if features.has("organizations:projconfig-exclude-measurements", project.organization):
-        version = 2
-
     return {
-        "version": version,
+        "version": TRANSACTION_METRICS_EXTRACTION_VERSION,
         "extractCustomTags": custom_tags,
         "customMeasurements": {"limit": CUSTOM_MEASUREMENT_LIMIT},
         "acceptTransactionNames": "clientBased",

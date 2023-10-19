@@ -1,4 +1,4 @@
-from sentry.models import ServiceHook
+from sentry.models.servicehook import ServiceHook
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 

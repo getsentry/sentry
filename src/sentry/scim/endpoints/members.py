@@ -6,18 +6,23 @@ import sentry_sdk
 from django.conf import settings
 from django.db import router, transaction
 from django.db.models import Q
-from drf_spectacular.utils import extend_schema, extend_schema_field, inline_serializer
+from drf_spectacular.utils import (
+    extend_schema,
+    extend_schema_field,
+    extend_schema_serializer,
+    inline_serializer,
+)
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.fields import Field
 from rest_framework.request import Request
 from rest_framework.response import Response
-from typing_extensions import TypedDict
 
 from sentry import audit_log, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
+from sentry.api.endpoints.organization_member.details import ROLE_CHOICES
 from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
@@ -33,10 +38,10 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.scim_examples import SCIMExamples
-from sentry.apidocs.parameters import GlobalParams, SCIMParams
+from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
-from sentry.models import InviteStatus, OrganizationMember
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.roles import organization_roles
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import member_invited
@@ -47,7 +52,6 @@ from ...services.hybrid_cloud.auth import auth_service
 from .constants import (
     SCIM_400_INVALID_ORGROLE,
     SCIM_400_INVALID_PATCH,
-    SCIM_403_FORBIDDEN_UPDATE,
     SCIM_409_USER_EXISTS,
     MemberPatchOps,
 )
@@ -55,6 +59,7 @@ from .utils import (
     OrganizationSCIMMemberPermission,
     SCIMApiError,
     SCIMEndpoint,
+    SCIMListBaseResponse,
     SCIMQueryParamSerializer,
 )
 
@@ -91,6 +96,7 @@ class OperationValue(Field):
         raise ValidationError("value must be a boolean or object")
 
 
+@extend_schema_serializer(dict)
 class SCIMPatchOperationSerializer(serializers.Serializer):
     op = serializers.CharField(required=True)
     value = OperationValue()
@@ -103,12 +109,27 @@ class SCIMPatchOperationSerializer(serializers.Serializer):
         raise serializers.ValidationError(f'"{value}" is not a valid choice')
 
 
+@extend_schema_serializer(exclude_fields="schemas")
 class SCIMPatchRequestSerializer(serializers.Serializer):
     # we don't actually use "schemas" for anything atm but its part of the spec
     schemas = serializers.ListField(child=serializers.CharField(), required=False)
-
     Operations = serializers.ListField(
-        child=SCIMPatchOperationSerializer(), required=True, source="operations", max_length=100
+        child=SCIMPatchOperationSerializer(),
+        required=True,
+        source="operations",
+        max_length=100,
+        help_text="""A list of operations to perform. Currently, the only valid operation is setting
+a member's `active` attribute to false, after which the member will be permanently deleted.
+```json
+{
+    "Operations": [{
+        "op": "replace",
+        "path": "active",
+        "value": False
+    }]
+}
+```
+""",
     )
 
 
@@ -145,7 +166,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
         "PATCH": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationSCIMMemberPermission,)
@@ -202,7 +223,10 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
 
     @extend_schema(
         operation_id="Query an Individual Organization Member",
-        parameters=[GlobalParams.ORG_SLUG, SCIMParams.MEMBER_ID],
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.member_id("The ID of the member to query."),
+        ],
         request=None,
         responses={
             200: OrganizationMemberSCIMSerializer,
@@ -226,7 +250,10 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
 
     @extend_schema(
         operation_id="Update an Organization Member's Attributes",
-        parameters=[GlobalParams.ORG_SLUG, SCIMParams.MEMBER_ID],
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.member_id("The ID of the member to update."),
+        ],
         request=SCIMPatchRequestSerializer,
         responses={
             204: RESPONSE_SUCCESS,
@@ -239,8 +266,6 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     def patch(self, request: Request, organization, member):
         """
         Update an organization member's attributes with a SCIM PATCH Request.
-        The only supported attribute is `active`. After setting `active` to false
-        Sentry will permanently delete the Organization Member.
         """
         serializer = SCIMPatchRequestSerializer(data=request.data)
 
@@ -269,7 +294,10 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
 
     @extend_schema(
         operation_id="Delete an Organization Member via SCIM",
-        parameters=[GlobalParams.ORG_SLUG, SCIMParams.MEMBER_ID],
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.member_id("The ID of the member to delete."),
+        ],
         request=None,
         responses={
             204: RESPONSE_SUCCESS,
@@ -288,7 +316,10 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
 
     @extend_schema(
         operation_id="Update an Organization Member's Attributes",
-        parameters=[GlobalParams.ORG_SLUG, SCIMParams.MEMBER_ID],
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.member_id("The ID of the member to update."),
+        ],
         request=inline_serializer(
             "SCIMMemberProvision", fields={"sentryOrgRole": serializers.CharField()}
         ),
@@ -308,7 +339,15 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         """
         # Do not allow modifications on members with the highest priority role
         if member.role == organization_roles.get_top_dog().id:
-            raise SCIMApiError(detail=SCIM_403_FORBIDDEN_UPDATE, status_code=403)
+            member.flags["idp:role-restricted"] = False
+            member.flags["idp:provisioned"] = True
+            member.save()
+
+            context = serialize(
+                member, serializer=_scim_member_serializer_with_expansion(organization)
+            )
+            return Response(context, status=200)
+
         if request.data.get("sentryOrgRole"):
             # Don't update if the org role is the same
             if (
@@ -345,8 +384,10 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
 
         previous_role = member.role
         previous_restriction = member.flags["idp:role-restricted"]
-        member.role = requested_role
+        if member.role != organization_roles.get_top_dog().id:
+            member.role = requested_role
         member.flags["idp:role-restricted"] = idp_role_restricted
+        member.flags["idp:provisioned"] = True
         member.save()
 
         # only update metric if the role changed
@@ -363,11 +404,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         return Response(context, status=200)
 
 
-class SCIMListResponseDict(TypedDict):
-    schemas: List[str]
-    totalResults: int
-    startIndex: int
-    itemsPerPage: int
+class SCIMListMembersResponse(SCIMListBaseResponse):
     Resources: List[OrganizationMemberSCIMSerializerResponse]
 
 
@@ -382,10 +419,9 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
     @extend_schema(
         operation_id="List an Organization's Members",
         parameters=[GlobalParams.ORG_SLUG, SCIMQueryParamSerializer],
-        request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "SCIMListResponseEnvelopeSCIMMemberIndexResponse", SCIMListResponseDict
+                "SCIMListResponseEnvelopeSCIMMemberIndexResponse", SCIMListMembersResponse
             ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -443,8 +479,16 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         request=inline_serializer(
             name="SCIMMemberProvision",
             fields={
-                "userName": serializers.EmailField(),
-                "sentryOrgRole": serializers.CharField(required=False),
+                "userName": serializers.EmailField(
+                    help_text="The SAML field used for email.",
+                    required=True,
+                ),
+                "sentryOrgRole": serializers.ChoiceField(
+                    help_text="""The organization role of the member. If unspecified, this will be
+                    set to the organization's default role. The options are:""",
+                    choices=[role for role in ROLE_CHOICES if role[0] != "owner"],
+                    required=False,
+                ),
             },
         ),
         responses={
@@ -458,11 +502,8 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
     def post(self, request: Request, organization) -> Response:
         """
         Create a new Organization Member via a SCIM Users POST Request.
-        - `userName` should be set to the SAML field used for email, and active should be set to `true`.
-        - `sentryOrgRole` can only be `admin`, `manager`, `billing`, or `member`.
-        - Sentry's SCIM API doesn't currently support setting users to inactive,
-        and the member will be deleted if active is set to `false`.
-        - The API also does not support setting secondary emails.
+
+        Note that this API does not support setting secondary emails.
         """
         update_role = False
 

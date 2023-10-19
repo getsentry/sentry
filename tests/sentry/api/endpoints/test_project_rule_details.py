@@ -1,21 +1,23 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping
 from unittest.mock import patch
 
 import responses
-from freezegun import freeze_time
 from rest_framework import status
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils.channel import strip_channel_name
-from sentry.models import Environment, Integration, Rule, RuleActivity, RuleActivityType
 from sentry.models.actor import Actor, get_actor_for_user
+from sentry.models.environment import Environment
+from sentry.models.integrations.integration import Integration
+from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
@@ -82,6 +84,10 @@ class ProjectRuleDetailsBaseTestCase(APITestCase):
                 provider="jira", name="Jira", external_id="jira:1"
             )
             self.jira_integration.add_organization(self.organization, self.user)
+            self.jira_server_integration = Integration.objects.create(
+                provider="jira_server", name="Jira Server", external_id="jira_server:1"
+            )
+            self.jira_server_integration.add_organization(self.organization, self.user)
         self.sentry_app = self.create_sentry_app(
             name="Pied Piper",
             organization=self.organization,
@@ -159,6 +165,29 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["conditions"][0]["id"] == conditions[0]["id"]
         assert len(response.data["filters"]) == 1
         assert response.data["filters"][0]["id"] == conditions[1]["id"]
+
+    @responses.activate
+    def test_neglected_rule(self):
+        now = datetime.now().replace(tzinfo=timezone.utc)
+        NeglectedRule.objects.create(
+            rule=self.rule,
+            organization=self.organization,
+            opted_out=False,
+            sent_initial_email_date=now,
+            disable_date=now + timedelta(days=14),
+        )
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
+        )
+        assert response.data["disableReason"] == "noisy"
+        assert response.data["disableDate"] == now + timedelta(days=14)
+
+        another_rule = self.create_project_rule(project=self.project)
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, another_rule.id, status_code=200
+        )
+        assert not response.data.get("disableReason")
+        assert not response.data.get("disableDate")
 
     @responses.activate
     def test_with_snooze_rule(self):
@@ -297,6 +326,65 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
                         "required": False,
                         "type": "select",
                         "url": f"/extensions/jira/search/{self.organization.slug}/{self.jira_integration.id}/",
+                    },
+                    {
+                        "choices": [
+                            ["Very High", "Very High"],
+                            ["High", "High"],
+                            ["Medium", "Medium"],
+                            ["Low", "Low"],
+                        ],
+                        "label": "Severity",
+                        "name": "customfield_severity",
+                        "required": True,
+                        "type": "select",
+                    },
+                ],
+            }
+        ]
+        data = {
+            "conditions": conditions,
+            "actions": actions,
+            "filter_match": "all",
+            "action_match": "all",
+            "frequency": 30,
+        }
+
+        self.rule.update(data=data)
+
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
+        )
+        # Expect that the choices get filtered to match the API: Array<string, string>
+        assert response.data["actions"][0].get("dynamic_form_fields")[0].get("choices") == [
+            ["EPIC-1", "Citizen Knope"],
+            ["EPIC-2", "The Comeback Kid"],
+        ]
+
+    @responses.activate
+    def test_with_jira_server_action_error(self):
+        conditions = [
+            {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
+            {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10},
+        ]
+        actions = [
+            {
+                "id": "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
+                "integration": self.jira_server_integration.id,
+                "customfield_epic_link": "EPIC-3",
+                "customfield_severity": "Medium",
+                "dynamic_form_fields": [
+                    {
+                        "choices": [
+                            ["EPIC-1", "Citizen Knope"],
+                            ["EPIC-2", "The Comeback Kid"],
+                            ["EPIC-3", {"key": None, "ref": None, "props": {}, "_owner": None}],
+                        ],
+                        "label": "Epic Link",
+                        "name": "customfield_epic_link",
+                        "required": False,
+                        "type": "select",
+                        "url": f"/extensions/jira/search/{self.organization.slug}/{self.jira_server_integration.id}/",
                     },
                     {
                         "choices": [
@@ -634,7 +722,8 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
 
-    def test_reenable_disabled_rule(self):
+    @patch("sentry.analytics.record")
+    def test_reenable_disabled_rule(self, record_analytics):
         """Test that when you edit and save a rule that was disabled, it's re-enabled as long as it passes the checks"""
         rule = Rule.objects.create(
             label="hello world",
@@ -662,6 +751,98 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         # re-fetch rule after update
         rule = Rule.objects.get(id=rule.id)
         assert rule.status == ObjectStatus.ACTIVE
+
+        assert self.analytics_called_with_args(
+            record_analytics,
+            "rule_reenable.edit",
+            rule_id=rule.id,
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+        )
+
+    @patch("sentry.analytics.record")
+    def test_rule_disable_opt_out_explicit(self, record_analytics):
+        """Test that if a user explicitly opts out of their neglected rule being migrated
+        to being disabled (by clicking a button on the front end), that we mark it as opted out.
+        """
+        rule = Rule.objects.create(
+            label="hello world",
+            project=self.project,
+            data={
+                "conditions": self.first_seen_condition,
+                "actions": [],
+                "action_match": "all",
+                "filter_match": "all",
+            },
+        )
+        now = datetime.now().replace(tzinfo=timezone.utc)
+        NeglectedRule.objects.create(
+            rule=rule,
+            organization=self.organization,
+            opted_out=False,
+            disable_date=now + timedelta(days=14),
+        )
+        payload = {
+            "name": "hellooo world",
+            "actionMatch": "all",
+            "actions": self.notify_issue_owners_action,
+            "conditions": self.first_seen_condition,
+            "optOutExplicit": True,
+        }
+        self.get_success_response(
+            self.organization.slug, self.project.slug, rule.id, status_code=200, **payload
+        )
+        assert self.analytics_called_with_args(
+            record_analytics,
+            "rule_disable_opt_out.explicit",
+            rule_id=rule.id,
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+        )
+        neglected_rule = NeglectedRule.objects.get(rule=rule)
+        assert neglected_rule.opted_out is True
+
+    @patch("sentry.analytics.record")
+    def test_rule_disable_opt_out_edit(self, record_analytics):
+        """Test that if a user passively opts out of their neglected rule being migrated
+        to being disabled (by editing the rule), that we mark it as opted out.
+        """
+        rule = Rule.objects.create(
+            label="hello world",
+            project=self.project,
+            data={
+                "conditions": self.first_seen_condition,
+                "actions": [],
+                "action_match": "all",
+                "filter_match": "all",
+            },
+        )
+        now = datetime.now().replace(tzinfo=timezone.utc)
+        NeglectedRule.objects.create(
+            rule=rule,
+            organization=self.organization,
+            opted_out=False,
+            disable_date=now + timedelta(days=14),
+        )
+        payload = {
+            "name": "hellooo world",
+            "actionMatch": "all",
+            "actions": self.notify_issue_owners_action,
+            "conditions": self.first_seen_condition,
+            "optOutEdit": True,
+        }
+        self.get_success_response(
+            self.organization.slug, self.project.slug, rule.id, status_code=200, **payload
+        )
+        assert self.analytics_called_with_args(
+            record_analytics,
+            "rule_disable_opt_out.edit",
+            rule_id=rule.id,
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+        )
+        neglected_rule = NeglectedRule.objects.get(rule=rule)
+        assert neglected_rule.opted_out is True
 
     def test_with_environment(self):
         payload = {

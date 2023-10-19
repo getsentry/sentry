@@ -1,6 +1,7 @@
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {StepProps, StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
 import {
   getDefaulServerlessImports,
@@ -11,17 +12,19 @@ import {
   joinWithIndentation,
 } from 'sentry/utils/gettingStartedDocs/node';
 
-interface StepProps {
+interface StepsParams {
   importContent: string;
   initContent: string;
   installSnippet: string;
+  sourceMapStep: StepProps;
 }
 
 export const steps = ({
   installSnippet,
   importContent,
   initContent,
-}: StepProps): LayoutProps['steps'] => [
+  sourceMapStep,
+}: StepsParams): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
@@ -80,6 +83,7 @@ exports.helloEvents = Sentry.GCPFunction.wrapCloudEventFunction(
       },
     ],
   },
+  sourceMapStep,
   {
     type: StepType.VERIFY,
     description: t(
@@ -103,6 +107,9 @@ export function GettingStartedWithGCPFunctions({
   newOrg,
   platformKey,
   activeProductSelection = [],
+  organization,
+  projectId,
+  ...props
 }: ModuleProps) {
   const productSelection = getProductSelectionMap(activeProductSelection);
 
@@ -137,9 +144,18 @@ export function GettingStartedWithGCPFunctions({
         installSnippet: installSnippet.join('\n'),
         importContent: imports.join('\n'),
         initContent,
+        sourceMapStep: getUploadSourceMapsStep({
+          guideLink:
+            'https://docs.sentry.io/platforms/node/guides/gcp-functions/sourcemaps/',
+          organization,
+          platformKey,
+          projectId,
+          newOrg,
+        }),
       })}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }

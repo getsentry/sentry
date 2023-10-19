@@ -8,11 +8,6 @@ import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatte
 
 const formatter = new SQLishFormatter();
 
-interface Props {
-  group?: string;
-  shortDescription?: string;
-}
-
 export function FullQueryDescription({group, shortDescription}: Props) {
   const {
     data: fullSpan,
@@ -31,9 +26,18 @@ export function FullQueryDescription({group, shortDescription}: Props) {
       <LoadingIndicator mini hideMessage relative />
     </PaddedSpinner>
   ) : (
-    <CodeSnippet language="sql">{formatter.toString(description)}</CodeSnippet>
+    <CodeSnippet language="sql">
+      {formatter.toString(description, {maxLineLength: LINE_LENGTH})}
+    </CodeSnippet>
   );
 }
+
+interface Props {
+  group?: string;
+  shortDescription?: string;
+}
+
+const LINE_LENGTH = 60;
 
 const PaddedSpinner = styled('div')`
   padding: ${space(0)} ${space(0.5)};

@@ -10,12 +10,17 @@ import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import ContextIcon from 'sentry/components/replays/contextIcon';
 import {formatTime} from 'sentry/components/replays/utils';
-import StringWalker from 'sentry/components/replays/walker/stringWalker';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {IconCalendar, IconDelete, IconEllipsis, IconFire} from 'sentry/icons';
+import {
+  IconCalendar,
+  IconCursorArrow,
+  IconDelete,
+  IconEllipsis,
+  IconFire,
+} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space, ValidSize} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
@@ -37,7 +42,12 @@ type Props = {
   showDropdownFilters?: boolean;
 };
 
-export type ReferrerTableType = 'main' | 'dead-table' | 'errors-table' | 'rage-table';
+export type ReferrerTableType =
+  | 'main'
+  | 'dead-table'
+  | 'errors-table'
+  | 'rage-table'
+  | 'selector-widget';
 
 type EditType = 'set' | 'remove';
 
@@ -279,14 +289,14 @@ export function ReplayCell({
   organization,
   referrer,
   replay,
-  showUrl,
   referrer_table,
+  isWidget,
 }: Props & {
   eventView: EventView;
   organization: Organization;
   referrer: string;
   referrer_table: ReferrerTableType;
-  showUrl: boolean;
+  isWidget?: boolean;
 }) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
@@ -308,13 +318,12 @@ export function ReplayCell({
     },
   };
 
-  const replayDetailsDOMEventsTab = {
+  const replayDetailsDeadRage = {
     pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
     query: {
       referrer,
       ...eventView.generateQueryStringObject(),
-      t_main: 'dom',
-      f_d_type: 'ui.slowClickDetected',
+      f_b_type: 'rageOrDead',
     },
   };
 
@@ -323,9 +332,9 @@ export function ReplayCell({
       case 'errors-table':
         return replayDetailsErrorTab;
       case 'dead-table':
-        return replayDetailsDOMEventsTab;
       case 'rage-table':
-        return replayDetailsDOMEventsTab;
+      case 'selector-widget':
+        return replayDetailsDeadRage;
       default:
         return replayDetails;
     }
@@ -359,7 +368,6 @@ export function ReplayCell({
 
   const subText = (
     <Cols>
-      {showUrl ? <StringWalker urls={replay.urls} /> : undefined}
       <Row gap={1}>
         <Row gap={0.5}>
           {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
@@ -378,15 +386,15 @@ export function ReplayCell({
   );
 
   return (
-    <Item>
-      <UserBadgeFullWidth
+    <Item isWidget={isWidget}>
+      <UserBadge
         avatarSize={24}
         displayName={
           replay.is_archived ? (
-            replay.user.display_name || t('Unknown User')
+            replay.user.display_name || t('Anonymous User')
           ) : (
             <MainLink to={detailsTab} onClick={trackNavigationEvent}>
-              {replay.user.display_name || t('Unknown User')}
+              {replay.user.display_name || t('Anonymous User')}
             </MainLink>
           )
         }
@@ -400,11 +408,6 @@ export function ReplayCell({
 
 const StyledIconDelete = styled(IconDelete)`
   margin: ${space(0.25)};
-`;
-
-// Need to be full width for StringWalker to take up full width and truncate properly
-const UserBadgeFullWidth = styled(UserBadge)`
-  width: 100%;
 `;
 
 const Cols = styled('div')`
@@ -461,7 +464,7 @@ export function OSCell({replay, showDropdownFilters}: Props) {
   return (
     <Item>
       <Container>
-        <Tooltip title={`${name} ${version}`}>
+        <Tooltip title={`${name ?? ''} ${version ?? ''}`}>
           <ContextIcon
             name={name ?? ''}
             version={version && hasRoomForColumns ? version : undefined}
@@ -528,7 +531,10 @@ export function RageClickCountCell({replay, showDropdownFilters}: Props) {
     <Item data-test-id="replay-table-count-rage-clicks">
       <Container>
         {replay.count_rage_clicks ? (
-          <DeadRageCount>{replay.count_rage_clicks}</DeadRageCount>
+          <RageClickCount>
+            <IconCursorArrow size="sm" />
+            {replay.count_rage_clicks}
+          </RageClickCount>
         ) : (
           <Count>0</Count>
         )}
@@ -551,7 +557,10 @@ export function DeadClickCountCell({replay, showDropdownFilters}: Props) {
     <Item data-test-id="replay-table-count-dead-clicks">
       <Container>
         {replay.count_dead_clicks ? (
-          <DeadRageCount>{replay.count_dead_clicks}</DeadRageCount>
+          <DeadClickCount>
+            <IconCursorArrow size="sm" />
+            {replay.count_dead_clicks}
+          </DeadClickCount>
         ) : (
           <Count>0</Count>
         )}
@@ -615,11 +624,14 @@ export function ActivityCell({replay, showDropdownFilters}: Props) {
   );
 }
 
-const Item = styled('div')<{isArchived?: boolean}>`
+const Item = styled('div')<{isArchived?: boolean; isWidget?: boolean}>`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  padding: ${space(1.5)};
+  ${p =>
+    p.isWidget
+      ? `padding: ${space(0.75)} ${space(1.5)} ${space(1.5)} ${space(1.5)};`
+      : `padding: ${space(1.5)};`};
   ${p => (p.isArchived ? 'opacity: 0.5;' : '')};
 `;
 
@@ -627,9 +639,18 @@ const Count = styled('span')`
   font-variant-numeric: tabular-nums;
 `;
 
-const DeadRageCount = styled(Count)`
+const DeadClickCount = styled(Count)`
   display: flex;
   width: 40px;
+  gap: ${space(0.5)};
+  color: ${p => p.theme.yellow300};
+`;
+
+const RageClickCount = styled(Count)`
+  display: flex;
+  width: 40px;
+  gap: ${space(0.5)};
+  color: ${p => p.theme.red300};
 `;
 
 const ErrorCount = styled(Count)`

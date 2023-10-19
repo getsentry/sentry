@@ -1,28 +1,31 @@
 import base64
 import re
-from datetime import datetime, timedelta
+from dataclasses import asdict
+from datetime import datetime, timedelta, timezone
 from unittest import mock
 
 import pytest
 import responses
 from django.core import mail
 from django.test import override_settings
-from freezegun import freeze_time
 from requests import Request
 from responses import matchers
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.client import GitHubAppsClient
 from sentry.integrations.github.integration import GitHubIntegration
+from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
-from sentry.models import Integration, Repository
+from sentry.models.integrations.integration import Integration
+from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.utils import json
 from sentry.utils.cache import cache
 
 GITHUB_CODEOWNERS = {
@@ -233,15 +236,15 @@ class GitHubAppsClientTest(TestCase):
                         ... on Commit {{
                             blame(path: "{path}") {{
                                 ranges {{
-                                        commit {{
-                                            oid
-                                            author {{
-                                                name
-                                                email
-                                            }}
-                                            message
-                                            committedDate
+                                    commit {{
+                                        oid
+                                        author {{
+                                            name
+                                            email
                                         }}
+                                        message
+                                        committedDate
+                                    }}
                                     startingLine
                                     endingLine
                                     age
@@ -595,7 +598,6 @@ class GithubProxyClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=ApiError)
     @responses.activate
-    @with_feature("organizations:github-disable-on-broken")
     def test_fatal_and_disable_integration(self, get_jwt):
         """
         fatal fast shut off with disable flag on, integration should be broken and disabled
@@ -621,7 +623,6 @@ class GithubProxyClientTest(TestCase):
         assert len(buffer._get_all_from_buffer()) == 0
 
     @responses.activate
-    @with_feature("organizations:github-disable-on-broken")
     def test_disable_email(self):
         with self.tasks():
             notify_disable(
@@ -647,7 +648,7 @@ class GithubProxyClientTest(TestCase):
     @responses.activate
     def test_fatal_integration(self, get_jwt):
         """
-        fatal fast shut off with disable flag off, integration should be broken but not disabled
+        fatal fast shut off with disable flag on, integration should be broken and disabled
         """
         responses.add(
             responses.POST,
@@ -662,10 +663,8 @@ class GithubProxyClientTest(TestCase):
         self.gh_client.integration = None
         with pytest.raises(Exception):
             self.gh_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
-        buffer = IntegrationRequestBuffer(self.gh_client._get_redis_key())
-        assert buffer.is_integration_broken() is True
         integration = Integration.objects.get(id=self.integration.id)
-        assert integration.status == ObjectStatus.ACTIVE
+        assert integration.status == ObjectStatus.DISABLED
 
     @responses.activate
     def test_error_integration(self):
@@ -698,7 +697,6 @@ class GithubProxyClientTest(TestCase):
         assert buffer.is_integration_broken() is False
 
     @responses.activate
-    @with_feature("organizations:github-disable-on-broken")
     @freeze_time("2022-01-01 03:30:00")
     def test_slow_integration_is_not_broken_or_disabled(self):
         """
@@ -730,8 +728,8 @@ class GithubProxyClientTest(TestCase):
     @freeze_time("2022-01-01 03:30:00")
     def test_a_slow_integration_is_broken(self):
         """
-        slow shut off with disable flag off
-        put errors in buffer for 10 days, assert integration is broken but not disabled
+        slow shut off with disable flag on
+        put errors in buffer for 10 days, assert integration is broken and disabled
         """
         responses.add(
             responses.POST,
@@ -747,7 +745,583 @@ class GithubProxyClientTest(TestCase):
             with freeze_time(now - timedelta(days=i)):
                 buffer.record_error()
         self.gh_client.integration = None
+        assert Integration.objects.get(id=self.integration.id).status == ObjectStatus.ACTIVE
         with pytest.raises(Exception):
             self.gh_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
-        assert buffer.is_integration_broken() is True
-        assert Integration.objects.get(id=self.integration.id).status == ObjectStatus.ACTIVE
+        assert Integration.objects.get(id=self.integration.id).status == ObjectStatus.DISABLED
+
+
+class GitHubClientFileBlameQueryBuilderTest(TestCase):
+    """
+    Tests that get_blame_for_files builds the correct GraphQL query
+    """
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    def setUp(self, get_jwt):
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="Github Test Org",
+            external_id="1",
+            metadata={"access_token": None, "expires_at": None},
+        )
+        self.repo_1 = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Test-Organization/foo",
+            url="https://github.com/Test-Organization/foo",
+            provider="integrations:github",
+            external_id=123,
+            integration_id=integration.id,
+        )
+        self.repo_2 = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Test-Organization/bar",
+            url="https://github.com/Test-Organization/bar",
+            provider="integrations:github",
+            external_id=456,
+            integration_id=integration.id,
+        )
+        install = integration.get_installation(organization_id=self.organization.id)
+        assert isinstance(install, GitHubIntegration)
+        self.install = install
+        self.github_client = self.install.get_client()
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/app/installations/1/access_tokens",
+            body='{"token": "12345token", "expires_at": "2030-01-01T00:00:00Z"}',
+            status=200,
+            content_type="application/json",
+        )
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_get_blame_for_files_same_repo(self, get_jwt):
+        """
+        When all files are in the same repo, only one repository object should be
+        queried and files blames within the repo should be deduped
+        """
+        file1 = SourceLineInfo(
+            path="src/sentry/integrations/github/client_1.py",
+            lineno=10,
+            ref="master",
+            repo=self.repo_1,
+            code_mapping=None,  # type: ignore
+        )
+        file2 = SourceLineInfo(
+            path="src/sentry/integrations/github/client_1.py",
+            lineno=15,
+            ref="master",
+            repo=self.repo_1,
+            code_mapping=None,  # type: ignore
+        )
+        file3 = SourceLineInfo(
+            path="src/sentry/integrations/github/client_2.py",
+            lineno=20,
+            ref="master",
+            repo=self.repo_1,
+            code_mapping=None,  # type: ignore
+        )
+        query = """query {
+    repository0: repository(name: "foo", owner: "Test-Organization") {
+        ref0: ref(qualifiedName: "master") {
+            target {
+                ... on Commit {
+                    blame0: blame(path: "src/sentry/integrations/github/client_1.py") {
+                        ranges {
+                            commit {
+                                oid
+                                author {
+                                    name
+                                    email
+                                }
+                                message
+                                committedDate
+                            }
+                            startingLine
+                            endingLine
+                            age
+                        }
+                    }
+                    blame1: blame(path: "src/sentry/integrations/github/client_2.py") {
+                        ranges {
+                            commit {
+                                oid
+                                author {
+                                    name
+                                    email
+                                }
+                                message
+                                committedDate
+                            }
+                            startingLine
+                            endingLine
+                            age
+                        }
+                    }
+                }
+            }
+        }
+    }
+}"""
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json={
+                "query": query,
+                "data": {},
+            },
+            content_type="application/json",
+        )
+
+        self.github_client.get_blame_for_files([file1, file2, file3])
+        assert json.loads(responses.calls[1].request.body)["query"] == query
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_get_blame_for_files_different_repos(self, get_jwt):
+        """
+        When files are in different repos, multiple repository objects should be
+        queried. Files within the same repo and branch should be deduped.
+        """
+        file1 = SourceLineInfo(
+            path="src/sentry/integrations/github/client_1.py",
+            lineno=10,
+            ref="master",
+            repo=self.repo_1,
+            code_mapping=None,  # type:ignore
+        )
+        file2 = SourceLineInfo(
+            path="src/sentry/integrations/github/client_2.py",
+            lineno=15,
+            ref="master",
+            repo=self.repo_1,
+            code_mapping=None,  # type:ignore
+        )
+        file3 = SourceLineInfo(
+            path="src/getsentry/file.py",
+            lineno=20,
+            ref="master",
+            repo=self.repo_2,
+            code_mapping=None,  # type:ignore
+        )
+        query = """query {
+    repository0: repository(name: "foo", owner: "Test-Organization") {
+        ref0: ref(qualifiedName: "master") {
+            target {
+                ... on Commit {
+                    blame0: blame(path: "src/sentry/integrations/github/client_1.py") {
+                        ranges {
+                            commit {
+                                oid
+                                author {
+                                    name
+                                    email
+                                }
+                                message
+                                committedDate
+                            }
+                            startingLine
+                            endingLine
+                            age
+                        }
+                    }
+                    blame1: blame(path: "src/sentry/integrations/github/client_2.py") {
+                        ranges {
+                            commit {
+                                oid
+                                author {
+                                    name
+                                    email
+                                }
+                                message
+                                committedDate
+                            }
+                            startingLine
+                            endingLine
+                            age
+                        }
+                    }
+                }
+            }
+        }
+    }
+    repository1: repository(name: "bar", owner: "Test-Organization") {
+        ref0: ref(qualifiedName: "master") {
+            target {
+                ... on Commit {
+                    blame0: blame(path: "src/getsentry/file.py") {
+                        ranges {
+                            commit {
+                                oid
+                                author {
+                                    name
+                                    email
+                                }
+                                message
+                                committedDate
+                            }
+                            startingLine
+                            endingLine
+                            age
+                        }
+                    }
+                }
+            }
+        }
+    }
+}"""
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json={
+                "query": query,
+                "data": {},
+            },
+            content_type="application/json",
+        )
+
+        self.github_client.get_blame_for_files([file1, file2, file3])
+        assert json.loads(responses.calls[1].request.body)["query"] == query
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_get_blame_for_files_different_refs(self, get_jwt):
+        """
+        When files are in the same repo but different branches, query multiple
+        ref objects. Files should still be deduped.
+        """
+        file1 = SourceLineInfo(
+            path="src/sentry/integrations/github/client.py",
+            lineno=10,
+            ref="master",
+            repo=self.repo_1,
+            code_mapping=None,  # type:ignore
+        )
+        file2 = SourceLineInfo(
+            path="src/sentry/integrations/github/client.py",
+            lineno=15,
+            ref="master",
+            repo=self.repo_1,
+            code_mapping=None,  # type:ignore
+        )
+        file3 = SourceLineInfo(
+            path="src/sentry/integrations/github/client.py",
+            lineno=20,
+            ref="staging",
+            repo=self.repo_1,
+            code_mapping=None,  # type:ignore
+        )
+        query = """query {
+    repository0: repository(name: "foo", owner: "Test-Organization") {
+        ref0: ref(qualifiedName: "master") {
+            target {
+                ... on Commit {
+                    blame0: blame(path: "src/sentry/integrations/github/client.py") {
+                        ranges {
+                            commit {
+                                oid
+                                author {
+                                    name
+                                    email
+                                }
+                                message
+                                committedDate
+                            }
+                            startingLine
+                            endingLine
+                            age
+                        }
+                    }
+                }
+            }
+        }
+        ref1: ref(qualifiedName: "staging") {
+            target {
+                ... on Commit {
+                    blame0: blame(path: "src/sentry/integrations/github/client.py") {
+                        ranges {
+                            commit {
+                                oid
+                                author {
+                                    name
+                                    email
+                                }
+                                message
+                                committedDate
+                            }
+                            startingLine
+                            endingLine
+                            age
+                        }
+                    }
+                }
+            }
+        }
+    }
+}"""
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json={
+                "query": query,
+                "data": {},
+            },
+            content_type="application/json",
+        )
+
+        self.github_client.get_blame_for_files([file1, file2, file3])
+        assert json.loads(responses.calls[1].request.body)["query"] == query
+
+
+class GitHubClientFileBlameResponseTest(TestCase):
+    """
+    Tests that get_blame_for_files handles the GraphQL response correctly
+    """
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    def setUp(self, get_jwt):
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="Github Test Org",
+            external_id="1",
+            metadata={"access_token": None, "expires_at": None},
+        )
+        self.repo_1 = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Test-Organization/foo",
+            url="https://github.com/Test-Organization/foo",
+            provider="integrations:github",
+            external_id=123,
+            integration_id=integration.id,
+        )
+        self.repo_2 = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Test-Organization/bar",
+            url="https://github.com/Test-Organization/bar",
+            provider="integrations:github",
+            external_id=456,
+            integration_id=integration.id,
+        )
+        self.repo_3 = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Test-Organization/other",
+            url="https://github.com/Test-Organization/other",
+            provider="integrations:github",
+            external_id=789,
+            integration_id=integration.id,
+        )
+        install = integration.get_installation(organization_id=self.organization.id)
+        assert isinstance(install, GitHubIntegration)
+        self.install = install
+        self.github_client = self.install.get_client()
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/app/installations/1/access_tokens",
+            body='{"token": "12345token", "expires_at": "2030-01-01T00:00:00Z"}',
+            status=200,
+            content_type="application/json",
+        )
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_get_blame_for_files_full_response(self, get_jwt):
+        """
+        Tests that the correct commits are returned when a full response is returned
+        """
+        file1 = SourceLineInfo(
+            path="src/sentry/integrations/github/client_1.py",
+            lineno=10,
+            ref="master",
+            repo=self.repo_1,
+            code_mapping=None,  # type:ignore
+        )
+        file2 = SourceLineInfo(
+            path="src/sentry/integrations/github/client_1.py",
+            lineno=15,
+            ref="master",
+            repo=self.repo_1,
+            code_mapping=None,  # type:ignore
+        )
+        file3 = SourceLineInfo(
+            path="src/sentry/integrations/github/client_2.py",
+            lineno=20,
+            ref="master",
+            repo=self.repo_1,
+            code_mapping=None,  # type:ignore
+        )
+        data = {
+            "repository0": {
+                "ref0": {
+                    "target": {
+                        "blame0": {
+                            "ranges": [
+                                {
+                                    "commit": {
+                                        "oid": "987",
+                                        "author": {
+                                            "name": "not this one",
+                                            "email": "blah@example.com",
+                                        },
+                                        "message": "bye",
+                                        "committedDate": "2022-01-01T00:00:00Z",
+                                    },
+                                    "startingLine": 1,
+                                    "endingLine": 9,
+                                    "age": 0,
+                                },
+                                {
+                                    "commit": {
+                                        "oid": "123",
+                                        "author": {"name": "foo1", "email": "foo1@example.com"},
+                                        "message": "hello",
+                                        "committedDate": "2022-01-01T00:00:00Z",
+                                    },
+                                    "startingLine": 10,
+                                    "endingLine": 15,
+                                    "age": 0,
+                                },
+                            ]
+                        },
+                        "blame1": {
+                            "ranges": [
+                                {
+                                    "commit": {
+                                        "oid": "456",
+                                        "author": {"name": "foo2", "email": "foo2@example.com"},
+                                        "message": "hello",
+                                        "committedDate": "2020-01-01T00:00:00Z",
+                                    },
+                                    "startingLine": 20,
+                                    "endingLine": 20,
+                                    "age": 0,
+                                }
+                            ]
+                        },
+                    }
+                }
+            }
+        }
+
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json={
+                "data": data,
+            },
+            content_type="application/json",
+        )
+
+        response = self.github_client.get_blame_for_files([file1, file2, file3])
+        self.assertEqual(
+            response,
+            [
+                FileBlameInfo(
+                    **asdict(file1),
+                    commit=CommitInfo(
+                        commitId="123",
+                        commitAuthorName="foo1",
+                        commitAuthorEmail="foo1@example.com",
+                        commitMessage="hello",
+                        committedDate=datetime(2022, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                    ),
+                ),
+                FileBlameInfo(
+                    **asdict(file3),
+                    commit=CommitInfo(
+                        commitId="456",
+                        commitAuthorName="foo2",
+                        commitAuthorEmail="foo2@example.com",
+                        commitMessage="hello",
+                        committedDate=datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                    ),
+                ),
+            ],
+        )
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_get_blame_for_files_response_partial_data(self, get_jwt):
+        """
+        Tests that commits are still returned when some data is missing from the response
+        """
+        file1 = SourceLineInfo(
+            path="src/sentry/integrations/github/client_1.py",
+            lineno=10,
+            ref="master",
+            repo=self.repo_1,
+            code_mapping=None,  # type: ignore
+        )
+        file2 = SourceLineInfo(
+            path="src/sentry/integrations/github/client_2.py",
+            lineno=15,
+            ref="master",
+            repo=self.repo_1,
+            code_mapping=None,  # type:ignore
+        )
+        file3 = SourceLineInfo(
+            path="src/sentry/integrations/github/client.py",
+            lineno=20,
+            ref="master",
+            repo=self.repo_2,
+            code_mapping=None,  # type:ignore
+        )
+        file4 = SourceLineInfo(
+            path="src/sentry/integrations/github/client.py",
+            lineno=25,
+            ref="master",
+            repo=self.repo_3,
+            code_mapping=None,  # type:ignore
+        )
+        data = {
+            "repository0": {
+                "ref0": {
+                    "target": {
+                        "blame0": {
+                            "ranges": [
+                                {
+                                    "commit": {
+                                        "oid": "123",
+                                        "author": None,
+                                        "message": None,
+                                        "committedDate": "2022-01-01T00:00:00Z",
+                                    },
+                                    "startingLine": 10,
+                                    "endingLine": 15,
+                                    "age": 0,
+                                }
+                            ]
+                        },
+                        "blame1": {"ranges": []},
+                    }
+                }
+            },
+            "repository1": {"ref0": None},
+            "repository2": None,
+        }
+
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json={
+                "data": data,
+            },
+            content_type="application/json",
+        )
+
+        response = self.github_client.get_blame_for_files([file1, file2, file3, file4])
+        self.assertEqual(
+            response,
+            [
+                FileBlameInfo(
+                    **asdict(file1),
+                    commit=CommitInfo(
+                        commitId="123",
+                        commitAuthorName=None,
+                        commitAuthorEmail=None,
+                        commitMessage=None,
+                        committedDate=datetime(2022, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                    ),
+                ),
+            ],
+        )

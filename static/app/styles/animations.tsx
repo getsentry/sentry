@@ -129,8 +129,8 @@ ${new Array(50)
   .map(
     (_, i) => `${i * 2}% {
   transform: translate(${Math.round(Math.random() * distance)}px, ${Math.round(
-      Math.random() * distance
-    )}px);
+    Math.random() * distance
+  )}px);
 }`
   )
   .join('\n')}

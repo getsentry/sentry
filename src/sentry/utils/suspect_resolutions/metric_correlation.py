@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional, Sequence
 
 from sentry import tsdb
-from sentry.models import Group
+from sentry.models.group import Group
 from sentry.tsdb.base import TSDBModel
 
 

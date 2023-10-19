@@ -4,7 +4,6 @@
 import datetime
 import logging
 import shutil
-import sys
 import time
 from os import environ, path
 from urllib.parse import urlparse
@@ -57,20 +56,9 @@ def relay_server_setup(live_server, tmpdir_factory):
 
     parsed_live_server_url = urlparse(live_server.url)
     if parsed_live_server_url.port is not None:
-        port = str(parsed_live_server_url.port)
+        port = parsed_live_server_url.port
     else:
-        port = "80"
-
-    if sys.platform.startswith("linux"):
-        upstream_host = "http://127.0.0.1:%s/" % port
-        kafka_host = "127.0.0.1"
-        redis_host = "127.0.0.1"
-        network = "host"
-    else:
-        upstream_host = "http://host.docker.internal:%s/" % port
-        kafka_host = "sentry_kafka"
-        redis_host = "sentry_redis"
-        network = "sentry"
+        port = 80
 
     template_path = _get_template_dir()
     sources = ["config.yml", "credentials.json"]
@@ -84,10 +72,10 @@ def relay_server_setup(live_server, tmpdir_factory):
     assert redis_db == projectconfig_cache.backend.cluster.connection_pool.connection_kwargs["db"]
 
     template_vars = {
-        "SENTRY_HOST": upstream_host,
+        "SENTRY_HOST": f"http://host.docker.internal:{port}/",
         "RELAY_PORT": relay_port,
-        "KAFKA_HOST": kafka_host,
-        "REDIS_HOST": redis_host,
+        "KAFKA_HOST": "sentry_kafka",
+        "REDIS_HOST": "sentry_redis",
         "REDIS_DB": redis_db,
     }
 
@@ -112,11 +100,12 @@ def relay_server_setup(live_server, tmpdir_factory):
     options = {
         "image": RELAY_TEST_IMAGE,
         "ports": {"%s/tcp" % relay_port: relay_port},
-        "network": network,
+        "network": "sentry",
         "detach": True,
         "name": container_name,
         "volumes": {config_path: {"bind": "/etc/relay"}},
         "command": ["run", "--config", "/etc/relay"],
+        "extra_hosts": {"host.docker.internal": "host-gateway"},
     }
 
     # Some structure similar to what the live_server fixture returns

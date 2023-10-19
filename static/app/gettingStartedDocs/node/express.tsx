@@ -1,6 +1,7 @@
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {StepProps, StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
 import {
   getDefaultInitParams,
@@ -12,11 +13,13 @@ import {
   joinWithIndentation,
 } from 'sentry/utils/gettingStartedDocs/node';
 
-interface StepProps {
+interface StepsParams {
   hasPerformanceMonitoring: boolean;
   importContent: string;
   initContent: string;
-  installSnippet: string;
+  installSnippetNpm: string;
+  installSnippetYarn: string;
+  sourceMapStep: StepProps;
 }
 
 const performanceIntegrations: string[] = [
@@ -27,18 +30,32 @@ const performanceIntegrations: string[] = [
 ];
 
 export const steps = ({
-  installSnippet,
+  installSnippetYarn,
+  installSnippetNpm,
   importContent,
   initContent,
   hasPerformanceMonitoring,
-}: StepProps): LayoutProps['steps'] => [
+  sourceMapStep,
+}: StepsParams): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: t('Add the Sentry Node SDK as a dependency:'),
     configurations: [
       {
-        language: 'bash',
-        code: installSnippet,
+        code: [
+          {
+            label: 'npm',
+            value: 'npm',
+            language: 'bash',
+            code: installSnippetNpm,
+          },
+          {
+            label: 'yarn',
+            value: 'yarn',
+            language: 'bash',
+            code: installSnippetYarn,
+          },
+        ],
       },
     ],
   },
@@ -95,6 +112,7 @@ app.listen(3000);
       },
     ],
   },
+  sourceMapStep,
   {
     type: StepType.VERIFY,
     description: t(
@@ -118,10 +136,12 @@ export function GettingStartedWithExpress({
   newOrg,
   platformKey,
   activeProductSelection = [],
+  organization,
+  projectId,
+  ...props
 }: ModuleProps) {
   const productSelection = getProductSelectionMap(activeProductSelection);
 
-  const installSnippet = getInstallSnippet({productSelection});
   const imports = getDefaultNodeImports({productSelection});
   imports.push('import express from "express";');
 
@@ -144,13 +164,22 @@ export function GettingStartedWithExpress({
   return (
     <Layout
       steps={steps({
-        installSnippet,
+        installSnippetNpm: getInstallSnippet({productSelection, packageManager: 'npm'}),
+        installSnippetYarn: getInstallSnippet({productSelection, packageManager: 'yarn'}),
         importContent: imports.join('\n'),
         initContent,
         hasPerformanceMonitoring: productSelection['performance-monitoring'],
+        sourceMapStep: getUploadSourceMapsStep({
+          guideLink: 'https://docs.sentry.io/platforms/node/guides/express/sourcemaps/',
+          organization,
+          platformKey,
+          projectId,
+          newOrg,
+        }),
       })}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }

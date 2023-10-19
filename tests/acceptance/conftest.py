@@ -3,8 +3,6 @@ import subprocess
 import sys
 import time
 
-from django.conf import settings
-
 from sentry.testutils.pytest.sentry import configure_split_db
 from sentry.utils import json
 
@@ -73,4 +71,4 @@ def pytest_configure(config):
             "Unable to run `yarn` -- make sure your development environment is setup correctly: https://docs.sentry.io/development/contribute/environment/#macos---nodejs"
         )
 
-    configure_split_db(settings)
+    configure_split_db()

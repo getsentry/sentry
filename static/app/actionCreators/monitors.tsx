@@ -26,7 +26,7 @@ export async function deleteMonitorEnvironment(
   orgId: string,
   monitorSlug: string,
   environment: string
-) {
+): Promise<boolean> {
   addLoadingMessage(t('Deleting Environment...'));
 
   try {
@@ -37,9 +37,11 @@ export async function deleteMonitorEnvironment(
       },
     });
     clearIndicators();
+    return true;
   } catch {
     addErrorMessage(t('Unable to remove environment from monitor.'));
   }
+  return false;
 }
 
 export async function updateMonitor(

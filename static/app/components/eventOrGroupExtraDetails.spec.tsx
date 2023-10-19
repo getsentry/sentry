@@ -8,7 +8,7 @@ describe('EventOrGroupExtraDetails', function () {
   const {routerContext} = initializeOrg();
 
   it('renders last and first seen', function () {
-    const {container} = render(
+    render(
       <EventOrGroupExtraDetails
         data={
           {
@@ -21,12 +21,10 @@ describe('EventOrGroupExtraDetails', function () {
       />,
       {context: routerContext}
     );
-
-    expect(container).toSnapshot();
   });
 
   it('renders only first seen', function () {
-    const {container} = render(
+    render(
       <EventOrGroupExtraDetails
         data={
           {
@@ -38,12 +36,10 @@ describe('EventOrGroupExtraDetails', function () {
       />,
       {context: routerContext}
     );
-
-    expect(container).toSnapshot();
   });
 
   it('renders only last seen', function () {
-    const {container} = render(
+    render(
       <EventOrGroupExtraDetails
         data={
           {
@@ -55,12 +51,10 @@ describe('EventOrGroupExtraDetails', function () {
       />,
       {context: routerContext}
     );
-
-    expect(container).toSnapshot();
   });
 
   it('renders all details', function () {
-    const {container} = render(
+    render(
       <EventOrGroupExtraDetails
         data={
           {
@@ -80,12 +74,10 @@ describe('EventOrGroupExtraDetails', function () {
       />,
       {context: routerContext}
     );
-
-    expect(container).toSnapshot();
   });
 
   it('renders assignee and status', function () {
-    const {container} = render(
+    render(
       <EventOrGroupExtraDetails
         data={
           {
@@ -106,12 +98,10 @@ describe('EventOrGroupExtraDetails', function () {
       />,
       {context: routerContext}
     );
-
-    expect(container).toSnapshot();
   });
 
   it('details when mentioned', function () {
-    const {container} = render(
+    render(
       <EventOrGroupExtraDetails
         data={
           {
@@ -128,7 +118,5 @@ describe('EventOrGroupExtraDetails', function () {
       />,
       {context: routerContext}
     );
-
-    expect(container).toSnapshot();
   });
 });

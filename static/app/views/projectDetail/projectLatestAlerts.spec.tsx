@@ -1,3 +1,5 @@
+import {MetricRule} from 'sentry-fixture/metricRule';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -20,7 +22,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
     });
     rulesEndpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/alert-rules/`,
-      body: [TestStubs.MetricRule()],
+      body: [MetricRule()],
     });
   });
 

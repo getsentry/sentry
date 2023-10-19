@@ -13,7 +13,7 @@ interface Props {
     [SpanMetricsField.SPAN_OP]?: string;
     [SpanMetricsField.SPAN_DESCRIPTION]?: string;
     [SpanMetricsField.SPAN_ACTION]?: string;
-    [SpanMetricsField.SPAN_DOMAIN]?: string;
+    [SpanMetricsField.SPAN_DOMAIN]?: string[];
     [SpanMetricsField.SPAN_GROUP]?: string;
   };
 }
@@ -46,6 +46,7 @@ export function SpanMetricsRibbon({spanMetrics}: Props) {
         <TimeSpentCell
           percentage={spanMetrics?.[`${SpanFunction.TIME_SPENT_PERCENTAGE}()`]}
           total={spanMetrics?.[`sum(${SpanMetricsField.SPAN_SELF_TIME})`]}
+          op={op}
         />
       </Block>
     </BlockContainer>

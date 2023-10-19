@@ -10,7 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.utils.auth import (
     get_org_redirect_url,
     has_user_registration,

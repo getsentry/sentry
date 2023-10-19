@@ -17,6 +17,7 @@ from sentry.api.event_search import AggregateFilter
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.datasets import function_aliases
 from sentry.search.events.fields import DateArg, parse_function
 from sentry.search.events.types import Alias, QueryBuilderConfig, SelectType, WhereType
 from sentry.search.utils import InvalidQuery, parse_datetime_string
@@ -176,7 +177,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             avg_range_1 = aggregate_range_1
             avg_range_2 = aggregate_range_2
 
-        t_test = query.resolve_division(
+        t_test = function_aliases.resolve_division(
             Function("minus", [avg_range_1, avg_range_2]),
             Function(
                 "sqrt",
@@ -204,7 +205,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             ),
             "t_test",
         )
-        trend_percentage = query.resolve_division(
+        trend_percentage = function_aliases.resolve_division(
             aggregate_range_2, aggregate_range_1, "trend_percentage"
         )
         trend_difference = Function(
@@ -215,7 +216,9 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             ],
             "trend_difference",
         )
-        count_percentage = query.resolve_division(count_range_2, count_range_1, "count_percentage")
+        count_percentage = function_aliases.resolve_division(
+            count_range_2, count_range_1, "count_percentage"
+        )
         return {
             "aggregate_range_1": aggregate_range_1,
             "aggregate_range_2": aggregate_range_2,

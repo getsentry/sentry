@@ -5,12 +5,12 @@ from functools import cached_property
 from typing import Any
 
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.search_common import SearchType
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 
 
@@ -62,6 +62,14 @@ class RecentSearchesListTest(APITestCase):
             last_seen=timezone.now(),
             date_added=timezone.now(),
         )
+        metric_recent_search = RecentSearch.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            type=SearchType.METRIC.value,
+            query="some test",
+            last_seen=timezone.now(),
+            date_added=timezone.now(),
+        )
         issue_recent_searches = [
             RecentSearch.objects.create(
                 organization=self.organization,
@@ -91,6 +99,7 @@ class RecentSearchesListTest(APITestCase):
         self.check_results(issue_recent_searches, search_type=SearchType.ISSUE)
         self.check_results([event_recent_search], search_type=SearchType.EVENT)
         self.check_results([session_recent_search], search_type=SearchType.SESSION)
+        self.check_results([metric_recent_search], search_type=SearchType.METRIC)
 
     def test_param_validation(self):
         self.login_as(user=self.user)

@@ -7,11 +7,11 @@ from urllib.parse import urlencode
 
 import pytz
 
-from sentry import features
+from sentry import analytics, features
 from sentry.db.models import Model
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import GROUP_CATEGORIES_CUSTOM_EMAIL, GroupCategory
-from sentry.models import Group, UserOption
+from sentry.models.group import Group
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -35,6 +35,8 @@ from sentry.notifications.utils import (
 from sentry.notifications.utils.participants import get_owner_reason, get_send_to
 from sentry.plugins.base.structs import Notification
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.user_option import user_option_service
+from sentry.services.hybrid_cloud.user_option.service import get_option_from_list
 from sentry.types.group import GroupSubStatus
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
@@ -119,7 +121,10 @@ class AlertRuleNotification(ProjectNotification):
     ) -> MutableMapping[str, Any]:
         tz = timezone.utc
         if recipient.actor_type == ActorType.USER:
-            user_tz = UserOption.objects.get_value(user=recipient, key="timezone", default="UTC")
+            user_options = user_option_service.get_many(
+                filter={"user_ids": [recipient.id], "keys": ["timezone"]}
+            )
+            user_tz = get_option_from_list(user_options, key="timezone", default="UTC")
             try:
                 tz = pytz.timezone(user_tz)
             except pytz.UnknownTimeZoneError:
@@ -166,7 +171,7 @@ class AlertRuleNotification(ProjectNotification):
             "enhanced_privacy": enhanced_privacy,
             "commits": get_commits(self.project, self.event),
             "environment": environment,
-            "slack_link": get_integration_link(self.organization, "slack"),
+            "slack_link": get_integration_link(self.organization, "slack", self.notification_uuid),
             "notification_reason": notification_reason,
             "notification_settings_link": absolute_uri(
                 f"/settings/account/notifications/alerts/{sentry_query_params}"
@@ -291,5 +296,20 @@ class AlertRuleNotification(ProjectNotification):
         return {
             "target_type": self.target_type,
             "target_identifier": self.target_identifier,
+            "alert_id": self.rules[0].id if self.rules else None,
             **super().get_log_params(recipient),
         }
+
+    def record_notification_sent(self, recipient: RpcActor, provider: ExternalProviders) -> None:
+        super().record_notification_sent(recipient, provider)
+        log_params = self.get_log_params(recipient)
+        analytics.record(
+            "alert.sent",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            provider=provider.name,
+            alert_id=log_params["alert_id"] if log_params["alert_id"] else "",
+            alert_type="issue_alert",
+            external_id=str(recipient.id),
+            notification_uuid=self.notification_uuid,
+        )

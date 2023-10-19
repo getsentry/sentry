@@ -48,6 +48,7 @@ class AuditLogEventRegisterTest(TestCase):
             "rule.edit",
             "rule.remove",
             "rule.mute",
+            "rule.disable",
             "servicehook.create",
             "servicehook.edit",
             "servicehook.remove",

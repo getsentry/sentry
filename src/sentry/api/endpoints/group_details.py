@@ -22,15 +22,22 @@ from sentry.api.helpers.group_index import (
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer, is_plugin_deprecated
+from sentry.api.serializers.models.team import TeamSerializer
 from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import Activity, Group, GroupSeen, GroupSubscriptionManager, UserReport
+from sentry.models.activity import Activity
+from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
+from sentry.models.groupseen import GroupSeen
+from sentry.models.groupsubscription import GroupSubscriptionManager
+from sentry.models.team import Team
+from sentry.models.userreport import UserReport
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
@@ -150,6 +157,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         return hourly_stats, daily_stats
 
+    @staticmethod
+    def __get_group_global_count(group: Group) -> str:
+        fetch_buffered_group_stats(group)
+        return str(group.times_seen_with_pending)
+
     def get(self, request: Request, group) -> Response:
         """
         Retrieve an Issue
@@ -246,19 +258,38 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 {
                     "activity": serialize(activity, request.user),
                     "seenBy": seen_by,
-                    "participants": user_service.serialize_many(
-                        filter={
-                            "user_ids": GroupSubscriptionManager.get_participating_user_ids(group)
-                        },
-                        as_user=request.user,
-                    ),
                     "pluginActions": action_list,
                     "pluginIssues": self._get_available_issue_plugins(request, group),
                     "pluginContexts": self._get_context_plugins(request, group),
                     "userReportCount": user_reports.count(),
                     "stats": {"24h": hourly_stats, "30d": daily_stats},
+                    "count": self.__get_group_global_count(group),
                 }
             )
+
+            participants = user_service.serialize_many(
+                filter={"user_ids": GroupSubscriptionManager.get_participating_user_ids(group)},
+                as_user=request.user,
+            )
+
+            for participant in participants:
+                participant["type"] = "user"
+
+            if features.has("organizations:team-workflow-notifications", group.organization):
+                team_ids = GroupSubscriptionManager.get_participating_team_ids(group)
+
+                teams = Team.objects.filter(id__in=team_ids)
+                team_serializer = TeamSerializer()
+
+                serialized_teams = []
+                for team in teams:
+                    serialized_team = serialize(team, request.user, team_serializer)
+                    serialized_team["type"] = "team"
+                    serialized_teams.append(serialized_team)
+
+                participants.extend(serialized_teams)
+
+            data.update({"participants": participants})
 
             metrics.incr(
                 "group.update.http_response",

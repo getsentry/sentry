@@ -13,8 +13,10 @@ from django.utils import timezone
 from sentry import newsletter
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.models import AuthProvider, OrganizationMember, User
+from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.user import User
 from sentry.receivers import create_default_projects
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
@@ -397,6 +399,25 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             resp = self.client.get(self.path)
             self.assertRedirects(resp, "/organizations/new/")
 
+    @override_settings(
+        AUTH_PASSWORD_VALIDATORS=[
+            {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"}
+        ]
+    )
+    def test_unable_to_set_weak_password_via_registration_form(self):
+        with self.feature("auth:register"), self.options({"auth.allow-registration": True}):
+            resp = self.client.post(
+                self.path,
+                {
+                    "username": "hello@example.com",
+                    "password": "hello@example.com",
+                    "name": "Hello World",
+                    "op": "register",
+                },
+            )
+        assert resp.status_code == 200
+        assert b"The password is too similar to the username." in resp.content
+
 
 @pytest.mark.skipif(
     settings.SENTRY_NEWSLETTER != "sentry.newsletter.dummy.DummyNewsletter",
@@ -476,15 +497,6 @@ class AuthLoginNewsletterTest(TestCase):
         assert results[0].list_id == newsletter.backend.get_default_list_id()
         assert results[0].subscribed
         assert not results[0].verified
-
-
-def provision_middleware():
-    # TODO: to be removed once CustomerDomainMiddleware is activated.
-    middleware = list(settings.MIDDLEWARE)
-    if "sentry.middleware.customer_domain.CustomerDomainMiddleware" not in middleware:
-        index = middleware.index("sentry.middleware.auth.AuthenticationMiddleware")
-        middleware.insert(index + 1, "sentry.middleware.customer_domain.CustomerDomainMiddleware")
-    return middleware
 
 
 @control_silo_test(stable=True)
@@ -577,55 +589,52 @@ class AuthLoginCustomerDomainTest(TestCase):
         with self.disable_registration():
             self.create_organization(name="albertos-apples", owner=self.user)
 
-            with override_settings(MIDDLEWARE=tuple(provision_middleware())):
-                # load it once for test cookie
-                self.client.get(self.path)
-                resp = self.client.post(
-                    self.path,
-                    {"username": self.user.username, "password": "admin", "op": "login"},
-                    # This should preferably be HTTP_HOST.
-                    # Using SERVER_NAME until https://code.djangoproject.com/ticket/32106 is fixed.
-                    SERVER_NAME="invalid.testserver",
-                    follow=True,
-                )
+            # load it once for test cookie
+            self.client.get(self.path)
+            resp = self.client.post(
+                self.path,
+                {"username": self.user.username, "password": "admin", "op": "login"},
+                # This should preferably be HTTP_HOST.
+                # Using SERVER_NAME until https://code.djangoproject.com/ticket/32106 is fixed.
+                SERVER_NAME="invalid.testserver",
+                follow=True,
+            )
 
-                assert resp.status_code == 200
-                assert resp.redirect_chain == [
-                    ("http://invalid.testserver/auth/login/", 302),
-                    ("http://albertos-apples.testserver/auth/login/", 302),
-                    ("http://albertos-apples.testserver/issues/", 302),
-                ]
+            assert resp.status_code == 200
+            assert resp.redirect_chain == [
+                ("http://invalid.testserver/auth/login/", 302),
+                ("http://albertos-apples.testserver/auth/login/", 302),
+                ("http://albertos-apples.testserver/issues/", 302),
+            ]
 
     def test_login_valid_credentials_non_staff(self):
         with self.disable_registration():
             org = self.create_organization(name="albertos-apples")
             non_staff_user = self.create_user(is_staff=False)
             self.create_member(organization=org, user=non_staff_user)
-            with override_settings(MIDDLEWARE=tuple(provision_middleware())):
-                # load it once for test cookie
-                self.client.get(self.path)
 
-                resp = self.client.post(
-                    self.path,
-                    {"username": non_staff_user.username, "password": "admin", "op": "login"},
-                    # This should preferably be HTTP_HOST.
-                    # Using SERVER_NAME until https://code.djangoproject.com/ticket/32106 is fixed.
-                    SERVER_NAME="albertos-apples.testserver",
-                    follow=True,
-                )
-                assert resp.status_code == 200
-                assert resp.redirect_chain == [
-                    ("http://albertos-apples.testserver/auth/login/", 302),
-                    ("http://albertos-apples.testserver/issues/", 302),
-                ]
+            # load it once for test cookie
+            self.client.get(self.path)
+
+            resp = self.client.post(
+                self.path,
+                {"username": non_staff_user.username, "password": "admin", "op": "login"},
+                # This should preferably be HTTP_HOST.
+                # Using SERVER_NAME until https://code.djangoproject.com/ticket/32106 is fixed.
+                SERVER_NAME="albertos-apples.testserver",
+                follow=True,
+            )
+            assert resp.status_code == 200
+            assert resp.redirect_chain == [
+                ("http://albertos-apples.testserver/auth/login/", 302),
+                ("http://albertos-apples.testserver/issues/", 302),
+            ]
 
     def test_login_valid_credentials_not_a_member(self):
         user = self.create_user()
         self.create_organization(name="albertos-apples")
         self.create_member(organization=self.organization, user=user)
-        with override_settings(
-            MIDDLEWARE=tuple(provision_middleware())
-        ), self.disable_registration():
+        with self.disable_registration():
             # load it once for test cookie
             self.client.get(self.path)
 
@@ -648,9 +657,7 @@ class AuthLoginCustomerDomainTest(TestCase):
     def test_login_valid_credentials_orgless(self):
         user = self.create_user()
         self.create_organization(name="albertos-apples")
-        with override_settings(
-            MIDDLEWARE=tuple(provision_middleware())
-        ), self.disable_registration():
+        with self.disable_registration():
             # load it once for test cookie
             self.client.get(self.path)
 
@@ -669,9 +676,7 @@ class AuthLoginCustomerDomainTest(TestCase):
 
     def test_login_valid_credentials_org_does_not_exist(self):
         user = self.create_user()
-        with override_settings(
-            MIDDLEWARE=tuple(provision_middleware())
-        ), self.disable_registration():
+        with self.disable_registration():
             # load it once for test cookie
             self.client.get(self.path)
 

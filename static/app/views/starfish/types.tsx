@@ -26,18 +26,30 @@ export enum SpanMetricsField {
   SPAN_DURATION = 'span.duration',
   SPAN_SELF_TIME = 'span.self_time',
   PROJECT_ID = 'project.id',
+  RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
+  HTTP_RESPONSE_CONTENT_LENGTH = 'http.response_content_length',
+  HTTP_DECODED_RESPONSE_BODY_LENGTH = 'http.decoded_response_body_length',
+  HTTP_RESPONSE_TRANSFER_SIZE = 'http.response_transfer_size',
 }
 
-export type SpanNumberFields = 'span.self_time' | 'span.duration';
+export type SpanNumberFields =
+  | SpanMetricsField.SPAN_SELF_TIME
+  | SpanMetricsField.SPAN_DURATION
+  | SpanMetricsField.HTTP_DECODED_RESPONSE_BODY_LENGTH
+  | SpanMetricsField.HTTP_RESPONSE_CONTENT_LENGTH
+  | SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE;
 
 export type SpanStringFields =
   | 'span.op'
   | 'span.description'
   | 'span.module'
   | 'span.action'
-  | 'span.domain'
   | 'span.group'
-  | 'project.id';
+  | 'project.id'
+  | 'transaction'
+  | 'transaction.method';
+
+export type SpanStringArrayFields = 'span.domain';
 
 export type SpanFunctions =
   | 'sps'
@@ -55,7 +67,11 @@ export type MetricsResponse = {
 } & {
   [Property in SpanStringFields as `${Property}`]: string;
 } & {
-  'time_spent_percentage(local)': number;
+  [Property in SpanStringArrayFields as `${Property}`]: string[];
+};
+
+export type MetricsFilters = {
+  [Property in SpanStringFields as `${Property}`]?: string | string[];
 };
 
 export type MetricsProperty = keyof MetricsResponse;
@@ -89,7 +105,7 @@ export type SpanIndexedFieldTypes = {
   [SpanIndexedField.TRANSACTION_ID]: string;
   [SpanIndexedField.TRANSACTION_METHOD]: string;
   [SpanIndexedField.TRANSACTION_OP]: string;
-  [SpanIndexedField.SPAN_DOMAIN]: string;
+  [SpanIndexedField.SPAN_DOMAIN]: string[];
   [SpanIndexedField.TIMESTAMP]: string;
   [SpanIndexedField.PROJECT]: string;
 };

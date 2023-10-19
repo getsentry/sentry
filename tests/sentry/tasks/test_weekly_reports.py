@@ -8,10 +8,13 @@ from django.core.mail.message import EmailMultiAlternatives
 from django.db import router
 from django.db.models import F
 from django.utils import timezone as django_timezone
-from freezegun import freeze_time
 
 from sentry.constants import DataCategory
-from sentry.models import GroupHistoryStatus, GroupStatus, OrganizationMember, Project, UserOption
+from sentry.models.group import GroupStatus
+from sentry.models.grouphistory import GroupHistoryStatus
+from sentry.models.options.user_option import UserOption
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.silo import SiloMode, unguarded_write
 from sentry.tasks.weekly_reports import (
@@ -27,7 +30,7 @@ from sentry.tasks.weekly_reports import (
 from sentry.testutils.cases import OutcomesSnubaTest, SnubaTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.group import GroupSubStatus

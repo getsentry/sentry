@@ -1,7 +1,7 @@
 from sentry_relay.processing import is_codeowners_path_match
 
 # Max accepted string length of the CODEOWNERS file
-MAX_RAW_LENGTH: int = 3_000_000
+MAX_RAW_LENGTH = 3_000_000
 
 
 def codeowners_match(value, pat):

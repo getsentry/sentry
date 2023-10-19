@@ -6,20 +6,22 @@ import {GettingStartedWithExpress, steps} from './express';
 
 describe('GettingStartedWithExpress', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithExpress dsn="test-dsn" />);
+    render(<GettingStartedWithExpress dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({
-      installSnippet: 'test-install-snippet',
+      installSnippetYarn: 'test-install-snippet-yarn',
+      installSnippetNpm: 'test-install-snippet-npm',
       importContent: 'test-import-content',
       initContent: 'test-init-content',
       hasPerformanceMonitoring: true,
+      sourceMapStep: {
+        title: 'Upload Source Maps',
+      },
     })) {
       expect(
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

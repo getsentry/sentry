@@ -7,7 +7,7 @@ from django.conf import settings
 from django.core.cache.backends.locmem import LocMemCache
 from django.test import override_settings
 
-from sentry.models import Option
+from sentry.models.options.option import Option
 from sentry.options.manager import OptionsManager, UpdateChannel
 from sentry.options.store import OptionsStore
 from sentry.testutils.cases import TestCase

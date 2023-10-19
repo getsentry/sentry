@@ -3,13 +3,14 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from sentry_relay.auth import PublicKey
 
+from sentry.backup.mixins import OverwritableConfigMixin
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, region_silo_only_model
 
 
 @region_silo_only_model
-class RelayUsage(Model):
-    __relocation_scope__ = RelocationScope.Global
+class RelayUsage(OverwritableConfigMixin, Model):
+    __relocation_scope__ = RelocationScope.Config
 
     relay_id = models.CharField(max_length=64)
     version = models.CharField(max_length=32, default="0.0.1")
@@ -24,8 +25,8 @@ class RelayUsage(Model):
 
 
 @region_silo_only_model
-class Relay(Model):
-    __relocation_scope__ = RelocationScope.Global
+class Relay(OverwritableConfigMixin, Model):
+    __relocation_scope__ = RelocationScope.Config
 
     relay_id = models.CharField(max_length=64, unique=True)
     public_key = models.CharField(max_length=200)

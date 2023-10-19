@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import DeprecatedLine from 'sentry/components/events/interfaces/frame/deprecatedLine';
@@ -28,7 +30,7 @@ describe('Frame - Line', function () {
 
   describe('renderOriginalSourceInfo()', function () {
     it('should render the source map information as a HTML string', function () {
-      const {container} = render(
+      render(
         <DeprecatedLine
           data={{
             origAbsPath: 'https://beta.getsentry.com/_static/sentry/dist/vendor.js',
@@ -41,7 +43,6 @@ describe('Frame - Line', function () {
           event={event}
         />
       );
-      expect(container).toSnapshot();
     });
   });
 
@@ -66,7 +67,6 @@ describe('Frame - Line', function () {
           isExpanded
         />
       );
-      expect(screen.getByRole('list')).toSnapshot();
     });
 
     it('should render register values', () => {
@@ -158,7 +158,7 @@ describe('Frame - Line', function () {
 
   describe('ANR suspect frame', () => {
     it('should render suspect frame', () => {
-      const org = {...TestStubs.Organization(), features: ['anr-analyze-frames']};
+      const org = {...Organization(), features: ['anr-analyze-frames']};
       const eventWithThreads = {
         ...event,
         entries: [

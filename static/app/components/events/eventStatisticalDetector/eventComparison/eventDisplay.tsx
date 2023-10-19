@@ -2,13 +2,18 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
+import DateTime from 'sentry/components/dateTime';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {EventTags} from 'sentry/components/events/eventTags';
 import {MINIMAP_HEIGHT} from 'sentry/components/events/interfaces/spans/constants';
 import {noFilter} from 'sentry/components/events/interfaces/spans/filter';
-import {ActualMinimap} from 'sentry/components/events/interfaces/spans/header';
+import {
+  ActualMinimap,
+  MinimapBackground,
+} from 'sentry/components/events/interfaces/spans/header';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
 import OpsBreakdown from 'sentry/components/events/opsBreakdown';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
@@ -18,6 +23,7 @@ import {defined} from 'sentry/utils';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {eventDetailsRoute, generateEventSlug} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -64,9 +70,10 @@ function useFetchSampleEvents({
   const organization = useOrganization();
   const eventView = new EventView({
     dataset: DiscoverDatasets.DISCOVER,
-    start: new Date(start * 1000).toISOString(),
-    end: new Date(end * 1000).toISOString(),
-    fields: [{field: 'id'}],
+    // Assumes the start and end timestamps are already in milliseconds
+    start: new Date(start).toISOString(),
+    end: new Date(end).toISOString(),
+    fields: [{field: 'id'}, {field: 'timestamp'}],
     query: getSampleEventQuery({transaction, durationBaseline}),
 
     createdBy: undefined,
@@ -159,13 +166,20 @@ function EventDisplay({
           <CompactSelect
             size="sm"
             disabled={false}
-            options={eventIds.map(id => ({value: id, label: id}))}
+            options={eventIds.map(id => ({
+              value: id,
+              label: id,
+              details: <DateTime date={data?.data.find(d => d.id === id)?.timestamp} />,
+            }))}
             value={selectedEventId}
             onChange={({value}) => setSelectedEventId(value)}
             triggerLabel={
               <ButtonLabelWrapper>
                 <TextOverflow>
-                  {eventSelectLabel}: {getShortEventId(selectedEventId)}
+                  {eventSelectLabel}:{' '}
+                  <SelectionTextWrapper>
+                    {getShortEventId(selectedEventId)}
+                  </SelectionTextWrapper>
                 </TextOverflow>
               </ButtonLabelWrapper>
             }
@@ -173,22 +187,29 @@ function EventDisplay({
           <GroupEventActions event={eventData} group={group} projectSlug={project.slug} />
         </StyledEventSelectorControlBar>
         <ComparisonContentWrapper>
-          <MinimapContainer>
-            <MinimapPositioningContainer>
-              <ActualMinimap
-                spans={waterfallModel.getWaterfall({
-                  viewStart: 0,
-                  viewEnd: 1,
-                })}
-                generateBounds={waterfallModel.generateBounds({
-                  viewStart: 0,
-                  viewEnd: 1,
-                })}
-                dividerPosition={0}
-                rootSpan={waterfallModel.rootSpan.span}
-              />
-            </MinimapPositioningContainer>
-          </MinimapContainer>
+          <Link
+            to={eventDetailsRoute({
+              eventSlug: generateEventSlug({project: project.slug, id: selectedEventId}),
+              orgSlug: organization.slug,
+            })}
+          >
+            <MinimapContainer>
+              <MinimapPositioningContainer>
+                <ActualMinimap
+                  spans={waterfallModel.getWaterfall({
+                    viewStart: 0,
+                    viewEnd: 1,
+                  })}
+                  generateBounds={waterfallModel.generateBounds({
+                    viewStart: 0,
+                    viewEnd: 1,
+                  })}
+                  dividerPosition={0}
+                  rootSpan={waterfallModel.rootSpan.span}
+                />
+              </MinimapPositioningContainer>
+            </MinimapContainer>
+          </Link>
 
           <OpsBreakdown event={eventData} operationNameFilters={noFilter} hideHeader />
         </ComparisonContentWrapper>
@@ -231,6 +252,10 @@ const MinimapPositioningContainer = styled('div')`
   position: absolute;
   top: 0;
   width: 100%;
+
+  ${MinimapBackground} {
+    overflow-y: scroll;
+  }
 `;
 
 const MinimapContainer = styled('div')`
@@ -252,4 +277,8 @@ const EmptyStateWrapper = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
+`;
+
+const SelectionTextWrapper = styled('span')`
+  font-weight: normal;
 `;

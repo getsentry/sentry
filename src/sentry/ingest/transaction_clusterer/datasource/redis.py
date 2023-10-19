@@ -14,7 +14,7 @@ from sentry.ingest.transaction_clusterer.datasource import (
     TRANSACTION_SOURCE_SANITIZED,
     TRANSACTION_SOURCE_URL,
 )
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.utils import redis
 from sentry.utils.safe import safe_execute
 
@@ -203,7 +203,7 @@ def record_span_descriptions(
 def _get_span_description_to_store(span: Mapping[str, Any]) -> Optional[str]:
     if not span.get("op", "").startswith("http"):
         return None
-    data = span.get("data", {})
+    data = span.get("data") or {}
     return data.get("description.scrubbed") or span.get("description")
 
 
@@ -225,7 +225,7 @@ def _update_span_description_rule_lifetime(project: Project, event_data: Mapping
 
     spans = event_data.get("_meta", {}).get("spans", {})
     for span in spans.values():
-        data = span.get("data", {})
+        data = span.get("data") or {}
         applied_rule = data.get("description.scrubbed", {}).get("", {}).get("rem", [[]])[0]
         if not applied_rule:
             continue

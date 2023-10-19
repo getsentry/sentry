@@ -111,8 +111,8 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # However its currently not possible to make that `| None` disappear in the type.
         filter_step = FilterStep(function=lambda msg: bool(msg.payload), next_step=step_2)
         # As the steps are defined (and types inferred) in reverse order, we would get a type error here,
-        # as `step_1` outputs an `| None`, but the `filter_step` does not mention that in its
-        # type, as it is inferred from the `step_2` input type which does not mention `| None`.
+        # as `step_1` outputs an `| None`, but the `filter_step` does not mention that in its type,
+        # as it is inferred from the `step_2` input type which does not mention `| None`.
         step_1 = maybe_multiprocess_step(mp, decode_and_process_chunks, filter_step)  # type:ignore
 
         return create_backpressure_step(health_checker=self.health_checker, next_step=step_1)

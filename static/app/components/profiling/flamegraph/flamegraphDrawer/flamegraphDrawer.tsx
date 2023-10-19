@@ -411,6 +411,7 @@ const LayoutSelectionContainer = styled('div')`
 
 const FRAME_WEIGHT_CELL_WIDTH_PX = 164;
 export const FrameCallersTableCell = styled('div')<{
+  bordered?: boolean;
   isSelected?: boolean;
   noPadding?: boolean;
   textAlign?: React.CSSProperties['textAlign'];

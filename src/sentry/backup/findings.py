@@ -1,7 +1,12 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
+from copy import deepcopy
+from dataclasses import dataclass
 from enum import IntEnum, auto, unique
-from typing import NamedTuple
+from typing import List, NamedTuple, Optional
+
+from sentry.utils import json
 
 
 class InstanceID(NamedTuple):
@@ -13,7 +18,7 @@ class InstanceID(NamedTuple):
     # The order that this model appeared in the JSON inputs. Because we validate that the same
     # number of models of each kind are present on both the left and right side when validating, we
     # can use the ordinal as a unique identifier.
-    ordinal: int | None = None
+    ordinal: Optional[int] = None
 
     def pretty(self) -> str:
         out = f"InstanceID(model: {self.model!r}"
@@ -22,8 +27,14 @@ class InstanceID(NamedTuple):
         return out + ")"
 
 
+class FindingKind(IntEnum):
+    pass
+
+
 @unique
-class ComparatorFindingKind(IntEnum):
+class ComparatorFindingKind(FindingKind):
+    Unknown = auto()
+
     # The instances of a particular model did not maintain total ordering of pks (that is, pks did not appear in ascending order, or appear multiple times).
     UnorderedInput = auto()
 
@@ -90,6 +101,13 @@ class ComparatorFindingKind(IntEnum):
     # present or `None`.
     SecretHexComparatorExistenceCheck = auto()
 
+    # Subscription ID fields did not match their regex specification.
+    SubscriptionIDComparator = auto()
+
+    # Failed to compare a subscription id field because one of the fields being compared was not
+    # present or `None`.
+    SubscriptionIDComparatorExistenceCheck = auto()
+
     # UUID4 fields did not match their regex specification.
     UUID4Comparator = auto()
 
@@ -97,31 +115,67 @@ class ComparatorFindingKind(IntEnum):
     # `None`.
     UUID4ComparatorExistenceCheck = auto()
 
+    # Incorrect user password field.
+    UserPasswordObfuscatingComparator = auto()
 
-class ComparatorFinding(NamedTuple):
-    """Store all information about a single failed matching between expected and actual output."""
+    # Failed to compare a user password field because one of the fields being compared was not
+    # present or `None`.
+    UserPasswordObfuscatingComparatorExistenceCheck = auto()
 
-    kind: ComparatorFindingKind
+
+@dataclass(frozen=True)
+class Finding(ABC):
+    """
+    A JSON serializable and user-reportable finding for an import/export operation. Don't use this
+    class directly - inherit from it, set a specific `kind` type, and define your own pretty
+    printer!
+    """
+
     on: InstanceID
-    left_pk: int | None = None
-    right_pk: int | None = None
+
+    # The original `pk` of the model in question, if one is specified in the `InstanceID`.
+    left_pk: Optional[int] = None
+
+    # The post-import `pk` of the model in question, if one is specified in the `InstanceID`.
+    right_pk: Optional[int] = None
+
     reason: str = ""
 
-    def pretty(self) -> str:
-        out = f"Finding(\n\tkind: {self.kind.name},\n\ton: {self.on.pretty()}"
+    def _pretty_inner(self) -> str:
+        """
+        Pretty print only the fields on the shared `Finding` portion.
+        """
+
+        out = f"\n\ton: {self.on.pretty()}"
         if self.left_pk:
             out += f",\n\tleft_pk: {self.left_pk}"
         if self.right_pk:
             out += f",\n\tright_pk: {self.right_pk}"
         if self.reason:
             out += f",\n\treason: {self.reason}"
-        return out + "\n)"
+        return out
+
+    @abstractmethod
+    def pretty(self) -> str:
+        pass
+
+
+@dataclass(frozen=True)
+class ComparatorFinding(Finding):
+    """
+    Store all information about a single failed matching between expected and actual output.
+    """
+
+    kind: ComparatorFindingKind = ComparatorFindingKind.Unknown
+
+    def pretty(self) -> str:
+        return f"ComparatorFinding(\n\tkind: {self.kind.name},{self._pretty_inner()}\n)"
 
 
 class ComparatorFindings:
     """A wrapper type for a list of 'ComparatorFinding' which enables pretty-printing in asserts."""
 
-    def __init__(self, findings: list[ComparatorFinding]):
+    def __init__(self, findings: List[ComparatorFinding]):
         self.findings = findings
 
     def append(self, finding: ComparatorFinding) -> None:
@@ -130,8 +184,21 @@ class ComparatorFindings:
     def empty(self) -> bool:
         return not self.findings
 
-    def extend(self, findings: list[ComparatorFinding]) -> None:
+    def extend(self, findings: List[ComparatorFinding]) -> None:
         self.findings += findings
 
     def pretty(self) -> str:
         return "\n".join(f.pretty() for f in self.findings)
+
+
+class FindingJSONEncoder(json.JSONEncoder):
+    """JSON serializer that handles findings properly."""
+
+    def default(self, obj):
+        if isinstance(obj, Finding):
+            d = deepcopy(obj.__dict__)
+            kind = d.get("kind")
+            if isinstance(kind, FindingKind):
+                d["kind"] = kind.name
+            return d
+        return super().default(obj)

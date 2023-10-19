@@ -4,12 +4,15 @@ import pytest
 import responses
 
 from fixtures.gitlab import GitLabTestCase
-from sentry.models import ExternalIssue
+from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.http import absolute_uri
+
+pytestmark = [requires_snuba]
 
 
 class GitlabIssuesTest(GitLabTestCase):

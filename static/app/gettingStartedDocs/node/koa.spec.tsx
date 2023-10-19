@@ -6,20 +6,22 @@ import {GettingStartedWithKoa, steps} from './koa';
 
 describe('GettingStartedWithKoa', function () {
   it('all products are selected', function () {
-    const {container} = render(<GettingStartedWithKoa dsn="test-dsn" />);
+    render(<GettingStartedWithKoa dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({
-      installSnippet: 'test-install-snippet',
+      installSnippetYarn: 'test-install-snippet-yarn',
+      installSnippetNpm: 'test-install-snippet-npm',
       importContent: 'test-import-content',
       initContent: 'test-init-content',
       hasPerformanceMonitoring: true,
+      sourceMapStep: {
+        title: 'Upload Source Maps',
+      },
     })) {
       expect(
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

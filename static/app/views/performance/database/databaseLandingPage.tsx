@@ -1,16 +1,20 @@
 import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import DatePageFilter from 'sentry/components/datePageFilter';
 import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import ProjectPageFilter from 'sentry/components/projectPageFilter';
+import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
+import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
+import {RELEASE_LEVEL} from 'sentry/views/performance/database/settings';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
@@ -39,24 +43,27 @@ function DatabaseLandingPage() {
                 preservePageFilters: true,
               },
               {
-                label: 'Database',
+                label: 'Queries',
               },
             ]}
           />
 
           <Layout.Title>
-            {t('Database')}
-            <FeatureBadge type="alpha" />
+            {t('Queries')}
+            <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>
 
       <Layout.Body>
         <Layout.Main fullWidth>
+          <NoDataMessage Wrapper={AlertBanner} />
+
           <PaddedContainer>
             <PageFilterBar condensed>
               <ProjectPageFilter />
-              <DatePageFilter alignDropdown="left" />
+              <EnvironmentPageFilter />
+              <DatePageFilter />
             </PageFilterBar>
           </PaddedContainer>
 
@@ -84,6 +91,10 @@ function DatabaseLandingPage() {
 const PaddedContainer = styled('div')`
   margin-bottom: ${space(2)};
 `;
+
+function AlertBanner(props) {
+  return <Alert {...props} type="info" showIcon />;
+}
 
 const FilterOptionsContainer = styled('div')`
   display: grid;

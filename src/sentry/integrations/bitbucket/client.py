@@ -8,8 +8,10 @@ from urllib.parse import parse_qs, urlparse, urlsplit
 from requests import PreparedRequest
 
 from sentry.integrations.utils import get_query_hash
+from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
@@ -41,6 +43,8 @@ class BitbucketAPIPath:
     repository_diff = "/2.0/repositories/{repo}/diff/{spec}"
     repository_hook = "/2.0/repositories/{repo}/hooks/{uid}"
     repository_hooks = "/2.0/repositories/{repo}/hooks"
+
+    source = "/2.0/repositories/{repo}/src/{sha}/{path}"
 
 
 class BitbucketApiClient(IntegrationProxyClient):
@@ -172,3 +176,12 @@ class BitbucketApiClient(IntegrationProxyClient):
                 break
 
         return self.zip_commit_data(repo, commits)
+
+    def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
+        return self.head_cached(
+            path=BitbucketAPIPath.source.format(
+                repo=repo.name,
+                sha=version,
+                path=path,
+            ),
+        )

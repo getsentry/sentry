@@ -1,5 +1,6 @@
 import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -12,7 +13,7 @@ import TeamStore from 'sentry/stores/teamStore';
 
 describe('InviteMembersModal', function () {
   const team = TestStubs.Team();
-  const org = TestStubs.Organization({access: ['member:write'], teams: [team]});
+  const org = Organization({access: ['member:write'], teams: [team]});
   TeamStore.loadInitialData([team]);
 
   const styledWrapper = styled(c => c.children);
@@ -22,10 +23,10 @@ describe('InviteMembersModal', function () {
     Footer: styledWrapper(),
     closeModal: () => {},
     CloseButton: makeCloseButton(() => {}),
-    organization: TestStubs.Organization(),
+    organization: Organization(),
   };
 
-  const noWriteOrg = TestStubs.Organization({
+  const noWriteOrg = Organization({
     access: [],
   });
 
@@ -67,7 +68,7 @@ describe('InviteMembersModal', function () {
   });
 
   it('renders without organization.access', function () {
-    const organization = TestStubs.Organization({access: undefined});
+    const organization = Organization({access: undefined});
     render(<InviteMembersModal {...modalProps} organization={organization} />);
 
     expect(screen.getByRole('listitem')).toBeInTheDocument();

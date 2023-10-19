@@ -82,6 +82,9 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
 
             return list(resp.values())
 
+        if request.GET.get("includeAll"):
+            return Response(data_fn(0, 10000))
+
         return self.paginate(
             request=request,
             paginator=GenericOffsetPaginator(data_fn=data_fn),

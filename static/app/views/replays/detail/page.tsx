@@ -2,6 +2,7 @@ import {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import UserBadge from 'sentry/components/idBadge/userBadge';
+import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import DeleteButton from 'sentry/components/replays/header/deleteButton';
 import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPageBreadcrumbs';
@@ -9,12 +10,11 @@ import FeedbackButton from 'sentry/components/replays/header/feedbackButton';
 import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
 import ReplayMetaData from 'sentry/components/replays/header/replayMetaData';
 import ShareButton from 'sentry/components/replays/shareButton';
-import FrameWalker from 'sentry/components/replays/walker/frameWalker';
-import StringWalker from 'sentry/components/replays/walker/stringWalker';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import TimeSince from 'sentry/components/timeSince';
+import {IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {ReplayFrame} from 'sentry/utils/replays/types';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -23,22 +23,18 @@ type Props = {
   projectSlug: string | null;
   replayErrors: ReplayError[];
   replayRecord: undefined | ReplayRecord;
-  frames?: ReplayFrame[];
 };
 
-function Page({
-  children,
-  frames,
-  orgSlug,
-  replayRecord,
-  projectSlug,
-  replayErrors,
-}: Props) {
+function Page({children, orgSlug, replayRecord, projectSlug, replayErrors}: Props) {
   const title = replayRecord
     ? `${replayRecord.id} — Session Replay — ${orgSlug}`
     : `Session Replay — ${orgSlug}`;
 
-  const header = (
+  const header = replayRecord?.is_archived ? (
+    <Header>
+      <DetailsPageBreadcrumbs orgSlug={orgSlug} replayRecord={replayRecord} />
+    </Header>
+  ) : (
     <Header>
       <DetailsPageBreadcrumbs orgSlug={orgSlug} replayRecord={replayRecord} />
 
@@ -55,7 +51,7 @@ function Page({
           avatarSize={32}
           displayName={
             <Layout.Title>
-              {replayRecord.user.display_name || t('Unknown User')}
+              {replayRecord.user.display_name || t('Anonymous User')}
             </Layout.Title>
           }
           user={{
@@ -67,13 +63,20 @@ function Page({
           }}
           // this is the subheading for the avatar, so displayEmail in this case is a misnomer
           displayEmail={
-            <Cols>
-              {frames?.length ? (
-                <FrameWalker replayRecord={replayRecord} frames={frames} />
+            <div>
+              {replayRecord ? (
+                <TimeContainer>
+                  <IconCalendar color="gray300" size="xs" />
+                  <StyledTimeSince
+                    date={replayRecord.started_at}
+                    isTooltipHoverable
+                    unitStyle="regular"
+                  />
+                </TimeContainer>
               ) : (
-                <StringWalker urls={replayRecord.urls} />
+                <HeaderPlaceholder width="80px" height="16px" />
               )}
-            </Cols>
+            </div>
           }
         />
       ) : (
@@ -103,12 +106,6 @@ const Header = styled(Layout.Header)`
   }
 `;
 
-const Cols = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.25)};
-`;
-
 // TODO(replay); This could make a lot of sense to put inside HeaderActions by default
 const ButtonActionsWrapper = styled(Layout.HeaderActions)`
   flex-direction: row;
@@ -119,27 +116,14 @@ const ButtonActionsWrapper = styled(Layout.HeaderActions)`
   }
 `;
 
-const FullViewport = styled('div')`
-  height: 100vh;
-  width: 100%;
+const TimeContainer = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
+`;
 
-  display: grid;
-  grid-template-rows: auto 1fr;
-  overflow: hidden;
-
-  /*
-   * The footer component is a sibling of this div.
-   * Remove it so the replay can take up the
-   * entire screen.
-   */
-  ~ footer {
-    display: none;
-  }
-
-  /*
-  TODO: Set \`body { overflow: hidden; }\` so that the body doesn't wiggle
-  when you try to scroll something that is non-scrollable.
-  */
+const StyledTimeSince = styled(TimeSince)`
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 export default Page;

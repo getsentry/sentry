@@ -44,7 +44,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
+from sentry.db.models.outboxes import HasControlReplicationHandlers, ReplicatedRegionModel
 from sentry.db.postgres.transactions import (
     django_test_transaction_water_mark,
     enforce_constraints,
@@ -61,7 +61,9 @@ _M = TypeVar("_M", bound=BaseModel)
 
 
 class OutboxFlushError(Exception):
-    pass
+    def __init__(self, message: str, outbox: OutboxBase) -> None:
+        super().__init__(message)
+        self.outbox = outbox
 
 
 class InvalidOutboxError(Exception):
@@ -100,6 +102,10 @@ class OutboxCategory(IntEnum):
 
     AUTH_PROVIDER_UPDATE = 24
     AUTH_IDENTITY_UPDATE = 25
+    ORGANIZATION_MEMBER_TEAM_UPDATE = 26
+    ORGANIZATION_SLUG_RESERVATION_UPDATE = 27
+    API_KEY_UPDATE = 28
+    PARTNER_ACCOUNT_UPDATE = 29
 
     @classmethod
     def as_choices(cls):
@@ -127,7 +133,7 @@ class OutboxCategory(IntEnum):
 
         process_region_outbox.connect(receiver, weak=False, sender=self)
 
-    def connect_control_model_updates(self, model: Type[ReplicatedControlModel]) -> None:
+    def connect_control_model_updates(self, model: Type[HasControlReplicationHandlers]) -> None:
         def receiver(
             object_identifier: int,
             payload: Optional[Mapping[str, Any]],
@@ -138,7 +144,7 @@ class OutboxCategory(IntEnum):
         ):
             from sentry.receivers.outbox import maybe_process_tombstone
 
-            maybe_instance: ReplicatedControlModel | None = maybe_process_tombstone(
+            maybe_instance: HasControlReplicationHandlers | None = maybe_process_tombstone(
                 cast(Any, model), object_identifier, region_name=region_name
             )
             if maybe_instance is None:
@@ -172,7 +178,6 @@ class OutboxCategory(IntEnum):
         object_identifier: int | None = None,
         outbox: Type[RegionOutboxBase] | None = None,
     ) -> RegionOutboxBase:
-
         scope = self.get_scope()
 
         shard_identifier, object_identifier = self.infer_identifiers(
@@ -182,6 +187,7 @@ class OutboxCategory(IntEnum):
         Outbox = outbox or RegionOutbox
 
         return Outbox(
+            shard_scope=scope,
             shard_identifier=shard_identifier,
             category=self,
             object_identifier=object_identifier,
@@ -197,7 +203,6 @@ class OutboxCategory(IntEnum):
         object_identifier: int | None = None,
         outbox: Type[ControlOutboxBase] | None = None,
     ) -> List[ControlOutboxBase]:
-
         scope = self.get_scope()
 
         shard_identifier, object_identifier = self.infer_identifiers(
@@ -242,6 +247,8 @@ class OutboxCategory(IntEnum):
                     shard_identifier = model.id
                 elif hasattr(model, "organization_id"):
                     shard_identifier = model.organization_id
+                elif hasattr(model, "auth_provider_id"):
+                    shard_identifier = model.auth_provider_id
             if scope == OutboxScope.USER_SCOPE:
                 if isinstance(model, User):
                     shard_identifier = model.id
@@ -280,7 +287,12 @@ class OutboxScope(IntEnum):
             OutboxCategory.POST_ORGANIZATION_PROVISION,
             OutboxCategory.DISABLE_AUTH_PROVIDER,
             OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE,
+            OutboxCategory.TEAM_UPDATE,
             OutboxCategory.AUTH_PROVIDER_UPDATE,
+            OutboxCategory.ORGANIZATION_MEMBER_TEAM_UPDATE,
+            OutboxCategory.API_KEY_UPDATE,
+            OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE,
+            OutboxCategory.PARTNER_ACCOUNT_UPDATE,
         },
     )
     USER_SCOPE = scope_categories(
@@ -314,11 +326,10 @@ class OutboxScope(IntEnum):
             OutboxCategory.SENTRY_APP_INSTALLATION_UPDATE,
         },
     )
+    # Deprecate?
     TEAM_SCOPE = scope_categories(
         7,
-        {
-            OutboxCategory.TEAM_UPDATE,
-        },
+        set(),
     )
     PROVISION_SCOPE = scope_categories(
         8,
@@ -341,8 +352,6 @@ class OutboxScope(IntEnum):
             return "organization_id"
         if scope == OutboxScope.USER_SCOPE:
             return "user_id"
-        if scope == OutboxScope.TEAM_SCOPE:
-            return "team_id"
         if scope == OutboxScope.APP_SCOPE:
             return "app_id"
 
@@ -407,15 +416,19 @@ class OutboxBase(Model):
                 return cursor.fetchone()[0]
 
     @classmethod
-    def find_scheduled_shards(cls) -> Iterable[Mapping[str, Any]]:
-        return (
-            cls.objects.values(*cls.sharding_columns)
-            .annotate(
+    def find_scheduled_shards(cls, low: int = 0, hi: int | None = None) -> List[Mapping[str, Any]]:
+        q = cls.objects.values(*cls.sharding_columns).filter(
+            scheduled_for__lte=timezone.now(), id__gte=low
+        )
+        if hi is not None:
+            q = q.filter(id__lt=hi)
+
+        return list(
+            {k: row[k] for k in cls.sharding_columns}
+            for row in q.annotate(
                 scheduled_for=Min("scheduled_for"),
-                id=Max("id"),
-            )
-            .filter(scheduled_for__lte=timezone.now())
-            .order_by("scheduled_for", "id")
+                max_id=Max("id"),
+            ).order_by("scheduled_for", "max_id")
         )
 
     @classmethod
@@ -537,21 +550,39 @@ class OutboxBase(Model):
     @contextlib.contextmanager
     def process_coalesced(self) -> Generator[OutboxBase | None, None, None]:
         coalesced: OutboxBase | None = self.select_coalesced_messages().last()
+        first_coalesced: OutboxBase | None = self.select_coalesced_messages().first() or coalesced
+        tags = {"category": "None"}
+
+        if coalesced is not None:
+            tags["category"] = OutboxCategory(self.category).name
+            assert first_coalesced, "first_coalesced incorrectly set for non-empty coalesce group"
+            metrics.timing(
+                "outbox.coalesced_net_queue_time",
+                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                - first_coalesced.date_added.timestamp(),
+                tags=tags,
+            )
+
         yield coalesced
 
         # If the context block didn't raise we mark messages as completed by deleting them.
         if coalesced is not None:
-            first_coalesced: OutboxBase = self.select_coalesced_messages().first() or coalesced
+            assert first_coalesced, "first_coalesced incorrectly set for non-empty coalesce group"
             deleted_count, _ = (
                 self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
             )
 
-            tags = {"category": OutboxCategory(self.category).name}
-
             metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
                 "outbox.processing_lag",
-                datetime.datetime.now().timestamp() - first_coalesced.scheduled_from.timestamp(),
+                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                - first_coalesced.scheduled_from.timestamp(),
+                tags=tags,
+            )
+            metrics.timing(
+                "outbox.coalesced_net_processing_time",
+                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                - first_coalesced.date_added.timestamp(),
                 tags=tags,
             )
 
@@ -574,7 +605,9 @@ class OutboxBase(Model):
                     try:
                         coalesced.send_signal()
                     except Exception as e:
-                        raise OutboxFlushError(f"Could not flush shard {repr(coalesced)}") from e
+                        raise OutboxFlushError(
+                            f"Could not flush shard category={coalesced.category}", coalesced
+                        ) from e
 
                 return True
         return False
@@ -594,7 +627,7 @@ class OutboxBase(Model):
         latest_shard_row: OutboxBase | None = None
         if not flush_all:
             latest_shard_row = self.selected_messages_in_shard().last()
-            # If we're not flushing all possible shards, and we don't see any immediately values,
+            # If we're not flushing all possible shards, and we don't see any immediate values,
             # drop.
             if latest_shard_row is None:
                 return

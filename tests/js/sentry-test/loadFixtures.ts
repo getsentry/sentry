@@ -76,37 +76,8 @@ const extensions = ['.js', '.ts', '.tsx', '.json'];
 // Some fixture files also contain more than one fixture so additional mappings are needed.
 // If you have added new fixtures and you are seeing an error being throw, please add the fixture
 const SPECIAL_MAPPING = {
-  AllAuthenticators: 'authenticators',
-  OrgRoleList: 'roleList',
-  BitbucketIntegrationConfig: 'integrationListDirectory',
-  DetailedEvents: 'events',
-  DiscoverSavedQuery: 'discover',
-  Entries123Base: 'entries',
-  Entries123Target: 'entries',
-  Events: 'events',
-  EventsStats: 'events',
-  EventStacktraceMessage: 'eventStacktraceException',
   GitHubIntegration: 'githubIntegration',
-  GitHubIntegrationConfig: 'integrationListDirectory',
-  GitHubIntegrationProvider: 'githubIntegrationProvider',
-  MetricsField: 'metrics',
-  MetricsSessionUserCountByStatusByRelease: 'metrics',
-  MetricsTotalCountByReleaseIn24h: 'metrics',
-  MOCK_RESP_VERBOSE: 'ruleConditions',
-  OrgOwnedApps: 'integrationListDirectory',
-  OutcomesWithReason: 'outcomes',
-  PluginListConfig: 'integrationListDirectory',
-  ProviderList: 'integrationListDirectory',
-  PublishedApps: 'integrationListDirectory',
   SentryAppComponentAsync: 'sentryAppComponent',
-  SentryAppInstalls: 'integrationListDirectory',
-  SessionsField: 'sessions',
-  SessionStatusCountByProjectInPeriod: 'sessions',
-  SessionStatusCountByReleaseInPeriod: 'sessions',
-  SessionUserCountByStatus: 'sessions',
-  SessionUserCountByStatusByRelease: 'sessions',
-  TagValues: 'tagvalues',
-  VercelProvider: 'vercelIntegration',
 };
 
 function tryRequire(dir: string, name: string): any {

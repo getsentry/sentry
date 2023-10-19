@@ -7,7 +7,7 @@ import responses
 
 from sentry.incidents.models import AlertRule, AlertRuleTriggerAction
 from sentry.integrations.slack.utils import RedisRuleStatus
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.tasks.integrations.slack import (
@@ -18,7 +18,10 @@ from sentry.tasks.integrations.slack import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test(stable=True)

@@ -1,17 +1,156 @@
-import sortBy from 'lodash/sortBy';
+import {PlatformIntegration} from 'sentry/types';
 
-import {t} from 'sentry/locale';
-import type {PlatformIntegration} from 'sentry/types';
-
-type Platform = {
-  id: string;
-  language: string;
-  link: string;
-  name: string;
-  type: string;
-};
-
-const goPlatforms: Platform[] = [
+// If you update items of this list, please remember to update the "GETTING_STARTED_DOCS_PLATFORMS" list
+// in the 'src/sentry/models/project.py' file. This way, they'll work together correctly.
+// Otherwise, creating a project will cause an error in the backend, saying "Invalid platform".
+const platforms: PlatformIntegration[] = [
+  {
+    id: 'android',
+    name: 'Android',
+    type: 'framework',
+    language: 'android',
+    link: 'https://docs.sentry.io/platforms/android/',
+  },
+  {
+    id: 'apple',
+    name: 'Apple',
+    type: 'language',
+    language: 'apple',
+    link: 'https://docs.sentry.io/platforms/apple/',
+  },
+  {
+    id: 'apple-ios',
+    name: 'iOS',
+    type: 'language',
+    language: 'apple',
+    link: 'https://docs.sentry.io/platforms/apple/',
+  },
+  {
+    id: 'apple-macos',
+    name: 'macOS',
+    type: 'language',
+    language: 'apple',
+    link: 'https://docs.sentry.io/platforms/apple/',
+  },
+  {
+    id: 'bun',
+    name: 'Bun',
+    type: 'language',
+    language: 'bun',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/bun/',
+  },
+  {
+    id: 'capacitor',
+    name: 'Capacitor',
+    type: 'framework',
+    language: 'capacitor',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/',
+  },
+  {
+    id: 'cordova',
+    name: 'Cordova',
+    type: 'language',
+    language: 'cordova',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/cordova/',
+  },
+  {
+    id: 'dart',
+    name: 'Dart',
+    type: 'framework',
+    language: 'dart',
+    link: 'https://docs.sentry.io/platforms/dart/',
+  },
+  {
+    id: 'dotnet',
+    name: '.NET',
+    type: 'language',
+    language: 'dotnet',
+    link: 'https://docs.sentry.io/platforms/dotnet/',
+  },
+  {
+    id: 'dotnet-aspnet',
+    name: 'ASP.NET',
+    type: 'framework',
+    language: 'dotnet',
+    link: 'https://docs.sentry.io/platforms/dotnet/guides/aspnet/',
+  },
+  {
+    id: 'dotnet-aspnetcore',
+    name: 'ASP.NET Core',
+    type: 'framework',
+    language: 'dotnet',
+    link: 'https://docs.sentry.io/platforms/dotnet/guides/aspnetcore/',
+  },
+  {
+    id: 'dotnet-awslambda',
+    name: 'AWS Lambda (.NET)',
+    type: 'framework',
+    language: 'dotnet',
+    link: 'https://docs.sentry.io/platforms/dotnet/guides/aws-lambda/',
+  },
+  {
+    id: 'dotnet-gcpfunctions',
+    name: 'Google Cloud Functions (.NET)',
+    type: 'framework',
+    language: 'dotnet',
+    link: 'https://docs.sentry.io/platforms/dotnet/guides/google-cloud-functions/',
+  },
+  {
+    id: 'dotnet-maui',
+    name: 'Multi-platform App UI (MAUI)',
+    type: 'framework',
+    language: 'dotnet',
+    link: 'https://docs.sentry.io/platforms/dotnet/guides/maui/',
+  },
+  {
+    id: 'dotnet-uwp',
+    name: 'UWP',
+    type: 'framework',
+    language: 'dotnet',
+    link: 'https://docs.sentry.io/platforms/dotnet/guides/uwp/',
+  },
+  {
+    id: 'dotnet-winforms',
+    name: 'Windows Forms',
+    type: 'framework',
+    language: 'dotnet',
+    link: 'https://docs.sentry.io/platforms/dotnet/guides/winforms/',
+  },
+  {
+    id: 'dotnet-wpf',
+    name: 'WPF',
+    type: 'framework',
+    language: 'dotnet',
+    link: 'https://docs.sentry.io/platforms/dotnet/guides/wpf/',
+  },
+  {
+    id: 'dotnet-xamarin',
+    name: 'Xamarin',
+    type: 'framework',
+    language: 'dotnet',
+    link: 'https://docs.sentry.io/platforms/dotnet/guides/xamarin/',
+  },
+  {
+    id: 'electron',
+    name: 'Electron',
+    type: 'language',
+    language: 'electron',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/electron/',
+  },
+  {
+    id: 'elixir',
+    name: 'Elixir',
+    type: 'language',
+    language: 'elixir',
+    link: 'https://docs.sentry.io/platforms/elixir/',
+  },
+  {
+    id: 'flutter',
+    name: 'Flutter',
+    type: 'framework',
+    language: 'flutter',
+    link: 'https://docs.sentry.io/platforms/flutter/',
+  },
   {
     id: 'go',
     link: 'https://docs.sentry.io/platforms/go/',
@@ -23,60 +162,92 @@ const goPlatforms: Platform[] = [
     link: 'https://docs.sentry.io/platforms/go/guides/echo/',
     type: 'framework',
     id: 'go-echo',
-    name: t('Echo'),
+    name: 'Echo',
     language: 'go',
   },
   {
     link: 'https://docs.sentry.io/platforms/go/guides/fasthttp/',
     type: 'framework',
     id: 'go-fasthttp',
-    name: t('FastHTTP'),
+    name: 'FastHTTP',
     language: 'go',
   },
   {
     link: 'https://docs.sentry.io/platforms/go/guides/gin/',
     type: 'framework',
     id: 'go-gin',
-    name: t('Gin'),
+    name: 'Gin',
     language: 'go',
   },
   {
     link: 'https://docs.sentry.io/platforms/go/guides/http/',
     type: 'framework',
     id: 'go-http',
-    name: t('Net/Http'),
+    name: 'Net/Http',
     language: 'go',
   },
   {
     link: 'https://docs.sentry.io/platforms/go/guides/iris',
     type: 'framework',
     id: 'go-iris',
-    name: t('Iris'),
+    name: 'Iris',
     language: 'go',
   },
   {
     link: 'https://docs.sentry.io/platforms/go/guides/martini/',
     type: 'framework',
     id: 'go-martini',
-    name: t('Martini'),
+    name: 'Martini',
     language: 'go',
   },
   {
     link: 'https://docs.sentry.io/platforms/go/guides/negroni/',
     type: 'framework',
     id: 'go-negroni',
-    name: t('Negroni'),
+    name: 'Negroni',
     language: 'go',
   },
-];
-
-const javaScriptPlatforms: Platform[] = [
   {
-    id: 'javascript-angular',
-    name: 'Angular',
+    id: 'ionic',
+    name: 'Ionic',
     type: 'framework',
-    language: 'javascript',
-    link: 'https://docs.sentry.io/platforms/javascript/guides/angular/',
+    language: 'ionic',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/',
+  },
+  {
+    id: 'java',
+    name: 'Java',
+    type: 'language',
+    language: 'java',
+    link: 'https://docs.sentry.io/platforms/java/',
+  },
+  {
+    id: 'java-log4j2',
+    name: 'Log4j 2.x',
+    type: 'framework',
+    language: 'java',
+    link: 'https://docs.sentry.io/platforms/java/guides/log4j2/',
+  },
+  {
+    id: 'java-logback',
+    name: 'Logback',
+    type: 'framework',
+    language: 'java',
+    link: 'https://docs.sentry.io/platforms/java/guides/logback/',
+  },
+  {
+    id: 'java-spring',
+    name: 'Spring',
+    type: 'framework',
+    language: 'java',
+    link: 'https://https://docs.sentry.io/platforms/java/guides/spring/',
+  },
+  {
+    id: 'java-spring-boot',
+    name: 'Spring Boot',
+    type: 'framework',
+    language: 'java',
+    link: 'https://docs.sentry.io/platforms/java/guides/spring-boot/',
   },
   {
     id: 'javascript',
@@ -84,6 +255,13 @@ const javaScriptPlatforms: Platform[] = [
     type: 'language',
     language: 'javascript',
     link: 'https://docs.sentry.io/platforms/javascript/',
+  },
+  {
+    id: 'javascript-angular',
+    name: 'Angular',
+    type: 'framework',
+    language: 'javascript',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/angular/',
   },
   {
     id: 'javascript-ember',
@@ -141,47 +319,118 @@ const javaScriptPlatforms: Platform[] = [
     language: 'javascript',
     link: 'https://docs.sentry.io/platforms/javascript/guides/vue/',
   },
-];
-
-const javaPlatforms: Platform[] = [
   {
-    id: 'java',
-    name: 'Java',
+    id: 'kotlin',
+    name: 'Kotlin',
     type: 'language',
-    language: 'java',
-    link: 'https://docs.sentry.io/platforms/java/',
+    language: 'kotlin',
+    link: 'https://docs.sentry.io/platforms/kotlin/',
   },
   {
-    id: 'java-log4j2',
-    name: 'Log4j 2.x',
+    id: 'minidump',
+    name: 'Minidump',
     type: 'framework',
-    language: 'java',
-    link: 'https://docs.sentry.io/platforms/java/guides/log4j2/',
+    language: 'minidump',
+    link: 'https://docs.sentry.io/platforms/native/minidump/',
   },
   {
-    id: 'java-logback',
-    name: 'Logback',
-    type: 'framework',
-    language: 'java',
-    link: 'https://docs.sentry.io/platforms/java/guides/logback/',
+    id: 'native',
+    name: 'Native',
+    type: 'language',
+    language: 'native',
+    link: 'https://docs.sentry.io/platforms/native/',
   },
   {
-    id: 'java-spring',
-    name: 'Spring',
+    id: 'native-qt',
+    name: 'Qt',
     type: 'framework',
-    language: 'java',
-    link: 'https://https://docs.sentry.io/platforms/java/guides/spring/',
+    language: 'native',
+    link: 'https://docs.sentry.io/platforms/native/guides/qt/',
   },
   {
-    id: 'java-spring-boot',
-    name: 'Spring Boot',
-    type: 'framework',
-    language: 'java',
-    link: 'https://docs.sentry.io/platforms/java/guides/spring-boot/',
+    id: 'node',
+    name: 'Node.js',
+    type: 'language',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/node/',
   },
-];
-
-const pythonPlatforms: Platform[] = [
+  {
+    id: 'node-awslambda',
+    name: 'AWS Lambda (Node)',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/node/guides/aws-lambda/',
+  },
+  {
+    id: 'node-azurefunctions',
+    name: 'Azure Functions (Node)',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/node/guides/azure-functions/',
+  },
+  {
+    id: 'node-connect',
+    name: 'Connect',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/node/guides/connect/',
+  },
+  {
+    id: 'node-express',
+    name: 'Express',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/node/guides/express/',
+  },
+  {
+    id: 'node-gcpfunctions',
+    name: 'Google Cloud Functions (Node)',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/node/guides/gcp-functions/',
+  },
+  {
+    id: 'node-koa',
+    name: 'Koa',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/node/guides/koa/',
+  },
+  {
+    id: 'node-serverlesscloud',
+    name: 'Serverless (Node)',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/node/guides/serverless-cloud/',
+  },
+  {
+    id: 'php',
+    name: 'PHP',
+    type: 'language',
+    language: 'php',
+    link: 'https://docs.sentry.io/platforms/php/',
+  },
+  {
+    id: 'php-laravel',
+    name: 'Laravel',
+    type: 'framework',
+    language: 'php',
+    link: 'https://docs.sentry.io/platforms/php/guides/laravel/',
+  },
+  {
+    id: 'php-symfony',
+    name: 'Symfony',
+    type: 'framework',
+    language: 'php',
+    link: 'https://docs.sentry.io/platforms/php/guides/symfony/',
+  },
+  {
+    id: 'python',
+    name: 'Python',
+    type: 'language',
+    language: 'python',
+    link: 'https://docs.sentry.io/platforms/python/',
+  },
   {
     id: 'python-aiohttp',
     name: 'AIOHTTP',
@@ -260,13 +509,6 @@ const pythonPlatforms: Platform[] = [
     link: 'https://docs.sentry.io/platforms/python/guides/gcp-functions/',
   },
   {
-    id: 'python-pymongo',
-    name: 'PyMongo',
-    type: 'library',
-    language: 'python',
-    link: 'https://docs.sentry.io/platforms/python/guides/pymongo/',
-  },
-  {
     id: 'python-pylons',
     name: 'Pylons',
     type: 'framework',
@@ -274,18 +516,18 @@ const pythonPlatforms: Platform[] = [
     link: 'https://docs.sentry.io/platforms/python/legacy-sdk/integrations/pylons/',
   },
   {
+    id: 'python-pymongo',
+    name: 'PyMongo',
+    type: 'library',
+    language: 'python',
+    link: 'https://docs.sentry.io/platforms/python/guides/pymongo/',
+  },
+  {
     id: 'python-pyramid',
     name: 'Pyramid',
     type: 'framework',
     language: 'python',
     link: 'https://docs.sentry.io/platforms/python/pyramid/',
-  },
-  {
-    id: 'python',
-    name: 'Python',
-    type: 'language',
-    language: 'python',
-    link: 'https://docs.sentry.io/platforms/python/',
   },
   {
     id: 'python-quart',
@@ -343,189 +585,20 @@ const pythonPlatforms: Platform[] = [
     language: 'python',
     link: 'https://docs.sentry.io/platforms/python/guides/wsgi/',
   },
-];
-
-const phpPlatforms: Platform[] = [
   {
-    id: 'php-laravel',
-    name: 'Laravel',
-    type: 'framework',
-    language: 'php',
-    link: 'https://docs.sentry.io/platforms/php/guides/laravel/',
-  },
-  {
-    id: 'php',
-    name: 'PHP',
+    id: 'react-native',
+    name: 'React Native',
     type: 'language',
-    language: 'php',
-    link: 'https://docs.sentry.io/platforms/php/',
+    language: 'react-native',
+    link: 'https://docs.sentry.io/platforms/react-native/',
   },
   {
-    id: 'php-symfony',
-    name: 'Symfony',
-    type: 'framework',
-    language: 'php',
-    link: 'https://docs.sentry.io/platforms/php/guides/symfony/',
-  },
-];
-
-const nodePlatforms: Platform[] = [
-  {
-    id: 'node-awslambda',
-    name: 'AWS Lambda (Node)',
-    type: 'framework',
-    language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/guides/aws-lambda/',
-  },
-  {
-    id: 'node-azurefunctions',
-    name: 'Azure Functions (Node)',
-    type: 'framework',
-    language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/guides/azure-functions/',
-  },
-  {
-    id: 'node-connect',
-    name: 'Connect',
-    type: 'framework',
-    language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/guides/connect/',
-  },
-  {
-    id: 'node-express',
-    name: 'Express',
-    type: 'framework',
-    language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/guides/express/',
-  },
-  {
-    id: 'node-gcpfunctions',
-    name: 'Google Cloud Functions (Node)',
-    type: 'framework',
-    language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/guides/gcp-functions/',
-  },
-  {
-    id: 'node-koa',
-    name: 'Koa',
-    type: 'framework',
-    language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/guides/koa/',
-  },
-  {
-    id: 'node',
-    name: 'Node.js',
+    id: 'ruby',
+    name: 'Ruby',
     type: 'language',
-    language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/',
+    language: 'ruby',
+    link: 'https://docs.sentry.io/platforms/ruby/',
   },
-  {
-    id: 'node-serverlesscloud',
-    name: 'Serverless (Node)',
-    type: 'framework',
-    language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/guides/serverless-cloud/',
-  },
-];
-
-const dotNetPlatforms: Platform[] = [
-  {
-    id: 'dotnet',
-    name: '.NET',
-    type: 'language',
-    language: 'dotnet',
-    link: 'https://docs.sentry.io/platforms/dotnet/',
-  },
-  {
-    id: 'dotnet-aspnet',
-    name: 'ASP.NET',
-    type: 'framework',
-    language: 'dotnet',
-    link: 'https://docs.sentry.io/platforms/dotnet/guides/aspnet/',
-  },
-  {
-    id: 'dotnet-aspnetcore',
-    name: 'ASP.NET Core',
-    type: 'framework',
-    language: 'dotnet',
-    link: 'https://docs.sentry.io/platforms/dotnet/guides/aspnetcore/',
-  },
-  {
-    id: 'dotnet-awslambda',
-    name: 'AWS Lambda (.NET)',
-    type: 'framework',
-    language: 'dotnet',
-    link: 'https://docs.sentry.io/platforms/dotnet/guides/aws-lambda/',
-  },
-  {
-    id: 'dotnet-gcpfunctions',
-    name: 'Google Cloud Functions (.NET)',
-    type: 'framework',
-    language: 'dotnet',
-    link: 'https://docs.sentry.io/platforms/dotnet/guides/google-cloud-functions/',
-  },
-  {
-    id: 'dotnet-maui',
-    name: 'Multi-platform App UI (MAUI)',
-    type: 'framework',
-    language: 'dotnet',
-    link: 'https://docs.sentry.io/platforms/dotnet/guides/maui/',
-  },
-  {
-    id: 'dotnet-uwp',
-    name: 'UWP',
-    type: 'framework',
-    language: 'dotnet',
-    link: 'https://docs.sentry.io/platforms/dotnet/guides/uwp/',
-  },
-  {
-    id: 'dotnet-wpf',
-    name: 'WPF',
-    type: 'framework',
-    language: 'dotnet',
-    link: 'https://docs.sentry.io/platforms/dotnet/guides/wpf/',
-  },
-  {
-    id: 'dotnet-winforms',
-    name: 'Windows Forms',
-    type: 'framework',
-    language: 'dotnet',
-    link: 'https://docs.sentry.io/platforms/dotnet/guides/winforms/',
-  },
-  {
-    id: 'dotnet-xamarin',
-    name: 'Xamarin',
-    type: 'framework',
-    language: 'dotnet',
-    link: 'https://docs.sentry.io/platforms/dotnet/guides/xamarin/',
-  },
-];
-
-const applePlatforms: Platform[] = [
-  {
-    id: 'apple',
-    name: 'Apple',
-    type: 'language',
-    language: 'apple',
-    link: 'https://docs.sentry.io/platforms/apple/',
-  },
-  {
-    id: 'apple-ios',
-    name: 'iOS',
-    type: 'language',
-    language: 'apple',
-    link: 'https://docs.sentry.io/platforms/apple/',
-  },
-  {
-    id: 'apple-macos',
-    name: 'macOS',
-    type: 'language',
-    language: 'apple',
-    link: 'https://docs.sentry.io/platforms/apple/',
-  },
-];
-
-const rubyPlatforms: Platform[] = [
   {
     id: 'ruby-rack',
     name: 'Rack Middleware',
@@ -539,103 +612,6 @@ const rubyPlatforms: Platform[] = [
     type: 'framework',
     language: 'ruby',
     link: 'https://docs.sentry.io/platforms/ruby/guides/rails/',
-  },
-  {
-    id: 'ruby',
-    name: 'Ruby',
-    type: 'language',
-    language: 'ruby',
-    link: 'https://docs.sentry.io/platforms/ruby/',
-  },
-];
-
-const nativePlatforms: Platform[] = [
-  {
-    id: 'native',
-    name: 'Native',
-    type: 'language',
-    language: 'native',
-    link: 'https://docs.sentry.io/platforms/native/',
-  },
-  {
-    id: 'native-qt',
-    name: 'Qt',
-    type: 'framework',
-    language: 'native',
-    link: 'https://docs.sentry.io/platforms/native/guides/qt/',
-  },
-];
-
-const otherPlatforms: Platform[] = [
-  {
-    id: 'android',
-    name: 'Android',
-    type: 'framework',
-    language: 'android',
-    link: 'https://docs.sentry.io/platforms/android/',
-  },
-  {
-    id: 'capacitor',
-    name: 'Capacitor',
-    type: 'framework',
-    language: 'capacitor',
-    link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/',
-  },
-  {
-    id: 'cordova',
-    name: 'Cordova',
-    type: 'language',
-    language: 'cordova',
-    link: 'https://docs.sentry.io/platforms/javascript/guides/cordova/',
-  },
-  {
-    id: 'dart',
-    name: 'Dart',
-    type: 'framework',
-    language: 'dart',
-    link: 'https://docs.sentry.io/platforms/dart/',
-  },
-  {
-    id: 'electron',
-    name: 'Electron',
-    type: 'language',
-    language: 'electron',
-    link: 'https://docs.sentry.io/platforms/javascript/guides/electron/',
-  },
-  {
-    id: 'elixir',
-    name: 'Elixir',
-    type: 'language',
-    language: 'elixir',
-    link: 'https://docs.sentry.io/platforms/elixir/',
-  },
-  {
-    id: 'flutter',
-    name: 'Flutter',
-    type: 'framework',
-    language: 'flutter',
-    link: 'https://docs.sentry.io/platforms/flutter/',
-  },
-  {
-    id: 'ionic',
-    name: 'Ionic',
-    type: 'framework',
-    language: 'ionic',
-    link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/',
-  },
-  {
-    id: 'kotlin',
-    name: 'Kotlin',
-    type: 'language',
-    language: 'kotlin',
-    link: 'https://docs.sentry.io/platforms/kotlin/',
-  },
-  {
-    id: 'minidump',
-    name: 'Minidump',
-    type: 'framework',
-    language: 'minidump',
-    link: 'https://docs.sentry.io/platforms/native/minidump/',
   },
   {
     id: 'rust',
@@ -658,32 +634,19 @@ const otherPlatforms: Platform[] = [
     language: 'unreal',
     link: 'https://docs.sentry.io/platforms/unreal/',
   },
-  {
-    id: 'react-native',
-    name: 'React Native',
-    type: 'language',
-    language: 'react-native',
-    link: 'https://docs.sentry.io/platforms/react-native/',
-  },
 ];
 
-// If you update items of this list, please remember to update the "GETTING_STARTED_DOCS_PLATFORMS" list
-// in the 'src/sentry/models/project.py' file. This way, they'll work together correctly.
-// Otherwise, creating a project will cause an error in the backend, saying "Invalid platform".
-const allPlatforms = [
-  ...javaScriptPlatforms,
-  ...nodePlatforms,
-  ...dotNetPlatforms,
-  ...applePlatforms,
-  ...javaPlatforms,
-  ...pythonPlatforms,
-  ...phpPlatforms,
-  ...goPlatforms,
-  ...rubyPlatforms,
-  ...nativePlatforms,
-  ...otherPlatforms,
-];
+export const otherPlatform: PlatformIntegration = {
+  id: 'other',
+  name: 'Other',
+  type: 'language',
+  language: 'other',
+  link: 'https://docs.sentry.io/platforms/',
+};
 
-const platforms = sortBy(allPlatforms, 'id') as PlatformIntegration[];
+/**
+ * Array of all platforms that are displayed in the project creation flow.
+ */
+const allPlatforms = [...platforms, otherPlatform];
 
-export default platforms;
+export default allPlatforms;

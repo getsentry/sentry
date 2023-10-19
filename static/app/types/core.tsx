@@ -60,7 +60,7 @@ export interface SelectValue<T> extends MenuListItemProps {
  */
 export type Choice = [
   value: string | number,
-  label: string | number | React.ReactElement
+  label: string | number | React.ReactElement,
 ];
 
 export type Choices = Choice[];

@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db import router
 from django.test import override_settings
 
-from sentry.models import OrganizationMapping
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloLimit, SiloMode, unguarded_write
 from sentry.testutils.cases import TestCase
@@ -16,6 +16,8 @@ from sentry.types.region import (
     RegionConfigurationError,
     RegionResolutionError,
     clear_global_regions,
+    find_all_multitenant_region_names,
+    find_all_region_names,
     get_local_region,
     get_region_by_name,
     get_region_for_organization,
@@ -93,7 +95,12 @@ class RegionMappingTest(TestCase):
 
     def test_region_to_url(self):
         region = Region("us", 1, "http://192.168.1.99", RegionCategory.MULTI_TENANT)
-        assert region.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
+        with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us"):
+            assert region.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
+        with override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_REGION=""):
+            assert region.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
+        with override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_REGION=""):
+            assert region.to_url("/avatar/abcdef/") == "http://testserver/avatar/abcdef/"
 
     def test_json_config_injection(self):
         region_config = [
@@ -173,3 +180,41 @@ class RegionMappingTest(TestCase):
         with override_settings(SILO_MODE=SiloMode.REGION):
             with pytest.raises(SiloLimit.AvailabilityError):
                 find_regions_for_user(user_id=user.id)
+
+    def test_find_all_region_names(self):
+        region_config = [
+            {
+                "name": "us",
+                "snowflake_id": 1,
+                "address": "http://us.testserver",
+                "category": RegionCategory.MULTI_TENANT.name,
+            },
+            {
+                "name": "acme",
+                "snowflake_id": 2,
+                "address": "http://acme.testserver",
+                "category": RegionCategory.SINGLE_TENANT.name,
+            },
+        ]
+        with override_settings(SILO_MODE=SiloMode.CONTROL), override_region_config(region_config):
+            result = find_all_region_names()
+            assert set(result) == {"us", "acme"}
+
+    def test_find_all_multitenant_region_names(self):
+        region_config = [
+            {
+                "name": "us",
+                "snowflake_id": 1,
+                "address": "http://us.testserver",
+                "category": RegionCategory.MULTI_TENANT.name,
+            },
+            {
+                "name": "acme",
+                "snowflake_id": 2,
+                "address": "http://acme.testserver",
+                "category": RegionCategory.SINGLE_TENANT.name,
+            },
+        ]
+        with override_settings(SILO_MODE=SiloMode.CONTROL), override_region_config(region_config):
+            result = find_all_multitenant_region_names()
+            assert set(result) == {"us"}

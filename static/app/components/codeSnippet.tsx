@@ -1,10 +1,11 @@
-import {useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import Prism from 'prismjs';
 
 import {Button} from 'sentry/components/button';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {prismStyles} from 'sentry/styles/prism';
 import {space} from 'sentry/styles/space';
 import {loadPrismLanguage} from 'sentry/utils/loadPrismLanguage';
 
@@ -21,11 +22,22 @@ interface CodeSnippetProps {
   disableUserSelection?: boolean;
   filename?: string;
   hideCopyButton?: boolean;
+  /**
+   * Fires after the code snippet is highlighted and all DOM nodes are available
+   * @param element The root element of the code snippet
+   */
+  onAfterHighlight?: (element: HTMLElement) => void;
   onCopy?: (copiedCode: string) => void;
   /**
    * Fired when the user selects and copies code snippet manually
    */
   onSelectAndCopy?: () => void;
+  onTabClick?: (tab: string) => void;
+  selectedTab?: string;
+  tabs?: {
+    label: string;
+    value: string;
+  }[];
 }
 
 export function CodeSnippet({
@@ -38,6 +50,10 @@ export function CodeSnippet({
   className,
   onSelectAndCopy,
   disableUserSelection,
+  onAfterHighlight,
+  selectedTab,
+  onTabClick,
+  tabs,
 }: CodeSnippetProps) {
   const ref = useRef<HTMLModElement | null>(null);
 
@@ -48,18 +64,21 @@ export function CodeSnippet({
     }
 
     if (language in Prism.languages) {
-      Prism.highlightElement(element);
+      Prism.highlightElement(element, false, () => onAfterHighlight?.(element));
       return;
     }
 
-    loadPrismLanguage(language, {onLoad: () => Prism.highlightElement(element)});
-  }, [children, language]);
+    loadPrismLanguage(language, {
+      onLoad: () =>
+        Prism.highlightElement(element, false, () => onAfterHighlight?.(element)),
+    });
+  }, [children, language, onAfterHighlight]);
 
   const [tooltipState, setTooltipState] = useState<'copy' | 'copied' | 'error'>('copy');
 
   const handleCopy = () => {
     navigator.clipboard
-      .writeText(children)
+      .writeText(ref.current?.textContent ?? '')
       .then(() => {
         setTooltipState('copied');
       })
@@ -68,6 +87,9 @@ export function CodeSnippet({
       });
     onCopy?.(children);
   };
+
+  const hasTabs = tabs && tabs.length > 0;
+  const hasSolidHeader = !!(filename || hasTabs);
 
   const tooltipTitle =
     tooltipState === 'copy'
@@ -78,18 +100,37 @@ export function CodeSnippet({
 
   return (
     <Wrapper className={`${dark ? 'prism-dark ' : ''}${className ?? ''}`}>
-      <Header hasFileName={!!filename}>
+      <Header isSolid={hasSolidHeader}>
+        {hasTabs && (
+          <Fragment>
+            <TabsWrapper>
+              {tabs.map(({label, value}) => (
+                <Tab
+                  type="button"
+                  isSelected={selectedTab === value}
+                  onClick={() => onTabClick?.(value)}
+                  key={value}
+                >
+                  {label}
+                </Tab>
+              ))}
+            </TabsWrapper>
+            <FlexSpacer />
+          </Fragment>
+        )}
         {filename && <FileName>{filename}</FileName>}
+        {!hasTabs && <FlexSpacer />}
         {!hideCopyButton && (
           <CopyButton
             type="button"
             size="xs"
             translucentBorder
-            borderless={!!filename}
+            borderless
             onClick={handleCopy}
             title={tooltipTitle}
             tooltipProps={{delay: 0, isHoverable: false, position: 'left'}}
             onMouseLeave={() => setTooltipState('copy')}
+            isAlwaysVisible={hasSolidHeader}
           >
             <IconCopy size="xs" />
           </CopyButton>
@@ -112,31 +153,30 @@ export function CodeSnippet({
 
 const Wrapper = styled('div')`
   position: relative;
-  background: ${p => p.theme.backgroundSecondary};
+  background: var(--prism-block-background);
   border-radius: ${p => p.theme.borderRadius};
 
+  ${p => prismStyles(p.theme)}
   pre {
     margin: 0;
   }
 `;
 
-const Header = styled('div')<{hasFileName: boolean}>`
+const Header = styled('div')<{isSolid: boolean}>`
   display: flex;
-  justify-content: space-between;
   align-items: center;
 
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.codeFontSize};
-  color: ${p => p.theme.headingColor};
+  color: var(--prism-base);
   font-weight: 600;
   z-index: 2;
 
   ${p =>
-    p.hasFileName
+    p.isSolid
       ? `
-      padding: ${space(0.5)} 0;
-      margin: 0 ${space(0.5)} 0 ${space(2)};
-      border-bottom: solid 1px ${p.theme.innerBorder};
+      margin: 0 ${space(0.5)};
+      border-bottom: solid 1px var(--prism-highlight-accent);
     `
       : `
       justify-content: flex-end;
@@ -146,26 +186,55 @@ const Header = styled('div')<{hasFileName: boolean}>`
       width: max-content;
       height: max-content;
       max-height: 100%;
-      padding: ${space(1)};
+      padding: ${space(0.5)};
     `}
 `;
 
 const FileName = styled('p')`
   ${p => p.theme.overflowEllipsis}
+  padding: ${space(0.5)} ${space(0.5)};
   margin: 0;
+  width: auto;
 `;
 
-const CopyButton = styled(Button)`
-  color: ${p => p.theme.subText};
+const TabsWrapper = styled('div')`
+  padding: 0;
+  display: flex;
+`;
 
+const Tab = styled('button')<{isSelected: boolean}>`
+  box-sizing: border-box;
+  display: block;
+  margin: 0;
+  border: none;
+  background: none;
+  padding: ${space(1)} ${space(1)};
+  color: var(--prism-comment);
+  ${p =>
+    p.isSelected
+      ? `border-bottom: 3px solid ${p.theme.purple300};
+      padding-bottom: 5px;
+      color: var(--prism-base);`
+      : ''}
+`;
+
+const FlexSpacer = styled('div')`
+  flex-grow: 1;
+`;
+
+const CopyButton = styled(Button)<{isAlwaysVisible: boolean}>`
+  color: var(--prism-comment);
   transition: opacity 0.1s ease-out;
   opacity: 0;
 
-  p + &, /* if preceded by FileName */
   div:hover > div > &, /* if Wrapper is hovered */
   &.focus-visible {
     opacity: 1;
   }
+  &:hover {
+    color: var(--prism-base);
+  }
+  ${p => (p.isAlwaysVisible ? 'opacity: 1;' : '')}
 `;
 
 const Code = styled('code')<{disableUserSelection?: boolean}>`

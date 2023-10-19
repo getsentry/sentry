@@ -1,3 +1,7 @@
+import {Organization} from 'sentry-fixture/organization';
+import {SentryApp} from 'sentry-fixture/sentryApp';
+import {SentryAppInstallation} from 'sentry-fixture/sentryAppInstallation';
+
 import {
   render,
   renderGlobalModal,
@@ -9,7 +13,7 @@ import SentryAppExternalIssueActions from 'sentry/components/group/sentryAppExte
 
 describe('SentryAppExternalIssueActions', () => {
   const group = TestStubs.Group();
-  const sentryApp = TestStubs.SentryApp();
+  const sentryApp = SentryApp();
   const component = TestStubs.SentryAppComponent({
     sentryApp: {
       uuid: sentryApp.uuid,
@@ -19,7 +23,7 @@ describe('SentryAppExternalIssueActions', () => {
   });
   // unable to use the selectByValue here so remove the select option
   component.schema.create.required_fields.pop();
-  const install = TestStubs.SentryAppInstallation({sentryApp});
+  const install = SentryAppInstallation({});
   const submitUrl = `/sentry-app-installations/${install.uuid}/external-issue-actions/`;
   const externalIssue = TestStubs.PlatformExternalIssue({
     groupId: group.id,
@@ -42,7 +46,7 @@ describe('SentryAppExternalIssueActions', () => {
     render(
       <SentryAppExternalIssueActions
         event={TestStubs.Event()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         group={group}
         sentryAppInstallation={install}
         sentryAppComponent={component}
@@ -86,7 +90,7 @@ describe('SentryAppExternalIssueActions', () => {
     render(
       <SentryAppExternalIssueActions
         event={TestStubs.Event()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         group={group}
         sentryAppInstallation={install}
         sentryAppComponent={component}
@@ -128,7 +132,7 @@ describe('SentryAppExternalIssueActions', () => {
     render(
       <SentryAppExternalIssueActions
         event={TestStubs.Event()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         group={group}
         sentryAppInstallation={install}
         sentryAppComponent={component}
@@ -168,7 +172,7 @@ describe('SentryAppExternalIssueActions', () => {
     render(
       <SentryAppExternalIssueActions
         event={TestStubs.Event()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         group={group}
         sentryAppComponent={component}
         sentryAppInstallation={install}
@@ -193,7 +197,7 @@ describe('SentryAppExternalIssueActions', () => {
     render(
       <SentryAppExternalIssueActions
         event={TestStubs.Event()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         group={group}
         sentryAppComponent={component}
         sentryAppInstallation={install}

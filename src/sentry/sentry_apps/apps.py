@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import dataclasses
+import random
+import string
 from itertools import chain
 from typing import Any, Iterable, List, Mapping, Set
 
@@ -12,26 +14,23 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from sentry_sdk.api import push_scope
 
-from sentry import analytics, audit_log
+from sentry import analytics, audit_log, options
 from sentry.constants import SentryAppStatus
 from sentry.coreapi import APIError
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.models import (
-    ApiApplication,
-    ApiToken,
-    IntegrationFeature,
-    SentryApp,
-    SentryAppComponent,
-    SentryAppInstallation,
-    User,
-)
-from sentry.models.integrations.integration_feature import IntegrationTypes
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.apitoken import ApiToken
+from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.models.integrations.sentry_app import (
     EVENT_EXPANSION,
     REQUIRED_EVENT_PERMISSIONS,
+    SentryApp,
     default_uuid,
     generate_slug,
 )
+from sentry.models.integrations.sentry_app_component import SentryAppComponent
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.user import User
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -294,6 +293,11 @@ class SentryAppCreator:
 
     def _generate_and_validate_slug(self) -> str:
         slug = generate_slug(self.name, is_internal=self.is_internal)
+
+        # If option is set, add random 3 lowercase letter suffix to prevent numeric slug
+        # eg: 123 -> 123-abc
+        if options.get("api.prevent-numeric-slugs") and slug.isdecimal():
+            slug = f"{slug}-{''.join(random.choice(string.ascii_lowercase) for _ in range(3))}"
 
         # validate globally unique slug
         queryset = SentryApp.with_deleted.filter(slug=slug)

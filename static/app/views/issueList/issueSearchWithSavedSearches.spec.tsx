@@ -1,3 +1,5 @@
+import {Search} from 'sentry-fixture/search';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {IssueSearchWithSavedSearches} from 'sentry/views/issueList/issueSearchWithSavedSearches';
@@ -8,12 +10,11 @@ describe('IssueSearchWithSavedSearches', () => {
     onSearch: jest.fn(),
   };
 
-  const savedSearch = TestStubs.Search({
+  const savedSearch = Search({
     id: '789',
     query: 'is:unresolved TypeError',
     sort: 'date',
     name: 'Unresolved TypeErrors',
-    projectId: 'project-slug',
   });
 
   beforeEach(() => {

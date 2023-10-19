@@ -1,7 +1,7 @@
-import {GroupStatus} from 'sentry/types';
+import {Group as MockGroup} from 'sentry-fixture/group';
+import {Project as MockProject} from 'sentry-fixture/project';
 
-import {Group as MockGroup} from './group';
-import {Project as MockProject} from './project';
+import {GroupStatus} from 'sentry/types';
 
 export function Groups() {
   const project = MockProject({name: 'Internal', slug: 'project-slug', id: '123'});

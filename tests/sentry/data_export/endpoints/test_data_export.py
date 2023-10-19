@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from freezegun import freeze_time
-
 from sentry.data_export.base import ExportQueryType, ExportStatus
 from sentry.data_export.models import ExportedData
 from sentry.search.utils import parse_datetime_string
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.snuba import MAX_FIELDS
 

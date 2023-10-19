@@ -6,7 +6,7 @@ import {GettingStartedWithNextJs, steps} from './nextjs';
 
 describe('GettingStartedWithNextJs', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithNextJs dsn="test-dsn" />);
+    render(<GettingStartedWithNextJs dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithNextJs', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

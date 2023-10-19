@@ -39,18 +39,17 @@ from sentry.lang.javascript.processor import (
     should_retry_fetch,
     trim_line,
 )
-from sentry.models import (
+from sentry.models.artifactbundle import (
     ArtifactBundle,
     DebugIdArtifactBundle,
-    EventError,
-    File,
     ProjectArtifactBundle,
-    Release,
     ReleaseArtifactBundle,
-    ReleaseFile,
     SourceFileType,
 )
-from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, update_artifact_index
+from sentry.models.eventerror import EventError
+from sentry.models.files.file import File
+from sentry.models.release import Release
+from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ReleaseFile, update_artifact_index
 from sentry.stacktraces.processing import ProcessableFrame, find_stacktraces_in_data
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature

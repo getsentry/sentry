@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {Members} from 'sentry-fixture/members';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -14,7 +15,7 @@ describe('Project Ownership Input', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/members/`,
       method: 'GET',
-      body: TestStubs.Members(),
+      body: Members(),
     });
     put = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/ownership/`,
@@ -28,7 +29,7 @@ describe('Project Ownership Input', function () {
   });
 
   it('renders', async function () {
-    const {container} = render(
+    render(
       <OwnerInput
         page="issue_details"
         onCancel={() => {}}
@@ -53,8 +54,6 @@ describe('Project Ownership Input', function () {
     await userEvent.click(submitButton);
 
     expect(put).toHaveBeenCalled();
-
-    expect(container).toSnapshot();
   });
 
   it('updates on add preserving existing text', async function () {

@@ -19,15 +19,12 @@ class AuthTest(AcceptanceTestCase):
 
     def test_renders(self):
         self.browser.get("/auth/login/")
-        self.browser.snapshot(name="login")
 
     def test_no_credentials(self):
         self.enter_auth("", "")
-        self.browser.snapshot(name="login fields required")
 
     def test_invalid_credentials(self):
         self.enter_auth("bad-username", "bad-username")
-        self.browser.snapshot(name="login fields invalid")
 
     def test_success(self):
         email = "dummy@example.com"
@@ -38,4 +35,3 @@ class AuthTest(AcceptanceTestCase):
 
         self.enter_auth(email, password)
         self.browser.wait_until_not(".loading")
-        self.browser.snapshot(name="login success")

@@ -9,7 +9,9 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import ApiApplicationStatus, ApiAuthorization, ApiToken
+from sentry.models.apiapplication import ApiApplicationStatus
+from sentry.models.apiauthorization import ApiAuthorization
+from sentry.models.apitoken import ApiToken
 
 
 @control_silo_endpoint

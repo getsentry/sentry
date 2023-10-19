@@ -1,7 +1,11 @@
-import type {Mirror} from '@sentry-internal/rrweb';
-import {Replayer} from '@sentry-internal/rrweb';
+import type {Mirror} from '@sentry-internal/rrweb-snapshot';
 
-import type {RecordingFrame, ReplayFrame} from 'sentry/utils/replays/types';
+import replayerStepper from 'sentry/utils/replays/replayerStepper';
+import {
+  getNodeId,
+  type RecordingFrame,
+  type ReplayFrame,
+} from 'sentry/utils/replays/types';
 
 export type Extraction = {
   frame: ReplayFrame;
@@ -12,111 +16,33 @@ export type Extraction = {
 type Args = {
   frames: ReplayFrame[] | undefined;
   rrwebEvents: RecordingFrame[] | undefined;
+  startTimestampMs: number;
 };
 
 export default function extractDomNodes({
-  frames = [],
+  frames,
   rrwebEvents,
-}: Args): Promise<Extraction[]> {
-  return new Promise(resolve => {
-    if (!frames.length) {
-      resolve([]);
-      return;
-    }
-
-    const extractions = new Map<ReplayFrame, Extraction>();
-
-    const player = createPlayer(rrwebEvents);
-    const mirror = player.getMirror();
-
-    const nextFrame = (function () {
-      let i = 0;
-      return () => frames[i++];
-    })();
-
-    const onDone = () => {
-      resolve(Array.from(extractions.values()));
-    };
-
-    const nextOrDone = () => {
-      const next = nextFrame();
-      if (next) {
-        matchFrame(next);
-      } else {
-        onDone();
-      }
-    };
-
-    type FrameRef = {
-      frame: undefined | ReplayFrame;
-      nodeId: undefined | number;
-    };
-
-    const nodeIdRef: FrameRef = {
-      frame: undefined,
-      nodeId: undefined,
-    };
-
-    const handlePause = () => {
-      if (!nodeIdRef.nodeId && !nodeIdRef.frame) {
-        return;
-      }
-      const frame = nodeIdRef.frame as ReplayFrame;
-      const nodeId = nodeIdRef.nodeId as number;
-
+  startTimestampMs,
+}: Args): Promise<Map<ReplayFrame, Extraction>> {
+  return replayerStepper({
+    frames,
+    rrwebEvents,
+    startTimestampMs,
+    shouldVisitFrame: frame => {
+      const nodeId = getNodeId(frame);
+      return nodeId !== undefined && nodeId !== -1;
+    },
+    onVisitFrame: (frame, collection, replayer) => {
+      const mirror = replayer.getMirror();
+      const nodeId = getNodeId(frame);
       const html = extractHtml(nodeId as number, mirror);
-      extractions.set(frame as ReplayFrame, {
+      collection.set(frame as ReplayFrame, {
         frame,
         html,
         timestamp: frame.timestampMs,
       });
-      nextOrDone();
-    };
-
-    const matchFrame = frame => {
-      nodeIdRef.frame = frame;
-      nodeIdRef.nodeId =
-        frame.data && 'nodeId' in frame.data ? frame.data.nodeId : undefined;
-
-      if (nodeIdRef.nodeId === undefined || nodeIdRef.nodeId === -1) {
-        nextOrDone();
-        return;
-      }
-
-      window.setTimeout(() => {
-        player.pause(frame.offsetMs);
-      }, 0);
-    };
-
-    player.on('pause', handlePause);
-    matchFrame(nextFrame());
+    },
   });
-}
-
-function createPlayer(rrwebEvents): Replayer {
-  const domRoot = document.createElement('div');
-  domRoot.className = 'sentry-block';
-  const {style} = domRoot;
-
-  style.position = 'fixed';
-  style.inset = '0';
-  style.width = '0';
-  style.height = '0';
-  style.overflow = 'hidden';
-
-  document.body.appendChild(domRoot);
-
-  const replayerRef = new Replayer(rrwebEvents, {
-    root: domRoot,
-    loadTimeout: 1,
-    showWarning: false,
-    blockClass: 'sentry-block',
-    speed: 99999,
-    skipInactive: true,
-    triggerFocus: false,
-    mouseTail: false,
-  });
-  return replayerRef;
 }
 
 function extractHtml(nodeId: number, mirror: Mirror): string | null {

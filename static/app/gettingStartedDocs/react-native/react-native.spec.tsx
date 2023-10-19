@@ -6,7 +6,7 @@ import {GettingStartedWithReactNative, steps} from './react-native';
 
 describe('GettingStartedWithDjango', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithReactNative dsn="test-dsn" />);
+    render(<GettingStartedWithReactNative dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithDjango', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

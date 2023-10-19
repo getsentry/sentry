@@ -1,3 +1,7 @@
+import {Organization} from 'sentry-fixture/organization';
+import {TeamAlertsTriggered} from 'sentry-fixture/teamAlertsTriggered';
+import {TeamResolutionTime} from 'sentry-fixture/teamResolutionTime';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -115,7 +119,7 @@ describe('TeamStatsHealth', () => {
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/alerts-triggered/`,
-      body: TestStubs.TeamAlertsTriggered(),
+      body: TeamAlertsTriggered(),
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/alerts-triggered-index/`,
@@ -123,7 +127,7 @@ describe('TeamStatsHealth', () => {
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/time-to-resolution/`,
-      body: TestStubs.TeamResolutionTime(),
+      body: TeamResolutionTime(),
     });
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -132,7 +136,7 @@ describe('TeamStatsHealth', () => {
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/alerts-triggered/`,
-      body: TestStubs.TeamAlertsTriggered(),
+      body: TeamAlertsTriggered(),
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/alerts-triggered-index/`,
@@ -140,7 +144,7 @@ describe('TeamStatsHealth', () => {
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/time-to-resolution/`,
-      body: TestStubs.TeamResolutionTime(),
+      body: TeamResolutionTime(),
     });
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -161,7 +165,7 @@ describe('TeamStatsHealth', () => {
     teams = teams ?? [team1, team2, team3];
     projects = projects ?? [project1, project2];
     ProjectsStore.loadInitialData(projects);
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       teams,
       projects,
     });

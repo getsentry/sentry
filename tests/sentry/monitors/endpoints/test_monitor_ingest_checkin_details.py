@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry.db.models import BoundedPositiveIntegerField
-from sentry.models import Environment
+from sentry.models.environment import Environment
 from sentry.monitors.constants import TIMEOUT
 from sentry.monitors.models import (
     CheckInStatus,
@@ -13,6 +13,7 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorStatus,
     MonitorType,
+    ScheduleType,
 )
 from sentry.testutils.cases import MonitorIngestTestCase
 from sentry.testutils.silo import region_silo_test
@@ -42,7 +43,12 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": "* * * * *"},
+            config={
+                "schedule_type": ScheduleType.CRONTAB,
+                "schedule": "* * * * *",
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
             date_added=timezone.now() - timedelta(minutes=1),
         )
 
@@ -90,6 +96,7 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
                 monitor_environment=monitor_environment,
                 project_id=self.project.id,
                 date_added=monitor.date_added,
+                status=CheckInStatus.IN_PROGRESS,
             )
 
             path = path_func(monitor.guid, checkin.guid)
@@ -113,7 +120,7 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             assert monitor_environment.next_checkin > checkin.date_added
             assert monitor_environment.next_checkin_latest > checkin.date_added
             assert monitor_environment.status == MonitorStatus.OK
-            assert monitor_environment.last_checkin > checkin.date_added
+            assert monitor_environment.last_checkin == checkin.date_added
 
     def test_passing_with_config(self):
         monitor = self._create_monitor()
@@ -148,7 +155,7 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             assert monitor_environment.next_checkin > checkin.date_added
             assert monitor_environment.next_checkin_latest > checkin.date_added
             assert monitor_environment.status == MonitorStatus.OK
-            assert monitor_environment.last_checkin > checkin.date_added
+            assert monitor_environment.last_checkin == checkin.date_added
 
     def test_passing_with_slug(self):
         monitor = self._create_monitor()
@@ -178,6 +185,7 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
                 monitor_environment=monitor_environment,
                 project_id=self.project.id,
                 date_added=monitor.date_added,
+                status=CheckInStatus.IN_PROGRESS,
             )
 
             path = path_func(monitor.guid, checkin.guid)
@@ -191,7 +199,7 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             assert monitor_environment.next_checkin > checkin.date_added
             assert monitor_environment.next_checkin_latest > checkin.date_added
             assert monitor_environment.status == MonitorStatus.ERROR
-            assert monitor_environment.last_checkin > checkin.date_added
+            assert monitor_environment.last_checkin == checkin.date_added
 
     def test_finished_values(self):
         monitor = self._create_monitor()
@@ -301,11 +309,14 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             checkin3 = MonitorCheckIn.objects.get(id=checkin3.id)
             assert checkin3.status == CheckInStatus.OK
 
+            checkin4 = MonitorCheckIn.objects.get(guid=resp.data["id"])
+            assert checkin4.status == CheckInStatus.OK
+
             monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
             assert monitor_environment.next_checkin > checkin2.date_added
             assert monitor_environment.next_checkin_latest > checkin2.date_added
             assert monitor_environment.status == MonitorStatus.OK
-            assert monitor_environment.last_checkin > checkin2.date_added
+            assert monitor_environment.last_checkin == checkin4.date_added
 
     def test_latest_with_no_unfinished_checkin(self):
         monitor = self._create_monitor()

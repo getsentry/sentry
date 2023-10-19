@@ -51,3 +51,10 @@ class RedisDetectorStore(DetectorStore):
     @staticmethod
     def get_redis_client() -> RedisCluster | StrictRedis:
         return redis.redis_clusters.get(settings.SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER)
+
+
+class TransactionDetectorStore(RedisDetectorStore):
+    @staticmethod
+    def make_key(payload: DetectorPayload):
+        # sdt = statistical detector transactions
+        return f"sdt:p:{payload.project_id}:t:{payload.group}"

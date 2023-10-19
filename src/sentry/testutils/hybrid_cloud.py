@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import functools
+import os
 import threading
 from typing import Any, Callable, Iterator, List, Set, Type, TypedDict
 
@@ -88,6 +89,10 @@ class SimulatedTransactionWatermarks(threading.local):
 simulated_transaction_watermarks = SimulatedTransactionWatermarks()
 
 
+class CrossTransactionAssertionError(AssertionError):
+    pass
+
+
 class EnforceNoCrossTransactionWrapper:
     alias: str
 
@@ -109,13 +114,14 @@ class EnforceNoCrossTransactionWrapper:
         # when celery tasks fire synchronously, or other work is done in a test that would normally be separated by
         # different connections / processes.  If you believe this is the case, context the #project-hybrid-cloud channel
         # for assistance.
-        assert (
-            len(open_transactions) < 2
-        ), f"Found mixed open transactions between dbs {open_transactions}"
-        if open_transactions:
-            assert (
-                self.alias in open_transactions
-            ), f"Transaction opened for db {open_transactions}, but command running against db {self.alias}"
+        if len(open_transactions) >= 2:
+            raise CrossTransactionAssertionError(
+                f"Found mixed open transactions between dbs {open_transactions}"
+            )
+        if open_transactions and not (self.alias in open_transactions):
+            raise CrossTransactionAssertionError(
+                f"Transaction opened for db {open_transactions}, but command running against db {self.alias}"
+            )
 
         return execute(*params)
 
@@ -246,5 +252,7 @@ def simulate_on_commit(request: Any):
 
 
 def use_split_dbs() -> bool:
-    # TODO: refactor out use_split_dbs() in any and all tests once split database is permanently set in stone.
-    return True
+    # TODO: refactor out use_split_dbs() in any and all tests once split database is permanently set
+    # in stone.
+    SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
+    return not SENTRY_USE_MONOLITH_DBS

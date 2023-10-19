@@ -1,5 +1,6 @@
 from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
-from sentry.models import Project, Rule
+from sentry.models.project import Project
+from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
@@ -83,8 +84,9 @@ class TeamProjectsCreateTest(APITestCase):
             name="1234",
             status_code=201,
         )
-
-        assert response.data["slug"].startswith("1234" + "-")
+        slug = response.data["slug"]
+        assert slug.startswith("1234-")
+        assert not slug.isdecimal()
 
     def test_invalid_platform(self):
         response = self.get_error_response(

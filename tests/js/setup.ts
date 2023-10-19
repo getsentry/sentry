@@ -10,6 +10,8 @@ import type {Location} from 'history';
 import MockDate from 'mockdate';
 import {object as propTypesObject} from 'prop-types';
 import {stringify} from 'query-string';
+import {Organization} from 'sentry-fixture/organization';
+import {Project} from 'sentry-fixture/project';
 
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
@@ -75,6 +77,7 @@ jest.mock('react-router', function reactRouterMockFactory() {
     },
   };
 });
+jest.mock('sentry/utils/search/searchBoxTextArea');
 
 jest.mock('react-virtualized', function reactVirtualizedMockFactory() {
   const ActualReactVirtualized = jest.requireActual('react-virtualized');
@@ -163,7 +166,7 @@ const routerFixtures = {
 
       return '';
     }),
-    location: TestStubs.location(),
+    location: routerFixtures.location(),
     createPath: jest.fn(),
     routes: [],
     params: {},
@@ -182,7 +185,7 @@ const routerFixtures = {
   }),
 
   routerProps: (params = {}) => ({
-    location: TestStubs.location(),
+    location: routerFixtures.location(),
     params: {},
     routes: [],
     stepBack: () => {},
@@ -192,7 +195,7 @@ const routerFixtures = {
   routeComponentProps: <RouteParams = {orgId: string; projectId: string}>(
     params: Partial<RouteComponentProps<RouteParams, {}>> = {}
   ): RouteComponentProps<RouteParams, {}> => {
-    const router = TestStubs.router(params);
+    const router = routerFixtures.router(params);
     return {
       location: router.location,
       params: router.params as RouteParams & {},
@@ -205,10 +208,10 @@ const routerFixtures = {
 
   routerContext: ([context, childContextTypes] = []) => ({
     context: {
-      location: TestStubs.location(),
-      router: TestStubs.router(),
-      organization: TestStubs.Organization(),
-      project: TestStubs.Project(),
+      location: routerFixtures.location(),
+      router: routerFixtures.router(),
+      organization: Organization(),
+      project: Project(),
       ...context,
     },
     childContextTypes: {
@@ -233,6 +236,8 @@ declare global {
   /**
    * Test stubs are automatically loaded from the fixtures/js-stubs
    * directory. Use these for setting up test data.
+   *
+   * @deprecated Please import test stubs directly and do not use this global.
    */
   // eslint-disable-next-line no-var
   var TestStubs: typeof fixtures;

@@ -60,17 +60,13 @@ from sentry.dynamic_sampling.tasks.common import get_organization_volume
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_org_sample_rate
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import convert_crashreport_count
-from sentry.models import (
-    Organization,
-    OrganizationAccessRequest,
-    OrganizationAvatar,
-    OrganizationOnboardingTask,
-    OrganizationOption,
-    OrganizationStatus,
-    Project,
-    Team,
-    TeamStatus,
-)
+from sentry.models.avatars.organization_avatar import OrganizationAvatar
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationonboardingtask import OrganizationOnboardingTask
+from sentry.models.project import Project
+from sentry.models.team import Team, TeamStatus
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import RpcOrganizationAuthConfig, auth_service
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
@@ -442,6 +438,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     aiSuggestedSolution: bool
     githubPRBot: bool
     githubOpenPRBot: bool
+    githubNudgeInvite: bool
     isDynamicallySampled: bool
 
 
@@ -553,6 +550,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 ),
                 "githubOpenPRBot": bool(
                     obj.get_option("sentry:github_open_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)
+                ),
+                "githubNudgeInvite": bool(
+                    obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
                 ),
             }
         )

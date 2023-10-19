@@ -21,23 +21,29 @@ import {
   SIX_HOURS,
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
+import CircleIndicator from 'sentry/components/circleIndicator';
 import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
   getAggregateAlias,
   getAggregateArg,
   getColumnsAndAggregates,
   isEquation,
   isMeasurement,
+  RATE_UNIT_MULTIPLIERS,
+  RateUnits,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {decodeList} from 'sentry/utils/queryString';
+import theme from 'sentry/utils/theme';
 import {
   DashboardDetails,
   DashboardFilterKeys,
@@ -47,6 +53,12 @@ import {
   WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+
+import ThresholdsHoverWrapper from './widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
+import {
+  ThresholdMaxKeys,
+  ThresholdsConfig,
+} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
 export type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
@@ -90,6 +102,86 @@ export function eventViewFromWidget(
     end: end ? getUtcDateString(end) : undefined,
     environment: environments,
   });
+}
+
+export function getThresholdUnitSelectOptions(
+  dataType: string
+): {label: string; value: string}[] {
+  if (dataType === 'duration') {
+    return Object.keys(DURATION_UNITS)
+      .map(unit => ({label: unit, value: unit}))
+      .slice(2);
+  }
+
+  if (dataType === 'rate') {
+    return Object.values(RateUnits).map(unit => ({
+      label: `/${unit.split('/')[1]}`,
+      value: unit,
+    }));
+  }
+
+  return [];
+}
+
+export function hasThresholdMaxValue(thresholdsConfig: ThresholdsConfig): boolean {
+  return Object.keys(thresholdsConfig.max_values).length > 0;
+}
+
+function normalizeUnit(value: number, unit: string, dataType: string): number {
+  const multiplier =
+    dataType === 'rate'
+      ? RATE_UNIT_MULTIPLIERS[unit]
+      : dataType === 'duration'
+      ? DURATION_UNITS[unit]
+      : 1;
+  return value * multiplier;
+}
+
+export function getColoredWidgetIndicator(
+  thresholds: ThresholdsConfig,
+  tableData: TableDataWithTitle[]
+): React.ReactNode {
+  const tableMeta = {...tableData[0].meta};
+  const fields = Object.keys(tableMeta);
+  const field = fields[0];
+  const dataType = tableMeta[field];
+  const dataUnit = tableMeta.units?.[field];
+  const dataRow = tableData[0].data[0];
+
+  if (!dataRow) {
+    return null;
+  }
+
+  const data = Number(dataRow[field]);
+  const normalizedData = dataUnit ? normalizeUnit(data, dataUnit, dataType) : data;
+
+  const {max_values} = thresholds;
+
+  let color = theme.red300;
+
+  const yellowMax = max_values[ThresholdMaxKeys.MAX_2];
+  const normalizedYellowMax =
+    thresholds.unit && yellowMax
+      ? normalizeUnit(yellowMax, thresholds.unit, dataType)
+      : yellowMax;
+  if (normalizedYellowMax && normalizedData <= normalizedYellowMax) {
+    color = theme.yellow300;
+  }
+
+  const greenMax = max_values[ThresholdMaxKeys.MAX_1];
+  const normalizedGreenMax =
+    thresholds.unit && greenMax
+      ? normalizeUnit(greenMax, thresholds.unit, dataType)
+      : greenMax;
+  if (normalizedGreenMax && normalizedData <= normalizedGreenMax) {
+    color = theme.green300;
+  }
+
+  return (
+    <ThresholdsHoverWrapper thresholds={thresholds} tableData={tableData}>
+      <CircleIndicator color={color} size={12} />
+    </ThresholdsHoverWrapper>
+  );
 }
 
 function coerceStringToArray(value?: string | string[] | null) {

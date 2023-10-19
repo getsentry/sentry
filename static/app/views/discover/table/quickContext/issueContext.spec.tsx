@@ -1,18 +1,14 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Repository} from 'sentry-fixture/repository';
+
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {EventData} from 'sentry/utils/discover/eventView';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 
 import IssueContext from './issueContext';
 import {defaultRow} from './testUtils';
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
-});
 
 let mockedGroup = TestStubs.Group({
   id: '3512441874',
@@ -32,9 +28,9 @@ let mockedGroup = TestStubs.Group({
 });
 
 const renderIssueContext = (dataRow: EventData = defaultRow) => {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   render(
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={makeTestQueryClient()}>
       <IssueContext dataRow={dataRow} organization={organization} />
     </QueryClientProvider>,
     {organization}
@@ -67,7 +63,6 @@ describe('Quick Context Content Issue Column', function () {
   });
 
   afterEach(function () {
-    queryClient.clear();
     MockApiClient.clearMockResponses();
   });
 
@@ -139,7 +134,7 @@ describe('Quick Context Content Issue Column', function () {
           message: 'feat(simulator): Add option for multiple squirrels (#1121)',
           id: 'ab2709293d0c9000829084ac7b1c9221fb18437c',
           dateCreated: '2012-09-08T04:15:12',
-          repository: TestStubs.Repository(),
+          repository: Repository(),
         },
       ],
     };
@@ -151,7 +146,7 @@ describe('Quick Context Content Issue Column', function () {
             'ref(simulator): Split leaderboard calculations into separate functions (#1231)',
           id: 'fe29668b24cea6faad8afb8f6d9417f402ef9c18',
           dateCreated: '2012-04-15T09:09:12',
-          repository: TestStubs.Repository(),
+          repository: Repository(),
         },
       ],
     };

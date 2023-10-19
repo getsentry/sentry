@@ -6,8 +6,8 @@ from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
 from sentry.middleware.integrations.parsers.bitbucket import BitbucketRequestParser
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.outbox import WebhookProviderIdentifier
-from sentry.services.hybrid_cloud.organization_mapping.service import organization_mapping_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_webhook_outboxes
@@ -65,8 +65,8 @@ class BitbucketRequestParserTest(TestCase):
         parser = BitbucketRequestParser(request=request, response_handler=self.get_response)
 
         # Missing region
-        organization_mapping_service.update(
-            organization_id=self.organization.id, update={"region_name": "eu"}
+        OrganizationMapping.objects.get(organization_id=self.organization.id).update(
+            region_name="eu"
         )
         with mock.patch.object(
             parser, "get_response_from_control_silo"
@@ -75,8 +75,9 @@ class BitbucketRequestParserTest(TestCase):
             assert get_response_from_control_silo.called
 
         # Valid region
-        organization_mapping_service.update(
-            organization_id=self.organization.id, update={"region_name": "us"}
+
+        OrganizationMapping.objects.get(organization_id=self.organization.id).update(
+            region_name="us"
         )
         with override_regions(self.region_config):
             parser.get_response()

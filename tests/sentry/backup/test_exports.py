@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import tempfile
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Type
 
-from sentry.backup.dependencies import normalize_model_name
-from sentry.backup.helpers import get_exportable_sentry_models
+from sentry.backup.comparators import get_default_comparators
+from sentry.backup.dependencies import NormalizedModelName, get_model, get_model_name
 from sentry.backup.scopes import ExportScope
+from sentry.backup.validate import validate
 from sentry.db import models
 from sentry.models.email import Email
 from sentry.models.organization import Organization
@@ -14,59 +16,123 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.models.userip import UserIP
-from sentry.testutils.helpers.backups import BackupTestCase, export_to_file
+from sentry.models.userpermission import UserPermission
+from sentry.models.userrole import UserRole, UserRoleUser
+from sentry.testutils.helpers.backups import (
+    BackupTestCase,
+    ValidationError,
+    export_to_encrypted_tarball,
+    export_to_file,
+)
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.json import JSONData
-from tests.sentry.backup import run_backup_tests_only_on_single_db
+from tests.sentry.backup import get_matching_exportable_models
 
 
 class ExportTestCase(BackupTestCase):
-    def export(self, tmp_dir, **kwargs) -> JSONData:
+    def export(
+        self,
+        tmp_dir,
+        *,
+        scope: ExportScope,
+        filter_by: set[str] | None = None,
+    ) -> JSONData:
         tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
-        return export_to_file(tmp_path, **kwargs)
+        return export_to_file(tmp_path, scope=scope, filter_by=filter_by)
+
+    def export_and_encrypt(
+        self,
+        tmp_dir,
+        *,
+        scope: ExportScope,
+        filter_by: set[str] | None = None,
+    ) -> JSONData:
+        tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.enc.tar")
+        return export_to_encrypted_tarball(tmp_path, scope=scope, filter_by=filter_by)
 
 
-@run_backup_tests_only_on_single_db
+@region_silo_test(stable=True)
 class ScopingTests(ExportTestCase):
     """
     Ensures that only models with the allowed relocation scopes are actually exported.
     """
 
     @staticmethod
-    def get_models_for_scope(scope: ExportScope) -> set[str]:
-        matching_models = set()
-        for model in get_exportable_sentry_models():
-            if model.__relocation_scope__ in scope.value:
-                obj_name = model._meta.object_name
-                if obj_name is not None:
-                    matching_models.add("sentry." + obj_name.lower())
-        return matching_models
+    def verify_model_inclusion(data: JSONData, scope: ExportScope) -> None:
+        """
+        Ensure all in-scope models are included, and that no out-of-scope models are included.
+        """
+        matching_models = get_matching_exportable_models(
+            lambda mr: len(mr.get_possible_relocation_scopes() & scope.value) > 0
+        )
+        unseen_models = deepcopy(matching_models)
 
+        for entry in data:
+            model_name = NormalizedModelName(entry["model"])
+            model = get_model(model_name)
+            if model is not None:
+                unseen_models.discard(model)
+                if model not in matching_models:
+                    raise AssertionError(
+                        f"Model `{model_name}` was included in export despite not containing one of these relocation scopes: {scope.value}"
+                    )
+
+        if unseen_models:
+            raise AssertionError(
+                f"The following models were not included in the export: ${unseen_models}; this is despite it being included in at least one of the following relocation scopes: {scope.value}"
+            )
+
+    def verify_encryption_equality(
+        self, tmp_dir: str, unencrypted: JSONData, scope: ExportScope
+    ) -> None:
+        res = validate(
+            unencrypted,
+            self.export_and_encrypt(tmp_dir, scope=scope),
+            get_default_comparators(),
+        )
+        if res.findings:
+            raise ValidationError(res)
+
+    @freeze_time("2023-10-11 18:00:00")
     def test_user_export_scoping(self):
-        matching_models = self.get_models_for_scope(ExportScope.User)
         self.create_exhaustive_instance(is_superadmin=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
-            data = self.export(tmp_dir, scope=ExportScope.User)
-            for entry in data:
-                model_name = entry["model"]
-                if model_name not in matching_models:
-                    raise AssertionError(
-                        f"Model `${model_name}` was included in export despite not being `Relocation.User`"
-                    )
+            unencrypted = self.export(tmp_dir, scope=ExportScope.User)
+            self.verify_model_inclusion(unencrypted, ExportScope.User)
+            assert unencrypted == self.export_and_encrypt(tmp_dir, scope=ExportScope.User)
 
+    @freeze_time("2023-10-11 18:00:00")
     def test_organization_export_scoping(self):
-        matching_models = self.get_models_for_scope(ExportScope.Organization)
         self.create_exhaustive_instance(is_superadmin=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
-            data = self.export(tmp_dir, scope=ExportScope.Organization)
-            for entry in data:
-                model_name = entry["model"]
-                if model_name not in matching_models:
-                    raise AssertionError(
-                        f"Model `${model_name}` was included in export despite not being `Relocation.User` or `Relocation.Organization`"
-                    )
+            unencrypted = self.export(tmp_dir, scope=ExportScope.Organization)
+            self.verify_model_inclusion(unencrypted, ExportScope.Organization)
+            assert unencrypted == self.export_and_encrypt(tmp_dir, scope=ExportScope.Organization)
+
+    @freeze_time("2023-10-11 18:00:00")
+    def test_config_export_scoping(self):
+        self.create_exhaustive_instance(is_superadmin=True)
+        self.create_exhaustive_user("admin", is_admin=True)
+        self.create_exhaustive_user("staff", is_staff=True)
+        self.create_exhaustive_user("superuser", is_superuser=True)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            unencrypted = self.export(tmp_dir, scope=ExportScope.Config)
+            self.verify_model_inclusion(unencrypted, ExportScope.Config)
+            assert unencrypted == self.export_and_encrypt(tmp_dir, scope=ExportScope.Config)
+
+    @freeze_time("2023-10-11 18:00:00")
+    def test_global_export_scoping(self):
+        self.create_exhaustive_instance(is_superadmin=True)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            unencrypted = self.export(tmp_dir, scope=ExportScope.Global)
+            self.verify_model_inclusion(unencrypted, ExportScope.Global)
+            assert unencrypted == self.export_and_encrypt(tmp_dir, scope=ExportScope.Global)
 
 
-@run_backup_tests_only_on_single_db
+# Filters should work identically in both silo and monolith modes, so no need to repeat the tests
+# here.
+@region_silo_test
 class FilteringTests(ExportTestCase):
     """
     Ensures that filtering operations include the correct models.
@@ -74,14 +140,14 @@ class FilteringTests(ExportTestCase):
 
     @staticmethod
     def count(data: JSONData, model: Type[models.base.BaseModel]) -> int:
-        return len(list(filter(lambda d: d["model"] == normalize_model_name(model).lower(), data)))
+        return len(list(filter(lambda d: d["model"] == str(get_model_name(model)), data)))
 
     @staticmethod
     def exists(
         data: JSONData, model: Type[models.base.BaseModel], key: str, value: Any | None = None
     ) -> bool:
         for d in data:
-            if d["model"] == normalize_model_name(model).lower():
+            if d["model"] == str(get_model_name(model)):
                 field = d["fields"].get(key)
                 if field is None:
                     continue
@@ -138,7 +204,7 @@ class FilteringTests(ExportTestCase):
         self.create_exhaustive_user("user_2")
 
         with tempfile.TemporaryDirectory() as tmp_dir:
-            data = self.export(tmp_dir, scope=ExportScope.User, filter_by={})
+            data = self.export(tmp_dir, scope=ExportScope.User, filter_by=set())
 
             assert len(data) == 0
 
@@ -231,13 +297,28 @@ class FilteringTests(ExportTestCase):
             data = self.export(
                 tmp_dir,
                 scope=ExportScope.Organization,
-                filter_by={},
+                filter_by=set(),
             )
 
-            assert self.count(data, Organization) == 0
-            assert self.count(data, OrgAuthToken) == 0
+            assert len(data) == 0
 
-            assert self.count(data, User) == 0
-            assert self.count(data, UserIP) == 0
-            assert self.count(data, UserEmail) == 0
-            assert self.count(data, Email) == 0
+    def test_export_keep_only_admin_users_in_config_scope(self):
+        self.create_exhaustive_user("regular")
+        self.create_exhaustive_user("admin", is_admin=True)
+        self.create_exhaustive_user("staff", is_staff=True)
+        self.create_exhaustive_user("superuser", is_staff=True)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            data = self.export(
+                tmp_dir,
+                scope=ExportScope.Config,
+            )
+
+            assert self.count(data, User) == 3
+            assert not self.exists(data, User, "username", "regular")
+            assert self.exists(data, User, "username", "admin")
+            assert self.exists(data, User, "username", "staff")
+            assert self.exists(data, User, "username", "superuser")
+            assert self.count(data, UserRole) == 1
+            assert self.count(data, UserRoleUser) == 1
+            assert self.count(data, UserPermission) == 1

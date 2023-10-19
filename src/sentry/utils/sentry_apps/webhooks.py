@@ -11,16 +11,16 @@ from sentry import audit_log, options
 from sentry.http import safe_urlopen
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
-from sentry.models import Organization
 from sentry.models.integrations.sentry_app import track_response_code
 from sentry.models.integrations.utils import get_redis_key, is_response_error, is_response_success
+from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 if TYPE_CHECKING:
     from sentry.api.serializers import AppPlatformEvent
-    from sentry.models import SentryApp
+    from sentry.models.integrations.sentry_app import SentryApp
 
 
 TIMEOUT_STATUS_CODE = 0

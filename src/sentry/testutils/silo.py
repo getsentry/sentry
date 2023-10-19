@@ -249,7 +249,7 @@ run twice as both REGION and MONOLITH modes.
 
 
 @contextmanager
-def assume_test_silo_mode(desired_silo: SiloMode) -> Any:
+def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) -> Any:
     """Potential swap the silo mode in a test class or factory, useful for creating multi SiloMode models and executing
     test code in a special silo context.
     In monolith mode, this context manager has no effect.
@@ -262,7 +262,7 @@ def assume_test_silo_mode(desired_silo: SiloMode) -> Any:
     given test mode.
     """
     # Only swapping the silo mode if we are already in a silo mode.
-    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+    if can_be_monolith and SiloMode.get_current_mode() == SiloMode.MONOLITH:
         desired_silo = SiloMode.MONOLITH
 
     overrides: MutableMapping[str, Any] = {}
@@ -303,7 +303,7 @@ def get_protected_operations() -> List[re.Pattern]:
                     continue
                 seen_models.add(fk_model)
                 _protected_operations.append(protected_table(fk_model._meta.db_table, "delete"))
-            if isinstance(model, ReplicatedControlModel) or isinstance(
+            if issubclass(model, ReplicatedControlModel) or issubclass(
                 model, ReplicatedRegionModel
             ):
                 _protected_operations.append(protected_table(model._meta.db_table, "insert"))
@@ -319,10 +319,6 @@ def get_protected_operations() -> List[re.Pattern]:
             protected_table("sentry_organizationmember", "insert"),
             protected_table("sentry_organizationmember", "update"),
             protected_table("sentry_organizationmember", "delete"),
-            protected_table("sentry_organization", "insert"),
-            protected_table("sentry_organization", "update"),
-            protected_table("sentry_organizationmapping", "insert"),
-            protected_table("sentry_organizationmapping", "update"),
             protected_table("sentry_organizationmembermapping", "insert"),
         ]
     )

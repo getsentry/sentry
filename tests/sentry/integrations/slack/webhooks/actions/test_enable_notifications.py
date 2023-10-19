@@ -2,7 +2,8 @@ from sentry.integrations.slack.webhooks.action import (
     ENABLE_SLACK_SUCCESS_MESSAGE,
     NO_IDENTITY_MESSAGE,
 )
-from sentry.models import Identity, NotificationSetting
+from sentry.models.identity import Identity
+from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.user import User
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.types.integrations import ExternalProviders

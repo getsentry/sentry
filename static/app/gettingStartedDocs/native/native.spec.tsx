@@ -6,7 +6,7 @@ import {GettingStartedWithNative, steps} from './native';
 
 describe('GettingStartedWithNative', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithNative dsn="test-dsn" />);
+    render(<GettingStartedWithNative dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithNative', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

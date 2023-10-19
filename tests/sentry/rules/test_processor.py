@@ -8,8 +8,10 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
-from sentry.models import GroupRuleStatus, GroupStatus, Rule
+from sentry.models.group import GroupStatus
+from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.types import ActionTargetType
 from sentry.rules import init_registry
@@ -20,8 +22,11 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.safe import safe_execute
+
+pytestmark = [requires_snuba]
 
 EMAIL_ACTION_DATA = {
     "id": "sentry.mail.actions.NotifyEmailAction",

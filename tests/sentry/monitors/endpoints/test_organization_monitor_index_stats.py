@@ -1,9 +1,8 @@
 from datetime import datetime, timedelta, timezone
 
-from freezegun import freeze_time
-
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn
 from sentry.testutils.cases import MonitorTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 
 

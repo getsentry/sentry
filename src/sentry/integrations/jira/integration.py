@@ -19,13 +19,11 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncMixin, ResolveSyncAction
-from sentry.models import (
-    ExternalIssue,
-    IntegrationExternalProject,
-    Organization,
-    OrganizationIntegration,
-    User,
-)
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration_external_project import IntegrationExternalProject
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.organization import Organization
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import (

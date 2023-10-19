@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from html import escape
 from typing import Any, Mapping
+from urllib.parse import urlencode
 
 from sentry_relay.processing import parse_release
 
-from sentry.models import Activity
+from sentry.models.activity import Activity
 from sentry.types.integrations import ExternalProviders
 
 from .base import GroupActivityNotification
@@ -25,7 +26,10 @@ class RegressionActivityNotification(GroupActivityNotification):
 
         if self.version:
             version_url = self.organization.absolute_url(
-                f"/organizations/{self.organization.slug}/releases/{self.version_parsed}/"
+                f"/organizations/{self.organization.slug}/releases/{self.version_parsed}/",
+                query=urlencode(
+                    {"referrer": self.metrics_key, "notification_uuid": self.notification_uuid}
+                ),
             )
 
             message += " in {version}"
@@ -40,7 +44,10 @@ class RegressionActivityNotification(GroupActivityNotification):
         text = "Issue marked as regression"
         if self.version:
             version_url = self.organization.absolute_url(
-                f"/organizations/{self.organization.slug}/releases/{self.version}/"
+                f"/organizations/{self.organization.slug}/releases/{self.version}/",
+                query=urlencode(
+                    {"referrer": self.metrics_key, "notification_uuid": self.notification_uuid}
+                ),
             )
             text += f" in release {self.format_url(text=self.version_parsed, url=version_url, provider=provider)}"
         return text

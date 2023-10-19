@@ -15,7 +15,8 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import projectcodeowners as projectcodeowners_serializers
-from sentry.models import Project, ProjectCodeOwners
+from sentry.models.project import Project
+from sentry.models.projectcodeowners import ProjectCodeOwners
 
 from . import ProjectCodeOwnerSerializer, ProjectCodeOwnersMixin
 

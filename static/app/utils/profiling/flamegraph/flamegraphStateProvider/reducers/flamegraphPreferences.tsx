@@ -7,7 +7,7 @@ export type FlamegraphColorCodings = [
   'by symbol name',
   'by library',
   'by recursion',
-  'by frequency'
+  'by frequency',
 ];
 
 export type FlamegraphSorting = Flamegraph['sort'];

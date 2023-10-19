@@ -12,7 +12,12 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EntrySpans, EntryType, Event} from 'sentry/types/event';
+import {
+  AggregateEventTransaction,
+  EntrySpans,
+  EntryType,
+  Event,
+} from 'sentry/types/event';
 
 type StartTimestamp = number;
 type EndTimestamp = number;
@@ -41,7 +46,7 @@ const TOP_N_SPANS = 4;
 type OpBreakdownType = OpStats[];
 
 type Props = {
-  event: Event;
+  event: Event | AggregateEventTransaction;
   operationNameFilters: ActiveOperationFilter;
   hideHeader?: boolean;
   topN?: number;
@@ -53,7 +58,10 @@ function OpsBreakdown({
   hideHeader = false,
   topN = TOP_N_SPANS,
 }: Props) {
-  const transactionEvent = event.type === 'transaction' ? event : undefined;
+  const transactionEvent =
+    event.type === 'transaction' || event.type === 'aggregateTransaction'
+      ? event
+      : undefined;
 
   function generateStats(): OpBreakdownType {
     if (!transactionEvent) {

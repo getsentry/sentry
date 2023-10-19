@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import hashlib
 import logging
-import re
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -23,11 +24,13 @@ from typing_extensions import NotRequired
 
 from sentry.api import event_search
 from sentry.api.event_search import AggregateFilter, ParenExpression, SearchFilter
-from sentry.constants import DataCategory
+from sentry.constants import APDEX_THRESHOLD_DEFAULT, DataCategory
 from sentry.discover.arithmetic import is_equation
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Project, ProjectTransactionThreshold, TransactionMetric
+from sentry.models.project import Project
+from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.search.events import fields
+from sentry.search.events.builder import UnresolvedQuery
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
@@ -82,7 +85,7 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
 }
 
 # Maps from Discover's syntax to Relay rule condition operators.
-_SEARCH_TO_RELAY_OPERATORS: Dict[str, "CompareOp"] = {
+_SEARCH_TO_RELAY_OPERATORS: Dict[str, CompareOp] = {
     "=": "eq",
     "!=": "eq",  # combined with external negation
     "<": "lt",
@@ -94,7 +97,7 @@ _SEARCH_TO_RELAY_OPERATORS: Dict[str, "CompareOp"] = {
 }
 
 # Maps from parsed count_if condition args to Relay rule condition operators.
-_COUNTIF_TO_RELAY_OPERATORS: Dict[str, "CompareOp"] = {
+_COUNTIF_TO_RELAY_OPERATORS: Dict[str, CompareOp] = {
     "equals": "eq",
     "notEquals": "eq",
     "less": "lt",
@@ -119,8 +122,11 @@ _SEARCH_TO_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
 
 # Maps plain Discover functions to derived metric functions which are understood by the metrics layer.
 _SEARCH_TO_DERIVED_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
+    "failure_count": "on_demand_failure_count",
     "failure_rate": "on_demand_failure_rate",
     "apdex": "on_demand_apdex",
+    "epm": "on_demand_epm",
+    "eps": "on_demand_eps",
 }
 
 # Mapping to infer metric type from Discover function.
@@ -134,9 +140,20 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "p95": "d",
     "p99": "d",
     # With on demand metrics, evaluated metrics are actually stored, thus we have to choose a concrete metric type.
+    "failure_count": "c",
     "failure_rate": "c",
     "apdex": "c",
+    "epm": "c",
+    "eps": "c",
 }
+
+_NO_ARG_METRICS = [
+    "on_demand_epm",
+    "on_demand_eps",
+    "on_demand_failure_count",
+    "on_demand_failure_rate",
+]
+_MULTIPLE_ARGS_METRICS = ["on_demand_apdex"]
 
 # Query fields that on their own do not require on-demand metric extraction but if present in an on-demand query
 # will be converted to metric extraction conditions.
@@ -153,7 +170,7 @@ _STANDARD_METRIC_FIELDS = [
     "browser.name",
     "os.name",
     "geo.country_code",
-    # These fields are skipped during on demand spec generation and will not be converted to metric extraction conditions
+    # These are skipped during on demand spec generation and will not be converted to metric extraction conditions
     "event.type",
     "project",
 ]
@@ -165,6 +182,10 @@ QueryOp = Literal["AND", "OR"]
 QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
 
 Variables = Dict[str, Any]
+
+query_builder = UnresolvedQuery(
+    dataset=Dataset.Discover, params={}
+)  # Workaround to get all updated discover functions instead of using the deprecated events fields.
 
 
 class ComparingRuleCondition(TypedDict):
@@ -281,8 +302,12 @@ def _get_aggregate_supported_by(aggregate: str) -> SupportedBy:
             # TODO(Ogi): Implement support for equations
             return SupportedBy.neither()
 
-        function, args, _ = fields.parse_function(aggregate)
+        match = fields.is_function(aggregate)
 
+        if not match:
+            raise InvalidSearchQuery(f"Invalid characters in field {aggregate}")
+
+        function, _, args, _ = query_builder.parse_function(match)
         function_support = _get_function_support(function)
         args_support = _get_args_support(function, args)
 
@@ -306,12 +331,12 @@ def _get_function_support(function: str) -> SupportedBy:
 
 
 def _get_args_support(function: str, args: Sequence[str]) -> SupportedBy:
-    # apdex can have two variations, either apdex() or apdex(value).
-    if function == "apdex" and len(args) < 2:
-        return SupportedBy.both()
-
     if len(args) == 0:
         return SupportedBy.both()
+
+    # apdex can have two variations, either apdex() or apdex(value).
+    if function == "apdex":
+        return SupportedBy(on_demand_metrics=True, standard_metrics=False)
 
     arg = args[0]
 
@@ -481,6 +506,22 @@ def _remove_on_demand_search_filters(tokens: Sequence[QueryToken]) -> Sequence[Q
     return ret_val
 
 
+def _remove_event_type_and_project_filter(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+    """
+    removes event.type: transaction and project:* from the query
+    """
+    ret_val: List[QueryToken] = []
+    for token in tokens:
+        if isinstance(token, SearchFilter):
+            if token.key.name not in ["event.type", "project"]:
+                ret_val.append(token)
+        elif isinstance(token, ParenExpression):
+            ret_val.append(ParenExpression(_remove_event_type_and_project_filter(token.children)))
+        else:
+            ret_val.append(token)
+    return ret_val
+
+
 def cleanup_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
     """
     Recreates a valid query from an original query that has had on demand search filters removed.
@@ -489,8 +530,8 @@ def cleanup_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
     For example removing the on demand filters from "transaction.duration:>=1s OR browser.version:1 AND environment:dev"
     would result in "OR AND environment:dev" which is not a valid query this should be cleaned to "environment:dev.
 
-    "release:internal and browser.version:1 or os.name:android" => "release:internal or and os.name:android" which would be
-    cleaned to "release:internal or os.name:android"
+    "release:internal and browser.version:1 or os.name:android" => "release:internal or and os.name:android" which
+    would be cleaned to "release:internal or os.name:android"
     """
     tokens = list(tokens)
 
@@ -546,10 +587,19 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
         return value
 
 
-TagsSpecsGenerator = Callable[[Project, Optional[str]], List[TagSpec]]
+TagsSpecsGenerator = Callable[[Project, Optional[Sequence[str]]], List[TagSpec]]
 
 
-def failure_rate_tag_spec(_1: Project, _2: Optional[str]) -> List[TagSpec]:
+def _get_threshold(arguments: Optional[Sequence[str]]) -> int:
+    # The widget does not allow NOT passing an argument but just in case
+    if not arguments:
+        raise Exception("Threshold parameter required.")
+
+    return int(arguments[0])
+
+
+def failure_tag_spec(_1: Project, _2: Optional[Sequence[str]]) -> List[TagSpec]:
+    """This specification tags transactions with a boolean saying if it failed."""
     return [
         {
             "key": "failure",
@@ -566,16 +616,9 @@ def failure_rate_tag_spec(_1: Project, _2: Optional[str]) -> List[TagSpec]:
     ]
 
 
-def apdex_tag_spec(project: Project, argument: Optional[str]) -> List[TagSpec]:
-    _, metric = _get_apdex_project_transaction_threshold(project)
-
-    # TODO: we can also opt to fallback on the db threshold in case it's not supplied, but we have to see if we want to
-    #  support that.
-    if argument is None:
-        raise Exception("apdex requires a threshold parameter.")
-
-    field = _map_field_name(metric)
-    apdex_threshold = int(argument)
+def apdex_tag_spec(project: Project, arguments: Optional[Sequence[str]]) -> list[TagSpec]:
+    apdex_threshold = _get_threshold(arguments)
+    field = _map_field_name(_get_satisfactory_threshold_and_metric(project)[1])
 
     return [
         {
@@ -602,20 +645,20 @@ def apdex_tag_spec(project: Project, argument: Optional[str]) -> List[TagSpec]:
     ]
 
 
-_DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator] = {
-    "on_demand_failure_rate": failure_rate_tag_spec,
+# This is used to map a metric to a function which generates a specification
+_DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator | None] = {
+    "on_demand_failure_count": failure_tag_spec,
+    "on_demand_failure_rate": failure_tag_spec,
     "on_demand_apdex": apdex_tag_spec,
+    "on_demand_epm": None,
+    "on_demand_eps": None,
 }
-
-
-def is_derived_metric(op: MetricOperationType) -> bool:
-    return op in _DERIVED_METRICS
 
 
 @dataclass(frozen=True)
 class FieldParsingResult:
     function: str
-    arguments: List[str]
+    arguments: Sequence[str]
     alias: str
 
 
@@ -639,26 +682,30 @@ class OnDemandMetricSpec:
 
     # Private fields.
     _metric_type: str
-    _argument: Optional[str]
+    _arguments: Sequence[str]
 
     def __init__(self, field: str, query: str):
         self.field = field
-        self.query = self._cleanup_query(query)
+        self.query = query
+        self._arguments = []
         self._eager_process()
 
     def _eager_process(self):
-        op, metric_type, argument = self._process_field()
+        op, metric_type, arguments = self._process_field()
 
         self.op = op
         self._metric_type = metric_type
-        self._argument = argument
+        self._arguments = arguments or []
 
     @property
     def field_to_extract(self):
-        if self.op == "on_demand_apdex":
+        if self.op in ("on_demand_apdex"):
             return None
 
-        return self._argument
+        if not self._arguments:
+            return None
+
+        return self._arguments[0]
 
     @cached_property
     def mri(self) -> str:
@@ -676,7 +723,7 @@ class OnDemandMetricSpec:
         # metrics.
         #
         # More specifically the hashing implementation will depend on the derived metric type:
-        # - failure rate -> hash the op
+        # - failure count & rate -> hash the op
         # - apdex -> hash the op + value
         #
         # The rationale for different hashing is complex to explain but the main idea is that if we hash the argument
@@ -684,12 +731,18 @@ class OnDemandMetricSpec:
         # with condition `f` and this will create a problem, since we might already have data for the `count()` and when
         # `apdex()` is created in the UI, we will use that metric but that metric didn't extract in the past the tags
         # that are used for apdex calculation, effectively causing problems with the data.
-        if self.op == "on_demand_failure_rate":
+        if self.op in _NO_ARG_METRICS:
             return self.op
-        elif self.op == "on_demand_apdex":
-            return f"{self.op}:{self._argument}"
+        elif self.op in _MULTIPLE_ARGS_METRICS:
+            ret_val = f"{self.op}"
+            for arg in self._arguments:
+                ret_val += f":{arg}"
+            return ret_val
 
-        return self._argument
+        if not self._arguments:
+            return None
+
+        return self._arguments[0]
 
     def _query_for_hash(self):
         # In order to reduce the amount of metric being extracted, we perform a sort of the conditions tree. This
@@ -698,7 +751,7 @@ class OnDemandMetricSpec:
         return str(_deep_sorted(self.condition))
 
     @cached_property
-    def condition(self) -> RuleCondition:
+    def condition(self) -> Optional[RuleCondition]:
         """Returns a parent condition containing a list of other conditions which determine whether of not the metric
         is extracted."""
         return self._process_query()
@@ -709,7 +762,7 @@ class OnDemandMetricSpec:
         if tags_specs_generator is None:
             return []
 
-        return tags_specs_generator(project, self._argument)
+        return tags_specs_generator(project, self._arguments)
 
     def to_metric_spec(self, project: Project) -> MetricSpec:
         """Converts the OndemandMetricSpec into a MetricSpec that Relay can understand."""
@@ -717,15 +770,20 @@ class OnDemandMetricSpec:
         extended_tags_conditions = self.tags_conditions(project).copy()
         extended_tags_conditions.append({"key": QUERY_HASH_KEY, "value": self.query_hash})
 
-        return {
+        metric_spec: MetricSpec = {
             "category": DataCategory.TRANSACTION.api_name(),
             "mri": self.mri,
             "field": self.field_to_extract,
-            "condition": self.condition,
             "tags": extended_tags_conditions,
         }
 
-    def _process_field(self) -> Tuple[MetricOperationType, str, Optional[str]]:
+        condition = self.condition
+        if condition is not None:
+            metric_spec["condition"] = condition
+
+        return metric_spec
+
+    def _process_field(self) -> Tuple[MetricOperationType, str, Optional[Sequence[str]]]:
         parsed_field = self._parse_field(self.field)
         if parsed_field is None:
             raise Exception(f"Unable to parse the field {self.field}")
@@ -733,57 +791,67 @@ class OnDemandMetricSpec:
         op = self._get_op(parsed_field.function)
         metric_type = self._get_metric_type(parsed_field.function)
 
-        return op, metric_type, self._parse_argument(op, metric_type, parsed_field)
+        return op, metric_type, self._parse_arguments(op, metric_type, parsed_field)
 
-    def _process_query(self) -> RuleCondition:
+    def _process_query(self) -> Optional[RuleCondition]:
         parsed_field = self._parse_field(self.field)
         if parsed_field is None:
             raise Exception(f"Unable to parse the field {self.field}")
 
-        # We have to handle the special case for the "count_if" function, however it may be better to build some
-        # better abstracted code to handle third-party rule conditions injection.
-        count_if_rule_condition = None
-        if parsed_field.function == "count_if":
-            key, op, value = parsed_field.arguments
-            count_if_rule_condition = _convert_countif_filter(key, op, value)
-
         # First step is to parse the query string into our internal AST format.
         parsed_query = self._parse_query(self.query)
+        # Second step is to extract the conditions that might be present in the aggregate function.
+        aggregate_conditions = self._aggregate_conditions(parsed_field)
+
         # An on demand metric must have at least a condition, otherwise we can just use a classic metric.
         if parsed_query is None or len(parsed_query.conditions) == 0:
-            if count_if_rule_condition is None:
+            if aggregate_conditions is None:
+                # derived metrics have their conditions injected in the tags
+                if self._get_op(parsed_field.function) in _DERIVED_METRICS:
+                    return None
                 raise Exception("This query should not use on demand metrics")
 
-            return count_if_rule_condition
+            return aggregate_conditions
 
-        # Second step is to generate the actual Relay rule that contains all rules nested.
+        # Third step is to generate the actual Relay rule that contains all rules nested.
         rule_condition = SearchQueryConverter(parsed_query.conditions).convert()
-        if not count_if_rule_condition:
+        if not aggregate_conditions:
             return rule_condition
 
         # In case we have a top level rule which is not an "and" we have to wrap it.
         if rule_condition["op"] != "and":
-            return {"op": "and", "inner": [rule_condition, count_if_rule_condition]}
+            return {"op": "and", "inner": [rule_condition, aggregate_conditions]}
 
         # In the other case, we can just flatten the conditions.
-        rule_condition["inner"].append(count_if_rule_condition)
+        rule_condition["inner"].append(aggregate_conditions)
         return rule_condition
 
     @staticmethod
-    def _parse_argument(
+    def _aggregate_conditions(parsed_field) -> Optional[RuleCondition]:
+        # We have to handle the special case for the "count_if" function, however it may be better to build some
+        # better abstracted code to handle third-party rule conditions injection.
+        if parsed_field.function == "count_if":
+            key, op, value = parsed_field.arguments
+            return _convert_countif_filter(key, op, value)
+
+        return None
+
+    @staticmethod
+    def _parse_arguments(
         op: MetricOperationType, metric_type: str, parsed_field: FieldParsingResult
-    ) -> Optional[str]:
-        requires_single_argument = metric_type in ["s", "d"] or op in ["on_demand_apdex"]
-        if not requires_single_argument:
+    ) -> Optional[Sequence[str]]:
+        requires_arguments = metric_type in ["s", "d"] or op in _MULTIPLE_ARGS_METRICS
+        if not requires_arguments:
             return None
 
-        if len(parsed_field.arguments) != 1:
-            raise Exception(f"The operation {op} supports only a single parameter")
+        if len(parsed_field.arguments) == 0:
+            raise Exception(f"The operation {op} supports one or more parameters")
 
-        argument = parsed_field.arguments[0]
-        map_argument = op not in ["on_demand_apdex"]
+        arguments = parsed_field.arguments
+        map_argument = op not in _MULTIPLE_ARGS_METRICS
 
-        return _map_field_name(argument) if map_argument else argument
+        first_argument = arguments[0]
+        return [_map_field_name(first_argument)] if map_argument else arguments
 
     @staticmethod
     def _get_op(function: str) -> MetricOperationType:
@@ -803,29 +871,36 @@ class OnDemandMetricSpec:
 
         raise Exception(f"Unsupported aggregate function {function}")
 
-    @staticmethod
-    def _cleanup_query(query: str) -> str:
-        regexes = [r"event\.type:transaction\s*", r"project:[\w\d\"\-_]+\s*"]
-
-        new_query = query
-        for regex in regexes:
-            new_query = re.sub(regex, "", new_query)
-
-        return new_query
+    # @staticmethod
+    # def _cleanup_query(query: str) -> str:
+    #     regexes = [r"event\.type:transaction\s*", r"project:[\w\d\"\-_]+\s*"]
+    #
+    #     new_query = query
+    #     for regex in regexes:
+    #         new_query = re.sub(regex, "", new_query)
+    #
+    #     return new_query
 
     @staticmethod
     def _parse_field(value: str) -> Optional[FieldParsingResult]:
         try:
-            function, arguments, alias = fields.parse_function(value)
+            match = fields.is_function(value)
+
+            if not match:
+                raise InvalidSearchQuery(f"Invalid characters in field {value}")
+
+            function, _, arguments, alias = query_builder.parse_function(match)
             return FieldParsingResult(function=function, arguments=arguments, alias=alias)
         except InvalidSearchQuery:
             return None
 
     @staticmethod
     def _parse_query(value: str) -> Optional[QueryParsingResult]:
+        """Parse query string into our internal AST format."""
         try:
             conditions = event_search.parse_search_query(value)
-            return QueryParsingResult(conditions=conditions)
+            clean_conditions = cleanup_query(_remove_event_type_and_project_filter(conditions))
+            return QueryParsingResult(conditions=clean_conditions)
         except InvalidSearchQuery:
             return None
 
@@ -858,7 +933,7 @@ def _map_field_name(search_key: str) -> str:
 
     # Measurements support generic access.
     if search_key.startswith("measurements."):
-        return f"event.{search_key}"
+        return f"event.{search_key}.value"
 
     # Run a schema-aware check for tags. Always use the resolver output,
     # since it accounts for passing `tags[foo]` as key.
@@ -869,7 +944,9 @@ def _map_field_name(search_key: str) -> str:
     raise ValueError(f"Unsupported query field {search_key}")
 
 
-def _get_apdex_project_transaction_threshold(project: Project) -> Tuple[int, str]:
+def _get_satisfactory_threshold_and_metric(project: Project) -> Tuple[int, str]:
+    """It returns the statisfactory response time threshold for the project and
+    the associated metric ("transaction.duration" or "measurements.lcp")."""
     result = ProjectTransactionThreshold.filter(
         organization_id=project.organization.id,
         project_ids=[project.id],
@@ -879,11 +956,11 @@ def _get_apdex_project_transaction_threshold(project: Project) -> Tuple[int, str
 
     if len(result) == 0:
         # We use the default threshold shown in the UI.
-        threshold = 300
+        threshold = APDEX_THRESHOLD_DEFAULT
         metric = TransactionMetric.DURATION.value
     else:
-        # We technically don't use this threshold since we extract it from the apdex(x) field where x is the threshold,
-        # but we still return it to have it in case a fallback will be needed.
+        # We technically don't use this threshold since we extract it from the apdex(x) field
+        # where x is the threshold, however, we still return it in case a fallback is needed.
         threshold, metric = result[0]
 
     if metric == TransactionMetric.DURATION.value:
@@ -1002,9 +1079,11 @@ class SearchQueryConverter:
                 "value": [value],
             }
         else:
-            # Special case: `x != ""` is the result of a `has:x` query, which
-            # needs to be translated as `not(x == null)`.
-            if token.operator == "!=" and value == "":
+            # Special case for the `has` and `!has` operators which are parsed as follows:
+            # - `has:x` -> `x != ""`
+            # - `!has:x` -> `x = ""`
+            # They both need to be translated to `x not eq null` and `x eq null`.
+            if token.operator in ("!=", "=") and value == "":
                 value = None
 
             if isinstance(value, str):

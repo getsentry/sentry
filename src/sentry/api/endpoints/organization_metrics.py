@@ -13,11 +13,11 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import string_to_use_case_id
 from sentry.snuba.metrics import (
     QueryDefinition,
+    get_all_tags,
     get_metrics_meta,
     get_series,
     get_single_metric_info,
     get_tag_values,
-    get_tags,
 )
 from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricParseException
 from sentry.snuba.sessions_v2 import InvalidField
@@ -66,8 +66,8 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     def get(self, request: Request, organization, metric_name) -> Response:
-
         projects = self.get_projects(request, organization)
+
         try:
             metric = get_single_metric_info(
                 projects,
@@ -94,19 +94,18 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
 
     If the ``metric`` query param is provided more than once, the *intersection*
     of available tags is used.
-
     """
 
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     def get(self, request: Request, organization) -> Response:
-
-        metrics = request.GET.getlist("metric") or []
+        metric_names = request.GET.getlist("metric") or []
         projects = self.get_projects(request, organization)
+
         try:
-            tags = get_tags(
+            tags = get_all_tags(
                 projects,
-                metrics,
+                metric_names,
                 use_case_id=get_use_case_id(request),
             )
         except (InvalidParams, DerivedMetricParseException) as exc:
@@ -125,10 +124,9 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     def get(self, request: Request, organization, tag_name) -> Response:
-
         metric_names = request.GET.getlist("metric") or None
-
         projects = self.get_projects(request, organization)
+
         try:
             tag_values = get_tag_values(
                 projects,
@@ -137,12 +135,7 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
                 use_case_id=get_use_case_id(request),
             )
         except (InvalidParams, DerivedMetricParseException) as exc:
-            msg = str(exc)
-            # TODO: Use separate error type once we have real data
-            if "Unknown tag" in msg:
-                raise ResourceDoesNotExist(f"tag '{tag_name}'")
-            else:
-                raise ParseError(msg)
+            raise ParseError(str(exc))
 
         return Response(tag_values, status=200)
 

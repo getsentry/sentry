@@ -137,7 +137,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   get chartQuery(): string {
     const {query, eventTypes, dataset} = this.state;
     const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
-    const queryWithTypeFilter = `${query} ${eventTypeFilter}`.trim();
+    const queryWithTypeFilter = (
+      query ? `(${query}) AND (${eventTypeFilter})` : eventTypeFilter
+    ).trim();
     return isCrashFreeAlert(dataset) ? query : queryWithTypeFilter;
   }
 
@@ -605,7 +607,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       transaction.setTag('operation', !rule.id ? 'create' : 'edit');
       for (const trigger of sanitizedTriggers) {
         for (const action of trigger.actions) {
-          if (action.type === 'slack') {
+          if (action.type === 'slack' || action.type === 'discord') {
             transaction.setTag(action.type, true);
           }
         }
@@ -634,7 +636,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             : {}),
           // Remove eventTypes as it is no longer required for crash free
           eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
-          dataset: this.state.dataset,
+          dataset: this.determinePerformanceDataset(),
         },
         {
           duplicateRule: this.isDuplicateRule ? 'true' : 'false',
@@ -790,7 +792,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const {isExtrapolatedData} = data ?? {};
 
     this.setState({isExtrapolatedChartData: Boolean(isExtrapolatedData)});
-    if (!isOnDemandMetricAlert(this.state.dataset, this.state.query)) {
+
+    const {dataset, aggregate, query} = this.state;
+    if (!isOnDemandMetricAlert(dataset, aggregate, query)) {
       this.handleMEPAlertDataset(data);
     }
   };
@@ -805,6 +809,24 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       return dataset;
     }
     return Dataset.GENERIC_METRICS;
+  };
+
+  // We are not allowing the creation of new transaction alerts
+  determinePerformanceDataset = () => {
+    // TODO: once all alerts are migrated to MEP, we can set the default to GENERIC_METRICS and remove this as well as
+    // logic in handleMEPDataset, handleTimeSeriesDataFetched and checkOnDemandMetricsDataset
+    const {dataset} = this.state;
+    const {ruleId, organization} = this.props;
+    const hasMetricsFeatureFlags =
+      organization.features.includes('mep-rollout-flag') ||
+      organization.features.includes('on-demand-metrics-extraction');
+
+    const isCreatingRule = !ruleId;
+
+    if (isCreatingRule && hasMetricsFeatureFlags && dataset === Dataset.TRANSACTIONS) {
+      return Dataset.GENERIC_METRICS;
+    }
+    return dataset;
   };
 
   renderLoading() {
@@ -832,8 +854,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       location,
     } = this.state;
 
-    const onDemandMetricsAlert = isOnDemandMetricAlert(dataset, query);
-
     const chartProps = {
       organization,
       projects: [project],
@@ -850,7 +870,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       comparisonDelta,
       comparisonType,
       isQueryValid,
-      isOnDemandMetricAlert: onDemandMetricsAlert,
+      isOnDemandMetricAlert: isOnDemandMetricAlert(dataset, aggregate, query),
       onDataLoaded: this.handleTimeSeriesDataFetched,
     };
 
@@ -1032,7 +1052,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 }
 
 const Main = styled(Layout.Main)`
-  padding: ${space(2)} ${space(4)};
+  max-width: 1000px;
 `;
 
 const StyledListItem = styled(ListItem)`

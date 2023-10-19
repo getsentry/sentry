@@ -1,4 +1,6 @@
 import moment from 'moment';
+import {MissingMembers} from 'sentry-fixture/missingMembers';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -7,7 +9,7 @@ import {InviteBanner} from 'sentry/views/settings/organizationMembers/inviteBann
 
 const missingMembers = {
   integration: 'github',
-  users: TestStubs.MissingMembers(),
+  users: MissingMembers(),
 };
 
 const noMissingMembers = {
@@ -34,8 +36,9 @@ describe('inviteBanner', function () {
   });
 
   it('render banners with feature flag', async function () {
-    const org = TestStubs.Organization({
+    const org = Organization({
       features: ['integrations-gh-invite'],
+      githubNudgeInvite: true,
     });
 
     render(
@@ -58,7 +61,7 @@ describe('inviteBanner', function () {
   });
 
   it('does not render banner if no feature flag', function () {
-    const org = TestStubs.Organization({
+    const org = Organization({
       features: [],
     });
 
@@ -80,7 +83,7 @@ describe('inviteBanner', function () {
   });
 
   it('does not render banner if no missing members', function () {
-    const org = TestStubs.Organization({
+    const org = Organization({
       features: ['integrations-gh-invite'],
     });
 
@@ -102,7 +105,7 @@ describe('inviteBanner', function () {
   });
 
   it('does not render banner if lacking org:write', function () {
-    const org = TestStubs.Organization({
+    const org = Organization({
       features: ['integrations-gh-invite'],
       access: [],
     });
@@ -125,8 +128,9 @@ describe('inviteBanner', function () {
   });
 
   it('renders banner if snoozed_ts days is longer than threshold', async function () {
-    const org = TestStubs.Organization({
+    const org = Organization({
       features: ['integrations-gh-invite'],
+      githubNudgeInvite: true,
     });
     const promptResponse = {
       dismissed_ts: undefined,
@@ -159,8 +163,9 @@ describe('inviteBanner', function () {
   });
 
   it('does not render banner if snoozed_ts days is shorter than threshold', function () {
-    const org = TestStubs.Organization({
+    const org = Organization({
       features: ['integrations-gh-invite'],
+      githubNudgeInvite: true,
     });
     const promptResponse = {
       dismissed_ts: undefined,

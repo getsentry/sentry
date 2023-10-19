@@ -2,20 +2,22 @@ from __future__ import annotations
 
 from time import time
 from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Sequence, Union
+from urllib.parse import quote
 
 from requests import PreparedRequest
 from rest_framework.response import Response
 
 from sentry.exceptions import InvalidIdentity
 from sentry.integrations.client import ApiClient
-from sentry.models import Identity
+from sentry.models.identity import Identity
+from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
-    from sentry.models import Project
+    from sentry.models.project import Project
 
 UNSET = object()
 
@@ -46,6 +48,8 @@ class VstsApiPath:
     commits_batch = "{instance}_apis/git/repositories/{repo_id}/commitsBatch"
     # https://learn.microsoft.com/en-us/rest/api/azure/devops/git/commits/get-changes
     commits_changes = "{instance}_apis/git/repositories/{repo_id}/commits/{commit_id}/changes"
+    # https://learn.microsoft.com/en-us/rest/api/azure/devops/git/items/get
+    items = "{instance}{project}/_apis/git/repositories/{repo_id}/items"
     # https://learn.microsoft.com/en-us/rest/api/azure/devops/core/projects/get
     project = "{instance}_apis/projects/{project_id}"
     # https://learn.microsoft.com/en-us/rest/api/azure/devops/core/projects/list
@@ -412,4 +416,18 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
             VstsApiPath.work_item_search.format(account_name=account_name),
             data={"searchText": query, "$top": 1000},
             api_preview=True,
+        )
+
+    def check_file(self, repo: Repository, path: str, version: str) -> Optional[str]:
+        return self.get_cached(
+            path=VstsApiPath.items.format(
+                instance=repo.config["instance"],
+                project=quote(repo.config["project"]),
+                repo_id=quote(repo.config["name"]),
+            ),
+            params={
+                "path": path,
+                "api-version": "7.0",
+                "versionDescriptor.version": version,
+            },
         )

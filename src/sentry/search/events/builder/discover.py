@@ -53,7 +53,10 @@ from sentry.discover.arithmetic import (
     strip_equation,
 )
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.models import Environment, Organization, Project, Team
+from sentry.models.environment import Environment
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.search.events import constants, fields
 from sentry.search.events import filter as event_filter
 from sentry.search.events.datasets.base import DatasetConfig
@@ -98,6 +101,8 @@ from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCAR
 class BaseQueryBuilder:
     requires_organization_condition: bool = False
     organization_column: str = "organization.id"
+    function_alias_prefix: str | None = None
+    spans_metrics_builder = False
 
     def get_middle(self):
         """Get the middle for comparison functions"""
@@ -124,13 +129,6 @@ class BaseQueryBuilder:
                 Function("toDateTime", [self.get_middle()]),
             ],
         )
-
-
-class QueryBuilder(BaseQueryBuilder):
-    """Builds a discover query"""
-
-    function_alias_prefix: str | None = None
-    spans_metrics_builder = False
 
     def _dataclass_params(
         self, snuba_params: Optional[SnubaParams], params: ParamsType
@@ -236,7 +234,14 @@ class QueryBuilder(BaseQueryBuilder):
         org_id = self.organization_id or (
             self.params.organization.id if self.params.organization else None
         )
-        self.tenant_ids = {"organization_id": org_id} if org_id else None
+        self.tenant_ids = dict()
+        if org_id is not None:
+            self.tenant_ids["organization_id"] = org_id
+        use_case_id = params.get("use_case_id")
+        if use_case_id is not None:
+            self.tenant_ids["use_case_id"] = use_case_id
+        if not self.tenant_ids:
+            self.tenant_ids = None
 
         # Function is a subclass of CurriedFunction
         self.where: List[WhereType] = []
@@ -289,9 +294,6 @@ class QueryBuilder(BaseQueryBuilder):
 
     def are_columns_resolved(self) -> bool:
         return self.columns and isinstance(self.columns[0], Function)
-
-    def get_default_converter(self) -> Callable[[event_search.SearchFilter], Optional[WhereType]]:
-        return self._default_filter_converter
 
     def resolve_time_conditions(self) -> None:
         if self.builder_config.skip_time_conditions:
@@ -546,7 +548,7 @@ class QueryBuilder(BaseQueryBuilder):
     def resolve_boolean_condition(
         self, term: event_filter.ParsedTerm
     ) -> Tuple[List[WhereType], List[WhereType]]:
-        if isinstance(term, event_filter.ParenExpression):
+        if isinstance(term, event_search.ParenExpression):
             return self.resolve_boolean_conditions(term.children)
 
         where, having = [], []
@@ -668,7 +670,6 @@ class QueryBuilder(BaseQueryBuilder):
             if resolved_column not in self.columns:
                 resolved_columns.append(resolved_column)
 
-        # Happens after resolving columns to check if there any aggregates
         if self.builder_config.auto_fields:
             # Ensure fields we require to build a functioning interface
             # are present.
@@ -686,15 +687,6 @@ class QueryBuilder(BaseQueryBuilder):
         """
         tag_match = constants.TAG_KEY_RE.search(raw_field)
         field = tag_match.group("tag") if tag_match else raw_field
-
-        if field == "group_id":
-            # We don't expose group_id publicly, so if a user requests it
-            # we expect it is a custom tag. Convert it to tags[group_id]
-            # and ensure it queries tag data
-            # These maps are updated so the response can be mapped back to group_id
-            self.tag_to_prefixed_map["group_id"] = "tags[group_id]"
-            self.prefixed_to_tag_map["tags[group_id]"] = "group_id"
-            raw_field = "tags[group_id]"
 
         if constants.VALID_FIELD_PATTERN.match(field):
             return self.aliased_column(raw_field) if alias else self.column(raw_field)
@@ -796,13 +788,6 @@ class QueryBuilder(BaseQueryBuilder):
 
         params to this function should match that of resolve_function
         """
-        if function in constants.TREND_FUNCTION_TYPE_MAP:
-            # HACK: Don't invalid query here if we don't recognize the function
-            # this is cause non-snql tests still need to run and will check here
-            # TODO: once non-snql is removed and trends has its own builder this
-            # can be removed
-            return constants.TREND_FUNCTION_TYPE_MAP.get(function)
-
         resolved_function = self.resolve_function(function, resolve_only=True)
 
         if not isinstance(resolved_function, Function) or resolved_function.alias is None:
@@ -829,28 +814,6 @@ class QueryBuilder(BaseQueryBuilder):
                 self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
             return snql_function.snql_aggregate(arguments, alias)
         return None
-
-    def resolve_division(
-        self, dividend: SelectType, divisor: SelectType, alias: str, fallback: Optional[Any] = None
-    ) -> SelectType:
-        return Function(
-            "if",
-            [
-                Function(
-                    "greater",
-                    [divisor, 0],
-                ),
-                Function(
-                    "divide",
-                    [
-                        dividend,
-                        divisor,
-                    ],
-                ),
-                fallback,
-            ],
-            alias,
-        )
 
     def resolve_equation(self, equation: Operation, alias: Optional[str] = None) -> SelectType:
         """Convert this tree of Operations to the equivalent snql functions"""
@@ -1038,13 +1001,7 @@ class QueryBuilder(BaseQueryBuilder):
     def get_field_type(self, field: str) -> Optional[str]:
         if field in self.meta_resolver_map:
             return self.meta_resolver_map[field]
-        if (
-            field == "transaction.duration"
-            or is_duration_measurement(field)
-            or is_span_op_breakdown(field)
-        ):
-            return "duration"
-        elif is_percentage_measurement(field):
+        if is_percentage_measurement(field):
             return "percentage"
         elif is_numeric_measurement(field):
             return "number"
@@ -1118,7 +1075,7 @@ class QueryBuilder(BaseQueryBuilder):
                     if len(conflicting_functions) > 2
                     else ""
                 )
-                alias = column.name if type(column) == Column else column.alias
+                alias = column.name if isinstance(column, Column) else column.alias
                 raise InvalidSearchQuery(
                     f"A single field cannot be used both inside and outside a function in the same query. To use {alias} you must first remove the function(s): {function_msg}"
                 )
@@ -1185,21 +1142,7 @@ class QueryBuilder(BaseQueryBuilder):
         return parsed_terms
 
     def format_search_filter(self, term: event_search.SearchFilter) -> Optional[WhereType]:
-        """For now this function seems a bit redundant inside QueryFilter but
-        most of the logic from the existing format_search_filter hasn't been
-        converted over yet
-        """
-        name = term.key.name
-
-        converted_filter = self.convert_search_filter_to_condition(
-            event_search.SearchFilter(
-                # We want to use group_id elsewhere so shouldn't be removed from the dataset
-                # but if a user has a tag with the same name we want to make sure that works
-                event_search.SearchKey("tags[group_id]" if name == "group_id" else name),
-                term.operator,
-                term.value,
-            )
-        )
+        converted_filter = self.convert_search_filter_to_condition(term)
         return converted_filter if converted_filter else None
 
     def _combine_conditions(
@@ -1265,10 +1208,10 @@ class QueryBuilder(BaseQueryBuilder):
         if name in constants.NO_CONVERSION_FIELDS:
             return None
 
-        converter = self.search_filter_converter.get(name, self._default_filter_converter)
+        converter = self.search_filter_converter.get(name, self.default_filter_converter)
         return converter(search_filter)
 
-    def _default_filter_converter(
+    def default_filter_converter(
         self, search_filter: event_search.SearchFilter
     ) -> Optional[WhereType]:
         name = search_filter.key.name
@@ -1312,36 +1255,6 @@ class QueryBuilder(BaseQueryBuilder):
         # last_seen needs an integer
         if isinstance(value, datetime) and name not in constants.TIMESTAMP_FIELDS:
             value = int(to_timestamp(value)) * 1000
-
-        if name in {"trace.span", "trace.parent_span"}:
-            if search_filter.value.is_wildcard():
-                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
-            if not search_filter.value.is_span_id():
-                raise InvalidSearchQuery(INVALID_SPAN_ID.format(name))
-
-        # Validate event ids, trace ids, and profile ids are uuids
-        if name in {"id", "trace", "profile.id"}:
-            if search_filter.value.is_wildcard():
-                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
-            elif not search_filter.value.is_event_id():
-                if name == "trace":
-                    label = "Filter Trace ID"
-                elif name == "profile.id":
-                    label = "Filter Profile ID"
-                else:
-                    label = "Filter ID"
-                raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))
-
-        if name in constants.TIMESTAMP_FIELDS:
-            if (
-                operator in ["<", "<="]
-                and value < self.start
-                or operator in [">", ">="]
-                and value > self.end
-            ):
-                raise InvalidSearchQuery(
-                    "Filter on timestamp is outside of the selected date range."
-                )
 
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
@@ -1583,6 +1496,109 @@ class QueryBuilder(BaseQueryBuilder):
             }
 
 
+class QueryBuilder(BaseQueryBuilder):
+    """Builds a discover query"""
+
+    def resolve_field(self, raw_field: str, alias: bool = False) -> Column:
+        tag_match = constants.TAG_KEY_RE.search(raw_field)
+        field = tag_match.group("tag") if tag_match else raw_field
+
+        if field == "group_id":
+            # We don't expose group_id publicly, so if a user requests it
+            # we expect it is a custom tag. Convert it to tags[group_id]
+            # and ensure it queries tag data
+            # These maps are updated so the response can be mapped back to group_id
+            self.tag_to_prefixed_map["group_id"] = "tags[group_id]"
+            self.prefixed_to_tag_map["tags[group_id]"] = "group_id"
+            raw_field = "tags[group_id]"
+
+        return super().resolve_field(raw_field, alias)
+
+    def get_function_result_type(
+        self,
+        function: str,
+    ) -> Optional[str]:
+        if function in constants.TREND_FUNCTION_TYPE_MAP:
+            # HACK: Don't invalid query here if we don't recognize the function
+            # this is cause non-snql tests still need to run and will check here
+            # TODO: once non-snql is removed and trends has its own builder this
+            # can be removed
+            return constants.TREND_FUNCTION_TYPE_MAP.get(function)
+
+        return super().get_function_result_type(function)
+
+    def get_field_type(self, field: str) -> Optional[str]:
+        if (
+            field == "transaction.duration"
+            or is_duration_measurement(field)
+            or is_span_op_breakdown(field)
+        ):
+            return "duration"
+
+        return super().get_field_type(field)
+
+    def format_search_filter(self, term: event_search.SearchFilter) -> Optional[WhereType]:
+        """For now this function seems a bit redundant inside QueryFilter but
+        most of the logic from the existing format_search_filter hasn't been
+        converted over yet
+        """
+        name = term.key.name
+
+        converted_filter = self.convert_search_filter_to_condition(
+            event_search.SearchFilter(
+                # We want to use group_id elsewhere so shouldn't be removed from the dataset
+                # but if a user has a tag with the same name we want to make sure that works
+                event_search.SearchKey("tags[group_id]" if name == "group_id" else name),
+                term.operator,
+                term.value,
+            )
+        )
+        return converted_filter if converted_filter else None
+
+    def default_filter_converter(
+        self, search_filter: event_search.SearchFilter
+    ) -> Optional[WhereType]:
+        name = search_filter.key.name
+        operator = search_filter.operator
+        value = search_filter.value.value
+
+        # Some fields aren't valid queries
+        if name in constants.SKIP_FILTER_RESOLUTION:
+            name = f"tags[{name}]"
+
+        if name in {"trace.span", "trace.parent_span"}:
+            if search_filter.value.is_wildcard():
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
+            if not search_filter.value.is_span_id():
+                raise InvalidSearchQuery(INVALID_SPAN_ID.format(name))
+
+        # Validate event ids, trace ids, and profile ids are uuids
+        if name in {"id", "trace", "profile.id"}:
+            if search_filter.value.is_wildcard():
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
+            elif not search_filter.value.is_event_id():
+                if name == "trace":
+                    label = "Filter Trace ID"
+                elif name == "profile.id":
+                    label = "Filter Profile ID"
+                else:
+                    label = "Filter ID"
+                raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))
+
+        if name in constants.TIMESTAMP_FIELDS:
+            if (
+                operator in ["<", "<="]
+                and value < self.start
+                or operator in [">", ">="]
+                and value > self.end
+            ):
+                raise InvalidSearchQuery(
+                    "Filter on timestamp is outside of the selected date range."
+                )
+
+        return super().default_filter_converter(search_filter)
+
+
 class UnresolvedQuery(QueryBuilder):
     def resolve_query(
         self,
@@ -1781,7 +1797,8 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                 project_condition = [
                     condition
                     for condition in self.where
-                    if type(condition) == Condition and condition.lhs == self.column("project_id")
+                    if isinstance(condition, Condition)
+                    and condition.lhs == self.column("project_id")
                 ][0]
                 self.where.remove(project_condition)
                 if field == "project":

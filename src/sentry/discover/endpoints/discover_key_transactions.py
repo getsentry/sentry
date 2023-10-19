@@ -18,8 +18,8 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.utils import InvalidParams
 from sentry.discover.endpoints import serializers
 from sentry.discover.models import TeamKeyTransaction
-from sentry.models import Team
 from sentry.models.projectteam import ProjectTeam
+from sentry.models.team import Team
 
 
 class KeyTransactionPermission(OrganizationPermission):

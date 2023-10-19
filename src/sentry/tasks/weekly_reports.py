@@ -23,16 +23,15 @@ from snuba_sdk.query import Limit, Query
 from sentry import analytics, features
 from sentry.api.serializers.snuba import zerofill
 from sentry.constants import DataCategory
-from sentry.models import (
-    Activity,
-    Group,
-    GroupHistory,
-    GroupHistoryStatus,
-    GroupStatus,
-    Organization,
-    OrganizationMember,
-    OrganizationStatus,
-)
+from sentry.models.activity import Activity
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmember import OrganizationMember
+from sentry.notifications.helpers import should_use_notifications_v2
+from sentry.notifications.notificationcontroller import NotificationController
+from sentry.notifications.types import NotificationSettingEnum
+from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -225,10 +224,16 @@ def prepare_organization_report(
         )
         return
 
+    use_notifications_v2 = should_use_notifications_v2(ctx.organization)
+
     # Finally, deliver the reports
     with sentry_sdk.start_span(op="weekly_reports.deliver_reports"):
         deliver_reports(
-            ctx, dry_run=dry_run, target_user=target_user, email_override=email_override
+            ctx,
+            dry_run=dry_run,
+            target_user=target_user,
+            email_override=email_override,
+            use_notifications_v2=use_notifications_v2,
         )
 
 
@@ -637,10 +642,33 @@ def fetch_key_performance_issue_groups(ctx):
 # For all users in the organization, we generate the template context for the user, and send the email.
 
 
-def deliver_reports(ctx, dry_run=False, target_user=None, email_override=None):
+def deliver_reports(
+    ctx, dry_run=False, target_user=None, email_override=None, use_notifications_v2=False
+):
     # Specify a sentry user to send this email.
     if email_override:
         send_email(ctx, target_user, dry_run=dry_run, email_override=email_override)
+    elif use_notifications_v2:
+        user_list = list(
+            OrganizationMember.objects.filter(
+                user_is_active=True,
+                organization_id=ctx.organization.id,
+            )
+            .filter(flags=F("flags").bitand(~OrganizationMember.flags["member-limit:restricted"]))
+            .values_list("user_id", flat=True)
+        )
+
+        users = [RpcUser(id=user_id) for user_id in user_list]
+        controller = NotificationController(
+            recipients=users,
+            organization_id=ctx.organization.id,
+            type=NotificationSettingEnum.REPORTS,
+        )
+
+        user_ids = controller.get_users_for_weekly_reports()
+        for user_id in user_ids:
+            send_email(ctx, user_id, dry_run=dry_run)
+
     else:
         # We save the subscription status of the user in a field in UserOptions.
         user_list = list(

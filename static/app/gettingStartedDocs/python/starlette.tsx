@@ -6,16 +6,14 @@ import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
+const performanceConfiguration = `    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    traces_sample_rate=1.0,`;
 
 const profilingConfiguration = `    # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`;
-
-const performanceConfiguration = `    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
-    # We recommend adjusting this value in production.
-    traces_sample_rate=1.0,`;
 
 const introduction = tct(
   'The Starlette integration adds support for the Starlette Framework.',
@@ -54,19 +52,18 @@ export const steps = ({
     description: (
       <p>
         {tct(
-          'To configure the SDK, initialize it before your app has been initialized. The Sentry SDK automatically enables support for Starlette if you have the [code:starlette] Python package installed in your project. There are no configuration options you need to add when initializing the Sentry SDK as everything works out of the box:',
-          {code: <code />}
+          'If you have the [codeStarlette:starlette] package in your dependencies, the Starlette integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
+          {
+            codeStarlette: <code />,
+          }
         )}
       </p>
     ),
     configurations: [
       {
         language: 'python',
-        code: `
-from starlette.applications import Starlette
-
+        code: `from starlette.applications import Starlette
 import sentry_sdk
-
 
 sentry_sdk.init(
 ${sentryInitContent}
@@ -76,16 +73,6 @@ app = Starlette(routes=[...])
       `,
       },
     ],
-    additionalInfo: (
-      <p>
-        {tct(
-          'The above configuration captures both error and performance data. To reduce the volume of performance data captured, change [code:traces_sample_rate] to a value between 0 and 1.',
-          {
-            code: <code />,
-          }
-        )}
-      </p>
-    ),
   },
   {
     type: StepType.VERIFY,
@@ -95,10 +82,12 @@ app = Starlette(routes=[...])
     configurations: [
       {
         language: 'python',
-        code: `
-from starlette.applications import Starlette
+        code: `from starlette.applications import Starlette
 from starlette.routing import Route
 
+sentry_sdk.init(
+  ${sentryInitContent}
+  )
 
 async def trigger_error(request):
     division_by_zero = 1 / 0
@@ -107,8 +96,23 @@ app = Starlette(routes=[
     Route("/sentry-debug", trigger_error),
 ])
     `,
-        additionalInfo: t(
-          'Visiting this route will trigger an error that will be captured by Sentry.'
+        additionalInfo: (
+          <div>
+            <p>
+              {tct(
+                'When you point your browser to [link:http://localhost:8000/sentry-debug/] a transaction in the Performance section of Sentry will be created.',
+                {
+                  link: <ExternalLink href="http://localhost:8000/sentry-debug/" />,
+                }
+              )}
+            </p>
+            <p>
+              {t(
+                'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+              )}
+            </p>
+            <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
+          </div>
         ),
       },
     ],

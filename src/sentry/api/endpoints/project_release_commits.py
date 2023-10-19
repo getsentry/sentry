@@ -6,7 +6,10 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import Release, ReleaseCommit, Repository
+from sentry.constants import ObjectStatus
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.repository import Repository
 
 
 @region_silo_endpoint
@@ -47,11 +50,24 @@ class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
             "commit", "commit__author"
         )
 
+        repo_id = request.query_params.get("repo_id")
         repo_name = request.query_params.get("repo_name")
 
-        if repo_name:
+        # prefer repo external ID to name
+        if repo_id:
             try:
-                repo = Repository.objects.get(organization_id=organization_id, name=repo_name)
+                repo = Repository.objects.get(
+                    organization_id=organization_id, external_id=repo_id, status=ObjectStatus.ACTIVE
+                )
+                queryset = queryset.filter(commit__repository_id=repo.id)
+            except Repository.DoesNotExist:
+                raise ResourceDoesNotExist
+
+        elif repo_name:
+            try:
+                repo = Repository.objects.get(
+                    organization_id=organization_id, name=repo_name, status=ObjectStatus.ACTIVE
+                )
                 queryset = queryset.filter(commit__repository_id=repo.id)
             except Repository.DoesNotExist:
                 raise ResourceDoesNotExist

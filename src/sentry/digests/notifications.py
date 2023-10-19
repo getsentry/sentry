@@ -9,7 +9,9 @@ from typing import Any, Mapping, MutableMapping, MutableSequence, Sequence
 from sentry import tsdb
 from sentry.digests import Digest, Record
 from sentry.eventstore.models import Event
-from sentry.models import Group, GroupStatus, Project, Rule
+from sentry.models.group import Group, GroupStatus
+from sentry.models.project import Project
+from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.tsdb.base import TSDBModel
 from sentry.utils.dates import to_timestamp
@@ -17,7 +19,9 @@ from sentry.utils.pipeline import Pipeline
 
 logger = logging.getLogger("sentry.digests")
 
-Notification = namedtuple("Notification", "event rules")
+Notification = namedtuple(
+    "Notification", "event rules notification_uuid", defaults=(None, None, None)
+)
 
 
 def split_key(
@@ -57,13 +61,15 @@ def unsplit_key(
     return f"mail:p:{project.id}:{target_type.value}:{target_str}:{fallthrough}"
 
 
-def event_to_record(event: Event, rules: Sequence[Rule]) -> Record:
+def event_to_record(
+    event: Event, rules: Sequence[Rule], notification_uuid: str | None = None
+) -> Record:
     if not rules:
         logger.warning(f"Creating record for {event} that does not contain any rules!")
 
     return Record(
         event.event_id,
-        Notification(event, [rule.id for rule in rules]),
+        Notification(event, [rule.id for rule in rules], notification_uuid),
         to_timestamp(event.datetime),
     )
 
@@ -145,7 +151,11 @@ def rewrite_record(
 
     return Record(
         record.key,
-        Notification(event, [_f for _f in [rules.get(id) for id in record.value.rules] if _f]),
+        Notification(
+            event,
+            [_f for _f in [rules.get(id) for id in record.value.rules] if _f],
+            record.value.notification_uuid,
+        ),
         record.timestamp,
     )
 

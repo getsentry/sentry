@@ -6,7 +6,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
 
 from sentry import audit_log
-from sentry.models import AuditLogEntry
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.group import Group
 from sentry.models.groupowner import ISSUE_OWNERS_DEBOUNCE_DURATION, GroupOwner, GroupOwnerType
 from sentry.models.projectownership import ProjectOwnership
@@ -17,7 +17,10 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test(stable=True)

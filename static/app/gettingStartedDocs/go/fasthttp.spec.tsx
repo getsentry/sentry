@@ -6,7 +6,7 @@ import {GettingStartedWithFastHttp, steps} from './fasthttp';
 
 describe('GettingStartedWithFastHttp', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithFastHttp dsn="test-dsn" />);
+    render(<GettingStartedWithFastHttp dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithFastHttp', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

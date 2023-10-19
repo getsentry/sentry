@@ -12,7 +12,8 @@ from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.auth.authenticators.u2f import decode_credential_id
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import Authenticator
+from sentry.models.authenticator import Authenticator
+from sentry.models.user import User
 from sentry.security import capture_security_activity
 
 
@@ -30,7 +31,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         devices = authenticator.config
         for device in devices["devices"]:
             # this is for devices registered with webauthn, since the stored data is not a string, we need to decode it
-            if type(device["binding"]) == AuthenticatorData:
+            if isinstance(device["binding"], AuthenticatorData):
                 if decode_credential_id(device) == interface_device_id:
                     return device
             elif device["binding"]["keyHandle"] == interface_device_id:
@@ -125,7 +126,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
             return self._regenerate_recovery_code(authenticator, request, user)
 
     @sudo_required
-    def delete(self, request: Request, user, auth_id, interface_device_id=None) -> Response:
+    def delete(self, request: Request, user: User, auth_id, interface_device_id=None) -> Response:
         """
         Remove authenticator
         ````````````````````
@@ -167,7 +168,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
                 user, ignore_backup=True
             )
             last_2fa_method = len(enrolled_methods) == 1
-            require_2fa = user.get_orgs_require_2fa().exists()
+            require_2fa = user.has_org_requiring_2fa()
 
             if require_2fa and last_2fa_method:
                 return Response(

@@ -48,6 +48,7 @@ from sentry.search.events.types import (
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.discover import create_result_key
 from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
     OnDemandMetricSpec,
@@ -485,7 +486,7 @@ class MetricsQueryBuilder(QueryBuilder):
             return value
         return self.resolve_metric_index(value)
 
-    def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         name = search_filter.key.name
         operator = search_filter.operator
         value = search_filter.value.value
@@ -516,13 +517,19 @@ class MetricsQueryBuilder(QueryBuilder):
                 resolved_value = []
                 for item in value:
                     resolved_item = self.resolve_tag_value(item)
-                    if resolved_item is None:
+                    if (
+                        resolved_item is None
+                        and not self.builder_config.skip_field_validation_for_entity_subscription_deletion
+                    ):
                         raise IncompatibleMetricsQuery(f"{name} value {item} in filter not found")
                     resolved_value.append(resolved_item)
                 value = resolved_value
             else:
                 resolved_item = self.resolve_tag_value(value)
-                if resolved_item is None:
+                if (
+                    resolved_item is None
+                    and not self.builder_config.skip_field_validation_for_entity_subscription_deletion
+                ):
                     raise IncompatibleMetricsQuery(f"{name} value {value} in filter not found")
                 value = resolved_item
 
@@ -615,7 +622,6 @@ class MetricsQueryBuilder(QueryBuilder):
             raise Exception("Cannot get metrics layer snql query when use_metrics_layer is false")
 
         self.validate_having_clause()
-        self.validate_orderby_clause()
 
         prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
         return Query(
@@ -652,7 +658,6 @@ class MetricsQueryBuilder(QueryBuilder):
             raise NotImplementedError("Cannot get snql query when use_metrics_layer is true")
 
         self.validate_having_clause()
-        self.validate_orderby_clause()
 
         # Need to split orderby between the 3 possible tables
         primary, query_framework = self._create_query_framework()
@@ -786,16 +791,6 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return primary, query_framework
 
-    def validate_orderby_clause(self) -> None:
-        """Check that the orderby doesn't include any direct tags, this shouldn't raise an error for project since we
-        transform it"""
-        for orderby in self.orderby:
-            if (
-                isinstance(orderby.exp, Column)
-                and orderby.exp.subscriptable in ["tags", "tags_raw"]
-            ) or (isinstance(orderby.exp, Function) and orderby.exp.alias == "title"):
-                raise IncompatibleMetricsQuery("Can't orderby tags")
-
     def convert_metric_layer_result(self, metrics_data: Any) -> Any:
         """The metric_layer returns results in a non-standard format, this function changes it back to the expected
         one"""
@@ -846,6 +841,9 @@ class MetricsQueryBuilder(QueryBuilder):
                     entity=Entity("generic_metrics_distributions", sample=self.sample_rate),
                 )
             }
+
+        self.tenant_ids = self.tenant_ids or dict()
+        self.tenant_ids["use_case_id"] = self.use_case_id.value
 
         if self.builder_config.use_metrics_layer or self._on_demand_metric_spec:
             from sentry.snuba.metrics.datasource import get_series
@@ -917,7 +915,6 @@ class MetricsQueryBuilder(QueryBuilder):
                         meta_dict[meta["name"]] = meta["type"]
         else:
             self.validate_having_clause()
-            self.validate_orderby_clause()
 
             # TODO: this should happen regardless of whether the metrics_layer is being used
             granularity_condition, new_granularity = self.resolve_split_granularity()
@@ -1373,6 +1370,117 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             # there's only 1 thing in the groupby which is time
             for row in current_result["data"]:
                 time_map[row[self.time_alias]].update(row)
+            for meta in current_result["meta"]:
+                meta_dict[meta["name"]] = meta["type"]
+
+        return {
+            "data": list(time_map.values()),
+            "meta": [{"name": key, "type": value} for key, value in meta_dict.items()],
+        }
+
+
+class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
+    def __init__(
+        self,
+        dataset: Dataset,
+        params: ParamsType,
+        interval: int,
+        top_events: List[Dict[str, Any]],
+        other: bool = False,
+        query: Optional[str] = None,
+        selected_columns: Optional[List[str]] = None,
+        timeseries_columns: Optional[List[str]] = None,
+        limit: Optional[int] = 10000,
+        config: Optional[QueryBuilderConfig] = None,
+    ):
+        selected_columns = [] if selected_columns is None else selected_columns
+        timeseries_columns = [] if timeseries_columns is None else timeseries_columns
+        super().__init__(
+            dataset=dataset,
+            params=params,
+            interval=interval,
+            query=query,
+            selected_columns=list(set(selected_columns + timeseries_columns)),
+            limit=limit,
+            config=config,
+        )
+
+        self.fields: List[str] = selected_columns if selected_columns is not None else []
+        self.fields = [self.tag_to_prefixed_map.get(c, c) for c in selected_columns]
+
+        if (conditions := self.resolve_top_event_conditions(top_events, other)) is not None:
+            self.where.append(conditions)
+
+        if not other:
+            self.groupby.extend(
+                [column for column in self.columns if column not in self.aggregates]
+            )
+
+    @property
+    def translated_groupby(self) -> List[str]:
+        """Get the names of the groupby columns to create the series names"""
+        translated = []
+        for groupby in self.groupby:
+            if groupby == self.time_column:
+                continue
+            if isinstance(groupby, (CurriedFunction, AliasedExpression)):
+                translated.append(groupby.alias)
+            else:
+                translated.append(groupby.name)
+        # sorted so the result key is consistent
+        return sorted(translated)
+
+    def resolve_top_event_conditions(
+        self, top_events: List[Dict[str, Any]], other: bool
+    ) -> Optional[WhereType]:
+        """Given a list of top events construct the conditions"""
+        conditions = []
+        for field in self.fields:
+            resolved_field = self.resolve_column(field)
+
+            values: Set[Any] = set()
+            for event in top_events:
+                if field not in event:
+                    continue
+
+                value = event.get(field)
+                # TODO: Handle potential None case
+                if value is not None:
+                    value = self.resolve_tag_value(str(value))
+                values.add(value)
+
+            values_list = list(values)
+
+            if values_list:
+                conditions.append(
+                    Condition(resolved_field, Op.IN if not other else Op.NOT_IN, values_list)
+                )
+
+        if len(conditions) > 1:
+            final_function = And if not other else Or
+            final_condition = final_function(conditions=conditions)
+        elif len(conditions) == 1:
+            final_condition = conditions[0]
+        else:
+            final_condition = None
+
+        return final_condition
+
+    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        queries = self.get_snql_query()
+        if queries:
+            results = bulk_snql_query(queries, referrer, use_cache)
+        else:
+            results = []
+
+        time_map: Dict[str, Dict[str, Any]] = defaultdict(dict)
+        meta_dict = {}
+        for current_result in results:
+            # there's multiple groupbys so we need the unique keys
+            for row in current_result["data"]:
+                result_key = create_result_key(row, self.translated_groupby, {})
+                time_alias = row[self.time_alias]
+                time_map[f"{time_alias}-{result_key}"].update(row)
             for meta in current_result["meta"]:
                 meta_dict[meta["name"]] = meta["type"]
 

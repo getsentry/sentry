@@ -6,7 +6,7 @@ import {GettingStartedWithRubyRails, steps} from './rails';
 
 describe('GettingStartedWithRubyRails', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithRubyRails dsn="test-dsn" />);
+    render(<GettingStartedWithRubyRails dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithRubyRails', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

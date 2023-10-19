@@ -2,28 +2,25 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import timedelta
-from typing import TYPE_CHECKING, Iterable, Mapping, Optional, Tuple
+from typing import TYPE_CHECKING, Iterable, List, Mapping, Optional, Tuple
 
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import (
-    BaseManager,
-    FlexibleForeignKey,
-    Model,
-    control_silo_only_model,
-    sane_repr,
-)
+from sentry.db.models import BaseManager, FlexibleForeignKey, control_silo_only_model, sane_repr
+from sentry.db.models.outboxes import ControlOutboxProducingModel
+from sentry.models.outbox import ControlOutboxBase, OutboxCategory
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
+from sentry.types.region import find_regions_for_user
 from sentry.utils.security import get_secure_token
 
 if TYPE_CHECKING:
-    from sentry.models import User
+    from sentry.models.user import User
 
 
 class UserEmailManager(BaseManager):
@@ -46,8 +43,9 @@ class UserEmailManager(BaseManager):
 
 
 @control_silo_only_model
-class UserEmail(Model):
+class UserEmail(ControlOutboxProducingModel):
     __relocation_scope__ = RelocationScope.User
+    __relocation_dependencies__ = {"sentry.Email"}
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, related_name="emails")
     email = models.EmailField(_("email address"), max_length=75)
@@ -68,6 +66,17 @@ class UserEmail(Model):
 
     __repr__ = sane_repr("user_id", "email")
 
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
+        regions = find_regions_for_user(self.user_id)
+        return [
+            outbox
+            for outbox in OutboxCategory.USER_UPDATE.as_control_outboxes(
+                region_names=regions,
+                shard_identifier=self.user_id,
+                object_identifier=self.user_id,
+            )
+        ]
+
     def set_hash(self):
         self.date_hash_added = timezone.now()
         self.validation_hash = get_secure_token()
@@ -83,19 +92,26 @@ class UserEmail(Model):
         """@deprecated"""
         return cls.objects.get_primary_email(user)
 
-    def _normalize_before_relocation_import(
+    def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> Optional[int]:
-        # If we are merging users, ignore this import and use the merged user's data.
-        if pk_map.get_kind("sentry.User", self.user_id) == ImportKind.Existing:
-            return None
+        from sentry.models.user import User
 
-        old_pk = super()._normalize_before_relocation_import(pk_map, scope, flags)
+        old_user_id = self.user_id
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
 
-        # Only preserve validation hashes in global scope - in all others, have the user verify
-        # their email again.
+        # If we are merging users, ignore this import and use the merged user's data.
+        if pk_map.get_kind(get_model_name(User), old_user_id) == ImportKind.Existing:
+            # TODO(getsentry/team-ospo#190): Mutating `pk_map` here is a bit hacky, and we probably
+            # shouldn't do it.
+            useremail = self.__class__.objects.get(user_id=self.user_id)
+            pk_map.insert(get_model_name(self), self.pk, useremail.pk, ImportKind.Existing)
+            return None
+
+        # Only preserve validation hashes in the backup/restore scope - in all others, have the user
+        # verify their email again.
         if scope != ImportScope.Global:
             self.is_verified = False
             self.validation_hash = get_secure_token()
@@ -104,16 +120,15 @@ class UserEmail(Model):
         return old_pk
 
     def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[Tuple[int, int, ImportKind]]:
-        old_pk = self._normalize_before_relocation_import(pk_map, scope, flags)
-        if old_pk is None:
-            return None
-
+        self, _s: ImportScope, _f: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
+        # The `UserEmail` was automatically generated `post_save()`. We just need to update it with
+        # the data being imported. Note that if we've reached this point, we cannot be merging into
+        # an existing user, and are instead modifying the just-created `UserEmail` for a new one.
         useremail = self.__class__.objects.get(user=self.user, email=self.email)
         for f in self._meta.fields:
             if f.name not in ["id", "pk"]:
                 setattr(useremail, f.name, getattr(self, f.name))
         useremail.save()
 
-        return (old_pk, useremail.pk, ImportKind.Existing)
+        return (useremail.pk, ImportKind.Inserted)

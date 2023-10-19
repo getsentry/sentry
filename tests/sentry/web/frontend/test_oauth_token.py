@@ -2,7 +2,9 @@ from functools import cached_property
 
 from django.utils import timezone
 
-from sentry.models import ApiApplication, ApiGrant, ApiToken
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.apigrant import ApiGrant
+from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
@@ -325,7 +327,7 @@ class OAuthTokenCodeTest(TestCase):
             data = json.loads(resp.content)
             token = ApiToken.objects.get(token=data["access_token"])
 
-            assert token.get_scopes() == ["openid", "profile", "email"]
+            assert token.get_scopes() == ["email", "openid", "profile"]
             assert data["refresh_token"] == token.refresh_token
             assert data["access_token"] == token.token
             assert isinstance(data["expires_in"], int)

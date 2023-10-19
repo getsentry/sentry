@@ -1,5 +1,7 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import moment from 'moment';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {DataSection} from 'sentry/components/events/styles';
@@ -24,15 +26,14 @@ const SPAN_OPS_NAME_MAP = {
   ['p100(spans.ui)']: 'ui',
 };
 
-function getPostBreakpointEventView(location: Location, event: Event) {
+function getPostBreakpointEventView(location: Location, event: Event, end: number) {
   const eventView = EventView.fromLocation(location);
   eventView.fields = REQUEST_FIELDS;
 
   if (event?.occurrence) {
-    const {breakpoint, aggregateRange2, transaction, requestEnd} =
-      event?.occurrence?.evidenceData;
+    const {breakpoint, aggregateRange2, transaction} = event?.occurrence?.evidenceData;
     eventView.start = new Date(breakpoint * 1000).toISOString();
-    eventView.end = new Date(requestEnd * 1000).toISOString();
+    eventView.end = new Date(end).toISOString();
 
     eventView.query = `event.type:transaction transaction:"${transaction}" transaction.duration:<${
       aggregateRange2 * 1.15
@@ -43,13 +44,16 @@ function getPostBreakpointEventView(location: Location, event: Event) {
 }
 
 function getPreBreakpointEventView(location: Location, event: Event) {
+  const retentionPeriodMs = moment().subtract(90, 'days').valueOf();
   const eventView = EventView.fromLocation(location);
   eventView.fields = REQUEST_FIELDS;
 
   if (event?.occurrence) {
-    const {breakpoint, aggregateRange1, transaction, requestStart} =
+    const {breakpoint, aggregateRange1, transaction, dataStart} =
       event?.occurrence?.evidenceData;
-    eventView.start = new Date(requestStart * 1000).toISOString();
+    eventView.start = new Date(
+      Math.max(dataStart * 1000, retentionPeriodMs)
+    ).toISOString();
     eventView.end = new Date(breakpoint * 1000).toISOString();
 
     eventView.query = `event.type:transaction transaction:"${transaction}" transaction.duration:<${
@@ -63,8 +67,9 @@ function getPreBreakpointEventView(location: Location, event: Event) {
 function EventSpanOpBreakdown({event}: {event: Event}) {
   const organization = useOrganization();
   const location = useLocation();
+  const now = useMemo(() => Date.now(), []);
 
-  const postBreakpointEventView = getPostBreakpointEventView(location, event);
+  const postBreakpointEventView = getPostBreakpointEventView(location, event, now);
   const preBreakpointEventView = getPreBreakpointEventView(location, event);
 
   const queryExtras = {dataset: 'metricsEnhanced'};

@@ -6,16 +6,15 @@ from django.contrib.auth.models import AnonymousUser
 from sentry.auth import access
 from sentry.auth.access import Access, NoAccess
 from sentry.constants import ObjectStatus
-from sentry.models import (
-    ApiKey,
-    AuthIdentity,
-    AuthProvider,
-    Organization,
-    TeamStatus,
-    User,
-    UserPermission,
-    UserRole,
-)
+from sentry.models.apikey import ApiKey
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import Organization
+from sentry.models.team import TeamStatus
+from sentry.models.user import User
+from sentry.models.userpermission import UserPermission
+from sentry.models.userrole import UserRole
+from sentry.services.hybrid_cloud.access.service import access_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
@@ -801,6 +800,6 @@ class GetPermissionsForUserTest(TestCase):
         role = UserRole.objects.create(name="test.role", permissions=["test.permission-role"])
         role.users.add(user)
 
-        assert sorted(access.get_permissions_for_user(user.id)) == sorted(
+        assert sorted(access_service.get_permissions_for_user(user.id)) == sorted(
             ["test.permission", "test.permission-role"]
         )

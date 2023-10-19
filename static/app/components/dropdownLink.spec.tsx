@@ -27,25 +27,21 @@ describe('DropdownLink', function () {
 
   describe('renders', function () {
     it('and anchors to left by default', function () {
-      const {container} = render(
+      render(
         <DropdownLink {...INPUT_1}>
           <div>1</div>
           <div>2</div>
         </DropdownLink>
       );
-
-      expect(container).toSnapshot();
     });
 
     it('and anchors to right', function () {
-      const {container} = render(
+      render(
         <DropdownLink {...INPUT_1} anchorRight>
           <div>1</div>
           <div>2</div>
         </DropdownLink>
       );
-
-      expect(container).toSnapshot();
     });
   });
 

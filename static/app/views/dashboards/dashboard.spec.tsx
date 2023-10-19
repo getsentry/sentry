@@ -1,3 +1,6 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Tags} from 'sentry-fixture/tags';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -9,7 +12,7 @@ import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {OrganizationContext} from '../organizationContext';
 
 describe('Dashboards > Dashboard', () => {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['dashboards-basic', 'dashboards-edit'],
   });
   const mockDashboard = {
@@ -109,7 +112,7 @@ describe('Dashboards > Dashboard', () => {
     tagsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
-      body: TestStubs.Tags(),
+      body: Tags(),
     });
   });
 

@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import IdBadge from 'sentry/components/idBadge';
@@ -22,7 +24,7 @@ describe('IdBadge', function () {
   });
 
   it('renders the correct component when `organization` property is passed', function () {
-    render(<IdBadge organization={TestStubs.Organization()} />);
+    render(<IdBadge organization={Organization()} />);
     expect(screen.getByTestId('badge-styled-avatar')).toHaveTextContent('OS');
     expect(screen.getByTestId('badge-display-name')).toHaveTextContent('org-slug');
   });

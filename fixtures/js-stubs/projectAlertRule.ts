@@ -8,13 +8,15 @@ export function ProjectAlertRule(params: Partial<IssueAlertRule> = {}): IssueAle
     actionMatch: 'all',
     filterMatch: 'all',
     conditions: [
-      {name: 'An alert is first seen', id: 'sentry.rules.conditions.1', label: ''},
+      {
+        id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+        name: 'A new issue is created',
+      },
     ],
     actions: [
       {
-        name: 'Send a notification to all services',
-        id: 'sentry.rules.actions.notify1',
-        label: '',
+        id: 'sentry.rules.actions.notify_event.NotifyEventAction',
+        name: 'Send a notification (for all legacy integrations)',
       },
     ],
     filters: [],

@@ -1,3 +1,5 @@
+import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -11,7 +13,7 @@ describe('Exception Content', function () {
   it('display redacted values from exception entry', async function () {
     const project = TestStubs.Project({
       id: '0',
-      relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+      relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
     });
 
     const {organization, router, routerContext} = initializeOrg({

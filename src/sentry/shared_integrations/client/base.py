@@ -15,8 +15,9 @@ from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
-from sentry.models import Organization, OrganizationIntegration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.utils import is_response_error, is_response_success
+from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils import json, metrics
 from sentry.utils.audit import create_system_audit_entry
@@ -243,12 +244,17 @@ class BaseApiClient(TrackResponseMixin):
             if span and existing_transaction:
                 span.set_data("existing_transaction", existing_transaction)
 
+            extra = {"url": full_url}
+            # It shouldn't be possible for integration_type to be null.
+            if self.integration_type:
+                extra[self.integration_type] = self.name
+
             try:
                 with build_session() as session:
                     finalized_request = self.finalize_request(_prepared_request)
                     environment_settings = session.merge_environment_settings(
                         url=finalized_request.url,
-                        proxies=None,
+                        proxies={},
                         stream=None,
                         verify=self.verify_ssl,
                         cert=None,
@@ -266,30 +272,27 @@ class BaseApiClient(TrackResponseMixin):
                         return resp
                     resp.raise_for_status()
             except RestrictedIPAddress as e:
-                self.track_response_data("restricted_ip_address", span, e)
+                self.track_response_data("restricted_ip_address", span, e, extra=extra)
                 self.record_error(e)
                 raise ApiHostError.from_exception(e) from e
             except ConnectionError as e:
-                self.track_response_data("connection_error", span, e)
+                self.track_response_data("connection_error", span, e, extra=extra)
                 self.record_error(e)
                 raise ApiHostError.from_exception(e) from e
             except Timeout as e:
-                self.track_response_data("timeout", span, e)
+                self.track_response_data("timeout", span, e, extra=extra)
                 self.record_error(e)
                 raise ApiTimeoutError.from_exception(e) from e
             except HTTPError as e:
                 error_resp = e.response
                 if error_resp is None:
-                    self.track_response_data("unknown", span, e)
+                    self.track_response_data("unknown", span, e, extra=extra)
 
-                    # It shouldn't be possible for integration_type to be null.
-                    extra = {"url": full_url}
-                    if self.integration_type:
-                        extra[self.integration_type] = self.name
                     self.logger.exception("request.error", extra=extra)
                     self.record_error(e)
                     raise ApiError("Internal Error", url=full_url) from e
-                self.track_response_data(error_resp.status_code, span, e)
+
+                self.track_response_data(error_resp.status_code, span, e, extra=extra)
                 self.record_error(e)
                 raise ApiError.from_response(error_resp, url=full_url) from e
 
@@ -301,19 +304,19 @@ class BaseApiClient(TrackResponseMixin):
                 # which is a ChunkedEncodingError caused by a ProtocolError caused by a ConnectionResetError.
                 # Rather than worrying about what the other layers might be, we just stringify to detect this.
                 if "ConnectionResetError" in str(e):
-                    self.track_response_data("connection_reset_error", span, e)
+                    self.track_response_data("connection_reset_error", span, e, extra=extra)
                     self.record_error(e)
                     raise ApiConnectionResetError("Connection reset by peer", url=full_url) from e
                 # The same thing can happen with an InvalidChunkLength exception, which is a subclass of HTTPError
                 if "InvalidChunkLength" in str(e):
-                    self.track_response_data("invalid_chunk_length", span, e)
+                    self.track_response_data("invalid_chunk_length", span, e, extra=extra)
                     self.record_error(e)
                     raise ApiError("Connection broken: invalid chunk length", url=full_url) from e
 
                 # If it's not something we recognize, let the caller deal with it
                 raise e
 
-            self.track_response_data(resp.status_code, span, None, resp)
+            self.track_response_data(resp.status_code, span, None, resp, extra=extra)
 
             self.record_response(resp)
 
@@ -452,10 +455,7 @@ class BaseApiClient(TrackResponseMixin):
 
         if (
             (rpc_integration.provider == "slack" and buffer.is_integration_fatal_broken())
-            or (
-                features.has("organizations:github-disable-on-broken", org)
-                and rpc_integration.provider == "github"
-            )
+            or (rpc_integration.provider == "github")
             or (
                 features.has("organizations:gitlab-disable-on-broken", org)
                 and rpc_integration.provider == "gitlab"

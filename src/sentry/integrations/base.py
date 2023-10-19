@@ -5,6 +5,7 @@ import logging
 import sys
 from collections import namedtuple
 from enum import Enum
+from functools import cached_property
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -19,14 +20,23 @@ from typing import (
 )
 from urllib.request import Request
 
+from rest_framework.exceptions import NotFound
+
 from sentry import audit_log
 from sentry.exceptions import InvalidIdentity
-from sentry.models import ExternalActor, Identity, Integration, Team
+from sentry.models.identity import Identity
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.integrations.integration import Integration
+from sentry.models.team import Team
 from sentry.pipeline import PipelineProvider
 from sentry.pipeline.views.base import PipelineView
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.identity.model import RpcIdentity
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.organization import (
+    RpcOrganization,
+    RpcOrganizationSummary,
+    organization_service,
+)
 from sentry.shared_integrations.constants import (
     ERR_INTERNAL,
     ERR_UNAUTHORIZED,
@@ -198,7 +208,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
         if cls.integration_cls is None:
             raise NotImplementedError
 
-        assert type(organization_id) == int
+        assert isinstance(organization_id, int)
         return cls.integration_cls(model, organization_id, **kwargs)
 
     @property
@@ -320,6 +330,13 @@ class IntegrationInstallation:
     @org_integration.setter
     def org_integration(self, org_integration: RpcOrganizationIntegration) -> None:
         self._org_integration = org_integration
+
+    @cached_property
+    def organization(self) -> RpcOrganization:
+        organization = organization_service.get(id=self.organization_id)
+        if organization is None:
+            raise NotFound("organization_id not found")
+        return organization
 
     def get_organization_config(self) -> Sequence[Any]:
         """

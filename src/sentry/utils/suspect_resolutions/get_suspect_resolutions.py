@@ -4,7 +4,8 @@ from typing import Sequence
 from django.utils import timezone
 
 from sentry import features
-from sentry.models import Activity, Group, GroupStatus
+from sentry.models.activity import Activity
+from sentry.models.group import Group, GroupStatus
 from sentry.signals import issue_resolved
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task

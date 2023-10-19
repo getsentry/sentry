@@ -43,70 +43,70 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.issues.grouptype import get_group_type_by_type_id
-from sentry.mediators import token_exchange
-from sentry.models import (
-    Activity,
-    Actor,
-    ArtifactBundle,
-    Commit,
-    CommitAuthor,
-    DocIntegration,
-    DocIntegrationAvatar,
-    Environment,
-    EventAttachment,
-    ExternalActor,
-    ExternalIssue,
-    File,
-    Group,
-    GroupHistory,
-    GroupLink,
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-    IntegrationFeature,
-    Organization,
-    OrganizationMapping,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    PlatformExternalIssue,
-    Project,
-    ProjectBookmark,
-    ProjectCodeOwners,
-    ProjectDebugFile,
-    Release,
-    ReleaseCommit,
-    ReleaseEnvironment,
-    ReleaseFile,
-    ReleaseProjectEnvironment,
-    Repository,
-    RepositoryProjectPathConfig,
-    Rule,
-    SavedSearch,
-    SentryAppInstallation,
-    SentryFunction,
-    ServiceHook,
-    Team,
-    User,
-    UserEmail,
-    UserPermission,
-    UserReport,
-    get_actor_id_for_user,
-)
+from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
+from sentry.models.activity import Activity
+from sentry.models.actor import Actor
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
+from sentry.models.artifactbundle import ArtifactBundle
+from sentry.models.avatars.doc_integration_avatar import DocIntegrationAvatar
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
-from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
+from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.environment import Environment
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.files.file import File
+from sentry.models.group import Group
+from sentry.models.grouphistory import GroupHistory
+from sentry.models.grouplink import GroupLink
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.integrations.doc_integration import DocIntegration
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.integration_feature import (
+    Feature,
+    IntegrationFeature,
+    IntegrationTypes,
+)
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.notificationaction import (
     ActionService,
     ActionTarget,
     ActionTrigger,
     NotificationAction,
 )
-from sentry.models.releasefile import update_artifact_index
+from sentry.models.organization import Organization
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.platformexternalissue import PlatformExternalIssue
+from sentry.models.project import Project
+from sentry.models.projectbookmark import ProjectBookmark
+from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releasefile import ReleaseFile, update_artifact_index
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.repository import Repository
+from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.sentry_apps import SentryAppInstallationCreator, SentryAppInstallationTokenCreator
+from sentry.models.savedsearch import SavedSearch
+from sentry.models.sentryfunction import SentryFunction
+from sentry.models.servicehook import ServiceHook
+from sentry.models.team import Team
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
+from sentry.models.userpermission import UserPermission
+from sentry.models.userreport import UserReport
 from sentry.sentry_apps.apps import SentryAppCreator
+from sentry.sentry_apps.installations import (
+    SentryAppInstallationCreator,
+    SentryAppInstallationTokenCreator,
+)
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.signals import project_created
@@ -426,23 +426,27 @@ class Factories:
     def create_project_rule(
         project,
         action_data=None,
+        allow_no_action_data=False,
         condition_data=None,
         name="",
         action_match="all",
         filter_match="all",
         **kwargs,
     ):
-        action_data = action_data or [
-            {
-                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                "name": "Send a notification (for all legacy integrations)",
-            },
-            {
-                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                "service": "mail",
-                "name": "Send a notification via mail",
-            },
-        ]
+        actions = None
+        if not allow_no_action_data:
+            action_data = action_data or [
+                {
+                    "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                    "name": "Send a notification (for all legacy integrations)",
+                },
+                {
+                    "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                    "service": "mail",
+                    "name": "Send a notification via mail",
+                },
+            ]
+            actions = action_data
         condition_data = condition_data or [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -453,15 +457,18 @@ class Factories:
                 "name": "The event occurs",
             },
         ]
+        data = {
+            "conditions": condition_data,
+            "action_match": action_match,
+            "filter_match": filter_match,
+        }
+        if actions:
+            data["actions"] = actions
+
         return Rule.objects.create(
             label=name,
             project=project,
-            data={
-                "conditions": condition_data,
-                "actions": action_data,
-                "action_match": action_match,
-                "filter_match": filter_match,
-            },
+            data=data,
             **kwargs,
         )
 
@@ -1035,7 +1042,7 @@ class Factories:
                 install.sentry_app.status != SentryAppStatus.INTERNAL
             ):
 
-                token_exchange.GrantExchanger.run(
+                GrantExchanger.run(
                     install=rpc_install,
                     code=install.api_grant.code,
                     client_id=install.sentry_app.application.client_id,
@@ -1427,8 +1434,7 @@ class Factories:
         kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "")
 
-        actor_id = get_actor_id_for_user(user)
-        return ExternalActor.objects.create(user_id=user.id, actor_id=actor_id, **kwargs)
+        return ExternalActor.objects.create(user_id=user.id, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1436,7 +1442,7 @@ class Factories:
         kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "@getsentry/ecosystem")
 
-        return ExternalActor.objects.create(team_id=team.id, actor_id=team.actor_id, **kwargs)
+        return ExternalActor.objects.create(team_id=team.id, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

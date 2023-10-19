@@ -6,7 +6,7 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 
 describe('CompactSelect', function () {
   it('renders', function () {
-    const {container} = render(
+    render(
       <CompactSelect
         options={[
           {value: 'opt_one', label: 'Option One'},
@@ -14,7 +14,6 @@ describe('CompactSelect', function () {
         ]}
       />
     );
-    expect(container).toSnapshot();
   });
 
   it('renders disabled', function () {

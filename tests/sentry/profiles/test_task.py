@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.profiles.task import _deobfuscate, _normalize, _process_symbolicator_results_for_sample
 from sentry.testutils.factories import Factories, get_fixture_path
 from sentry.testutils.pytest.fixtures import django_db_all

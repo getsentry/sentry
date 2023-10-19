@@ -28,6 +28,7 @@ class RpcProject(RpcModel, HasOption):
     name: str = ""
     organization_id: int = -1
     status: int = Field(default_factory=_project_status_visible)
+    platform: Optional[str] = None
 
     def get_option(
         self, key: str, default: Optional[Value] = None, validate: Optional[ValidateFunction] = None

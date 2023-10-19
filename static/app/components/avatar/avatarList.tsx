@@ -1,33 +1,42 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Tooltip} from 'sentry/components/tooltip';
-import {AvatarUser} from 'sentry/types';
+import {AvatarUser, Team} from 'sentry/types';
 
 type UserAvatarProps = React.ComponentProps<typeof UserAvatar>;
 
 type Props = {
-  users: AvatarUser[];
   avatarSize?: number;
   className?: string;
   maxVisibleAvatars?: number;
   renderTooltip?: UserAvatarProps['renderTooltip'];
+  teams?: Team[];
   tooltipOptions?: UserAvatarProps['tooltipOptions'];
-  typeMembers?: string;
+  typeAvatars?: string;
+  users?: AvatarUser[];
 };
 
 function AvatarList({
   avatarSize = 28,
   maxVisibleAvatars = 5,
-  typeMembers = 'users',
+  typeAvatars = 'users',
   tooltipOptions = {},
   className,
-  users,
+  users = [],
+  teams = [],
   renderTooltip,
 }: Props) {
-  const visibleUsers = users.slice(0, maxVisibleAvatars);
-  const numCollapsedUsers = users.length - visibleUsers.length;
+  const numTeams = teams.length;
+  const numVisibleTeams = maxVisibleAvatars - numTeams > 0 ? numTeams : maxVisibleAvatars;
+  const maxVisibleUsers =
+    maxVisibleAvatars - numVisibleTeams > 0 ? maxVisibleAvatars - numVisibleTeams : 0;
+  // Reverse the order since css flex-reverse is used to display the avatars
+  const visibleTeamAvatars = teams.slice(0, numVisibleTeams).reverse();
+  const visibleUserAvatars = users.slice(0, maxVisibleUsers).reverse();
+  const numCollapsedAvatars = users.length - visibleUserAvatars.length;
 
   if (!tooltipOptions.position) {
     tooltipOptions.position = 'top';
@@ -35,20 +44,29 @@ function AvatarList({
 
   return (
     <AvatarListWrapper className={className}>
-      {!!numCollapsedUsers && (
-        <Tooltip title={`${numCollapsedUsers} other ${typeMembers}`}>
-          <CollapsedUsers size={avatarSize} data-test-id="avatarList-collapsedusers">
-            {numCollapsedUsers < 99 && <Plus>+</Plus>}
-            {numCollapsedUsers}
-          </CollapsedUsers>
+      {!!numCollapsedAvatars && (
+        <Tooltip title={`${numCollapsedAvatars} other ${typeAvatars}`}>
+          <CollapsedAvatars size={avatarSize} data-test-id="avatarList-collapsedavatars">
+            {numCollapsedAvatars < 99 && <Plus>+</Plus>}
+            {numCollapsedAvatars}
+          </CollapsedAvatars>
         </Tooltip>
       )}
-      {visibleUsers.map(user => (
-        <StyledAvatar
+      {visibleUserAvatars.map(user => (
+        <StyledUserAvatar
           key={`${user.id}-${user.email}`}
           user={user}
           size={avatarSize}
           renderTooltip={renderTooltip}
+          tooltipOptions={tooltipOptions}
+          hasTooltip
+        />
+      ))}
+      {visibleTeamAvatars.map(team => (
+        <StyledTeamAvatar
+          key={`${team.id}-${team.name}`}
+          team={team}
+          size={avatarSize}
           tooltipOptions={tooltipOptions}
           hasTooltip
         />
@@ -65,8 +83,7 @@ export const AvatarListWrapper = styled('div')`
   flex-direction: row-reverse;
 `;
 
-const Circle = p => css`
-  border-radius: 50%;
+const AvatarStyle = p => css`
   border: 2px solid ${p.theme.background};
   margin-left: -8px;
   cursor: default;
@@ -76,12 +93,18 @@ const Circle = p => css`
   }
 `;
 
-const StyledAvatar = styled(UserAvatar)`
+const StyledUserAvatar = styled(UserAvatar)`
   overflow: hidden;
-  ${Circle};
+  border-radius: 50%;
+  ${AvatarStyle};
 `;
 
-const CollapsedUsers = styled('div')<{size: number}>`
+const StyledTeamAvatar = styled(TeamAvatar)`
+  overflow: hidden;
+  ${AvatarStyle}
+`;
+
+const CollapsedAvatars = styled('div')<{size: number}>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -93,7 +116,8 @@ const CollapsedUsers = styled('div')<{size: number}>`
   font-size: ${p => Math.floor(p.size / 2.3)}px;
   width: ${p => p.size}px;
   height: ${p => p.size}px;
-  ${Circle};
+  border-radius: 50%;
+  ${AvatarStyle};
 `;
 
 const Plus = styled('span')`

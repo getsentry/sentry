@@ -25,10 +25,7 @@ import {space} from 'sentry/styles/space';
 import {MissingMember, Organization, OrgRole} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
-import {
-  StyledExternalLink,
-  Subtitle,
-} from 'sentry/views/settings/organizationMembers/inviteBanner';
+import {StyledExternalLink} from 'sentry/views/settings/organizationMembers/inviteBanner';
 
 export interface InviteMissingMembersModalProps extends ModalRenderProps {
   allowedRoles: OrgRole[];
@@ -48,10 +45,11 @@ export function InviteMissingMembersModal({
     role: organization.defaultRole,
     teamSlugs: new Set<string>(),
     externalId: member.externalId,
-    selected: false,
+    selected: true,
   }));
   const [memberInvites, setMemberInvites] =
     useState<MissingMemberInvite[]>(initialMemberInvites);
+  const referrer = missingMembers.integration + '_nudge_invite';
   const [inviteStatus, setInviteStatus] = useState<InviteStatus>({});
   const [sendingInvites, setSendingInvites] = useState(false);
   const [complete, setComplete] = useState(false);
@@ -137,10 +135,13 @@ export function InviteMissingMembersModal({
     };
 
     try {
-      await api.requestPromise(`/organizations/${organization?.slug}/members/`, {
-        method: 'POST',
-        data,
-      });
+      await api.requestPromise(
+        `/organizations/${organization?.slug}/members/?referrer=${referrer}`,
+        {
+          method: 'POST',
+          data,
+        }
+      );
     } catch (err) {
       const errorResponse = err.responseJSON;
 
@@ -239,7 +240,7 @@ export function InviteMissingMembersModal({
                     @{username}
                   </StyledExternalLink>
                 </ContentRow>
-                <Subtitle>{member.email}</Subtitle>
+                <MemberEmail>{member.email}</MemberEmail>
               </StyledPanelItem>
               <ContentRow>
                 <IconCommit size="sm" />
@@ -284,6 +285,12 @@ export function InviteMissingMembersModal({
             aria-label={t('Send Invites')}
             onClick={sendInvites}
             disabled={!canSend || selectedCount === 0}
+            analyticsEventName="Github Invite Modal: Invite"
+            analyticsEventKey="github_invite_modal.invite"
+            analyticsParams={{
+              invited_all: memberInvites.length === selectedCount,
+              invited_count: selectedCount,
+            }}
           >
             {inviteButtonLabel()}
           </Button>
@@ -329,6 +336,16 @@ const ContentRow = styled('div')`
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
   gap: ${space(0.75)};
+`;
+
+const MemberEmail = styled('div')`
+  display: block;
+  max-width: 150px;
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: 400;
+  color: ${p => p.theme.gray300};
+  text-overflow: ellipsis;
+  overflow: hidden;
 `;
 
 export const modalCss = css`

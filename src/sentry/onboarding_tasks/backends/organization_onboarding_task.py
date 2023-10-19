@@ -2,7 +2,11 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry.models import OnboardingTaskStatus, OrganizationOnboardingTask, OrganizationOption
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organizationonboardingtask import (
+    OnboardingTaskStatus,
+    OrganizationOnboardingTask,
+)
 from sentry.onboarding_tasks.base import OnboardingTaskBackend
 from sentry.utils import json
 

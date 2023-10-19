@@ -30,6 +30,9 @@ from sentry.sentry_metrics.consumers.indexer.routing_producer import (
 from sentry.sentry_metrics.consumers.indexer.slicing_router import SlicingRouter
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
 
+# from usageaccountant import UsageAccumulator, UsageUnit
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -48,7 +51,7 @@ class Unbatcher(ProcessingStep[Union[FilteredPayload, IndexerOutputMessageBatch]
         assert not self.__closed
 
         # FilteredPayloads are not handled in the indexer
-        for transformed_message in cast(IndexerOutputMessageBatch, message.payload):
+        for transformed_message in cast(IndexerOutputMessageBatch, message.payload).data:
             self.__next_step.submit(transformed_message)
 
     def close(self) -> None:
@@ -196,6 +199,7 @@ def get_parallel_metrics_consumer(
     strict_offset_reset: bool,
     ingest_profile: str,
     indexer_db: str,
+    group_instance_id: Optional[str],
 ) -> StreamProcessor[KafkaPayload]:
     processing_factory = MetricsConsumerStrategyFactory(
         max_msg_batch_size=max_msg_batch_size,
@@ -216,6 +220,7 @@ def get_parallel_metrics_consumer(
                 group_id,
                 auto_offset_reset=auto_offset_reset,
                 strict_offset_reset=strict_offset_reset,
+                group_instance_id=group_instance_id,
             )
         ),
         Topic(processing_factory.config.input_topic),

@@ -49,7 +49,7 @@ function ExternalIssueActions({configurations, group, onChange}: Props) {
     // For example, we shouldn't have more than 1 jira ticket created for an issue for each jira configuration.
     const issue = externalIssues[0];
     const {id} = issue;
-    const endpoint = `/groups/${group.id}/integrations/${integration.id}/?externalIssue=${id}`;
+    const endpoint = `/organizations/${organization.slug}/issues/${group.id}/integrations/${integration.id}/?externalIssue=${id}`;
 
     api.request(endpoint, {
       method: 'DELETE',

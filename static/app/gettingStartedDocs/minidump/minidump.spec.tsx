@@ -6,7 +6,7 @@ import {GettingStartedWithMinidump, steps} from './minidump';
 
 describe('GettingStartedWithMinidump', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithMinidump dsn="test-dsn" />);
+    render(<GettingStartedWithMinidump dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithMinidump', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

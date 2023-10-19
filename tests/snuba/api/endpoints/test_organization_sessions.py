@@ -5,13 +5,13 @@ from uuid import uuid4
 import pytest
 from django.urls import reverse
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry import release_health
-from sentry.models import ReleaseProjectEnvironment
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.snuba.metrics import to_intervals
 from sentry.testutils.cases import APITestCase, BaseMetricsTestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.link_header import parse_link_header
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
@@ -387,8 +387,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         }
 
         def req(**kwargs):
-            with self.feature("organizations:anr-rate"):
-                return self.do_request(dict(default_request, **kwargs))
+            return self.do_request(dict(default_request, **kwargs))
 
         response = req()
         assert response.status_code == 200
@@ -1677,8 +1676,7 @@ class OrganizationSessionsEndpointMetricsTest(
         }
 
         def req(**kwargs):
-            with self.feature("organizations:anr-rate"):
-                return self.do_request(dict(default_request, **kwargs))
+            return self.do_request(dict(default_request, **kwargs))
 
         # basic test case
         response = req()
@@ -1716,23 +1714,6 @@ class OrganizationSessionsEndpointMetricsTest(
                 },
             },
         ]
-
-    @freeze_time(MOCK_DATETIME)
-    def test_anr_rate_without_feature_flag(self):
-        default_request = {
-            "project": [-1],
-            "statsPeriod": "1d",
-            "interval": "1d",
-            "field": ["anr_rate()"],
-        }
-
-        def req(**kwargs):
-            return self.do_request(dict(default_request, **kwargs))
-
-        # basic test case
-        response = req()
-        assert response.status_code == 400, response.content
-        assert response.data == {"detail": "This organization does not have the ANR rate feature"}
 
     @freeze_time(MOCK_DATETIME)
     def test_crash_rate(self):

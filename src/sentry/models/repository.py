@@ -15,6 +15,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.array import ArrayField
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import pending_delete
 
@@ -35,6 +36,7 @@ class Repository(Model, PendingDeletionMixin):
     )
     date_added = models.DateTimeField(default=timezone.now)
     integration_id = BoundedPositiveIntegerField(db_index=True, null=True)
+    languages = ArrayField(null=True)
 
     class Meta:
         app_label = "sentry"

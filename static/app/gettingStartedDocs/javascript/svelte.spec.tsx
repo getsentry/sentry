@@ -7,9 +7,10 @@ import {GettingStartedWithSvelte, nextSteps, steps} from './svelte';
 
 describe('GettingStartedWithSvelte', function () {
   it('all products are selected', function () {
-    const {container} = render(
+    render(
       <GettingStartedWithSvelte
         dsn="test-dsn"
+        projectSlug="test-project"
         activeProductSelection={[
           ProductSolution.PERFORMANCE_MONITORING,
           ProductSolution.SESSION_REPLAY,
@@ -38,7 +39,5 @@ describe('GettingStartedWithSvelte', function () {
         screen.getByRole('link', {name: filteredNextStepsLink.name})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

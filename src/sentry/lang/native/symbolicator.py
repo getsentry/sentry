@@ -18,9 +18,10 @@ from sentry import options
 from sentry.lang.native.sources import (
     get_bundle_index_urls,
     get_internal_artifact_lookup_source,
+    get_scraping_config,
     sources_for_symbolication,
 )
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.net.http import Session
 from sentry.utils import json, metrics
 
@@ -143,8 +144,10 @@ class Symbolicator:
 
     def process_minidump(self, minidump):
         (sources, process_response) = sources_for_symbolication(self.project)
+        scraping_config = get_scraping_config(self.project)
         data = {
             "sources": json.dumps(sources),
+            "scraping": json.dumps(scraping_config),
             "options": '{"dif_candidates": true}',
         }
 
@@ -155,8 +158,10 @@ class Symbolicator:
 
     def process_applecrashreport(self, report):
         (sources, process_response) = sources_for_symbolication(self.project)
+        scraping_config = get_scraping_config(self.project)
         data = {
             "sources": json.dumps(sources),
+            "scraping": json.dumps(scraping_config),
             "options": '{"dif_candidates": true}',
         }
 
@@ -170,11 +175,13 @@ class Symbolicator:
 
     def process_payload(self, stacktraces, modules, signal=None, apply_source_context=True):
         (sources, process_response) = sources_for_symbolication(self.project)
+        scraping_config = get_scraping_config(self.project)
         json = {
             "sources": sources,
             "options": {"dif_candidates": True, "apply_source_context": apply_source_context},
             "stacktraces": stacktraces,
             "modules": modules,
+            "scraping": scraping_config,
         }
 
         if signal:
@@ -183,16 +190,16 @@ class Symbolicator:
         res = self._process("symbolicate_stacktraces", "symbolicate", json=json)
         return process_response(res)
 
-    def process_js(
-        self, stacktraces, modules, release, dist, scraping_config=None, apply_source_context=True
-    ):
+    def process_js(self, stacktraces, modules, release, dist, apply_source_context=True):
         source = get_internal_artifact_lookup_source(self.project)
+        scraping_config = get_scraping_config(self.project)
 
         json = {
             "source": source,
             "stacktraces": stacktraces,
             "modules": modules,
             "options": {"apply_source_context": apply_source_context},
+            "scraping": scraping_config,
         }
 
         try:
@@ -208,8 +215,6 @@ class Symbolicator:
             json["release"] = release
         if dist is not None:
             json["dist"] = dist
-        if scraping_config is not None:
-            json["scraping"] = scraping_config
 
         return self._process("symbolicate_js_stacktraces", "symbolicate-js", json=json)
 

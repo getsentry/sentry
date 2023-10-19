@@ -1,15 +1,16 @@
 from datetime import datetime, timezone
 
-import freezegun
-
 from sentry.api.serializers import serialize
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.base import RuleGroupHistory
 from sentry.rules.history.endpoints.project_rule_group_history import RuleGroupHistorySerializer
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test
@@ -28,7 +29,7 @@ class RuleGroupHistorySerializerTest(TestCase):
         ]
 
 
-@freezegun.freeze_time()
+@freeze_time()
 @region_silo_test
 class ProjectRuleGroupHistoryIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-group-history-index"

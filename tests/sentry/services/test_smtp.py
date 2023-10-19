@@ -1,10 +1,14 @@
 import os.path
 
-from sentry.models import Activity
+from sentry.models.activity import Activity
 from sentry.services.smtp import STATUS, SentrySMTPServer
 from sentry.testutils.cases import TestCase
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.utils.email import email_to_group_id, group_id_to_email
+
+pytestmark = [requires_snuba]
+
 
 with open(os.path.join(os.path.dirname(__file__), "email.txt")) as f:
     fixture = f.read()
@@ -14,11 +18,11 @@ class SentrySMTPTest(TestCase):
     def setUp(self):
         self.address = ("0.0.0.0", 0)
         self.server = SentrySMTPServer(*self.address)
-        self.mailto = group_id_to_email(self.group.pk)
+        self.mailto = group_id_to_email(self.group.id, self.organization.id)
         self.event  # side effect of generating an event
 
     def test_decode_email_address(self):
-        self.assertEqual(email_to_group_id(self.mailto), self.group.pk)
+        assert email_to_group_id(self.mailto) == (self.group.id, self.organization.id)
 
     def test_process_message(self):
         with self.tasks():

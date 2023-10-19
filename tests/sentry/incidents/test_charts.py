@@ -1,11 +1,11 @@
 import datetime
 
 from django.utils.dateparse import parse_datetime
-from freezegun import freeze_time
 
 from sentry.incidents.charts import incident_date_range
 from sentry.incidents.models import Incident
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 now = "2022-05-16T20:00:00"
 frozen_time = f"{now}Z"

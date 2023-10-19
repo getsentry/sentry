@@ -1,11 +1,8 @@
-from sentry.models import (
-    NotificationSetting,
-    NotificationSettingOption,
-    NotificationSettingProvider,
-)
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
 
@@ -85,31 +82,6 @@ class UserNotificationDetailsPutTest(UserNotificationDetailsTestBase):
     method = "put"
 
     def test_saves_and_returns_values(self):
-        data = {
-            "deployNotifications": 2,
-            "personalActivityNotifications": True,
-            "selfAssignOnResolve": True,
-        }
-        response = self.get_success_response("me", **data)
-
-        assert response.data.get("deployNotifications") == 2
-        assert response.data.get("personalActivityNotifications") is True
-        assert response.data.get("selfAssignOnResolve") is True
-        assert response.data.get("subscribeByDefault") is True
-        assert response.data.get("workflowNotifications") == 1
-
-        value = NotificationSetting.objects.get_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.DEPLOY,
-            user_id=self.user.id,
-        )
-        assert value == NotificationSettingOptionValues.ALWAYS
-        # ensure double write does not happen
-        assert not NotificationSettingOption.objects.filter(user_id=self.user.id).exists()
-        assert not NotificationSettingProvider.objects.filter(user_id=self.user.id).exists()
-
-    @with_feature("organizations:notifications-double-write")
-    def test_double_write(self):
         org = self.create_organization()
         self.create_member(user=self.user, organization=org)
         data = {

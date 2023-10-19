@@ -5,7 +5,6 @@ import time
 
 import pytest
 from django.utils.datastructures import MultiValueDict
-from freezegun import freeze_time
 from snuba_sdk import Column, Condition, Limit, Offset, Op
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -14,10 +13,13 @@ from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.naming_layer import SessionMRI
 from sentry.snuba.metrics.query_builder import QueryDefinition
 from sentry.testutils.cases import BaseMetricsLayerTestCase, TestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.skips import requires_snuba
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
+@pytest.mark.snuba_ci
 @freeze_time(BaseMetricsLayerTestCase.MOCK_DATETIME)
 class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     @property
@@ -94,14 +96,14 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             ("init", 15),
         ):
             self.store_release_health_metric(
-                name=SessionMRI.SESSION.value,
+                name=SessionMRI.RAW_SESSION.value,
                 tags={"session.status": tag_value},
                 value=count_value,
                 minutes_before_now=4,
             )
         for value in range(3):
             self.store_release_health_metric(
-                name=SessionMRI.ERROR.value,
+                name=SessionMRI.RAW_ERROR.value,
                 tags={"release": "foo"},
                 value=value,
             )
@@ -226,7 +228,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 tags.update({"abnormal_mechanism": anr_mechanism})
 
             self.store_release_health_metric(
-                name=SessionMRI.USER.value,
+                name=SessionMRI.RAW_USER.value,
                 tags=tags,
                 value=count_value,
                 minutes_before_now=4,

@@ -1,0 +1,3 @@
+import pytest
+
+def get_reruns_count(item: pytest.Item) -> int: ...

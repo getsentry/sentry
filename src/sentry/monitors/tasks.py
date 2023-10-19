@@ -1,22 +1,29 @@
 import logging
 from datetime import datetime
+from functools import lru_cache
+from typing import Mapping
 
 import msgpack
 import sentry_sdk
-from arroyo import Topic
+from arroyo import Partition, Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from confluent_kafka.admin import AdminClient, PartitionMetadata
 from django.conf import settings
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
-from sentry.monitors.constants import SUBTITLE_DATETIME_FORMAT, TIMEOUT
-from sentry.monitors.logic.mark_failed import MonitorFailure, mark_failed
+from sentry.monitors.logic.mark_failed import mark_failed
+from sentry.monitors.schedule import get_prev_schedule
 from sentry.monitors.types import ClockPulseMessage
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics, redis
 from sentry.utils.arroyo_producer import SingletonProducer
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.utils.kafka_config import (
+    get_kafka_admin_cluster_options,
+    get_kafka_producer_cluster_options,
+    get_topic_definition,
+)
 
 from .models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, MonitorStatus, MonitorType
 
@@ -37,8 +44,11 @@ CHECKINS_LIMIT = 10_000
 # This key is used to store the last timestamp that the tasks were triggered.
 MONITOR_TASKS_LAST_TRIGGERED_KEY = "sentry.monitors.last_tasks_ts"
 
+# This key is used to store the hashmap of Mapping[PartitionKey, Timestamp]
+MONITOR_TASKS_PARTITION_CLOCKS = "sentry.monitors.partition_clocks"
 
-def _get_monitor_checkin_producer() -> KafkaProducer:
+
+def _get_producer() -> KafkaProducer:
     cluster_name = get_topic_definition(settings.KAFKA_INGEST_MONITORS)["cluster"]
     producer_config = get_kafka_producer_cluster_options(cluster_name)
     producer_config.pop("compression.type", None)
@@ -46,7 +56,21 @@ def _get_monitor_checkin_producer() -> KafkaProducer:
     return KafkaProducer(build_kafka_configuration(default_config=producer_config))
 
 
-_checkin_producer = SingletonProducer(_get_monitor_checkin_producer)
+_checkin_producer = SingletonProducer(_get_producer)
+
+
+@lru_cache(maxsize=None)
+def _get_partitions() -> Mapping[int, PartitionMetadata]:
+    topic = settings.KAFKA_INGEST_MONITORS
+    cluster_name = get_topic_definition(topic)["cluster"]
+
+    conf = get_kafka_admin_cluster_options(cluster_name)
+    admin_client = AdminClient(conf)
+    result = admin_client.list_topics(topic)
+    topic_metadata = result.topics.get(topic)
+
+    assert topic_metadata
+    return topic_metadata.partitions
 
 
 def _dispatch_tasks(ts: datetime):
@@ -69,9 +93,13 @@ def _dispatch_tasks(ts: datetime):
     check_timeout.delay(current_datetime=ts)
 
 
-def try_monitor_tasks_trigger(ts: datetime):
+def try_monitor_tasks_trigger(ts: datetime, partition: int):
     """
     Handles triggering the monitor tasks when we've rolled over the minute.
+
+    We keep a reference to the most recent timestamp for each partition and use
+    the slowest partition as our reference time. This ensures all partitions
+    have been synchronized before ticking our clock.
 
     This function is called by our consumer processor
     """
@@ -82,21 +110,42 @@ def try_monitor_tasks_trigger(ts: datetime):
     reference_datetime = ts.replace(second=0, microsecond=0)
     reference_ts = int(reference_datetime.timestamp())
 
+    # Store the current clock value for this partition.
+    redis_client.zadd(
+        name=MONITOR_TASKS_PARTITION_CLOCKS,
+        mapping={f"part-{partition}": reference_ts},
+    )
+
+    # Find the slowest partition from our sorted set of partitions, where the
+    # clock is the score.
+    slowest_partitions = redis_client.zrange(
+        name=MONITOR_TASKS_PARTITION_CLOCKS,
+        withscores=True,
+        start=0,
+        end=0,
+    )
+
+    # the first tuple is the slowest (part-<id>, score), the score is the
+    # timestamp. Use `int()` to keep the timestamp (score) as an int
+    slowest_part_ts = int(slowest_partitions[0][1])
+
     precheck_last_ts = redis_client.get(MONITOR_TASKS_LAST_TRIGGERED_KEY)
     if precheck_last_ts is not None:
         precheck_last_ts = int(precheck_last_ts)
 
-    # If we have the same or an older reference timestamp from the most recent
-    # tick there is nothing to do, we've already handled this tick.
+    # If we have the same or an older timestamp from the most recent tick there
+    # is nothing to do, we've already handled this tick.
     #
-    # The scenario where the reference_ts is older is likely due to a partition
-    # being slightly behind another partition that we've already read from
-    if precheck_last_ts is not None and precheck_last_ts >= reference_ts:
+    # The scenario where the slowest_part_ts is older may happen when our
+    # MONITOR_TASKS_PARTITION_CLOCKS set did not know about every partition the
+    # topic is responsible for. Older check-ins may be processed after newer
+    # ones in diferent topics. This should only happen if redis loses state.
+    if precheck_last_ts is not None and precheck_last_ts >= slowest_part_ts:
         return
 
     # GETSET is atomic. This is critical to avoid another consumer also
     # processing the same tick.
-    last_ts = redis_client.getset(MONITOR_TASKS_LAST_TRIGGERED_KEY, reference_ts)
+    last_ts = redis_client.getset(MONITOR_TASKS_LAST_TRIGGERED_KEY, slowest_part_ts)
     if last_ts is not None:
         last_ts = int(last_ts)
 
@@ -108,53 +157,58 @@ def try_monitor_tasks_trigger(ts: datetime):
 
     # Track the delay from the true time, ideally this should be pretty
     # close, but in the case of a backlog, this will be much higher
-    total_delay = datetime.now().timestamp() - reference_ts
+    total_delay = datetime.now().timestamp() - slowest_part_ts
 
-    logger.info(
-        "monitors.consumer.clock_tick",
-        extra={"reference_datetime": str(reference_datetime)},
-    )
+    tick = datetime.fromtimestamp(slowest_part_ts)
+
+    logger.info("monitors.consumer.clock_tick", extra={"reference_datetime": str(tick)})
     metrics.gauge("monitors.task.clock_delay", total_delay, sample_rate=1.0)
 
     # If more than exactly a minute has passed then we've skipped a
     # task run, report that to sentry, it is a problem.
-    if last_ts is not None and reference_ts > last_ts + 60:
+    if last_ts is not None and slowest_part_ts > last_ts + 60:
         with sentry_sdk.push_scope() as scope:
             scope.set_extra("last_ts", last_ts)
-            scope.set_extra("reference_ts", reference_ts)
+            scope.set_extra("slowest_part_ts", slowest_part_ts)
             sentry_sdk.capture_message("Monitor task dispatch minute skipped")
 
-    _dispatch_tasks(ts)
+    _dispatch_tasks(tick)
 
 
 @instrumented_task(name="sentry.monitors.tasks.clock_pulse", silo_mode=SiloMode.REGION)
 def clock_pulse(current_datetime=None):
     """
-    This task is run once a minute when to produce a 'clock pulse' into the
+    This task is run once a minute when to produce 'clock pulses' into the
     monitor ingest topic. This is to ensure there is always a message in the
-    topic that can drive the clock which dispatches the monitor tasks.
+    topic that can drive all partition clocks, which dispatch monitor tasks.
     """
     if current_datetime is None:
         current_datetime = timezone.now()
 
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
         # Directly trigger try_monitor_tasks_trigger in dev
-        try_monitor_tasks_trigger(current_datetime)
+        for partition in _get_partitions().values():
+            try_monitor_tasks_trigger(current_datetime, partition.id)
         return
 
     message: ClockPulseMessage = {
         "message_type": "clock_pulse",
     }
 
-    # Produce the pulse into the topic
     payload = KafkaPayload(None, msgpack.packb(message), [])
-    _checkin_producer.produce(Topic(settings.KAFKA_INGEST_MONITORS), payload)
+
+    # We create a clock-pulse (heart-beat) for EACH available partition in the
+    # topic. This is a requirement to ensure that none of the partitions stall,
+    # since the global clock is tied to the slowest partition.
+    for partition in _get_partitions().values():
+        dest = Partition(Topic(settings.KAFKA_INGEST_MONITORS), partition.id)
+        _checkin_producer.produce(dest, payload)
 
 
 @instrumented_task(
     name="sentry.monitors.tasks.check_missing",
-    time_limit=30,
-    soft_time_limit=25,
+    time_limit=15,
+    soft_time_limit=10,
     silo_mode=SiloMode.REGION,
 )
 def check_missing(current_datetime: datetime):
@@ -162,31 +216,16 @@ def check_missing(current_datetime: datetime):
     # minute, otherwise we may mark checkins as missed if they didn't happen
     # immediately before this task was run (usually a few seconds into the minute)
     #
-    # Because we query `next_checkin_latest__lt=current_datetime` clamping to the
-    # minute will ignore monitors that haven't had their checkin yet within
-    # this minute.
-    #
     # XXX(epurkhiser): This *should* have already been handle by the
     # try_monitor_tasks_trigger, since it clamps the reference timestamp, but I
     # am leaving this here to be safe
     current_datetime = current_datetime.replace(second=0, microsecond=0)
 
     qs = (
+        # Monitors that have reached the latest checkin time
         MonitorEnvironment.objects.filter(
             monitor__type__in=[MonitorType.CRON_JOB],
-            # [!!]: Note that we use `lt` here to give a whole minute buffer
-            # for a check-in to be sent.
-            #
-            # As an example, if our next_checkin_latest for a monitor was
-            # 11:00:00, and our task runs at 11:00:05, the time is clamped down
-            # to 11:00:00, and then compared:
-            #
-            #  next_checkin_latest < 11:00:00
-            #
-            # Since they are equal this does not match. When the task is run a
-            # minute later if the check-in still hasn't been sent we will THEN
-            # mark it as missed.
-            next_checkin_latest__lt=current_datetime,
+            next_checkin_latest__lte=current_datetime,
         )
         .exclude(
             status__in=[
@@ -203,41 +242,74 @@ def check_missing(current_datetime: datetime):
             ]
         )[:MONITOR_LIMIT]
     )
+
     metrics.gauge("sentry.monitors.tasks.check_missing.count", qs.count(), sample_rate=1.0)
     for monitor_environment in qs:
-        try:
-            logger.info(
-                "monitor.missed-checkin", extra={"monitor_environment_id": monitor_environment.id}
-            )
+        mark_environment_missing.delay(monitor_environment.id, current_datetime)
 
-            monitor = monitor_environment.monitor
-            expected_time = monitor_environment.next_checkin
 
-            # add missed checkin.
-            #
-            # XXX(epurkhiser): The date_added is backdated so that this missed
-            # check-in correctly reflects the time of when the checkin SHOULD
-            # have happened. It is the same as the expected_time.
-            MonitorCheckIn.objects.create(
-                project_id=monitor_environment.monitor.project_id,
-                monitor=monitor_environment.monitor,
-                monitor_environment=monitor_environment,
-                status=CheckInStatus.MISSED,
-                date_added=expected_time,
-                expected_time=expected_time,
-                monitor_config=monitor.get_validated_config(),
-            )
-            mark_failed(
-                monitor_environment,
-                reason=MonitorFailure.MISSED_CHECKIN,
-                occurrence_context={
-                    "expected_time": expected_time.strftime(SUBTITLE_DATETIME_FORMAT)
-                    if expected_time
-                    else expected_time
-                },
-            )
-        except Exception:
-            logger.exception("Exception in check_monitors - mark missed", exc_info=True)
+@instrumented_task(
+    name="sentry.monitors.tasks.mark_environment_missing",
+    max_retries=0,
+    record_timing=True,
+)
+def mark_environment_missing(monitor_environment_id: int, ts: datetime):
+    logger.info("monitor.missed-checkin", extra={"monitor_environment_id": monitor_environment_id})
+
+    monitor_environment = MonitorEnvironment.objects.select_related("monitor").get(
+        id=monitor_environment_id
+    )
+    monitor = monitor_environment.monitor
+    expected_time = monitor_environment.next_checkin
+
+    # add missed checkin.
+    #
+    # XXX(epurkhiser): The date_added is backdated so that this missed
+    # check-in correctly reflects the time of when the checkin SHOULD
+    # have happened. It is the same as the expected_time.
+    checkin = MonitorCheckIn.objects.create(
+        project_id=monitor_environment.monitor.project_id,
+        monitor=monitor_environment.monitor,
+        monitor_environment=monitor_environment,
+        status=CheckInStatus.MISSED,
+        date_added=expected_time,
+        expected_time=expected_time,
+        monitor_config=monitor.get_validated_config(),
+    )
+
+    # Compute when the check-in *should* have happened given the current
+    # reference timestamp. This is different from the expected_time usage above
+    # as it is computing that most recent expected check-in time using our
+    # reference time. `expected_time` is when the check-in was expected to
+    # happen. This takes advantage of the fact that the current reference time
+    # will always be at least a minute after the last expected check-in.
+    #
+    # Typically `expected_time` and this calculate time should be the same, but
+    # there are cases where it may not be:
+    #
+    #  1. We are guarding against a task having not run for every minute.
+    #     If we simply set our mark_failed reference timestamp to the failing
+    #     check-ins date_added the `next_checkin` computed in mark_failed may
+    #     fall behind if the clock skips, since it will just keep computing
+    #     next_checkins from previous check-ins.
+    #
+    #  2. We are more "correctly" handling checkin_margins that are larger
+    #     than the schedule gaps. We want the timeout to be placed when it was
+    #     expected, but calculate the next expected check-in from the true
+    #     previous expected check-in (which would be some time during the
+    #     overlapping margin.)
+
+    # We use the expected_time of the check-in to compute out the schedule.
+    # Specifically important for interval where it's a function of some
+    # starting time.
+    #
+    # Trim tzinfo. This is always UTC. ts does not have tzinfo and
+    # get_prev_schedule will fail if the start and reference time have
+    # different tzinfo.
+    start_ts = expected_time.replace(tzinfo=None)
+    most_recent_expected_ts = get_prev_schedule(start_ts, ts, monitor.schedule)
+
+    mark_failed(checkin, ts=most_recent_expected_ts)
 
 
 @instrumented_task(
@@ -251,42 +323,57 @@ def check_timeout(current_datetime: datetime):
 
     qs = MonitorCheckIn.objects.filter(
         status=CheckInStatus.IN_PROGRESS, timeout_at__lte=current_datetime
-    ).select_related("monitor", "monitor_environment")[:CHECKINS_LIMIT]
+    )[:CHECKINS_LIMIT]
     metrics.gauge("sentry.monitors.tasks.check_timeout.count", qs.count(), sample_rate=1)
     # check for any monitors which are still running and have exceeded their maximum runtime
     for checkin in qs:
-        try:
-            monitor_environment = checkin.monitor_environment
-            logger.info(
-                "monitor_environment.checkin-timeout",
-                extra={"monitor_environment_id": monitor_environment.id, "checkin_id": checkin.id},
-            )
-            affected = checkin.update(status=CheckInStatus.TIMEOUT)
-            if not affected:
-                continue
+        mark_checkin_timeout.delay(checkin.id, current_datetime)
 
-            # we only mark the monitor as failed if a newer checkin wasn't responsible for the state
-            # change
-            has_newer_result = MonitorCheckIn.objects.filter(
-                monitor_environment=monitor_environment,
-                date_added__gt=checkin.date_added,
-                status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
-            ).exists()
-            if not has_newer_result:
-                mark_failed(
-                    monitor_environment,
-                    reason=MonitorFailure.DURATION,
-                    occurrence_context={
-                        "duration": (checkin.monitor.config or {}).get("max_runtime") or TIMEOUT,
-                        "trace_id": checkin.trace_id,
-                    },
-                )
-        except Exception:
-            logger.exception("Exception in check_monitors - mark timeout", exc_info=True)
 
-    # safety check for check-ins stuck in the backlog
-    backlog_count = MonitorCheckIn.objects.filter(
-        status=CheckInStatus.IN_PROGRESS, timeout_at__isnull=True
-    ).count()
-    if backlog_count:
-        logger.exception(f"Exception in check_monitors - backlog count {backlog_count} is > 0")
+@instrumented_task(
+    name="sentry.monitors.tasks.mark_checkin_timeout",
+    max_retries=0,
+    record_timing=True,
+)
+def mark_checkin_timeout(checkin_id: int, ts: datetime):
+    logger.info("checkin.timeout", extra={"checkin_id": checkin_id})
+
+    checkin = (
+        MonitorCheckIn.objects.select_related("monitor_environment")
+        .select_related("monitor_environment__monitor")
+        .get(id=checkin_id)
+    )
+
+    monitor_environment = checkin.monitor_environment
+    monitor = monitor_environment.monitor
+
+    logger.info(
+        "monitor_environment.checkin-timeout",
+        extra={"monitor_environment_id": monitor_environment.id, "checkin_id": checkin.id},
+    )
+    affected = checkin.update(status=CheckInStatus.TIMEOUT)
+    if not affected:
+        return
+
+    # we only mark the monitor as failed if a newer checkin wasn't responsible for the state
+    # change
+    has_newer_result = MonitorCheckIn.objects.filter(
+        monitor_environment=monitor_environment,
+        date_added__gt=checkin.date_added,
+        status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
+    ).exists()
+    if not has_newer_result:
+        # Similar to mark_missed we compute when the most recent check-in should
+        # have happened to use as our reference time for mark_failed.
+        #
+        # XXX(epurkhiser): For ScheduleType.INTERVAL this MAY compute an
+        # incorrect next_checkin from what the actual user task might expect,
+        # since we don't know the behavior of the users task scheduling in the
+        # scenario that it 1) doesn't complete, or 2) runs for longer than
+        # their configured time-out time.
+        #
+        # See `test_timeout_using_interval`
+        start_ts = checkin.date_added.replace(tzinfo=None)
+        most_recent_expected_ts = get_prev_schedule(start_ts, ts, monitor.schedule)
+
+        mark_failed(checkin, ts=most_recent_expected_ts)

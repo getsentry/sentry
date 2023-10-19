@@ -2,10 +2,10 @@ import functools
 from datetime import datetime, timedelta, timezone
 
 from django.urls import reverse
-from freezegun import freeze_time
 
 from sentry.constants import DataCategory
 from sentry.testutils.cases import APITestCase, OutcomesSnubaTest
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.outcomes import Outcome
 

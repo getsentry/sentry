@@ -1,5 +1,8 @@
 import {browserHistory, PlainRoute} from 'react-router';
 import selectEvent from 'react-select-event';
+import moment from 'moment';
+import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
+import {ProjectAlertRuleConfiguration} from 'sentry-fixture/projectAlertRuleConfiguration';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -108,6 +111,7 @@ const createWrapper = (props = {}) => {
     organization,
     project,
     onChangeTitleMock,
+    router,
   };
 };
 
@@ -116,11 +120,11 @@ describe('IssueRuleEditor', function () {
     browserHistory.replace = jest.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/configuration/',
-      body: TestStubs.ProjectAlertRuleConfiguration(),
+      body: ProjectAlertRuleConfiguration(),
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/1/',
-      body: TestStubs.ProjectAlertRule(),
+      body: ProjectAlertRule(),
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/environments/',
@@ -153,39 +157,34 @@ describe('IssueRuleEditor', function () {
   });
 
   describe('Viewing the rule', () => {
-    const rule = TestStubs.MetricRule();
-
-    it('is visible without org-level alerts:write', () => {
+    it('is visible without org-level alerts:write', async () => {
       createWrapper({
         organization: {access: []},
         project: {access: []},
-        rule,
       });
 
-      expect(screen.queryByText(permissionAlertText)).toBeInTheDocument();
+      expect(await screen.findByText(permissionAlertText)).toBeInTheDocument();
       expect(screen.queryByLabelText('Save Rule')).toBeDisabled();
     });
 
-    it('is enabled with org-level alerts:write', () => {
+    it('is enabled with org-level alerts:write', async () => {
       createWrapper({
         organization: {access: ['alerts:write']},
         project: {access: []},
-        rule,
       });
 
+      expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
       expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
-      expect(screen.queryByLabelText('Save Rule')).toBeEnabled();
     });
 
-    it('is enabled with project-level alerts:write', () => {
+    it('is enabled with project-level alerts:write', async () => {
       createWrapper({
         organization: {access: []},
         project: {access: ['alerts:write']},
-        rule,
       });
 
+      expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
       expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
-      expect(screen.queryByLabelText('Save Rule')).toBeEnabled();
     });
   });
 
@@ -196,19 +195,19 @@ describe('IssueRuleEditor', function () {
       mock = MockApiClient.addMockResponse({
         url: endpoint,
         method: 'PUT',
-        body: TestStubs.ProjectAlertRule(),
+        body: ProjectAlertRule(),
       });
     });
 
-    it('gets correct rule name', function () {
-      const rule = TestStubs.ProjectAlertRule();
+    it('gets correct rule name', async function () {
+      const rule = ProjectAlertRule();
       mock = MockApiClient.addMockResponse({
         url: endpoint,
         method: 'GET',
         body: rule,
       });
       const {onChangeTitleMock} = createWrapper();
-      expect(mock).toHaveBeenCalled();
+      await waitFor(() => expect(mock).toHaveBeenCalled());
       expect(onChangeTitleMock).toHaveBeenCalledWith(rule.name);
     });
 
@@ -341,6 +340,27 @@ describe('IssueRuleEditor', function () {
         screen.getByText('Post to a Threads channel with these')
       ).toBeInTheDocument();
     });
+
+    it('opts out of the alert being disabled', async function () {
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/rules/1/',
+        body: ProjectAlertRule({
+          status: 'disabled',
+          disableDate: moment().add(1, 'day').toISOString(),
+        }),
+      });
+      createWrapper();
+      await userEvent.click(screen.getByText('Save Rule'));
+
+      await waitFor(() =>
+        expect(mock).toHaveBeenCalledWith(
+          endpoint,
+          expect.objectContaining({
+            data: expect.objectContaining({optOutEdit: true}),
+          })
+        )
+      );
+    });
   });
 
   describe('Edit Rule: Slack Channel Look Up', function () {
@@ -358,7 +378,7 @@ describe('IssueRuleEditor', function () {
     it('success status updates the rule', async function () {
       const mockSuccess = MockApiClient.addMockResponse({
         url: `/projects/org-slug/project-slug/rule-task/${uuid}/`,
-        body: {status: 'success', rule: TestStubs.ProjectAlertRule({name: 'Slack Rule'})},
+        body: {status: 'success', rule: ProjectAlertRule({name: 'Slack Rule'})},
       });
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/1/',
@@ -366,7 +386,7 @@ describe('IssueRuleEditor', function () {
         statusCode: 202,
         body: {uuid},
       });
-      createWrapper();
+      const {router} = createWrapper();
       await userEvent.click(screen.getByText('Save Rule'), {delay: null});
 
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
@@ -375,7 +395,9 @@ describe('IssueRuleEditor', function () {
       await waitFor(() => expect(mockSuccess).toHaveBeenCalledTimes(1));
       jest.advanceTimersByTime(1000);
       await waitFor(() => expect(addSuccessMessage).toHaveBeenCalledTimes(1));
-      expect(screen.getByDisplayValue('Slack Rule')).toBeInTheDocument();
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
+      });
     });
 
     it('pending status keeps loading true', async function () {
@@ -425,7 +447,7 @@ describe('IssueRuleEditor', function () {
 
   describe('Duplicate Rule', function () {
     let mock;
-    const rule = TestStubs.ProjectAlertRule();
+    const rule = ProjectAlertRule();
     const endpoint = `/projects/org-slug/project-slug/rules/${rule.id}/`;
 
     beforeEach(function () {
@@ -436,7 +458,7 @@ describe('IssueRuleEditor', function () {
       });
     });
 
-    it('gets correct rule to duplicate and renders fields correctly', function () {
+    it('gets correct rule to duplicate and renders fields correctly', async function () {
       createWrapper({
         organization: {
           access: ['alerts:write'],
@@ -444,14 +466,40 @@ describe('IssueRuleEditor', function () {
         router: {
           location: {
             query: {
-              createFromDuplicate: true,
+              createFromDuplicate: 'true',
               duplicateRuleId: `${rule.id}`,
             },
           },
         },
       });
+
+      expect(await screen.findByTestId('alert-name')).toHaveValue(`${rule.name} copy`);
+      expect(screen.queryByText('A new issue is created')).toBeInTheDocument();
       expect(mock).toHaveBeenCalled();
-      expect(screen.getByTestId('alert-name')).toHaveValue(`${rule.name} copy`);
+    });
+
+    it('does not add FirstSeenEventCondition to a duplicate rule', async function () {
+      MockApiClient.addMockResponse({
+        url: endpoint,
+        method: 'GET',
+        body: {...rule, conditions: []},
+      });
+      createWrapper({
+        organization: {
+          access: ['alerts:write'],
+        },
+        router: {
+          location: {
+            query: {
+              createFromDuplicate: 'true',
+              duplicateRuleId: `${rule.id}`,
+            },
+          },
+        },
+      });
+
+      expect(await screen.findByTestId('alert-name')).toHaveValue(`${rule.name} copy`);
+      expect(screen.queryByText('A new issue is created')).not.toBeInTheDocument();
     });
   });
 });

@@ -53,6 +53,8 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
 
             client = MsTeamsClient(integration)
             client.send_card(channel, card)
+            rule = rules[0] if rules else None
+            self.record_notification_sent(event, channel, rule, notification_uuid)
 
         key = f"msteams:{integration.id}:{channel}"
 

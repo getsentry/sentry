@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -17,7 +19,7 @@ describe('SettingsLayout', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [TestStubs.Organization()],
+      body: [Organization()],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
@@ -38,13 +40,11 @@ describe('SettingsLayout', function () {
   }
 
   it('renders', function () {
-    const {container} = render(
+    render(
       <BreadcrumbContextProvider>
         <SettingsLayout {...routerProps}>content</SettingsLayout>
       </BreadcrumbContextProvider>
     );
-
-    expect(container).toSnapshot();
   });
 
   it('can render navigation', function () {

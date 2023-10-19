@@ -11,7 +11,10 @@ from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import OrderBy
 from typing_extensions import TypedDict
 
-from sentry.models import Environment, Organization, Project, Team
+from sentry.models.environment import Environment
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.services.hybrid_cloud.user import RpcUser
 
 WhereType = Union[Condition, BooleanCondition]
@@ -115,5 +118,5 @@ class QueryBuilderConfig:
     # of a top events request
     skip_tag_resolution: bool = False
     on_demand_metrics_enabled: bool = False
-    skip_issue_validation: bool = False
+    skip_field_validation_for_entity_subscription_deletion: bool = False
     allow_metric_aggregates: Optional[bool] = False

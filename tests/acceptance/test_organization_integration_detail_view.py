@@ -4,7 +4,7 @@ from fixtures.page_objects.organization_integration_settings import (
     ExampleIntegrationSetupWindowElement,
     OrganizationIntegrationDetailViewPage,
 )
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
@@ -32,7 +32,6 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
         self.provider.name = "Example Installation"
 
         self.load_page("alert_rule_integration")
-        self.browser.snapshot("integrations - integration detail overview")
 
         detail_view_page = OrganizationIntegrationDetailViewPage(browser=self.browser)
         detail_view_page.click_install_button()
@@ -66,7 +65,6 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
 
         model.add_organization(self.organization, self.user)
         self.load_page("slack", configuration_tab=True)
-        self.browser.snapshot(name="integrations - integration detail one configuration")
 
         detail_view_page = OrganizationIntegrationDetailViewPage(browser=self.browser)
         assert self.browser.element_exists('[aria-label="Configure"]')
@@ -75,4 +73,3 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
         assert (
             self.browser.element('[data-test-id="integration-status"]').text == "Pending Deletion"
         )
-        self.browser.snapshot(name="integrations - integration detail no configurations")

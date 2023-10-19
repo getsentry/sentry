@@ -7,6 +7,7 @@ from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
 from sentry.middleware.integrations.parsers.jira_server import JiraServerRequestParser
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.services.hybrid_cloud.organization_mapping.service import organization_mapping_service
 from sentry.silo.base import SiloMode
@@ -56,8 +57,8 @@ class JiraServerRequestParserTest(TestCase):
         request = self.factory.post(route)
         parser = JiraServerRequestParser(request=request, response_handler=self.get_response)
 
-        organization_mapping_service.update(
-            organization_id=self.organization.id, update={"region_name": "us"}
+        OrganizationMapping.objects.get(organization_id=self.organization.id).update(
+            region_name="us"
         )
         with mock.patch(
             "sentry.middleware.integrations.parsers.jira_server.get_integration_from_token"

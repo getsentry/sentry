@@ -7,7 +7,7 @@ import ClippedBox from 'sentry/components/clippedBox';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {ExceptionType, Organization, PlatformType, Project} from 'sentry/types';
+import {ExceptionType, Organization, PlatformKey, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -17,7 +17,7 @@ import rawStacktraceContent from '../stackTrace/rawContent';
 type Props = {
   api: Client;
   eventId: Event['id'];
-  platform: PlatformType;
+  platform: PlatformKey;
   projectSlug: Project['slug'];
   type: 'original' | 'minified';
   // XXX: Organization is NOT available for Shared Issues!
@@ -139,7 +139,8 @@ class RawContent extends Component<Props, State> {
 
     try {
       const data = await api.requestPromise(
-        this.getAppleCrashReportEndpoint(organization)
+        this.getAppleCrashReportEndpoint(organization),
+        {headers: {Accept: '*/*; charset=utf-8'}}
       );
       this.setState({
         error: false,

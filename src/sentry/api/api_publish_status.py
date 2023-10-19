@@ -7,6 +7,7 @@ class ApiPublishStatus(Enum):
     """
 
     UNKNOWN = "unknown"
-    PUBLIC = "public"
-    PRIVATE = "private"
-    EXPERIMENTAL = "experimental"
+
+    PUBLIC = "public"  # stable API that is visible in public documentation
+    PRIVATE = "private"  # any API that will not be published at any point
+    EXPERIMENTAL = "experimental"  # API in development and will be published at some point
