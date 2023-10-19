@@ -7,7 +7,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.utils import json
 
 if TYPE_CHECKING:
@@ -96,6 +96,8 @@ class CustomDynamicSamplingRuleUser(Model):
         db_table = "sentry_customdynamicsamplingruleuser"
         unique_together = (("custom_dynamic_sampling_rule", "user"),)
 
+    __repr__ = sane_repr("custom_dynamic_sampling_rule", "user_id")
+
 
 @region_silo_only_model
 class CustomDynamicSamplingRule(Model):
@@ -125,6 +127,7 @@ class CustomDynamicSamplingRule(Model):
     condition_hash = models.CharField(max_length=40)
     # the raw query field from the request
     query = models.TextField(null=True)
+    users = models.ManyToManyField("sentry.User", through="sentry.CustomDynamicSamplingRuleUser")
 
     @property
     def external_rule_id(self) -> int:
