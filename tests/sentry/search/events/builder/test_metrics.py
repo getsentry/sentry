@@ -2246,6 +2246,86 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
+    def test_run_query_with_on_demand_count_web_vitals(self):
+        field = "count_web_vitals(measurements.lcp, good)"
+        query_s = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, query=query_s)
+
+        for hour in range(0, 5):
+            self.store_transaction_metric(
+                value=hour * 10,
+                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                entity="metrics_counters",
+                tags={"query_hash": spec.query_hash, "measurement_rating": "matches_hash"},
+                timestamp=self.start + datetime.timedelta(hours=hour),
+            )
+            # These should not add to the total
+            self.store_transaction_metric(
+                value=hour * 10,
+                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                entity="metrics_counters",
+                tags={"query_hash": spec.query_hash},
+                timestamp=self.start + datetime.timedelta(hours=hour),
+            )
+
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=3600,
+            query=query_s,
+            selected_columns=[field],
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=True,
+            ),
+        )
+
+        assert query._on_demand_metric_spec
+
+        metrics_query = query._get_metrics_query_from_on_demand_spec(
+            spec=query._on_demand_metric_spec, require_time_range=True
+        )
+
+        assert len(metrics_query.select) == 1
+        assert metrics_query.select[0].op == "on_demand_count_web_vitals"
+
+        assert metrics_query.where
+        assert (
+            metrics_query.where[0].rhs == "d8e708b0"
+        )  # hashed "on_demand_count_web_vitals:measurements.lcp:good;{'name': 'event.duration', 'op': 'gte', 'value': 100.0}"
+
+        result = query.run_query("test_query")
+        assert result["data"][:5] == [
+            {
+                "time": self.start.isoformat(),
+                "count_web_vitals_measurements_lcp_good": 0.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
+                "count_web_vitals_measurements_lcp_good": 10.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
+                "count_web_vitals_measurements_lcp_good": 20.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
+                "count_web_vitals_measurements_lcp_good": 30.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
+                "count_web_vitals_measurements_lcp_good": 40.0,
+            },
+        ]
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime('Universal')"},
+                {"name": "count_web_vitals_measurements_lcp_good", "type": "Float64"},
+            ],
+        )
+
     def test_run_query_with_on_demand_epm(self):
         """Test events per minute for 1 event within an hour."""
         field = "epm()"

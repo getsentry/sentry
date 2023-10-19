@@ -27,6 +27,7 @@ function AggregateSpanWaterfall(): React.ReactElement {
   const projects = useProjects();
 
   const transaction = decodeScalar(location.query.transaction);
+  const httpMethod = decodeScalar(location.query['http.method']);
   return (
     <Feature
       features={['starfish-aggregate-span-waterfall']}
@@ -43,7 +44,9 @@ function AggregateSpanWaterfall(): React.ReactElement {
         childComponent={() => {
           return (
             <Layout.Main fullWidth>
-              {defined(transaction) && <AggregateSpans transaction={transaction} />}
+              {defined(transaction) && (
+                <AggregateSpans transaction={transaction} httpMethod={httpMethod} />
+              )}
             </Layout.Main>
           );
         }}
