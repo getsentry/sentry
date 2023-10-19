@@ -27,7 +27,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("sentry", "0571_add_hybrid_cloud_foreign_key_to_slug_reservation"),
-        ("hybridcloud", "0004_add_cache_version"),
+        ("hybridcloud", "0005_add_missing_org_integration_scope"),
     ]
 
     operations = [
