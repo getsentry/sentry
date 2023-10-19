@@ -1,4 +1,4 @@
-import {ReactNode} from 'react';
+import {Fragment, ReactNode} from 'react';
 import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -19,6 +19,7 @@ import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent
 import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -1067,9 +1068,18 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                     tooltip: (
                       <Tooltip
                         showUnderline
-                        title={t(
-                          'Performance alerts are based on all the events you send to Sentry, not just the ones that are stored. Learn more'
-                        )}
+                        isHoverable
+                        title={
+                          <Fragment>
+                            {t(
+                              'Performance alerts are based on all the events you send to Sentry, not just the ones that are stored'
+                            )}
+                            <br />
+                            <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/">
+                              {t('Learn more')}
+                            </ExternalLink>
+                          </Fragment>
+                        }
                       />
                     ),
                   }
