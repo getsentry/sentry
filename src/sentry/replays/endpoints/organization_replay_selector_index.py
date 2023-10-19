@@ -145,20 +145,36 @@ def query_selector_dataset(
     conditions = handle_search_filters(query_config, search_filters)
     sorting = handle_ordering(sort_config, sort or "-count_dead_clicks")
 
-    # TODO: How should this be computed?
-    should_sample = True
+    # Pre-fetch the number of replays in the set.
+    #
+    # NOTE: The date values have their seconds precision stripped. This is done so our queries
+    # will be cached. The number of rows in the set won't materially change on a minute by minute
+    # basis. We could extend this to use hourly or daily precision.
+    count_start = start.replace(second=0)
+    count_end = end.replace(second=0)
 
-    sampling = []
-    if should_sample:
-        # Hard-coded sample rate of 1/100. This can be made dynamic.
-        sampling.append(
-            Condition(
-                Function(
-                    "modulo",
-                    parameters=[Function("cityHash64", parameters=[Column("replay_id")]), 100],
-                )
-            )
-        )
+    count_query = SnubaRequest(
+        dataset="replays",
+        app_id="replay-backend-web",
+        query=Query(
+            match=Entity("replays"),
+            select=[
+                Function("count", parameters=[Column("replay_id")]),
+            ],
+            where=[
+                Condition(Column("project_id"), Op.IN, project_ids),
+                Condition(Column("timestamp"), Op.GTE, count_start),
+                Condition(Column("timestamp"), Op.LT, count_end),
+            ],
+            granularity=Granularity(3600),
+        ),
+        tenant_ids=tenant_ids,
+    )
+    result = raw_snql_query(count_query, "replays.query.query_selector_index_count")
+
+    # The sample rate is computed such that we will only ever aggregate a maximum of 1M rows.
+    num_rows = result["data"][0]["count(replay_id)"]
+    sample_rate = (num_rows // 1_000_000) + 1
 
     snuba_request = SnubaRequest(
         dataset="replays",
@@ -193,7 +209,17 @@ def query_selector_dataset(
                 Condition(Column("timestamp"), Op.LT, end),
                 Condition(Column("timestamp"), Op.GTE, start),
                 Condition(Column("click_tag"), Op.NEQ, ""),
-                *sampling,
+                Condition(
+                    Function(
+                        "modulo",
+                        parameters=[
+                            Function("cityHash64", parameters=[Column("replay_id")]),
+                            sample_rate,
+                        ],
+                    ),
+                    Op.EQ,
+                    0,
+                ),
             ],
             having=conditions,
             orderby=sorting,
@@ -213,7 +239,7 @@ def query_selector_dataset(
         ),
         tenant_ids=tenant_ids,
     )
-    return raw_snql_query(snuba_request, "replays.query.query_replays_dataset")
+    return raw_snql_query(snuba_request, "replays.query.query_selector_index")
 
 
 def process_raw_response(response: list[dict[str, Any]]) -> list[dict[str, Any]]:
