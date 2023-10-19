@@ -115,6 +115,7 @@ _SEARCH_TO_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
     "max": "max",
     "p50": "p50",
     "p75": "p75",
+    "p90": "p90",
     "p95": "p95",
     "p99": "p99",
     "p100": "p100"
@@ -138,9 +139,11 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "max": "d",
     "p50": "d",
     "p75": "d",
+    "p90": "d",
     "p95": "d",
     "p99": "d",
     "p100": "d",
+    "percentile": "d",
     # With on demand metrics, evaluated metrics are actually stored, thus we have to choose a concrete metric type.
     "failure_count": "c",
     "failure_rate": "c",
@@ -355,13 +358,13 @@ def _get_percentile_op(args: Sequence[str]) -> Optional[MetricOperationType]:
         return "p50"
     if percentile == "0.75":
         return "p75"
-    if percentile == ["0.9", "0.90"]:
+    if percentile in ["0.9", "0.90"]:
         return "p90"
     if percentile == "0.95":
         return "p95"
     if percentile == "0.99":
         return "p99"
-    if percentile == ["1", "1.0"]:
+    if percentile in ["1", "1.0"]:
         return "p100"
 
     return None
@@ -892,28 +895,22 @@ class OnDemandMetricSpec:
 
     @staticmethod
     def _get_op(function: str, args: Sequence[str]) -> MetricOperationType:
+        if function == "percentile":
+            function = _get_percentile_op(args)
+
         op = _SEARCH_TO_METRIC_AGGREGATES.get(function) or _SEARCH_TO_DERIVED_METRIC_AGGREGATES.get(
             function
         )
         if op is not None:
             return op
 
-        if function == "percentile":
-            percentile_op = _get_percentile_op(args)
-            if percentile_op:
-                return percentile_op
-
         raise Exception(f"Unsupported aggregate function {function}")
 
     @staticmethod
     def _get_metric_type(function: str) -> str:
-
         metric_type = _AGGREGATE_TO_METRIC_TYPE.get(function)
         if metric_type is not None:
             return metric_type
-
-        if function == "percentile":
-            return "d"
 
         raise Exception(f"Unsupported aggregate function {function}")
 
