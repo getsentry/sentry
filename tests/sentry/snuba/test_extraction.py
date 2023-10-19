@@ -43,6 +43,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
             "transaction.duration:>1",
             True,
         ),  # transaction.duration query is on-demand
+        ("count[)", "", False),  # Malformed aggregate should return false
     ],
 )
 def test_should_use_on_demand(agg, query, result):
@@ -82,6 +83,7 @@ class TestCreatesOndemandMetricSpec:
                 "apdex(10)",
                 "",
             ),  # apdex with specified threshold is on-demand metric even without query
+            ("count()", "transaction.duration:>0 my-transaction"),
         ],
     )
     def test_creates_on_demand_spec(self, aggregate, query):
@@ -304,7 +306,7 @@ def test_spec_failure_count(default_project):
     assert spec.field_to_extract is None
     assert spec.op == "on_demand_failure_count"
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
-    assert spec.tags_conditions(default_project) == failure_tag_spec(default_project, "not_used")
+    assert spec.tags_conditions(default_project) == failure_tag_spec(default_project, ["not_used"])
 
 
 @django_db_all
@@ -315,13 +317,13 @@ def test_spec_failure_rate(default_project):
     assert spec.field_to_extract is None
     assert spec.op == "on_demand_failure_rate"
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
-    assert spec.tags_conditions(default_project) == failure_tag_spec(default_project, "not_used")
+    assert spec.tags_conditions(default_project) == failure_tag_spec(default_project, ["not_used"])
 
 
 @django_db_all
-@patch("sentry.snuba.metrics.extraction._get_apdex_project_transaction_threshold")
-def test_spec_apdex(_get_apdex_project_transaction_threshold, default_project):
-    _get_apdex_project_transaction_threshold.return_value = 100, "transaction.duration"
+@patch("sentry.snuba.metrics.extraction._get_satisfactory_threshold_and_metric")
+def test_spec_apdex(_get_satisfactory_threshold_and_metric, default_project):
+    _get_satisfactory_threshold_and_metric.return_value = 100, "transaction.duration"
 
     spec = OnDemandMetricSpec("apdex(10)", "release:a")
 
@@ -329,7 +331,7 @@ def test_spec_apdex(_get_apdex_project_transaction_threshold, default_project):
     assert spec.field_to_extract is None
     assert spec.op == "on_demand_apdex"
     assert spec.condition == {"name": "event.release", "op": "eq", "value": "a"}
-    assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, "10")
+    assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, ["10"])
 
 
 @django_db_all
@@ -367,9 +369,9 @@ def test_cleanup_equivalent_specs():
 
 
 @django_db_all
-@patch("sentry.snuba.metrics.extraction._get_apdex_project_transaction_threshold")
-def test_spec_apdex_without_condition(_get_apdex_project_transaction_threshold, default_project):
-    _get_apdex_project_transaction_threshold.return_value = 100, "transaction.duration"
+@patch("sentry.snuba.metrics.extraction._get_satisfactory_threshold_and_metric")
+def test_spec_apdex_without_condition(_get_satisfactory_threshold_and_metric, default_project):
+    _get_satisfactory_threshold_and_metric.return_value = 100, "transaction.duration"
 
     spec = OnDemandMetricSpec("apdex(10)", "")
 
@@ -377,7 +379,7 @@ def test_spec_apdex_without_condition(_get_apdex_project_transaction_threshold, 
     assert spec.field_to_extract is None
     assert spec.op == "on_demand_apdex"
     assert spec.condition is None
-    assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, "10")
+    assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, ["10"])
 
 
 def test_spec_custom_tag():

@@ -69,6 +69,7 @@ from sentry.incidents.models import (
 from sentry.models.actor import ActorTuple, get_actor_id_for_user
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, ApiTimeoutError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -1997,14 +1998,18 @@ class GetAvailableActionIntegrationsForOrgTest(TestCase):
     def test_registered(self):
         integration = Integration.objects.create(external_id="1", provider="slack")
         integration.add_organization(self.organization)
-        assert list(get_available_action_integrations_for_org(self.organization)) == [integration]
+        assert list(get_available_action_integrations_for_org(self.organization)) == [
+            serialize_integration(integration)
+        ]
 
     def test_mixed(self):
         integration = Integration.objects.create(external_id="1", provider="slack")
         integration.add_organization(self.organization)
         other_integration = Integration.objects.create(external_id="12345", provider="random")
         other_integration.add_organization(self.organization)
-        assert list(get_available_action_integrations_for_org(self.organization)) == [integration]
+        assert list(get_available_action_integrations_for_org(self.organization)) == [
+            serialize_integration(integration)
+        ]
 
     def test_disabled_integration(self):
         integration = Integration.objects.create(
