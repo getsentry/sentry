@@ -20,6 +20,7 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken
+from sentry.services.hybrid_cloud.project import RpcProject
 from sentry.types.region import find_regions_for_orgs
 
 if TYPE_CHECKING:
@@ -184,19 +185,12 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
         # these isn't so important in that case.
         return super().outboxes_for_update(shard_identifier=self.api_application_id or 0)
 
-    def prepare_sentry_app_components(self, component_type, project=None, values=None):
-        from sentry.models.integrations.sentry_app_component import SentryAppComponent
-
-        try:
-            component = SentryAppComponent.objects.get(
-                sentry_app_id=self.sentry_app_id, type=component_type
-            )
-        except SentryAppComponent.DoesNotExist:
-            return None
-
-        return self.prepare_ui_component(component, project, values)
-
-    def prepare_ui_component(self, component, project=None, values=None):
+    def prepare_ui_component(
+        self,
+        component: SentryAppComponent,
+        project: Project | RpcProject | None = None,
+        values: Any = None,
+    ) -> SentryAppComponent | None:
         return prepare_ui_component(
             self, component, project_slug=project.slug if project else None, values=values
         )
@@ -242,8 +236,8 @@ def prepare_sentry_app_components(
     installation: SentryAppInstallation,
     component_type: str,
     project_slug: str | None = None,
-    values: Any = None,
-):
+    values: List[Mapping[str, Any]] | None = None,
+) -> SentryAppComponent | None:
     from sentry.models.integrations.sentry_app_component import SentryAppComponent
 
     try:
@@ -260,7 +254,7 @@ def prepare_ui_component(
     installation: SentryAppInstallation,
     component: SentryAppComponent,
     project_slug: str | None = None,
-    values: Any = None,
+    values: List[Mapping[str, Any]] | None = None,
 ) -> SentryAppComponent | None:
     from sentry.coreapi import APIError
     from sentry.sentry_apps.components import SentryAppComponentPreparer

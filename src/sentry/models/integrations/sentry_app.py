@@ -2,8 +2,9 @@ import hmac
 import itertools
 import uuid
 from hashlib import sha256
+from typing import List
 
-from django.db import models
+from django.db import models, router, transaction
 from django.db.models import QuerySet
 from django.utils import timezone
 from django.utils.text import slugify
@@ -27,6 +28,8 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.models.apiscopes import HasApiScopes
+from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
+from sentry.types.region import find_all_region_names
 from sentry.utils import metrics
 
 # When a developer selects to receive "<Resource> Webhooks" it really means
@@ -212,8 +215,24 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
         encoded_scopes = set({"%s" % scope for scope in list(access.scopes)})
         return set(self.scope_list).issubset(encoded_scopes)
 
+    def outboxes_for_update(self) -> List[ControlOutbox]:
+        return [
+            ControlOutbox(
+                shard_scope=OutboxScope.APP_SCOPE,
+                shard_identifier=self.id,
+                object_identifier=self.id,
+                category=OutboxCategory.SENTRY_APP_UPDATE,
+                region_name=region_name,
+            )
+            for region_name in find_all_region_names()
+        ]
+
     def delete(self):
         from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
+
+        with outbox_context(transaction.atomic(using=router.db_for_write(SentryApp))):
+            for outbox in self.outboxes_for_update():
+                outbox.save()
 
         SentryAppAvatar.objects.filter(sentry_app=self).delete()
         return super().delete()

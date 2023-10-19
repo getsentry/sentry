@@ -1,5 +1,4 @@
 import abc
-from typing import cast
 
 from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
@@ -99,5 +98,5 @@ class RegionReplicaService(RpcService):
         return DatabaseBackedRegionReplicaService()
 
 
-region_replica_service = cast(RegionReplicaService, RegionReplicaService.create_delegation())
-control_replica_service = cast(ControlReplicaService, ControlReplicaService.create_delegation())
+region_replica_service = RegionReplicaService.create_delegation()
+control_replica_service = ControlReplicaService.create_delegation()

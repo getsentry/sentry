@@ -6,9 +6,9 @@ To resolve this, rebase against latest master and regenerate your migration. Thi
 will then be regenerated, and you should be able to merge without conflicts.
 
 feedback: 0003_feedback_add_env
-hybridcloud: 0004_add_cache_version
+hybridcloud: 0005_add_missing_org_integration_scope
 nodestore: 0002_nodestore_no_dictfield
 replays: 0003_add_size_to_recording_segment
-sentry: 0573_add_first_seen_index_groupedmessage
+sentry: 0576_add_missing_org_integration_scope
 social_auth: 0002_default_auto_field
 hybridcloud: 0005_add_api_and_org_token_replicas

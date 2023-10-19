@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from typing import Any, Mapping, Sequence, Union
+from typing import Any, Mapping, Union
 
 from snuba_sdk import (
     AliasedExpression,
@@ -13,11 +13,12 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry.models.project import Project
+from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_weak, string_to_use_case_id
-from sentry.snuba.metrics.fields.base import _get_entity_of_metric_mri, org_id_from_projects
+from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
+from sentry.snuba.metrics.naming_layer.mri import parse_mri
 from sentry.snuba.metrics.utils import to_intervals
 from sentry.utils import metrics
 from sentry.utils.snuba import raw_snql_query
@@ -49,6 +50,8 @@ def run_query(request: Request) -> Mapping[str, Any]:
 
     # Process intervals
     assert metrics_query.rollup is not None
+    start = metrics_query.start
+    end = metrics_query.end
     if metrics_query.rollup.interval:
         start, end, _num_intervals = to_intervals(
             metrics_query.start, metrics_query.end, metrics_query.rollup.interval
@@ -56,33 +59,91 @@ def run_query(request: Request) -> Mapping[str, Any]:
         metrics_query = metrics_query.set_start(start).set_end(end)
 
     # Resolves MRI or public name in metrics_query
-    resolved_metrics_query = resolve_metrics_query(metrics_query)
-    request.query = resolved_metrics_query
+    try:
+        resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query)
+        request.query = resolved_metrics_query
+    except Exception as e:
+        metrics.incr(
+            "metrics_layer.query",
+            tags={
+                "referrer": request.tenant_ids["referrer"] or "unknown",
+                "status": "resolve_error",
+            },
+        )
+        raise e
 
+    try:
+        snuba_results = raw_snql_query(request, request.tenant_ids["referrer"], use_cache=True)
+    except Exception as e:
+        metrics.incr(
+            "metrics_layer.query",
+            tags={"referrer": request.tenant_ids["referrer"] or "unknown", "status": "query_error"},
+        )
+        raise e
+
+    # If we normalized the start/end, return those values in the response so the caller is aware
+    results = {
+        **snuba_results,
+        "modified_start": start,
+        "modified_end": end,
+        "indexer_mappings": mappings,
+    }
     metrics.incr(
-        "metrics_layer.query", tags={"referrer": request.tenant_ids["referrer"] or "unknown"}
+        "metrics_layer.query",
+        tags={"referrer": request.tenant_ids["referrer"] or "unknown", "status": "success"},
     )
-    return raw_snql_query(request, request.tenant_ids["referrer"], use_cache=True)
+    return results
 
 
-def resolve_metrics_query(metrics_query: MetricsQuery) -> MetricsQuery:
+RELEASE_HEALTH_ENTITIES = {
+    "c": EntityKey.MetricsCounters,
+    "d": EntityKey.MetricsDistributions,
+    "s": EntityKey.MetricsSets,
+}
+
+GENERIC_ENTITIES = {
+    "c": EntityKey.GenericMetricsCounters,
+    "d": EntityKey.GenericMetricsDistributions,
+    "s": EntityKey.GenericMetricsSets,
+}
+
+
+def _resolve_metrics_entity(mri: str) -> EntityKey:
+    parsed_mri = parse_mri(mri)
+    if parsed_mri is None:
+        raise InvalidParams(f"'{mri}' is not a valid MRI")
+
+    if parsed_mri.namespace == "sessions":
+        return RELEASE_HEALTH_ENTITIES[parsed_mri.entity]
+
+    return GENERIC_ENTITIES[parsed_mri.entity]
+
+
+def _resolve_metrics_query(
+    metrics_query: MetricsQuery,
+) -> tuple[MetricsQuery, Mapping[str, str | int]]:
+    """
+    Returns an updated metrics query with all the indexer resolves complete. Also returns a mapping
+    that shows all the strings that were resolved and what they were resolved too.
+    """
     assert metrics_query.query is not None
     metric = metrics_query.query.metric
     scope = metrics_query.scope
-
+    mappings: dict[str, str | int] = {}
     if not metric.public_name and metric.mri:
         public_name = get_public_name_from_mri(metric.mri)
         metrics_query = metrics_query.set_query(
             metrics_query.query.set_metric(metrics_query.query.metric.set_public_name(public_name))
         )
+        mappings[public_name] = metric.mri
     elif not metric.mri and metric.public_name:
         mri = get_mri(metric.public_name)
         metrics_query = metrics_query.set_query(
             metrics_query.query.set_metric(metrics_query.query.metric.set_mri(mri))
         )
+        mappings[metric.public_name] = mri
 
-    projects = get_projects(scope.project_ids)
-    org_id = org_id_from_projects(projects)
+    org_id = scope.org_ids[0]
     use_case_id = string_to_use_case_id(scope.use_case_id)
     metric_id = resolve_weak(
         use_case_id, org_id, metrics_query.query.metric.mri
@@ -90,43 +151,44 @@ def resolve_metrics_query(metrics_query: MetricsQuery) -> MetricsQuery:
     metrics_query = metrics_query.set_query(
         metrics_query.query.set_metric(metrics_query.query.metric.set_id(metric_id))
     )
+    mappings[metrics_query.query.metric.mri] = metric_id
 
     if not metrics_query.query.metric.entity:
-        entity = _get_entity_of_metric_mri(
-            projects, metrics_query.query.metric.mri, use_case_id
-        )  # TODO: will need reimplement this as this runs old metrics query
+        entity = _resolve_metrics_entity(metrics_query.query.metric.mri)
         metrics_query = metrics_query.set_query(
             metrics_query.query.set_metric(metrics_query.query.metric.set_entity(entity.value))
         )
 
-    new_groupby = resolve_groupby(metrics_query.query.groupby, use_case_id, org_id)
+    new_groupby, new_mappings = _resolve_groupby(metrics_query.query.groupby, use_case_id, org_id)
     metrics_query = metrics_query.set_query(metrics_query.query.set_groupby(new_groupby))
-    new_groupby = resolve_groupby(metrics_query.groupby, use_case_id, org_id)
+    mappings.update(new_mappings)
+    new_groupby, new_mappings = _resolve_groupby(metrics_query.groupby, use_case_id, org_id)
     metrics_query = metrics_query.set_groupby(new_groupby)
+    mappings.update(new_mappings)
 
-    metrics_query = metrics_query.set_query(
-        metrics_query.query.set_filters(
-            resolve_filters(metrics_query.query.filters, use_case_id, org_id)
-        )
-    )
-    metrics_query = metrics_query.set_filters(
-        resolve_filters(metrics_query.filters, use_case_id, org_id)
-    )
-    return metrics_query
+    new_filters, new_mappings = _resolve_filters(metrics_query.query.filters, use_case_id, org_id)
+    metrics_query = metrics_query.set_query(metrics_query.query.set_filters(new_filters))
+    mappings.update(new_mappings)
+    new_filters, new_mappings = _resolve_filters(metrics_query.filters, use_case_id, org_id)
+    metrics_query = metrics_query.set_filters(new_filters)
+    mappings.update(new_mappings)
+
+    return metrics_query, mappings
 
 
-def resolve_groupby(
+def _resolve_groupby(
     groupby: list[Column] | None, use_case_id: UseCaseID, org_id: int
-) -> list[Column] | None:
+) -> tuple[list[Column] | None, Mapping[str, int]]:
     """
     Go through the groupby columns and resolve any that need to be resolved.
     We also return a reverse mapping of the resolved columns to the original
-    so that we can edit the results
+    so that they can be added to the results.
     """
     if not groupby:
-        return groupby
+        return groupby, {}
 
     new_groupby = []
+    mappings = {}
     for col in groupby:
         resolved = resolve_weak(use_case_id, org_id, col.name)
         if resolved > -1:
@@ -135,22 +197,31 @@ def resolve_groupby(
             new_groupby.append(
                 AliasedExpression(exp=replace(col, name=f"tags_raw[{resolved}]"), alias=col.name)
             )
+            mappings[col.name] = resolved
         else:
             new_groupby.append(col)
 
-    return new_groupby
+    return new_groupby, mappings
 
 
-def resolve_filters(
+def _resolve_filters(
     filters: list[Condition | BooleanCondition], use_case_id: UseCaseID, org_id: int
-) -> list[Condition | BooleanCondition] | None:
+) -> tuple[list[Condition | BooleanCondition] | None, Mapping[str, int]]:
+    """
+    Go through the columns in the filter and resolve any that can be resolved.
+    We also return a reverse mapping of the resolved columns to the original
+    so that they can be added to the results.
+    """
     if not filters:
-        return filters
+        return filters, {}
+
+    mappings = {}
 
     def resolve_exp(exp: FilterTypes) -> FilterTypes:
         if isinstance(exp, Column):
             resolved = resolve_weak(use_case_id, org_id, exp.name)
             if resolved > -1:
+                mappings[exp.name] = resolved
                 return replace(exp, name=f"tags_raw[{resolved}]")
         elif isinstance(exp, CurriedFunction):
             return replace(exp, parameters=[resolve_exp(p) for p in exp.parameters])
@@ -161,12 +232,4 @@ def resolve_filters(
         return exp
 
     new_filters = [resolve_exp(exp) for exp in filters]
-    return new_filters
-
-
-def get_projects(project_ids: Sequence[int]) -> Sequence[Project]:
-    try:
-        projects = list(Project.objects.filter(id__in=project_ids))
-        return projects
-    except Project.DoesNotExist:
-        raise Exception("Requested project does not exist")
+    return new_filters, mappings

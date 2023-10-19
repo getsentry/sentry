@@ -171,7 +171,7 @@ export function PagePerformanceTable() {
         <SearchBar
           placeholder={t('Search for Pages')}
           onSearch={query => {
-            setSearch(query === '' ? undefined : query);
+            setSearch(query === '' ? undefined : `*${query}*`);
           }}
         />
       </SearchBarContainer>

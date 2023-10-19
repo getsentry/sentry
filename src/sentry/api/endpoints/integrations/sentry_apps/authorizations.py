@@ -9,7 +9,9 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppAuthorizationsBaseEndpoint
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators.token_exchange import GrantExchanger, GrantTypes, Refresher
+from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
+from sentry.mediators.token_exchange.refresher import Refresher
+from sentry.mediators.token_exchange.util import GrantTypes
 from sentry.services.hybrid_cloud.auth.impl import promote_request_api_user
 
 logger = logging.getLogger(__name__)

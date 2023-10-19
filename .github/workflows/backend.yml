@@ -66,7 +66,7 @@ jobs:
     needs: files-changed
     name: backend test
     runs-on: ubuntu-20.04
-    timeout-minutes: 40
+    timeout-minutes: 60
     strategy:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
@@ -238,6 +238,35 @@ jobs:
         run: |
           ./.github/workflows/scripts/migration-check.sh
 
+  monolith-dbs:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    name: monolith-dbs test
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+
+      - name: Run test
+        run: |
+          make test-monolith-dbs
+
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
+      - name: Handle artifacts
+        if: ${{ always() }}
+        uses: ./.github/actions/artifacts
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
   typing:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
@@ -263,9 +292,10 @@ jobs:
 
       - run: |
           # mypy does not have granular codes so don't allow specific messages to regress
-          ! grep 'Exception type must be derived from BaseException' .artifacts/mypy-all
           ! grep "'Settings' object has no attribute" .artifacts/mypy-all
           ! grep 'Cannot override class variable' .artifacts/mypy-all
+          ! grep 'Exception type must be derived from BaseException' .artifacts/mypy-all
+          ! grep 'does not explicitly export attribute' .artifacts/mypy-all
 
       - uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc # v2.0.0
         id: token
@@ -299,6 +329,7 @@ jobs:
         files-changed,
         requirements,
         migration,
+        monolith-dbs,
         typing,
       ]
     name: Backend

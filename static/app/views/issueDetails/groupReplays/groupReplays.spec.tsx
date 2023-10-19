@@ -137,7 +137,6 @@ describe('GroupReplays', () => {
                 'os',
                 'project_id',
                 'started_at',
-                'urls',
                 'user',
               ],
               per_page: 50,

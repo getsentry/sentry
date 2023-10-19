@@ -12,7 +12,7 @@ from operator import or_
 from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
 
 from django.core.cache import cache
-from django.db import models, router, transaction
+from django.db import models
 from django.db.models import Q, QuerySet
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
@@ -294,7 +294,7 @@ def get_recommended_event_for_environments(
     return None
 
 
-class GroupManager(BaseManager):
+class GroupManager(BaseManager["Group"]):
     use_for_related_fields = True
 
     def by_qualified_short_id(self, organization_id: int, short_id: str):
@@ -424,19 +424,16 @@ class GroupManager(BaseManager):
         from sentry.models.activity import Activity
 
         modified_groups_list = []
-        with transaction.atomic(router.db_for_write(Group)):
-            selected_groups = (
-                Group.objects.filter(id__in=[g.id for g in groups])
-                .exclude(status=status, substatus=substatus)
-                .select_for_update()
-            )
+        selected_groups = Group.objects.filter(id__in=[g.id for g in groups]).exclude(
+            status=status, substatus=substatus
+        )
 
-            for group in selected_groups:
-                group.status = status
-                group.substatus = substatus
-                modified_groups_list.append(group)
+        for group in selected_groups:
+            group.status = status
+            group.substatus = substatus
+            modified_groups_list.append(group)
 
-            Group.objects.bulk_update(modified_groups_list, ["status", "substatus"])
+        Group.objects.bulk_update(modified_groups_list, ["status", "substatus"])
 
         for group in modified_groups_list:
             Activity.objects.create_group_activity(
@@ -544,7 +541,7 @@ class Group(Model):
     short_id = BoundedBigIntegerField(null=True)
     type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id, db_index=True)
 
-    objects = GroupManager(cache_fields=("id",))
+    objects: GroupManager = GroupManager(cache_fields=("id",))
 
     class Meta:
         app_label = "sentry"

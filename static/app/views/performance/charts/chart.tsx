@@ -33,7 +33,7 @@ type Props = {
 };
 
 // adapted from https://stackoverflow.com/questions/11397239/rounding-up-for-a-graph-maximum
-function computeAxisMax(data: Series[]) {
+export function computeAxisMax(data: Series[]) {
   // assumes min is 0
   const valuesDict = data.map(value => value.data.map(point => point.value));
   const maxValue = max(valuesDict.map(max)) as number;

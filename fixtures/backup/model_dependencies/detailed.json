@@ -5912,38 +5912,6 @@
     "table_name": "sentry_userrole_users",
     "uniques": []
   },
-  "sessions.session": {
-    "dangling": false,
-    "foreign_keys": {},
-    "model": "sessions.session",
-    "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Monolith"
-    ],
-    "table_name": "django_session",
-    "uniques": [
-      [
-        "session_key"
-      ]
-    ]
-  },
-  "sites.site": {
-    "dangling": false,
-    "foreign_keys": {},
-    "model": "sites.site",
-    "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Monolith"
-    ],
-    "table_name": "django_site",
-    "uniques": [
-      [
-        "domain"
-      ]
-    ]
-  },
   "social_auth.usersocialauth": {
     "dangling": false,
     "foreign_keys": {
