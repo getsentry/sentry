@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import hydrateA11yFrame, {RawA11yFrame} from 'sentry/utils/replays/hydrateA11yRecord';
+import hydrateA11yFrame, {RawA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 import useProjects from 'sentry/utils/useProjects';
 
 export default function useA11yData() {
