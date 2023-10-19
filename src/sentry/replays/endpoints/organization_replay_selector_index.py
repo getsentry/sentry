@@ -145,6 +145,21 @@ def query_selector_dataset(
     conditions = handle_search_filters(query_config, search_filters)
     sorting = handle_ordering(sort_config, sort or "-count_dead_clicks")
 
+    # TODO: How should this be computed?
+    should_sample = True
+
+    sampling = []
+    if should_sample:
+        # Hard-coded sample rate of 1/100. This can be made dynamic.
+        sampling.append(
+            Condition(
+                Function(
+                    "modulo",
+                    parameters=[Function("cityHash64", parameters=[Column("replay_id")]), 100],
+                )
+            )
+        )
+
     snuba_request = SnubaRequest(
         dataset="replays",
         app_id="replay-backend-web",
@@ -178,6 +193,7 @@ def query_selector_dataset(
                 Condition(Column("timestamp"), Op.LT, end),
                 Condition(Column("timestamp"), Op.GTE, start),
                 Condition(Column("click_tag"), Op.NEQ, ""),
+                *sampling,
             ],
             having=conditions,
             orderby=sorting,
