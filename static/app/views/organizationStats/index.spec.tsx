@@ -253,7 +253,7 @@ describe('OrganizationStats', function () {
       context: newOrg.routerContext,
     });
 
-    expect(screen.getByText('My Projects')).toBeInTheDocument();
+    expect(screen.getByText('All Projects')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
 

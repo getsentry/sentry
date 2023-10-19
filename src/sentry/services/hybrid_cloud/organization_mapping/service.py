@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import List, Optional, cast
+from typing import List, Optional
 
 from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMapping,
@@ -53,6 +53,4 @@ class OrganizationMappingService(RpcService):
         pass
 
 
-organization_mapping_service: OrganizationMappingService = cast(
-    OrganizationMappingService, OrganizationMappingService.create_delegation()
-)
+organization_mapping_service = OrganizationMappingService.create_delegation()

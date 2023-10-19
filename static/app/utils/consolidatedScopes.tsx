@@ -29,6 +29,7 @@ const DEFAULT_RESOURCE_PERMISSIONS: Permissions = {
 };
 
 const PROJECT_RELEASES = 'project:releases';
+const ORG_INTEGRATIONS = 'org:integrations';
 
 type PermissionLevelResources = {
   admin: string[];
@@ -88,6 +89,12 @@ function toResourcePermissions(scopes: string[]): Permissions {
     permissions.Release = 'admin';
     filteredScopes = scopes.filter((scope: string) => scope !== PROJECT_RELEASES); // remove project:releases
   }
+
+  // We have a special case with the org:integrations scope. This scope is
+  // added when selecting org:admin for hierarchy, but the reverse is not true.
+  // It doesn't indicate any specific org permission, so we can remove it
+  // entirely.
+  filteredScopes = filteredScopes.filter((scope: string) => scope !== ORG_INTEGRATIONS);
 
   topScopes(filteredScopes).forEach((scope: string | undefined) => {
     if (scope) {
