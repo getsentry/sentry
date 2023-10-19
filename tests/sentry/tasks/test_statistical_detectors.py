@@ -616,19 +616,19 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
         assert results == [
             (
                 self.projects[0].id,
-                "transaction_2",
+                "transaction_1",
                 SnubaTSResult(
                     {
                         "data": zerofill(
                             [
                                 {
-                                    "transaction": "transaction_2",
+                                    "transaction": "transaction_1",
                                     "time": first_timeseries_time.isoformat(),
                                     "project_id": self.projects[0].id,
                                     "p95_transaction_duration": 1.0,
                                 },
                                 {
-                                    "transaction": "transaction_2",
+                                    "transaction": "transaction_1",
                                     "time": second_timeseries_time.isoformat(),
                                     "project_id": self.projects[0].id,
                                     "p95_transaction_duration": 9.5,
@@ -648,19 +648,19 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
             ),
             (
                 self.projects[0].id,
-                "transaction_1",
+                "transaction_2",
                 SnubaTSResult(
                     {
                         "data": zerofill(
                             [
                                 {
-                                    "transaction": "transaction_1",
+                                    "transaction": "transaction_2",
                                     "time": first_timeseries_time.isoformat(),
                                     "project_id": self.projects[0].id,
                                     "p95_transaction_duration": 1.0,
                                 },
                                 {
-                                    "transaction": "transaction_1",
+                                    "transaction": "transaction_2",
                                     "time": second_timeseries_time.isoformat(),
                                     "project_id": self.projects[0].id,
                                     "p95_transaction_duration": 9.5,

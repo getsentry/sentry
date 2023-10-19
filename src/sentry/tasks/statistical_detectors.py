@@ -430,7 +430,7 @@ def query_transactions_timeseries(
             ],
             orderby=[
                 OrderBy(Column("project_id"), Direction.ASC),
-                OrderBy(Column("transaction"), Direction.DESC),
+                OrderBy(Column("transaction"), Direction.ASC),
                 OrderBy(
                     Function(
                         "toStartOfInterval",
@@ -444,7 +444,7 @@ def query_transactions_timeseries(
             limit=Limit(10000),
         )
         request = Request(
-            dataset=Dataset.Events.value,
+            dataset=Dataset.PerformanceMetrics.value,
             app_id="statistical_detectors",
             query=query,
             tenant_ids={
@@ -932,7 +932,7 @@ def query_transactions(
         limit=Limit(len(project_ids) * transactions_per_project),
     )
     request = Request(
-        dataset=Dataset.Events.value,
+        dataset=Dataset.PerformanceMetrics.value,
         app_id="statistical_detectors",
         query=query,
         tenant_ids={
