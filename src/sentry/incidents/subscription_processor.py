@@ -555,9 +555,13 @@ class SubscriptionProcessor:
         if options.get("metric_alerts.rate_limit"):
             # If an incident was created for this rule, trigger type, and subscription
             # within the last 10 minutes, don't make another one
-            last_incident: Incident | None = trigger.triggered_incidents.order_by(
-                "-date_added"
-            ).first()
+            last_it = (
+                IncidentTrigger.objects.filter(alert_rule_trigger=trigger)
+                .order_by("-incident_id")
+                .select_related("incident")
+                .first()
+            )
+            last_incident: Incident | None = last_it.incident if last_it else None
             last_incident_projects = (
                 [project.id for project in last_incident.projects.all()] if last_incident else []
             )
