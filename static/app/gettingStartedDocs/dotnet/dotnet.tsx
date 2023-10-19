@@ -4,7 +4,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
+import type {
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -14,10 +14,10 @@ import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersi
 
 type Params = DocsParams;
 
-const installSnippetPackageManager = (params: Params) => `
+const getInstallSnippetPackageManager = (params: Params) => `
 Install-Package Sentry -Version ${getPackageVersion(params, 'sentry.dotnet', '3.34.0')}`;
 
-const installSnippetCoreCli = (params: Params) => `
+const getInstallSnippetCoreCli = (params: Params) => `
 dotnet add package Sentry -v ${getPackageVersion(params, 'sentry.dotnet', '3.34.0')}`;
 
 const getConfigureSnippet = (params: Params) => `
@@ -87,13 +87,13 @@ const onboarding: OnboardingConfig = {
               language: 'shell',
               label: 'Package Manager',
               value: 'packageManager',
-              code: installSnippetPackageManager(params),
+              code: getInstallSnippetPackageManager(params),
             },
             {
               language: 'shell',
               label: '.NET Core CLI',
               value: 'coreCli',
-              code: installSnippetCoreCli(params),
+              code: getInstallSnippetCoreCli(params),
             },
           ],
         },

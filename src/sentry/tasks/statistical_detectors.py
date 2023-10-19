@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import logging
-from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union, cast
+from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union
 
 import sentry_sdk
 from django.utils import timezone as django_timezone
 from snuba_sdk import (
     And,
+    BooleanCondition,
+    BooleanOp,
     Column,
     Condition,
     CurriedFunction,
@@ -36,7 +37,7 @@ from sentry.search.events.types import QueryBuilderConfig
 from sentry.seer.utils import BreakpointData, detect_breakpoints
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba import functions, metrics_performance
+from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
@@ -165,12 +166,7 @@ def detect_transaction_trends(
     delay = 12  # hours
     delayed_start = start + timedelta(hours=delay)
 
-    unique_project_ids: Set[int] = set()
-
     for trends in chunked(regressions, TRANSACTIONS_PER_BATCH):
-        for _, payload in trends:
-            unique_project_ids.add(payload.project_id)
-
         detect_transaction_change_points.apply_async(
             args=[
                 [(payload.project_id, payload.group) for _, payload in trends],
@@ -181,12 +177,6 @@ def detect_transaction_trends(
             # that a change has occurred
             countdown=delay * 60 * 60,
         )
-
-    metrics.incr(
-        "statistical_detectors.performance.projects.active",
-        amount=len(unique_project_ids),
-        sample_rate=1.0,
-    )
 
 
 @instrumented_task(
@@ -256,6 +246,8 @@ def _detect_transaction_change_points(
 def _detect_transaction_trends(
     org_ids: List[int], project_ids: List[int], start: datetime
 ) -> Generator[Tuple[Optional[TrendType], DetectorPayload], None, None]:
+    unique_project_ids: Set[int] = set()
+
     transactions_count = 0
     regressed_count = 0
     improved_count = 0
@@ -303,6 +295,8 @@ def _detect_transaction_trends(
             elif trend_type == TrendType.Improved:
                 improved_count += 1
 
+            unique_project_ids.add(payload.project_id)
+
             yield (trend_type, payload)
 
         detector_store.bulk_write_states(payloads, states)
@@ -328,6 +322,12 @@ def _detect_transaction_trends(
         sample_rate=1.0,
     )
 
+    metrics.incr(
+        "statistical_detectors.performance.projects.active",
+        amount=len(unique_project_ids),
+        sample_rate=1.0,
+    )
+
 
 def query_transactions_timeseries(
     transactions: List[Tuple[int, int | str]],
@@ -335,73 +335,156 @@ def query_transactions_timeseries(
     agg_function: str,
 ) -> Generator[Tuple[int, Union[int, str], SnubaTSResult], None, None]:
     end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+    days_to_query = options.get("statistical_detectors.query.transactions.timeseries_days")
+    start = end - timedelta(days=days_to_query)
+    use_case_id = UseCaseID.TRANSACTIONS
     interval = 3600  # 1 hour
+    # Snuba allows 10,000 data points per request. 14 days * 1hr * 24hr =
+    # 336 data points per transaction name, so we can safely get 25 transaction
+    # timeseries.
+    chunk_size = 25
+    for transaction_chunk in chunked(sorted(transactions), chunk_size):
+        project_ids = {p for p, _ in transaction_chunk}
+        project_objects = Project.objects.filter(id__in=project_ids)
+        org_ids = list({project.organization_id for project in project_objects})
+        duration_metric_id = indexer.resolve(
+            use_case_id, org_ids[0], str(TransactionMRI.DURATION.value)
+        )
+        transaction_name_metric_id = indexer.resolve(
+            use_case_id,
+            org_ids[0],
+            "transaction",
+        )
 
-    # TODO: batch cross-project (and cross-org) timeseries queries
-    # (currently only txns in the same project are batched)
-    grouped_transactions = defaultdict(list)
-    for project_id, transaction_name in transactions:
-        grouped_transactions[project_id].append(transaction_name)
-
-    for project_id, transaction_names in grouped_transactions.items():
-        params: Dict[str, Any] = {
-            "start": end - timedelta(days=14),
-            "end": end,
-            "project_id": [project_id],
-            "project_objects": [Project.objects.get(id=project_id)],
-        }
-
-        # Snuba allows 10,000 data points per request. 14 days * 1hr * 24hr =
-        # 336 data points per transaction name, so we can safely get 25 transaction
-        # timeseries.
-        chunk_size = 25
-
-        for transactions_chunk in chunked(transaction_names, chunk_size):
-            escaped_transaction_names = [
-                transaction_name.replace('"', '\\"') for transaction_name in transactions_chunk
-            ]
-            query = " OR ".join([f'transaction:"{name}"' for name in escaped_transaction_names])
-
-            raw_results = metrics_performance.timeseries_query(
-                selected_columns=["project_id", "transaction", agg_function],
-                query=query,
-                params=params,
-                rollup=interval,
-                referrer=Referrer.API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_STATS.value,
-                groupby=Column("transaction"),
-                zerofill_results=False,
+        transactions_condition = None
+        if len(transactions) == 1:
+            project_id, transaction_name = transactions[0]
+            transactions_condition = BooleanCondition(
+                BooleanOp.AND,
+                [
+                    Condition(Column("project_id"), Op.EQ, project_id),
+                    Condition(Column("transaction"), Op.EQ, transaction_name),
+                ],
+            )
+        else:
+            transactions_condition = BooleanCondition(
+                BooleanOp.OR,
+                [
+                    BooleanCondition(
+                        BooleanOp.AND,
+                        [
+                            Condition(Column("project_id"), Op.EQ, project_id),
+                            Condition(Column("transaction"), Op.EQ, transaction_name),
+                        ],
+                    )
+                    for project_id, transaction_name in transactions
+                ],
             )
 
-            results = {}
-            for index, datapoint in enumerate(raw_results.data.get("data") or []):
-                transaction_name = datapoint["transaction"]
-                if transaction_name not in results:
-                    results[transaction_name] = {
-                        "order": index,
-                        "data": [datapoint],
-                    }
-                else:
-                    data = cast(List, results[transaction_name]["data"])
-                    data.append(datapoint)
-
-            for transaction_name, item in results.items():
-                formatted_result = SnubaTSResult(
-                    {
-                        "data": zerofill(
-                            item["data"],
-                            params["start"],
-                            params["end"],
-                            interval,
-                            "time",
+        query = Query(
+            match=Entity(EntityKey.GenericMetricsDistributions.value),
+            select=[
+                Column("project_id"),
+                Function(
+                    "arrayElement",
+                    (
+                        CurriedFunction(
+                            "quantilesIf",
+                            [0.95],
+                            (
+                                Column("value"),
+                                Function("equals", (Column("metric_id"), duration_metric_id)),
+                            ),
                         ),
-                        "project": project_id,
-                        "order": item["order"],
-                    },
-                    params["start"],
-                    params["end"],
-                    interval,
-                )
-                yield project_id, transaction_name, formatted_result
+                        1,
+                    ),
+                    "p95_transaction_duration",
+                ),
+                Function(
+                    "transform",
+                    (
+                        Column(f"tags_raw[{transaction_name_metric_id}]"),
+                        Function("array", ("",)),
+                        Function("array", ("<< unparameterized >>",)),
+                    ),
+                    "transaction",
+                ),
+            ],
+            groupby=[
+                Column("transaction"),
+                Column("project_id"),
+                Function(
+                    "toStartOfInterval",
+                    (Column("timestamp"), Function("toIntervalSecond", (3600,)), "Universal"),
+                    "time",
+                ),
+            ],
+            where=[
+                Condition(Column("org_id"), Op.IN, list(org_ids)),
+                Condition(Column("project_id"), Op.IN, list(project_ids)),
+                Condition(Column("timestamp"), Op.GTE, start),
+                Condition(Column("timestamp"), Op.LT, end),
+                Condition(Column("metric_id"), Op.EQ, duration_metric_id),
+                transactions_condition,
+            ],
+            orderby=[
+                OrderBy(Column("project_id"), Direction.ASC),
+                OrderBy(Column("transaction"), Direction.ASC),
+                OrderBy(
+                    Function(
+                        "toStartOfInterval",
+                        (Column("timestamp"), Function("toIntervalSecond", (3600,)), "Universal"),
+                        "time",
+                    ),
+                    Direction.ASC,
+                ),
+            ],
+            granularity=Granularity(interval),
+            limit=Limit(10000),
+        )
+        request = Request(
+            dataset=Dataset.PerformanceMetrics.value,
+            app_id="statistical_detectors",
+            query=query,
+            tenant_ids={
+                "referrer": Referrer.STATISTICAL_DETECTORS_FETCH_TRANSACTION_TIMESERIES.value,
+                "cross_org_query": 1,
+                "use_case_id": use_case_id.value,
+            },
+        )
+        data = raw_snql_query(
+            request, referrer=Referrer.STATISTICAL_DETECTORS_FETCH_TRANSACTION_TIMESERIES.value
+        )["data"]
+
+        results = {}
+        for index, datapoint in enumerate(data or []):
+            key = (datapoint["project_id"], datapoint["transaction"])
+            if key not in results:
+                results[key] = {
+                    "data": [datapoint],
+                }
+            else:
+                data = results[key]["data"]
+                data.append(datapoint)
+
+        for key, item in results.items():
+            project_id, transaction_name = key
+            formatted_result = SnubaTSResult(
+                {
+                    "data": zerofill(
+                        item["data"],
+                        start,
+                        end,
+                        interval,
+                        "time",
+                    ),
+                    "project": project_id,
+                },
+                start,
+                end,
+                interval,
+            )
+            yield project_id, transaction_name, formatted_result
 
 
 @instrumented_task(
@@ -419,12 +502,7 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     delay = 12  # hours
     delayed_start = start + timedelta(hours=delay)
 
-    unique_project_ids: Set[int] = set()
-
     for regression_chunk in chunked(regressions, FUNCTIONS_PER_BATCH):
-        for _, payload in regression_chunk:
-            unique_project_ids.add(payload.project_id)
-
         detect_function_change_points.apply_async(
             args=[
                 [(payload.project_id, payload.group) for _, payload in regression_chunk],
@@ -435,12 +513,6 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
             # that a change has occurred
             countdown=delay * 60 * 60,
         )
-
-    metrics.incr(
-        "statistical_detectors.profiling.projects.active",
-        amount=len(unique_project_ids),
-        sample_rate=1.0,
-    )
 
 
 @instrumented_task(
@@ -481,6 +553,8 @@ def detect_function_change_points(
 def _detect_function_trends(
     project_ids: List[int], start: datetime
 ) -> Generator[Tuple[Optional[TrendType], DetectorPayload], None, None]:
+    unique_project_ids: Set[int] = set()
+
     functions_count = 0
     regressed_count = 0
     improved_count = 0
@@ -522,6 +596,8 @@ def _detect_function_trends(
             elif trend_type == TrendType.Improved:
                 improved_count += 1
 
+            unique_project_ids.add(payload.project_id)
+
             yield (trend_type, payload)
 
         detector_store.bulk_write_states(payloads, states)
@@ -544,6 +620,12 @@ def _detect_function_trends(
     metrics.incr(
         "statistical_detectors.improved.functions",
         amount=improved_count,
+        sample_rate=1.0,
+    )
+
+    metrics.incr(
+        "statistical_detectors.profiling.projects.active",
+        amount=len(unique_project_ids),
         sample_rate=1.0,
     )
 
@@ -848,7 +930,7 @@ def query_transactions(
         limit=Limit(len(project_ids) * transactions_per_project),
     )
     request = Request(
-        dataset=Dataset.Events.value,
+        dataset=Dataset.PerformanceMetrics.value,
         app_id="statistical_detectors",
         query=query,
         tenant_ids={

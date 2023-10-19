@@ -16,7 +16,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import {ScreensView, YAxis} from 'sentry/views/starfish/views/screens';
-import {ScreensTable} from 'sentry/views/starfish/views/screens/screensTable';
 
 export default function PageloadModule() {
   const organization = useOrganization();
@@ -44,7 +43,6 @@ export default function PageloadModule() {
                   <ReleaseComparisonSelector />
                 </Container>
                 <ScreensView yAxes={[YAxis.TTID, YAxis.TTFD]} />
-                <ScreensTable />
               </PageFiltersContainer>
             </Layout.Main>
           </Layout.Body>
