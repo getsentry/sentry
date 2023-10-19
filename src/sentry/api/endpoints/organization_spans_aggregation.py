@@ -315,6 +315,7 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
             return Response(status=404)
 
         transaction = request.query_params.get("transaction", None)
+        http_method = request.query_params.get("http.method", None)
         if transaction is None:
             return Response(
                 status=status.HTTP_400_BAD_REQUEST, data={"details": "Transaction not provided"}
@@ -326,12 +327,16 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
                 status=status.HTTP_400_BAD_REQUEST, data={"details": "Backend not supported"}
             )
 
+        query = f"transaction:{transaction}"
+        if http_method is not None:
+            query += f" transaction.method:{http_method}"
+
         if backend == "indexedSpans":
             builder = SpansIndexedQueryBuilder(
                 dataset=Dataset.SpansIndexed,
                 params=params,
                 selected_columns=["transaction_id", "count()"],
-                query=f"transaction:{transaction}",
+                query=query,
                 limit=100,
             )
 
@@ -370,9 +375,13 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
 
             return Response(data=aggregated_tree)
 
+        conditions = [["transaction", "=", transaction]]
+        if http_method is not None:
+            conditions.append(["http.method", "=", http_method])
+
         events = eventstore.backend.get_events(
             filter=eventstore.Filter(
-                conditions=[["transaction", "=", transaction]],
+                conditions=conditions,
                 start=params["start"],
                 end=params["end"],
                 project_ids=params["project_id"],
