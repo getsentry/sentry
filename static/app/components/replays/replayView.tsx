@@ -87,7 +87,6 @@ const PlayerContainer = styled('div')`
 `;
 
 const BreadcrumbContainer = styled('div')`
-  padding-left: ${space(1)};
   width: 25%;
 `;
 
@@ -95,6 +94,7 @@ const PlayerBreadcrumbContainer = styled('div')`
   display: flex;
   flex-direction: row;
   height: 100%;
+  gap: ${space(1)};
 `;
 
 export default ReplayView;
