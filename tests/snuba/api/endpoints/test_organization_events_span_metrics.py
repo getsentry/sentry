@@ -2,6 +2,7 @@ import pytest
 from django.urls import reverse
 
 from sentry.search.events import constants
+from sentry.search.utils import map_device_class_level
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
@@ -843,6 +844,69 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["dataset"] == "spansMetrics"
         assert meta["fields"]["avg_if(span.self_time, release, foo)"] == "duration"
 
+    def test_device_class(self):
+        self.store_span_metric(
+            123,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"device.class": "1"},
+        )
+        self.store_span_metric(
+            678,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"device.class": "2"},
+        )
+        self.store_span_metric(
+            999,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"device.class": ""},
+        )
+        response = self.do_request(
+            {
+                "field": ["device.class", "p95()"],
+                "query": "",
+                "orderby": "p95()",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 3
+        # Need to actually check the dict since the level for 1 isn't guaranteed to stay `low` or `medium`
+        assert data[0]["device.class"] == map_device_class_level("1")
+        assert data[1]["device.class"] == map_device_class_level("2")
+        assert data[2]["device.class"] == "Unknown"
+        assert meta["fields"]["device.class"] == "string"
+
+    def test_device_class_filter(self):
+        self.store_span_metric(
+            123,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"device.class": "1"},
+        )
+        # Need to actually check the dict since the level for 1 isn't guaranteed to stay `low`
+        level = map_device_class_level("1")
+        response = self.do_request(
+            {
+                "field": ["device.class", "count()"],
+                "query": f"device.class:{level}",
+                "orderby": "count()",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["device.class"] == level
+        assert meta["fields"]["device.class"] == "string"
+
 
 @region_silo_test
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
@@ -903,3 +967,11 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_avg_if(self):
         super().test_avg_if()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_device_class_filter(self):
+        super().test_device_class_filter()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_device_class(self):
+        super().test_device_class()

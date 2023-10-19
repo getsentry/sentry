@@ -8,7 +8,7 @@ from snuba_sdk import AliasedExpression, Column, Condition, Function, Identifier
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.search.events import builder, constants, fields
-from sentry.search.events.datasets import field_aliases, function_aliases
+from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
 from sentry.snuba.metrics.naming_layer.mri import SpanMRI
@@ -28,6 +28,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
     ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
         return {
             constants.SPAN_DOMAIN_ALIAS: self._span_domain_filter_converter,
+            constants.DEVICE_CLASS_ALIAS: lambda search_filter: filter_aliases.device_class_converter(
+                self.builder, search_filter
+            ),
         }
 
     @property
@@ -36,6 +39,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             constants.SPAN_MODULE_ALIAS: self._resolve_span_module,
             constants.SPAN_DOMAIN_ALIAS: self._resolve_span_domain,
             constants.UNIQUE_SPAN_DOMAIN_ALIAS: self._resolve_unique_span_domains,
+            constants.DEVICE_CLASS_ALIAS: lambda alias: field_aliases.resolve_device_class(
+                self.builder, alias
+            ),
         }
 
     def resolve_metric(self, value: str) -> int:

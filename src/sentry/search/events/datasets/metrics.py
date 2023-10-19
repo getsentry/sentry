@@ -35,6 +35,9 @@ class MetricsDatasetConfig(DatasetConfig):
             "tags[transaction]": self._transaction_filter_converter,
             constants.TITLE_ALIAS: self._transaction_filter_converter,
             constants.RELEASE_ALIAS: self._release_filter_converter,
+            constants.DEVICE_CLASS_ALIAS: lambda search_filter: filter_aliases.device_class_converter(
+                self.builder, search_filter
+            ),
         }
 
     @property
@@ -47,6 +50,9 @@ class MetricsDatasetConfig(DatasetConfig):
             constants.PROJECT_THRESHOLD_CONFIG_ALIAS: lambda _: self._resolve_project_threshold_config,
             "transaction": self._resolve_transaction_alias,
             "tags[transaction]": self._resolve_transaction_alias,
+            constants.DEVICE_CLASS_ALIAS: lambda alias: field_aliases.resolve_device_class(
+                self.builder, alias
+            ),
         }
 
     def resolve_metric(self, value: str) -> int:
