@@ -127,6 +127,7 @@ const FilterButtons = styled(ButtonBar)`
 
 const SegmentedControlWrapper = styled('div')`
   width: max-content;
+  min-width: 345px;
 `;
 
 const StyledIconWarning = styled(IconWarning)`
