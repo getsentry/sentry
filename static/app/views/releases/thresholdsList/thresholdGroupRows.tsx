@@ -1,14 +1,16 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {IconAdd, IconDelete, IconEdit} from 'sentry/icons';
+import {IconAdd, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getExactDuration} from 'sentry/utils/formatters';
 
 import {Threshold} from '../utils/types';
+
+const NEW_THRESHOLD_PREFIX = 'newthreshold';
 
 type Props = {
   columns: number;
@@ -17,17 +19,31 @@ type Props = {
 };
 
 export function ThresholdGroupRows({thresholds, columns}: Props) {
-  const [editing, setEditing] = useState(new Set<string>([]));
-  const [newThresholds, setNewThresholds] = useState<Threshold[]>([]); // list of thresholds that have not been saved yet
+  const [editingThresholds, setEditingThresholds] = useState({});
+  const [newThresholdIterator, setNewThresholdIterator] = useState<number>(0); // used simply to initialize new threshold
   const projectId = thresholds[0].project;
   const environment = thresholds[0].environment;
   const defaultWindow = thresholds[0].window_in_seconds;
 
-  const initializeNewThreshold = idx => {
-    const id = `newthreshold-${idx}`;
-    enableEditThreshold(id);
+  const thresholdsById = useMemo(() => {
+    const byId = {};
+    thresholds.forEach(threshold => {
+      byId[threshold.id] = threshold;
+    });
+    return byId;
+  }, [thresholds]);
+
+  const thresholdIdSet = useMemo(() => {
+    return new Set([
+      ...thresholds.map(threshold => threshold.id),
+      ...Object.keys(editingThresholds),
+    ]);
+  }, [thresholds, editingThresholds]);
+
+  const initializeNewThreshold = () => {
+    const thresholdId = `${NEW_THRESHOLD_PREFIX}-${newThresholdIterator}`;
     const newThreshold = {
-      id,
+      id: thresholdId,
       environment,
       project: projectId,
       window_in_seconds: defaultWindow,
@@ -35,19 +51,21 @@ export function ThresholdGroupRows({thresholds, columns}: Props) {
       trigger_type: '',
       value: 0,
     };
-    setNewThresholds([...newThresholds, newThreshold]);
+    const updatedEditingThresholds = {...editingThresholds};
+    updatedEditingThresholds[thresholdId] = newThreshold;
+    setEditingThresholds(updatedEditingThresholds);
+    setNewThresholdIterator(newThresholdIterator + 1);
   };
 
-  const enableEditThreshold = id => {
-    const editingSet = new Set(editing);
-    editingSet.add(id);
-    setEditing(editingSet);
+  const enableEditThreshold = thresholdId => {
+    const updatedEditingThresholds = {...editingThresholds};
+    updatedEditingThresholds[thresholdId] = thresholdsById[thresholdId];
+    setEditingThresholds(updatedEditingThresholds);
   };
 
   const saveThreshold = thresholdIds => {
-    thresholdIds.forEach(id => {
-      editing.delete(id);
-      setEditing(new Set(editing));
+    thresholdIds(id => {
+      closeEditForm(id);
     });
     // TODO: we need to identify which threshold is being saved
     // refetch thresholds
@@ -60,9 +78,8 @@ export function ThresholdGroupRows({thresholds, columns}: Props) {
   };
 
   const deleteThreshold = thresholdId => {
-    if (thresholdId.includes('newthreshold')) {
-      setNewThresholds(newThresholds.filter(item => item.id !== thresholdId));
-    } else {
+    const updatedEditingThresholds = {...editingThresholds};
+    if (!thresholdId.includes(NEW_THRESHOLD_PREFIX)) {
       // Set loading state
       console.log('need to send a request to delete threshold');
       // Send request
@@ -70,65 +87,98 @@ export function ThresholdGroupRows({thresholds, columns}: Props) {
       // OR - on success refetch?
       // Set loading state to false
     }
+    delete updatedEditingThresholds[thresholdId];
+    setEditingThresholds(updatedEditingThresholds);
   };
 
-  const thresholdList = [...thresholds, ...newThresholds];
+  const closeEditForm = thresholdId => {
+    const updatedEditingThresholds = {...editingThresholds};
+    delete updatedEditingThresholds[thresholdId];
+    setEditingThresholds(updatedEditingThresholds);
+  };
+
+  // const editThreshold = (thresholdId, key, value) => {};
+
+  // const renderEditableColumns = threshold => (
+  //   <Fragment>
+  //     <FlexCenter>
+  //       <input value={threshold.window_in_seconds} onChange={editThreshold} />
+  //     </FlexCenter>
+  //     <FlexCenter>Condition</FlexCenter>
+  //   </Fragment>
+  // );
+
   return (
     <StyledThresholdGroup columns={columns}>
-      {thresholdList.map((threshold: Threshold, idx: number) => (
-        <StyledRow key={threshold.id} lastRow={idx === thresholdList.length - 1}>
-          <FlexCenter style={{borderBottom: 0}}>
-            {idx === 0 ? (
-              <ProjectBadge
-                project={threshold.project}
-                avatarSize={16}
-                hideOverflow
-                disableLink
-              />
-            ) : (
-              ''
-            )}
-          </FlexCenter>
-          <FlexCenter style={{borderBottom: 0}}>
-            {idx === 0 ? threshold.environment.name || 'None' : ''}
-          </FlexCenter>
-          <FlexCenter>
-            {getExactDuration(threshold.window_in_seconds, false, 'seconds')}
-          </FlexCenter>
-          <FlexCenter>
-            {threshold.trigger_type === 'over' ? '>' : '<'} {threshold.threshold_type}
-          </FlexCenter>
-          <ActionsColumn>
-            {editing.has(threshold.id) ? (
-              <Fragment>
-                <Button size="xs" onClick={() => saveThreshold([threshold.id])}>
-                  Save
-                </Button>
-                <StyledButton
-                  aria-label={t('Delete threshold')}
+      {Array.from(thresholdIdSet).map((tId: string, idx: number) => {
+        const threshold = editingThresholds[tId] || thresholdsById[tId];
+        return (
+          <StyledRow key={threshold.id} lastRow={idx === thresholdIdSet.size - 1}>
+            <FlexCenter style={{borderBottom: 0}}>
+              {idx === 0 ? (
+                <ProjectBadge
+                  project={threshold.project}
+                  avatarSize={16}
+                  hideOverflow
+                  disableLink
+                />
+              ) : (
+                ''
+              )}
+            </FlexCenter>
+            <FlexCenter style={{borderBottom: 0}}>
+              {idx === 0 ? threshold.environment.name || 'None' : ''}
+            </FlexCenter>
+            {/* FOLLOWING COLUMNS ARE EDITABLE */}
+            <FlexCenter>
+              {getExactDuration(threshold.window_in_seconds, false, 'seconds')}
+            </FlexCenter>
+            <FlexCenter>
+              <div>{threshold.threshold_type}</div>
+              <div>{threshold.trigger_type === 'over' ? '>' : '<'}</div>
+              <div>{threshold.value}</div>
+            </FlexCenter>
+            <ActionsColumn>
+              {editingThresholds[threshold.id] ? (
+                <Fragment>
+                  <Button size="xs" onClick={() => saveThreshold([threshold.id])}>
+                    Save
+                  </Button>
+                  {!threshold.id.includes(NEW_THRESHOLD_PREFIX) && (
+                    <Button
+                      aria-label={t('Delete threshold')}
+                      borderless
+                      icon={<IconDelete color="danger" />}
+                      onClick={() => deleteThreshold(threshold.id)}
+                      size="xs"
+                    />
+                  )}
+                  <Button
+                    aria-label={t('Close')}
+                    borderless
+                    icon={<IconClose />}
+                    onClick={() => closeEditForm(threshold.id)}
+                    size="xs"
+                  />
+                </Fragment>
+              ) : (
+                <Button
+                  aria-label={t('Edit threshold')}
                   borderless
-                  icon={<IconDelete color="danger" />}
-                  onClick={() => deleteThreshold(threshold.id)}
+                  icon={<IconEdit />}
+                  onClick={() => enableEditThreshold(threshold.id)}
                   size="xs"
                 />
-              </Fragment>
-            ) : (
-              <StyledButton
-                aria-label={t('Edit threshold')}
-                borderless
-                icon={<IconEdit />}
-                onClick={() => enableEditThreshold(threshold.id)}
-                size="xs"
-              />
-            )}
-          </ActionsColumn>
-        </StyledRow>
-      ))}
+              )}
+            </ActionsColumn>
+          </StyledRow>
+        );
+      })}
       <NewRowBtn
         aria-label={t('Add new row')}
         borderless
         icon={<IconAdd color="activeText" isCircled />}
-        onClick={() => initializeNewThreshold(thresholdList.length)}
+        onClick={initializeNewThreshold}
         size="xs"
       />
     </StyledThresholdGroup>
@@ -174,10 +224,5 @@ const FlexCenter = styled('div')`
 const ActionsColumn = styled('div')`
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: ${space(1)};
-`;
-
-const StyledButton = styled(Button)`
-  margin-left: ${space(1)};
+  justify-content: space-around;
 `;
