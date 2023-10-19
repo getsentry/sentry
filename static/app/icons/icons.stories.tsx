@@ -72,6 +72,7 @@ const platformToIcon = {
   javascript: 'javascript',
   'javascript-angular': 'angularjs',
   'javascript-angularjs': 'angularjs',
+  'javascript-astro': 'astro',
   'javascript-backbone': 'backbone',
   'javascript-browser': 'javascript',
   'javascript-capacitor': 'capacitor',

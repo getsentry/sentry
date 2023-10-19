@@ -668,6 +668,7 @@ export function isEventFromBrowserJavaScriptSDK(
     'sentry.javascript.remix',
     'sentry.javascript.svelte',
     'sentry.javascript.sveltekit',
+    'sentry.javascript.astro',
   ].includes(sdkName.toLowerCase());
 }
 
