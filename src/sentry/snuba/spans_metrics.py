@@ -9,6 +9,7 @@ from sentry.search.events.builder import (
     TimeseriesSpansMetricsQueryBuilder,
 )
 from sentry.search.events.builder.spans_metrics import TopSpansMetricsQueryBuilder
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import SnubaTSResult
@@ -49,18 +50,20 @@ def query(
         selected_columns=selected_columns,
         equations=equations,
         orderby=orderby,
-        auto_fields=auto_fields,
-        auto_aggregations=auto_aggregations,
-        use_aggregate_conditions=use_aggregate_conditions,
-        functions_acl=functions_acl,
         limit=limit,
         offset=offset,
-        equation_config={"auto_add": include_equation_fields},
         sample_rate=sample,
-        has_metrics=has_metrics,
-        use_metrics_layer=use_metrics_layer,
-        transform_alias_to_input_format=transform_alias_to_input_format,
-        skip_tag_resolution=skip_tag_resolution,
+        config=QueryBuilderConfig(
+            auto_fields=auto_fields,
+            auto_aggregations=auto_aggregations,
+            use_aggregate_conditions=use_aggregate_conditions,
+            functions_acl=functions_acl,
+            equation_config={"auto_add": include_equation_fields},
+            has_metrics=has_metrics,
+            use_metrics_layer=use_metrics_layer,
+            transform_alias_to_input_format=transform_alias_to_input_format,
+            skip_tag_resolution=skip_tag_resolution,
+        ),
     )
 
     result = builder.process_results(builder.run_query(referrer))
@@ -92,10 +95,12 @@ def timeseries_query(
         dataset=Dataset.PerformanceMetrics,
         query=query,
         selected_columns=selected_columns,
-        functions_acl=functions_acl,
-        allow_metric_aggregates=allow_metric_aggregates,
-        use_metrics_layer=use_metrics_layer,
         groupby=groupby,
+        config=QueryBuilderConfig(
+            functions_acl=functions_acl,
+            allow_metric_aggregates=allow_metric_aggregates,
+            use_metrics_layer=use_metrics_layer,
+        ),
     )
     result = metrics_query.run_query(referrer)
 
@@ -189,8 +194,10 @@ def top_events_timeseries(
         query=user_query,
         selected_columns=selected_columns,
         timeseries_columns=timeseries_columns,
-        functions_acl=functions_acl,
-        skip_tag_resolution=True,
+        config=QueryBuilderConfig(
+            functions_acl=functions_acl,
+            skip_tag_resolution=True,
+        ),
     )
     if len(top_events["data"]) == limit and include_other:
         other_events_builder = TopSpansMetricsQueryBuilder(

@@ -1,13 +1,18 @@
 import os
+from datetime import timedelta
 from io import BytesIO
 from unittest.mock import patch
 
 import pytest
 from django.core.files.base import ContentFile
 from django.db import DatabaseError
+from django.utils import timezone
 
-from sentry.models import File, FileBlob, FileBlobIndex
+from sentry.models.files.file import File
+from sentry.models.files.fileblob import FileBlob
+from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
 
 
@@ -51,12 +56,29 @@ class FileBlobTest(TestCase):
             mock_super.side_effect = DatabaseError("server closed connection")
             with self.tasks(), pytest.raises(DatabaseError):
                 blob.delete()
-        # Even those postgres failed we should stil queue
+        # Even though postgres failed we should still queue
         # a task to delete the filestore object.
         assert mock_delete_file_region.apply_async.call_count == 1
 
         # blob is still around.
         assert FileBlob.objects.get(id=blob.id)
+
+    @override_options(
+        {
+            "fileblob.upload.use_blobid_cache": True,
+            "fileblob.upload.use_lock": False,
+        }
+    )
+    def test_dedupe_works_with_cache(self):
+        contents = ContentFile(b"foo bar")
+
+        FileBlob.from_file(contents)
+        contents.seek(0)
+
+        file_1 = File.objects.create(name="foo")
+        file_1.putfile(contents)
+
+        assert FileBlob.objects.count() == 1
 
 
 class FileTest(TestCase):
@@ -64,6 +86,9 @@ class FileTest(TestCase):
         fileobj = ContentFile(b"foo bar")
         baz_file = File.objects.create(name="baz.js", type="default", size=7)
         baz_file.putfile(fileobj, 3)
+
+        # make sure blobs are "old" and eligible for deletion
+        baz_file.blobs.all().update(timestamp=timezone.now() - timedelta(days=3))
 
         baz_id = baz_file.id
         with self.tasks(), self.capture_on_commit_callbacks(execute=True):

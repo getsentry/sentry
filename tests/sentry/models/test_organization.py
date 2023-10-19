@@ -13,23 +13,24 @@ from sentry.api.endpoints.organization_details import (
     update_tracked_data,
 )
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.models import (
-    ApiKey,
-    AuditLogEntry,
-    NotificationSetting,
-    Organization,
-    OrganizationMember,
-    OrganizationOption,
-    User,
-    UserOption,
-)
+from sentry.models.apikey import ApiKey
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.options.user_option import UserOption
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.user import User
 from sentry.notifications.types import (
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
 from sentry.silo import SiloMode
-from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
+from sentry.tasks.deletion.hybrid_cloud import (
+    schedule_hybrid_cloud_foreign_key_jobs,
+    schedule_hybrid_cloud_foreign_key_jobs_control,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -469,9 +470,11 @@ class OrganizationDeletionTest(TestCase):
             # cascade is asynchronous, ensure there is still related search,
             assert UserOption.objects.filter(organization_id=org_id).exists()
 
-        # Assume monolith silo mode to ensure all tasks are run correctly
-        with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+        # Run cascades in the region, and then in control
+        with self.tasks(), assume_test_silo_mode(SiloMode.REGION):
             schedule_hybrid_cloud_foreign_key_jobs()
+        with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
+            schedule_hybrid_cloud_foreign_key_jobs_control()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             # Ensure they are all now gone.

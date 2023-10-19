@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import DeprecatedLine from 'sentry/components/events/interfaces/frame/deprecatedLine';
@@ -28,7 +30,7 @@ describe('Frame - Line', function () {
 
   describe('renderOriginalSourceInfo()', function () {
     it('should render the source map information as a HTML string', function () {
-      const {container} = render(
+      render(
         <DeprecatedLine
           data={{
             origAbsPath: 'https://beta.getsentry.com/_static/sentry/dist/vendor.js',
@@ -41,7 +43,6 @@ describe('Frame - Line', function () {
           event={event}
         />
       );
-      expect(container).toSnapshot();
     });
   });
 
@@ -66,7 +67,6 @@ describe('Frame - Line', function () {
           isExpanded
         />
       );
-      expect(screen.getByRole('list')).toSnapshot();
     });
 
     it('should render register values', () => {
@@ -154,47 +154,11 @@ describe('Frame - Line', function () {
         expect(utils.getByText(value)).toBeInTheDocument();
       }
     });
-
-    it('should render sourcemap debug', async () => {
-      const org = TestStubs.Organization();
-      const project = TestStubs.Project();
-      const filename = 'something.js';
-      MockApiClient.addMockResponse({
-        url: `/projects/${org.slug}/${project.slug}/events/event-id/source-map-debug/`,
-        body: {
-          errors: [{type: 'no_release_on_event', message: '', data: null}],
-        },
-      });
-      const {container} = render(
-        <DeprecatedLine
-          data={{...data, filename}}
-          registers={{}}
-          components={[]}
-          event={event}
-          isExpanded
-          debugFrames={[
-            {
-              filename,
-              query: {
-                eventId: 'event-id',
-                exceptionIdx: 0,
-                frameIdx: 0,
-                orgSlug: 'org-slug',
-                projectSlug: 'project-slug',
-              },
-            },
-          ]}
-        />,
-        {organization: org}
-      );
-      expect(await screen.findByLabelText('Missing source map')).toBeInTheDocument();
-      expect(container).toSnapshot();
-    });
   });
 
   describe('ANR suspect frame', () => {
     it('should render suspect frame', () => {
-      const org = {...TestStubs.Organization(), features: ['anr-analyze-frames']};
+      const org = {...Organization(), features: ['anr-analyze-frames']};
       const eventWithThreads = {
         ...event,
         entries: [

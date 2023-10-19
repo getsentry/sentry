@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import logging
-import random
-import string
 import time
 from collections import defaultdict
 from dataclasses import dataclass
@@ -36,28 +34,26 @@ from sentry.issues.grouptype import (
     PerformanceNPlusOneAPICallsGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
 )
-from sentry.models import (
-    Activity,
-    Commit,
-    Deploy,
-    Environment,
-    EventError,
-    Group,
-    GroupLink,
-    Integration,
-    Organization,
-    Project,
-    Release,
-    ReleaseCommit,
-    Repository,
-    Rule,
-)
+from sentry.models.activity import Activity
+from sentry.models.commit import Commit
+from sentry.models.deploy import Deploy
+from sentry.models.environment import Environment
+from sentry.models.eventerror import EventError
+from sentry.models.group import Group
+from sentry.models.grouplink import GroupLink
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.repository import Repository
+from sentry.models.rule import Rule
 from sentry.notifications.notify import notify
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.util import region_silo_function
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.performance_issues.base import get_url_from_span
-from sentry.utils.performance_issues.performance_detection import PerformanceProblem
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.web.helpers import render_to_string
 
 if TYPE_CHECKING:
@@ -155,6 +151,7 @@ def get_email_link_extra_params(
     environment: str | None = None,
     rule_details: Sequence[NotificationRuleDetails] | None = None,
     alert_timestamp: int | None = None,
+    notification_uuid: str | None = None,
     **kwargs: Any,
 ) -> dict[int, str]:
     alert_timestamp_str = (
@@ -169,6 +166,11 @@ def get_email_link_extra_params(
                     "alert_type": str(AlertRuleTriggerAction.Type.EMAIL.name).lower(),
                     "alert_timestamp": alert_timestamp_str,
                     "alert_rule_id": rule_detail.id,
+                    **dict(
+                        []
+                        if notification_uuid is None
+                        else [("notification_uuid", str(notification_uuid))]
+                    ),
                     **dict([] if environment is None else [("environment", environment)]),
                     **kwargs,
                 }
@@ -184,24 +186,35 @@ def get_group_settings_link(
     rule_details: Sequence[NotificationRuleDetails] | None = None,
     alert_timestamp: int | None = None,
     referrer: str = "alert_email",
+    notification_uuid: str | None = None,
     **kwargs: Any,
 ) -> str:
-    alert_rule_id: int | None = rule_details[0].id if rule_details and rule_details[0].id else None
-    return str(
-        group.get_absolute_url()
-        + (
-            ""
-            if not alert_rule_id
-            else get_email_link_extra_params(
-                referrer, environment, rule_details, alert_timestamp, **kwargs
-            )[alert_rule_id]
-        )
-    )
+    alert_rule_id = rule_details[0].id if rule_details and rule_details[0].id else None
+    extra_params = ""
+    if alert_rule_id:
+        extra_params = get_email_link_extra_params(
+            referrer,
+            environment,
+            rule_details,
+            alert_timestamp,
+            notification_uuid=notification_uuid,
+            **kwargs,
+        )[alert_rule_id]
+    elif not alert_rule_id and notification_uuid:
+        extra_params = "?" + str(urlencode({"notification_uuid": notification_uuid}))
+    return str(group.get_absolute_url() + extra_params)
 
 
-def get_integration_link(organization: Organization, integration_slug: str) -> str:
+def get_integration_link(
+    organization: Organization, integration_slug: str, notification_uuid: Optional[str] = None
+) -> str:
+    query_params = {"referrer": "alert_email"}
+    if notification_uuid:
+        query_params.update({"notification_uuid": notification_uuid})
+
     return organization.absolute_url(
-        f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
+        f"/settings/{organization.slug}/integrations/{integration_slug}/",
+        query=urlencode(query_params),
     )
 
 
@@ -257,19 +270,23 @@ def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
     return sorted(commits.values(), key=lambda x: float(x.get("score", 0)), reverse=True)
 
 
+@region_silo_function
 def has_integrations(organization: Organization, project: Project) -> bool:
     from sentry.plugins.base import plugins
 
     project_plugins = plugins.for_project(project, version=1)
-    organization_integrations = Integration.objects.filter(
-        organizationintegration__organization_id=organization.id
-    ).first()
+    organization_integrations = integration_service.get_integrations(
+        organization_id=organization.id, limit=1
+    )
     # TODO: fix because project_plugins is an iterator and thus always truthy
     return bool(project_plugins or organization_integrations)
 
 
 def is_alert_rule_integration(provider: IntegrationProvider) -> bool:
-    return any(feature == IntegrationFeatures.ALERT_RULE for feature in provider.features)
+    return any(
+        feature == (IntegrationFeatures.ALERT_RULE or IntegrationFeatures.ENTERPRISE_ALERT_RULE)
+        for feature in provider.features
+    )
 
 
 def has_alert_integration(project: Project) -> bool:
@@ -277,9 +294,7 @@ def has_alert_integration(project: Project) -> bool:
 
     # check integrations
     provider_keys = [
-        cast(str, provider.key)
-        for provider in integrations.all()
-        if is_alert_rule_integration(provider)
+        provider.key for provider in integrations.all() if is_alert_rule_integration(provider)
     ]
     if integration_service.get_integrations(organization_id=org.id, providers=provider_keys):
         return True
@@ -345,7 +360,7 @@ def get_parent_and_repeating_spans(
     return (parent_span, repeating_spans)
 
 
-def occurrence_perf_to_email_html(context: Any) -> Any:
+def occurrence_perf_to_email_html(context: Any) -> str:
     """Generate the email HTML for an occurrence-backed performance issue alert"""
     return render_to_string("sentry/emails/transactions.html", context)
 
@@ -366,50 +381,42 @@ def get_spans(
     return spans
 
 
-def get_transaction_data(event: Event) -> Any:
+def get_transaction_data(event: GroupEvent) -> str:
     """Get data about a transaction to populate alert emails."""
-    evidence_data = event.occurrence.evidence_data
-    if not evidence_data:
+    if event.occurrence is None or not event.occurrence.evidence_data:
         return ""
-
-    context = evidence_data
-    return occurrence_perf_to_email_html(context)
+    return occurrence_perf_to_email_html(event.occurrence.evidence_data)
 
 
 def get_generic_data(event: GroupEvent) -> Any:
     """Get data about a generic issue type to populate alert emails."""
-    generic_evidence = event.occurrence.evidence_display
-
-    if not generic_evidence:
+    if event.occurrence is None or not event.occurrence.evidence_display:
         return ""
 
-    context = {}
-    for row in generic_evidence:
-        context[row.name] = row.value
-
+    context = {row.name: row.value for row in event.occurrence.evidence_display}
     return generic_email_html(context)
 
 
-def generic_email_html(context: Any) -> Any:
+def generic_email_html(context: Any) -> str:
     """Format issue evidence into a (stringified) HTML table for emails"""
     return render_to_string("sentry/emails/generic_table.html", {"data": context})
 
 
-def get_performance_issue_alert_subtitle(event: Event) -> str:
+def get_performance_issue_alert_subtitle(event: GroupEvent) -> str:
     """Generate the issue alert subtitle for performance issues"""
-    return cast(
-        str, event.occurrence.evidence_data.get("repeating_spans_compact", "").replace("`", '"')
-    )
+    if event.occurrence is None:
+        return ""
+    return event.occurrence.evidence_data.get("repeating_spans_compact", "").replace("`", '"')
 
 
 def get_notification_group_title(
     group: Group, event: Event | GroupEvent, max_length: int = 255, **kwargs: str
 ) -> str:
     if isinstance(event, GroupEvent) and event.occurrence is not None:
-        issue_title: str = event.occurrence.issue_title
+        issue_title = event.occurrence.issue_title
         return issue_title
     else:
-        event_title: str = event.title
+        event_title = event.title
         return event_title
 
 
@@ -422,7 +429,7 @@ def send_activity_notification(notification: ActivityNotification | UserReportNo
     shared_context = notification.get_context()
 
     split = participants_by_provider.split_participants_and_context()
-    for (provider, participants, extra_context) in split:
+    for provider, participants, extra_context in split:
         notify(provider, notification, participants, shared_context, extra_context)
 
 
@@ -441,13 +448,6 @@ def get_replay_id(event: Event | GroupEvent) -> str | None:
             return evidence_replay_id
 
     return replay_id
-
-
-def generate_notification_uuid() -> str:
-    """
-    Generates a random string of 16 characters to be used as a notification uuid
-    """
-    return "".join(random.choices(string.ascii_letters + string.digits, k=16))
 
 
 @dataclass
@@ -625,7 +625,7 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
         this is where thresholds come in
         """
         independent_spans = [self._find_span_by_id(id) for id in self.problem.offender_span_ids]
-        consecutive_spans = [self._find_span_by_id(id) for id in self.problem.cause_span_ids]
+        consecutive_spans = [self._find_span_by_id(id) for id in self.problem.cause_span_ids or ()]
         total_duration = self._sum_span_duration(consecutive_spans)
 
         max_independent_span_duration = max(

@@ -56,13 +56,12 @@ def _construct_quotas(use_case_id: UseCaseID) -> Optional[Quota]:
             "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org"
         )
 
-    if quota_args:
-        if len(quota_args) > 1:
-            raise ValueError("multiple quotas are actually unsupported")
+    if not quota_args:
+        raise ValueError("quotas cannot be empty")
+    if len(quota_args) > 1:
+        raise ValueError("multiple quotas are actually unsupported")
 
-        return Quota(**quota_args[0])
-
-    return None
+    return Quota(**quota_args[0])
 
 
 class InboundMessage(TypedDict):
@@ -136,9 +135,12 @@ class TimeseriesCardinalityLimiter:
             )
 
         for prefix, hashes in request_hashes.items():
-            quota = prefix_to_quota[prefix]
+            quota = prefix_to_quota.get(prefix)
 
-            requested_quotas.append(RequestedQuota(prefix=prefix, unit_hashes=hashes, quota=quota))
+            if quota is not None:
+                requested_quotas.append(
+                    RequestedQuota(prefix=prefix, unit_hashes=hashes, quota=quota)
+                )
 
         timestamp, grants = self.backend.check_within_quotas(requested_quotas)
 
@@ -153,7 +155,6 @@ class TimeseriesCardinalityLimiter:
 
             substrings = grant.request.prefix.split("-")
             grant_use_case_id = substrings[3]
-            grant_org_id = substrings[-1]
 
             metrics.incr(
                 "sentry_metrics.indexer.process_messages.dropped_message",
@@ -161,7 +162,6 @@ class TimeseriesCardinalityLimiter:
                 tags={
                     "reason": "cardinality_limit",
                     "use_case_id": grant_use_case_id,
-                    "org_id": grant_org_id,
                 },
             )
 

@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import sortBy from 'lodash/sortBy';
 
-import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -12,6 +13,7 @@ import {space} from 'sentry/styles/space';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {CronDetailsTimeline} from 'sentry/views/monitors/components/cronDetailsTimeline';
 import DetailsSidebar from 'sentry/views/monitors/components/detailsSidebar';
 
 import MonitorCheckIns from './components/monitorCheckIns';
@@ -46,6 +48,7 @@ function MonitorDetails({params, location}: Props) {
 
   const {data: monitor} = useApiQuery<Monitor>(queryKey, {
     staleTime: 0,
+    refetchOnWindowFocus: true,
     // Refetches while we are waiting for the user to send their first check-in
     refetchInterval: data => {
       if (!data) {
@@ -75,9 +78,7 @@ function MonitorDetails({params, location}: Props) {
     );
   }
 
-  const envsSortedByLastCheck = monitor.environments.sort((a, b) =>
-    a.lastCheckIn.localeCompare(b.lastCheckIn)
-  );
+  const envsSortedByLastCheck = sortBy(monitor.environments, e => e.lastCheckIn);
 
   return (
     <SentryDocumentTitle title={`Crons — ${monitor.name}`}>
@@ -86,13 +87,14 @@ function MonitorDetails({params, location}: Props) {
         <Layout.Body>
           <Layout.Main>
             <StyledPageFilterBar condensed>
-              <DatePageFilter alignDropdown="left" />
+              <DatePageFilter />
               <EnvironmentPageFilter />
             </StyledPageFilterBar>
             {!hasLastCheckIn(monitor) ? (
               <MonitorOnboarding monitor={monitor} />
             ) : (
               <Fragment>
+                <CronDetailsTimeline organization={organization} monitor={monitor} />
                 <MonitorStats
                   orgSlug={organization.slug}
                   monitor={monitor}

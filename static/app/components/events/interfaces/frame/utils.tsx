@@ -1,6 +1,6 @@
 import {IconQuestion, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Event, EventOrGroupType, Frame, PlatformType} from 'sentry/types';
+import {Event, EventOrGroupType, Frame, PlatformKey} from 'sentry/types';
 import {defined, objectIsEmpty} from 'sentry/utils';
 
 import {SymbolicatorStatus} from '../types';
@@ -11,7 +11,7 @@ export function trimPackage(pkg: string) {
   return filename.replace(/\.(dylib|so|a|dll|exe)$/, '');
 }
 
-export function getPlatform(dataPlatform: PlatformType | null, platform: string) {
+export function getPlatform(dataPlatform: PlatformKey | null, platform: string) {
   // prioritize the frame platform but fall back to the platform
   // of the stack trace / exception
   return dataPlatform || platform;

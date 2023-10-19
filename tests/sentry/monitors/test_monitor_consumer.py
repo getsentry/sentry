@@ -480,22 +480,39 @@ class MonitorConsumerTest(TestCase):
         monitor = Monitor.objects.get(slug="someslugwith-weirdstuff")
         assert monitor is not None
 
-    def test_monitor_upsert_temp_dual_read_invalid_slug(self):
-        monitor = self._create_monitor(slug="my/monitor/invalid-slug")
-
+    def test_monitor_upsert_checkin_margin_zero(self):
+        """
+        As part of GH-56526 we changed the minimum value allowed for the
+        checkin_margin to 1 from 0. Some monitors may still be upserting with a
+        0 set, we transform it to None in those cases.
+        """
         self.send_checkin(
-            "my/monitor/invalid-slug",
-            monitor_config={"schedule": {"type": "crontab", "value": "0 * * * *"}},
+            "invalid-monitor-checkin",
+            monitor_config={
+                "schedule": {"type": "crontab", "value": "13 * * * *"},
+                "checkin_margin": 0,
+            },
+            environment="my-environment",
         )
 
-        checkin = MonitorCheckIn.objects.get(guid=self.guid)
-        assert checkin.status == CheckInStatus.OK
-        assert checkin.monitor_id == monitor.id
+        monitor = Monitor.objects.filter(slug="invalid-monitor-checkin")
+        assert monitor.exists()
+        assert monitor[0].config["checkin_margin"] == 1
 
     def test_monitor_invalid_config(self):
+        # 6 value schedule
         self.send_checkin(
             "my-invalid-monitor",
             monitor_config={"schedule": {"type": "crontab", "value": "13 * * * * *"}},
+            environment="my-environment",
+        )
+
+        assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
+
+        # no next valid check-in
+        self.send_checkin(
+            "my-invalid-monitor",
+            monitor_config={"schedule": {"type": "crontab", "value": "* * 31 2 *"}},
             environment="my-environment",
         )
 

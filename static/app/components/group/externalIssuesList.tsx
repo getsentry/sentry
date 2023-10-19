@@ -15,6 +15,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {
   Group,
   GroupIntegration,
+  OrganizationSummary,
   PlatformExternalIssue,
   Project,
   SentryAppComponent,
@@ -42,12 +43,21 @@ type ExternalIssueComponent = {
   hasLinkedIssue?: boolean;
 };
 
-function makeIntegrationsQueryKey(group: Group): ApiQueryKey {
-  return [`/groups/${group.id}/integrations/`];
+function makeIntegrationsQueryKey(
+  group: Group,
+  organization: OrganizationSummary
+): ApiQueryKey {
+  return [`/organizations/${organization.slug}/issues/${group.id}/integrations/`];
 }
 
-function useFetchIntegrations({group}: {group: Group}) {
-  return useApiQuery<GroupIntegration[]>(makeIntegrationsQueryKey(group), {
+function useFetchIntegrations({
+  group,
+  organization,
+}: {
+  group: Group;
+  organization: OrganizationSummary;
+}) {
+  return useApiQuery<GroupIntegration[]>(makeIntegrationsQueryKey(group, organization), {
     staleTime: Infinity,
   });
 }
@@ -59,9 +69,15 @@ function useFetchIntegrations({group}: {group: Group}) {
 // we need to be more conservative about error cases since we don't have
 // control over those services.
 //
-function useFetchSentryAppData({group}: {group: Group}) {
+function useFetchSentryAppData({
+  group,
+  organization,
+}: {
+  group: Group;
+  organization: OrganizationSummary;
+}) {
   const {data} = useApiQuery<PlatformExternalIssue[]>(
-    [`/groups/${group.id}/external-issues/`],
+    [`/organizations/${organization.slug}/issues/${group.id}/external-issues/`],
     {staleTime: 30_000}
   );
 
@@ -98,8 +114,8 @@ function ExternalIssueList({components, group, event, project}: Props) {
     data: integrations,
     isLoading,
     refetch: refetchIntegrations,
-  } = useFetchIntegrations({group});
-  useFetchSentryAppData({group});
+  } = useFetchIntegrations({group, organization});
+  useFetchSentryAppData({group, organization});
   const issueTrackingFilter = useIssueTrackingFilter();
 
   const externalIssues = useLegacyStore(ExternalIssueStore);

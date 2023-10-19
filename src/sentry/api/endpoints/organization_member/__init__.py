@@ -11,7 +11,10 @@ from sentry.api.exceptions import SentryAPIException
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.locks import locks
-from sentry.models import Organization, OrganizationMember, OrganizationMemberTeam, Team
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import Team
 from sentry.roles.manager import Role, TeamRole
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -46,7 +49,8 @@ def save_team_assignments(
         new_assignments = [(team, team_role_map.get(team.slug, None)) for team in target_teams]
 
         with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
-            OrganizationMemberTeam.objects.filter(organizationmember=organization_member).delete()
+            existing = OrganizationMemberTeam.objects.filter(organizationmember=organization_member)
+            OrganizationMemberTeam.objects.bulk_delete(existing)
             OrganizationMemberTeam.objects.bulk_create(
                 [
                     OrganizationMemberTeam(
@@ -57,7 +61,18 @@ def save_team_assignments(
             )
 
 
-def can_set_team_role(access: Access, team: Team, new_role: TeamRole) -> bool:
+def can_set_team_role(request: Request, team: Team, new_role: TeamRole) -> bool:
+    """
+    User can set a team role:
+
+    * If they are an active superuser
+    * If they are an org owner/manager/admin
+    * If they are a team admin on the team
+    """
+    if is_active_superuser(request):
+        return True
+
+    access: Access = request.access
     if not can_admin_team(access, team):
         return False
 

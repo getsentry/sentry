@@ -2,14 +2,18 @@ from django.http import Http404
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.relay import projectconfig_cache
 
 
 @region_silo_endpoint
 class AdminRelayProjectConfigsEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:

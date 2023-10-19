@@ -77,16 +77,19 @@ export default function MetricDetailsBody({
     return getInterval({start: timePeriod.start, end: timePeriod.end}, 'high');
   }
 
-  function getFilter() {
-    const {dataset, query} = rule ?? {};
+  function getFilter(): string[] | null {
     if (!rule) {
       return null;
     }
 
-    const eventType = isCrashFreeAlert(dataset)
-      ? null
-      : extractEventTypeFilterFromRule(rule);
-    return [eventType, query].join(' ').split(' ');
+    const {dataset, query} = rule;
+
+    if (isCrashFreeAlert(dataset)) {
+      return query.trim().split(' ');
+    }
+
+    const eventType = extractEventTypeFilterFromRule(rule);
+    return (query ? `(${eventType}) AND (${query.trim()})` : eventType).split(' ');
   }
 
   const handleTimePeriodChange = (datetime: ChangeData) => {
@@ -128,9 +131,12 @@ export default function MetricDetailsBody({
     );
   }
 
-  const {query, dataset} = rule;
+  const {dataset, aggregate, query} = rule;
 
-  const queryWithTypeFilter = `${query} ${extractEventTypeFilterFromRule(rule)}`.trim();
+  const eventType = extractEventTypeFilterFromRule(rule);
+  const queryWithTypeFilter = (
+    query ? `(${query}) AND (${eventType})` : eventType
+  ).trim();
   const relativeOptions = {
     ...SELECTOR_RELATIVE_PERIODS,
     ...(rule.timeWindow > 1 ? {[TimePeriod.FOURTEEN_DAYS]: t('Last 14 days')} : {}),
@@ -138,6 +144,8 @@ export default function MetricDetailsBody({
 
   const isSnoozed = rule.snooze;
   const ruleActionCategory = getAlertRuleActionCategory(rule);
+
+  const isOnDemandAlert = isOnDemandMetricAlert(dataset, aggregate, query);
 
   return (
     <Fragment>
@@ -189,7 +197,7 @@ export default function MetricDetailsBody({
             interval={getPeriodInterval()}
             query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
             filter={getFilter()}
-            isOnDemandMetricAlert={isOnDemandMetricAlert(dataset, query)}
+            isOnDemandAlert={isOnDemandAlert}
           />
           <DetailWrapper>
             <ActivityWrapper>
@@ -202,9 +210,10 @@ export default function MetricDetailsBody({
                   timePeriod={timePeriod}
                   query={
                     dataset === Dataset.ERRORS
-                      ? queryWithTypeFilter
+                      ? // Not using (query) AND (event.type:x) because issues doesn't support it yet
+                        `${extractEventTypeFilterFromRule(rule)} ${query}`.trim()
                       : isCrashFreeAlert(dataset)
-                      ? `${query} error.unhandled:true`
+                      ? `${query} error.unhandled:true`.trim()
                       : undefined
                   }
                 />
@@ -223,7 +232,7 @@ export default function MetricDetailsBody({
           </DetailWrapper>
         </Layout.Main>
         <Layout.Side>
-          <MetricDetailsSidebar rule={rule} />
+          <MetricDetailsSidebar rule={rule} isOnDemandMetricAlert={isOnDemandAlert} />
         </Layout.Side>
       </Layout.Body>
     </Fragment>

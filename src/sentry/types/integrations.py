@@ -15,6 +15,7 @@ class ExternalProviders(ValueEqualityEnum):
     DISCORD = 140
     OPSGENIE = 150
     GITHUB = 200
+    GITHUB_ENTERPRISE = 201
     GITLAB = 210
 
     # TODO: do migration to delete this from database
@@ -33,9 +34,23 @@ class ExternalProviderEnum(Enum):
     DISCORD = "discord"
     OPSGENIE = "opsgenie"
     GITHUB = "github"
+    GITHUB_ENTERPRISE = "github_enterprise"
     GITLAB = "gitlab"
     CUSTOM = "custom_scm"
 
+
+EXTERNAL_PROVIDERS_REVERSE = {
+    ExternalProviderEnum.EMAIL: ExternalProviders.EMAIL,
+    ExternalProviderEnum.SLACK: ExternalProviders.SLACK,
+    ExternalProviderEnum.MSTEAMS: ExternalProviders.MSTEAMS,
+    ExternalProviderEnum.PAGERDUTY: ExternalProviders.PAGERDUTY,
+    ExternalProviderEnum.DISCORD: ExternalProviders.DISCORD,
+    ExternalProviderEnum.OPSGENIE: ExternalProviders.OPSGENIE,
+    ExternalProviderEnum.GITHUB: ExternalProviders.GITHUB,
+    ExternalProviderEnum.GITHUB_ENTERPRISE: ExternalProviders.GITHUB_ENTERPRISE,
+    ExternalProviderEnum.GITLAB: ExternalProviders.GITLAB,
+    ExternalProviderEnum.CUSTOM: ExternalProviders.CUSTOM,
+}
 
 EXTERNAL_PROVIDERS = {
     ExternalProviders.EMAIL: ExternalProviderEnum.EMAIL.value,
@@ -45,9 +60,17 @@ EXTERNAL_PROVIDERS = {
     ExternalProviders.DISCORD: ExternalProviderEnum.DISCORD.value,
     ExternalProviders.OPSGENIE: ExternalProviderEnum.OPSGENIE.value,
     ExternalProviders.GITHUB: ExternalProviderEnum.GITHUB.value,
+    ExternalProviders.GITHUB_ENTERPRISE: ExternalProviderEnum.GITHUB_ENTERPRISE.value,
     ExternalProviders.GITLAB: ExternalProviderEnum.GITLAB.value,
     ExternalProviders.CUSTOM: ExternalProviderEnum.CUSTOM.value,
 }
+
+# the list of providers allowed for personal notifications
+PERSONAL_NOTIFICATION_PROVIDERS = [
+    ExternalProviderEnum.EMAIL.value,
+    ExternalProviderEnum.SLACK.value,
+    ExternalProviderEnum.MSTEAMS.value,
+]
 
 
 def get_provider_name(value: int) -> Optional[str]:

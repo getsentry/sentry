@@ -137,8 +137,12 @@ function getSortKeyFromField(
   return getSortField(fieldString, tableMeta);
 }
 
-export function isFieldSortable(field: Field, tableMeta?: MetaType): boolean {
-  return !!getSortKeyFromField(field, tableMeta);
+export function isFieldSortable(
+  field: Field,
+  tableMeta?: MetaType,
+  useFunctionFormat?: boolean
+): boolean {
+  return !!getSortKeyFromField(field, tableMeta, useFunctionFormat);
 }
 
 const decodeFields = (location: Location): Array<Field> => {
@@ -1077,7 +1081,7 @@ class EventView {
         ({
           key: sort.field,
           order: sort.kind,
-        } as TableColumnSort<string>)
+        }) as TableColumnSort<string>
     );
   }
 

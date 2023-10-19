@@ -8,9 +8,11 @@ import responses
 from sentry import options
 from sentry.api.endpoints.project_stacktrace_link import get_code_mapping_configs
 from sentry.integrations.example.integration import ExampleIntegration
-from sentry.models import Integration, OrganizationIntegration
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 example_base_url = "https://example.com/getsentry/sentry/blob/master"
 git_blame = [
@@ -81,9 +83,10 @@ class BaseProjectStacktraceLink(APITestCase):
     endpoint = "sentry-api-0-project-stacktrace-link"
 
     def setUp(self):
-        self.integration = Integration.objects.create(provider="example", name="Example")
-        self.integration.add_organization(self.organization, self.user)
-        self.oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(provider="example", name="Example")
+            self.integration.add_organization(self.organization, self.user)
+            self.oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
 
         self.repo = self.create_repo(
             project=self.project,
@@ -111,7 +114,7 @@ class BaseProjectStacktraceLink(APITestCase):
         }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
     endpoint = "sentry-api-0-project-stacktrace-link"
 
@@ -263,21 +266,36 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         assert response.data["integrations"] == [serialized_integration(self.integration)]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
     def setUp(self):
         BaseProjectStacktraceLink.setUp(self)
-        self.code_mapping1 = self.create_code_mapping(
+        self.android_code_mapping = self.create_code_mapping(
             organization_integration=self.oi,
             project=self.project,
             repo=self.repo,
-            stack_root="",
+            stack_root="usr/src/getsentry/",
+            source_root="src/getsentry/",
+        )
+        self.cocoa_code_mapping = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="SampleProject/",
+            source_root="",
+        )
+        self.flutter_code_mapping = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="a/b/",
             source_root="",
         )
 
     @patch.object(ExampleIntegration, "get_stacktrace_link")
     def test_munge_android_worked(self, mock_integration):
-        mock_integration.side_effect = [f"{example_base_url}/usr/src/getsentry/file.java"]
+        file_path = "src/getsentry/file.java"
+        mock_integration.side_effect = [f"{example_base_url}/{file_path}"]
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -287,8 +305,7 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
                 "platform": "java",
             },
         )
-        file_path = "usr/src/getsentry/file.java"
-        assert response.data["config"] == self.expected_configurations(self.code_mapping1)
+        assert response.data["config"] == self.expected_configurations(self.android_code_mapping)
         assert response.data["sourceUrl"] == f"{example_base_url}/{file_path}"
 
     @patch.object(ExampleIntegration, "get_stacktrace_link")
@@ -305,7 +322,7 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
                 "platform": "cocoa",
             },
         )
-        assert response.data["config"] == self.expected_configurations(self.code_mapping1)
+        assert response.data["config"] == self.expected_configurations(self.cocoa_code_mapping)
         assert response.data["sourceUrl"] == f"{example_base_url}/{file_path}"
 
     @patch.object(ExampleIntegration, "get_stacktrace_link")
@@ -323,7 +340,7 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
                 "sdkName": "sentry.dart.flutter",
             },
         )
-        assert response.data["config"] == self.expected_configurations(self.code_mapping1)
+        assert response.data["config"] == self.expected_configurations(self.flutter_code_mapping)
         assert response.data["sourceUrl"] == f"{example_base_url}/{file_path}"
 
 

@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
+import {Organization} from 'sentry-fixture/organization';
 
 import {
   render,
@@ -12,7 +13,7 @@ import {
 import ReleaseActions from 'sentry/views/releases/detail/header/releaseActions';
 
 describe('ReleaseActions', function () {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const release = TestStubs.Release({projects: [{slug: 'project1'}, {slug: 'project2'}]});
   const location: Location = {
     ...TestStubs.location(),

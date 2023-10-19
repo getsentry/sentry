@@ -7,11 +7,12 @@ from sentry_relay.exceptions import UnpackErrorSignatureExpired
 
 from sentry import options
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import is_internal_relay, relay_from_id
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.relay.constants import RELAY_AUTH_RATE_LIMITS
 from sentry.api.serializers import serialize
-from sentry.models import Relay, RelayUsage
+from sentry.models.relay import Relay, RelayUsage
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.utils import json
 
@@ -24,6 +25,9 @@ class RelayRegisterResponseSerializer(RelayIdSerializer):
 
 @region_silo_endpoint
 class RelayRegisterResponseEndpoint(Endpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     owner = ApiOwner.OWNERS_INGEST
     authentication_classes = ()
     permission_classes = ()

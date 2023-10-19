@@ -9,6 +9,7 @@ from django.db.models.expressions import BaseExpression, CombinedExpression, Val
 from django.utils.crypto import get_random_string
 from django.utils.text import slugify
 
+from sentry import options
 from sentry.db.exceptions import CannotResolveExpression
 
 COMBINED_EXPRESSION_CALLBACKS = {
@@ -49,18 +50,15 @@ def resolve_combined_expression(instance: Model, node: BaseExpression) -> BaseEx
     return runner
 
 
-def slugify_instance(
+def unique_db_instance(
     inst: Model,
-    label: str,
+    base_value: str,
     reserved: Container[str] = (),
     max_length: int = 30,
     field_name: str = "slug",
     *args: Any,
     **kwargs: Any,
 ) -> None:
-    base_value = slugify(label)[:max_length]
-    base_value = base_value.strip("-")
-
     if base_value is not None:
         base_value = base_value.strip()
         if base_value in reserved:
@@ -77,9 +75,14 @@ def slugify_instance(
 
     setattr(inst, field_name, base_value)
 
-    # We don't need to further mutate if we're unique at this point
+    # Don't further mutate if the value is unique
     if not base_qs.filter(**{f"{field_name}__iexact": base_value}).exists():
-        return
+        if options.get("api.prevent-numeric-slugs"):
+            # if feature flag is on, we only return if the slug is not entirely numeric
+            if not base_value.isdecimal():
+                return
+        else:
+            return
 
     # We want to sanely generate the shortest unique slug possible, so
     # we try different length endings until we get one that works, or bail.
@@ -101,6 +104,21 @@ def slugify_instance(
 
     # If at this point, we've exhausted all possibilities, we'll just end up hitting
     # an IntegrityError from database, which is ok, and unlikely to happen
+
+
+def slugify_instance(
+    inst: Model,
+    label: str,
+    reserved: Container[str] = (),
+    max_length: int = 30,
+    field_name: str = "slug",
+    *args: Any,
+    **kwargs: Any,
+) -> None:
+    value = slugify(label)[:max_length]
+    value = value.strip("-")
+
+    return unique_db_instance(inst, value, reserved, max_length, field_name, *args, **kwargs)
 
 
 class Creator:

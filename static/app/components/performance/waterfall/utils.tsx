@@ -227,16 +227,6 @@ export const rectOfContent = (element: Element): Rect => {
   };
 };
 
-export const clamp = (value: number, min: number, max: number): number => {
-  if (value < min) {
-    return min;
-  }
-  if (value > max) {
-    return max;
-  }
-  return value;
-};
-
 const getLetterIndex = (letter: string): number => {
   const index = 'abcdefghijklmnopqrstuvwxyz'.indexOf(letter) || 0;
   return index === -1 ? 0 : index;

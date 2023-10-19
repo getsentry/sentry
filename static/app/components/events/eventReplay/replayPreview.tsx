@@ -1,18 +1,19 @@
-import {useMemo} from 'react';
+import {ComponentProps, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Placeholder from 'sentry/components/placeholder';
+import {Flex} from 'sentry/components/profiling/flex';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
-import {IconPlay} from 'sentry/icons';
+import {IconDelete, IconPlay} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event} from 'sentry/types/event';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -20,26 +21,20 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 type Props = {
-  event: Event;
+  eventTimestampMs: number;
   orgSlug: string;
   replaySlug: string;
-  onClickOpenReplay?: () => void;
+  buttonProps?: Partial<ComponentProps<typeof LinkButton>>;
 };
 
-function ReplayPreview({orgSlug, replaySlug, event, onClickOpenReplay}: Props) {
+function ReplayPreview({orgSlug, replaySlug, eventTimestampMs, buttonProps}: Props) {
   const routes = useRoutes();
   const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
     orgSlug,
     replaySlug,
   });
 
-  const timeOfEvent = event.dateCreated ?? event.dateReceived;
-  const eventTimestampMs = timeOfEvent
-    ? Math.floor(new Date(timeOfEvent).getTime() / 1000) * 1000
-    : 0;
-
-  const startTimestampMs = replayRecord?.started_at.getTime() ?? 0;
-
+  const startTimestampMs = replayRecord?.started_at?.getTime() ?? 0;
   const initialTimeOffsetMs = useMemo(() => {
     if (eventTimestampMs && startTimestampMs) {
       return Math.abs(eventTimestampMs - startTimestampMs);
@@ -48,9 +43,25 @@ function ReplayPreview({orgSlug, replaySlug, event, onClickOpenReplay}: Props) {
     return 0;
   }, [eventTimestampMs, startTimestampMs]);
 
+  if (replayRecord?.is_archived) {
+    return (
+      <Alert type="warning" data-test-id="replay-error">
+        <Flex gap={space(0.5)}>
+          <IconDelete color="gray500" size="sm" />
+          {t('The replay for this event has been deleted.')}
+        </Flex>
+      </Alert>
+    );
+  }
+
   if (fetchError) {
     const reasons = [
-      t('The replay was rate-limited and could not be accepted.'),
+      tct(
+        'The replay was rate-limited and could not be accepted. [link:View the stats page] for more information.',
+        {
+          link: <Link to={`/organizations/${orgSlug}/stats/?dataCategory=replays`} />,
+        }
+      ),
       t('The replay has been deleted by a member in your organization.'),
       t('There were network errors and the replay was not saved.'),
       tct('[link:Read the docs] to understand why.', {
@@ -66,13 +77,13 @@ function ReplayPreview({orgSlug, replaySlug, event, onClickOpenReplay}: Props) {
         showIcon
         data-test-id="replay-error"
         trailingItems={
-          <Button
+          <LinkButton
             external
             href="https://docs.sentry.io/platforms/javascript/session-replay/#error-linking"
             size="xs"
           >
             {t('Read Docs')}
-          </Button>
+          </LinkButton>
         }
       >
         <p>
@@ -119,14 +130,14 @@ function ReplayPreview({orgSlug, replaySlug, event, onClickOpenReplay}: Props) {
           <ReplayPlayer isPreview />
         </StaticPanel>
         <CTAOverlay>
-          <Button
-            onClick={onClickOpenReplay}
+          <LinkButton
+            {...buttonProps}
             icon={<IconPlay />}
             priority="primary"
             to={fullReplayUrl}
           >
             {t('Open Replay')}
-          </Button>
+          </LinkButton>
         </CTAOverlay>
         <BadgeContainer>
           <FeatureText>{t('Replays')}</FeatureText>
@@ -138,7 +149,6 @@ function ReplayPreview({orgSlug, replaySlug, event, onClickOpenReplay}: Props) {
 
 const PlayerContainer = styled(FluidHeight)`
   position: relative;
-  margin-bottom: ${space(2)};
   background: ${p => p.theme.background};
   gap: ${space(1)};
   max-height: 448px;

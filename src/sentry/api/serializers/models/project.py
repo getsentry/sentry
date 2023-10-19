@@ -39,26 +39,28 @@ from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.lang.native.sources import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
-from sentry.models import (
-    EnvironmentProject,
-    OrganizationMemberTeam,
-    Project,
-    ProjectAvatar,
-    ProjectBookmark,
-    ProjectOption,
-    ProjectPlatform,
-    Release,
-    Team,
-    User,
-    UserReport,
-)
-from sentry.models.options.project_option import OPTION_KEYS
+from sentry.models.avatars.project_avatar import ProjectAvatar
+from sentry.models.environment import EnvironmentProject
+from sentry.models.options.project_option import OPTION_KEYS, ProjectOption
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
+from sentry.models.projectbookmark import ProjectBookmark
+from sentry.models.projectplatform import ProjectPlatform
 from sentry.models.projectteam import ProjectTeam
+from sentry.models.release import Release
+from sentry.models.team import Team
+from sentry.models.user import User
+from sentry.models.userreport import UserReport
 from sentry.notifications.helpers import (
     get_most_specific_notification_setting_value,
+    should_use_notifications_v2,
     transform_to_notification_settings_by_scope,
 )
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.notifications.types import (
+    NotificationSettingEnum,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
+)
 from sentry.roles import organization_roles
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
@@ -170,7 +172,7 @@ def get_features_for_projects(
     ]
 
     batch_checked = set()
-    for (organization, projects) in projects_by_org.items():
+    for organization, projects in projects_by_org.items():
         batch_features = features.batch_has(
             project_features, actor=user, projects=projects, organization=organization
         )
@@ -190,9 +192,9 @@ def get_features_for_projects(
         if feature_name in batch_checked:
             continue
         abbreviated_feature = feature_name[len(_PROJECT_SCOPE_PREFIX) :]
-        for (organization, projects) in projects_by_org.items():
+        for organization, projects in projects_by_org.items():
             result = features.has_for_batch(feature_name, organization, projects, user)
-            for (project, flag) in result.items():
+            for project, flag in result.items():
                 if flag:
                     features_by_project[project].append(abbreviated_feature)
 
@@ -214,7 +216,12 @@ def format_options(attrs: dict[str, Any]) -> dict[str, Any]:
         ),
         "sentry:reprocessing_active": bool(options.get("sentry:reprocessing_active", False)),
         "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
-        "filters:react-hydration-errors": bool(options.get("filters:react-hydration-errors", True)),
+        # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
+        # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
+        # why the value true is determined by either "1" or True.
+        "filters:react-hydration-errors": options.get("filters:react-hydration-errors", "1")
+        in ("1", True),
+        "filters:chunk-load-error": options.get("filters:chunk-load-error", "1") == "1",
         f"filters:{FilterTypes.RELEASES}": "\n".join(
             options.get(f"sentry:{FilterTypes.RELEASES}", [])
         ),
@@ -273,9 +280,15 @@ class ProjectSerializer(Serializer):
         expand: Iterable[str] | None = None,
         expand_context: Mapping[str, Any] | None = None,
         collapse: Iterable[str] | None = None,
+        dataset: Any | None = None,
     ) -> None:
         if stats_period is not None:
             assert stats_period in STATS_PERIOD_CHOICES
+
+        if dataset is None:
+            self.dataset = discover
+        else:
+            self.dataset = dataset
 
         self.environment_id = environment_id
         self.stats_period = stats_period
@@ -302,6 +315,7 @@ class ProjectSerializer(Serializer):
             span.set_data("Object Count", len(item_list))
             return span
 
+        use_notifications_v2 = should_use_notifications_v2(item_list[0].organization)
         with measure_span("preamble"):
             project_ids = [i.id for i in item_list]
             if user.is_authenticated and item_list:
@@ -311,16 +325,26 @@ class ProjectSerializer(Serializer):
                     ).values_list("project_id", flat=True)
                 )
 
-                notification_settings_by_scope = transform_to_notification_settings_by_scope(
-                    notifications_service.get_settings_for_user_by_projects(
-                        type=NotificationSettingTypes.ISSUE_ALERTS,
+                if use_notifications_v2:
+                    subscriptions = notifications_service.get_subscriptions_for_projects(
                         user_id=user.id,
-                        parent_ids=project_ids,
+                        project_ids=project_ids,
+                        type=NotificationSettingEnum.ISSUE_ALERTS,
                     )
-                )
+                else:
+                    notification_settings_by_scope = transform_to_notification_settings_by_scope(
+                        notifications_service.get_settings_for_user_by_projects(
+                            type=NotificationSettingTypes.ISSUE_ALERTS,
+                            user_id=user.id,
+                            parent_ids=project_ids,
+                        )
+                    )
             else:
                 bookmarks = set()
-                notification_settings_by_scope = {}
+                if use_notifications_v2:
+                    subscriptions = {}
+                else:
+                    notification_settings_by_scope = {}
 
         with measure_span("stats"):
             stats = None
@@ -364,13 +388,25 @@ class ProjectSerializer(Serializer):
             else:
                 recipient_actor = RpcActor.from_object(user)
             for project, serialized in result.items():
-                value = get_most_specific_notification_setting_value(
-                    notification_settings_by_scope,
-                    recipient=recipient_actor,
-                    parent_id=project.id,
-                    type=NotificationSettingTypes.ISSUE_ALERTS,
-                )
-                is_subscribed = value == NotificationSettingOptionValues.ALWAYS
+                # TODO(snigdha): why is this not included in the serializer
+                is_subscribed = False
+                if use_notifications_v2:
+                    if project.id in subscriptions:
+                        (_, has_enabled_subscriptions, _) = subscriptions[project.id]
+                        is_subscribed = has_enabled_subscriptions
+                    else:
+                        # If there are no settings, default to the EMAIL default
+                        # setting, which is ALWAYS.
+                        is_subscribed = True
+                else:
+                    value = get_most_specific_notification_setting_value(
+                        notification_settings_by_scope,
+                        recipient=recipient_actor,
+                        parent_id=project.id,
+                        type=NotificationSettingTypes.ISSUE_ALERTS,
+                    )
+                    is_subscribed = value == NotificationSettingOptionValues.ALWAYS
+
                 serialized.update(
                     {
                         "is_bookmarked": project.id in bookmarks,
@@ -404,7 +440,7 @@ class ProjectSerializer(Serializer):
 
         # Generate a query result to skip the top_events.find query
         top_events = {"data": [{"project_id": p} for p in project_ids]}
-        stats = discover.top_events_timeseries(
+        stats = self.dataset.top_events_timeseries(
             timeseries_columns=["count()"],
             selected_columns=["project_id"],
             user_query=query,
@@ -946,11 +982,10 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             )
 
         data = super().serialize(obj, attrs, user)
-        attrs["options"].update(format_options(attrs))
         data.update(
             {
                 "latestRelease": attrs["latest_release"],
-                "options": attrs["options"],
+                "options": format_options(attrs),
                 "digestsMinDelay": attrs["options"].get(
                     "digests:mail:minimum_delay", digests.minimum_delay
                 ),

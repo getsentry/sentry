@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import ReplaysAcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
@@ -57,4 +57,3 @@ class ReplayListTest(ReplaysAcceptanceTestCase):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-            self.browser.snapshot("replay list")

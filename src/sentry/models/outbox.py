@@ -6,7 +6,21 @@ import dataclasses
 import datetime
 import threading
 from enum import IntEnum
-from typing import Any, Generator, Iterable, List, Mapping, Type, TypeVar
+from typing import (
+    Any,
+    Collection,
+    Dict,
+    Generator,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    TypeVar,
+    cast,
+)
 
 import sentry_sdk
 from django import db
@@ -21,6 +35,7 @@ from typing_extensions import Self
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
+    BaseModel,
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     JSONField,
@@ -29,8 +44,10 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.outboxes import HasControlReplicationHandlers, ReplicatedRegionModel
 from sentry.db.postgres.transactions import (
     django_test_transaction_water_mark,
+    enforce_constraints,
     in_test_assert_no_transaction,
 )
 from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
@@ -40,22 +57,287 @@ from sentry.utils import metrics
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
 
 _T = TypeVar("_T")
+_M = TypeVar("_M", bound=BaseModel)
 
 
 class OutboxFlushError(Exception):
+    def __init__(self, message: str, outbox: OutboxBase) -> None:
+        super().__init__(message)
+        self.outbox = outbox
+
+
+class InvalidOutboxError(Exception):
     pass
 
 
+_outbox_categories_for_scope: Dict[int, Set[OutboxCategory]] = {}
+_used_categories: Set[OutboxCategory] = set()
+
+
+class OutboxCategory(IntEnum):
+    USER_UPDATE = 0
+    WEBHOOK_PROXY = 1
+    ORGANIZATION_UPDATE = 2
+    ORGANIZATION_MEMBER_UPDATE = 3
+    UNUSED_TWO = 4
+    AUDIT_LOG_EVENT = 5
+    USER_IP_EVENT = 6
+    INTEGRATION_UPDATE = 7
+    PROJECT_UPDATE = 8
+    API_APPLICATION_UPDATE = 9
+    SENTRY_APP_INSTALLATION_UPDATE = 10
+    TEAM_UPDATE = 11
+    ORGANIZATION_INTEGRATION_UPDATE = 12
+    UNUSUED_THREE = 13
+    SEND_SIGNAL = 14
+    ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE = 15
+    ORGAUTHTOKEN_UPDATE = 16
+    PROVISION_ORGANIZATION = 17
+    POST_ORGANIZATION_PROVISION = 18
+    UNUSED_ONE = 19
+    DISABLE_AUTH_PROVIDER = 20
+    RESET_IDP_FLAGS = 21
+    MARK_INVALID_SSO = 22
+    SUBSCRIPTION_UPDATE = 23
+
+    AUTH_PROVIDER_UPDATE = 24
+    AUTH_IDENTITY_UPDATE = 25
+    ORGANIZATION_MEMBER_TEAM_UPDATE = 26
+    ORGANIZATION_SLUG_RESERVATION_UPDATE = 27
+    API_KEY_UPDATE = 28
+    PARTNER_ACCOUNT_UPDATE = 29
+
+    @classmethod
+    def as_choices(cls):
+        return [(i.value, i.value) for i in cls]
+
+    def connect_region_model_updates(self, model: Type[ReplicatedRegionModel]) -> None:
+        def receiver(
+            object_identifier: int,
+            payload: Optional[Mapping[str, Any]],
+            shard_identifier: int,
+            *args,
+            **kwds,
+        ):
+            from sentry.receivers.outbox import maybe_process_tombstone
+
+            maybe_instance: ReplicatedRegionModel | None = maybe_process_tombstone(
+                cast(Any, model), object_identifier, region_name=None
+            )
+            if maybe_instance is None:
+                model.handle_async_deletion(
+                    identifier=object_identifier, shard_identifier=shard_identifier, payload=payload
+                )
+            else:
+                maybe_instance.handle_async_replication(shard_identifier=shard_identifier)
+
+        process_region_outbox.connect(receiver, weak=False, sender=self)
+
+    def connect_control_model_updates(self, model: Type[HasControlReplicationHandlers]) -> None:
+        def receiver(
+            object_identifier: int,
+            payload: Optional[Mapping[str, Any]],
+            shard_identifier: int,
+            region_name: str,
+            *args,
+            **kwds,
+        ):
+            from sentry.receivers.outbox import maybe_process_tombstone
+
+            maybe_instance: HasControlReplicationHandlers | None = maybe_process_tombstone(
+                cast(Any, model), object_identifier, region_name=region_name
+            )
+            if maybe_instance is None:
+                model.handle_async_deletion(
+                    identifier=object_identifier,
+                    region_name=region_name,
+                    shard_identifier=shard_identifier,
+                    payload=payload,
+                )
+            else:
+                maybe_instance.handle_async_replication(
+                    shard_identifier=shard_identifier, region_name=region_name
+                )
+
+        process_control_outbox.connect(receiver, weak=False, sender=self)
+
+    def get_scope(self) -> OutboxScope:
+        for scope_int, categories in _outbox_categories_for_scope.items():
+            if self not in categories:
+                continue
+            break
+        else:
+            raise KeyError
+        return OutboxScope(scope_int)
+
+    def as_region_outbox(
+        self,
+        model: Any | None = None,
+        payload: Any | None = None,
+        shard_identifier: int | None = None,
+        object_identifier: int | None = None,
+        outbox: Type[RegionOutboxBase] | None = None,
+    ) -> RegionOutboxBase:
+        scope = self.get_scope()
+
+        shard_identifier, object_identifier = self.infer_identifiers(
+            scope, model, object_identifier=object_identifier, shard_identifier=shard_identifier
+        )
+
+        Outbox = outbox or RegionOutbox
+
+        return Outbox(
+            shard_scope=scope,
+            shard_identifier=shard_identifier,
+            category=self,
+            object_identifier=object_identifier,
+            payload=payload,
+        )
+
+    def as_control_outboxes(
+        self,
+        region_names: Collection[str],
+        model: Any | None = None,
+        payload: Any | None = None,
+        shard_identifier: int | None = None,
+        object_identifier: int | None = None,
+        outbox: Type[ControlOutboxBase] | None = None,
+    ) -> List[ControlOutboxBase]:
+        scope = self.get_scope()
+
+        shard_identifier, object_identifier = self.infer_identifiers(
+            scope, model, object_identifier=object_identifier, shard_identifier=shard_identifier
+        )
+
+        Outbox = outbox or ControlOutbox
+
+        return [
+            Outbox(
+                shard_scope=scope,
+                shard_identifier=shard_identifier,
+                category=self,
+                object_identifier=object_identifier,
+                region_name=region_name,
+                payload=payload,
+            )
+            for region_name in region_names
+        ]
+
+    def infer_identifiers(
+        self,
+        scope: OutboxScope,
+        model: Optional[BaseModel],
+        *,
+        object_identifier: int | None,
+        shard_identifier: int | None,
+    ) -> Tuple[int, int]:
+        from sentry.models.organization import Organization
+        from sentry.models.user import User
+
+        assert (model is not None) ^ (
+            object_identifier is not None
+        ), "Either model or object_identifier must be specified"
+
+        if model is not None and hasattr(model, "id"):
+            object_identifier = model.id
+
+        if shard_identifier is None and model is not None:
+            if scope == OutboxScope.ORGANIZATION_SCOPE:
+                if isinstance(model, Organization):
+                    shard_identifier = model.id
+                elif hasattr(model, "organization_id"):
+                    shard_identifier = model.organization_id
+                elif hasattr(model, "auth_provider_id"):
+                    shard_identifier = model.auth_provider_id
+            if scope == OutboxScope.USER_SCOPE:
+                if isinstance(model, User):
+                    shard_identifier = model.id
+                elif hasattr(model, "user_id"):
+                    shard_identifier = model.user_id
+
+        assert (
+            model is not None
+        ) or shard_identifier is not None, "Either model or shard_identifier must be specified"
+
+        assert object_identifier is not None
+        assert shard_identifier is not None
+        return shard_identifier, object_identifier
+
+
+def scope_categories(enum_value: int, categories: Set[OutboxCategory]) -> int:
+    _outbox_categories_for_scope[enum_value] = categories
+    inter = _used_categories.intersection(categories)
+    assert not inter, f"OutboxCategories {inter} were already registered to a different scope"
+    _used_categories.update(categories)
+    return enum_value
+
+
 class OutboxScope(IntEnum):
-    ORGANIZATION_SCOPE = 0
-    USER_SCOPE = 1
-    WEBHOOK_SCOPE = 2
-    AUDIT_LOG_SCOPE = 3
-    USER_IP_SCOPE = 4
-    INTEGRATION_SCOPE = 5
-    APP_SCOPE = 6
-    TEAM_SCOPE = 7
-    PROVISION_SCOPE = 8
+    ORGANIZATION_SCOPE = scope_categories(
+        0,
+        {
+            OutboxCategory.ORGANIZATION_MEMBER_UPDATE,
+            OutboxCategory.MARK_INVALID_SSO,
+            OutboxCategory.RESET_IDP_FLAGS,
+            OutboxCategory.ORGANIZATION_UPDATE,
+            OutboxCategory.PROJECT_UPDATE,
+            OutboxCategory.ORGANIZATION_INTEGRATION_UPDATE,
+            OutboxCategory.SEND_SIGNAL,
+            OutboxCategory.ORGAUTHTOKEN_UPDATE,
+            OutboxCategory.POST_ORGANIZATION_PROVISION,
+            OutboxCategory.DISABLE_AUTH_PROVIDER,
+            OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE,
+            OutboxCategory.TEAM_UPDATE,
+            OutboxCategory.AUTH_PROVIDER_UPDATE,
+            OutboxCategory.ORGANIZATION_MEMBER_TEAM_UPDATE,
+            OutboxCategory.API_KEY_UPDATE,
+            OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE,
+            OutboxCategory.PARTNER_ACCOUNT_UPDATE,
+        },
+    )
+    USER_SCOPE = scope_categories(
+        1,
+        {
+            OutboxCategory.USER_UPDATE,
+            OutboxCategory.UNUSED_ONE,
+            OutboxCategory.UNUSED_TWO,
+            OutboxCategory.UNUSUED_THREE,
+            OutboxCategory.AUTH_IDENTITY_UPDATE,
+        },
+    )
+    WEBHOOK_SCOPE = scope_categories(2, {OutboxCategory.WEBHOOK_PROXY})
+    AUDIT_LOG_SCOPE = scope_categories(3, {OutboxCategory.AUDIT_LOG_EVENT})
+    USER_IP_SCOPE = scope_categories(
+        4,
+        {
+            OutboxCategory.USER_IP_EVENT,
+        },
+    )
+    INTEGRATION_SCOPE = scope_categories(
+        5,
+        {
+            OutboxCategory.INTEGRATION_UPDATE,
+        },
+    )
+    APP_SCOPE = scope_categories(
+        6,
+        {
+            OutboxCategory.API_APPLICATION_UPDATE,
+            OutboxCategory.SENTRY_APP_INSTALLATION_UPDATE,
+        },
+    )
+    # Deprecate?
+    TEAM_SCOPE = scope_categories(
+        7,
+        set(),
+    )
+    PROVISION_SCOPE = scope_categories(
+        8,
+        {
+            OutboxCategory.PROVISION_ORGANIZATION,
+        },
+    )
+    SUBSCRIPTION_SCOPE = scope_categories(9, {OutboxCategory.SUBSCRIPTION_UPDATE})
 
     def __str__(self):
         return self.name
@@ -70,42 +352,16 @@ class OutboxScope(IntEnum):
             return "organization_id"
         if scope == OutboxScope.USER_SCOPE:
             return "user_id"
-        if scope == OutboxScope.TEAM_SCOPE:
-            return "team_id"
         if scope == OutboxScope.APP_SCOPE:
             return "app_id"
 
         return "shard_identifier"
 
 
-class OutboxCategory(IntEnum):
-    USER_UPDATE = 0
-    WEBHOOK_PROXY = 1
-    ORGANIZATION_UPDATE = 2
-    ORGANIZATION_MEMBER_UPDATE = 3
-    VERIFY_ORGANIZATION_MAPPING = 4
-    AUDIT_LOG_EVENT = 5
-    USER_IP_EVENT = 6
-    INTEGRATION_UPDATE = 7
-    PROJECT_UPDATE = 8
-    API_APPLICATION_UPDATE = 9
-    SENTRY_APP_INSTALLATION_UPDATE = 10
-    TEAM_UPDATE = 11
-    ORGANIZATION_INTEGRATION_UPDATE = 12
-    ORGANIZATION_MEMBER_CREATE = 13  # Unused
-    SEND_SIGNAL = 14
-    ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE = 15
-    ORGAUTHTOKEN_UPDATE = 16
-    PROVISION_ORGANIZATION = 17
-    POST_ORGANIZATION_PROVISION = 18
-    SEND_MODEL_SIGNAL = 19
-    DISABLE_AUTH_PROVIDER = 20
-    RESET_IDP_FLAGS = 21
-    MARK_INVALID_SSO = 22
-
-    @classmethod
-    def as_choices(cls):
-        return [(i.value, i.value) for i in cls]
+_missing_categories = set(OutboxCategory) - _used_categories
+assert (
+    not _missing_categories
+), f"OutboxCategories {_missing_categories} not registered to an OutboxScope"
 
 
 @dataclasses.dataclass
@@ -129,6 +385,7 @@ class WebhookProviderIdentifier(IntEnum):
     GITHUB_ENTERPRISE = 8
     BITBUCKET_SERVER = 9
     LEGACY_PLUGIN = 10
+    GETSENTRY = 11
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
@@ -159,38 +416,55 @@ class OutboxBase(Model):
                 return cursor.fetchone()[0]
 
     @classmethod
-    def find_scheduled_shards(cls) -> Iterable[Mapping[str, Any]]:
-        return (
-            cls.objects.values(*cls.sharding_columns)
-            .annotate(
+    def find_scheduled_shards(cls, low: int = 0, hi: int | None = None) -> List[Mapping[str, Any]]:
+        q = cls.objects.values(*cls.sharding_columns).filter(
+            scheduled_for__lte=timezone.now(), id__gte=low
+        )
+        if hi is not None:
+            q = q.filter(id__lt=hi)
+
+        return list(
+            {k: row[k] for k in cls.sharding_columns}
+            for row in q.annotate(
                 scheduled_for=Min("scheduled_for"),
-                id=Max("id"),
-            )
-            .filter(scheduled_for__lte=timezone.now())
-            .order_by("scheduled_for", "id")
+                max_id=Max("id"),
+            ).order_by("scheduled_for", "max_id")
         )
 
     @classmethod
     def prepare_next_from_shard(cls, row: Mapping[str, Any]) -> Self | None:
         using = router.db_for_write(cls)
-        with transaction.atomic(using=using, savepoint=False):
-            next_outbox: OutboxBase | None
-            next_outbox = (
-                cls(**row).selected_messages_in_shard().order_by("id").select_for_update().first()
-            )
-            if not next_outbox:
+        try:
+            with transaction.atomic(using=using, savepoint=False):
+                next_outbox: OutboxBase | None
+                next_outbox = (
+                    cls(**row)
+                    .selected_messages_in_shard()
+                    .order_by("id")
+                    .select_for_update(nowait=True)
+                    .first()
+                )
+                if not next_outbox:
+                    return None
+
+                # We rely on 'proof of failure by remaining' to handle retries -- basically, by scheduling this shard, we
+                # expect all objects to be drained before the next schedule comes around, or else we will run again.
+                # Note that the system does not strongly protect against concurrent processing -- this is expected in the
+                # case of drains, for instance.
+                now = timezone.now()
+                next_outbox.selected_messages_in_shard().update(
+                    scheduled_for=next_outbox.next_schedule(now), scheduled_from=now
+                )
+
+                return next_outbox
+
+        except OperationalError as e:
+            # If concurrent locking is happening on the table, gracefully pass and allow
+            # that work to process.
+            if "LockNotAvailable" in str(e):
                 return None
-
-            # We rely on 'proof of failure by remaining' to handle retries -- basically, by scheduling this shard, we
-            # expect all objects to be drained before the next schedule comes around, or else we will run again.
-            # Note that the system does not strongly protect against concurrent processing -- this is expected in the
-            # case of drains, for instance.
-            now = timezone.now()
-            next_outbox.selected_messages_in_shard().update(
-                scheduled_for=next_outbox.next_schedule(now), scheduled_from=now
-            )
-
-            return next_outbox
+            else:
+                raise
 
     def key_from(self, attrs: Iterable[str]) -> Mapping[str, Any]:
         return {k: _ensure_not_null(k, getattr(self, k)) for k in attrs}
@@ -238,6 +512,11 @@ class OutboxBase(Model):
         return now + min((self.last_delay() * 2), datetime.timedelta(hours=1))
 
     def save(self, **kwds: Any) -> None:  # type: ignore[override]
+        if OutboxCategory(self.category) not in _outbox_categories_for_scope[int(self.shard_scope)]:
+            raise InvalidOutboxError(
+                f"Outbox.category {self.category} not configured for scope {self.shard_scope}"
+            )
+
         if _outbox_context.flushing_enabled:
             transaction.on_commit(lambda: self.drain_shard(), using=router.db_for_write(type(self)))
 
@@ -271,21 +550,39 @@ class OutboxBase(Model):
     @contextlib.contextmanager
     def process_coalesced(self) -> Generator[OutboxBase | None, None, None]:
         coalesced: OutboxBase | None = self.select_coalesced_messages().last()
+        first_coalesced: OutboxBase | None = self.select_coalesced_messages().first() or coalesced
+        tags = {"category": "None"}
+
+        if coalesced is not None:
+            tags["category"] = OutboxCategory(self.category).name
+            assert first_coalesced, "first_coalesced incorrectly set for non-empty coalesce group"
+            metrics.timing(
+                "outbox.coalesced_net_queue_time",
+                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                - first_coalesced.date_added.timestamp(),
+                tags=tags,
+            )
+
         yield coalesced
 
         # If the context block didn't raise we mark messages as completed by deleting them.
         if coalesced is not None:
-            first_coalesced: OutboxBase = self.select_coalesced_messages().first() or coalesced
+            assert first_coalesced, "first_coalesced incorrectly set for non-empty coalesce group"
             deleted_count, _ = (
                 self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
             )
 
-            tags = {"category": OutboxCategory(self.category).name}
-
             metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
                 "outbox.processing_lag",
-                datetime.datetime.now().timestamp() - first_coalesced.scheduled_from.timestamp(),
+                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                - first_coalesced.scheduled_from.timestamp(),
+                tags=tags,
+            )
+            metrics.timing(
+                "outbox.coalesced_net_processing_time",
+                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                - first_coalesced.date_added.timestamp(),
                 tags=tags,
             )
 
@@ -308,7 +605,9 @@ class OutboxBase(Model):
                     try:
                         coalesced.send_signal()
                     except Exception as e:
-                        raise OutboxFlushError(f"Could not flush shard {repr(coalesced)}") from e
+                        raise OutboxFlushError(
+                            f"Could not flush shard category={coalesced.category}", coalesced
+                        ) from e
 
                 return True
         return False
@@ -328,7 +627,7 @@ class OutboxBase(Model):
         latest_shard_row: OutboxBase | None = None
         if not flush_all:
             latest_shard_row = self.selected_messages_in_shard().last()
-            # If we're not flushing all possible shards, and we don't see any immediately values,
+            # If we're not flushing all possible shards, and we don't see any immediate values,
             # drop.
             if latest_shard_row is None:
                 return
@@ -501,7 +800,7 @@ _outbox_context = OutboxContext()
 @contextlib.contextmanager
 def outbox_context(
     inner: Atomic | None = None, flush: bool | None = None
-) -> Generator[None, None, None]:
+) -> Generator[Atomic | None, None, None]:
     # If we don't specify our flush, use the outer specified override
     if flush is None:
         flush = _outbox_context.flushing_enabled
@@ -515,19 +814,37 @@ def outbox_context(
 
     if inner:
         assert inner.using is not None
-        with unguarded_write(using=inner.using), inner:
+        with unguarded_write(using=inner.using), enforce_constraints(inner):
             _outbox_context.flushing_enabled = flush
             try:
-                yield
+                yield inner
             finally:
                 _outbox_context.flushing_enabled = original
     else:
         _outbox_context.flushing_enabled = flush
         try:
-            yield
+            yield None
         finally:
             _outbox_context.flushing_enabled = original
 
 
 process_region_outbox = Signal()  # ["payload", "object_identifier"]
 process_control_outbox = Signal()  # ["payload", "region_name", "object_identifier"]
+
+
+# Add this in after we successfully deploy, the job.
+# @receiver(post_migrate, weak=False, dispatch_uid="schedule_backfill_outboxes")
+# def schedule_backfill_outboxes(app_config, using, **kwargs):
+#     from sentry.tasks.backfill_outboxes import (
+#         schedule_backfill_outbox_jobs,
+#         schedule_backfill_outbox_jobs_control,
+#     )
+#     from sentry.utils.env import in_test_environment
+#
+#     if in_test_environment():
+#         return
+#
+#     if SiloMode.get_current_mode() != SiloMode.REGION:
+#         schedule_backfill_outbox_jobs_control.delay()
+#     if SiloMode.get_current_mode() != SiloMode.CONTROL:
+#         schedule_backfill_outbox_jobs.delay()

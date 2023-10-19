@@ -6,9 +6,10 @@ from django.db.models import Prefetch, prefetch_related_objects
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.role import OrganizationRoleSerializer
-from sentry.models import ExternalActor, OrganizationMember, User
-from sentry.models.actor import ACTOR_TYPES, Actor
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.roles import organization_roles
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -77,10 +78,6 @@ class OrganizationMemberSerializer(Serializer):
             users_by_id[u["id"]] = u
             email_map[u["id"]] = u["email"]
 
-        actor_ids = Actor.objects.filter(
-            user_id__in=users_set, type=ACTOR_TYPES["user"]
-        ).values_list("id", flat=True)
-
         inviters_set = sorted(
             {
                 organization_member.inviter_id
@@ -97,7 +94,7 @@ class OrganizationMemberSerializer(Serializer):
             organization_id = get_organization_id(item_list)
             external_actors = list(
                 ExternalActor.objects.filter(
-                    actor_id__in=actor_ids,
+                    user_id__in=users_set,
                     organization_id=organization_id,
                 )
             )

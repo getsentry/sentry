@@ -63,7 +63,6 @@ class TestUpdater(TestCase):
         assert self.rule.data["actions"] == [
             {
                 "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                "name": "Send a notification (for all legacy integrations)",
             }
         ]
 

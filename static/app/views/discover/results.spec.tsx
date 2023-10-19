@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -67,6 +68,12 @@ function renderMockRequests() {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/releases/stats/',
     body: [],
+  });
+
+  const measurementsMetaMock = MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/measurements-meta/',
+    method: 'GET',
+    body: {},
   });
 
   const eventsResultsMock = MockApiClient.addMockResponse({
@@ -198,6 +205,13 @@ function renderMockRequests() {
     },
   });
 
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
+    method: 'GET',
+    statusCode: 204,
+    body: '',
+  });
+
   return {
     eventsStatsMock,
     eventsMetaMock,
@@ -205,6 +219,7 @@ function renderMockRequests() {
     mockVisit,
     mockSaved,
     eventFacetsMock,
+    measurementsMetaMock,
   };
 }
 
@@ -216,7 +231,7 @@ describe('Results', function () {
   describe('Events', function () {
     const features = ['discover-basic'];
     it('loads data when moving from an invalid to valid EventView', function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features,
       });
 
@@ -260,7 +275,7 @@ describe('Results', function () {
     });
 
     it('pagination cursor should be cleared when making a search', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features,
       });
 
@@ -328,7 +343,7 @@ describe('Results', function () {
     });
 
     it('renders a y-axis selector', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features,
       });
 
@@ -365,7 +380,7 @@ describe('Results', function () {
     });
 
     it('renders a display selector', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features,
       });
 
@@ -402,7 +417,7 @@ describe('Results', function () {
     });
 
     it('excludes top5 options when plan does not include discover-query', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features: ['discover-basic'],
       });
 
@@ -437,8 +452,8 @@ describe('Results', function () {
       expect(screen.queryByText('Top 5 Period')).not.toBeInTheDocument();
     });
 
-    it('needs confirmation on long queries', function () {
-      const organization = TestStubs.Organization({
+    it('needs confirmation on long queries', async function () {
+      const organization = Organization({
         features: ['discover-basic'],
       });
 
@@ -468,10 +483,13 @@ describe('Results', function () {
       );
 
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(0);
+      await waitFor(() => {
+        expect(mockRequests.measurementsMetaMock).toHaveBeenCalled();
+      });
     });
 
-    it('needs confirmation on long query with explicit projects', function () {
-      const organization = TestStubs.Organization({
+    it('needs confirmation on long query with explicit projects', async function () {
+      const organization = Organization({
         features: ['discover-basic'],
       });
 
@@ -507,10 +525,13 @@ describe('Results', function () {
       );
 
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(0);
+      await waitFor(() => {
+        expect(mockRequests.measurementsMetaMock).toHaveBeenCalled();
+      });
     });
 
-    it('does not need confirmation on short queries', function () {
-      const organization = TestStubs.Organization({
+    it('does not need confirmation on short queries', async function () {
+      const organization = Organization({
         features: ['discover-basic'],
       });
 
@@ -539,11 +560,14 @@ describe('Results', function () {
         }
       );
 
+      await waitFor(() => {
+        expect(mockRequests.measurementsMetaMock).toHaveBeenCalled();
+      });
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
     });
 
-    it('does not need confirmation with to few projects', function () {
-      const organization = TestStubs.Organization({
+    it('does not need confirmation with to few projects', async function () {
+      const organization = Organization({
         features: ['discover-basic'],
       });
 
@@ -578,11 +602,14 @@ describe('Results', function () {
         }
       );
 
+      await waitFor(() => {
+        expect(mockRequests.measurementsMetaMock).toHaveBeenCalled();
+      });
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
     });
 
     it('creates event view from saved query', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features,
         slug: 'org-slug',
       });
@@ -641,7 +668,7 @@ describe('Results', function () {
     });
 
     it('overrides saved query params with location query params', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features,
         slug: 'org-slug',
       });
@@ -685,8 +712,8 @@ describe('Results', function () {
       );
     });
 
-    it('updates chart whenever yAxis parameter changes', function () {
-      const organization = TestStubs.Organization({
+    it('updates chart whenever yAxis parameter changes', async function () {
+      const organization = Organization({
         features,
       });
 
@@ -699,7 +726,7 @@ describe('Results', function () {
 
       ProjectsStore.loadInitialData([TestStubs.Project()]);
 
-      const {eventsStatsMock} = renderMockRequests();
+      const {eventsStatsMock, measurementsMetaMock} = renderMockRequests();
 
       const {rerender} = render(
         <Results
@@ -727,6 +754,9 @@ describe('Results', function () {
           }),
         })
       );
+      await waitFor(() => {
+        expect(measurementsMetaMock).toHaveBeenCalled();
+      });
 
       // Update location simulating a browser back button action
       rerender(
@@ -754,10 +784,13 @@ describe('Results', function () {
           }),
         })
       );
+      await waitFor(() => {
+        expect(measurementsMetaMock).toHaveBeenCalled();
+      });
     });
 
-    it('updates chart whenever display parameter changes', function () {
-      const organization = TestStubs.Organization({
+    it('updates chart whenever display parameter changes', async function () {
+      const organization = Organization({
         features,
       });
 
@@ -768,7 +801,7 @@ describe('Results', function () {
         },
       });
 
-      const {eventsStatsMock} = renderMockRequests();
+      const {eventsStatsMock, measurementsMetaMock} = renderMockRequests();
 
       ProjectsStore.loadInitialData([TestStubs.Project()]);
 
@@ -798,6 +831,9 @@ describe('Results', function () {
           }),
         })
       );
+      await waitFor(() => {
+        expect(measurementsMetaMock).toHaveBeenCalled();
+      });
 
       // Update location simulating a browser back button action
       rerender(
@@ -825,10 +861,13 @@ describe('Results', function () {
           }),
         })
       );
+      await waitFor(() => {
+        expect(measurementsMetaMock).toHaveBeenCalled();
+      });
     });
 
-    it('updates chart whenever display and yAxis parameters change', function () {
-      const organization = TestStubs.Organization({
+    it('updates chart whenever display and yAxis parameters change', async function () {
+      const organization = Organization({
         features,
       });
 
@@ -839,7 +878,7 @@ describe('Results', function () {
         },
       });
 
-      const {eventsStatsMock} = renderMockRequests();
+      const {eventsStatsMock, measurementsMetaMock} = renderMockRequests();
 
       ProjectsStore.loadInitialData([TestStubs.Project()]);
 
@@ -869,6 +908,9 @@ describe('Results', function () {
           }),
         })
       );
+      await waitFor(() => {
+        expect(measurementsMetaMock).toHaveBeenCalled();
+      });
 
       // Update location simulating a browser back button action
       rerender(
@@ -900,10 +942,13 @@ describe('Results', function () {
           }),
         })
       );
+      await waitFor(() => {
+        expect(measurementsMetaMock).toHaveBeenCalled();
+      });
     });
 
     it('appends tag value to existing query when clicked', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features,
       });
 
@@ -955,7 +1000,7 @@ describe('Results', function () {
     });
 
     it('respects pinned filters for prebuilt queries', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features: [...features, 'global-views'],
       });
 
@@ -995,7 +1040,7 @@ describe('Results', function () {
 
       const projectPageFilter = await screen.findByTestId('page-filter-project-selector');
 
-      expect(projectPageFilter).toHaveTextContent('Pinned Project');
+      expect(projectPageFilter).toHaveTextContent('All Projects');
     });
 
     it('displays tip when events response contains a tip', async function () {
@@ -1012,7 +1057,7 @@ describe('Results', function () {
         },
       });
 
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features,
       });
 
@@ -1044,7 +1089,7 @@ describe('Results', function () {
     });
 
     it('renders metric fallback alert', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features: ['discover-basic'],
       });
 
@@ -1081,7 +1126,7 @@ describe('Results', function () {
     });
 
     it('renders unparameterized data banner', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features: ['discover-basic'],
       });
 
@@ -1122,7 +1167,7 @@ describe('Results', function () {
         statusCode: 200,
       });
 
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features: ['discover-basic', 'discover-query'],
       });
 
@@ -1188,7 +1233,7 @@ describe('Results', function () {
           orderby: '-user.display',
         },
       });
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features: ['discover-basic', 'discover-query'],
       });
 
@@ -1249,7 +1294,7 @@ describe('Results', function () {
         statusCode: 200,
         body: {...TRANSACTION_VIEWS[0], name: ''},
       });
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features: ['discover-basic', 'discover-query'],
       });
 
@@ -1308,8 +1353,8 @@ describe('Results', function () {
       expect(await screen.findByText('Set as Default')).toBeInTheDocument();
     });
 
-    it('links back to the homepage through the Discover breadcrumb', () => {
-      const organization = TestStubs.Organization({
+    it('links back to the homepage through the Discover breadcrumb', async () => {
+      const organization = Organization({
         features: ['discover-basic', 'discover-query'],
       });
 
@@ -1321,7 +1366,7 @@ describe('Results', function () {
       });
 
       ProjectsStore.loadInitialData([TestStubs.Project()]);
-      renderMockRequests();
+      const {measurementsMetaMock} = renderMockRequests();
 
       render(
         <Results
@@ -1334,14 +1379,18 @@ describe('Results', function () {
         {context: initialData.routerContext, organization}
       );
 
+      await waitFor(() => {
+        expect(measurementsMetaMock).toHaveBeenCalled();
+      });
+
       expect(screen.getByText('Discover')).toHaveAttribute(
         'href',
         expect.stringMatching(new RegExp('^/organizations/org-slug/discover/homepage/'))
       );
     });
 
-    it('links back to the Saved Queries through the Saved Queries breadcrumb', () => {
-      const organization = TestStubs.Organization({
+    it('links back to the Saved Queries through the Saved Queries breadcrumb', async () => {
+      const organization = Organization({
         features: ['discover-basic', 'discover-query'],
       });
 
@@ -1351,7 +1400,7 @@ describe('Results', function () {
           location: {query: {id: '1'}},
         },
       });
-      renderMockRequests();
+      const {measurementsMetaMock} = renderMockRequests();
 
       render(
         <Results
@@ -1364,14 +1413,18 @@ describe('Results', function () {
         {context: initialData.routerContext, organization}
       );
 
+      await waitFor(() => {
+        expect(measurementsMetaMock).toHaveBeenCalled();
+      });
+
       expect(screen.getByRole('link', {name: 'Saved Queries'})).toHaveAttribute(
         'href',
         expect.stringMatching(new RegExp('^/organizations/org-slug/discover/queries/'))
       );
     });
 
-    it('allows users to Set As Default on the All Events query', () => {
-      const organization = TestStubs.Organization({
+    it('allows users to Set As Default on the All Events query', async () => {
+      const organization = Organization({
         features: ['discover-basic', 'discover-query'],
       });
 
@@ -1391,7 +1444,7 @@ describe('Results', function () {
       });
 
       ProjectsStore.loadInitialData([TestStubs.Project()]);
-      renderMockRequests();
+      const {measurementsMetaMock} = renderMockRequests();
 
       render(
         <Results
@@ -1404,11 +1457,15 @@ describe('Results', function () {
         {context: initialData.routerContext, organization}
       );
 
+      await waitFor(() => {
+        expect(measurementsMetaMock).toHaveBeenCalled();
+      });
+
       expect(screen.getByTestId('set-as-default')).toBeEnabled();
     });
 
-    it("doesn't render sample data alert", function () {
-      const organization = TestStubs.Organization({
+    it("doesn't render sample data alert", async function () {
+      const organization = Organization({
         features: ['discover-basic', 'discover-query'],
       });
       const initialData = initializeOrg({
@@ -1425,7 +1482,7 @@ describe('Results', function () {
           },
         },
       });
-      renderMockRequests();
+      const {measurementsMetaMock} = renderMockRequests();
 
       render(
         <Results
@@ -1437,6 +1494,10 @@ describe('Results', function () {
         />,
         {context: initialData.routerContext, organization}
       );
+
+      await waitFor(() => {
+        expect(measurementsMetaMock).toHaveBeenCalled();
+      });
 
       expect(screen.queryByText(/Based on your search criteria/)).not.toBeInTheDocument();
     });

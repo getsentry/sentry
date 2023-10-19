@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render as baseRender, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -17,10 +19,7 @@ const mockOrgSlug = 'sentry-emerging-tech';
 const mockReplaySlug = 'replays:761104e184c64d439ee1014b72b4d83b';
 const mockReplayId = '761104e184c64d439ee1014b72b4d83b';
 
-const mockEvent = {
-  ...TestStubs.Event(),
-  dateCreated: '2022-09-22T16:59:41.596000Z',
-};
+const mockEventTimestampMs = new Date('2022-09-22T16:59:41Z').getTime();
 
 const mockButtonHref = `/organizations/${mockOrgSlug}/replays/761104e184c64d439ee1014b72b4d83b/?referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F&t=62&t_main=console`;
 
@@ -86,7 +85,7 @@ const render: typeof baseRender = children => {
         routes: router.routes,
       }}
     >
-      <OrganizationContext.Provider value={TestStubs.Organization()}>
+      <OrganizationContext.Provider value={Organization()}>
         {children}
       </OrganizationContext.Provider>
     </RouteContext.Provider>,
@@ -115,7 +114,7 @@ describe('ReplayPreview', () => {
       <ReplayPreview
         orgSlug={mockOrgSlug}
         replaySlug={mockReplaySlug}
-        event={mockEvent}
+        eventTimestampMs={mockEventTimestampMs}
       />
     );
 
@@ -142,7 +141,7 @@ describe('ReplayPreview', () => {
       <ReplayPreview
         orgSlug={mockOrgSlug}
         replaySlug={mockReplaySlug}
-        event={mockEvent}
+        eventTimestampMs={mockEventTimestampMs}
       />
     );
 
@@ -154,7 +153,7 @@ describe('ReplayPreview', () => {
       <ReplayPreview
         orgSlug={mockOrgSlug}
         replaySlug={mockReplaySlug}
-        event={mockEvent}
+        eventTimestampMs={mockEventTimestampMs}
       />
     );
 
@@ -167,7 +166,7 @@ describe('ReplayPreview', () => {
       <ReplayPreview
         orgSlug={mockOrgSlug}
         replaySlug={mockReplaySlug}
-        event={mockEvent}
+        eventTimestampMs={mockEventTimestampMs}
       />
     );
 

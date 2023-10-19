@@ -12,6 +12,7 @@ import EventCustomPerformanceMetrics, {
 import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
 import EventMetadata from 'sentry/components/events/eventMetadata';
 import EventVitals from 'sentry/components/events/eventVitals';
+import getUrlFromEvent from 'sentry/components/events/interfaces/request/getUrlFromEvent';
 import * as SpanEntryContext from 'sentry/components/events/interfaces/spans/context';
 import RootSpanStatus from 'sentry/components/events/rootSpanStatus';
 import FileSize from 'sentry/components/fileSize';
@@ -159,6 +160,8 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
 
     const profileId = (event as EventTransaction).contexts?.profile?.profile_id ?? null;
 
+    const originatingUrl = getUrlFromEvent(event);
+
     return (
       <TraceMetaQuery
         location={location}
@@ -190,6 +193,17 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
                       <Tooltip showOnlyOnOverflow skipWrapper title={transactionName}>
                         <EventTitle>{event.title}</EventTitle>
                       </Tooltip>
+                      {originatingUrl && (
+                        <Button
+                          aria-label={t('Go to originating URL')}
+                          size="zero"
+                          icon={<IconOpen />}
+                          href={originatingUrl}
+                          external
+                          translucentBorder
+                          borderless
+                        />
+                      )}
                     </Layout.Title>
                   </Layout.HeaderContent>
                   <Layout.HeaderActions>
@@ -355,8 +369,13 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
   }
 }
 
+// We can't use theme.overflowEllipsis so that width isn't set to 100%
+// since button withn a link has to immediately follow the text in the title
 const EventTitle = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export default withRouteAnalytics(EventDetailsContent);

@@ -4,6 +4,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.endpoints.organization_sentry_function import SentryFunctionSerializer
@@ -14,6 +15,12 @@ from sentry.utils.cloudfunctions import delete_function, update_function
 
 @region_silo_endpoint
 class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     def convert_args(self, request, organization_slug, function_slug, *args, **kwargs):
         args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
 

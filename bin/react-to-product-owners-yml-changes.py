@@ -50,11 +50,14 @@ def main():
         current.append(line)
 
     for area in areas:
-        if "'" in area:
-            area_lines.append(f'- name: "Product Area: {area}"\n')
-        else:
-            area_lines.append(f"- name: 'Product Area: {area}'\n")
-        area_lines.append("  color: '8D5494'\n")
+        # These are specifically placed at the front and end of the list of product areas.
+        # They will always exist, so ignore what is coming in from security-as-code as a workaround.
+        if area != "Other" and area != "Unknown":
+            if "'" in area:
+                area_lines.append(f'- name: "Product Area: {area}"\n')
+            else:
+                area_lines.append(f"- name: 'Product Area: {area}'\n")
+            area_lines.append("  color: '8D5494'\n")
 
     area_lines += ["- name: 'Product Area: Other'\n", "  color: '8D5494'\n"]
 
@@ -84,10 +87,11 @@ def main():
                 current.append(line)
 
         for area in areas:
-            if "'" in area:
-                area_lines.append(f'        - "{area}"\n')
-            else:
-                area_lines.append(f"        - '{area}'\n")
+            if area != "Other" and area != "Unknown":
+                if "'" in area:
+                    area_lines.append(f'        - "{area}"\n')
+                else:
+                    area_lines.append(f"        - '{area}'\n")
 
         area_lines += ["        - 'Other'\n", END]
 

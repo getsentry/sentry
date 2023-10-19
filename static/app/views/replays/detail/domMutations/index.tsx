@@ -8,22 +8,20 @@ import {
 import {useQuery} from '@tanstack/react-query';
 
 import Placeholder from 'sentry/components/placeholder';
+import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
+import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import DomFilters from 'sentry/views/replays/detail/domMutations/domFilters';
 import DomMutationRow from 'sentry/views/replays/detail/domMutations/domMutationRow';
 import useDomFilters from 'sentry/views/replays/detail/domMutations/useDomFilters';
+import FilterLoadingIndicator from 'sentry/views/replays/detail/filterLoadingIndicator';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
-
-type Props = {
-  replay: null | ReplayReader;
-  startTimestampMs: number;
-};
 
 // Ensure this object is created once as it is an input to
 // `useVirtualizedList`'s memoization
@@ -33,19 +31,31 @@ const cellMeasurer = {
 };
 
 function useExtractedDomNodes({replay}: {replay: null | ReplayReader}) {
-  return useQuery(['getDomNodes', replay], () => replay?.getDomNodes() ?? [], {
-    enabled: Boolean(replay),
-    initialData: [],
-    cacheTime: Infinity,
-  });
+  return useQuery(
+    ['getDomNodes', replay],
+    () =>
+      extractDomNodes({
+        frames: replay?.getDOMFrames(),
+        rrwebEvents: replay?.getRRWebFrames(),
+        startTimestampMs: replay?.getReplay().started_at.getTime() ?? 0,
+      }),
+    {enabled: Boolean(replay), cacheTime: Infinity}
+  );
 }
 
-function DomMutations({replay, startTimestampMs}: Props) {
-  const {data: actions, isLoading} = useExtractedDomNodes({replay});
-  const {currentTime, currentHoverTime} = useReplayContext();
+function DomMutations() {
+  const {currentTime, currentHoverTime, replay} = useReplayContext();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
-  const filterProps = useDomFilters({actions: actions || []});
+  const {data: frameToExtraction, isFetching} = useExtractedDomNodes({replay});
+  const actions = useMemo(
+    () => Array.from(frameToExtraction?.values() || []),
+    [frameToExtraction]
+  );
+
+  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() ?? 0;
+
+  const filterProps = useDomFilters({actions});
   const {items, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
 
@@ -83,11 +93,16 @@ function DomMutations({replay, startTimestampMs}: Props) {
     );
   };
 
+  const showJumpUpButton = false;
+  const showJumpDownButton = false;
+
   return (
     <FluidHeight>
-      <DomFilters actions={actions} {...filterProps} />
+      <FilterLoadingIndicator isLoading={isFetching}>
+        <DomFilters actions={actions} {...filterProps} />
+      </FilterLoadingIndicator>
       <TabItemContainer data-test-id="replay-details-dom-events-tab">
-        {isLoading || !actions ? (
+        {isFetching || !actions ? (
           <Placeholder height="100%" />
         ) : (
           <AutoSizer onResize={updateList}>
@@ -113,6 +128,11 @@ function DomMutations({replay, startTimestampMs}: Props) {
             )}
           </AutoSizer>
         )}
+        <JumpButtons
+          jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
+          onClick={() => {}}
+          tableHeaderHeight={0}
+        />
       </TabItemContainer>
     </FluidHeight>
   );

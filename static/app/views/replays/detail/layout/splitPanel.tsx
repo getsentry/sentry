@@ -68,7 +68,7 @@ function SplitPanel(props: Props) {
   const sizePct = `${
     (Math.min(containerSize, max) / props.availableSize) * 100
   }%` as `${number}%`;
-  const onMouseDown = useCallback(
+  const handleMouseDown = useCallback(
     event => {
       setStartPosition(sizePct);
       onDragStart(event);
@@ -87,10 +87,10 @@ function SplitPanel(props: Props) {
       >
         <Panel>{a.content}</Panel>
         <SplitDivider
-          isHeld={isHeld}
+          data-is-held={isHeld}
+          data-slide-direction="leftright"
           onDoubleClick={onDoubleClick}
-          onMouseDown={onMouseDown}
-          slideDirection="leftright"
+          onMouseDown={handleMouseDown}
         />
         <Panel>{b}</Panel>
       </SplitPanelContainer>
@@ -106,10 +106,10 @@ function SplitPanel(props: Props) {
     >
       <Panel>{a.content}</Panel>
       <SplitDivider
-        isHeld={isHeld}
+        data-is-held={isHeld}
+        data-slide-direction="updown"
         onDoubleClick={onDoubleClick}
-        onMouseDown={onMouseDown}
-        slideDirection="updown"
+        onMouseDown={handleMouseDown}
       />
       <Panel>{b}</Panel>
     </SplitPanelContainer>

@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -102,7 +103,10 @@ describe('TraceLiteQuery', function () {
     });
     traceFullMock = MockApiClient.addMockResponse({
       url: `/organizations/test-org/events-trace/0${traceId}/`,
-      body: [{event_id: eventId, children: []}],
+      body: {
+        transactions: [{event_id: eventId, children: []}],
+        orphan_errors: [],
+      },
     });
     traceMetaMock = MockApiClient.addMockResponse({
       url: `/organizations/test-org/events-trace-meta/0${traceId}/`,
@@ -146,7 +150,7 @@ describe('TraceLiteQuery', function () {
     });
     event.contexts.trace.trace_id = `0${traceId}`;
 
-    const organization = TestStubs.Organization();
+    const organization = Organization();
     organization.features = ['performance-tracing-without-performance'];
 
     render(

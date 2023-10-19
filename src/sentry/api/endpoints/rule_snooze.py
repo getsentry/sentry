@@ -6,12 +6,15 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, audit_log
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.incidents.models import AlertRule
-from sentry.models import Organization, OrganizationMember, Rule
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 
 
@@ -180,11 +183,19 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     rule_model = Rule
     rule_field = "rule"
 
 
 @region_silo_endpoint
 class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     rule_model = AlertRule
     rule_field = "alert_rule"

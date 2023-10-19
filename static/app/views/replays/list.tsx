@@ -1,5 +1,7 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -8,16 +10,20 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useOrganization from 'sentry/utils/useOrganization';
-import {ReplaysFilters, ReplaysSearch} from 'sentry/views/replays/list/filters';
-import ReplaysErroneousDeadRageCards from 'sentry/views/replays/list/replaysErroneousDeadRageCards';
-import ReplaysList from 'sentry/views/replays/list/replaysList';
+import ListContent from 'sentry/views/replays/list/listContent';
+import ReplayTabs from 'sentry/views/replays/tabs';
+
+const ReplayListPageHeaderHook = HookOrDefault({
+  hookName: 'component:replay-list-page-header',
+  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+});
 
 function ReplaysListContainer() {
   useReplayPageview('replay.list-time-spent');
-  const {slug: orgSlug} = useOrganization();
+  const organization = useOrganization();
 
   return (
-    <SentryDocumentTitle title={`Session Replay — ${orgSlug}`}>
+    <SentryDocumentTitle title={`Session Replay — ${organization.slug}`}>
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>
@@ -30,15 +36,15 @@ function ReplaysListContainer() {
             />
           </Layout.Title>
         </Layout.HeaderContent>
+        <div /> {/* wraps the tabs below the page title */}
+        <ReplayTabs selected="replays" />
       </Layout.Header>
       <PageFiltersContainer>
         <Layout.Body>
           <Layout.Main fullWidth>
             <LayoutGap>
-              <ReplaysFilters />
-              <ReplaysErroneousDeadRageCards />
-              <ReplaysSearch />
-              <ReplaysList />
+              <ReplayListPageHeaderHook />
+              <ListContent />
             </LayoutGap>
           </Layout.Main>
         </Layout.Body>
@@ -51,4 +57,5 @@ const LayoutGap = styled('div')`
   display: grid;
   gap: ${space(2)};
 `;
+
 export default ReplaysListContainer;

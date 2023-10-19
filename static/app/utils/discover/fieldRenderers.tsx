@@ -50,7 +50,7 @@ import {
 } from 'sentry/views/performance/transactionSummary/filter';
 import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 
 import {decodeScalar} from '../queryString';
 
@@ -115,8 +115,6 @@ type FieldFormatters = {
 };
 
 export type FieldTypes = keyof FieldFormatters;
-
-const DEFAULT_RATE_SIG_DIGITS = 3;
 
 const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.gray300};
@@ -235,7 +233,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       const {unit} = baggage ?? {};
       return (
         <NumberContainer>
-          {formatRate(data[field], unit as RateUnits, DEFAULT_RATE_SIG_DIGITS)}
+          {formatRate(data[field], unit as RateUnits, {minimumValue: 0.01})}
         </NumberContainer>
       );
     },
@@ -769,7 +767,8 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     return (
       <TimeSpentCell
         percentage={data[fieldName]}
-        total={data[`sum(${SpanMetricsFields.SPAN_SELF_TIME})`]}
+        total={data[`sum(${SpanMetricsField.SPAN_SELF_TIME})`]}
+        op={data[`span.op`]}
       />
     );
   },

@@ -21,10 +21,11 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import {Organization, Project, Scope} from 'sentry/types';
+import {IssueTitle, IssueType, Organization, Project, Scope} from 'sentry/types';
 import {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatPercentage} from 'sentry/utils/formatters';
+import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
@@ -133,14 +134,12 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
       ['project', `/projects/${organization.slug}/${projectId}/`],
     ];
 
-    if (organization.features.includes('project-performance-settings-admin')) {
-      const performanceIssuesEndpoint = [
-        'performance_issue_settings',
-        `/projects/${organization.slug}/${projectId}/performance-issues/configure/`,
-      ] as [string, string];
+    const performanceIssuesEndpoint = [
+      'performance_issue_settings',
+      `/projects/${organization.slug}/${projectId}/performance-issues/configure/`,
+    ] as [string, string];
 
-      endpoints.push(performanceIssuesEndpoint);
-    }
+    endpoints.push(performanceIssuesEndpoint);
 
     return endpoints;
   }
@@ -471,9 +470,11 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
       return fps ? `${Math.floor(fps / 5) * 5}fps` : '';
     };
 
+    const issueType = safeGetQsParam('issueType');
+
     return [
       {
-        title: t('N+1 DB Queries'),
+        title: IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
         fields: [
           {
             name: DetectorConfigCustomer.N_PLUS_DB_DURATION,
@@ -481,7 +482,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             label: t('Minimum Total Duration'),
             defaultValue: 100, // ms
             help: t(
-              'Setting the value to 100ms, means that an eligible event will be stored as a N+1 DB Query Issue only if the total duration of the involved spans exceeds 100ms'
+              'Setting the value to 100ms, means that an eligible event will be detected as a N+1 DB Query Issue only if the total duration of the involved spans exceeds 100ms'
             ),
             allowedValues: allowedDurationValues,
             disabled: !(
@@ -494,9 +495,10 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             disabledReason,
           },
         ],
+        initiallyCollapsed: issueType !== IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
       },
       {
-        title: t('Slow DB Queries'),
+        title: IssueTitle.PERFORMANCE_SLOW_DB_QUERY,
         fields: [
           {
             name: DetectorConfigCustomer.SLOW_DB_DURATION,
@@ -504,7 +506,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             label: t('Minimum Duration'),
             defaultValue: 1000, // ms
             help: t(
-              'Setting the value to 1s, means that an eligible event will be stored as a Slow DB Query Issue only if the duration of the involved db span exceeds 1s.'
+              'Setting the value to 1s, means that an eligible event will be detected as a Slow DB Query Issue only if the duration of the involved db span exceeds 1s.'
             ),
             tickValues: [0, allowedDurationValues.slice(5).length - 1],
             showTickLabels: true,
@@ -516,9 +518,10 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             disabledReason,
           },
         ],
+        initiallyCollapsed: issueType !== IssueType.PERFORMANCE_SLOW_DB_QUERY,
       },
       {
-        title: t('N+1 API Calls'),
+        title: IssueTitle.PERFORMANCE_N_PLUS_ONE_API_CALLS,
         fields: [
           {
             name: DetectorConfigCustomer.N_PLUS_API_CALLS_DURATION,
@@ -526,7 +529,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             label: t('Minimum Total Duration'),
             defaultValue: 300, // ms
             help: t(
-              'Setting the value to 300ms, means that an eligible event will be stored as a N+1 API Calls Issue only if the total duration of the involved spans exceeds 300ms'
+              'Setting the value to 300ms, means that an eligible event will be detected as a N+1 API Calls Issue only if the total duration of the involved spans exceeds 300ms'
             ),
             allowedValues: allowedDurationValues.slice(5),
             disabled: !(
@@ -540,9 +543,10 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             disabledReason,
           },
         ],
+        initiallyCollapsed: issueType !== IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
       },
       {
-        title: t('Large Render Blocking Asset'),
+        title: IssueTitle.PERFORMANCE_RENDER_BLOCKING_ASSET,
         fields: [
           {
             name: DetectorConfigCustomer.RENDER_BLOCKING_ASSET_RATIO,
@@ -550,7 +554,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             label: t('Minimum FCP Ratio'),
             defaultValue: 0.33,
             help: t(
-              'Setting the value to 33%, means that an eligible event will be stored as a Large Render Blocking Asset Issue only if the duration of the involved span is at least 33% of First Contentful Paint (FCP).'
+              'Setting the value to 33%, means that an eligible event will be detected as a Large Render Blocking Asset Issue only if the duration of the involved span is at least 33% of First Contentful Paint (FCP).'
             ),
             allowedValues: allowedPercentageValues,
             tickValues: [0, allowedPercentageValues.length - 1],
@@ -563,9 +567,10 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             disabledReason,
           },
         ],
+        initiallyCollapsed: issueType !== IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
       },
       {
-        title: t('Large HTTP Payload'),
+        title: IssueTitle.PERFORMANCE_LARGE_HTTP_PAYLOAD,
         fields: [
           {
             name: DetectorConfigCustomer.LARGE_HTT_PAYLOAD_SIZE,
@@ -573,7 +578,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             label: t('Minimum Size'),
             defaultValue: 1000000, // 1MB in bytes
             help: t(
-              'Setting the value to 1MB, means that an eligible event will be stored as a Large HTTP Payload Issue only if the involved HTTP span has a payload size that exceeds 1MB.'
+              'Setting the value to 1MB, means that an eligible event will be detected as a Large HTTP Payload Issue only if the involved HTTP span has a payload size that exceeds 1MB.'
             ),
             tickValues: [0, allowedSizeValues.slice(1).length - 1],
             showTickLabels: true,
@@ -586,9 +591,10 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             disabledReason,
           },
         ],
+        initiallyCollapsed: issueType !== IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
       },
       {
-        title: t('DB on Main Thread'),
+        title: IssueTitle.PERFORMANCE_DB_MAIN_THREAD,
         fields: [
           {
             name: DetectorConfigCustomer.DB_ON_MAIN_THREAD_DURATION,
@@ -596,7 +602,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             label: t('Frame Rate Drop'),
             defaultValue: 16, // ms
             help: t(
-              'Setting the value to 60fps, means that an eligible event will be stored as a DB on Main Thread Issue only if database spans on the main thread cause frame rate to drop below 60fps.'
+              'Setting the value to 60fps, means that an eligible event will be detected as a DB on Main Thread Issue only if database spans on the main thread cause frame rate to drop below 60fps.'
             ),
             tickValues: [0, 3],
             showTickLabels: true,
@@ -608,9 +614,10 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             disabledReason,
           },
         ],
+        initiallyCollapsed: issueType !== IssueType.PERFORMANCE_DB_MAIN_THREAD,
       },
       {
-        title: t('File I/O on Main Thread'),
+        title: IssueTitle.PERFORMANCE_FILE_IO_MAIN_THREAD,
         fields: [
           {
             name: DetectorConfigCustomer.FILE_IO_MAIN_THREAD_DURATION,
@@ -618,7 +625,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             label: t('Frame Rate Drop'),
             defaultValue: 16, // ms
             help: t(
-              'Setting the value to 60fps, means that an eligible event will be stored as a File I/O on Main Thread Issue only if File I/O spans on the main thread cause frame rate to drop below 60fps.'
+              'Setting the value to 60fps, means that an eligible event will be detected as a File I/O on Main Thread Issue only if File I/O spans on the main thread cause frame rate to drop below 60fps.'
             ),
             tickValues: [0, 3],
             showTickLabels: true,
@@ -630,9 +637,10 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             disabledReason,
           },
         ],
+        initiallyCollapsed: issueType !== IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD,
       },
       {
-        title: t('Consecutive DB Queries'),
+        title: IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
         fields: [
           {
             name: DetectorConfigCustomer.CONSECUTIVE_DB_MIN_TIME_SAVED,
@@ -640,7 +648,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             label: t('Minimum Time Saved'),
             defaultValue: 100, // ms
             help: t(
-              'Setting the value to 100ms, means that an eligible event will be stored as a Consecutive DB Queries Issue only if the time saved by parallelizing the queries exceeds 100ms.'
+              'Setting the value to 100ms, means that an eligible event will be detected as a Consecutive DB Queries Issue only if the time saved by parallelizing the queries exceeds 100ms.'
             ),
             tickValues: [0, allowedDurationValues.slice(0, 23).length - 1],
             showTickLabels: true,
@@ -652,9 +660,10 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             disabledReason,
           },
         ],
+        initiallyCollapsed: issueType !== IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
       },
       {
-        title: t('Uncompressed Asset'),
+        title: IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET,
         fields: [
           {
             name: DetectorConfigCustomer.UNCOMPRESSED_ASSET_SIZE,
@@ -662,7 +671,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             label: t('Minimum Size'),
             defaultValue: 512000, // in kilobytes
             help: t(
-              'Setting the value to 512KB, means that an eligible event will be stored as an Uncompressed Asset Issue only if the size of the uncompressed asset being transferred exceeds 512KB.'
+              'Setting the value to 512KB, means that an eligible event will be detected as an Uncompressed Asset Issue only if the size of the uncompressed asset being transferred exceeds 512KB.'
             ),
             tickValues: [0, allowedSizeValues.slice(1).length - 1],
             showTickLabels: true,
@@ -680,7 +689,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             label: t('Minimum Duration'),
             defaultValue: 500, // in ms
             help: t(
-              'Setting the value to 500ms, means that an eligible event will be stored as an Uncompressed Asset Issue only if the duration of the span responsible for transferring the uncompressed asset exceeds 500ms.'
+              'Setting the value to 500ms, means that an eligible event will be detected as an Uncompressed Asset Issue only if the duration of the span responsible for transferring the uncompressed asset exceeds 500ms.'
             ),
             tickValues: [0, allowedDurationValues.slice(5).length - 1],
             showTickLabels: true,
@@ -693,9 +702,10 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             disabledReason,
           },
         ],
+        initiallyCollapsed: issueType !== IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
       },
       {
-        title: t('Consecutive HTTP'),
+        title: IssueTitle.PERFORMANCE_CONSECUTIVE_HTTP,
         fields: [
           {
             name: DetectorConfigCustomer.CONSECUTIVE_HTTP_MIN_TIME_SAVED,
@@ -703,7 +713,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             label: t('Minimum Time Saved'),
             defaultValue: 2000, // in ms
             help: t(
-              'Setting the value to 2s, means that an eligible event will be stored as a Consecutive HTTP Issue only if the time saved by parallelizing the http spans exceeds 2s.'
+              'Setting the value to 2s, means that an eligible event will be detected as a Consecutive HTTP Issue only if the time saved by parallelizing the http spans exceeds 2s.'
             ),
             tickValues: [0, allowedDurationValues.slice(14).length - 1],
             showTickLabels: true,
@@ -716,9 +726,10 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             disabledReason,
           },
         ],
+        initiallyCollapsed: issueType !== IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
       },
       {
-        title: t('HTTP Overhead'),
+        title: IssueTitle.PERFORMANCE_HTTP_OVERHEAD,
         fields: [
           {
             name: DetectorConfigCustomer.HTTP_OVERHEAD_REQUEST_DELAY,
@@ -738,6 +749,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             disabledReason,
           },
         ],
+        initiallyCollapsed: issueType !== IssueType.PERFORMANCE_HTTP_OVERHEAD,
       },
     ];
   };
@@ -910,82 +922,79 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
               </Access>
             </Form>
           </Feature>
-          <Feature features={['organizations:project-performance-settings-admin']}>
-            {isSuperUser && (
-              <Form
-                saveOnBlur
-                allowUndo
-                initialData={this.state.performance_issue_settings}
-                apiMethod="PUT"
-                onSubmitError={error => {
-                  if (error.status === 403) {
-                    addErrorMessage(
-                      t(
-                        'This action requires active super user access. Please re-authenticate to make changes.'
-                      )
-                    );
-                  }
-                }}
-                apiEndpoint={performanceIssuesEndpoint}
-              >
-                <JsonForm
-                  title={t(
-                    '### INTERNAL ONLY ### - Performance Issues Admin Detector Settings'
-                  )}
-                  fields={this.performanceIssueDetectorAdminFields}
-                  disabled={!isSuperUser}
-                />
-              </Form>
-            )}
+          {isSuperUser && (
             <Form
+              saveOnBlur
               allowUndo
               initialData={this.state.performance_issue_settings}
               apiMethod="PUT"
-              apiEndpoint={performanceIssuesEndpoint}
-              saveOnBlur
-              onSubmitSuccess={(option: {[key: string]: number}) => {
-                const [threshold_key, threshold_value] = Object.entries(option)[0];
-
-                trackAnalytics(
-                  'performance_views.project_issue_detection_threshold_changed',
-                  {
-                    organization,
-                    project_slug: project.slug,
-                    threshold_key,
-                    threshold_value,
-                  }
-                );
+              onSubmitError={error => {
+                if (error.status === 403) {
+                  addErrorMessage(
+                    t(
+                      'This action requires active super user access. Please re-authenticate to make changes.'
+                    )
+                  );
+                }
               }}
+              apiEndpoint={performanceIssuesEndpoint}
             >
-              <Access access={requiredScopes} project={project}>
-                {({hasAccess}) => (
-                  <div id={projectDetectorSettingsId}>
-                    <StyledPanelHeader>
-                      {t('Performance Issues - Detector Threshold Settings')}
-                    </StyledPanelHeader>
-                    <StyledJsonForm
-                      forms={this.project_owner_detector_settings(hasAccess)}
-                      collapsible
-                      initiallyCollapsed
-                    />
-                    <StyledPanelFooter>
-                      <Actions>
-                        <Confirm
-                          message={t(
-                            'Are you sure you wish to reset all detector thresholds?'
-                          )}
-                          onConfirm={() => this.handleThresholdsReset()}
-                          disabled={!hasAccess || this.areAllConfigurationsDisabled}
-                        >
-                          <Button>{t('Reset All Thresholds')}</Button>
-                        </Confirm>
-                      </Actions>
-                    </StyledPanelFooter>
-                  </div>
+              <JsonForm
+                title={t(
+                  '### INTERNAL ONLY ### - Performance Issues Admin Detector Settings'
                 )}
-              </Access>
+                fields={this.performanceIssueDetectorAdminFields}
+                disabled={!isSuperUser}
+              />
             </Form>
-          </Feature>
+          )}
+          <Form
+            allowUndo
+            initialData={this.state.performance_issue_settings}
+            apiMethod="PUT"
+            apiEndpoint={performanceIssuesEndpoint}
+            saveOnBlur
+            onSubmitSuccess={(option: {[key: string]: number}) => {
+              const [threshold_key, threshold_value] = Object.entries(option)[0];
+
+              trackAnalytics(
+                'performance_views.project_issue_detection_threshold_changed',
+                {
+                  organization,
+                  project_slug: project.slug,
+                  threshold_key,
+                  threshold_value,
+                }
+              );
+            }}
+          >
+            <Access access={requiredScopes} project={project}>
+              {({hasAccess}) => (
+                <div id={projectDetectorSettingsId}>
+                  <StyledPanelHeader>
+                    {t('Performance Issues - Detector Threshold Settings')}
+                  </StyledPanelHeader>
+                  <StyledJsonForm
+                    forms={this.project_owner_detector_settings(hasAccess)}
+                    collapsible
+                  />
+                  <StyledPanelFooter>
+                    <Actions>
+                      <Confirm
+                        message={t(
+                          'Are you sure you wish to reset all detector thresholds?'
+                        )}
+                        onConfirm={() => this.handleThresholdsReset()}
+                        disabled={!hasAccess || this.areAllConfigurationsDisabled}
+                      >
+                        <Button>{t('Reset All Thresholds')}</Button>
+                      </Confirm>
+                    </Actions>
+                  </StyledPanelFooter>
+                </div>
+              )}
+            </Access>
+          </Form>
         </Fragment>
       </Fragment>
     );

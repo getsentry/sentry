@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models import GroupResolution
+from sentry.models.groupresolution import GroupResolution
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 

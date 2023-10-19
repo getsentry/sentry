@@ -46,10 +46,10 @@ function NetworkDetails({
       <StyledStacked>
         <StyledNetworkDetailsTabs underlined={false} />
         <StyledSplitDivider
-          isHeld={isHeld}
+          data-is-held={isHeld}
+          data-slide-direction="updown"
           onDoubleClick={onDoubleClick}
           onMouseDown={onMouseDown}
-          slideDirection="updown"
         />
         <CloseButtonWrapper>
           <Button
@@ -119,10 +119,9 @@ const CloseButtonWrapper = styled('div')`
   align-items: center;
 `;
 
-const StyledSplitDivider = styled(SplitDivider)<{isHeld: boolean}>`
-  height: 100%;
-  ${p => (p.isHeld ? `z-index: ${p.theme.zIndex.initial + 1};` : '')}
-  :hover {
+const StyledSplitDivider = styled(SplitDivider)`
+  :hover,
+  &[data-is-held='true'] {
     z-index: ${p => p.theme.zIndex.initial + 1};
   }
 `;

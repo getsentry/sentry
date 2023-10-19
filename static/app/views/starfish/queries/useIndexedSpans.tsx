@@ -4,7 +4,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SpanIndexedFields, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
+import {SpanIndexedField, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 const DEFAULT_LIMIT = 10;
@@ -43,7 +43,7 @@ function getEventView(filters: Filters, location: Location) {
     {
       name: '',
       query: search.formatString(),
-      fields: Object.values(SpanIndexedFields),
+      fields: Object.values(SpanIndexedField),
       dataset: DiscoverDatasets.SPANS_INDEXED,
       version: 2,
     },

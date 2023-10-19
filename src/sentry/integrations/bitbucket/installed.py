@@ -2,6 +2,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.integrations.pipeline import ensure_integration
 
@@ -10,6 +11,9 @@ from .integration import BitbucketIntegrationProvider
 
 @control_silo_endpoint
 class BitbucketInstalledEndpoint(Endpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = ()
     permission_classes = ()
 

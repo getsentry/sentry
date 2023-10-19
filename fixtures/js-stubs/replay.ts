@@ -1,9 +1,9 @@
-import * as Error from './replay/error';
-import * as Helpers from './replay/helpers';
-import * as BreadcrumbFrameData from './replay/replayBreadcrumbFrameData';
-import * as ReplayFrameEvents from './replay/replayFrameEvents';
-import * as ReplaySpanFrameData from './replay/replaySpanFrameData';
-import * as RRweb from './replay/rrweb';
+import * as Error from 'sentry-fixture/replay/error';
+import * as Helpers from 'sentry-fixture/replay/helpers';
+import * as BreadcrumbFrameData from 'sentry-fixture/replay/replayBreadcrumbFrameData';
+import * as ReplayFrameEvents from 'sentry-fixture/replay/replayFrameEvents';
+import * as ReplaySpanFrameData from 'sentry-fixture/replay/replaySpanFrameData';
+import * as RRweb from 'sentry-fixture/replay/rrweb';
 
 export const Replay = {
   ...BreadcrumbFrameData,

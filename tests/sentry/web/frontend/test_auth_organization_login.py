@@ -9,14 +9,12 @@ from django.urls import reverse
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.providers.dummy import PLACEHOLDER_TEMPLATE
-from sentry.models import (
-    AuthIdentity,
-    AuthProvider,
-    OrganizationMember,
-    OrganizationOption,
-    OrganizationStatus,
-    UserEmail,
-)
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import OrganizationStatus
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.useremail import UserEmail
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.silo import SiloMode
 from sentry.testutils.cases import AuthProviderTestCase

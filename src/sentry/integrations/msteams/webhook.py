@@ -10,9 +10,12 @@ from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
 
 from sentry import analytics, audit_log, eventstore, features, options
 from sentry.api import client
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.models import ApiKey, Group, Rule
 from sentry.models.activity import ActivityIntegration
+from sentry.models.apikey import ApiKey
+from sentry.models.group import Group
+from sentry.models.rule import Rule
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.identity.model import RpcIdentity
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -160,6 +163,9 @@ class MsTeamsWebhookMixin:
 
 @region_silo_endpoint
 class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = ()
     permission_classes = ()
     provider = "msteams"
@@ -402,9 +408,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
 
         group = Group.objects.select_related("project__organization").filter(id=group_id).first()
         if group:
-            integration = integration_service.get_organization_integration(
-                integration_id=integration.id, organization_id=group.project.organization_id
-            )
+            integration = integration_service.get_integration(integration_id=integration.id)
             if integration is None:
                 group = None
 

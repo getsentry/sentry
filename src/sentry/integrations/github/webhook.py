@@ -14,12 +14,17 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
-from sentry import analytics, features, options
+from sentry import analytics, options
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.constants import ObjectStatus
+from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.integrations.utils.scope import clear_tags_and_context
-from sentry.models import Commit, CommitAuthor, Organization, PullRequest, Repository
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.organization import Organization
+from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
 from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
     get_integration_repository_provider,
@@ -44,6 +49,18 @@ logger = logging.getLogger("sentry.webhooks")
 def get_github_external_id(event: Mapping[str, Any], host: str | None = None) -> str | None:
     external_id: str | None = event.get("installation", {}).get("id")
     return f"{host}:{external_id}" if host else external_id
+
+
+def get_file_language(filename: str) -> str | None:
+    extension = filename.split(".")[-1]
+    language = None
+    if extension != filename:
+        language = EXTENSION_LANGUAGE_MAP.get(extension)
+
+        if language is None:
+            logger.info("github.unaccounted_file_lang", extra={"extension": extension})
+
+    return language
 
 
 class Webhook:
@@ -108,22 +125,21 @@ class Webhook:
                 for org in orgs.values():
                     rpc_org = serialize_rpc_organization(org)
 
-                    if features.has("organizations:integrations-auto-repo-linking", org):
-                        try:
-                            _, repo = provider.create_repository(
-                                repo_config=config, organization=rpc_org
-                            )
-                        except RepoExistsError:
-                            metrics.incr("sentry.integration_repo_provider.repo_exists")
-                            continue
-
-                        analytics.record(
-                            "webhook.repository_created",
-                            organization_id=org.id,
-                            repository_id=repo.id,
-                            integration="github",
+                    try:
+                        _, repo = provider.create_repository(
+                            repo_config=config, organization=rpc_org
                         )
-                        metrics.incr("github.webhook.repository_created")
+                    except RepoExistsError:
+                        metrics.incr("sentry.integration_repo_provider.repo_exists")
+                        continue
+
+                    analytics.record(
+                        "webhook.repository_created",
+                        organization_id=org.id,
+                        repository_id=repo.id,
+                        integration="github",
+                    )
+                    metrics.incr("github.webhook.repository_created")
 
                 repos = repos.all()
 
@@ -240,6 +256,7 @@ class PushEventWebhook(Webhook):
         client = integration.get_installation(organization_id=organization.id).get_client()
         gh_username_cache: MutableMapping[str, str | None] = {}
 
+        languages = set()
         for commit in event["commits"]:
             if not commit["distinct"]:
                 continue
@@ -356,19 +373,36 @@ class PushEventWebhook(Webhook):
                         date_added=parse_date(commit["timestamp"]).astimezone(timezone.utc),
                     )
                     for fname in commit["added"]:
+                        languages.add(get_file_language(fname))
                         CommitFileChange.objects.create(
-                            organization_id=organization.id, commit=c, filename=fname, type="A"
+                            organization_id=organization.id,
+                            commit=c,
+                            filename=fname,
+                            type="A",
                         )
                     for fname in commit["removed"]:
+                        languages.add(get_file_language(fname))
                         CommitFileChange.objects.create(
-                            organization_id=organization.id, commit=c, filename=fname, type="D"
+                            organization_id=organization.id,
+                            commit=c,
+                            filename=fname,
+                            type="D",
                         )
                     for fname in commit["modified"]:
+                        languages.add(get_file_language(fname))
                         CommitFileChange.objects.create(
-                            organization_id=organization.id, commit=c, filename=fname, type="M"
+                            organization_id=organization.id,
+                            commit=c,
+                            filename=fname,
+                            type="M",
                         )
+
             except IntegrityError:
                 pass
+
+        languages.discard(None)
+        repo.languages = list(set(repo.languages or []).union(languages))
+        repo.save()
 
 
 class PullRequestEventWebhook(Webhook):
@@ -552,6 +586,9 @@ class GitHubWebhookBase(Endpoint):
 
 @region_silo_endpoint
 class GitHubIntegrationsWebhookEndpoint(GitHubWebhookBase):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     _handlers = {
         "push": PushEventWebhook,
         "pull_request": PullRequestEventWebhook,

@@ -146,6 +146,7 @@ export enum ActionType {
   PAGERDUTY = 'pagerduty',
   MSTEAMS = 'msteams',
   OPSGENIE = 'opsgenie',
+  DISCORD = 'discord',
   SENTRY_APP = 'sentry_app',
 }
 
@@ -157,6 +158,7 @@ export const ActionLabel = {
   [ActionType.PAGERDUTY]: t('Pagerduty'),
   [ActionType.MSTEAMS]: t('MS Teams'),
   [ActionType.OPSGENIE]: t('Opsgenie'),
+  [ActionType.DISCORD]: t('Discord'),
   [ActionType.SENTRY_APP]: t('Notification'),
 };
 

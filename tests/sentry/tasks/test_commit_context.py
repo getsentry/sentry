@@ -1,4 +1,5 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+from datetime import timezone as datetime_timezone
 from unittest.mock import Mock, patch
 
 import pytest
@@ -7,18 +8,21 @@ from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone
 
 from sentry.integrations.github.integration import GitHubIntegrationProvider
-from sentry.models import PullRequest, PullRequestComment, Repository
 from sentry.models.commit import Commit
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.pullrequest import PullRequestCommit
+from sentry.models.pullrequest import PullRequest, PullRequestComment, PullRequestCommit
+from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.snuba.sessions_v2 import isoformat_z
 from sentry.tasks.commit_context import PR_COMMENT_WINDOW, process_commit_context
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.committers import get_frame_paths
+
+pytestmark = [requires_snuba]
 
 
 class TestCommitContextMixin(TestCase):
@@ -83,7 +87,7 @@ class TestCommitContext(TestCommitContextMixin):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "asdfwreqr",
-            "committedDate": "2023-02-14T11:11Z",
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "admin@localhost",
@@ -141,11 +145,47 @@ class TestCommitContext(TestCommitContextMixin):
             error_message="integration_failed",
         )
 
+    @patch("sentry.tasks.commit_context.logger")
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "asdfasdf",
-            "committedDate": "2023-02-14T11:11Z",
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=370)),
+            "commitMessage": "placeholder commit message",
+            "commitAuthorName": "",
+            "commitAuthorEmail": "admin@localhost",
+        },
+    )
+    def test_found_commit_is_too_old(self, mock_get_commit_context, mock_logger):
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+
+        assert mock_logger.info.call_count == 1
+        mock_logger.info.assert_called_with(
+            "process_commit_context.find_commit_context",
+            extra={
+                "event": self.event.event_id,
+                "group": self.event.group_id,
+                "organization": self.event.group.project.organization_id,
+                "reason": "could_not_fetch_commit_context",
+                "code_mappings_count": 1,
+                "fallback": True,
+            },
+        )
+
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context",
+        return_value={
+            "commitId": "asdfasdf",
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "admin@localhost",
@@ -170,7 +210,7 @@ class TestCommitContext(TestCommitContextMixin):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "asdfwreqr",
-            "committedDate": "2023-02-14T11:11Z",
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "admin@localhost",
@@ -255,7 +295,7 @@ class TestCommitContext(TestCommitContextMixin):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "somekey",
-            "committedDate": "2023-02-14T11:11Z",
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "randomuser@sentry.io",
@@ -296,7 +336,7 @@ class TestCommitContext(TestCommitContextMixin):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "somekey",
-            "committedDate": "2023-02-14T11:11Z",
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "randomuser@sentry.io",
@@ -337,7 +377,7 @@ class TestCommitContext(TestCommitContextMixin):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "somekey",
-            "committedDate": "2023-02-14T11:11Z",
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "randomuser@sentry.io",
@@ -423,7 +463,7 @@ class TestCommitContext(TestCommitContextMixin):
     Mock(
         return_value={
             "commitId": "asdfwreqr",
-            "committedDate": "2023-02-14T11:11Z",
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "admin@localhost",

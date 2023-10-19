@@ -1,6 +1,6 @@
 from sentry.mediators.project_rules.creator import Creator
-from sentry.models import Rule
 from sentry.models.actor import get_actor_for_user, get_actor_id_for_user
+from sentry.models.rule import Rule
 from sentry.models.user import User
 from sentry.testutils.cases import TestCase
 
@@ -48,7 +48,6 @@ class TestCreator(TestCase):
             "actions": [
                 {
                     "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                    "name": "Send a notification (for all legacy integrations)",
                 }
             ],
             "conditions": [

@@ -1,0 +1,191 @@
+#!/usr/bin/env python
+from __future__ import annotations
+
+from typing import Iterable
+
+from sentry.backup.scopes import RelocationScope
+from sentry.runner import configure
+from sentry.silo.base import SiloMode
+
+configure()
+
+from enum import Enum, unique
+from string import Template
+
+import click
+from django.db import models
+
+from sentry.backup.dependencies import ForeignField, ForeignFieldKind, ModelRelations, dependencies
+
+digraph = Template(
+    """
+digraph Models {
+    ranksep = 8;
+    rankdir=LR
+    node [style="rounded,filled",shape="rectangle"];
+
+    subgraph cluster_legend {
+        label = "Legend";
+        fontsize="40"
+        node [shape="plaintext",style="none"]
+        key1 [label=<<table border="0" cellpadding="2" cellspacing="0" cellborder="0">
+            <tr><td align="right" port="i1">HybridCloudForeignKey</td></tr>
+            <tr><td align="right" port="i2">HybridCloudForeignKey (nullable)</td></tr>
+            <tr><td align="right" port="i3">Explicit ForeignKey</td></tr>
+            <tr><td align="right" port="i4">Explicit ForeignKey (nullable)</td></tr>
+            <tr><td align="right" port="i5">Implicit ForeignKey</td></tr>
+            <tr><td align="right" port="i6">Implicit ForeignKey (nullable)</td></tr>
+            <tr><td align="right" port="i7">Control Silo Model</td></tr>
+            <tr><td align="right" port="i8">Control Silo Model (dangling)</td></tr>
+            <tr><td align="right" port="i9">Region Silo Model</td></tr>
+            <tr><td align="right" port="i10">Region Silo Model (dangling)</td></tr>
+            <tr><td align="right" port="i11">Unexported Model</td></tr>
+        </table>>]
+        key2 [label=<<table border="0" cellpadding="2" cellspacing="0" cellborder="0">
+            <tr><td port="i1">&nbsp;</td></tr>
+            <tr><td port="i2">&nbsp;</td></tr>
+            <tr><td port="i3">&nbsp;</td></tr>
+            <tr><td port="i4">&nbsp;</td></tr>
+            <tr><td port="i5">&nbsp;</td></tr>
+            <tr><td port="i6">&nbsp;</td></tr>
+            <tr><td port="i7" bgcolor="#ffb6c1ff">&nbsp;</td></tr>
+            <tr><td port="i8" bgcolor="#ffb6c166">&nbsp;</td></tr>
+            <tr><td port="i9" bgcolor="#add8e6ff">&nbsp;</td></tr>
+            <tr><td port="i10" bgcolor="#add8e666">&nbsp;</td></tr>
+            <tr><td port="i11" bgcolor="#c0c0c0ff">&nbsp;</td></tr>
+        </table>>]
+        key1:i1:e -> key2:i1:w [color="#008b00ff",style=solid]
+        key1:i2:e -> key2:i2:w [color="#008b0066",style=dashed]
+        key1:i3:e -> key2:i3:w [color="#0000eeff",style=solid]
+        key1:i4:e -> key2:i4:w [color="#0000ee66",style=dashed]
+        key1:i5:e -> key2:i5:w [color="#cd0000ff",style=solid]
+        key1:i6:e -> key2:i6:w [color="#cd000066",style=dashed]
+    }
+
+    $clusters
+    $edges
+}
+"""
+)
+
+cluster = Template(
+    """
+    subgraph cluster_$num {
+        label="$name Relocation Scope"
+        style="rounded,filled"
+        shape="rectangle"
+        fillcolor="$fill"
+        fontsize="40"
+        color="#c0c0c0"
+
+        $nodes
+    }
+"""
+)
+
+
+@unique
+class ClusterColor(Enum):
+    Purple = "#fff0f5"  # lavenderblush
+    Yellow = "#f0e68c"  # khaki
+    Green = "#f0fff0"  # honeydew
+    Blue = "#cae1ff"  # lightsteelblue1
+
+
+@unique
+class NodeColor(Enum):
+    Red = "#ffb6c1"  # lightpink
+    Blue = "#add8e6"  # lightblue
+
+
+@unique
+class EdgeColor(Enum):
+    Hybrid = "#008b00"  # green4
+    Explicit = "#0000ee"  # blue2
+    Implicit = "#cd0000"  # red3
+
+
+def print_model_node(mr: ModelRelations, silo: SiloMode) -> str:
+    id = mr.model.__name__
+    color = NodeColor.Red if silo == SiloMode.CONTROL else NodeColor.Blue
+    opacity = "66" if mr.dangling else "ff"
+    return f""""{id}" [fillcolor="{color.value}{opacity}",color="#000000{opacity}"];"""
+
+
+def print_rel_scope_subgraph(
+    name: str, num: int, rels: Iterable[ModelRelations], color: ClusterColor
+) -> str:
+    return cluster.substitute(
+        num=num,
+        name=name,
+        fill=color.value,
+        nodes="\n        ".join([print_model_node(mr, mr.silos[0]) for mr in rels]),
+    )
+
+
+def print_edges(mr: ModelRelations) -> str:
+    if len(mr.foreign_keys) == 0:
+        return ""
+
+    src = mr.model
+    return "\n    ".join([print_edge(src, ff.model, ff) for ff in mr.foreign_keys.values()])
+
+
+def print_edge(src: models.base.ModelBase, dest: models.base.ModelBase, field: ForeignField) -> str:
+    color = EdgeColor.Explicit
+    if field.kind == ForeignFieldKind.HybridCloudForeignKey:
+        color = EdgeColor.Hybrid
+    elif field.kind == ForeignFieldKind.ImplicitForeignKey:
+        color = EdgeColor.Implicit
+    style = "dashed" if field.nullable else "solid"
+    return f""""{src.__name__}":e -> "{dest.__name__}":w [color="{color.value}",style={style}];"""
+
+
+def get_most_permissive_relocation_scope(mr: ModelRelations) -> RelocationScope:
+    if isinstance(mr.relocation_scope, set):
+        return sorted(list(mr.relocation_scope), key=lambda obj: obj.value * -1)[0]
+    return mr.relocation_scope
+
+
+@click.command()
+@click.option("--show-excluded", default=False, is_flag=True, help="Show unexportable models too")
+def main(show_excluded: bool):
+    """Generate a graphviz spec for the current model dependency graph."""
+
+    # Get all dependencies, filtering as necessary.
+    deps = sorted(dependencies().values(), key=lambda mr: mr.model.__name__)
+    if not show_excluded:
+        deps = list(filter(lambda m: m.relocation_scope != RelocationScope.Excluded, deps))
+
+    # Group by most permissive region scope.
+    user_scoped = filter(
+        lambda m: get_most_permissive_relocation_scope(m) == RelocationScope.User, deps
+    )
+    org_scoped = filter(
+        lambda m: get_most_permissive_relocation_scope(m) == RelocationScope.Organization, deps
+    )
+    config_scoped = filter(
+        lambda m: get_most_permissive_relocation_scope(m) == RelocationScope.Config, deps
+    )
+    global_scoped = filter(
+        lambda m: get_most_permissive_relocation_scope(m) == RelocationScope.Global, deps
+    )
+
+    # Print nodes.
+    clusters = "".join(
+        [
+            print_rel_scope_subgraph("User", 1, user_scoped, ClusterColor.Green),
+            print_rel_scope_subgraph("Organization", 2, org_scoped, ClusterColor.Purple),
+            print_rel_scope_subgraph("Config", 3, config_scoped, ClusterColor.Blue),
+            print_rel_scope_subgraph("Global", 4, global_scoped, ClusterColor.Yellow),
+        ]
+    )
+
+    # Print edges.
+    edges = "\n    ".join(filter(lambda s: s, [print_edges(mr) for mr in deps]))
+
+    click.echo(digraph.substitute(clusters=clusters, edges=edges))
+
+
+if __name__ == "__main__":
+    main()

@@ -1,9 +1,11 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {Field} from 'sentry/components/forms/types';
+import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -18,7 +20,7 @@ import {
 } from 'sentry/views/settings/account/notifications/constants';
 import {ACCOUNT_NOTIFICATION_FIELDS} from 'sentry/views/settings/account/notifications/fields';
 import {
-  NOTIFICATION_SETTING_FIELDS,
+  NOTIFICATION_SETTING_FIELDS_V2,
   QUOTA_FIELDS,
 } from 'sentry/views/settings/account/notifications/fields2';
 import NotificationSettingsByEntity from 'sentry/views/settings/account/notifications/notificationSettingsByEntity';
@@ -135,7 +137,12 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     // if we have child types, map the default
     const childTypes: string[] = typeMappedChildren[notificationType] || [];
     const childTypesDefaults = Object.fromEntries(
-      childTypes.map(childType => [childType, defaultValue])
+      childTypes.map(childType => {
+        const childMatchedOption = notificationOptions.find(
+          option => option.type === childType && option.scopeType === 'user'
+        );
+        return [childType, childMatchedOption ? childMatchedOption.value : defaultValue];
+      })
     );
 
     return {
@@ -145,13 +152,18 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
   }
 
   getProviderInitialData(): {[key: string]: string[]} {
+    const {notificationType} = this.props;
     const {notificationProviders, defaultSettings} = this.state;
+
+    const relevantProviderSettings = notificationProviders.filter(
+      option => option.scopeType === 'user' && option.type === notificationType
+    );
     // user has no settings saved so use default
-    if (notificationProviders.length === 0 && defaultSettings) {
+    if (relevantProviderSettings.length === 0 && defaultSettings) {
       return {provider: defaultSettings.providerDefaults};
     }
-    const providers = notificationProviders
-      .filter(option => option.scopeType === 'user' && option.value === 'always')
+    const providers = relevantProviderSettings
+      .filter(option => option.value === 'always')
       .map(option => option.provider);
     return {provider: providers};
   }
@@ -184,7 +196,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     } else {
       const defaultField: Field = Object.assign(
         {},
-        NOTIFICATION_SETTING_FIELDS[notificationType],
+        NOTIFICATION_SETTING_FIELDS_V2[notificationType],
         {
           help,
           defaultValue: 'always',
@@ -209,7 +221,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     const {organizationIntegrations} = this.state;
     // get the choices but only the ones that are available to the user
     const choices = (
-      NOTIFICATION_SETTING_FIELDS.provider.choices as [string, string][]
+      NOTIFICATION_SETTING_FIELDS_V2.provider.choices as [string, string][]
     ).filter(([providerSlug]) => {
       if (providerSlug === 'email') {
         return true;
@@ -219,7 +231,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
       );
     });
 
-    const defaultField = Object.assign({}, NOTIFICATION_SETTING_FIELDS.provider, {
+    const defaultField = Object.assign({}, NOTIFICATION_SETTING_FIELDS_V2.provider, {
       choices,
       getData: data => {
         return {
@@ -311,7 +323,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
           initialData={this.getInitialTopOptionData()}
           onSubmitSuccess={() => this.trackTuningUpdated('general')}
         >
-          <JsonForm
+          <TopJsonForm
             title={
               isGroupedByProject(notificationType)
                 ? t('All Projects')
@@ -320,14 +332,16 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
             fields={this.getFields()}
           />
         </Form>
-        <Form
-          saveOnBlur
-          apiMethod="PUT"
-          apiEndpoint="/users/me/notification-providers/"
-          initialData={this.getProviderInitialData()}
-        >
-          <JsonForm fields={this.getProviderFields()} />
-        </Form>
+        {notificationType !== 'reports' ? (
+          <Form
+            saveOnBlur
+            apiMethod="PUT"
+            apiEndpoint="/users/me/notification-providers/"
+            initialData={this.getProviderInitialData()}
+          >
+            <BottomJsonForm fields={this.getProviderFields()} />
+          </Form>
+        ) : null}
         <NotificationSettingsByEntity
           notificationType={notificationType}
           notificationOptions={notificationOptions}
@@ -342,3 +356,19 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
 }
 
 export default withOrganizations(NotificationSettingsByTypeV2);
+
+export const TopJsonForm = styled(JsonForm)`
+  ${Panel} {
+    border-bottom: 0;
+    margin-bottom: 0;
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+`;
+
+export const BottomJsonForm = styled(JsonForm)`
+  ${Panel} {
+    border-top-right-radius: 0;
+    border-top-left-radius: 0;
+  }
+`;

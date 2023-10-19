@@ -2,20 +2,17 @@ import pytest
 from django.test import override_settings
 from rest_framework.serializers import ValidationError
 
-from sentry.models import (
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-    Release,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-    Team,
-)
 from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.models.projectteam import ProjectTeam
+from sentry.models.release import Release, ReleaseProject
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.team import Team
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.silo.base import SiloMode
-from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
+from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -195,6 +192,7 @@ class TeamDeletionTest(TestCase):
                 NotificationSettingTypes.ISSUE_ALERTS,
                 NotificationSettingOptionValues.ALWAYS,
                 team_id=team.id,
+                organization_id_for_team=org.id,
             )
 
         assert Team.objects.filter(id=team.id).exists()
@@ -220,9 +218,9 @@ class TeamDeletionTest(TestCase):
                 team_id=team_id,
             ).exists()
 
-        # Assume monolith silo mode to ensure all tasks are run correctly
-        with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
-            schedule_hybrid_cloud_foreign_key_jobs()
+        # Run foreign key cascades to remove control silo state.
+        with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
+            schedule_hybrid_cloud_foreign_key_jobs_control()
 
         assert not Team.objects.filter(id=team_id).exists()
         with assume_test_silo_mode(SiloMode.CONTROL):

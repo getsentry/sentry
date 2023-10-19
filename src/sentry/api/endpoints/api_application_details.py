@@ -6,10 +6,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ListField
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import ApiApplication, ApiApplicationStatus, ScheduledDeletion
+from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
+from sentry.models.scheduledeletion import ScheduledDeletion
 
 
 class ApiApplicationSerializer(serializers.Serializer):
@@ -33,6 +35,11 @@ class ApiApplicationSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class ApiApplicationDetailsEndpoint(Endpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
 

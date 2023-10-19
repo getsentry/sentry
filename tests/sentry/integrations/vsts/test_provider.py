@@ -12,7 +12,7 @@ from django.http import HttpRequest
 
 from sentry.identity.vsts.provider import VSTSIdentityProvider, VSTSOAuth2CallbackView
 from sentry.integrations.vsts.integration import AccountConfigView, AccountForm
-from sentry.models import Identity, IdentityProvider
+from sentry.models.identity import Identity, IdentityProvider
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -139,6 +139,7 @@ class TestAccountConfigView(TestCase):
         assert accounts["value"][0]["accountName"] == "sentry"
         assert accounts["value"][1]["accountName"] == "sentry2"
 
+    @responses.activate
     def test_account_form(self):
         account_form = AccountForm(self.accounts)
         field = account_form.fields["account"]

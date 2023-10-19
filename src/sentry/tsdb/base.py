@@ -357,6 +357,7 @@ class BaseTSDB(Service):
         rollup=None,
         environment_ids=None,
         use_cache=False,
+        jitter_value=None,
         tenant_ids=None,
         referrer_suffix=None,
     ):

@@ -5,9 +5,8 @@ from typing import Any
 
 from django.urls import reverse
 
-from sentry.models import (
-    Dashboard,
-    DashboardTombstone,
+from sentry.models.dashboard import Dashboard, DashboardTombstone
+from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
@@ -17,6 +16,9 @@ from sentry.models.project import Project
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):

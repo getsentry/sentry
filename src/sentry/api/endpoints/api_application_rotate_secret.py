@@ -3,15 +3,18 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import ApiApplication, ApiApplicationStatus
-from sentry.models.apiapplication import generate_token
+from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus, generate_token
 
 
 @control_silo_endpoint
 class ApiApplicationRotateSecretEndpoint(Endpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
 

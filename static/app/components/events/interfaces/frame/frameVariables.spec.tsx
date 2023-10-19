@@ -1,3 +1,5 @@
+import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -9,7 +11,7 @@ describe('Frame Variables', function () {
   it('renders', async function () {
     const project = TestStubs.Project({
       id: '0',
-      relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+      relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
     });
 
     const {organization, router, routerContext} = initializeOrg({

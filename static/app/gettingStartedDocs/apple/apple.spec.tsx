@@ -6,7 +6,7 @@ import {GettingStartedWithApple, steps} from './apple';
 
 describe('GettingStartedWithApple', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithApple dsn="test-dsn" />);
+    render(<GettingStartedWithApple dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithApple', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

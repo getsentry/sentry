@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {Organization} from 'sentry-fixture/organization';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -34,7 +35,7 @@ const teamData = [
 ];
 const teams = teamData.map(data => TestStubs.Team(data));
 const project = TestStubs.Project({teams: [teams[0]]});
-const organization = TestStubs.Organization({access: ['project:write']});
+const organization = Organization({access: ['project:write']});
 act(() => OrganizationStore.onUpdate(organization, {replace: true}));
 
 function createWrapper(props: Partial<React.ComponentProps<typeof TeamSelector>> = {}) {
@@ -148,7 +149,7 @@ describe('Team Selector', function () {
       url: `/organizations/${organization.slug}/teams/`,
     });
     const onChangeMock = jest.fn();
-    const orgWithAccess = TestStubs.Organization({access: ['project:admin']});
+    const orgWithAccess = Organization({access: ['project:admin']});
 
     createWrapper({
       allowCreate: true,
@@ -167,7 +168,7 @@ describe('Team Selector', function () {
       url: `/organizations/${organization.slug}/teams/`,
     });
     const onChangeMock = jest.fn();
-    const orgWithAccess = TestStubs.Organization({access: ['project:admin']});
+    const orgWithAccess = Organization({access: ['project:admin']});
 
     createWrapper({
       allowCreate: true,
@@ -189,7 +190,7 @@ describe('Team Selector', function () {
       url: `/organizations/${organization.slug}/teams/`,
     });
     const onChangeMock = jest.fn();
-    const orgWithoutAccess = TestStubs.Organization({access: ['project:write']});
+    const orgWithoutAccess = Organization({access: ['project:write']});
 
     createWrapper({
       allowCreate: true,

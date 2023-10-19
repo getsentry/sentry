@@ -2,8 +2,10 @@ import {Fragment, ReactNode} from 'react';
 import queryString from 'query-string';
 
 import FeatureBadge from 'sentry/components/featureBadge';
+import ExternalLink from 'sentry/components/links/externalLink';
 import ListLink from 'sentry/components/links/listLink';
 import ScrollableTabs from 'sentry/components/replays/scrollableTabs';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -12,9 +14,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
+  const hasA11yTab = organization.features.includes('session-replay-a11y-tab');
   const hasPerfTab = organization.features.includes('session-replay-trace-table');
 
   return {
+    [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
     [TabKey.CONSOLE]: t('Console'),
     [TabKey.NETWORK]: t('Network'),
     [TabKey.ERRORS]: (
@@ -29,7 +33,23 @@ function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
       </Fragment>
     ) : null,
     [TabKey.DOM]: t('DOM Events'),
+    [TabKey.A11Y]: hasA11yTab ? (
+      <Fragment>
+        <Tooltip
+          isHoverable
+          title={
+            <ExternalLink href="https://developer.mozilla.org/en-US/docs/Learn/Accessibility/What_is_accessibility">
+              {t('What is accessibility?')}
+            </ExternalLink>
+          }
+        >
+          {t('a11y')}
+        </Tooltip>
+        <FeatureBadge type="alpha" />
+      </Fragment>
+    ) : null,
     [TabKey.MEMORY]: t('Memory'),
+    [TabKey.TAGS]: t('Tags'),
   };
 }
 

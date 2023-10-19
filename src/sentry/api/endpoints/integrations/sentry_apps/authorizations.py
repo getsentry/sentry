@@ -4,17 +4,24 @@ import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppAuthorizationsBaseEndpoint
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators.token_exchange import GrantExchanger, GrantTypes, Refresher
+from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
+from sentry.mediators.token_exchange.refresher import Refresher
+from sentry.mediators.token_exchange.util import GrantTypes
 
 logger = logging.getLogger(__name__)
 
 
 @control_silo_endpoint
 class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     def post(self, request: Request, installation) -> Response:
         with sentry_sdk.configure_scope() as scope:
             scope.set_tag("organization", installation.organization_id)

@@ -7,12 +7,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.constants import MAX_TOP_EVENTS
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.snuba import (
     discover,
+    functions,
     metrics_enhanced_performance,
     metrics_performance,
     spans_indexed,
@@ -90,6 +92,10 @@ ALLOWED_EVENTS_STATS_REFERRERS: Set[str] = {
 
 @region_silo_endpoint
 class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
         feature_names = [
             "organizations:performance-chart-interpolation",
@@ -176,7 +182,17 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             # Add more here until top events is supported on all the datasets
             if top_events > 0:
                 dataset = (
-                    dataset if dataset in [discover, spans_indexed, spans_metrics] else discover
+                    dataset
+                    if dataset
+                    in [
+                        discover,
+                        functions,
+                        metrics_performance,
+                        metrics_enhanced_performance,
+                        spans_indexed,
+                        spans_metrics,
+                    ]
+                    else discover
                 )
 
             metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}

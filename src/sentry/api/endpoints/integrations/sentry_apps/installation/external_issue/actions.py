@@ -1,11 +1,13 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import SentryAppInstallationBaseEndpoint
 from sentry.api.serializers import serialize
-from sentry.mediators.external_issues import IssueLinkCreator
-from sentry.models import Group, Project
+from sentry.mediators.external_issues.issue_link_creator import IssueLinkCreator
+from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.utils.functional import extract_lazy_object
@@ -13,6 +15,10 @@ from sentry.utils.functional import extract_lazy_object
 
 @region_silo_endpoint
 class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBaseEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     def post(self, request: Request, installation) -> Response:
         data = request.data.copy()
 

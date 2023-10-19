@@ -45,6 +45,10 @@ def get_redis_cluster_for_artifact_bundles():
     return redis.redis_clusters.get(cluster_key)
 
 
+def get_refresh_key() -> str:
+    return "artifact_bundles_in_use"
+
+
 def _generate_artifact_bundle_indexing_state_cache_key(
     organization_id: int, artifact_bundle_id: int
 ) -> str:
@@ -74,7 +78,8 @@ def remove_artifact_bundle_indexing_state(organization_id: int, artifact_bundle_
 
 
 def index_artifact_bundles_for_release(
-    organization_id: int, artifact_bundles: List[ArtifactBundle], release: str, dist: str
+    organization_id: int,
+    artifact_bundles: List[Tuple[ArtifactBundle, ArtifactBundleArchive | None]],
 ) -> None:
     """
     This indexes the contents of `artifact_bundles` into the database, using the given `release` and `dist` pair.
@@ -82,7 +87,7 @@ def index_artifact_bundles_for_release(
     Synchronization is achieved using a mixture of redis cache with transient state and a binary state in the database.
     """
 
-    for artifact_bundle in artifact_bundles:
+    for artifact_bundle, archive in artifact_bundles:
         try:
             if not set_artifact_bundle_being_indexed_if_null(
                 organization_id=organization_id, artifact_bundle_id=artifact_bundle.id
@@ -91,7 +96,7 @@ def index_artifact_bundles_for_release(
                 metrics.incr("artifact_bundle_indexing.bundle_already_being_indexed")
                 continue
 
-            _index_urls_in_bundle(organization_id, artifact_bundle, release, dist)
+            _index_urls_in_bundle(organization_id, artifact_bundle, archive)
         except Exception as e:
             # We want to catch the error and continue execution, since we can try to index the other bundles.
             metrics.incr("artifact_bundle_indexing.index_single_artifact_bundle_error")
@@ -106,11 +111,12 @@ def index_artifact_bundles_for_release(
 def _index_urls_in_bundle(
     organization_id: int,
     artifact_bundle: ArtifactBundle,
-    release: str,
-    dist: str,
+    existing_archive: ArtifactBundleArchive | None,
 ):
     # We first open up the bundle and extract all the things we want to index from it.
-    archive = ArtifactBundleArchive(artifact_bundle.file.getfile(), build_memory_map=False)
+    archive = existing_archive or ArtifactBundleArchive(
+        artifact_bundle.file.getfile(), build_memory_map=False
+    )
     urls_to_index = []
     try:
         for info in archive.get_files().values():
@@ -133,7 +139,8 @@ def _index_urls_in_bundle(
                     )
                 )
     finally:
-        archive.close()
+        if not existing_archive:
+            archive.close()
 
     # We want to start a transaction for each bundle, so that in case of failures we keep consistency at the
     # bundle level, and we also have to retry only the failed bundle in the future and not all the bundles.
@@ -188,17 +195,34 @@ def maybe_renew_artifact_bundles_from_processing(project_id: int, used_download_
             continue
         artifact_bundle_ids.append(ty_id)
 
-    # FIXME: This function is being called for every processed event, so ideally
-    # we would heavily debounce this and avoid doing such a query directly.
+    redis_client = get_redis_cluster_for_artifact_bundles()
 
-    used_artifact_bundles = {
-        id: date_added
-        for id, date_added in ArtifactBundle.objects.filter(
-            projectartifactbundle__project_id=project_id, id__in=artifact_bundle_ids
-        ).values_list("id", "date_added")
-    }
+    redis_client.sadd(get_refresh_key(), *artifact_bundle_ids)
 
-    maybe_renew_artifact_bundles(used_artifact_bundles)
+
+@sentry_sdk.tracing.trace
+def refresh_artifact_bundles_in_use():
+    LOOP_TIMES = 100
+    IDS_PER_LOOP = 50
+
+    redis_client = get_redis_cluster_for_artifact_bundles()
+
+    now = timezone.now()
+    threshold_date = now - timedelta(days=AVAILABLE_FOR_RENEWAL_DAYS)
+
+    for _ in range(LOOP_TIMES):
+        artifact_bundle_ids = redis_client.spop(get_refresh_key(), IDS_PER_LOOP)
+        used_artifact_bundles = {
+            id: date_added
+            for id, date_added in ArtifactBundle.objects.filter(
+                id__in=artifact_bundle_ids, date_added__lte=threshold_date
+            ).values_list("id", "date_added")
+        }
+
+        maybe_renew_artifact_bundles(used_artifact_bundles)
+
+        if len(artifact_bundle_ids) < IDS_PER_LOOP:
+            break
 
 
 def maybe_renew_artifact_bundles(used_artifact_bundles: Dict[int, datetime]):

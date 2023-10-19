@@ -563,6 +563,286 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["sum(span.self_time)"] == 321
         assert meta["dataset"] == "spansMetrics"
 
+    def test_avg_compare(self):
+        self.store_span_metric(
+            100,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"release": "foo"},
+        )
+        self.store_span_metric(
+            10,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"release": "bar"},
+        )
+
+        for function_name in [
+            "avg_compare(span.self_time, release, foo, bar)",
+            'avg_compare(span.self_time, release, "foo", "bar")',
+        ]:
+            response = self.do_request(
+                {
+                    "field": [function_name],
+                    "query": "",
+                    "project": self.project.id,
+                    "dataset": "spansMetrics",
+                }
+            )
+            assert response.status_code == 200, response.content
+
+            data = response.data["data"]
+            meta = response.data["meta"]
+
+            assert len(data) == 1
+            assert data[0][function_name] == -0.9
+
+            assert meta["dataset"] == "spansMetrics"
+            assert meta["fields"][function_name] == "percent_change"
+
+    def test_avg_compare_invalid_column(self):
+        response = self.do_request(
+            {
+                "field": ["avg_compare(span.self_time, transaction, foo, bar)"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 400, response.content
+
+    def test_span_domain_array(self):
+        self.store_span_metric(
+            321,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.domain": ",sentry_table1,"},
+        )
+        self.store_span_metric(
+            21,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.domain": ",sentry_table1,sentry_table2,"},
+        )
+        response = self.do_request(
+            {
+                "field": ["span.domain", "p75(span.self_time)"],
+                "query": "",
+                "project": self.project.id,
+                "orderby": ["-p75(span.self_time)"],
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data[0]["span.domain"] == ["sentry_table1"]
+        assert data[1]["span.domain"] == ["sentry_table1", "sentry_table2"]
+        assert meta["dataset"] == "spansMetrics"
+        assert meta["fields"]["span.domain"] == "array"
+
+    def test_span_domain_array_filter(self):
+        self.store_span_metric(
+            321,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.domain": ",sentry_table1,"},
+        )
+        self.store_span_metric(
+            21,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.domain": ",sentry_table1,sentry_table2,"},
+        )
+        response = self.do_request(
+            {
+                "field": ["span.domain", "p75(span.self_time)"],
+                "query": "span.domain:sentry_table2",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["span.domain"] == ["sentry_table1", "sentry_table2"]
+        assert meta["dataset"] == "spansMetrics"
+        assert meta["fields"]["span.domain"] == "array"
+
+    def test_span_domain_array_filter_wildcard(self):
+        self.store_span_metric(
+            321,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.domain": ",sentry_table1,"},
+        )
+        self.store_span_metric(
+            21,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.domain": ",sentry_table1,sentry_table2,"},
+        )
+        for query in ["sentry*2", "*table2", "sentry_table2*"]:
+            response = self.do_request(
+                {
+                    "field": ["span.domain", "p75(span.self_time)"],
+                    "query": f"span.domain:{query}",
+                    "project": self.project.id,
+                    "dataset": "spansMetrics",
+                }
+            )
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            meta = response.data["meta"]
+            assert len(data) == 1, query
+            assert data[0]["span.domain"] == ["sentry_table1", "sentry_table2"], query
+            assert meta["dataset"] == "spansMetrics", query
+            assert meta["fields"]["span.domain"] == "array"
+
+    def test_span_domain_array_has_filter(self):
+        self.store_span_metric(
+            321,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.domain": ""},
+        )
+        self.store_span_metric(
+            21,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.domain": ",sentry_table1,sentry_table2,"},
+        )
+        response = self.do_request(
+            {
+                "field": ["span.domain", "p75(span.self_time)"],
+                "query": "has:span.domain",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["span.domain"] == ["sentry_table1", "sentry_table2"]
+        assert meta["dataset"] == "spansMetrics"
+        response = self.do_request(
+            {
+                "field": ["span.domain", "p75(span.self_time)"],
+                "query": "!has:span.domain",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert meta["dataset"] == "spansMetrics"
+        assert meta["fields"]["span.domain"] == "array"
+
+    def test_unique_values_span_domain(self):
+        self.store_span_metric(
+            321,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.domain": ",sentry_table1,"},
+        )
+        self.store_span_metric(
+            21,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.domain": ",sentry_table2,sentry_table3,"},
+        )
+        response = self.do_request(
+            {
+                "field": ["unique.span_domains", "count()"],
+                "query": "",
+                "orderby": "unique.span_domains",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 3
+        assert data[0]["unique.span_domains"] == "sentry_table1"
+        assert data[1]["unique.span_domains"] == "sentry_table2"
+        assert data[2]["unique.span_domains"] == "sentry_table3"
+        assert meta["fields"]["unique.span_domains"] == "string"
+
+    def test_unique_values_span_domain_with_filter(self):
+        self.store_span_metric(
+            321,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.domain": ",sentry_tible1,"},
+        )
+        self.store_span_metric(
+            21,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.domain": ",sentry_table2,sentry_table3,"},
+        )
+        response = self.do_request(
+            {
+                "field": ["unique.span_domains", "count()"],
+                "query": "span.domain:sentry_tab*",
+                "orderby": "unique.span_domains",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data[0]["unique.span_domains"] == "sentry_table2"
+        assert data[1]["unique.span_domains"] == "sentry_table3"
+        assert meta["fields"]["unique.span_domains"] == "string"
+
+    def test_avg_if(self):
+        self.store_span_metric(
+            100,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"release": "foo"},
+        )
+        self.store_span_metric(
+            200,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"release": "foo"},
+        )
+        self.store_span_metric(
+            10,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"release": "bar"},
+        )
+
+        response = self.do_request(
+            {
+                "field": ["avg_if(span.self_time, release, foo)"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert len(data) == 1
+        assert data[0]["avg_if(span.self_time, release, foo)"] == 150
+
+        assert meta["dataset"] == "spansMetrics"
+        assert meta["fields"]["avg_if(span.self_time, release, foo)"] == "duration"
+
 
 @region_silo_test
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
@@ -580,10 +860,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     def test_time_spent_percentage_local(self):
         super().test_time_spent_percentage_local()
 
-    @pytest.mark.xfail(reason="Not implemented")
-    def test_http_error_rate_and_count(self):
-        super().test_http_error_rate_and_count()
-
     @pytest.mark.xfail(reason="Cannot group by function 'if'")
     def test_span_module(self):
         super().test_span_module()
@@ -595,3 +871,35 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Cannot search by tags")
     def test_free_text_search(self):
         super().test_free_text_search()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_avg_compare(self):
+        super().test_avg_compare()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_span_domain_array(self):
+        super().test_span_domain_array()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_span_domain_array_filter(self):
+        super().test_span_domain_array_filter()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_span_domain_array_filter_wildcard(self):
+        super().test_span_domain_array_filter_wildcard()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_span_domain_array_has_filter(self):
+        super().test_span_domain_array_has_filter()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_unique_values_span_domain(self):
+        super().test_unique_values_span_domain()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_unique_values_span_domain_with_filter(self):
+        super().test_unique_values_span_domain_with_filter()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_avg_if(self):
+        super().test_avg_if()

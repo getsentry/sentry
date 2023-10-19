@@ -9,9 +9,13 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.bitbucket.constants import BITBUCKET_IP_RANGES, BITBUCKET_IPS
-from sentry.models import Commit, CommitAuthor, Organization, Repository
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.utils import json
 from sentry.utils.email import parse_email
@@ -107,6 +111,9 @@ class PushEventWebhook(Webhook):
 
 @region_silo_endpoint
 class BitbucketWebhookEndpoint(Endpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = ()
     _handlers = {"repo:push": PushEventWebhook}
 

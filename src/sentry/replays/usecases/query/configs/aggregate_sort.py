@@ -3,6 +3,10 @@
 Very similar to our filtering configurations except in this module we do not need the field
 abstraction.  We can pass any valid Snuba expression and the query will be sorted by it.
 """
+from __future__ import annotations
+
+from datetime import datetime
+
 from snuba_sdk import Column, Function
 
 from sentry.replays.usecases.query.conditions.activity import aggregate_activity
@@ -14,13 +18,29 @@ def any_if(column_name):
     )
 
 
+def _click_count_sum_if_after(column_name: str) -> Function:
+    return Function(
+        "sumIf",
+        parameters=[
+            Column(column_name),
+            Function(
+                "greaterOrEquals",
+                [Column("timestamp"), datetime(year=2023, month=7, day=24)],
+            ),
+        ],
+    )
+
+
 sort_config = {
     "activity": aggregate_activity(),
     "browser.name": any_if("browser_name"),
     "browser.version": any_if("browser_version"),
-    "count_dead_clicks": Function("sum", parameters=[Column("click_is_dead")]),
+    "count_dead_clicks": _click_count_sum_if_after("click_is_dead"),
     "count_errors": Function("sum", parameters=[Column("count_errors")]),
-    "count_rage_clicks": Function("sum", parameters=[Column("click_is_rage")]),
+    "new_count_errors": Function("sum", parameters=[Column("count_error_events")]),
+    "count_warnings": Function("sum", parameters=[Column("count_warning_events")]),
+    "count_infos": Function("sum", parameters=[Column("count_info_events")]),
+    "count_rage_clicks": _click_count_sum_if_after("click_is_rage"),
     "count_urls": Function("sum", parameters=[Column("count_urls")]),
     "device.brand": any_if("device_brand"),
     "device.family": any_if("device_family"),
@@ -50,3 +70,33 @@ sort_config = {
 sort_config["browser"] = sort_config["browser.name"]
 sort_config["os"] = sort_config["os.name"]
 sort_config["os_name"] = sort_config["os.name"]
+
+
+def sort_is_scalar_compatible(sort: str) -> bool:
+    """Return "True" if the sort does not interfere with scalar search optimizations."""
+    if sort.startswith("-"):
+        sort = sort[1:]
+    return sort in optimized_sort_fields
+
+
+optimized_sort_fields: set[str] = {
+    "browser.name",
+    "browser.version",
+    "device.brand",
+    "device.family",
+    "device.model",
+    "device.name",
+    "dist",
+    "environment",
+    "os.name",
+    "os.version",
+    "platform",
+    "releases",
+    "sdk.name",
+    "sdk.version",
+    "started_at",
+    "user.email",
+    "user.id",
+    "user.ip_address",
+    "user.username",
+}

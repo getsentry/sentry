@@ -64,6 +64,7 @@ import {
 import {
   dashboardFiltersToString,
   eventViewFromWidget,
+  getColoredWidgetIndicator,
   getFieldsFromEquations,
   getNumEquations,
   getWidgetDiscoverUrl,
@@ -1005,8 +1006,14 @@ function WidgetViewerModal(props: Props) {
                   forceTransactions={metricsDataSide.forceTransactionsOnly}
                 >
                   <Header closeButton>
-                    <WidgetTitle>
-                      <h3>{widget.title}</h3>
+                    <WidgetHeader>
+                      <WidgetTitleRow>
+                        <h3>{widget.title}</h3>
+                        {widget.thresholds &&
+                          tableData &&
+                          organization.features.includes('dashboard-widget-indicators') &&
+                          getColoredWidgetIndicator(widget.thresholds, tableData)}
+                      </WidgetTitleRow>
                       {widget.description && (
                         <WidgetDescription>{widget.description}</WidgetDescription>
                       )}
@@ -1033,7 +1040,7 @@ function WidgetViewerModal(props: Props) {
                           return null;
                         }}
                       </DashboardsMEPConsumer>
-                    </WidgetTitle>
+                    </WidgetHeader>
                   </Header>
                   <Body>{renderWidgetViewer()}</Body>
                   <Footer>
@@ -1149,7 +1156,7 @@ function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
     case WidgetType.DISCOVER:
       return (
         <span>
-          {tct('[description:Total Events:] [total]', {
+          {tct('[description:Sampled Events:] [total]', {
             description: <strong />,
             total: totalResults,
           })}
@@ -1208,10 +1215,16 @@ const EmptyQueryContainer = styled('span')`
   color: ${p => p.theme.disabled};
 `;
 
-const WidgetTitle = styled('div')`
+const WidgetHeader = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
+`;
+
+const WidgetTitleRow = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.75)};
 `;
 
 export default withPageFilters(WidgetViewerModal);

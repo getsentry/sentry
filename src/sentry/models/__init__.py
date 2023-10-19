@@ -12,7 +12,9 @@ from .assistant import *  # NOQA
 from .auditlogentry import *  # NOQA
 from .authenticator import *  # NOQA
 from .authidentity import *  # NOQA
+from .authidentityreplica import *  # NOQA
 from .authprovider import *  # NOQA
+from .authproviderreplica import *  # NOQA
 from .avatars import *  # NOQA
 from .broadcast import *  # NOQA
 from .commit import *  # NOQA
@@ -28,6 +30,7 @@ from .deletedproject import *  # NOQA
 from .deletedteam import *  # NOQA
 from .deploy import *  # NOQA
 from .distribution import *  # NOQA
+from .dynamicsampling import *  # NOQA
 from .email import *  # NOQA
 from .environment import *  # NOQA
 from .event import *  # NOQA
@@ -72,7 +75,10 @@ from .organizationmapping import *  # NOQA
 from .organizationmember import *  # NOQA
 from .organizationmembermapping import *  # NOQA
 from .organizationmemberteam import *  # NOQA
+from .organizationmemberteamreplica import *  # NOQA
 from .organizationonboardingtask import *  # NOQA
+from .organizationslugreservation import *  # NOQA
+from .organizationslugreservationreplica import *  # NOQA
 from .orgauthtoken import *  # NOQA
 from .outbox import *  # NOQA
 from .platformexternalissue import *  # NOQA
@@ -109,6 +115,7 @@ from .sentryfunction import *  # NOQA
 from .servicehook import *  # NOQA
 from .sourcemapprocessingissue import *  # NOQA
 from .team import *  # NOQA
+from .teamreplica import *  # NOQA
 from .tombstone import *  # NOQA
 from .transaction_threshold import *  # NOQA
 from .user import *  # NOQA

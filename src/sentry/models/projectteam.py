@@ -14,7 +14,7 @@ from sentry.db.models import (
 )
 
 if TYPE_CHECKING:
-    from sentry.models import Team
+    from sentry.models.team import Team
 
 
 class ProjectTeamManager(BaseManager):
@@ -55,7 +55,8 @@ class ProjectTeam(Model):
 
 
 def process_resource_change(instance, **kwargs):
-    from sentry.models import Organization, Project
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
     from sentry.tasks.codeowners import update_code_owners_schema
 
     def _spawn_task():

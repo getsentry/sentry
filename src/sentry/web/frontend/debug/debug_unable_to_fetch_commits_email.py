@@ -1,7 +1,9 @@
 from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
-from sentry.models import Organization, Release, Repository
+from sentry.models.organization import Organization
+from sentry.models.release import Release
+from sentry.models.repository import Repository
 from sentry.tasks.commits import generate_fetch_commits_error_email
 
 from .mail import MailPreview

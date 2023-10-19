@@ -34,11 +34,11 @@ class NotificationSettingProvider(NotificationSettingBase):
         ]
 
     __repr__ = sane_repr(
-        "scope_str",
+        "scope_type",
         "scope_identifier",
         "user_id",
         "team_id",
-        "provider_str",
-        "type_str",
-        "value_str",
+        "provider",
+        "type",
+        "value",
     )

@@ -7,7 +7,13 @@ from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.discover.arithmetic import categorize_columns
 from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
 from sentry.search.events.datasets.profile_functions import ProfileFunctionsDatasetConfig
-from sentry.search.events.types import ParamsType, SelectType, SnubaParams, WhereType
+from sentry.search.events.types import (
+    ParamsType,
+    QueryBuilderConfig,
+    SelectType,
+    SnubaParams,
+    WhereType,
+)
 from sentry.snuba.dataset import Dataset
 
 
@@ -78,9 +84,8 @@ class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryB
         selected_columns: Optional[List[str]] = None,
         timeseries_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
-        functions_acl: Optional[List[str]] = None,
+        config: Optional[QueryBuilderConfig] = None,
         limit: Optional[int] = 10000,
-        skip_tag_resolution: bool = False,
     ):
         selected_columns = [] if selected_columns is None else selected_columns
         timeseries_columns = [] if timeseries_columns is None else timeseries_columns
@@ -92,9 +97,8 @@ class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryB
             query=query,
             selected_columns=list(set(selected_columns + timeseries_functions)),
             equations=None,  # TODO: equations are not supported at this time
-            functions_acl=functions_acl,
             limit=limit,
-            skip_tag_resolution=skip_tag_resolution,
+            config=config,
         )
 
         self.fields = [self.tag_to_prefixed_map.get(c, c) for c in selected_columns]
@@ -122,21 +126,29 @@ class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryB
         # sorted so the result key is consistent
         return sorted(translated)
 
+    def is_aggregate_field(self, field: str) -> bool:
+        resolved = self.resolve_column(self.prefixed_to_tag_map.get(field, field))
+        return resolved in self.aggregates
+
     def resolve_top_event_conditions(
         self, top_functions: List[Dict[str, Any]], other: bool
     ) -> Optional[WhereType]:
         assert not other, "Other is not supported"  # TODO: support other
 
+        # we only want to create conditions on the non aggregate fields
+        fields = [field for field in self.fields if not self.is_aggregate_field(field)]
+
         conditions = []
 
         # if the project id is in the query, we can further narrow down the
         # list of projects to only the set that matches the top functions
-        for field in self.fields:
+        for field in fields:
             if field in ["project", "project.id"] and not other:
                 project_condition = [
                     condition
                     for condition in self.where
-                    if type(condition) == Condition and condition.lhs == self.column("project_id")
+                    if isinstance(condition, Condition)
+                    and condition.lhs == self.column("project_id")
                 ][0]
                 self.where.remove(project_condition)
 
@@ -154,9 +166,13 @@ class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryB
         for function in top_functions:
             terms = [
                 SearchFilter(SearchKey(field), "=", SearchValue(function.get(field) or ""))
-                for field in self.fields
+                for field in fields
             ]
-            conditions.append(And(self.resolve_where(terms)))
+            function_condition = self.resolve_where(terms)
+            if len(function_condition) > 1:
+                conditions.append(And(function_condition))
+            elif len(function_condition) == 1:
+                conditions.append(function_condition[0])
 
         if len(conditions) > 1:
             return Or(conditions=conditions)

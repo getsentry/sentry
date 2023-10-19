@@ -6,6 +6,7 @@ from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.paginator import OffsetPaginator
@@ -19,11 +20,15 @@ from sentry.incidents.models import (
     IncidentProject,
     IncidentStatus,
 )
-from sentry.models import Project
+from sentry.models.project import Project
 
 
 @region_silo_endpoint
 class TeamAlertsTriggeredTotalsEndpoint(TeamEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, team) -> Response:
         """
         Return a time-bucketed (by day) count of triggered alerts owned by a given team.
@@ -117,6 +122,10 @@ class TriggeredAlertRuleSerializer(AlertRuleSerializer):
 
 @region_silo_endpoint
 class TeamAlertsTriggeredIndexEndpoint(TeamEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request, team) -> Response:
         """
         Returns alert rules ordered by highest number of alerts fired this week.

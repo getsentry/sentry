@@ -11,7 +11,7 @@ RightParenthesis
   = ")" { return { type: 'RightParenthesis', content: ')' } }
 
 Keyword
-  = Keyword:("ADD"i / "ALL"i / "ALTER"i / "AND"i / "ANY"i / "AS"i / "ASC"i / "BACKUP"i / "BETWEEN"i / "BY"i / "CASE"i / "CHECK"i / "COLUMN"i / "CONSTRAINT"i / "COUNT"i / "CREATE"i / "DATABASE"i / "DEFAULT"i / "DELETE"i / "DESC"i / "DISTINCT"i / "DROP"i / "EXEC"i / "EXISTS"i / "FOREIGN"i / "FROM"i / "FROM"i / "FULL"i / "GROUP"i / "HAVING"i / "INNER"i / "INSERT"i / "JOIN"i / "KEY"i / "LEFT"i / "LIMIT"i / "OFFSET"i / "ON"i / "ORDER"i / "OUTER"i / "RETURNING"i / "RIGHT"i / "SELECT"i / "SELECT"i / "TABLE"i / "UPDATE"i / "VALUES"i / "WHERE"i / JoinKeyword) {
+  = Keyword:("ADD"i / "ALL"i / "ALTER"i / "AND"i / "ANY"i / "AS"i / "ASC"i / "BACKUP"i / "BETWEEN"i / "BY"i / "CASE"i / "CHECK"i / "COLUMN"i / "CONSTRAINT"i / "COUNT"i / "CREATE"i / "DATABASE"i / "DEFAULT"i / "DELETE"i / "DESC"i / "DISTINCT"i / "DROP"i / "EXEC"i / "EXISTS"i / "FOREIGN"i / "FROM"i / "FROM"i / "FULL"i / "GROUP"i / "HAVING"i / "INNER"i / "INSERT"i / "JOIN"i / "KEY"i / "LEFT"i / "LIMIT"i / "OFFSET"i / "ON"i / "ORDER"i / "OUTER"i / "RETURNING"i / "RIGHT"i / "SELECT"i / "SELECT"i / "SET"i / "TABLE"i / "UPDATE"i / "VALUES"i / "WHERE"i / JoinKeyword) & (Whitespace / LeftParenthesis / RightParenthesis) {
   return { type: 'Keyword', content: Keyword.toUpperCase() }
 }
 
@@ -36,4 +36,4 @@ Whitespace
   = Whitespace:[\n\t ]+ { return { type: 'Whitespace', content: Whitespace.join("") } }
 
 GenericToken
-  = GenericToken:[a-zA-Z0-9"'`_\-.=><:,*;!\[\]?$%|/@&~^]+ { return { type: 'GenericToken', content: GenericToken.join('') } }
+  = GenericToken:[a-zA-Z0-9"'`_\-.=><:,*;!\[\]?$%|/\\@&~^+]+ { return { type: 'GenericToken', content: GenericToken.join('') } }

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import cached_property
-from typing import Any, Iterable, List, Mapping, Tuple
+from typing import Any, Iterable, List, Mapping, MutableMapping, Tuple
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -14,12 +14,15 @@ from sentry import features, options
 from sentry.api.utils import generate_organization_url, generate_region_url
 from sentry.auth import superuser
 from sentry.auth.superuser import is_active_superuser
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken, AuthenticationContext
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key_service
 from sentry.services.hybrid_cloud.user import UserSerializeType
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.silo.base import SiloMode
+from sentry.types.region import find_all_multitenant_region_names, get_region_by_name
 from sentry.utils import auth, json
 from sentry.utils.assets import get_frontend_dist_prefix
 from sentry.utils.email import is_smtp_enabled
@@ -213,12 +216,22 @@ class _ClientConfig:
         return self.request is not None and self.user is not None and self.user.is_superuser
 
     @property
-    def links(self) -> Iterable[Tuple[str, str]]:
+    def links(self) -> Iterable[Tuple[str, str | None]]:
         organization_url = (
             generate_organization_url(self.last_org_slug) if self.last_org_slug else None
         )
+        region_url = None
+        if self.last_org:
+            if SiloMode.get_current_mode() == SiloMode.CONTROL:
+                organization_mapping = OrganizationMapping.objects.get(
+                    organization_id=self.last_org.id
+                )
+                region_url = generate_region_url(organization_mapping.region_name)
+            else:
+                region_url = generate_region_url()
+
         yield "organizationUrl", organization_url
-        yield "regionUrl", generate_region_url() if self.last_org_slug else None
+        yield "regionUrl", region_url
         yield "sentryUrl", options.get("system.url-prefix")
 
         if self._is_superuser() and superuser.ORG_ID is not None:
@@ -250,6 +263,30 @@ class _ClientConfig:
         if self._is_superuser():
             user_details["isSuperuser"] = self.user.is_superuser
         return user_details
+
+    @property
+    def regions(self) -> List[Mapping[str, Any]]:
+        """
+        The regions available to the current user.
+
+        This will include *all* multi-tenant regions, and if the customer
+        has membership on any single-tenant regions those will also be included.
+        """
+        user = self.user
+        region_names = find_all_multitenant_region_names()
+        if not region_names:
+            return [{"name": "default", "url": options.get("system.url-prefix")}]
+
+        # No logged in user.
+        if not user or not user.id:
+            return [get_region_by_name(region).api_serialize() for region in region_names]
+
+        # Ensure all regions the current user is in are included as there
+        # could be single tenants as well.
+        memberships = user_service.get_organizations(user_id=user.id)
+        unique_regions = set(region_names) | {membership.region_name for membership in memberships}
+
+        return [get_region_by_name(name).api_serialize() for name in unique_regions]
 
     def get_context(self) -> Mapping[str, Any]:
         return {
@@ -295,6 +332,7 @@ class _ClientConfig:
                 "allowUrls": self.allow_list,
                 "tracePropagationTargets": settings.SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS or [],
             },
+            "regions": self.regions,
             "demoMode": settings.DEMO_MODE,
             "enableAnalytics": settings.ENABLE_ANALYTICS,
             "validateSUForm": getattr(
@@ -307,7 +345,7 @@ class _ClientConfig:
         }
 
 
-def get_client_config(request=None) -> Mapping[str, Any]:
+def get_client_config(request=None) -> MutableMapping[str, Any]:
     """
     Provides initial bootstrap data needed to boot the frontend application.
     """

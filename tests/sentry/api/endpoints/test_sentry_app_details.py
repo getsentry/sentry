@@ -4,7 +4,9 @@ from django.urls import reverse
 
 from sentry import audit_log, deletions
 from sentry.constants import SentryAppStatus
-from sentry.models import AuditLogEntry, OrganizationMember, SentryApp
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.organizationmember import OrganizationMember
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
@@ -46,7 +48,6 @@ class SentryAppDetailsTest(APITestCase):
         self.url = reverse("sentry-api-0-sentry-app-details", args=[self.published_app.slug])
 
 
-# cannot be stable until we have org member mappings
 @control_silo_test(stable=True)
 class GetSentryAppDetailsTest(SentryAppDetailsTest):
     def test_superuser_sees_all_apps(self):

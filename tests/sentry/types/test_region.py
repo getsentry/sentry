@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db import router
 from django.test import override_settings
 
-from sentry.models import OrganizationMapping
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloLimit, SiloMode, unguarded_write
 from sentry.testutils.cases import TestCase
@@ -16,6 +16,8 @@ from sentry.types.region import (
     RegionConfigurationError,
     RegionResolutionError,
     clear_global_regions,
+    find_all_multitenant_region_names,
+    find_all_region_names,
     get_local_region,
     get_region_by_name,
     get_region_for_organization,
@@ -29,7 +31,7 @@ class RegionMappingTest(TestCase):
 
     def test_region_mapping(self):
         regions = [
-            Region("na", 1, "http://na.testserver", RegionCategory.MULTI_TENANT),
+            Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
             Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
             Region("acme-single-tenant", 3, "acme.my.sentry.io", RegionCategory.SINGLE_TENANT),
         ]
@@ -41,12 +43,12 @@ class RegionMappingTest(TestCase):
 
     def test_get_local_region(self):
         regions = [
-            Region("na", 1, "http://na.testserver", RegionCategory.MULTI_TENANT),
+            Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
             Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
         ]
 
         with override_regions(regions):
-            with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="na"):
+            with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us"):
                 assert get_local_region() == regions[0]
 
         with override_regions(()):
@@ -61,7 +63,7 @@ class RegionMappingTest(TestCase):
 
     def test_get_region_for_organization(self):
         regions = [
-            Region("na", 1, "http://na.testserver", RegionCategory.MULTI_TENANT),
+            Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
             Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
         ]
         mapping = OrganizationMapping.objects.get(slug=self.organization.slug)
@@ -87,28 +89,33 @@ class RegionMappingTest(TestCase):
                 get_region_for_organization(self.organization.slug)
 
     def test_validate_region(self):
-        with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="na"):
-            valid_region = Region("na", 1, "http://na.testserver", RegionCategory.MULTI_TENANT)
+        with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us"):
+            valid_region = Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)
             valid_region.validate()
 
     def test_region_to_url(self):
-        region = Region("na", 1, "http://192.168.1.99", RegionCategory.MULTI_TENANT)
-        assert region.to_url("/avatar/abcdef/") == "http://na.testserver/avatar/abcdef/"
+        region = Region("us", 1, "http://192.168.1.99", RegionCategory.MULTI_TENANT)
+        with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us"):
+            assert region.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
+        with override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_REGION=""):
+            assert region.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
+        with override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_REGION=""):
+            assert region.to_url("/avatar/abcdef/") == "http://testserver/avatar/abcdef/"
 
     def test_json_config_injection(self):
         region_config = [
             {
-                "name": "na",
+                "name": "us",
                 "snowflake_id": 1,
-                "address": "http://na.testserver",
+                "address": "http://us.testserver",
                 "category": RegionCategory.MULTI_TENANT.name,
             }
         ]
         with override_settings(
             SENTRY_REGION_CONFIG=json.dumps(region_config),
-            SENTRY_MONOLITH_REGION="na",
+            SENTRY_MONOLITH_REGION="us",
         ):
-            region = get_region_by_name("na")
+            region = get_region_by_name("us")
         assert region.snowflake_id == 1
 
     @patch("sentry.types.region.sentry_sdk")
@@ -118,7 +125,7 @@ class RegionMappingTest(TestCase):
         with override_settings(SENTRY_REGION_CONFIG=json.dumps(region_config)), pytest.raises(
             RegionConfigurationError
         ):
-            get_region_by_name("na")
+            get_region_by_name("us")
         assert sentry_sdk_mock.capture_exception.call_count == 1
 
     def test_default_historic_region_setting(self):
@@ -134,9 +141,9 @@ class RegionMappingTest(TestCase):
     def test_invalid_historic_region_setting(self):
         region_config = [
             {
-                "name": "na",
+                "name": "us",
                 "snowflake_id": 1,
-                "address": "http://na.testserver",
+                "address": "http://us.testserver",
                 "category": RegionCategory.MULTI_TENANT.name,
             }
         ]
@@ -145,21 +152,21 @@ class RegionMappingTest(TestCase):
             SENTRY_MONOLITH_REGION="nonexistent",
         ):
             with pytest.raises(RegionConfigurationError):
-                get_region_by_name("na")
+                get_region_by_name("us")
 
     def test_find_regions_for_user(self):
         from sentry.types.region import find_regions_for_user
 
         region_config = [
             {
-                "name": "na",
+                "name": "us",
                 "snowflake_id": 1,
-                "address": "http://na.testserver",
+                "address": "http://us.testserver",
                 "category": RegionCategory.MULTI_TENANT.name,
             }
         ]
         with override_settings(SILO_MODE=SiloMode.CONTROL), override_region_config(region_config):
-            organization = self.create_organization(name="test name", region="na")
+            organization = self.create_organization(name="test name", region="us")
 
             user = self.create_user()
             organization_service.add_organization_member(
@@ -168,8 +175,46 @@ class RegionMappingTest(TestCase):
                 user_id=user.id,
             )
             actual_regions = find_regions_for_user(user_id=user.id)
-            assert actual_regions == {"na"}
+            assert actual_regions == {"us"}
 
         with override_settings(SILO_MODE=SiloMode.REGION):
             with pytest.raises(SiloLimit.AvailabilityError):
                 find_regions_for_user(user_id=user.id)
+
+    def test_find_all_region_names(self):
+        region_config = [
+            {
+                "name": "us",
+                "snowflake_id": 1,
+                "address": "http://us.testserver",
+                "category": RegionCategory.MULTI_TENANT.name,
+            },
+            {
+                "name": "acme",
+                "snowflake_id": 2,
+                "address": "http://acme.testserver",
+                "category": RegionCategory.SINGLE_TENANT.name,
+            },
+        ]
+        with override_settings(SILO_MODE=SiloMode.CONTROL), override_region_config(region_config):
+            result = find_all_region_names()
+            assert set(result) == {"us", "acme"}
+
+    def test_find_all_multitenant_region_names(self):
+        region_config = [
+            {
+                "name": "us",
+                "snowflake_id": 1,
+                "address": "http://us.testserver",
+                "category": RegionCategory.MULTI_TENANT.name,
+            },
+            {
+                "name": "acme",
+                "snowflake_id": 2,
+                "address": "http://acme.testserver",
+                "category": RegionCategory.SINGLE_TENANT.name,
+            },
+        ]
+        with override_settings(SILO_MODE=SiloMode.CONTROL), override_region_config(region_config):
+            result = find_all_multitenant_region_names()
+            assert set(result) == {"us"}

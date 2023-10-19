@@ -25,16 +25,20 @@ from symbolic.sourcemapcache import SourceMapCache as SmCache
 
 from sentry import features, http, options
 from sentry.event_manager import set_tag
-from sentry.models import (
+from sentry.models.artifactbundle import (
     NULL_STRING,
     ArtifactBundle,
     ArtifactBundleArchive,
-    EventError,
-    Organization,
-    ReleaseFile,
     SourceFileType,
 )
-from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ReleaseArchive, read_artifact_index
+from sentry.models.eventerror import EventError
+from sentry.models.organization import Organization
+from sentry.models.releasefile import (
+    ARTIFACT_INDEX_FILENAME,
+    ReleaseArchive,
+    ReleaseFile,
+    read_artifact_index,
+)
 from sentry.stacktraces.processing import StacktraceProcessor
 from sentry.utils import json, metrics
 
@@ -633,7 +637,7 @@ def get_function_for_token(frame, token, previous_frame=None):
 
 def fold_function_name(function_name):
     """
-    Fold multiple consecutive occurences of the same property name into a single group, excluding the last component.
+    Fold multiple consecutive occurrences of the same property name into a single group, excluding the last component.
 
     foo | foo
     foo.foo | foo.foo

@@ -6,14 +6,17 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseWithVersionSerializer
 from sentry.api.utils import get_auth_api_token_type
-from sentry.models import Activity, Environment, Release, ReleaseStatus
+from sentry.models.activity import Activity
+from sentry.models.environment import Environment
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
+from sentry.models.release import Release, ReleaseStatus
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 from sentry.signals import release_created
@@ -23,6 +26,10 @@ from sentry.utils.sdk import bind_organization_context, configure_scope
 
 @region_silo_endpoint
 class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
     rate_limits = RateLimitConfig(
         group="CLI", limit_overrides={"GET": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}

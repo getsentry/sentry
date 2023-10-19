@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -12,6 +13,7 @@ import {space} from 'sentry/styles/space';
 import {getConfigureIntegrationsDocsLink} from 'sentry/utils/docs';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
 import {getIsMultiProject} from 'sentry/views/performance/utils';
 
 type Props = {
@@ -89,7 +91,18 @@ export function WidgetEmptyStateWarning() {
   );
 }
 
-export function WidgetAddInstrumentationWarning() {
+export function TimeSpentInDatabaseWidgetEmptyStateWarning() {
+  return (
+    <StyledEmptyStateWarning>
+      <PrimaryMessage>{t('No results found')}</PrimaryMessage>
+      <SecondaryMessage>
+        <NoDataMessage Wrapper={Fragment} />
+      </SecondaryMessage>
+    </StyledEmptyStateWarning>
+  );
+}
+
+export function WidgetAddInstrumentationWarning({type}: {type: 'db' | 'http'}) {
   const pageFilters = usePageFilters();
   const fullProjects = useProjects();
 
@@ -113,8 +126,9 @@ export function WidgetAddInstrumentationWarning() {
       <PrimaryMessage>{t('No results found')}</PrimaryMessage>
       <SecondaryMessage>
         {tct(
-          'No transactions with Database or HTTP spans found, you may need to [added].',
+          'No transactions with [spanCategory] spans found, you may need to [added].',
           {
+            spanCategory: type === 'db' ? t('Database') : t('HTTP'),
             added: <ExternalLink href={url}>{t('add integrations')}</ExternalLink>,
           }
         )}

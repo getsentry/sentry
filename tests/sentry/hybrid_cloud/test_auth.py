@@ -1,4 +1,5 @@
-from sentry.models import ApiKey, AuthProvider
+from sentry.models.apikey import ApiKey
+from sentry.models.authprovider import AuthProvider
 from sentry.services.hybrid_cloud.auth import (
     RpcAuthProvider,
     RpcAuthProviderFlags,
@@ -48,6 +49,8 @@ def test_get_org_auth_config():
                     scim_enabled=False,
                 ),
                 config=ap.config,
+                default_role=ap.default_role,
+                default_global_access=ap.default_global_access,
             ),
             has_api_key=False,
         ),

@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, audit_log, deletions, features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.sentryapps import SentryAppBaseEndpoint, catch_raised_errors
 from sentry.api.serializers import serialize
@@ -25,6 +26,12 @@ logger = logging.getLogger(__name__)
 
 @control_silo_endpoint
 class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, sentry_app) -> Response:
         return Response(serialize(sentry_app, request.user, access=request.access))
 

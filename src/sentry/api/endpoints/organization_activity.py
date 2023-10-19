@@ -2,16 +2,22 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import OrganizationActivitySerializer, serialize
-from sentry.models import Activity, OrganizationMemberTeam, Project
+from sentry.models.activity import Activity
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.types.activity import ActivityType
 
 
 @region_silo_endpoint
 class OrganizationActivityEndpoint(OrganizationMemberEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     owner = ApiOwner.ISSUES
 
     def get(self, request: Request, organization, member) -> Response:

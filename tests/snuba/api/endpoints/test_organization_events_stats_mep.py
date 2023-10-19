@@ -594,6 +594,61 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert meta == response.data["p99(measurements.custom)"]["meta"]
         assert meta == response.data["p99(measurements.another.custom)"]["meta"]
 
+    def test_no_top_events_with_project_field(self):
+        project = self.create_project()
+        response = self.do_request(
+            data={
+                # make sure to query the project with 0 events
+                "project": project.id,
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "yAxis": "count()",
+                "orderby": ["-count()"],
+                "field": ["count()", "project"],
+                "topEvents": 5,
+                "dataset": "metrics",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        # When there are no top events, we do not return an empty dict.
+        # Instead, we return a single zero-filled series for an empty graph.
+        data = response.data["data"]
+        assert [attrs for time, attrs in data] == [[{"count": 0}], [{"count": 0}]]
+
+    def test_top_events_with_transaction(self):
+        transaction_spec = [("foo", 100), ("bar", 200), ("baz", 300)]
+        for offset in range(5):
+            for transaction, duration in transaction_spec:
+                self.store_transaction_metric(
+                    duration,
+                    tags={"transaction": f"{transaction}_transaction"},
+                    timestamp=self.day_ago + timedelta(hours=offset, minutes=30),
+                )
+
+        response = self.do_request(
+            data={
+                # make sure to query the project with 0 events
+                "project": self.project.id,
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=5)),
+                "interval": "1h",
+                "yAxis": "p75(transaction.duration)",
+                "orderby": ["-p75(transaction.duration)"],
+                "field": ["p75(transaction.duration)", "transaction"],
+                "topEvents": 5,
+                "dataset": "metrics",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        for position, (transaction, duration) in enumerate(transaction_spec):
+            data = response.data[f"{transaction}_transaction"]
+            chart_data = data["data"]
+            assert data["order"] == 2 - position
+            assert [attrs for time, attrs in chart_data] == [[{"count": duration}]] * 5
+
 
 class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest

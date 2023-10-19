@@ -17,14 +17,19 @@ from sentry.integrations.slack.message_builder.issues import (
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
-from sentry.models import Group, Team, User
+from sentry.models.group import Group
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
+
+pytestmark = [requires_snuba]
 
 
 def build_test_message(
@@ -317,7 +322,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 )
             )
-            + f"?alert={incident.identifier}&referrer=slack"
+            + f"?alert={incident.identifier}&referrer=metric_alert_slack"
         )
         assert SlackIncidentsMessageBuilder(incident, IncidentStatus.CLOSED).build() == {
             "blocks": [
@@ -357,7 +362,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 )
             )
-            + f"?alert={incident.identifier}&referrer=slack"
+            + f"?alert={incident.identifier}&referrer=metric_alert_slack"
         )
         # This should fail because it pulls status from `action` instead of `incident`
         assert SlackIncidentsMessageBuilder(
@@ -397,7 +402,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 )
             )
-            + f"?alert={incident.identifier}&referrer=slack"
+            + f"?alert={incident.identifier}&referrer=metric_alert_slack"
         )
         assert SlackIncidentsMessageBuilder(
             incident, IncidentStatus.CLOSED, chart_url="chart-url"

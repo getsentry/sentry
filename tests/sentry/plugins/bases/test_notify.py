@@ -8,7 +8,10 @@ from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiUnauthorized
 from sentry.testutils.cases import TestCase
+from sentry.testutils.skips import requires_snuba
 from sentry_plugins.base import CorePluginMixin
+
+pytestmark = [requires_snuba]
 
 
 class DummyNotificationPlugin(CorePluginMixin, NotificationPlugin):

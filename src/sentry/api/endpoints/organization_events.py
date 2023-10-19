@@ -8,13 +8,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
-from sentry.apidocs.parameters import GlobalParams, VisibilityParams
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -73,9 +74,9 @@ ALLOWED_EVENTS_REFERRERS = {
 
 API_TOKEN_REFERRER = Referrer.API_AUTH_TOKEN_EVENTS.value
 
-RATE_LIMIT = 15
+RATE_LIMIT = 30
 RATE_LIMIT_WINDOW = 1
-CONCURRENT_RATE_LIMIT = 10
+CONCURRENT_RATE_LIMIT = 15
 
 DEFAULT_RATE_LIMIT = 50
 DEFAULT_RATE_LIMIT_WINDOW = 1
@@ -122,7 +123,9 @@ def rate_limit_events(request: Request, organization_slug=None, *args, **kwargs)
 @extend_schema(tags=["Discover"])
 @region_silo_endpoint
 class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
-    public = {"GET"}
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+    }
 
     enforce_rate_limit = True
 
@@ -167,7 +170,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT,
+            OrganizationParams.PROJECT,
             GlobalParams.START,
             GlobalParams.STATS_PERIOD,
             VisibilityParams.FIELD,

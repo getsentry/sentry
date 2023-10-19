@@ -5,7 +5,8 @@ from django.db import router
 from django.utils import timezone
 
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.models import AuthIdentity, OrganizationMemberMapping
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMember, organization_service
 from sentry.silo import unguarded_write
 from sentry.silo.base import SiloMode
@@ -14,10 +15,10 @@ from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.auth")
 
-AUTH_CHECK_INTERVAL = 3600
+AUTH_CHECK_INTERVAL = 3600 * 24
 
 
-@instrumented_task(name="sentry.tasks.check_auth", queue="auth", silo_mode=SiloMode.CONTROL)
+@instrumented_task(name="sentry.tasks.check_auth", queue="auth.control", silo_mode=SiloMode.CONTROL)
 def check_auth(**kwargs):
     """
     Iterates over all accounts which have not been verified in the required
@@ -35,7 +36,9 @@ def check_auth(**kwargs):
     )
     for n in range(0, len(identity_ids_list), chunk_size):
         identity_ids_chunk = identity_ids_list[n : n + chunk_size]
-        AuthIdentity.objects.filter(id__in=identity_ids_chunk).update(last_synced=now)
+        with unguarded_write(router.db_for_write(AuthIdentity)):
+            AuthIdentity.objects.filter(id__in=identity_ids_chunk).update(last_synced=now)
+
         for identity_id in identity_ids_chunk:
             check_auth_identity.apply_async(
                 kwargs={"auth_identity_id": identity_id}, expires=AUTH_CHECK_INTERVAL
@@ -43,7 +46,7 @@ def check_auth(**kwargs):
 
 
 @instrumented_task(
-    name="sentry.tasks.check_auth_identity", queue="auth", silo_mode=SiloMode.CONTROL
+    name="sentry.tasks.check_auth_identity", queue="auth.control", silo_mode=SiloMode.CONTROL
 )
 def check_auth_identity(auth_identity_id, **kwargs):
     try:

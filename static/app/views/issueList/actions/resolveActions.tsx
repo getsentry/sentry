@@ -8,7 +8,12 @@ type Props = {
   onUpdate: (data?: any) => void;
   params: Pick<
     ResolveActionsProps,
-    'disabled' | 'hasRelease' | 'latestRelease' | 'projectSlug' | 'projectFetchError'
+    | 'disabled'
+    | 'hasRelease'
+    | 'latestRelease'
+    | 'projectSlug'
+    | 'projectFetchError'
+    | 'multipleProjectsSelected'
   > & {
     confirm: ReturnType<typeof getConfirm>;
     label: ReturnType<typeof getLabel>;
@@ -24,6 +29,7 @@ function ResolveActionsContainer({
 }: Props) {
   const {
     hasRelease,
+    multipleProjectsSelected,
     latestRelease,
     projectSlug,
     confirm,
@@ -42,6 +48,7 @@ function ResolveActionsContainer({
   return (
     <ResolveActions
       hasRelease={hasRelease}
+      multipleProjectsSelected={multipleProjectsSelected}
       latestRelease={latestRelease}
       projectSlug={projectSlug}
       onUpdate={onUpdate}

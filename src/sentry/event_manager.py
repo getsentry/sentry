@@ -32,6 +32,8 @@ from django.db import IntegrityError, OperationalError, connection, router, tran
 from django.db.models import Func
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
+from urllib3 import Retry
+from urllib3.exceptions import MaxRetryError
 
 from sentry import (
     eventstore,
@@ -44,6 +46,7 @@ from sentry import (
     tsdb,
 )
 from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
+from sentry.conf.server import SEVERITY_DETECTION_RETRIES
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
@@ -75,36 +78,30 @@ from sentry.issues.producer import produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.locks import locks
-from sentry.models import (
-    CRASH_REPORT_TYPES,
-    Activity,
-    Environment,
-    EventAttachment,
-    EventDict,
-    EventUser,
-    File,
-    Group,
-    GroupEnvironment,
-    GroupHash,
-    GroupLink,
-    GroupRelease,
-    GroupResolution,
-    GroupStatus,
-    Organization,
-    Project,
-    ProjectKey,
-    PullRequest,
-    Release,
-    ReleaseCommit,
-    ReleaseEnvironment,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-    UserReport,
-    get_crashreport_key,
-)
+from sentry.models.activity import Activity
+from sentry.models.environment import Environment
+from sentry.models.event import EventDict
+from sentry.models.eventattachment import CRASH_REPORT_TYPES, EventAttachment, get_crashreport_key
+from sentry.models.eventuser import EventUser
+from sentry.models.files.file import File
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.models.grouplink import GroupLink
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.groupresolution import GroupResolution
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.models.release import follows_semver_versioning_scheme
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
+from sentry.models.pullrequest import PullRequest
+from sentry.models.release import Release, ReleaseProject, follows_semver_versioning_scheme
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.userreport import UserReport
+from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.quotas.base import index_data_category
@@ -128,7 +125,7 @@ from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_datetime, to_timestamp
-from sentry.utils.event import has_event_minified_stack_trace
+from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
 from sentry.utils.metrics import MutableTags
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
@@ -144,6 +141,8 @@ SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple")
 
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
+
+NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>", "<unlabeled event>"]
 
 
 @dataclass
@@ -458,7 +457,7 @@ class EventManager:
         project: Project,
         job: Job,
         projects: ProjectsMapping,
-        metric_tags: Dict[str, str],
+        metric_tags: MutableTags,
         raw: bool = False,
         cache_key: Optional[str] = None,
     ) -> Event:
@@ -555,9 +554,9 @@ class EventManager:
 
         _materialize_metadata_many(jobs)
 
-        kwargs = _create_kwargs(job)
+        group_creation_kwargs = _get_group_creation_kwargs(job)
 
-        kwargs["culprit"] = job["culprit"]
+        group_creation_kwargs["culprit"] = job["culprit"]
 
         # Load attachments first, but persist them at the very last after
         # posting to eventstream to make sure all counters and eventstream are
@@ -576,7 +575,7 @@ class EventManager:
                     metadata=dict(job["event_metadata"]),
                     received_timestamp=job["received_timestamp"],
                     migrate_off_hierarchical=migrate_off_hierarchical,
-                    **kwargs,
+                    **group_creation_kwargs,
                 )
                 job["groups"] = [group_info]
         except HashDiscarded as err:
@@ -1090,7 +1089,7 @@ def _materialize_metadata_many(jobs: Sequence[Job]) -> None:
         job["culprit"] = data["culprit"]
 
 
-def _create_kwargs(job: Union[Job, PerformanceJob]) -> dict[str, Any]:
+def _get_group_creation_kwargs(job: Union[Job, PerformanceJob]) -> dict[str, Any]:
     kwargs = {
         "platform": job["platform"],
         "message": job["event"].search_message,
@@ -1620,6 +1619,18 @@ def _save_aggregate(
 
                 group = _create_group(project, event, **kwargs)
 
+                if (
+                    features.has("projects:first-event-severity-calculation", event.project)
+                    and group.data.get("metadata", {}).get("severity") is None
+                ):
+                    logger.error(
+                        "Group created without severity score",
+                        extra={
+                            "event_id": event.data["event_id"],
+                            "group_id": group.id,
+                        },
+                    )
+
                 if root_hierarchical_grouphash is not None:
                     new_hashes = [root_hierarchical_grouphash]
                 else:
@@ -1715,7 +1726,10 @@ def _save_aggregate(
         ).update(group=group)
 
     is_regression = _process_existing_aggregate(
-        group=group, event=event, data=kwargs, release=release
+        group=group,
+        event=event,
+        incoming_group_values=kwargs,
+        release=release,
     )
 
     return GroupInfo(group, is_new, is_regression)
@@ -1824,56 +1838,36 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
         else None
     )
 
+    # get severity score for use in alerting
+    group_data = kwargs.pop("data", {})
+    if features.has("projects:first-event-severity-calculation", event.project):
+        severity = _get_severity_score(event)
+        if severity is not None:  # Severity can be 0
+            group_data.setdefault("metadata", {})
+            group_data["metadata"]["severity"] = severity
+
     return Group.objects.create(
         project=project,
         short_id=short_id,
         first_release_id=first_release_id,
+        data=group_data,
         **kwargs,
     )
 
 
 def _handle_regression(group: Group, event: Event, release: Optional[Release]) -> Optional[bool]:
-    should_log_extra_info = features.has(
-        "organizations:detailed-alert-logging", group.project.organization
-    )
-    logging_details = {
-        "group_id": group.id,
-        "event_id": event.event_id,
-    }
-    if should_log_extra_info:
-        logger.info("_handle_regression", extra={**logging_details})
-
     if not group.is_resolved():
-        if should_log_extra_info:
-            logger.info(
-                "_handle_regression: group.is_resolved() returned False", extra={**logging_details}
-            )
         return None
 
     # we only mark it as a regression if the event's release is newer than
     # the release which we originally marked this as resolved
     elif GroupResolution.has_resolution(group, release):
-        if should_log_extra_info:
-            logger.info(
-                "_handle_regression: GroupResolution.has_resolution() returned True",
-                extra={**logging_details},
-            )
         return None
 
     elif has_pending_commit_resolution(group):
-        if should_log_extra_info:
-            logger.info(
-                "_handle_regression: has_pending_commit_resolution() returned True",
-                extra={**logging_details},
-            )
         return None
 
     if not plugin_is_regression(group, event):
-        if should_log_extra_info:
-            logger.info(
-                "_handle_regression: plugin_is_regression() returned False",
-                extra={**logging_details},
-            )
         return None
 
     # we now think its a regression, rely on the database to validate that
@@ -1900,11 +1894,6 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             substatus=GroupSubStatus.REGRESSED,
         )
     )
-    if should_log_extra_info:
-        logger.info(
-            f"_handle_regression: is_regression evaluated to {is_regression}",
-            extra={**logging_details},
-        )
 
     group.active_at = date
     group.status = GroupStatus.UNRESOLVED
@@ -2008,32 +1997,145 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
 
 
 def _process_existing_aggregate(
-    group: Group, event: Event, data: Mapping[str, Any], release: Optional[Release]
+    group: Group, event: Event, incoming_group_values: Mapping[str, Any], release: Optional[Release]
 ) -> bool:
-    date = max(event.datetime, group.last_seen)
-    extra = {"last_seen": date, "data": data["data"]}
+    last_seen = max(event.datetime, group.last_seen)
+    updated_group_values: dict[str, Any] = {"last_seen": last_seen}
+    # Unclear why this is necessary, given that it's also in `updated_group_values`, but removing
+    # it causes unrelated tests to fail. Hard to say if that's the tests or the removal, though.
+    group.last_seen = updated_group_values["last_seen"]
+
     if (
         event.search_message
         and event.search_message != group.message
         and event.get_event_type() != TransactionEvent.key
     ):
-        extra["message"] = event.search_message
-    if group.level != data["level"]:
-        extra["level"] = data["level"]
-    if group.culprit != data["culprit"]:
-        extra["culprit"] = data["culprit"]
+        updated_group_values["message"] = event.search_message
+    if group.level != incoming_group_values["level"]:
+        updated_group_values["level"] = incoming_group_values["level"]
+    if group.culprit != incoming_group_values["culprit"]:
+        updated_group_values["culprit"] = incoming_group_values["culprit"]
+
+    # If the new event has a timestamp earlier than our current `fist_seen` value (which can happen,
+    # for example because of misaligned internal clocks on two different host machines or because of
+    # race conditions) then we want to use the current event's time
     if group.first_seen > event.datetime:
-        extra["first_seen"] = event.datetime
+        updated_group_values["first_seen"] = event.datetime
 
     is_regression = _handle_regression(group, event, release)
 
-    group.last_seen = extra["last_seen"]
+    # Merge new data with existing data
+    incoming_data = incoming_group_values["data"]
+    incoming_metadata = incoming_group_values["data"].get("metadata", {})
+
+    existing_data = group.data
+    # Grab a reference to this before it gets clobbered when we update `existing_data`
+    existing_metadata = group.data.get("metadata", {})
+
+    existing_data.update(incoming_data)
+    existing_metadata.update(incoming_metadata)
+
+    updated_group_values["data"] = existing_data
+    updated_group_values["data"]["metadata"] = existing_metadata
 
     update_kwargs = {"times_seen": 1}
 
-    buffer_incr(Group, update_kwargs, {"id": group.id}, extra)
+    buffer_incr(Group, update_kwargs, {"id": group.id}, updated_group_values)
 
     return bool(is_regression)
+
+
+severity_connection_pool = connection_from_url(
+    settings.SEVERITY_DETECTION_URL,
+    retries=Retry(
+        total=SEVERITY_DETECTION_RETRIES,  # Defaults to 1
+        status_forcelist=[
+            408,  # Request timeout
+            429,  # Too many requests
+            502,  # Bad gateway
+            503,  # Service unavailable
+            504,  # Gateway timeout
+        ],
+    ),
+    timeout=settings.SEVERITY_DETECTION_TIMEOUT,  # Defaults to 300 milliseconds
+)
+
+
+def _get_severity_score(event: Event) -> float | None:
+    op = "event_manager._get_severity_score"
+    logger_data = {"event_id": event.data["event_id"], "op": op}
+    severity = None
+
+    # We're using the title (which truncates the error message) rather than the full error type and
+    # message here because the `exception` property in event data (where they live) isn't mirrored
+    # to BigQuery for storage space reasons (stacktraces can be enormous). Since the ML model is
+    # trained on BQ data, we have to use the title to match.
+    #
+    # TODO: Figure out if there's a way to get the full error message to the model. (If we do that,
+    # though, it'll only work for `ErrorEvent`-type events. We'll still have to use `title` for
+    # `DefaultEvent`-type events - like those which come from `capture_message` calls - or find the
+    # message data elsewhere in the event.)
+    title = event.title
+    event_type = get_event_type(event.data)
+
+    # If the event hasn't yet been given a helpful title, attempt to calculate one
+    if title in NON_TITLE_EVENT_TITLES:
+        title = event_type.get_title(event_type.get_metadata(event.data))
+
+    # If there's still nothing helpful to be had, bail
+    if title in NON_TITLE_EVENT_TITLES:
+        logger_data.update(
+            {"event_type": event_type.key, "event_title": event.title, "computed_title": title}
+        )
+        logger.warning(
+            f"Unable to get severity score because of unusable `message` value '{title}'",
+            extra=logger_data,
+        )
+        return None
+
+    payload = {
+        "message": title,
+        "has_stacktrace": int(has_stacktrace(event.data)),
+        "log_level": event.data.get("level"),
+        # TODO: For now we're counting not having a `handled` value as being handled, but
+        # we should update the model to account for three values: True, False, and None
+        "handled": 0 if is_handled(event.data) is False else 1,
+    }
+
+    if options.get("processing.severity-backlog-test.timeout"):
+        payload["trigger_timeout"] = True
+    if options.get("processing.severity-backlog-test.error"):
+        payload["trigger_error"] = True
+
+    logger_data["payload"] = payload
+
+    with metrics.timer(op):
+        with sentry_sdk.start_span(op=op):
+            try:
+                response = severity_connection_pool.urlopen(
+                    "POST",
+                    "/issues/severity-score",
+                    body=json.dumps(payload),
+                    headers={"content-type": "application/json;charset=utf-8"},
+                )
+                severity = json.loads(response.data).get("severity")
+            except MaxRetryError as e:
+                logger.warning(
+                    f"Unable to get severity score from microservice after {SEVERITY_DETECTION_RETRIES} retr{'ies' if SEVERITY_DETECTION_RETRIES >1 else 'y'}. Got MaxRetryError caused by: {repr(e.reason)}.",
+                    extra=logger_data,
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Unable to get severity score from microservice. Got: {repr(e)}.",
+                    extra=logger_data,
+                )
+            else:
+                logger.info(
+                    f"Got severity score of {severity} for event {event.data['event_id']}",
+                    extra=logger_data,
+                )
+
+    return severity
 
 
 Attachment = CachedAttachment
@@ -2356,7 +2458,7 @@ def _calculate_event_grouping(
     Main entrypoint for modifying/enhancing and grouping an event, writes
     hashes back into event payload.
     """
-    metric_tags = {
+    metric_tags: MutableTags = {
         "grouping_config": grouping_config["id"],
         "platform": event.platform or "unknown",
     }
@@ -2451,6 +2553,18 @@ def _save_grouphash_and_group(
             group = _create_group(project, event, **group_kwargs)
             group_hash.update(group=group)
 
+            if (
+                features.has("projects:first-event-severity-calculation", event.project)
+                and group.data.get("metadata", {}).get("severity") is None
+            ):
+                logger.error(
+                    "Group created without severity score",
+                    extra={
+                        "event_id": event.data["event_id"],
+                        "group_id": group.id,
+                    },
+                )
+
     if group is None:
         # If we failed to create the group it means another worker beat us to
         # it. Since a GroupHash can only be created in a transaction with the
@@ -2468,6 +2582,25 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
         event_id = event.event_id
 
         performance_problems = job["performance_problems"]
+        if features.has("organizations:issue-platform-extra-logging", project.organization):
+            if performance_problems and len(performance_problems) > 0:
+                logger.warning(
+                    f"Detected {len(performance_problems)} performance problems",
+                    extra={
+                        "performance_problems": performance_problems,
+                        "project_id": project.id,
+                        "event_id": event_id,
+                    },
+                )
+            else:
+                logger.warning(
+                    "No performance problems detected",
+                    extra={
+                        "project_id": project.id,
+                        "event_id": event_id,
+                    },
+                )
+
         for problem in performance_problems:
             occurrence = IssueOccurrence(
                 id=uuid.uuid4().hex,

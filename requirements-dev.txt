@@ -2,9 +2,10 @@
 
 covdefaults>=2.3.0
 docker>=3.7.0,<3.8.0
-freezegun>=1.2.2
+time-machine>=2.13.0
 honcho>=1.1.0
 openapi-core>=0.14.2
+psutil
 pytest>=7.2.1
 pytest-cov>=4.0.0
 pytest-django>=4.4.0
@@ -19,7 +20,7 @@ sentry-cli>=2.16.0
 # pre-commit dependencies
 pre-commit>=3.3
 black>=22.10.0
-flake8>=6
+flake8>=6.1
 flake8-bugbear>=22.10
 pyupgrade>=3.2.3
 isort>=5.10.1
@@ -43,6 +44,7 @@ types-oauthlib
 types-parsimonious
 types-pillow
 types-protobuf
+types-psutil
 types-psycopg2
 types-python-dateutil
 types-pytz

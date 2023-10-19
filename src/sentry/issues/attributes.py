@@ -12,7 +12,9 @@ from django.dispatch import receiver
 from sentry_kafka_schemas.schema_types.group_attributes_v1 import GroupAttributesSnapshot
 
 from sentry import options
-from sentry.models import Group, GroupAssignee, GroupOwner, GroupOwnerType
+from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.signals import issue_assigned, issue_deleted, issue_unassigned
 from sentry.utils import json, metrics
 from sentry.utils.arroyo_producer import SingletonProducer

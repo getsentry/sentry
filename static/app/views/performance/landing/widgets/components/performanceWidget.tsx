@@ -2,6 +2,7 @@ import {Fragment, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorPanel from 'sentry/components/charts/errorPanel';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {space} from 'sentry/styles/space';
@@ -144,7 +145,11 @@ export function DataDisplay<T extends WidgetDataConstraint>(
             })}
           </ContentContainer>
         ))}
-        loadingComponent={<PerformanceWidgetPlaceholder height={`${totalHeight}px`} />}
+        loadingComponent={
+          <LoadingWrapper height={totalHeight}>
+            <StyledLoadingIndicator size={40} />
+          </LoadingWrapper>
+        }
         emptyComponent={
           EmptyComponent ? (
             <EmptyComponent />
@@ -182,6 +187,17 @@ const PerformanceWidgetPlaceholder = styled(Placeholder)`
   border-color: transparent;
   border-bottom-right-radius: inherit;
   border-bottom-left-radius: inherit;
+`;
+
+const LoadingWrapper = styled('div')<{height?: number}>`
+  height: ${p => p.height}px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin: 0;
 `;
 
 GenericPerformanceWidget.defaultProps = {

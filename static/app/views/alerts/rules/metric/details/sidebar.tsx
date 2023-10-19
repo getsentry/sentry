@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
 import AlertBadge from 'sentry/components/alertBadge';
+import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import DateTime from 'sentry/components/dateTime';
@@ -14,6 +15,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {getSearchFilters, isOnDemandSearchKey} from 'sentry/utils/onDemandMetrics/index';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {
   Action,
@@ -26,6 +28,7 @@ import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 interface MetricDetailsSidebarProps {
+  isOnDemandMetricAlert: boolean;
   rule: MetricRule;
 }
 
@@ -118,9 +121,13 @@ function TriggerDescription({
   );
 }
 
-export function MetricDetailsSidebar({rule}: MetricDetailsSidebarProps) {
+export function MetricDetailsSidebar({
+  rule,
+  isOnDemandMetricAlert,
+}: MetricDetailsSidebarProps) {
   // get current status
   const latestIncident = rule.latestIncident;
+
   const status = latestIncident ? latestIncident.status : IncidentStatus.CLOSED;
   // The date at which the alert was triggered or resolved
   const activityDate = latestIncident?.dateClosed ?? latestIncident?.dateStarted ?? null;
@@ -177,6 +184,21 @@ export function MetricDetailsSidebar({rule}: MetricDetailsSidebarProps) {
           />
         )}
       </SidebarGroup>
+      {isOnDemandMetricAlert && (
+        <SidebarGroup>
+          <Heading>{t('Filters Used')}</Heading>
+          <KeyValueTable>
+            {getSearchFilters(rule.query).map(({key, operator, value}) => (
+              <FilterKeyValueTableRow
+                key={key}
+                keyName={key}
+                operator={operator}
+                value={value}
+              />
+            ))}
+          </KeyValueTable>
+        </SidebarGroup>
+      )}
       <SidebarGroup>
         <Heading>{t('Alert Rule Details')}</Heading>
         <KeyValueTable>
@@ -221,6 +243,51 @@ export function MetricDetailsSidebar({rule}: MetricDetailsSidebarProps) {
     </Fragment>
   );
 }
+
+function FilterKeyValueTableRow({
+  keyName,
+  operator,
+  value,
+}: {
+  keyName: string;
+  operator: string;
+  value: string;
+}) {
+  return (
+    <KeyValueTableRow
+      keyName={
+        <KeyWrapper>
+          {isOnDemandSearchKey(keyName) && (
+            <span>
+              <OnDemandWarningIcon
+                msg={t(
+                  'We don’t routinely collect metrics from this property. As such, historical data may be limited.'
+                )}
+              />
+            </span>
+          )}
+
+          {keyName}
+        </KeyWrapper>
+      }
+      value={
+        <OverflowTableValue>
+          {operator} {value}
+        </OverflowTableValue>
+      }
+    />
+  );
+}
+
+const KeyWrapper = styled('div')`
+  display: flex;
+  gap: ${space(0.75)};
+
+  > span {
+    margin-top: ${space(0.25)};
+    height: ${space(2)};
+  }
+`;
 
 const SidebarGroup = styled('div')`
   margin-bottom: ${space(3)};

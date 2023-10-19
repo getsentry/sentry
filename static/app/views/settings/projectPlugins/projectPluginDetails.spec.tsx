@@ -1,3 +1,7 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Plugin} from 'sentry-fixture/plugin';
+import {Plugins} from 'sentry-fixture/plugins';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
@@ -6,10 +10,10 @@ import ProjectPluginDetailsContainer, {
 } from 'sentry/views/settings/projectPlugins/details';
 
 describe('ProjectPluginDetails', function () {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const project = TestStubs.Project();
-  const plugins = TestStubs.Plugins();
-  const plugin = TestStubs.Plugin();
+  const plugins = Plugins();
+  const plugin = Plugin();
   const routerProps = TestStubs.routeComponentProps();
 
   beforeAll(function () {
@@ -45,7 +49,7 @@ describe('ProjectPluginDetails', function () {
   });
 
   it('renders', function () {
-    const {container} = render(
+    render(
       <ProjectPluginDetailsContainer
         {...routerProps}
         organization={organization}
@@ -56,8 +60,6 @@ describe('ProjectPluginDetails', function () {
         }}
       />
     );
-
-    expect(container).toSnapshot();
   });
 
   it('resets plugin', async function () {

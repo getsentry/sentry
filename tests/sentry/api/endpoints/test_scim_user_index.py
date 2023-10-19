@@ -6,8 +6,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry import audit_log
-from sentry.models import InviteStatus, OrganizationMember
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.scim.endpoints.utils import SCIMQueryParamSerializer
 from sentry.silo import SiloMode
 from sentry.testutils.cases import SCIMAzureTestCase, SCIMTestCase
@@ -15,13 +15,15 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, region_silo_test
 
-CREATE_USER_POST_DATA = {
-    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
-    "userName": "test.user@okta.local",
-    "name": {"givenName": "Test", "familyName": "User"},
-    "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
-    "active": True,
-}
+
+def post_data():
+    return {
+        "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+        "userName": "test.user@okta.local",
+        "name": {"givenName": "Test", "familyName": "User"},
+        "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
+        "active": True,
+    }
 
 
 def merge_dictionaries(dict1, dict2):
@@ -51,7 +53,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
     def test_post_users_successful(self, mock_metrics):
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         with outbox_runner():
-            response = self.client.post(url, CREATE_USER_POST_DATA)
+            response = self.client.post(url, post_data())
         assert response.status_code == 201, response.content
         member = OrganizationMember.objects.get(
             organization=self.organization, email="test.user@okta.local"
@@ -87,7 +89,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         with outbox_runner():
             response = self.client.post(
-                url, merge_dictionaries(CREATE_USER_POST_DATA, {"sentryOrgRole": "member"})
+                url, merge_dictionaries(post_data(), {"sentryOrgRole": "member"})
             )
         assert response.status_code == 201, response.content
         member = OrganizationMember.objects.get(
@@ -138,7 +140,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
 
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         with outbox_runner():
-            response = self.client.post(url, CREATE_USER_POST_DATA)
+            response = self.client.post(url, post_data())
 
         assert response.status_code == 201, response.content
         member = OrganizationMember.objects.get(
@@ -175,7 +177,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
-        response = self.client.post(url, CREATE_USER_POST_DATA)
+        response = self.client.post(url, post_data())
         assert response.status_code == 409, response.content
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
@@ -185,10 +187,11 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         assert not member.flags["idp:role-restricted"]
 
     def test_post_users_with_role_valid(self):
-        CREATE_USER_POST_DATA["sentryOrgRole"] = "manager"
+        data = post_data()
+        data["sentryOrgRole"] = "manager"
         with outbox_runner():
             resp = self.get_success_response(
-                self.organization.slug, method="post", status_code=201, **CREATE_USER_POST_DATA
+                self.organization.slug, method="post", status_code=201, **data
             )
         member = OrganizationMember.objects.get(
             organization=self.organization, email="test.user@okta.local"
@@ -212,9 +215,10 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         member.delete()
 
         # check role is case insensitive
-        CREATE_USER_POST_DATA["sentryOrgRole"] = "mAnaGer"
+        data = post_data()
+        data["sentryOrgRole"] = "mAnaGer"
         resp = self.get_success_response(
-            self.organization.slug, method="post", status_code=201, **CREATE_USER_POST_DATA
+            self.organization.slug, method="post", status_code=201, **data
         )
         member = OrganizationMember.objects.get(
             organization=self.organization, email="test.user@okta.local"
@@ -228,9 +232,9 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         member.delete()
 
         # Empty org role -> default
-        CREATE_USER_POST_DATA["sentryOrgRole"] = ""
+        data["sentryOrgRole"] = ""
         resp = self.get_success_response(
-            self.organization.slug, method="post", status_code=201, **CREATE_USER_POST_DATA
+            self.organization.slug, method="post", status_code=201, **data
         )
         member = OrganizationMember.objects.get(
             organization=self.organization, email="test.user@okta.local"
@@ -244,9 +248,9 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         member.delete()
 
         # no sentry org role -> default
-        del CREATE_USER_POST_DATA["sentryOrgRole"]
+        del data["sentryOrgRole"]
         resp = self.get_success_response(
-            self.organization.slug, method="post", status_code=201, **CREATE_USER_POST_DATA
+            self.organization.slug, method="post", status_code=201, **data
         )
         member = OrganizationMember.objects.get(
             organization=self.organization, email="test.user@okta.local"
@@ -258,9 +262,10 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
 
     def test_post_users_with_role_invalid(self):
         # Non-existant role
-        CREATE_USER_POST_DATA["sentryOrgRole"] = "nonexistant"
+        data = post_data()
+        data["sentryOrgRole"] = "nonexistant"
         resp = self.get_error_response(
-            self.organization.slug, method="post", status_code=400, **CREATE_USER_POST_DATA
+            self.organization.slug, method="post", status_code=400, **data
         )
         assert resp.data == {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
@@ -268,9 +273,9 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         }
 
         # Unallowed role
-        CREATE_USER_POST_DATA["sentryOrgRole"] = "owner"
+        data["sentryOrgRole"] = "owner"
         resp = self.get_error_response(
-            self.organization.slug, method="post", status_code=400, **CREATE_USER_POST_DATA
+            self.organization.slug, method="post", status_code=400, **data
         )
         assert resp.data == {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
@@ -434,7 +439,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         assert response.data == correct_get_data
 
     def test_pagination(self):
-        for _ in range(0, 150):
+        for _ in range(0, 15):
             self.create_member(
                 user=self.create_user(),
                 organization=self.organization,
@@ -443,25 +448,18 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
             )
 
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
-        response = self.client.get(f"{url}?startIndex=1&count=100")
-        assert response.data["totalResults"] == 151
-        assert response.data["itemsPerPage"] == 100
+        response = self.client.get(f"{url}?startIndex=1&count=10")
+        assert response.data["totalResults"] == 16
+        assert response.data["itemsPerPage"] == 10
         assert response.data["startIndex"] == 1
-        assert len(response.data["Resources"]) == 100
+        assert len(response.data["Resources"]) == 10
 
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
-        response = self.client.get(f"{url}?startIndex=40&count=100")
-        assert response.data["totalResults"] == 151
-        assert response.data["itemsPerPage"] == 100
-        assert response.data["startIndex"] == 40
-        assert len(response.data["Resources"]) == 100
-
-        url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
-        response = self.client.get(f"{url}?startIndex=101&count=100")
-        assert len(response.data["Resources"]) == 51
-        assert response.data["totalResults"] == 151
-        assert response.data["itemsPerPage"] == 51
-        assert response.data["startIndex"] == 101
+        response = self.client.get(f"{url}?startIndex=10&count=10")
+        assert response.data["totalResults"] == 16
+        assert response.data["itemsPerPage"] == 7
+        assert response.data["startIndex"] == 10
+        assert len(response.data["Resources"]) == 7
 
 
 @region_silo_test(stable=True)

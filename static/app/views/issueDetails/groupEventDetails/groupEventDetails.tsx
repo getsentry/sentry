@@ -26,6 +26,7 @@ import {
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import fetchSentryAppInstallations from 'sentry/utils/fetchSentryAppInstallations';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -184,6 +185,8 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
     );
   };
 
+  const issueTypeConfig = getConfigForIssueType(group);
+
   return (
     <TransactionProfileIdProvider
       projectId={event?.projectID}
@@ -220,7 +223,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
                         group={group}
                       />
                       <QuickTraceContext.Provider value={results}>
-                        {eventWithMeta && (
+                        {eventWithMeta && issueTypeConfig.stats.enabled && (
                           <GroupEventHeader
                             group={group}
                             event={eventWithMeta}

@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {
   act,
   render,
@@ -36,7 +38,7 @@ jest.mock('lodash/debounce', () => {
 
 describe('ProjectsDashboard', function () {
   const api = new MockApiClient();
-  const org = TestStubs.Organization();
+  const org = Organization();
   const team = TestStubs.Team();
   const teams = [team];
 

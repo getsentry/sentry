@@ -1,18 +1,22 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Tuple
 
 from django.conf import settings
 from django.db import models
 
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import ImportKind
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
 from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import OptionManager, Value
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Project, User
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
+    from sentry.models.user import User
     from sentry.services.hybrid_cloud.user import RpcUser
 
 option_scope_error = "this is not a supported use case, scope to project OR organization"
@@ -202,3 +206,15 @@ class UserOption(Model):
         unique_together = (("user", "project_id", "key"), ("user", "organization_id", "key"))
 
     __repr__ = sane_repr("user_id", "project_id", "organization_id", "key", "value")
+
+    def write_relocation_import(
+        self, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
+        # TODO(getsentry/team-ospo#190): This circular import is a bit gross. See if we can't find a
+        # better place for this logic to live.
+        from sentry.api.endpoints.user_details import UserOptionsSerializer
+
+        serializer_options = UserOptionsSerializer(data={self.key: self.value}, partial=True)
+        serializer_options.is_valid(raise_exception=True)
+
+        return super().write_relocation_import(scope, flags)

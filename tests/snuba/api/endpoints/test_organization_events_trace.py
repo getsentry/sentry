@@ -20,6 +20,7 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
     FEATURES = [
         "organizations:performance-view",
         "organizations:performance-file-io-main-thread-detector",
+        "organizations:trace-view-load-more",
     ]
 
     def get_start_end(self, duration):
@@ -72,8 +73,6 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
                     "performance.issues.all.problem-detection": 1.0,
                     "performance-file-io-main-thread-creation": 1.0,
                 }
-            ), self.feature(
-                ["projects:performance-suspect-spans-ingestion"]
             ):
                 return self.store_event(data, project_id=project_id, **kwargs)
 
@@ -820,6 +819,21 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             response = self.client.get(
                 self.url,
                 data={"project": -1},
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        self.assert_trace_data(response.data[0])
+        # We shouldn't have detailed fields here
+        assert "transaction.status" not in response.data[0]
+        assert "tags" not in response.data[0]
+        assert "measurements" not in response.data[0]
+
+    def test_simple_with_limit(self):
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": -1, "limit": 200},
                 format="json",
             )
         assert response.status_code == 200, response.content

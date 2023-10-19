@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import * as useExperiment from 'sentry/utils/useExperiment';
@@ -5,7 +7,7 @@ import * as useExperiment from 'sentry/utils/useExperiment';
 import {useProjectCreationAccess} from './useProjectCreationAccess';
 
 describe('ProjectCreationAccess', function () {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const teams = [TestStubs.Team()];
 
   it('passes project creation eligibility for org-manager', function () {
@@ -16,7 +18,7 @@ describe('ProjectCreationAccess', function () {
   });
 
   it('fails project creation eligibility for org-members', function () {
-    const member_org = TestStubs.Organization({
+    const member_org = Organization({
       access: ['org:read', 'team:read', 'project:read'],
     });
 
@@ -27,7 +29,7 @@ describe('ProjectCreationAccess', function () {
   });
 
   it('passes project creation eligibility for team-admin', function () {
-    const member_org = TestStubs.Organization({
+    const member_org = Organization({
       access: ['org:read', 'team:read', 'project:read'],
     });
     const admin_teams = [
@@ -41,10 +43,10 @@ describe('ProjectCreationAccess', function () {
   });
 
   it('passes if org is part of experiment and member has no access', function () {
-    const experiment_org = TestStubs.Organization({
+    const experiment_org = Organization({
       access: ['org:read', 'team:read', 'project:read'],
       features: ['team-project-creation-all'],
-      experiments: [{ProjectCreationForAllExperimentV2: 1}],
+      experiments: {ProjectCreationForAllExperimentV2: 1},
     });
 
     jest.spyOn(useExperiment, 'useExperiment').mockReturnValue({
@@ -59,10 +61,10 @@ describe('ProjectCreationAccess', function () {
   });
 
   it('fails if org is not part of experiment and member has no access', function () {
-    const no_exp_org = TestStubs.Organization({
+    const no_exp_org = Organization({
       access: ['org:read', 'team:read', 'project:read'],
       features: ['team-project-creation-all'],
-      experiments: [{ProjectCreationForAllExperimentV2: 0}],
+      experiments: {ProjectCreationForAllExperimentV2: 0},
     });
 
     jest.spyOn(useExperiment, 'useExperiment').mockReturnValue({
@@ -77,10 +79,10 @@ describe('ProjectCreationAccess', function () {
   });
 
   it('fails if org does not have the feature regardless of experiment value', function () {
-    const no_flag_org = TestStubs.Organization({
+    const no_flag_org = Organization({
       access: ['org:read', 'team:read', 'project:read'],
       features: [],
-      experiments: [{ProjectCreationForAllExperimentV2: 1}],
+      experiments: {ProjectCreationForAllExperimentV2: 1},
     });
 
     jest.spyOn(useExperiment, 'useExperiment').mockReturnValue({

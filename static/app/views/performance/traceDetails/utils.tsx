@@ -11,6 +11,7 @@ import {
 } from 'sentry/utils/performance/quickTrace/types';
 import {isTraceSplitResult, reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
 
+import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
 import {TraceInfo} from './types';
 
 export function getTraceDetailsUrl(
@@ -20,14 +21,21 @@ export function getTraceDetailsUrl(
   query: Query
 ): LocationDescriptor {
   const {start, end, statsPeriod} = dateSelection;
+
+  const queryParams = {
+    ...query,
+    statsPeriod,
+    [PAGE_URL_PARAM.PAGE_START]: start,
+    [PAGE_URL_PARAM.PAGE_END]: end,
+  };
+
+  if (organization.features.includes('trace-view-load-more')) {
+    queryParams.limit = DEFAULT_TRACE_ROWS_LIMIT;
+  }
+
   return {
     pathname: `/organizations/${organization.slug}/performance/trace/${traceSlug}/`,
-    query: {
-      ...query,
-      statsPeriod,
-      [PAGE_URL_PARAM.PAGE_START]: start,
-      [PAGE_URL_PARAM.PAGE_END]: end,
-    },
+    query: queryParams,
   };
 }
 
@@ -37,7 +45,7 @@ function transactionVisitor() {
       accumulator.errors.add(error.event_id);
     }
     for (const performanceIssue of event.performance_issues ?? []) {
-      accumulator.errors.add(performanceIssue.event_id);
+      accumulator.performanceIssues.add(performanceIssue.event_id);
     }
 
     accumulator.transactions.add(event.event_id);
@@ -94,6 +102,7 @@ export function getTraceInfo(
     startTimestamp: Number.MAX_SAFE_INTEGER,
     endTimestamp: 0,
     maxGeneration: 0,
+    trailingOrphansCount: 0,
   };
 
   const transactionsInfo = traces.reduce(
@@ -105,6 +114,7 @@ export function getTraceInfo(
   // Accumulate orphan error information.
   return orphanErrors.reduce((accumulator: TraceInfo, event: TraceError) => {
     accumulator.errors.add(event.event_id);
+    accumulator.trailingOrphansCount++;
 
     if (event.timestamp) {
       accumulator.startTimestamp = Math.min(accumulator.startTimestamp, event.timestamp);

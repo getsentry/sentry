@@ -1,6 +1,7 @@
 from functools import cached_property
 
-from sentry.models import Environment, UserReport
+from sentry.models.environment import Environment
+from sentry.models.userreport import UserReport
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test

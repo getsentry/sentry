@@ -7,6 +7,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
 from sentry.api.event_search import parse_search_query
@@ -26,7 +28,10 @@ from sentry.utils.snuba import QueryMemoryLimitExceeded
 @region_silo_endpoint
 @extend_schema(tags=["Replays"])
 class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
-    public = {"GET"}
+    owner = ApiOwner.REPLAY
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+    }
 
     def get_replay_filter_params(self, request, organization):
 

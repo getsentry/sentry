@@ -6,15 +6,13 @@ import {GettingStartedWithAIOHTTP, steps} from './aiohttp';
 
 describe('GettingStartedWithAIOHTTP', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithAIOHTTP dsn="test-dsn" />);
+    render(<GettingStartedWithAIOHTTP dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
-    for (const step of steps()) {
+    for (const step of steps({sentryInitContent: 'test-init-content'})) {
       expect(
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

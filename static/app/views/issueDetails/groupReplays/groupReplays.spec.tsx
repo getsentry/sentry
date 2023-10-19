@@ -17,6 +17,7 @@ type InitializeOrgProps = {
     features?: string[];
   };
 };
+import {ReplayList} from 'sentry-fixture/replayList';
 
 const REPLAY_ID_1 = '346789a703f6454384f1de473b8b9fcc';
 const REPLAY_ID_2 = 'b05dae9b6be54d21a4d5ad9f8f02b780';
@@ -110,6 +111,7 @@ describe('GroupReplays', () => {
           expect.objectContaining({
             query: {
               returnIds: true,
+              data_source: 'discover',
               query: `issue.id:[${mockGroup.id}]`,
               statsPeriod: '14d',
               project: -1,
@@ -135,7 +137,6 @@ describe('GroupReplays', () => {
                 'os',
                 'project_id',
                 'started_at',
-                'urls',
                 'user',
               ],
               per_page: 50,
@@ -167,7 +168,7 @@ describe('GroupReplays', () => {
         },
       });
 
-      const {container} = render(<GroupReplays group={mockGroup} />, {
+      render(<GroupReplays group={mockGroup} />, {
         context: routerContext,
         organization,
         router,
@@ -178,7 +179,6 @@ describe('GroupReplays', () => {
       ).toBeInTheDocument();
       expect(mockReplayCountApi).toHaveBeenCalledTimes(1);
       expect(mockReplayApi).toHaveBeenCalledTimes(1);
-      expect(container).toSnapshot();
     });
 
     it('should display error message when api call fails', async () => {
@@ -294,7 +294,7 @@ describe('GroupReplays', () => {
         body: {
           data: [
             {
-              ...TestStubs.ReplayList()[0],
+              ...ReplayList()[0],
               count_errors: 1,
               duration: 52346,
               finished_at: new Date('2022-09-15T06:54:00+00:00'),
@@ -306,7 +306,7 @@ describe('GroupReplays', () => {
               ],
             },
             {
-              ...TestStubs.ReplayList()[0],
+              ...ReplayList()[0],
               count_errors: 4,
               duration: 400,
               finished_at: new Date('2022-09-21T21:40:38+00:00'),

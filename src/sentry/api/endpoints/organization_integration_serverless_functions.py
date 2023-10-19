@@ -4,11 +4,12 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_integrations import RegionOrganizationIntegrationBaseEndpoint
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.mixins import ServerlessMixin
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import IntegrationError
 
 ACTIONS = ["enable", "disable", "updateVersion"]
@@ -21,6 +22,11 @@ class ServerlessActionSerializer(CamelSnakeSerializer):
 
 @region_silo_endpoint
 class OrganizationIntegrationServerlessFunctionsEndpoint(RegionOrganizationIntegrationBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(
         self,
         request: Request,

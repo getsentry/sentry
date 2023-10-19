@@ -1,3 +1,5 @@
+import {AccountEmails as AccountEmailsFixture} from 'sentry-fixture/accountEmails';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import AccountEmails from 'sentry/views/settings/account/accountEmails';
@@ -11,14 +13,12 @@ describe('AccountEmails', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: TestStubs.AccountEmails(),
+      body: AccountEmailsFixture(),
     });
   });
 
   it('renders with emails', function () {
-    const {container} = render(<AccountEmails />);
-
-    expect(container).toSnapshot();
+    render(<AccountEmails />);
   });
 
   it('can remove an email', async function () {

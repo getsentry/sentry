@@ -1,6 +1,7 @@
 import logging
 import time
-from typing import Any, List, MutableMapping, MutableSequence, Optional, Union
+from dataclasses import dataclass
+from typing import Any, List, Mapping, MutableMapping, MutableSequence, Optional, Union
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
@@ -10,10 +11,10 @@ from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.types import Message, Value
 
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import kafka_config, metrics
 
 MessageBatch = List[Message[KafkaPayload]]
-IndexerOutputMessageBatch = MutableSequence[Message[Union[RoutingPayload, KafkaPayload]]]
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +22,18 @@ DEFAULT_QUEUED_MAX_MESSAGE_KBYTES = 50000
 DEFAULT_QUEUED_MIN_MESSAGES = 100000
 
 
+@dataclass(frozen=True)
+class IndexerOutputMessageBatch:
+    data: MutableSequence[Message[Union[RoutingPayload, KafkaPayload]]]
+    cogs_data: Mapping[UseCaseID, int]
+
+
 def get_config(
-    topic: str, group_id: str, auto_offset_reset: str, strict_offset_reset: bool
+    topic: str,
+    group_id: str,
+    auto_offset_reset: str,
+    strict_offset_reset: bool,
+    group_instance_id: Optional[str] = None,
 ) -> MutableMapping[Any, Any]:
     cluster_name: str = kafka_config.get_topic_definition(topic)["cluster"]
     consumer_config: MutableMapping[str, Any] = build_kafka_consumer_configuration(
@@ -35,6 +46,8 @@ def get_config(
         queued_max_messages_kbytes=DEFAULT_QUEUED_MAX_MESSAGE_KBYTES,
         queued_min_messages=DEFAULT_QUEUED_MIN_MESSAGES,
     )
+    if group_instance_id is not None:
+        consumer_config["group.instance.id"] = str(group_instance_id)
     return consumer_config
 
 

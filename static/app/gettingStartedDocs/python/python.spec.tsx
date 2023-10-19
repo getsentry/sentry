@@ -6,7 +6,7 @@ import {GettingStartedWithPython, steps} from './python';
 
 describe('GettingStartedWithPython', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithPython dsn="test-dsn" />);
+    render(<GettingStartedWithPython dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithPython', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

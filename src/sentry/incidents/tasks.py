@@ -18,7 +18,7 @@ from sentry.incidents.models import (
     IncidentStatusMethod,
 )
 from sentry.incidents.utils.types import SubscriptionUpdate
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
@@ -208,6 +208,13 @@ def handle_trigger_action(
         metrics.incr("incidents.alert_rules.action.skipping_missing_project")
         return
 
+    incident_activity = (
+        IncidentActivity.objects.filter(incident=incident, value=new_status).order_by("-id").first()
+    )
+    notification_uuid = str(incident_activity.notification_uuid) if incident_activity else None
+    if notification_uuid is None:
+        metrics.incr("incidents.alert_rules.action.incident_activity_missing")
+
     metrics.incr(
         "incidents.alert_rules.action.{}.{}".format(
             AlertRuleTriggerAction.Type(action.type).name.lower(), method
@@ -215,7 +222,12 @@ def handle_trigger_action(
     )
 
     getattr(action, method)(
-        action, incident, project, metric_value=metric_value, new_status=IncidentStatus(new_status)
+        action,
+        incident,
+        project,
+        metric_value=metric_value,
+        new_status=IncidentStatus(new_status),
+        notification_uuid=notification_uuid,
     )
 
 

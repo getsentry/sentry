@@ -9,12 +9,15 @@ from responses import matchers
 
 from sentry.api.serializers import ExternalEventSerializer, serialize
 from sentry.integrations.pagerduty.client import PagerDutyProxyClient
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 # external_id is the account name in pagerduty
 EXTERNAL_ID = "example-pagerduty"

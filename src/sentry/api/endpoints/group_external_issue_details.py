@@ -2,13 +2,18 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import deletions
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
-from sentry.models import PlatformExternalIssue
+from sentry.models.platformexternalissue import PlatformExternalIssue
 
 
 @region_silo_endpoint
 class GroupExternalIssueDetailsEndpoint(GroupEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+    }
+
     def delete(self, request: Request, external_issue_id, group) -> Response:
         try:
             external_issue = PlatformExternalIssue.objects.get(

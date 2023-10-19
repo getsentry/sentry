@@ -8,7 +8,6 @@ import {
 } from 'react';
 import styled from '@emotion/styled';
 
-import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -73,7 +72,7 @@ function BreadcrumbItem({
   startTimestampMs,
   style,
 }: Props) {
-  const {color, description, projectSlug, title, type, timestampMs} =
+  const {color, description, projectSlug, title, icon, timestampMs} =
     getCrumbOrFrameData(frame);
 
   const handleDimensionChange = useCallback(
@@ -92,7 +91,7 @@ function BreadcrumbItem({
       className={className}
     >
       <IconWrapper color={color} hasOccurred>
-        <BreadcrumbIcon type={type} />
+        {icon}
       </IconWrapper>
       <CrumbDetails>
         <TitleContainer>

@@ -1,7 +1,7 @@
 import partition from 'lodash/partition';
 
-import {PlatformKey, replayPlatforms} from 'sentry/data/platformCategories';
-import {PlatformIntegration, Project} from 'sentry/types';
+import {replayPlatforms} from 'sentry/data/platformCategories';
+import {PlatformIntegration, PlatformKey, Project} from 'sentry/types';
 
 export function generateDocKeys(platform: PlatformKey): string[] {
   const platformKey = platform.startsWith('javascript')

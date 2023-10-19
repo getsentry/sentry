@@ -1,4 +1,6 @@
-from sentry.models import NotificationSetting
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
@@ -80,18 +82,14 @@ class UserNotificationDetailsPutTest(UserNotificationDetailsTestBase):
     method = "put"
 
     def test_saves_and_returns_values(self):
+        org = self.create_organization()
+        self.create_member(user=self.user, organization=org)
         data = {
             "deployNotifications": 2,
             "personalActivityNotifications": True,
             "selfAssignOnResolve": True,
         }
-        response = self.get_success_response("me", **data)
-
-        assert response.data.get("deployNotifications") == 2
-        assert response.data.get("personalActivityNotifications") is True
-        assert response.data.get("selfAssignOnResolve") is True
-        assert response.data.get("subscribeByDefault") is True
-        assert response.data.get("workflowNotifications") == 1
+        self.get_success_response("me", **data)
 
         value = NotificationSetting.objects.get_settings(
             ExternalProviders.EMAIL,
@@ -100,16 +98,15 @@ class UserNotificationDetailsPutTest(UserNotificationDetailsTestBase):
         )
         assert value == NotificationSettingOptionValues.ALWAYS
 
-    # def test_save_approvals(self):
-    #     data = {"approval": {"user": {"me": {"email": "always"}}}}
-    #
-    #     self.get_success_response("me", **data)
-    #     value = NotificationSetting.objects.get_settings(
-    #         ExternalProviders.EMAIL,
-    #         NotificationSettingTypes.APPROVAL,
-    #         user_id=self.user.id,
-    #     )
-    #     assert value == NotificationSettingOptionValues.ALWAYS
+        query_args = {
+            "user_id": self.user.id,
+            "team_id": None,
+            "value": "always",
+            "scope_type": "user",
+            "scope_identifier": self.user.id,
+        }
+        assert NotificationSettingOption.objects.filter(**query_args).exists()
+        assert NotificationSettingProvider.objects.filter(**query_args, provider="email")
 
     def test_saves_and_returns_values_when_defaults_present(self):
         NotificationSetting.objects.update_settings(

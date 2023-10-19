@@ -4,7 +4,7 @@ import enum
 import logging
 
 from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.integration import integration_service
 
 from .client import MsTeamsClient, MsTeamsPreInstallClient, get_token_data
@@ -101,18 +101,20 @@ def send_incident_alert_notification(
     incident: Incident,
     metric_value: int | None,
     new_status: IncidentStatus,
-) -> None:
+    notification_uuid: str | None = None,
+) -> bool:
     from .card_builder import build_incident_attachment
 
     if action.target_identifier is None:
         raise ValueError("Can't send without `target_identifier`")
 
-    attachment = build_incident_attachment(incident, new_status, metric_value)
-    integration_service.send_msteams_incident_alert_notification(
+    attachment = build_incident_attachment(incident, new_status, metric_value, notification_uuid)
+    success = integration_service.send_msteams_incident_alert_notification(
         integration_id=action.integration_id,
         channel=action.target_identifier,
         attachment=attachment,
     )
+    return success
 
 
 def get_preinstall_client(service_url):

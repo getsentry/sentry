@@ -7,24 +7,22 @@ from django.http import HttpResponse
 from sentry.integrations.msteams.card_builder.identity import build_linking_card
 from sentry.integrations.msteams.link_identity import build_linking_url
 from sentry.integrations.msteams.utils import ACTION_TYPE
-from sentry.models import (
-    AuthIdentity,
-    AuthProvider,
-    Group,
-    GroupAssignee,
-    GroupStatus,
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-    OrganizationIntegration,
-)
 from sentry.models.activity import Activity, ActivityIntegration
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo import SiloMode
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test(stable=True)
@@ -151,6 +149,14 @@ class StatusActionTest(APITestCase):
         )
 
         resp = self.post_webhook(user_id="s4ur0n", tenant_id="7h3_gr347")
+        # assert sign is called with the right arguments
+        assert sign.call_args.kwargs == {
+            "integration_id": self.integration.id,
+            "organization_id": self.org.id,
+            "teams_user_id": "s4ur0n",
+            "team_id": "f3ll0wsh1p",
+            "tenant_id": "7h3_gr347",
+        }
 
         linking_url = build_linking_url(
             self.integration, self.org, "s4ur0n", "f3ll0wsh1p", "7h3_gr347"

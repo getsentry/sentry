@@ -1,14 +1,14 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, TypedDict, Union
+from typing import Any, Dict, List, Literal, Optional, Sequence, Set, Tuple, TypedDict, Union
 
 from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
 from sentry.incidents.models import AlertRule, AlertRuleStatus
-from sentry.models import (
-    DashboardWidgetQuery,
-    DashboardWidgetTypes,
-    Project,
+from sentry.models.dashboard_widget import DashboardWidgetQuery, DashboardWidgetTypes
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.transaction_threshold import (
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
     TransactionMetric,
@@ -21,6 +21,7 @@ from sentry.snuba.metrics.extraction import (
     should_use_on_demand_metrics,
 )
 from sentry.snuba.models import SnubaQuery
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -53,30 +54,60 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
      - Performance alert rules with advanced filter expressions.
      - On-demand metrics widgets.
     """
-    if not features.has("organizations:on-demand-metrics-extraction", project.organization):
-        return None
+    # For efficiency purposes, we fetch the flags in batch and propagate them downstream.
+    enabled_features = on_demand_metrics_feature_flags(project.organization)
 
-    alert_specs = _get_alert_metric_specs(project)
-    widget_specs = _get_widget_metric_specs(project)
+    prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
 
-    metrics = _merge_metric_specs(alert_specs, widget_specs)
+    alert_specs = _get_alert_metric_specs(project, enabled_features, prefilling)
+    widget_specs = _get_widget_metric_specs(project, enabled_features, prefilling)
 
-    if not metrics:
+    metric_specs = _merge_metric_specs(alert_specs, widget_specs)
+    if not metric_specs:
         return None
 
     return {
         "version": _METRIC_EXTRACTION_VERSION,
-        "metrics": metrics,
+        "metrics": metric_specs,
     }
 
 
-def _get_alert_metric_specs(project: Project) -> List[HashedMetricSpec]:
+def on_demand_metrics_feature_flags(organization: Organization) -> Set[str]:
+    feature_names = [
+        "organizations:on-demand-metrics-extraction",
+        "organizations:on-demand-metrics-extraction-experimental",
+        "organizations:on-demand-metrics-prefill",
+    ]
+
+    enabled_features = set()
+    for feature in feature_names:
+        if features.has(feature, organization=organization):
+            enabled_features.add(feature)
+
+    return enabled_features
+
+
+def _get_alert_metric_specs(
+    project: Project, enabled_features: Set[str], prefilling: bool
+) -> List[HashedMetricSpec]:
+    if not ("organizations:on-demand-metrics-extraction" in enabled_features or prefilling):
+        return []
+
+    metrics.incr(
+        "on_demand_metrics.get_alerts",
+        tags={"prefilling": prefilling},
+    )
+
+    datasets = [Dataset.PerformanceMetrics.value]
+    if prefilling:
+        datasets.append(Dataset.Transactions.value)
+
     alert_rules = (
         AlertRule.objects.fetch_for_project(project)
         .filter(
             organization=project.organization,
             status=AlertRuleStatus.PENDING.value,
-            snuba_query__dataset=Dataset.PerformanceMetrics.value,
+            snuba_query__dataset__in=datasets,
         )
         .select_related("snuba_query")
     )
@@ -84,7 +115,11 @@ def _get_alert_metric_specs(project: Project) -> List[HashedMetricSpec]:
     specs = []
     for alert in alert_rules:
         alert_snuba_query = alert.snuba_query
-        if result := _convert_snuba_query_to_metric(project, alert.snuba_query):
+        metrics.incr(
+            "on_demand_metrics.before_alert_spec_generation",
+            tags={"prefilling": prefilling, "dataset": alert_snuba_query.dataset},
+        )
+        if result := _convert_snuba_query_to_metric(project, alert_snuba_query, prefilling):
             _log_on_demand_metric_spec(
                 project_id=project.id,
                 spec_for="alert",
@@ -92,6 +127,11 @@ def _get_alert_metric_specs(project: Project) -> List[HashedMetricSpec]:
                 id=alert.id,
                 field=alert_snuba_query.aggregate,
                 query=alert_snuba_query.query,
+                prefilling=prefilling,
+            )
+            metrics.incr(
+                "on_demand_metrics.on_demand_spec.for_alert",
+                tags={"prefilling": prefilling},
             )
             specs.append(result)
 
@@ -105,11 +145,19 @@ def _get_alert_metric_specs(project: Project) -> List[HashedMetricSpec]:
     return specs
 
 
-def _get_widget_metric_specs(project: Project) -> List[HashedMetricSpec]:
-    if not features.has(
-        "organizations:on-demand-metrics-extraction-experimental", project.organization
+def _get_widget_metric_specs(
+    project: Project, enabled_features: Set[str], prefilling: bool
+) -> List[HashedMetricSpec]:
+    if not (
+        "organizations:on-demand-metrics-extraction" in enabled_features
+        and "organizations:on-demand-metrics-extraction-experimental" in enabled_features
     ):
         return []
+
+    metrics.incr(
+        "on_demand_metrics.get_widgets",
+        tags={"prefilling": prefilling},
+    )
 
     # fetch all queries of all on demand metrics widgets of this organization
     widget_queries = DashboardWidgetQuery.objects.filter(
@@ -119,7 +167,7 @@ def _get_widget_metric_specs(project: Project) -> List[HashedMetricSpec]:
 
     specs = []
     for widget in widget_queries:
-        for result in _convert_widget_query_to_metric(project, widget):
+        for result in _convert_widget_query_to_metric(project, widget, prefilling):
             specs.append(result)
 
     max_widget_specs = options.get("on_demand.max_widget_specs") or _MAX_ON_DEMAND_WIDGETS
@@ -154,23 +202,19 @@ def _merge_metric_specs(
 
 
 def _convert_snuba_query_to_metric(
-    project: Project, snuba_query: SnubaQuery
+    project: Project, snuba_query: SnubaQuery, prefilling: bool
 ) -> Optional[HashedMetricSpec]:
     """
     If the passed snuba_query is a valid query for on-demand metric extraction,
     returns a tuple of (hash, MetricSpec) for the query. Otherwise, returns None.
     """
     return _convert_aggregate_and_query_to_metric(
-        project,
-        snuba_query.dataset,
-        snuba_query.aggregate,
-        snuba_query.query,
+        project, snuba_query.dataset, snuba_query.aggregate, snuba_query.query, prefilling
     )
 
 
 def _convert_widget_query_to_metric(
-    project: Project,
-    widget_query: DashboardWidgetQuery,
+    project: Project, widget_query: DashboardWidgetQuery, prefilling: bool
 ) -> Sequence[HashedMetricSpec]:
     """
     Converts a passed metrics widget query to one or more MetricSpecs.
@@ -182,6 +226,10 @@ def _convert_widget_query_to_metric(
         return metrics_specs
 
     for aggregate in widget_query.aggregates:
+        metrics.incr(
+            "on_demand_metrics.before_widget_spec_generation",
+            tags={"prefilling": prefilling},
+        )
         if result := _convert_aggregate_and_query_to_metric(
             project,
             # there is an internal check to make sure we extract metrics oly for performance dataset
@@ -189,6 +237,7 @@ def _convert_widget_query_to_metric(
             Dataset.PerformanceMetrics.value,
             aggregate,
             widget_query.conditions,
+            prefilling,
         ):
             _log_on_demand_metric_spec(
                 project_id=project.id,
@@ -197,6 +246,11 @@ def _convert_widget_query_to_metric(
                 id=widget_query.id,
                 field=aggregate,
                 query=widget_query.conditions,
+                prefilling=prefilling,
+            )
+            metrics.incr(
+                "on_demand_metrics.on_demand_spec.for_widget",
+                tags={"prefilling": prefilling},
             )
             metrics_specs.append(result)
 
@@ -204,13 +258,13 @@ def _convert_widget_query_to_metric(
 
 
 def _convert_aggregate_and_query_to_metric(
-    project: Project, dataset: str, aggregate: str, query: str
+    project: Project, dataset: str, aggregate: str, query: str, prefilling: bool
 ) -> Optional[HashedMetricSpec]:
     """
     Converts an aggregate and a query to a metric spec with its hash value.
     """
     try:
-        if not should_use_on_demand_metrics(dataset, aggregate, query):
+        if not should_use_on_demand_metrics(dataset, aggregate, query, prefilling):
             return None
 
         on_demand_spec = OnDemandMetricSpec(
@@ -220,7 +274,11 @@ def _convert_aggregate_and_query_to_metric(
 
         return on_demand_spec.query_hash, on_demand_spec.to_metric_spec(project)
     except Exception as e:
-        logger.error(e, exc_info=True)
+        # Since prefilling might include several non-ondemand-compatible alerts, we want to not trigger errors in the
+        # Sentry console.
+        if not prefilling:
+            logger.error(e, exc_info=True)
+
         return None
 
 
@@ -231,6 +289,7 @@ def _log_on_demand_metric_spec(
     id: int,
     field: str,
     query: str,
+    prefilling: bool,
 ) -> None:
     spec_query_hash, spec_dict = spec
 
@@ -244,6 +303,7 @@ def _log_on_demand_metric_spec(
             "spec_for": spec_for,
             "spec_query_hash": spec_query_hash,
             "spec": spec_dict,
+            "prefilling": prefilling,
         },
     )
 

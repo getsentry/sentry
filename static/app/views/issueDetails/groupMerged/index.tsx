@@ -77,7 +77,7 @@ class GroupMergedView extends Component<Props, State> {
   listener = GroupingStore.listen(this.onGroupingChange, undefined);
 
   getEndpoint() {
-    const {params, location} = this.props;
+    const {params, location, organization} = this.props;
     const {groupId} = params;
 
     const queryParams = {
@@ -86,7 +86,9 @@ class GroupMergedView extends Component<Props, State> {
       query: this.state.query,
     };
 
-    return `/issues/${groupId}/hashes/?${qs.stringify(queryParams)}`;
+    return `/organizations/${organization.slug}/issues/${groupId}/hashes/?${qs.stringify(
+      queryParams
+    )}`;
   }
 
   fetchData = () => {
@@ -100,16 +102,18 @@ class GroupMergedView extends Component<Props, State> {
   };
 
   handleUnmerge = () => {
+    const {organization, params} = this.props;
     GroupingStore.onUnmerge({
-      groupId: this.props.params.groupId,
+      groupId: params.groupId,
+      orgSlug: organization.slug,
       loadingMessage: t('Unmerging events\u2026'),
       successMessage: t('Events successfully queued for unmerging.'),
       errorMessage: t('Unable to queue events for unmerging.'),
     });
     const unmergeKeys = [...GroupingStore.getState().unmergeList.values()];
     trackAnalytics('issue_details.merged_tab.unmerge_clicked', {
-      organization: this.props.organization,
-      group_id: this.props.params.groupId,
+      organization,
+      group_id: params.groupId,
       event_ids_unmerged: unmergeKeys.join(','),
       total_unmerged: unmergeKeys.length,
     });
@@ -131,14 +135,18 @@ class GroupMergedView extends Component<Props, State> {
         <Layout.Main fullWidth>
           <HeaderWrapper>
             <Title>
-              {tct('Merged fingerprints with latest event [count]', {
+              {tct('Fingerprints included in this issue [count]', {
                 count: <QueryCount count={fingerprintsWithLatestEvent.length} />,
               })}
             </Title>
             <small>
-              {t(
-                'This is an experimental feature. Data may not be immediately available while we process unmerges.'
-              )}
+              {
+                // TODO: Once clickhouse is upgraded and the lag is no longer an issue, revisit this wording.
+                // See https://github.com/getsentry/sentry/issues/56334.
+                t(
+                  'This is an experimental feature. All changes may take up to 24 hours take effect.'
+                )
+              }
             </small>
           </HeaderWrapper>
 

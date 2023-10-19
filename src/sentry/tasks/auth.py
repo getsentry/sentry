@@ -3,14 +3,16 @@ from __future__ import annotations
 import abc
 import logging
 
-from django.db.models import F
 from django.urls import reverse
 
 from sentry import audit_log, features, options
 from sentry.auth import manager
 from sentry.auth.exceptions import ProviderNotRegistered
-from sentry.models import Organization, OrganizationMember, User, UserEmail
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
+from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
@@ -22,30 +24,43 @@ from sentry.utils.http import absolute_uri
 logger = logging.getLogger("sentry.auth")
 
 
-# TODO(hybrid-cloud): Remove cross-silo DB accesses, or review control silo usages
+@instrumented_task(
+    name="sentry.tasks.send_sso_link_emails_control",
+    queue="auth.control",
+    silo_mode=SiloMode.CONTROL,
+)
+def email_missing_links_control(org_id: int, actor_id: int, provider_key: str, **kwargs):
+    # This seems dumb as the region method is the same, but we need to keep
+    # queues separate so that the transition from monolith to siloed is clean
+    _email_missing_links(org_id=org_id, sending_user_id=actor_id, provider_key=provider_key)
+
+
 @instrumented_task(name="sentry.tasks.send_sso_link_emails", queue="auth")
 def email_missing_links(org_id: int, actor_id: int, provider_key: str, **kwargs):
-    try:
-        org = Organization.objects.get(id=org_id)
-        provider = manager.get(provider_key)
-    except (Organization.DoesNotExist, ProviderNotRegistered) as e:
-        logger.warning("Could not send SSO link emails: %s", e)
+    _email_missing_links(org_id=org_id, sending_user_id=actor_id, provider_key=provider_key)
+
+
+def _email_missing_links(org_id: int, sending_user_id: int, provider_key: str) -> None:
+    org = organization_service.get(id=org_id)
+    if not org:
+        logger.warning("Could not send SSO link emails: Missing organization")
         return
 
-    user = user_service.get_user(user_id=actor_id)
+    user = user_service.get_user(user_id=sending_user_id)
     if not user:
-        logger.warning("sso.link.email_failure.could_not_find_user", extra={"user_id": actor_id})
+        logger.warning(
+            "sso.link.email_failure.could_not_find_user", extra={"user_id": sending_user_id}
+        )
         return
 
-    member_list = OrganizationMember.objects.filter(
-        organization=org, flags=F("flags").bitand(~OrganizationMember.flags["sso:linked"])
+    organization_service.send_sso_link_emails(
+        organization_id=org_id, sending_user_email=user.email, provider_key=provider_key
     )
-    for member in member_list:
-        member.send_sso_link_email(user.id, provider)
 
 
-# TODO(hybrid-cloud): Remove cross-silo DB accesses, or review control silo usages
-@instrumented_task(name="sentry.tasks.email_unlink_notifications", queue="auth")
+@instrumented_task(
+    name="sentry.tasks.email_unlink_notifications", queue="auth", silo_mode=SiloMode.REGION
+)
 def email_unlink_notifications(org_id: int, actor_id: int, provider_key: str):
     try:
         org = Organization.objects.get(id=org_id)
@@ -62,9 +77,10 @@ def email_unlink_notifications(org_id: int, actor_id: int, provider_key: str):
     # Email all organization users, even if they never linked their accounts.
     # This provides a better experience in the case where SSO is enabled and
     # disabled in the timespan of users checking their email.
-    member_list = OrganizationMember.objects.filter(organization=org)
-
-    for member in member_list:
+    # Results are unordered -- some tests that depend on the mail.outbox ordering may fail
+    # intermittently -- force an ordering in your test!
+    members = OrganizationMember.objects.filter(organization=org, user_id__isnull=False)
+    for member in members:
         member.send_sso_unlink_email(user, provider)
 
 

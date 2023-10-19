@@ -3,11 +3,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import integrations
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations import IntegrationFeatures
-from sentry.models import Repository
+from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 
 
@@ -64,7 +65,8 @@ class PathMappingSerializer(CamelSnakeSerializer):
             )
 
         def integration_match(integration: RpcIntegration):
-            return source_url.startswith("https://{}".format(integration.metadata["domain_name"]))
+            installation = integration.get_installation(self.org_id)
+            return installation.source_url_matches(source_url)
 
         def repo_match(repo: Repository):
             return repo.url is not None and source_url.startswith(repo.url)
@@ -105,6 +107,9 @@ class ProjectRepoPathParsingEndpointLoosePermission(ProjectPermission):
 
 @region_silo_endpoint
 class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectRepoPathParsingEndpointLoosePermission,)
     """
     Returns the parameters associated with the RepositoryProjectPathConfig
@@ -127,12 +132,10 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
 
         repo = serializer.repo
         integration = serializer.integration
+        installation = integration.get_installation(project.organization_id)
 
-        # strip off the base URL (could be in different formats)
-        rest_url = source_url.replace(f"{repo.url}/-/blob/", "")
-        rest_url = rest_url.replace(f"{repo.url}/blob/", "")
-        branch, _, source_path = rest_url.partition("/")
-
+        branch = installation.extract_branch_from_source_url(repo, source_url)
+        source_path = installation.extract_source_path_from_source_url(repo, source_url)
         stack_root, source_root = find_roots(stack_path, source_path)
 
         return self.respond(

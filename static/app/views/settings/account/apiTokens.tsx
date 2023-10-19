@@ -88,11 +88,9 @@ export class ApiTokens extends DeprecatedAsyncView<Props, State> {
     return (
       <div>
         <SettingsPageHeader title={this.getTitle()} action={action} />
-        <AlertLink
-          to={`/settings/${organization?.slug ?? ''}/developer-settings/new-internal`}
-        >
+        <AlertLink to={`/settings/${organization?.slug ?? ''}/auth-tokens/`}>
           {t(
-            "Auth Tokens are tied to the logged in user, meaning they'll stop working if the user leaves the organization! We suggest using internal integrations to create/manage tokens tied to the organization instead."
+            "User Auth Tokens are tied to the logged in user, meaning they'll stop working if the user leaves the organization! We suggest using Organization Auth Tokens to create/manage tokens tied to the organization instead."
           )}
         </AlertLink>
         <TextBlock>

@@ -5,6 +5,7 @@ import threading
 
 from django.conf import settings
 from django.db import connections, transaction
+from django.db.transaction import Atomic, get_connection
 
 from sentry.silo import SiloMode
 from sentry.utils.env import in_test_environment
@@ -99,3 +100,16 @@ def in_test_assert_no_transaction(msg: str):
         assert not hybrid_cloud.simulated_transaction_watermarks.connection_transaction_depth_above_watermark(
             connection=conn
         ), msg
+
+
+@contextlib.contextmanager
+def enforce_constraints(transaction: Atomic):
+    """
+    Nested transaction in Django do not check constraints by default, meaning IntegrityErrors can 'float' to callers
+    of functions that happen to wrap with additional transaction scopes.  Using this context manager around a transaction
+    will force constraints to be checked at the end of that transaction (or savepoint) even if it happens to be nested,
+    allowing you to handle the IntegrityError correctly.
+    """
+    with transaction:
+        yield
+        get_connection(transaction.using or "default").check_constraints()

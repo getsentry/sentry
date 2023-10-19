@@ -5,7 +5,7 @@ from django.db import router
 
 from sentry.identity.vercel import VercelIdentityProvider
 from sentry.integrations.vercel import VercelClient
-from sentry.models import OrganizationMember
+from sentry.models.organizationmember import OrganizationMember
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
@@ -72,6 +72,7 @@ class VercelExtensionConfigurationTest(TestCase):
         )
         assert resp.headers["Location"].endswith("?next=https%3A%2F%2Fexample.com")
 
+    @responses.activate
     def test_logged_in_as_member(self):
         with assume_test_silo_mode(SiloMode.REGION), unguarded_write(
             using=router.db_for_write(OrganizationMember)
@@ -93,6 +94,7 @@ class VercelExtensionConfigurationTest(TestCase):
         parsed_url = urlparse(resp.headers["Location"])
         assert parse_qs(parsed_url.query) == expected_query_string
 
+    @responses.activate
     def test_logged_in_many_orgs(self):
         self.login_as(self.user)
 
@@ -134,6 +136,7 @@ class VercelExtensionConfigurationTest(TestCase):
         parsed_url = urlparse(resp.headers["Location"])
         assert parse_qs(parsed_url.query) == expected_query_string
 
+    @responses.activate
     def test_logged_out(self):
         resp = self.client.get(self.path, self.params)
 

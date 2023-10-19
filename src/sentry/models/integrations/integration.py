@@ -46,7 +46,7 @@ class Integration(DefaultFieldsModel):
     workspace, a single GH org, etc.), which can be shared by multiple Sentry orgs.
     """
 
-    __relocation_scope__ = RelocationScope.Excluded
+    __relocation_scope__ = RelocationScope.Global
 
     provider = models.CharField(max_length=64)
     external_id = models.CharField(max_length=64)
@@ -85,10 +85,10 @@ class Integration(DefaultFieldsModel):
         with outbox_context(
             transaction.atomic(using=router.db_for_write(OrganizationIntegration)), flush=False
         ):
-            for organization_integration in self.organizationintegration_set.all():
-                organization_integration.delete()
             for outbox in Integration.outboxes_for_update(self.id):
                 outbox.save()
+            for organization_integration in self.organizationintegration_set.all():
+                organization_integration.delete()
             return super().delete(*args, **kwds)
 
     @staticmethod
@@ -115,7 +115,7 @@ class Integration(DefaultFieldsModel):
 
         Returns False if the OrganizationIntegration was not created
         """
-        from sentry.models import OrganizationIntegration
+        from sentry.models.integrations.organization_integration import OrganizationIntegration
 
         if not isinstance(organization_id, int):
             organization_id = organization_id.id

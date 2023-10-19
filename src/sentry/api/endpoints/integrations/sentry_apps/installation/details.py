@@ -5,12 +5,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, audit_log, deletions
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppInstallationBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppInstallationSerializer
 from sentry.mediators import InstallationNotifier
-from sentry.mediators.sentry_app_installations import Updater
+from sentry.mediators.sentry_app_installations.updater import Updater
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -20,6 +21,12 @@ from sentry.utils.functional import extract_lazy_object
 
 @control_silo_endpoint
 class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, installation) -> Response:
         return Response(serialize(SentryAppInstallation.objects.get(id=installation.id)))
 

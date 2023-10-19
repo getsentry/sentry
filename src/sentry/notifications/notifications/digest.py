@@ -5,7 +5,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
 from urllib.parse import urlencode
 
-from sentry import features
+from sentry import analytics, features
 from sentry.db.models import Model
 from sentry.digests import Digest
 from sentry.digests.utils import (
@@ -35,7 +35,8 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils.dates import to_timestamp
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Project
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
 
@@ -52,8 +53,9 @@ class DigestNotification(ProjectNotification):
         target_type: ActionTargetType,
         target_identifier: int | None = None,
         fallthrough_choice: FallthroughChoiceType | None = None,
+        notification_uuid: str | None = None,
     ) -> None:
-        super().__init__(project)
+        super().__init__(project, notification_uuid)
         self.digest = digest
         self.target_type = target_type
         self.target_identifier = target_identifier
@@ -101,7 +103,11 @@ class DigestNotification(ProjectNotification):
     def get_context(self) -> MutableMapping[str, Any]:
         rule_details = get_rules(list(self.digest.keys()), self.project.organization, self.project)
         context = DigestNotification.build_context(
-            self.digest, self.project, self.project.organization, rule_details
+            self.digest,
+            self.project,
+            self.project.organization,
+            rule_details,
+            notification_uuid=self.notification_uuid,
         )
 
         sentry_query_params = self.get_sentry_query_params(ExternalProviders.EMAIL)
@@ -124,6 +130,7 @@ class DigestNotification(ProjectNotification):
         organization: Organization,
         rule_details: Sequence[NotificationRuleDetails],
         alert_timestamp: int | None = None,
+        notification_uuid: str | None = None,
     ) -> MutableMapping[str, Any]:
         has_session_replay = features.has("organizations:session-replay", organization)
         show_replay_link = features.has("organizations:session-replay-issue-emails", organization)
@@ -134,7 +141,11 @@ class DigestNotification(ProjectNotification):
             "slack_link": get_integration_link(organization, "slack"),
             "rules_details": {rule.id: rule for rule in rule_details},
             "link_params_for_rule": get_email_link_extra_params(
-                "digest_email", None, rule_details, alert_timestamp
+                "digest_email",
+                None,
+                rule_details,
+                alert_timestamp,
+                notification_uuid=notification_uuid,
             ),
             "show_replay_links": has_session_replay and show_replay_link,
         }
@@ -215,3 +226,30 @@ class DigestNotification(ProjectNotification):
                         participants_to_remove.add(participant)
                 participants -= participants_to_remove
             notify(provider, self, participants, shared_context, extra_context)
+
+    def get_log_params(self, recipient: RpcActor) -> Mapping[str, Any]:
+        try:
+            alert_id = list(self.digest.keys())[0].id
+        except Exception:
+            alert_id = None
+
+        return {
+            "target_type": self.target_type.value,
+            "target_identifier": self.target_identifier,
+            "alert_id": alert_id,
+            **super().get_log_params(recipient),
+        }
+
+    def record_notification_sent(self, recipient: RpcActor, provider: ExternalProviders) -> None:
+        super().record_notification_sent(recipient, provider)
+        log_params = self.get_log_params(recipient)
+        analytics.record(
+            "alert.sent",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            provider=provider.name,
+            alert_id=log_params["alert_id"] if log_params["alert_id"] else "",
+            alert_type="issue_alert",
+            external_id=str(recipient.id),
+            notification_uuid=self.notification_uuid,
+        )

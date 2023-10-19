@@ -1,16 +1,30 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from datetime import timedelta
 from random import randrange
-from typing import Any, Callable, Collection, List, Mapping, MutableMapping, Sequence, Set, Tuple
+from typing import (
+    Any,
+    Callable,
+    Collection,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+)
 
 from django.core.cache import cache
 from django.utils import timezone
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.eventstore.models import GroupEvent
-from sentry.models import Environment, GroupRuleStatus, Rule
+from sentry.models.environment import Environment
+from sentry.models.grouprulestatus import GroupRuleStatus
+from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import EventState, history, rules
 from sentry.rules.conditions.base import EventCondition
@@ -166,9 +180,6 @@ class RuleProcessor:
         :param rule: `Rule` object
         :return: void
         """
-        should_log_extra_info = features.has(
-            "organizations:detailed-alert-logging", self.project.organization
-        )
         logging_details = {
             "rule_id": rule.id,
             "group_id": self.group.id,
@@ -179,11 +190,6 @@ class RuleProcessor:
             "has_reappeared": self.has_reappeared,
             "new_group_environment": self.is_new_group_environment,
         }
-        if should_log_extra_info:
-            self.logger.info(
-                "apply_rule",
-                extra={**logging_details},
-            )
 
         condition_match = rule.data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH
         filter_match = rule.data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH
@@ -192,37 +198,14 @@ class RuleProcessor:
         try:
             environment = self.event.get_environment()
         except Environment.DoesNotExist:
-            if should_log_extra_info:
-                self.logger.info(
-                    "apply_rule environment does not exist",
-                    extra={**logging_details},
-                )
             return
 
         if rule.environment_id is not None and environment.id != rule.environment_id:
-            if should_log_extra_info:
-                self.logger.info(
-                    "apply_rule environment does not match",
-                    extra={
-                        **logging_details,
-                        "rule_environment_id": rule.environment_id,
-                        "event_environment_id": environment.id,
-                    },
-                )
             return
 
         now = timezone.now()
         freq_offset = now - timedelta(minutes=frequency)
         if status.last_active and status.last_active > freq_offset:
-            if should_log_extra_info:
-                self.logger.info(
-                    "apply_rule skipping rule because of last_active",
-                    extra={
-                        **logging_details,
-                        "last_active": status.last_active,
-                        "freq_offset": freq_offset,
-                    },
-                )
             return
 
         state = self.get_state()
@@ -232,11 +215,6 @@ class RuleProcessor:
         for rule_cond in rule_condition_list:
             if self.get_rule_type(rule_cond) == "condition/event":
                 condition_list.append(rule_cond)
-                if (
-                    rule_cond.get("id", None)
-                    == "sentry.rules.conditions.regression_event.RegressionEventCondition"
-                ) and should_log_extra_info:
-                    self.logger.info("apply_rule got regression_event", extra={**logging_details})
             else:
                 filter_list.append(rule_cond)
 
@@ -253,11 +231,6 @@ class RuleProcessor:
             predicate_func = get_match_function(match)
             if predicate_func:
                 if not predicate_func(predicate_iter):
-                    if should_log_extra_info:
-                        self.logger.info(
-                            f"apply_rule predicate_func is False name={name}",
-                            extra={**logging_details},
-                        )
                     return
             else:
                 self.logger.error(
@@ -275,11 +248,6 @@ class RuleProcessor:
         )
 
         if not updated:
-            if should_log_extra_info:
-                self.logger.info(
-                    "apply_rule not updated",
-                    extra={**logging_details},
-                )
             return
 
         if randrange(10) == 0:
@@ -291,10 +259,13 @@ class RuleProcessor:
                 rule_id=rule.id,
             )
 
-        history.record(rule, self.group, self.event.event_id)
-        self.activate_downstream_actions(rule)
+        notification_uuid = str(uuid.uuid4())
+        history.record(rule, self.group, self.event.event_id, notification_uuid)
+        self.activate_downstream_actions(rule, notification_uuid)
 
-    def activate_downstream_actions(self, rule: Rule) -> None:
+    def activate_downstream_actions(
+        self, rule: Rule, notification_uuid: Optional[str] = None
+    ) -> None:
         state = self.get_state()
         for action in rule.data.get("actions", ()):
             action_cls = rules.get(action["id"])
@@ -303,8 +274,13 @@ class RuleProcessor:
                 continue
 
             action_inst = action_cls(self.project, data=action, rule=rule)
+
             results = safe_execute(
-                action_inst.after, event=self.event, state=state, _with_transaction=False
+                action_inst.after,
+                event=self.event,
+                state=state,
+                _with_transaction=False,
+                notification_uuid=notification_uuid,
             )
             if results is None:
                 self.logger.warning("Action %s did not return any futures", action["id"])
@@ -322,28 +298,8 @@ class RuleProcessor:
     def apply(
         self,
     ) -> Collection[Tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], List[RuleFuture]]]:
-        should_log_extra_info = features.has(
-            "organizations:detailed-alert-logging", self.project.organization
-        )
-        logging_details = {
-            "group_id": self.event.group.id,
-            "event_id": self.event.event_id,
-            "project_id": self.project.id,
-            "is_regression": self.is_regression,
-        }
-        if should_log_extra_info:
-            self.logger.info(
-                "apply",
-                extra={**logging_details},
-            )
-
         # we should only apply rules on unresolved issues
         if not self.event.group.is_unresolved():
-            if should_log_extra_info:
-                self.logger.info(
-                    "apply: group is not unresolved",
-                    extra={**logging_details},
-                )
             return {}.values()
 
         self.grouped_futures.clear()

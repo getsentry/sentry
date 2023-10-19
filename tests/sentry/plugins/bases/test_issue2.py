@@ -2,13 +2,17 @@ from unittest import mock
 
 import pytest
 
-from sentry.models import GroupMeta, User
+from sentry.models.groupmeta import GroupMeta
+from sentry.models.user import User
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 
 class PluginWithFields(IssueTrackingPlugin2):

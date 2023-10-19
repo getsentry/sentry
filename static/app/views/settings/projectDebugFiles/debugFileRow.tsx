@@ -14,6 +14,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {Project} from 'sentry/types';
 import {DebugFile} from 'sentry/types/debugFiles';
 
 import {getFeatureTooltip, getPrettyFileType} from './utils';
@@ -24,6 +25,7 @@ type Props = {
   downloadUrl: string;
   onDelete: (id: string) => void;
   orgSlug: string;
+  project: Project;
   showDetails: boolean;
 };
 
@@ -34,6 +36,7 @@ function DebugFileRow({
   downloadRole,
   onDelete,
   orgSlug,
+  project,
 }: Props) {
   const {id, data, debugId, uuid, size, dateCreated, objectName, symbolType, codeId} =
     debugFile;
@@ -110,7 +113,7 @@ function DebugFileRow({
               </Tooltip>
             )}
           </Role>
-          <Access access={['project:write']}>
+          <Access access={['project:write']} project={project}>
             {({hasAccess}) => (
               <Tooltip
                 disabled={hasAccess}

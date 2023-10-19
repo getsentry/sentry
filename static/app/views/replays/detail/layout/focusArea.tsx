@@ -1,71 +1,68 @@
+import styled from '@emotion/styled';
+
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {space} from 'sentry/styles/space';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import useOrganization from 'sentry/utils/useOrganization';
+import A11y from 'sentry/views/replays/detail/accessibility/index';
+import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import Console from 'sentry/views/replays/detail/console';
 import DomMutations from 'sentry/views/replays/detail/domMutations';
+import DomNodesChart from 'sentry/views/replays/detail/domNodesChart';
 import ErrorList from 'sentry/views/replays/detail/errorList/index';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import MemoryChart from 'sentry/views/replays/detail/memoryChart';
 import NetworkList from 'sentry/views/replays/detail/network';
 import PerfTable from 'sentry/views/replays/detail/perfTable/index';
+import TagPanel from 'sentry/views/replays/detail/tagPanel';
 import Trace from 'sentry/views/replays/detail/trace/index';
 
 type Props = {};
 
 function FocusArea({}: Props) {
   const {getActiveTab} = useActiveReplayTab();
-  const {currentTime, currentHoverTime, replay, setCurrentTime, setCurrentHoverTime} =
-    useReplayContext();
-  const organization = useOrganization();
+  const {replay} = useReplayContext();
 
   switch (getActiveTab()) {
+    case TabKey.A11Y:
+      return <A11y />;
     case TabKey.NETWORK:
-      return (
-        <NetworkList
-          isNetworkDetailsSetup={Boolean(replay?.isNetworkDetailsSetup())}
-          networkFrames={replay?.getNetworkFrames()}
-          projectId={replay?.getReplay()?.project_id}
-          startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
-        />
-      );
+      return <NetworkList />;
     case TabKey.TRACE:
-      return <Trace organization={organization} replayRecord={replay?.getReplay()} />;
+      return <Trace />;
     case TabKey.PERF:
       return <PerfTable />;
     case TabKey.ERRORS:
-      return (
-        <ErrorList
-          errorFrames={replay?.getErrorFrames()}
-          startTimestampMs={replay?.getReplay().started_at.getTime() ?? 0}
-        />
-      );
+      return <ErrorList />;
     case TabKey.DOM:
-      return (
-        <DomMutations
-          replay={replay}
-          startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
-        />
-      );
+      return <DomMutations />;
     case TabKey.MEMORY:
       return (
-        <MemoryChart
-          currentTime={currentTime}
-          currentHoverTime={currentHoverTime}
-          memoryFrames={replay?.getMemoryFrames()}
-          setCurrentTime={setCurrentTime}
-          setCurrentHoverTime={setCurrentHoverTime}
-          startTimestampMs={replay?.getReplay()?.started_at?.getTime()}
-        />
+        <MemoryTabWrapper>
+          <MemoryChart />
+          <DomNodesChart />
+        </MemoryTabWrapper>
       );
     case TabKey.CONSOLE:
+      return <Console />;
+    case TabKey.TAGS:
+      return <TagPanel />;
+    case TabKey.BREADCRUMBS:
     default: {
       return (
-        <Console
-          frames={replay?.getConsoleFrames()}
-          startTimestampMs={replay?.getReplay().started_at.getTime() || 0}
+        <Breadcrumbs
+          frames={replay?.getChapterFrames()}
+          startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
         />
       );
     }
   }
 }
+
+const MemoryTabWrapper = styled(FluidHeight)`
+  justify-content: center;
+  gap: ${space(1)};
+  height: 100%;
+  display: flex;
+`;
 
 export default FocusArea;

@@ -12,7 +12,9 @@ from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.sms import SmsInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.authenticators.u2f import create_credential_object
-from sentry.models import Authenticator, Organization, User
+from sentry.models.authenticator import Authenticator
+from sentry.models.organization import Organization
+from sentry.models.user import User
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -351,22 +353,26 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         superuser = self.create_user(email="a@example.com", is_superuser=True)
         self.login_as(user=superuser, superuser=True)
 
-        # enroll in one auth method
-        interface = TotpInterface()
-        interface.enroll(self.user)
-        assert interface.authenticator is not None
-        auth = interface.authenticator
+        new_options = settings.SENTRY_OPTIONS.copy()
+        new_options["sms.twilio-account"] = "twilio-account"
 
-        with self.tasks():
-            self.get_success_response(
-                self.user.id,
-                auth.id,
-                method="delete",
-                status_code=status.HTTP_204_NO_CONTENT,
-            )
-            assert_security_email_sent("mfa-removed")
+        with self.settings(SENTRY_OPTIONS=new_options):
+            # enroll in one auth method
+            interface = TotpInterface()
+            interface.enroll(self.user)
+            assert interface.authenticator is not None
+            auth = interface.authenticator
 
-        assert not Authenticator.objects.filter(id=auth.id).exists()
+            with self.tasks():
+                self.get_success_response(
+                    self.user.id,
+                    auth.id,
+                    method="delete",
+                    status_code=status.HTTP_204_NO_CONTENT,
+                )
+                assert_security_email_sent("mfa-removed")
+
+            assert not Authenticator.objects.filter(id=auth.id).exists()
 
     def test_require_2fa__delete_with_multiple_auth__ok(self):
         self._require_2fa_for_organization()

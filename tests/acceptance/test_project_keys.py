@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sentry.models import ProjectKey
+from sentry.models.projectkey import ProjectKey
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.silo import no_silo_test
 
@@ -30,7 +30,6 @@ class ProjectKeysTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_test_id("project-keys")
-        self.browser.snapshot("project keys")
 
 
 @no_silo_test(stable=True)
@@ -59,4 +58,3 @@ class ProjectKeyDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_test_id("key-details")
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-        self.browser.snapshot("project key details")

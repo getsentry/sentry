@@ -3,7 +3,7 @@ from unittest.mock import patch
 from urllib.parse import urlencode
 
 from sentry.eventstream.snuba import SnubaEventStream
-from sentry.models import GroupHash
+from sentry.models.grouphash import GroupHash
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -119,3 +119,27 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
                 sample_rate=1.0,
                 tags={"platform": "javascript"},
             )
+
+    def test_unmerge_conflict(self):
+        self.login_as(user=self.user)
+
+        group = self.create_group(platform="javascript")
+
+        hashes = [
+            GroupHash.objects.create(project=group.project, group=group, hash=hash)
+            for hash in ["a" * 32, "b" * 32]
+        ]
+
+        url = "?".join(
+            [
+                f"/api/0/issues/{group.id}/hashes/",
+                urlencode({"id": [h.hash for h in hashes]}, True),
+            ]
+        )
+        hashes[0].update(state=GroupHash.State.LOCKED_IN_MIGRATION)
+        hashes[1].update(state=GroupHash.State.LOCKED_IN_MIGRATION)
+
+        response = self.client.delete(url, format="json")
+
+        assert response.status_code == 409
+        assert response.data["detail"] == "Already being unmerged"

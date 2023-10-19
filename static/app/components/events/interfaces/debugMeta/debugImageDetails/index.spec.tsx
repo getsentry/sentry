@@ -18,7 +18,7 @@ describe('Debug Meta - Image Details', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/builtin-symbol-sources/`,
+      url: `/organizations/${organization.slug}/builtin-symbol-sources/`,
       method: 'GET',
       body: [],
     });

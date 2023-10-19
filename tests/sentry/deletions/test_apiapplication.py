@@ -1,8 +1,11 @@
-from sentry.models import ApiApplication, ApiGrant, ApiToken, ServiceHook
-from sentry.models.apiapplication import ApiApplicationStatus
+from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
+from sentry.models.apigrant import ApiGrant
+from sentry.models.apitoken import ApiToken
+from sentry.models.scheduledeletion import ScheduledDeletion
+from sentry.models.servicehook import ServiceHook
 from sentry.silo import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.tasks.deletion.scheduled import run_scheduled_deletions
+from sentry.tasks.deletion.scheduled import run_scheduled_deletions_control
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
@@ -22,10 +25,10 @@ class DeleteApiApplicationTest(TransactionTestCase, HybridCloudTestMixin):
         service_hook = self.create_service_hook(application=app)
         sh_id = service_hook.id
 
-        self.ScheduledDeletion.schedule(instance=app, days=0)
+        ScheduledDeletion.schedule(instance=app, days=0)
 
         with self.tasks(), outbox_runner():
-            run_scheduled_deletions()
+            run_scheduled_deletions_control()
 
         assert not ApiApplication.objects.filter(id=app.id).exists()
         assert not ApiGrant.objects.filter(application=app).exists()
@@ -33,10 +36,8 @@ class DeleteApiApplicationTest(TransactionTestCase, HybridCloudTestMixin):
         with assume_test_silo_mode(SiloMode.REGION):
             assert ServiceHook.objects.filter(id=sh_id).exists()
 
-        with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+        with self.tasks(), assume_test_silo_mode(SiloMode.REGION):
             schedule_hybrid_cloud_foreign_key_jobs()
-
-        with assume_test_silo_mode(SiloMode.REGION):
             assert not ServiceHook.objects.filter(id=sh_id).exists()
 
     def test_skip_active(self):
@@ -46,10 +47,10 @@ class DeleteApiApplicationTest(TransactionTestCase, HybridCloudTestMixin):
             application=app, user=self.user, scopes=0, redirect_uri="http://example.com"
         )
 
-        self.ScheduledDeletion.schedule(instance=app, days=0)
+        ScheduledDeletion.schedule(instance=app, days=0)
 
         with self.tasks(), outbox_runner():
-            run_scheduled_deletions()
+            run_scheduled_deletions_control()
 
         assert ApiApplication.objects.filter(id=app.id).exists()
         assert ApiGrant.objects.filter(application=app).exists()

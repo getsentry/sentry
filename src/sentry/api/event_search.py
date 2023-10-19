@@ -4,13 +4,14 @@ import re
 from collections import namedtuple
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
+from functools import reduce
 from typing import Any, List, Mapping, NamedTuple, Sequence, Set, Tuple, Union
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
 from parsimonious.expressions import Optional
-from parsimonious.grammar import Grammar, NodeVisitor
-from parsimonious.nodes import Node
+from parsimonious.grammar import Grammar
+from parsimonious.nodes import Node, NodeVisitor
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.constants import (
@@ -24,6 +25,7 @@ from sentry.search.events.constants import (
     TEAM_KEY_TRANSACTION_ALIAS,
 )
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.search.utils import (
     InvalidQuery,
     parse_datetime_range,
@@ -362,6 +364,18 @@ class SearchValue(NamedTuple):
             return translate_escape_sequences(self.raw_value)
         return self.raw_value
 
+    def to_query_string(self):
+        # for any sequence (but not string) we want to iterate over the items
+        # we do that because a simple str() would not be usable for strings
+        # str(["a","b"]) == "['a', 'b']" but we would like "[a,b]"
+        if type(self.raw_value) in [list, tuple]:
+            ret_val = reduce(lambda acc, elm: f"{acc}, {elm}", self.raw_value)
+            ret_val = "[" + ret_val + "]"
+            return ret_val
+        if isinstance(self.raw_value, datetime):
+            return self.raw_value.isoformat()
+        return str(self.value)
+
     def is_wildcard(self) -> bool:
         if not isinstance(self.raw_value, str):
             return False
@@ -397,7 +411,12 @@ class SearchFilter(NamedTuple):
         return f"{self.key.name}{self.operator}{self.value.raw_value}"
 
     def to_query_string(self):
-        return f"{self.key.name}:{self.operator}{self.value.value}"
+        if self.operator == "IN":
+            return f"{self.key.name}:{self.value.to_query_string()}"
+        elif self.operator == "NOT IN":
+            return f"!{self.key.name}:{self.value.to_query_string()}"
+        else:
+            return f"{self.key.name}:{self.operator}{self.value.to_query_string()}"
 
     @property
     def is_negation(self) -> bool:
@@ -501,7 +520,9 @@ class SearchVisitor(NodeVisitor):
 
             # TODO: read dataset from config
             self.builder = UnresolvedQuery(
-                dataset=Dataset.Discover, params=self.params, functions_acl=FUNCTIONS.keys()
+                dataset=Dataset.Discover,
+                params=self.params,
+                config=QueryBuilderConfig(functions_acl=list(FUNCTIONS)),
             )
         else:
             self.builder = builder

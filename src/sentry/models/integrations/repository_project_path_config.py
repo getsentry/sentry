@@ -9,13 +9,10 @@ from sentry.db.models import (
     region_silo_only_model,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.models.integrations.organization_integrity_backfill_mixin import (
-    OrganizationIntegrityBackfillMixin,
-)
 
 
 @region_silo_only_model
-class RepositoryProjectPathConfig(OrganizationIntegrityBackfillMixin, DefaultFieldsModel):
+class RepositoryProjectPathConfig(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     repository = FlexibleForeignKey("sentry.Repository")
@@ -40,7 +37,9 @@ class RepositoryProjectPathConfig(OrganizationIntegrityBackfillMixin, DefaultFie
 
 
 def process_resource_change(instance, **kwargs):
-    from sentry.models import Group, Organization, Project
+    from sentry.models.group import Group
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
     from sentry.tasks.codeowners import update_code_owners_schema
     from sentry.utils.cache import cache
 

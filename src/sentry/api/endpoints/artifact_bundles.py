@@ -9,13 +9,14 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist, SentryAPIException
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.artifactbundle import ArtifactBundlesSerializer
-from sentry.models import ArtifactBundle, ProjectArtifactBundle
+from sentry.models.artifactbundle import ArtifactBundle, ProjectArtifactBundle
 from sentry.utils.db import atomic_transaction
 
 # We want to keep a mapping of the fields that the frontend uses for filtering since we want to align the UI names and
@@ -52,6 +53,10 @@ class ArtifactBundlesMixin:
 
 @region_silo_endpoint
 class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project) -> Response:

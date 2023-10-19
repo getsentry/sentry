@@ -1,13 +1,17 @@
-import {Fragment} from 'react';
+import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
-import ContextIcon from 'sentry/components/replays/contextIcon';
 import ErrorCounts from 'sentry/components/replays/header/errorCounts';
 import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
-import TimeSince from 'sentry/components/timeSince';
-import {IconCalendar} from 'sentry/icons';
+import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import EventView from 'sentry/utils/discover/eventView';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import {ColorOrAlias} from 'sentry/utils/theme';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -16,37 +20,51 @@ type Props = {
 };
 
 function ReplayMetaData({replayErrors, replayRecord}: Props) {
+  const location = useLocation();
+  const routes = useRoutes();
+  const referrer = getRouteStringFromRoutes(routes);
+  const eventView = EventView.fromLocation(location);
+
+  const breadcrumbTab = {
+    ...location,
+    query: {
+      referrer,
+      ...eventView.generateQueryStringObject(),
+      t_main: TabKey.BREADCRUMBS,
+      f_b_type: 'rageOrDead',
+    },
+  };
+
   return (
     <KeyMetrics>
-      <KeyMetricLabel>{t('OS')}</KeyMetricLabel>
+      <KeyMetricLabel>{t('Dead Clicks')}</KeyMetricLabel>
       <KeyMetricData>
-        <ContextIcon
-          name={replayRecord?.os.name ?? ''}
-          version={replayRecord?.os.version ?? undefined}
-          showVersion
-        />
-      </KeyMetricData>
-
-      <KeyMetricLabel>{t('Browser')}</KeyMetricLabel>
-      <KeyMetricData>
-        <ContextIcon
-          name={replayRecord?.browser.name ?? ''}
-          version={replayRecord?.browser.version ?? undefined}
-          showVersion
-        />
-      </KeyMetricData>
-
-      <KeyMetricLabel>{t('Start Time')}</KeyMetricLabel>
-      <KeyMetricData>
-        {replayRecord ? (
-          <Fragment>
-            <IconCalendar color="gray300" />
-            <TimeSince date={replayRecord.started_at} unitStyle="regular" />
-          </Fragment>
+        {replayRecord?.count_dead_clicks ? (
+          <Link to={breadcrumbTab}>
+            <ClickCount color="yellow300">
+              <IconCursorArrow size="sm" />
+              {replayRecord.count_dead_clicks}
+            </ClickCount>
+          </Link>
         ) : (
-          <HeaderPlaceholder width="80px" height="16px" />
+          <Count>0</Count>
         )}
       </KeyMetricData>
+
+      <KeyMetricLabel>{t('Rage Clicks')}</KeyMetricLabel>
+      <KeyMetricData>
+        {replayRecord?.count_rage_clicks ? (
+          <Link to={breadcrumbTab} color="red300">
+            <ClickCount color="red300">
+              <IconCursorArrow size="sm" />
+              {replayRecord.count_rage_clicks}
+            </ClickCount>
+          </Link>
+        ) : (
+          <Count>0</Count>
+        )}
+      </KeyMetricData>
+
       <KeyMetricLabel>{t('Errors')}</KeyMetricLabel>
       <KeyMetricData>
         {replayRecord ? (
@@ -86,6 +104,17 @@ const KeyMetricData = styled('dd')`
   align-items: center;
   gap: ${space(1)};
   line-height: ${p => p.theme.text.lineHeightBody};
+`;
+
+const Count = styled('span')`
+  font-variant-numeric: tabular-nums;
+`;
+
+const ClickCount = styled(Count)<{color: ColorOrAlias}>`
+  color: ${p => p.theme[p.color]};
+  display: flex;
+  gap: ${space(0.75)};
+  align-items: center;
 `;
 
 export default ReplayMetaData;

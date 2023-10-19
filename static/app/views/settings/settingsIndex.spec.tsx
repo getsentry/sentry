@@ -1,9 +1,11 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import * as OrgActions from 'sentry/actionCreators/organizations';
 import ConfigStore from 'sentry/stores/configStore';
-import {Organization} from 'sentry/types';
+import {Organization as TOrganization} from 'sentry/types';
 import SettingsIndex from 'sentry/views/settings/settingsIndex';
 
 describe('SettingsIndex', function () {
@@ -17,12 +19,11 @@ describe('SettingsIndex', function () {
   };
 
   it('renders', function () {
-    const {container} = render(
+    render(
       <BreadcrumbContextProvider>
-        <SettingsIndex {...props} organization={TestStubs.Organization()} />
+        <SettingsIndex {...props} organization={Organization()} />
       </BreadcrumbContextProvider>
     );
-    expect(container).toSnapshot();
   });
 
   it('has loading when there is no organization', function () {
@@ -40,7 +41,7 @@ describe('SettingsIndex', function () {
 
     render(
       <BreadcrumbContextProvider>
-        <SettingsIndex {...props} organization={TestStubs.Organization()} />
+        <SettingsIndex {...props} organization={Organization()} />
       </BreadcrumbContextProvider>
     );
 
@@ -56,7 +57,7 @@ describe('SettingsIndex', function () {
       name: 'Org Index',
       slug: 'org-index',
       features: [],
-    } as unknown as Organization;
+    } as unknown as TOrganization;
 
     const spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
     let orgApi: jest.Mock;
@@ -100,7 +101,7 @@ describe('SettingsIndex', function () {
       // org already has details
       rerender(
         <BreadcrumbContextProvider>
-          <SettingsIndex {...props} organization={TestStubs.Organization()} />
+          <SettingsIndex {...props} organization={Organization()} />
         </BreadcrumbContextProvider>
       );
 

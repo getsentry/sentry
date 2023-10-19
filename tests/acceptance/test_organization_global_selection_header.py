@@ -32,6 +32,8 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         self.project_3 = self.create_project(
             organization=self.org, teams=[self.team], name="Siberian"
         )
+        # Not a part of the current member's teams
+        self.project_4 = self.create_project(organization=self.org, teams=[], name="Malayan")
 
         self.create_environment(name="development", project=self.project_1)
         self.create_environment(name="production", project=self.project_1)
@@ -74,13 +76,10 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.wait_until_test_id("awaiting-events")
 
         self.browser.click('[data-test-id="page-filter-project-selector"]')
-        self.browser.snapshot("globalSelectionHeader - project selector")
 
         self.browser.click('[data-test-id="page-filter-environment-selector"]')
-        self.browser.snapshot("globalSelectionHeader - environment selector")
 
         self.browser.click('[data-test-id="page-filter-timerange-selector"]')
-        self.browser.snapshot("globalSelectionHeader - timerange selector")
 
     @pytest.mark.skip(reason="Has been flaky lately.")
     def test_global_selection_header_loads_with_correct_project(self):
@@ -168,16 +167,18 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             assert "environment=" not in self.browser.current_url
             assert self.issue_details.global_selection.get_selected_environment() == "All Envs"
 
-            self.browser.click('[data-test-id="page-filter-environment-selector"]')
-            self.browser.click('[data-test-id="environment-prod"]')
+            self.issues_list.global_selection.select_environment("prod")
             self.issues_list.wait_until_loaded()
             assert "environment=prod" in self.browser.current_url
             assert self.issue_details.global_selection.get_selected_environment() == "prod"
 
             # clear environment prod
-            self.browser.click('[data-test-id="page-filter-environment-selector"]')
-            self.browser.click('[data-test-id="environment-prod"] input[type="checkbox"]')
-            self.browser.click('[data-test-id="page-filter-environment-selector"]')
+            self.issues_list.global_selection.open_environment_selector()
+            clear_path = '//button[@aria-label="Clear" and @role="button"]'
+            self.browser.wait_until(xpath=clear_path)
+            button = self.browser.element(xpath=clear_path)
+            # Use JavaScript to execute click to avoid click intercepted issues
+            self.browser.driver.execute_script("arguments[0].click()", button)
             self.issues_list.wait_until_loaded()
             assert "environment=" not in self.browser.current_url
             assert self.issue_details.global_selection.get_selected_environment() == "All Envs"
@@ -256,9 +257,6 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             assert "statsPeriod=24h" in self.browser.current_url
             # This doesn't work because we treat as dynamic data in CI
             # assert self.issues_list.global_selection.get_selected_date() == "Last 24 hours"
-
-            # lock the filter and then test reloading the page to test persistence
-            self.issues_list.global_selection.lock_project_filter()
 
             # reloading page with no project id in URL after previously
             # selecting an explicit project should load previously selected project

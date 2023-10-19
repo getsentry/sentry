@@ -28,8 +28,10 @@ import pydantic
 import requests
 import sentry_sdk
 from django.conf import settings
+from typing_extensions import Self
 
 from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel
+from sentry.services.hybrid_cloud.rpcmetrics import RpcMetricRecord
 from sentry.silo import SiloMode
 from sentry.types.region import Region, RegionMappingNotFound
 from sentry.utils import json, metrics
@@ -47,11 +49,17 @@ _REGION_RESOLUTION_ATTR = "__region_resolution"
 _REGION_RESOLUTION_OPTIONAL_RETURN_ATTR = "__region_resolution_optional_return"
 
 
-class RpcServiceSetupException(Exception):
+class RpcException(Exception):
+    def __init__(self, service_name: str, method_name: str | None, message: str) -> None:
+        name = f"{service_name}.{method_name}" if method_name else service_name
+        super().__init__(f"{name}: {message}")
+
+
+class RpcServiceSetupException(RpcException):
     """Indicates an error in declaring the properties of RPC services."""
 
 
-class RpcServiceUnimplementedException(Exception):
+class RpcServiceUnimplementedException(RpcException):
     """Indicates that an RPC service is not yet able to complete a remote call.
 
     This is a temporary measure while the RPC services are being developed. It
@@ -103,17 +111,20 @@ class RpcMethodSignature:
                 "Type annotations on RPC methods must be actual type tokens, not strings"
             )
 
+    def _setup_exception(self, message: str) -> RpcServiceSetupException:
+        return RpcServiceSetupException(self.service_name, self.method_name, message)
+
     def _create_parameter_model(self) -> Type[pydantic.BaseModel]:
         """Dynamically create a Pydantic model class representing the parameters."""
 
         def create_field(param: inspect.Parameter) -> Tuple[Any, Any]:
             if param.annotation is param.empty:
-                raise RpcServiceSetupException("Type annotations are required on RPC methods")
+                raise self._setup_exception("Type annotations are required on RPC methods")
             try:
                 self._validate_type_token(param.annotation)
             except ValueError as e:
-                raise RpcServiceSetupException(
-                    f"Type annotations param '{param.name}' of {self._base_service_cls.__name__}.{self._base_method.__name__} must be actual type tokens, not strings"
+                raise self._setup_exception(
+                    f"Type annotations must be actual type tokens, not strings; {param.name=!r}"
                 ) from e
 
             default_value = ... if param.default is param.empty else param.default
@@ -149,21 +160,23 @@ class RpcMethodSignature:
 
         is_region_service = self._base_service_cls.local_mode == SiloMode.REGION
         if not is_region_service and region_resolution is not None:
-            raise RpcServiceSetupException(
+            raise self._setup_exception(
                 "@regional_rpc_method should be used only on a service with "
                 "`local_mode = SiloMode.REGION`"
-                f" ({self.service_name} is {self._base_service_cls.local_mode})"
             )
         if is_region_service and region_resolution is None:
-            # Use RpcServiceUnimplementedException as a placeholder if needed
-            raise RpcServiceSetupException(
-                f"Method {self.service_name}.{self.method_name} needs @regional_rpc_method"
-            )
+            # Use UnimplementedRegionResolution as a placeholder if needed
+            raise self._setup_exception("Needs @regional_rpc_method")
 
         return region_resolution
 
     def serialize_arguments(self, raw_arguments: ArgumentDict) -> ArgumentDict:
-        model_instance = self._parameter_model(**raw_arguments)
+        try:
+            model_instance = self._parameter_model(**raw_arguments)
+        except Exception as e:
+            raise RpcArgumentException(
+                self.service_name, self.method_name, "Could not serialize arguments"
+            ) from e
         return model_instance.dict()
 
     def deserialize_arguments(self, serial_arguments: ArgumentDict) -> pydantic.BaseModel:
@@ -172,12 +185,16 @@ class RpcMethodSignature:
         except Exception as e:
             # TODO: Parse Pydantic's exception object(s) and produce more useful
             #  error messages that can be put into the body of the HTTP 400 response
-            raise RpcArgumentException from e
+            raise RpcArgumentException(
+                self.service_name, self.method_name, "Could not deserialize arguments"
+            ) from e
 
     def deserialize_return_value(self, value: Any) -> Any:
         if self._return_model is None:
             if value is not None:
-                raise RpcResponseException(f"Expected None but got {type(value)}")
+                raise RpcResponseException(
+                    self.service_name, self.method_name, f"Expected None but got {type(value)}"
+                )
             return None
 
         parsed = self._return_model.parse_obj({self._RETURN_MODEL_ATTR: value})
@@ -185,7 +202,7 @@ class RpcMethodSignature:
 
     def resolve_to_region(self, arguments: ArgumentDict) -> _RegionResolutionResult:
         if self._region_resolution is None:
-            raise RpcServiceSetupException(f"{self.service_name} does not run on the region silo")
+            raise self._setup_exception("Does not run on the region silo")
 
         try:
             try:
@@ -197,7 +214,9 @@ class RpcMethodSignature:
                 else:
                     raise
         except Exception as e:
-            raise RpcServiceUnimplementedException("Error while resolving region") from e
+            raise RpcServiceUnimplementedException(
+                self.service_name, self.method_name, "Error while resolving region"
+            ) from e
 
 
 @dataclass(frozen=True)
@@ -295,10 +314,12 @@ class RpcService(abc.ABC):
             # at least one method decorated by `@rpc_method`. (They can be left off
             # if and when we make an intermediate abstract class.)
             if not isinstance(getattr(cls, "key", None), str):
-                raise RpcServiceSetupException("`key` class attribute (str) is required")
+                raise RpcServiceSetupException(
+                    cls.__name__, None, "`key` class attribute (str) is required"
+                )
             if not isinstance(getattr(cls, "local_mode", None), SiloMode):
                 raise RpcServiceSetupException(
-                    "`local_mode` class attribute (SiloMode) is required"
+                    cls.key, None, "`local_mode` class attribute (SiloMode) is required"
                 )
         cls._signatures = cls._create_signatures()
 
@@ -343,7 +364,7 @@ class RpcService(abc.ABC):
                 signature = RpcMethodSignature(cls, base_method)
             except Exception as e:
                 raise RpcServiceSetupException(
-                    f"Error on parameter model for {cls.__name__}.{base_method.__name__}"
+                    cls.key, base_method.__name__, "Error on parameter model"
                 ) from e
             else:
                 model_table[base_method.__name__] = signature
@@ -371,15 +392,19 @@ class RpcService(abc.ABC):
 
             if getattr(method_impl, "__isabstractmethod__", False):
                 raise RpcServiceSetupException(
-                    f"{type(impl).__name__} must provide a concrete implementation of `{method_sig.__name__}`"
+                    cls.key,
+                    method_sig.__name__,
+                    f"{type(impl).__name__} must provide a concrete implementation",
                 )
 
             sig_params = get_parameters(method_sig)
             impl_params = get_parameters(method_impl)
             if not sig_params == impl_params:
                 raise RpcServiceSetupException(
-                    f"{type(impl).__name__}.{method_sig.__name__} does not match specified parameters "
-                    f"(expected: {sig_params!r}; actual: {impl_params!r})"
+                    cls.key,
+                    method_sig.__name__,
+                    "Does not match specified parameters "
+                    f"(expected: {sig_params!r}; actual: {impl_params!r})",
                 )
 
         return impl
@@ -402,7 +427,9 @@ class RpcService(abc.ABC):
             def remote_method(service_obj: RpcService, **kwargs: Any) -> Any:
                 if signature is None:
                     raise RpcServiceUnimplementedException(
-                        f"Signature was not initialized for {cls.__name__}.{method_name}"
+                        cls.key,
+                        method_name,
+                        f"Signature was not initialized for {cls.__name__}.{method_name}",
                     )
 
                 if cls.local_mode == SiloMode.REGION:
@@ -428,7 +455,7 @@ class RpcService(abc.ABC):
         return cast(RpcService, remote_service_class())
 
     @classmethod
-    def create_delegation(cls, use_test_client: bool | None = None) -> DelegatingRpcService:
+    def create_delegation(cls, use_test_client: bool | None = None) -> Self:
         """Instantiate a base service class for the current mode."""
         constructors = {
             mode: (
@@ -440,22 +467,23 @@ class RpcService(abc.ABC):
         }
         service = DelegatingRpcService(cls, constructors, cls._signatures)
         _global_service_registry[cls.key] = service
-        return service
+        # this returns a proxy which simulates the given class
+        return service  # type: ignore[return-value]
 
 
 class RpcResolutionException(Exception):
     """Indicate that an RPC service or method name could not be resolved."""
 
 
-class RpcArgumentException(Exception):
+class RpcArgumentException(RpcException):
     """Indicate that the serial arguments to an RPC service were invalid."""
 
 
-class RpcRemoteException(Exception):
+class RpcRemoteException(RpcException):
     """Indicate that an RPC service returned an error status code."""
 
 
-class RpcResponseException(Exception):
+class RpcResponseException(RpcException):
     """Indicate that the response from a remote RPC service violated expectations."""
 
 
@@ -525,12 +553,16 @@ class _RemoteSiloCall:
     def address(self) -> str:
         if self.region is None:
             if not settings.SENTRY_CONTROL_ADDRESS:
-                raise RpcServiceSetupException("Control silo address is not configured")
+                raise RpcServiceSetupException(
+                    self.service_name, self.method_name, "Control silo address is not configured"
+                )
             return settings.SENTRY_CONTROL_ADDRESS
         else:
             if not self.region.address:
                 raise RpcServiceSetupException(
-                    f"Address for region {self.region.name!r} is not configured"
+                    self.service_name,
+                    self.method_name,
+                    f"Address for region {self.region.name!r} is not configured",
                 )
             return self.region.address
 
@@ -552,6 +584,14 @@ class _RemoteSiloCall:
             else service.deserialize_rpc_response(self.method_name, return_value)
         )
 
+    def _metrics_tags(self, **additional_tags: str | int) -> Mapping[str, str | int | None]:
+        return dict(
+            region=self.region.name if self.region else None,
+            service=self.service_name,
+            method=self.method_name,
+            **additional_tags,
+        )
+
     def _send_to_remote_silo(self, use_test_client: bool) -> Any:
         request_body = {
             "meta": {},  # reserved for future use
@@ -570,42 +610,49 @@ class _RemoteSiloCall:
             else:
                 response = self._fire_request(headers, data)
             metrics.incr(
-                "hybrid_cloud.dispatch_rpc.response_code", tags={"status": response.status_code}
+                "hybrid_cloud.dispatch_rpc.response_code",
+                tags=self._metrics_tags(status=response.status_code),
             )
 
             if response.status_code == 200:
+                metrics.gauge(
+                    "hybrid_cloud.dispatch_rpc.response_size",
+                    len(response.content),
+                    tags=self._metrics_tags(),
+                )
                 return response.json()
             self._raise_from_response_status_error(response)
 
     @contextmanager
     def _open_request_context(self):
-        timer = metrics.timer(
-            "hybrid_cloud.dispatch_rpc.duration",
-            tags={"service": self.service_name, "method": self.method_name},
-        )
+        timer = metrics.timer("hybrid_cloud.dispatch_rpc.duration", tags=self._metrics_tags())
         span = sentry_sdk.start_span(
             op="hybrid_cloud.dispatch_rpc",
             description=f"rpc to {self.service_name}.{self.method_name}",
         )
-        with span, timer:
+        record = RpcMetricRecord.measure(self.service_name, self.method_name)
+        with span, timer, record:
             yield
+
+    def _remote_exception(self, message: str) -> RpcRemoteException:
+        return RpcRemoteException(self.service_name, self.method_name, message)
 
     def _raise_from_response_status_error(self, response: requests.Response) -> NoReturn:
         if in_test_environment():
             if response.status_code == 500:
-                raise RpcRemoteException(
+                raise self._remote_exception(
                     f"Error invoking rpc at {self.path!r}: check error logs for more details"
                 )
             detail = response.json()["detail"]
-            raise RpcRemoteException(
+            raise self._remote_exception(
                 f"Error ({response.status_code} status) invoking rpc at {self.path!r}: {detail}"
             )
         # Careful not to reveal too much information in production
         if response.status_code == 403:
-            raise RpcRemoteException("Unauthorized service access")
+            raise self._remote_exception("Unauthorized service access")
         if response.status_code == 400:
-            raise RpcRemoteException("Invalid service request")
-        raise RpcRemoteException(f"Service unavailable ({response.status_code} status)")
+            raise self._remote_exception("Invalid service request")
+        raise self._remote_exception(f"Service unavailable ({response.status_code} status)")
 
     def _fire_test_request(self, headers: Mapping[str, str], data: bytes) -> Any:
         from django.test import Client
@@ -635,6 +682,10 @@ class _RemoteSiloCall:
         return requests.post(url, headers=headers, data=data)
 
 
+class RpcAuthenticationSetupException(Exception):
+    """Indicates an error in declaring the settings for RPC authentication."""
+
+
 def compare_signature(url: str, body: bytes, signature: str) -> bool:
     """
     Compare request data + signature signed by one of the shared secrets.
@@ -643,7 +694,7 @@ def compare_signature(url: str, body: bytes, signature: str) -> bool:
     not be attempted. We should only have multiple keys during key rotations.
     """
     if not settings.RPC_SHARED_SECRET:
-        raise RpcServiceSetupException(
+        raise RpcAuthenticationSetupException(
             "Cannot validate RPC request signatures without RPC_SHARED_SECRET"
         )
 
@@ -675,7 +726,7 @@ def generate_request_signature(url_path: str, body: bytes) -> str:
     by control silo for verfication during key rotation.
     """
     if not settings.RPC_SHARED_SECRET:
-        raise RpcServiceSetupException("Cannot sign RPC requests without RPC_SHARED_SECRET")
+        raise RpcAuthenticationSetupException("Cannot sign RPC requests without RPC_SHARED_SECRET")
 
     signature_input = b"%s:%s" % (
         url_path.encode("utf8"),

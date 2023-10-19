@@ -6,7 +6,7 @@ from urllib.parse import quote
 from django.urls import reverse
 from requests import PreparedRequest
 
-from sentry.models import Repository
+from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.identity.model import RpcIdentity
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient

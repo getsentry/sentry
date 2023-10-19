@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import logging
 from html import escape
-from typing import Any, Dict, List, Optional, Union
+from typing import ClassVar, List, Optional, Union
 
 from django.conf import settings
 from django.utils.translation import gettext as _
@@ -63,9 +65,8 @@ class Interface:
     render differently than the default ``extra`` metadata in an event.
     """
 
-    _data: Dict[str, Any]
     score = 0
-    display_score = None
+    display_score: ClassVar[int | None] = None
     ephemeral = False
     grouping_variants = ["default"]
     datapath = None
@@ -146,10 +147,10 @@ class Interface:
     def get_title(self):
         return _(type(self).__name__)
 
-    def get_display_score(self):
+    def get_display_score(self) -> int:
         return self.display_score or self.score
 
-    def get_score(self):
+    def get_score(self) -> int:
         return self.score
 
     def iter_tags(self):

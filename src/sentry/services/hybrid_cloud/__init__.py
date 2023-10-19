@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import contextlib
 import datetime
-import functools
 import logging
 import threading
 from enum import Enum
@@ -14,17 +13,13 @@ from typing import (
     Generic,
     Iterable,
     Mapping,
-    Optional,
     Protocol,
-    Tuple,
     Type,
     TypeVar,
-    Union,
     cast,
 )
 
 import pydantic
-import sentry_sdk
 from django.db import router, transaction
 from django.db.models import Model
 from typing_extensions import Self
@@ -44,70 +39,6 @@ IDEMPOTENCY_KEY_LENGTH = 48
 REGION_NAME_LENGTH = 48
 
 DEFAULT_DATE = datetime.datetime(2000, 1, 1)
-
-
-def report_pydantic_type_validation_error(
-    field: pydantic.fields.ModelField,
-    value: Any,
-    errors: pydantic.error_wrappers.ErrorList,
-    model_class: Optional[Type[Any]],
-) -> None:
-    with sentry_sdk.push_scope() as scope:
-        scope.set_context(
-            "pydantic_validation",
-            {
-                "field": field.name,
-                "value_type": str(type(value)),
-                "errors": str(errors),
-                "model_class": str(model_class),
-            },
-        )
-        sentry_sdk.capture_message("Pydantic type validation error")
-
-
-def _hack_pydantic_type_validation() -> None:
-    """Disable strict type checking on Pydantic models.
-
-    This is a temporary measure to ensure stability while we represent RpcModel
-    objects as Pydantic models. Previously, those objects were dataclasses whose type
-    annotations were checked statically but not at runtime. There may be bugs where
-    those objects are constructed with the wrong type (typically None on a
-    non-Optional field), but otherwise everything works.
-
-    To prevent these from being hard errors, override Pydantic's validation behavior.
-    Unfortunately, there is no way (that we know of) to do this only on RpcModel and
-    its subclasses. We have to kludge it by tampering with Pydantic's global
-    ModelField class, which would affect the behavior of all types extending
-    pydantic.BaseModel in the code base. (As of this writing, there are no such
-    classes other than RpcModel, but be warned.)
-
-    See https://github.com/pydantic/pydantic/issues/897
-
-    TODO: Remove this kludge when we are reasonably confident it is no longer
-          producing any warnings
-    """
-
-    builtin_validate = pydantic.fields.ModelField.validate
-
-    def validate(
-        field: pydantic.fields.ModelField,
-        value: Any,
-        *args: Any,
-        cls: Optional[Type[Union[pydantic.BaseModel, pydantic.dataclasses.Dataclass]]] = None,
-        **kwargs: Any,
-    ) -> Tuple[Optional[Any], Optional[pydantic.error_wrappers.ErrorList]]:
-        result, errors = builtin_validate(field, value, *args, cls=cls, **kwargs)
-        if in_test_environment():
-            return result, errors
-        if errors:
-            report_pydantic_type_validation_error(field, value, errors, cls)
-        return result, None
-
-    functools.update_wrapper(validate, builtin_validate)
-    pydantic.fields.ModelField.validate = validate  # type: ignore
-
-
-_hack_pydantic_type_validation()
 
 
 class ValueEqualityEnum(Enum):
@@ -299,7 +230,8 @@ def get_delegated_constructors(
     """
 
     def delegator() -> ServiceInterface:
-        from sentry.models import Organization, User
+        from sentry.models.organization import Organization
+        from sentry.models.user import User
 
         return cast(
             ServiceInterface,

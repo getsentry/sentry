@@ -1,5 +1,4 @@
-import type {PlatformKey} from 'sentry/data/platformCategories';
-import type {MinimalProject} from 'sentry/types';
+import type {MinimalProject, PlatformKey} from 'sentry/types';
 import projectSupportsReplay, {
   projectCanLinkToReplay,
 } from 'sentry/utils/replays/projectSupportsReplay';

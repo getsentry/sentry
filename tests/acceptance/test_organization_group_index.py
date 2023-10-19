@@ -4,8 +4,9 @@ from unittest.mock import patch
 from django.utils import timezone as django_timezone
 
 from fixtures.page_objects.issue_list import IssueListPage
-from sentry.models import AssistantActivity, GroupInboxReason, GroupStatus
-from sentry.models.groupinbox import add_group_to_inbox
+from sentry.models.assistant import AssistantActivity
+from sentry.models.group import GroupStatus
+from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import no_silo_test
@@ -56,13 +57,11 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         self.project.update(first_event=None)
         self.page.visit_issue_list(self.org.slug)
         self.browser.wait_until_test_id("awaiting-events")
-        self.browser.snapshot("organization issues onboarding")
 
     def test_with_no_results(self):
         self.project.update(first_event=django_timezone.now())
         self.page.visit_issue_list(self.org.slug, query="?query=assigned%3Ame")
         self.browser.wait_until_test_id("empty-state")
-        self.browser.snapshot("organization issues no results")
 
     @patch("django.utils.timezone.now")
     def test_with_results(self, mock_now):
@@ -70,7 +69,6 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         self.create_issues()
         self.page.visit_issue_list(self.org.slug)
         self.page.wait_for_stream()
-        self.browser.snapshot("organization issues with issues")
 
         groups = self.browser.elements('[data-test-id="event-issue-header"]')
         assert len(groups) == 2
@@ -236,7 +234,6 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             query="?query=is%3Aunresolved+is%3Afor_review+assigned_or_suggested%3A[me, none]",
         )
         self.page.wait_for_stream()
-        self.browser.snapshot("organization issues inbox results")
         groups = self.browser.elements('[data-test-id="event-issue-header"]')
         assert len(groups) == 2
 

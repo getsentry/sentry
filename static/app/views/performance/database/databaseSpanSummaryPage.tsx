@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import DatePageFilter from 'sentry/components/datePageFilter';
 import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,6 +17,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
+import {RELEASE_LEVEL} from 'sentry/views/performance/database/settings';
 import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
@@ -26,7 +28,7 @@ import {
   useSpanMetrics,
 } from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
-import {SpanMetricsFields, StarfishFunctions} from 'sentry/views/starfish/types';
+import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {
   getDurationChartTitle,
@@ -43,7 +45,7 @@ type Query = {
   endpointMethod: string;
   transaction: string;
   transactionMethod: string;
-  [QueryParameterNames.SORT]: string;
+  [QueryParameterNames.SPANS_SORT]: string;
 };
 
 type Props = {
@@ -61,7 +63,7 @@ function SpanSummaryPage({params}: Props) {
     ? {transactionName: endpoint, 'transaction.method': endpointMethod}
     : {};
 
-  const sort = useModuleSort(DEFAULT_SORT);
+  const sort = useModuleSort(QueryParameterNames.ENDPOINTS_SORT, DEFAULT_SORT);
 
   const {data: fullSpan} = useFullSpanFromTrace(groupId);
 
@@ -69,43 +71,43 @@ function SpanSummaryPage({params}: Props) {
     groupId,
     queryFilter,
     [
-      SpanMetricsFields.SPAN_OP,
-      SpanMetricsFields.SPAN_DESCRIPTION,
-      SpanMetricsFields.SPAN_ACTION,
-      SpanMetricsFields.SPAN_DOMAIN,
+      SpanMetricsField.SPAN_OP,
+      SpanMetricsField.SPAN_DESCRIPTION,
+      SpanMetricsField.SPAN_ACTION,
+      SpanMetricsField.SPAN_DOMAIN,
       'count()',
-      `${StarfishFunctions.SPM}()`,
-      `sum(${SpanMetricsFields.SPAN_SELF_TIME})`,
-      `avg(${SpanMetricsFields.SPAN_SELF_TIME})`,
-      `${StarfishFunctions.TIME_SPENT_PERCENTAGE}()`,
-      `${StarfishFunctions.HTTP_ERROR_COUNT}()`,
+      `${SpanFunction.SPM}()`,
+      `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+      `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+      `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
+      `${SpanFunction.HTTP_ERROR_COUNT}()`,
     ],
     'api.starfish.span-summary-page-metrics'
   );
 
   const span = {
     ...spanMetrics,
-    [SpanMetricsFields.SPAN_GROUP]: groupId,
+    [SpanMetricsField.SPAN_GROUP]: groupId,
   } as {
-    [SpanMetricsFields.SPAN_OP]: string;
-    [SpanMetricsFields.SPAN_DESCRIPTION]: string;
-    [SpanMetricsFields.SPAN_ACTION]: string;
-    [SpanMetricsFields.SPAN_DOMAIN]: string;
-    [SpanMetricsFields.SPAN_GROUP]: string;
+    [SpanMetricsField.SPAN_OP]: string;
+    [SpanMetricsField.SPAN_DESCRIPTION]: string;
+    [SpanMetricsField.SPAN_ACTION]: string;
+    [SpanMetricsField.SPAN_DOMAIN]: string[];
+    [SpanMetricsField.SPAN_GROUP]: string;
   };
 
   const {isLoading: areSpanMetricsSeriesLoading, data: spanMetricsSeriesData} =
     useSpanMetricsSeries(
       groupId,
       queryFilter,
-      [`avg(${SpanMetricsFields.SPAN_SELF_TIME})`, 'spm()', 'http_error_count()'],
+      [`avg(${SpanMetricsField.SPAN_SELF_TIME})`, 'spm()', 'http_error_count()'],
       'api.starfish.span-summary-page-metrics-chart'
     );
 
   useSynchronizeCharts([!areSpanMetricsSeriesLoading]);
 
   const spanMetricsThroughputSeries = {
-    seriesName: span?.[SpanMetricsFields.SPAN_OP]?.startsWith('db')
+    seriesName: span?.[SpanMetricsField.SPAN_OP]?.startsWith('db')
       ? 'Queries'
       : 'Requests',
     data: spanMetricsSeriesData?.['spm()'].data,
@@ -125,7 +127,7 @@ function SpanSummaryPage({params}: Props) {
                 preservePageFilters: true,
               },
               {
-                label: 'Database',
+                label: 'Queries',
                 to: normalizeUrl(
                   `/organizations/${organization.slug}/performance/database`
                 ),
@@ -138,7 +140,7 @@ function SpanSummaryPage({params}: Props) {
           />
           <Layout.Title>
             {t('Query Summary')}
-            <FeatureBadge type="alpha" />
+            <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>
@@ -148,21 +150,22 @@ function SpanSummaryPage({params}: Props) {
           <HeaderContainer>
             <PaddedContainer>
               <PageFilterBar condensed>
-                <DatePageFilter alignDropdown="left" />
+                <EnvironmentPageFilter />
+                <DatePageFilter />
               </PageFilterBar>
             </PaddedContainer>
 
             <SpanMetricsRibbon spanMetrics={span} />
           </HeaderContainer>
 
-          {span?.[SpanMetricsFields.SPAN_DESCRIPTION] && (
+          {span?.[SpanMetricsField.SPAN_DESCRIPTION] && (
             <DescriptionContainer>
               <SpanDescription
                 span={{
                   ...span,
-                  [SpanMetricsFields.SPAN_DESCRIPTION]:
+                  [SpanMetricsField.SPAN_DESCRIPTION]:
                     fullSpan?.description ??
-                    spanMetrics?.[SpanMetricsFields.SPAN_DESCRIPTION],
+                    spanMetrics?.[SpanMetricsField.SPAN_DESCRIPTION],
                 }}
               />
             </DescriptionContainer>
@@ -171,7 +174,7 @@ function SpanSummaryPage({params}: Props) {
           <BlockContainer>
             <Block>
               <ChartPanel
-                title={getThroughputChartTitle(span?.[SpanMetricsFields.SPAN_OP])}
+                title={getThroughputChartTitle(span?.[SpanMetricsField.SPAN_OP])}
               >
                 <Chart
                   height={CHART_HEIGHT}
@@ -191,13 +194,11 @@ function SpanSummaryPage({params}: Props) {
             </Block>
 
             <Block>
-              <ChartPanel
-                title={getDurationChartTitle(span?.[SpanMetricsFields.SPAN_OP])}
-              >
+              <ChartPanel title={getDurationChartTitle(span?.[SpanMetricsField.SPAN_OP])}>
                 <Chart
                   height={CHART_HEIGHT}
                   data={[
-                    spanMetricsSeriesData?.[`avg(${SpanMetricsFields.SPAN_SELF_TIME})`],
+                    spanMetricsSeriesData?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
                   ]}
                   loading={areSpanMetricsSeriesLoading}
                   utc={false}
@@ -219,8 +220,7 @@ function SpanSummaryPage({params}: Props) {
           )}
 
           <SampleList
-            projectId={span[SpanMetricsFields.PROJECT_ID]}
-            groupId={span[SpanMetricsFields.SPAN_GROUP]}
+            groupId={span[SpanMetricsField.SPAN_GROUP]}
             transactionName={transaction}
             transactionMethod={transactionMethod}
           />
@@ -234,7 +234,7 @@ const CHART_HEIGHT = 160;
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
-  field: 'time_spent_percentage(local)',
+  field: 'time_spent_percentage()',
 };
 
 const PaddedContainer = styled('div')`

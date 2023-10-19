@@ -5,6 +5,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
@@ -27,7 +29,10 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
     organization that the user has access to.
     """
 
-    public = {"GET"}
+    owner = ApiOwner.REPLAY
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+    }
 
     @extend_schema(
         operation_id="Retrieve a Replay Instance",
@@ -63,7 +68,7 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
             replay_id=replay_id,
             start=filter_params["start"],
             end=filter_params["end"],
-            tenant_ids={"organization_id": organization.id},
+            organization=organization,
         )
 
         response = process_raw_response(

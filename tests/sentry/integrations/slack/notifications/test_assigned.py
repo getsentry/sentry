@@ -3,13 +3,18 @@ from urllib.parse import parse_qs
 
 import responses
 
-from sentry.models import Activity, Identity, IdentityProvider, IdentityStatus, Integration
+from sentry.models.activity import Activity
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.integrations.integration import Integration
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import get_attachment, send_notification
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
+
+pytestmark = [requires_snuba]
 
 
 class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):
@@ -126,9 +131,10 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         attachment, text = get_attachment()
         assert text == f"Issue assigned to {self.name} by themselves"
         assert attachment["title"] == self.group.title
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=assigned_activity-slack-user|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=assigned_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     @responses.activate

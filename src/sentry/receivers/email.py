@@ -1,7 +1,8 @@
 from django.db import IntegrityError, router, transaction
 from django.db.models.signals import post_delete, post_save
 
-from sentry.models import Email, UserEmail
+from sentry.models.email import Email
+from sentry.models.useremail import UserEmail
 
 
 def create_email(instance, created, **kwargs):

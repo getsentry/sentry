@@ -2,11 +2,12 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import Environment, EnvironmentProject
+from sentry.models.environment import Environment, EnvironmentProject
 
 
 class ProjectEnvironmentSerializer(serializers.Serializer):
@@ -15,6 +16,11 @@ class ProjectEnvironmentSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, project, environment) -> Response:
         try:
             instance = EnvironmentProject.objects.select_related("environment").get(

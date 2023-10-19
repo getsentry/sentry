@@ -1,4 +1,5 @@
 import base64
+import contextlib
 from functools import cached_property
 from unittest import mock
 from urllib.parse import parse_qs, urlencode, urlparse
@@ -12,7 +13,10 @@ from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.helper import AuthHelperSessionStore
 from sentry.auth.providers.saml2.generic.provider import GenericSAML2Provider
 from sentry.auth.providers.saml2.provider import Attributes
-from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, Organization
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import Organization
 from sentry.silo import SiloMode
 from sentry.testutils.cases import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
@@ -45,7 +49,7 @@ class DummySAML2Provider(GenericSAML2Provider):
         return dummy_provider_config
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class AuthSAML2Test(AuthProviderTestCase):
     provider = DummySAML2Provider
     provider_name = "saml2_dummy"
@@ -96,15 +100,19 @@ class AuthSAML2Test(AuthProviderTestCase):
         assert redirect.path == "/sso_url"
         assert "SAMLRequest" in query
 
-    def accept_auth(self, **kwargs):
+    def accept_auth(self, follow=False, **kwargs):
         saml_response = self.load_fixture("saml2_auth_response.xml")
         saml_response = base64.b64encode(saml_response).decode("utf-8")
 
         # Disable validation of the SAML2 mock response
         is_valid = "onelogin.saml2.response.OneLogin_Saml2_Response.is_valid"
 
-        with mock.patch(is_valid, return_value=True):
-            return self.client.post(self.acs_path, {"SAMLResponse": saml_response}, **kwargs)
+        with mock.patch(is_valid, return_value=True), contextlib.ExitStack() as stack:
+            if follow:
+                stack.enter_context(self.auto_select_silo_mode_on_redirects())
+            return self.client.post(
+                self.acs_path, {"SAMLResponse": saml_response}, follow=follow, **kwargs
+            )
 
     def test_auth_sp_initiated(self):
         # Start auth process from SP side
@@ -221,7 +229,9 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         data = {"init": True, "provider": self.provider_name}
 
-        with Feature(["organizations:sso-basic", "organizations:sso-saml2"]):
+        with Feature(["organizations:sso-basic", "organizations:sso-saml2"]), assume_test_silo_mode(
+            SiloMode.REGION
+        ):
             setup = self.client.post(self.setup_path, data)
 
         assert setup.status_code == 302
@@ -237,8 +247,9 @@ class AuthSAML2Test(AuthProviderTestCase):
         assert messages[1].startswith("SSO has been configured for your organization")
 
         # require 2FA disabled when saml is enabled
-        org = Organization.objects.get(id=self.organization.id)
-        assert not org.flags.require_2fa.is_set
+        with assume_test_silo_mode(SiloMode.REGION):
+            org = Organization.objects.get(id=self.organization.id)
+            assert not org.flags.require_2fa.is_set
 
         event = AuditLogEntry.objects.get(
             target_object=org.id, event=audit_log.get_event_id("ORG_EDIT"), actor=self.user

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from collections import namedtuple
 from enum import Enum
+from typing import Optional
+from uuid import uuid4
 
 from django.conf import settings
 from django.core.cache import cache
@@ -9,7 +11,9 @@ from django.db import IntegrityError, models, router, transaction
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import PrimaryKeyMap, get_model_name
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     ArrayField,
     FlexibleForeignKey,
@@ -22,8 +26,9 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
-from sentry.models import Organization, Team
 from sentry.models.notificationaction import AbstractNotificationAction, ActionService, ActionTarget
+from sentry.models.organization import Organization
+from sentry.models.team import Team
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import QuerySubscription
 from sentry.utils import metrics
@@ -198,7 +203,10 @@ class Incident(Model):
         app_label = "sentry"
         db_table = "sentry_incident"
         unique_together = (("organization", "identifier"),)
-        index_together = (("alert_rule", "type", "status"),)
+        index_together = (
+            ("alert_rule", "type", "status"),
+            ("id", "date_added"),
+        )
 
     @property
     def current_end_date(self):
@@ -211,6 +219,18 @@ class Incident(Model):
     @property
     def duration(self):
         return self.current_end_date - self.date_started
+
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[int]:
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+
+        # Generate a new UUID, if one exists.
+        if self.detection_uuid:
+            self.detection_uuid = uuid4()
+        return old_pk
 
 
 @region_silo_only_model
@@ -244,6 +264,7 @@ class IncidentSnapshot(Model):
 @region_silo_only_model
 class TimeSeriesSnapshot(Model):
     __relocation_scope__ = RelocationScope.Organization
+    __relocation_dependencies__ = {"sentry.Incident"}
 
     start = models.DateTimeField()
     end = models.DateTimeField()
@@ -254,6 +275,14 @@ class TimeSeriesSnapshot(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_timeseriessnapshot"
+
+    @classmethod
+    def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
+        pks = IncidentSnapshot.objects.filter(
+            incident__in=pk_map.get_pks(get_model_name(Incident))
+        ).values_list("event_stats_snapshot_id", flat=True)
+
+        return q & models.Q(pk__in=pks)
 
 
 class IncidentActivityType(Enum):
@@ -279,6 +308,18 @@ class IncidentActivity(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_incidentactivity"
+
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[int]:
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+
+        # Generate a new UUID, if one exists.
+        if self.notification_uuid:
+            self.notification_uuid = uuid4()
+        return old_pk
 
 
 @region_silo_only_model
@@ -568,7 +609,13 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     _type_registrations = {}
 
     INTEGRATION_TYPES = frozenset(
-        (Type.PAGERDUTY.value, Type.SLACK.value, Type.MSTEAMS.value, Type.OPSGENIE.value)
+        (
+            Type.PAGERDUTY.value,
+            Type.SLACK.value,
+            Type.MSTEAMS.value,
+            Type.OPSGENIE.value,
+            Type.DISCORD.value,
+        )
     )
 
     # ActionService items which are not supported for AlertRuleTriggerActions
@@ -612,15 +659,15 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         else:
             metrics.incr(f"alert_rule_trigger.unhandled_type.{self.type}")
 
-    def fire(self, action, incident, project, metric_value, new_status):
+    def fire(self, action, incident, project, metric_value, new_status, notification_uuid=None):
         handler = self.build_handler(action, incident, project)
         if handler:
-            return handler.fire(metric_value, new_status)
+            return handler.fire(metric_value, new_status, notification_uuid)
 
-    def resolve(self, action, incident, project, metric_value, new_status):
+    def resolve(self, action, incident, project, metric_value, new_status, notification_uuid=None):
         handler = self.build_handler(action, incident, project)
         if handler:
-            return handler.resolve(metric_value, new_status)
+            return handler.resolve(metric_value, new_status, notification_uuid)
 
     @classmethod
     def register_type(cls, slug, type, supported_target_types, integration_provider=None):

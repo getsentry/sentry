@@ -14,7 +14,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import {Integration, IntegrationProvider, Organization} from 'sentry/types';
-import {generateBaseControlSiloUrl} from 'sentry/utils';
+import {generateBaseControlSiloUrl, generateOrgSlugUrl} from 'sentry/utils';
 import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {
   getIntegrationFeatureGate,
@@ -107,7 +107,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
     try {
       const [organization, {providers}]: [
         Organization,
-        {providers: IntegrationProvider[]}
+        {providers: IntegrationProvider[]},
       ] = await Promise.all([
         this.controlSiloApi.requestPromise(`/organizations/${orgSlug}/`),
         this.controlSiloApi.requestPromise(
@@ -183,7 +183,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
     // Github uses a different installation flow with the installationId as a parameter
     // We have to wrap our installation button with AddIntegration so we can get the
     // addIntegrationWithInstallationId callback.
-    // if we don't hve an installationId, we need to use the finishInstallation callback.
+    // if we don't have an installationId, we need to use the finishInstallation callback.
     return (
       <IntegrationFeatures organization={organization} features={featuresComponents}>
         {({disabled}) => (
@@ -234,7 +234,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
                 {organization: <strong>{organization.slug}</strong>}
               )}
             </p>
-            <InstallLink>{window.location.href}</InstallLink>
+            <InstallLink>{generateOrgSlugUrl(selectedOrgSlug)}</InstallLink>
           </Alert>
         )}
 

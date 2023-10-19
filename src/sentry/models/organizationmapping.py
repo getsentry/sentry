@@ -7,8 +7,8 @@ from django.utils import timezone
 
 from sentry import roles
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, Model, sane_repr
-from sentry.db.models.base import control_silo_only_model
+from sentry.db.models import BoundedBigIntegerField, sane_repr
+from sentry.db.models.base import Model, control_silo_only_model
 from sentry.models.organization import OrganizationStatus
 from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH, REGION_NAME_LENGTH
 
@@ -37,6 +37,9 @@ class OrganizationMapping(Model):
     region_name = models.CharField(max_length=REGION_NAME_LENGTH)
     status = BoundedBigIntegerField(choices=OrganizationStatus.as_choices(), null=True)
 
+    # Replicated from the Organization.flags attribute
+    require_2fa = models.BooleanField(default=False)
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organizationmapping"
@@ -52,7 +55,7 @@ class OrganizationMapping(Model):
             2.  no organization member mapping exists for the given org and user_id
             3.  the organization member mapping for the given org and user_id is not the owner.
         """
-        from sentry.models import OrganizationMemberMapping
+        from sentry.models.organizationmembermapping import OrganizationMemberMapping
 
         try:
             mapping = OrganizationMapping.objects.get(slug=slug)

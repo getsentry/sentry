@@ -1,10 +1,12 @@
 import errno
+import os
 from unittest import mock
 
 import pytest
 import responses
 from requests import Response
 from requests.exceptions import ConnectionError, HTTPError, Timeout
+from requests.sessions import Session
 from sentry_sdk import Scope
 from sentry_sdk.consts import OP
 from sentry_sdk.tracing import Transaction
@@ -309,6 +311,49 @@ class ApiClientTest(TestCase):
                     assert (
                         mock_start_transaction.call_count == expected_call_count
                     ), f"Case {case_name} failed"
+
+    @responses.activate
+    def test_verify_ssl_handling(self):
+        """
+        Test handling of `verify_ssl` parameter when setting REQUESTS_CA_BUNDLE.
+        """
+        responses.add(responses.GET, "https://example.com", json={})
+
+        requests_ca_bundle = "/some/path/to/certs"
+
+        with mock.patch.dict(os.environ, {"REQUESTS_CA_BUNDLE": requests_ca_bundle}):
+            client = ApiClient()
+            with mock.patch(
+                "requests.sessions.Session.send", wraps=Session().send
+            ) as session_send_mock:
+                client.get("https://example.com")
+                session_send_mock.assert_called_once_with(
+                    mock.ANY,
+                    timeout=30,
+                    allow_redirects=True,
+                    proxies={},
+                    stream=False,
+                    verify=requests_ca_bundle,
+                    cert=None,
+                )
+
+    @responses.activate
+    def test_parameters_passed_correctly(self):
+        responses.add(responses.GET, "https://example.com", json={})
+        client = ApiClient(verify_ssl=False)
+        with mock.patch(
+            "requests.sessions.Session.send", wraps=Session().send
+        ) as session_send_mock:
+            client.get("https://example.com", timeout=50, allow_redirects=False)
+            session_send_mock.assert_called_once_with(
+                mock.ANY,
+                timeout=50,
+                allow_redirects=False,
+                proxies={},
+                stream=False,
+                verify=False,
+                cert=None,
+            )
 
 
 class OAuthProvider(OAuth2Provider):

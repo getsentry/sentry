@@ -8,13 +8,14 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import AdminBroadcastSerializer, BroadcastSerializer, serialize
 from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
 from sentry.db.models.query import in_icontains
-from sentry.models import Broadcast, BroadcastSeen
+from sentry.models.broadcast import Broadcast, BroadcastSeen
 from sentry.search.utils import tokenize_query
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 
@@ -27,6 +28,11 @@ from rest_framework.response import Response
 
 @control_silo_endpoint
 class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationPermission,)
 
     def _get_serializer(self, request: Request):

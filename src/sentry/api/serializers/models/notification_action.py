@@ -1,4 +1,4 @@
-from typing import Dict, Sequence
+from typing import Any, Dict, Sequence
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -34,7 +34,7 @@ class OutgoingNotificationActionSerializer(Serializer):
             for item in item_list
         }
 
-    def serialize(self, obj: NotificationAction, attrs, user, **kwargs):
+    def serialize(self, obj: NotificationAction, attrs, user, **kwargs) -> Dict[str, Any]:
         return {
             "id": obj.id,
             "organizationId": obj.organization_id,

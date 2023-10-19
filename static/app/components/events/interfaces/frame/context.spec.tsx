@@ -1,3 +1,7 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Repository} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -6,13 +10,13 @@ import {Coverage, Frame, LineCoverage} from 'sentry/types';
 import Context, {getLineCoverage} from './context';
 
 describe('Frame - Context', function () {
-  const org = TestStubs.Organization();
+  const org = Organization();
   const project = TestStubs.Project({});
   const event = TestStubs.Event({projectID: project.id});
   const integration = TestStubs.GitHubIntegration();
-  const repo = TestStubs.Repository({integrationId: integration.id});
+  const repo = Repository({integrationId: integration.id});
   const frame = {filename: '/sentry/app.py', lineNo: 233} as Frame;
-  const config = TestStubs.RepositoryProjectPathConfig({project, repo, integration});
+  const config = RepositoryProjectPathConfig({project, repo, integration});
 
   beforeEach(function () {
     jest.clearAllMocks();

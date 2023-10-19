@@ -31,9 +31,10 @@ class NotificationSettingOption(NotificationSettingBase):
         ]
 
     __repr__ = sane_repr(
-        "scope_str",
+        "scope_type",
         "scope_identifier",
-        "target",
-        "type_str",
-        "value_str",
+        "type",
+        "user_id",
+        "team_id",
+        "value",
     )

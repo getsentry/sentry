@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING, Any, Mapping, MutableMapping
 from django.utils.encoding import force_str
 
 from sentry.db.models import Model
-from sentry.models import Group, GroupSubscription
+from sentry.models.group import Group
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.helpers import get_reason_context
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils import send_activity_notification
@@ -15,7 +16,7 @@ from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
-    from sentry.models import Project
+    from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
 
@@ -54,17 +55,20 @@ class UserReportNotification(ProjectNotification):
 
     def get_context(self) -> MutableMapping[str, Any]:
         organization = self.organization
+        link_query = f"project={self.project.id}"
+        if hasattr(self, "notification_uuid"):
+            link_query += f"&amp;notification_uuid={self.notification_uuid}"
         return {
             "enhanced_privacy": organization.flags.enhanced_privacy,
             "group": self.group,
             "issue_link": organization.absolute_url(
                 f"/organizations/{organization.slug}/issues/{self.group.id}/",
-                query=f"project={self.project.id}",
+                query=link_query,
             ),
             # TODO(dcramer): we don't have permalinks to feedback yet
             "link": organization.absolute_url(
                 f"/organizations/{organization.slug}/issues/{self.group.id}/feedback/",
-                query=f"project={self.project.id}",
+                query=link_query,
             ),
             "project": self.project,
             "project_link": organization.absolute_url(

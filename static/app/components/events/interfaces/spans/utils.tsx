@@ -9,7 +9,13 @@ import moment from 'moment';
 
 import {lightenBarColor} from 'sentry/components/performance/waterfall/utils';
 import {Organization} from 'sentry/types';
-import {EntrySpans, EntryType, EventTransaction} from 'sentry/types/event';
+import {
+  AggregateEntrySpans,
+  AggregateEventTransaction,
+  EntrySpans,
+  EntryType,
+  EventTransaction,
+} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
@@ -19,6 +25,7 @@ import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
 import SpanTreeModel from './spanTreeModel';
 import {
+  AggregateSpanType,
   EnhancedSpan,
   GapSpanType,
   OrphanSpanType,
@@ -237,8 +244,10 @@ export const boundsGenerator = (bounds: {
   };
 };
 
-export function generateRootSpan(trace: ParsedTraceType): RawSpanType {
-  const rootSpan: RawSpanType = {
+export function generateRootSpan(
+  trace: ParsedTraceType
+): RawSpanType | AggregateSpanType {
+  const rootSpan = {
     trace_id: trace.traceID,
     span_id: trace.rootSpanID,
     parent_span_id: trace.parentSpanID,
@@ -250,6 +259,9 @@ export function generateRootSpan(trace: ParsedTraceType): RawSpanType {
     status: trace.rootSpanStatus,
     hash: trace.hash,
     exclusive_time: trace.exclusiveTime,
+    count: trace.count,
+    frequency: trace.frequency,
+    total: trace.total,
   };
 
   return rootSpan;
@@ -441,17 +453,21 @@ export function formatSpanTreeLabel(span: ProcessedSpanType): string | undefined
 }
 
 export function getTraceContext(
-  event: Readonly<EventTransaction>
+  event: Readonly<EventTransaction | AggregateEventTransaction>
 ): TraceContextType | undefined {
   return event?.contexts?.trace;
 }
 
-export function parseTrace(event: Readonly<EventTransaction>): ParsedTraceType {
-  const spanEntry = event.entries.find((entry: EntrySpans | any): entry is EntrySpans => {
-    return entry.type === EntryType.SPANS;
-  });
+export function parseTrace(
+  event: Readonly<EventTransaction | AggregateEventTransaction>
+): ParsedTraceType {
+  const spanEntry = event.entries.find(
+    (entry: EntrySpans | AggregateEntrySpans | any): entry is EntrySpans => {
+      return entry.type === EntryType.SPANS;
+    }
+  );
 
-  const spans: Array<RawSpanType> = spanEntry?.data ?? [];
+  const spans: Array<RawSpanType | AggregateSpanType> = spanEntry?.data ?? [];
 
   const traceContext = getTraceContext(event);
   const traceID = (traceContext && traceContext.trace_id) || '';
@@ -462,6 +478,9 @@ export function parseTrace(event: Readonly<EventTransaction>): ParsedTraceType {
   const rootSpanStatus = traceContext && traceContext.status;
   const hash = traceContext && traceContext.hash;
   const exclusiveTime = traceContext && traceContext.exclusive_time;
+  const count = traceContext && traceContext.count;
+  const frequency = traceContext && traceContext.frequency;
+  const total = traceContext && traceContext.total;
 
   if (!spanEntry || spans.length <= 0) {
     return {
@@ -477,6 +496,9 @@ export function parseTrace(event: Readonly<EventTransaction>): ParsedTraceType {
       description,
       hash,
       exclusiveTime,
+      count,
+      frequency,
+      total,
     };
   }
 
@@ -505,6 +527,9 @@ export function parseTrace(event: Readonly<EventTransaction>): ParsedTraceType {
     description,
     hash,
     exclusiveTime,
+    count,
+    frequency,
+    total,
   };
 
   const reduced: ParsedTraceType = spans.reduce((acc, inputSpan) => {
@@ -622,7 +647,9 @@ export function unwrapTreeDepth(treeDepth: TreeDepthType): number {
   return treeDepth;
 }
 
-export function isEventFromBrowserJavaScriptSDK(event: EventTransaction): boolean {
+export function isEventFromBrowserJavaScriptSDK(
+  event: EventTransaction | AggregateEventTransaction
+): boolean {
   const sdkName = event.sdk?.name;
   if (!sdkName) {
     return false;
@@ -678,7 +705,7 @@ function hasFailedThreshold(marks: Measurements): boolean {
 }
 
 export function getMeasurements(
-  event: EventTransaction | TraceFullDetailed,
+  event: EventTransaction | TraceFullDetailed | AggregateEventTransaction,
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
 ): Map<number, VerticalMark> {
   const startTimestamp =
@@ -948,17 +975,24 @@ export function getSpanGroupBounds(
 }
 
 export function getCumulativeAlertLevelFromErrors(
-  errors?: Pick<TraceError, 'level'>[]
+  errors?: Pick<TraceError, 'level' | 'type'>[]
 ): keyof Theme['alert'] | undefined {
-  const highestErrorLevel = maxBy(
-    errors || [],
-    error => ERROR_LEVEL_WEIGHTS[error.level]
-  )?.level;
+  const highestErrorLevel = maxBy(errors || [], error => ERROR_LEVEL_WEIGHTS[error.level])
+    ?.level;
+
+  if (errors?.some(isErrorPerformanceError)) {
+    return 'error';
+  }
 
   if (!highestErrorLevel) {
     return undefined;
   }
+
   return ERROR_LEVEL_TO_ALERT_TYPE[highestErrorLevel];
+}
+
+export function isErrorPerformanceError(error: {type?: number}): boolean {
+  return !!error.type && error.type >= 1000 && error.type < 2000;
 }
 
 // Maps the known error levels to an Alert component types

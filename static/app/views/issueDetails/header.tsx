@@ -6,7 +6,6 @@ import omit from 'lodash/omit';
 import Badge from 'sentry/components/badge';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Count from 'sentry/components/count';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventMessage from 'sentry/components/events/eventMessage';
@@ -15,13 +14,14 @@ import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge'
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import {TabList} from 'sentry/components/tabs';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, Organization, Project} from 'sentry/types';
+import {Event, Group, IssueCategory, Organization, Project} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
@@ -59,6 +59,7 @@ function GroupHeaderTabs({
   const organization = useOrganization();
 
   const replaysCount = useReplaysCount({
+    issueCategory: group.issueCategory,
     groupIds: group.id,
     organization,
   })[group.id];
@@ -116,6 +117,7 @@ function GroupHeaderTabs({
       </TabList.Item>
       <TabList.Item
         key={Tab.TAGS}
+        hidden={!issueTypeConfig.tags.enabled}
         disabled={disabledTabs.includes(Tab.TAGS)}
         to={`${baseUrl}tags/${location.search}`}
       >
@@ -123,10 +125,13 @@ function GroupHeaderTabs({
       </TabList.Item>
       <TabList.Item
         key={Tab.EVENTS}
+        hidden={!issueTypeConfig.events.enabled}
         disabled={disabledTabs.includes(Tab.EVENTS)}
         to={eventRoute}
       >
-        {t('All Events')}
+        {group.issueCategory === IssueCategory.ERROR
+          ? t('All Events')
+          : t('Sampled Events')}
       </TabList.Item>
       <TabList.Item
         key={Tab.MERGED}
@@ -230,6 +235,8 @@ function GroupHeader({
     <ShortIdBreadrcumb organization={organization} project={project} group={group} />
   );
 
+  const issueTypeConfig = getConfigForIssueType(group);
+
   return (
     <Layout.Header>
       <div className={className}>
@@ -274,31 +281,33 @@ function GroupHeader({
               <EventMessage message={message} />
             </StyledTagAndMessageWrapper>
           </TitleWrapper>
-          <StatsWrapper>
-            <div className="count">
-              <h6 className="nav-header">{t('Events')}</h6>
-              <Link disabled={disableActions} to={eventRoute}>
-                <Count className="count" value={group.count} />
-              </Link>
-            </div>
-            <div className="count">
-              <h6 className="nav-header">{t('Users')}</h6>
-              {userCount !== 0 ? (
-                <Link
-                  disabled={disableActions}
-                  to={`${baseUrl}tags/user/${location.search}`}
-                >
-                  <Count className="count" value={userCount} />
+          {issueTypeConfig.stats.enabled && (
+            <StatsWrapper>
+              <div className="count">
+                <h6 className="nav-header">{t('Events')}</h6>
+                <Link disabled={disableActions} to={eventRoute}>
+                  <Count className="count" value={group.count} />
                 </Link>
-              ) : (
-                <span>0</span>
-              )}
-            </div>
-          </StatsWrapper>
+              </div>
+              <div className="count">
+                <h6 className="nav-header">{t('Users')}</h6>
+                {userCount !== 0 ? (
+                  <Link
+                    disabled={disableActions}
+                    to={`${baseUrl}tags/user/${location.search}`}
+                  >
+                    <Count className="count" value={userCount} />
+                  </Link>
+                ) : (
+                  <span>0</span>
+                )}
+              </div>
+            </StatsWrapper>
+          )}
         </HeaderRow>
         {/* Environment picker for mobile */}
         <HeaderRow className="hidden-sm hidden-md hidden-lg">
-          <EnvironmentPageFilter alignDropdown="right" />
+          <EnvironmentPageFilter position="bottom-end" />
         </HeaderRow>
         <GroupHeaderTabs {...{baseUrl, disabledTabs, eventRoute, group, project}} />
       </div>

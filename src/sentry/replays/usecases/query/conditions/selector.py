@@ -143,6 +143,11 @@ class SumOfClickArray(GenericBase):
         return does_not_contain(ClickArray.visit_in(expression, value))
 
 
+#
+# Selector condition classes.
+#
+
+
 class ClickSelectorComposite(ComputedBase):
     """Click selector composite condition class."""
 
@@ -163,8 +168,37 @@ class ClickSelectorComposite(ComputedBase):
             return Condition(search_selector(value), Op.EQ, 0)
 
 
+class DeadClickSelectorComposite(ComputedBase):
+    """Dead selector composite condition class."""
+
+    @staticmethod
+    def visit_eq(value: list[QueryType]) -> Condition:
+        return is_dead_click(ClickSelectorComposite.visit_eq(value))
+
+    @staticmethod
+    def visit_neq(value: list[QueryType]) -> Condition:
+        return is_dead_click(ClickSelectorComposite.visit_neq(value))
+
+
+class RageClickSelectorComposite(ComputedBase):
+    """Rage selector composite condition class."""
+
+    @staticmethod
+    def visit_eq(value: list[QueryType]) -> Condition:
+        return is_rage_click(ClickSelectorComposite.visit_eq(value))
+
+    @staticmethod
+    def visit_neq(value: list[QueryType]) -> Condition:
+        return is_rage_click(ClickSelectorComposite.visit_neq(value))
+
+
+#
+# Streaming selector condition classes.
+#
+
+
 class SumOfClickSelectorComposite(ComputedBase):
-    """Click selector composite condition class."""
+    """Streaming click selector composite condition class."""
 
     @staticmethod
     def visit_eq(value: list[QueryType]) -> Condition:
@@ -173,6 +207,30 @@ class SumOfClickSelectorComposite(ComputedBase):
     @staticmethod
     def visit_neq(value: list[QueryType]) -> Condition:
         return does_not_contain(ClickSelectorComposite.visit_eq(value))
+
+
+class SumOfDeadClickSelectorComposite(ComputedBase):
+    """Streaming dead click selector composite condition class."""
+
+    @staticmethod
+    def visit_eq(value: list[QueryType]) -> Condition:
+        return contains(DeadClickSelectorComposite.visit_eq(value))
+
+    @staticmethod
+    def visit_neq(value: list[QueryType]) -> Condition:
+        return does_not_contain(DeadClickSelectorComposite.visit_eq(value))
+
+
+class SumOfRageClickSelectorComposite(ComputedBase):
+    """Streaming rage click selector composite condition class."""
+
+    @staticmethod
+    def visit_eq(value: list[QueryType]) -> Condition:
+        return contains(RageClickSelectorComposite.visit_eq(value))
+
+    @staticmethod
+    def visit_neq(value: list[QueryType]) -> Condition:
+        return does_not_contain(RageClickSelectorComposite.visit_eq(value))
 
 
 # We are not targetting an aggregated result set.  We are targetting a row.  We're asking does
@@ -253,3 +311,19 @@ def and_is_click_row(condition: Condition) -> Condition:
         ],
     )
     return Condition(expression, Op.EQ, 1)
+
+
+def is_dead_click(condition: Condition) -> Condition:
+    return Condition(
+        Function("and", parameters=[condition.lhs, equals(Column("click_is_dead"), 1)]),
+        Op.EQ,
+        1,
+    )
+
+
+def is_rage_click(condition: Condition) -> Condition:
+    return Condition(
+        Function("and", parameters=[condition.lhs, equals(Column("click_is_rage"), 1)]),
+        Op.EQ,
+        1,
+    )

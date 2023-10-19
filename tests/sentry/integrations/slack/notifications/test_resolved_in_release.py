@@ -2,7 +2,7 @@ from unittest import mock
 
 import responses
 
-from sentry.models import Activity
+from sentry.models.activity import Activity
 from sentry.notifications.notifications.activity.resolved_in_release import (
     ResolvedInReleaseActivityNotification,
 )
@@ -10,7 +10,10 @@ from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotifi
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import get_attachment, send_notification
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test(stable=True)
@@ -41,9 +44,10 @@ class SlackResolvedInReleaseNotificationTest(
         attachment, text = get_attachment()
         release_name = notification.activity.data["version"]
         assert text == f"Issue marked as resolved in {release_name} by {self.name}"
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_in_release_activity-slack-user|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_in_release_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     @responses.activate
@@ -107,7 +111,8 @@ class SlackResolvedInReleaseNotificationTest(
 
         attachment, text = get_attachment()
         assert text == f"Issue marked as resolved in 1.0.0 by {self.name}"
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_in_release_activity-slack-user|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_in_release_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )

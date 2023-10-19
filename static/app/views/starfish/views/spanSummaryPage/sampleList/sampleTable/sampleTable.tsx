@@ -13,9 +13,9 @@ import {SpanSamplesTable} from 'sentry/views/starfish/components/samplesTable/sp
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {SpanSample, useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
 import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 
-const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
 const SpanSamplesTableContainer = styled('div')`
   padding-bottom: ${space(2)};
@@ -23,11 +23,11 @@ const SpanSamplesTableContainer = styled('div')`
 
 type Props = {
   groupId: string;
-  transactionMethod: string;
   transactionName: string;
   highlightedSpanId?: string;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
+  transactionMethod?: string;
 };
 
 function SampleTable({
@@ -38,9 +38,17 @@ function SampleTable({
   onMouseOverSample,
   transactionMethod,
 }: Props) {
+  const filters = {
+    transactionName,
+  };
+
+  if (transactionMethod) {
+    filters['transaction.method'] = transactionMethod;
+  }
+
   const {data: spanMetrics, isFetching: isFetchingSpanMetrics} = useSpanMetrics(
     groupId,
-    {transactionName, 'transaction.method': transactionMethod},
+    filters,
     [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
     'api.starfish.span-summary-panel-samples-table-avg'
   );

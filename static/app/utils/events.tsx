@@ -395,8 +395,8 @@ function getNumberOfThreadsWithNames(event: Event) {
 
 export function eventHasExceptionGroup(event: Event) {
   const exceptionEntries = getExceptionEntries(event);
-  return exceptionEntries.some(entry =>
-    entry.data.values?.some(({mechanism}) => mechanism?.is_exception_group)
+  return exceptionEntries.some(
+    entry => entry.data.values?.some(({mechanism}) => mechanism?.is_exception_group)
   );
 }
 
@@ -455,9 +455,12 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     sdk_name: event?.sdk?.name,
     sdk_version: event?.sdk?.version,
     release_user_agent: event?.release?.userAgent,
+    resolved_with: event?.resolvedWith ?? [],
     error_has_replay: Boolean(getReplayIdFromEvent(event)),
     error_has_user_feedback: defined(event?.userReport),
     has_otel: event?.contexts?.otel !== undefined,
+    event_mechanism:
+      event?.tags?.find(tag => tag.key === 'mechanism')?.value || undefined,
   };
 }
 

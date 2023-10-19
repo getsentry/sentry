@@ -8,7 +8,9 @@ import type {TabKey} from 'sentry/views/replays/detail/network/details/tabs';
 jest.mock('sentry/utils/useProjectSdkNeedsUpdate');
 
 function mockNeedsUpdate(needsUpdate: boolean) {
-  jest.mocked(useProjectSdkNeedsUpdate).mockReturnValue({isFetching: false, needsUpdate});
+  jest
+    .mocked(useProjectSdkNeedsUpdate)
+    .mockReturnValue({isError: false, isFetching: false, needsUpdate});
 }
 
 const [

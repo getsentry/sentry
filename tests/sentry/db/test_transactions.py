@@ -5,13 +5,14 @@ import pytest
 from django.db import IntegrityError, router, transaction
 from django.test import override_settings
 
-from sentry.conf.server import env
 from sentry.db.postgres.transactions import (
     django_test_transaction_water_mark,
     in_test_assert_no_transaction,
     in_test_hide_transaction_boundary,
 )
-from sentry.models import Organization, User, outbox_context
+from sentry.models.organization import Organization
+from sentry.models.outbox import outbox_context
+from sentry.models.user import User
 from sentry.services.hybrid_cloud import silo_mode_delegation
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
@@ -42,14 +43,9 @@ class CaseMixin:
                 User.objects.create(username="user2")
                 User.objects.create(username="user3")
 
-        if env("SENTRY_USE_SPLIT_DBS", 0):
-            assert [(s["transaction"]) for s in queries] == [None, "default", "default", "control"]
-        else:
-            assert [(s["transaction"]) for s in queries] == [None, "default", "default", "default"]
+        assert [(s["transaction"]) for s in queries] == [None, "default", "default", "control"]
 
     def test_bad_transaction_boundaries(self):
-        if not env("SENTRY_USE_SPLIT_DBS", 0):
-            return
 
         Factories.create_organization()
         Factories.create_user()

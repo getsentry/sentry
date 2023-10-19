@@ -1,20 +1,17 @@
 from collections import defaultdict
-from typing import List
+from typing import List, Optional
 
-from django.db.models import Max, prefetch_related_objects
+from django.db.models import Max, Q, prefetch_related_objects
 from rest_framework import serializers
+from typing_extensions import TypedDict
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import (
-    ACTOR_TYPES,
-    Environment,
-    Rule,
-    RuleActivity,
-    RuleActivityType,
-    actor_type_to_string,
-)
-from sentry.models.actor import Actor
+from sentry.constants import ObjectStatus
+from sentry.models.actor import ACTOR_TYPES, Actor, actor_type_to_string
+from sentry.models.environment import Environment
+from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.services.hybrid_cloud.user.service import user_service
 
 
@@ -34,6 +31,40 @@ def _is_filter(data):
 
     rule_cls = rules.get(data["id"])
     return rule_cls.rule_type == "filter/event"
+
+
+class RuleCreatedBy(TypedDict):
+    id: int
+    name: str
+    email: str
+
+
+class RuleSerializerResponseOptional(TypedDict, total=False):
+    owner: Optional[str]
+    createdBy: Optional[RuleCreatedBy]
+    environment: Optional[str]
+    lastTriggered: Optional[str]
+    snoozeCreatedBy: Optional[str]
+    snoozeForEveryone: Optional[bool]
+
+
+class RuleSerializerResponse(RuleSerializerResponseOptional):
+    """
+    This represents a Sentry Rule.
+    """
+
+    id: str
+    conditions: List[dict]
+    filters: List[dict]
+    actions: List[dict]
+    actionMatch: str
+    filterMatch: str
+    frequency: int
+    name: str
+    dateCreated: str
+    projects: List[str]
+    status: str
+    snooze: bool
 
 
 @register(Rule)
@@ -65,15 +96,15 @@ class RuleSerializer(Serializer):
         for rule_activity in ras:
             u = users.get(rule_activity.user_id)
             if u:
-                user = {
+                creator = {
                     "id": u.id,
                     "name": u.get_display_name(),
                     "email": u.email,
                 }
             else:
-                user = None
+                creator = None
 
-            result[rule_activity.rule].update({"created_by": user})
+            result[rule_activity.rule].update({"created_by": creator})
 
         rules = {item.id: item for item in item_list}
         resolved_actors = {}
@@ -134,9 +165,35 @@ class RuleSerializer(Serializer):
             for rule in item_list:
                 result[rule]["last_triggered"] = last_triggered_lookup.get(rule.id, None)
 
+        neglected_rule_lookup = {
+            nr["rule_id"]: nr["disable_date"]
+            for nr in NeglectedRule.objects.filter(
+                rule__in=item_list,
+                opted_out=False,
+                sent_initial_email_date__isnull=False,
+            ).values("rule_id", "disable_date")
+        }
+        for rule in item_list:
+            disable_date = neglected_rule_lookup.get(rule.id, None)
+            if disable_date:
+                result[rule]["disable_date"] = disable_date
+
+        rule_snooze_lookup = {
+            snooze["rule_id"]: {"user_id": snooze["user_id"], "owner_id": snooze["owner_id"]}
+            for snooze in RuleSnooze.objects.filter(
+                Q(user_id=user.id) | Q(user_id=None),
+                rule__in=[item.id for item in item_list],
+            ).values("rule_id", "user_id", "owner_id")
+        }
+
+        for rule in item_list:
+            snooze = rule_snooze_lookup.get(rule.id, None)
+            if snooze:
+                result[rule]["snooze"] = snooze
+
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs) -> RuleSerializerResponse:
         environment = attrs["environment"]
         all_conditions = [
             dict(list(o.items()) + [("name", _generate_rule_label(obj.project, obj, o))])
@@ -174,7 +231,30 @@ class RuleSerializer(Serializer):
             "createdBy": attrs.get("created_by", None),
             "environment": environment.name if environment is not None else None,
             "projects": [obj.project.slug],
+            "status": "active" if obj.status == ObjectStatus.ACTIVE else "disabled",
         }
         if "last_triggered" in attrs:
             d["lastTriggered"] = attrs["last_triggered"]
+
+        if "snooze" in attrs:
+            snooze = attrs["snooze"]
+            d["snooze"] = True
+            created_by = None
+            if user.id == snooze.get("owner_id"):
+                created_by = "You"
+            else:
+                creator = user_service.get_user(snooze.get("owner_id"))
+                if creator:
+                    created_by = creator.get_display_name()
+
+            if created_by is not None:
+                d["snoozeCreatedBy"] = created_by
+                d["snoozeForEveryone"] = snooze.get("user_id") is None
+        else:
+            d["snooze"] = False
+
+        if "disable_date" in attrs:
+            d["disableReason"] = "noisy"
+            d["disableDate"] = attrs["disable_date"]
+
         return d

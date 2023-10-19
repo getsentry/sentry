@@ -71,8 +71,8 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
     defaultFieldName: 'weeklyReports',
   },
   approval: {
-    title: t('Approvals'),
-    description: t('Notifications from teammates that require review or approval.'),
+    title: t('Nudges'),
+    description: t('Notifications that require review or approval.'),
     type: 'select',
     // No choices here because it's going to have dynamic content
     // Component will create choices,

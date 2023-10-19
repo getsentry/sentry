@@ -12,9 +12,11 @@ def TaskRunner():
     prev = settings.CELERY_ALWAYS_EAGER
     settings.CELERY_ALWAYS_EAGER = True
     current_app.conf.CELERY_ALWAYS_EAGER = True
-    yield
-    current_app.conf.CELERY_ALWAYS_EAGER = prev
-    settings.CELERY_ALWAYS_EAGER = prev
+    try:
+        yield
+    finally:
+        current_app.conf.CELERY_ALWAYS_EAGER = prev
+        settings.CELERY_ALWAYS_EAGER = prev
 
 
 @contextmanager

@@ -1,7 +1,5 @@
 from datetime import timezone
 
-from freezegun import freeze_time
-
 from sentry.incidents.models import (
     INCIDENT_STATUS,
     AlertRuleThresholdType,
@@ -9,9 +7,9 @@ from sentry.incidents.models import (
     IncidentActivityType,
     IncidentStatus,
 )
-from sentry.models import ActorTuple
+from sentry.models.actor import ActorTuple
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import region_silo_test
 
 

@@ -9,7 +9,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EntryType, EventTransaction, Frame, PlatformType} from 'sentry/types/event';
+import type {EventTransaction, Frame, PlatformKey} from 'sentry/types';
+import {EntryType} from 'sentry/types/event';
 import {StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
@@ -75,13 +76,24 @@ export function SpanProfileDetails({
       return [];
     }
 
+    // The most recent profile formats should contain a timestamp indicating
+    // the beginning of the profile. This timestamp can be after the start
+    // timestamp on the transaction, so we need to account for the gap and
+    // make sure the relative start timestamps we compute for the span is
+    // relative to the start of the profile.
+    //
+    // If the profile does not contain a timestamp, we fall back to using the
+    // start timestamp on the transaction. This won't be as accurate but it's
+    // the next best thing.
+    const startTimestamp = profile.timestamp ?? event.startTimestamp;
+
     const relativeStartTimestamp = formatTo(
-      span.start_timestamp - event.startTimestamp,
+      span.start_timestamp - startTimestamp,
       'second',
       profile.unit
     );
     const relativeStopTimestamp = formatTo(
-      span.timestamp - event.startTimestamp,
+      span.timestamp - startTimestamp,
       'second',
       profile.unit
     );
@@ -303,7 +315,7 @@ function hasApplicationFrame(node: CallTreeNode | null) {
   return false;
 }
 
-function extractFrames(node: CallTreeNode | null, platform: PlatformType): Frame[] {
+function extractFrames(node: CallTreeNode | null, platform: PlatformKey): Frame[] {
   const frames: Frame[] = [];
 
   while (node && !node.isRoot) {

@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {SelectOption} from 'sentry/components/compactSelect';
@@ -16,12 +17,12 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
 import {SpanGroupBreakdown} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdown';
 
-const {SPAN_SELF_TIME} = SpanMetricsFields;
+const {SPAN_SELF_TIME} = SpanMetricsField;
 
 const OTHER_SPAN_GROUP_MODULE = 'Other';
 export const NULL_SPAN_CATEGORY = t('custom');
@@ -32,7 +33,7 @@ type Props = {
 };
 
 type Group = {
-  'span.category': string;
+  'span.module': string;
 };
 
 export type DataRow = {
@@ -55,13 +56,13 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
   const theme = useTheme();
 
   const options: SelectOption<DataDisplayType>[] = [
-    {label: t('Percentages'), value: DataDisplayType.PERCENTAGE},
     {label: t('Average Duration'), value: DataDisplayType.DURATION_AVG},
+    {label: t('Percentages'), value: DataDisplayType.PERCENTAGE},
     {label: t('Total Duration'), value: DataDisplayType.CUMULATIVE_DURATION},
   ];
 
   const [dataDisplayType, setDataDisplayType] = useState<DataDisplayType>(
-    DataDisplayType.PERCENTAGE
+    DataDisplayType.DURATION_AVG
   );
 
   const {data: segments, isLoading: isSegmentsLoading} = useDiscoverQuery({
@@ -70,11 +71,11 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
       `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
         transactionMethod ? `http.method:${transactionMethod}` : ''
       }`,
-      ['span.category']
+      ['span.module']
     ),
     orgSlug: organization.slug,
     referrer: 'api.starfish-web-service.span-category-breakdown',
-    location,
+    location: omit(location, 'query.cursor'),
     limit: 4,
   });
 
@@ -88,7 +89,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
     ),
     orgSlug: organization.slug,
     referrer: 'api.starfish-web-service.total-time',
-    location,
+    location: omit(location, 'query.cursor'),
   });
 
   const {
@@ -101,7 +102,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
       `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
         transactionMethod ? `http.method:${transactionMethod}` : ''
       }`,
-      ['span.category'],
+      ['span.module'],
       dataDisplayType,
       true
     ),
@@ -126,11 +127,11 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
   if (defined(segments)) {
     for (let index = 0; index < segments.data.length; index++) {
       const element = segments.data[index];
-      const category = element['span.category'] as string;
+      const spanModule = element['span.module'] as string;
       transformedData.push({
         cumulativeTime: parseInt(element[`sum(${SPAN_SELF_TIME})`] as string, 10),
         group: {
-          'span.category': category === '' ? NULL_SPAN_CATEGORY : category,
+          'span.module': spanModule === '' ? NULL_SPAN_CATEGORY : spanModule,
         },
       });
     }
@@ -139,20 +140,20 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
       transformedData.push({
         cumulativeTime: otherValue,
         group: {
-          'span.category': OTHER_SPAN_GROUP_MODULE,
+          'span.module': OTHER_SPAN_GROUP_MODULE,
         },
       });
     }
   }
 
-  const seriesByDomain: {[category: string]: Series} = {};
+  const seriesByDomain: {[spanModule: string]: Series} = {};
   const colorPalette = theme.charts.getColorPalette(transformedData.length - 2);
 
   if (defined(topData)) {
     if (!isTopDataLoading && transformedData.length > 0) {
       transformedData.forEach((segment, index) => {
-        const category = segment.group['span.category'] as string;
-        const label = category === '' ? NULL_SPAN_CATEGORY : category;
+        const spanModule = segment.group['span.module'] as string;
+        const label = spanModule === '' ? NULL_SPAN_CATEGORY : spanModule;
         seriesByDomain[label] = {
           seriesName: label,
           data: [],
@@ -195,7 +196,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
 
 const StyledPanel = styled(Panel)`
   padding-top: ${space(2)};
-  margin-bottom: 0;
+  margin-bottom: ${space(2)};
 `;
 
 const getEventView = (

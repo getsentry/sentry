@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from copy import deepcopy
 from functools import cached_property
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import patch
 
 import responses
 from django.conf import settings
 from django.test import override_settings
-from requests import Request
 from rest_framework.exceptions import ErrorDetail
+from rest_framework.response import Response
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
@@ -25,18 +25,25 @@ from sentry.incidents.models import (
 )
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.integrations.slack.client import SlackClient
-from sentry.models import AuditLogEntry, Integration, OrganizationMemberTeam
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.integrations.integration import Integration
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.silo import SiloMode
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.abstract import Abstract
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 
+pytestmark = [requires_snuba]
+
 
 class AlertRuleDetailsBase(AlertRuleBase):
+    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+
     endpoint = "sentry-api-0-organization-alert-rule-details"
 
     def new_alert_rule(self, data=None):
@@ -144,7 +151,7 @@ class AlertRuleDetailsBase(AlertRuleBase):
 
 
 @region_silo_test(stable=True)
-class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
+class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     def test_simple(self):
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
@@ -258,7 +265,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
 
 
 @region_silo_test(stable=True)
-class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
+class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
 
     def test_simple(self):
@@ -607,9 +614,9 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsPutEndpointTest):
 
     def _organization_alert_rule_api_call(
         self,
-        channelName: Optional[str] = None,
-        channelID: Optional[str] = None,
-    ) -> Request:
+        channelName: str | None = None,
+        channelID: int | None = None,
+    ) -> Response:
         """
         Call the project alert rule API but do some Slack integration set up before doing so
         """
@@ -786,8 +793,8 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsPutEndpointTest):
         self.login_as(self.user)
         mock_uuid4.return_value = self.get_mock_uuid()
         channelName = "my-channel"
-        # Because channel ID is an empty string it will be converted to an async request for the channel name
-        resp = self._organization_alert_rule_api_call(channelName, channelID="")
+        # Because channel ID is None it will be converted to an async request for the channel name
+        resp = self._organization_alert_rule_api_call(channelName, channelID=None)
 
         # A task with this uuid has been scheduled because there's a Slack channel async search
         assert resp.status_code == 202
@@ -1112,7 +1119,7 @@ class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsPutEndpointTest):
 
 
 @region_silo_test(stable=True)
-class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
+class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
     method = "delete"
 
     def test_simple(self):
@@ -1194,3 +1201,31 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
         self.create_team_membership(team=self.team, member=om)
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(self.organization.slug, alert_rule.id, status_code=204)
+
+    def test_project_permission(self):
+        """Test that a user can't delete an alert in a project they do not have access to"""
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        team = self.create_team(organization=self.organization, members=[self.user])
+        project = self.create_project(name="boo", organization=self.organization, teams=[team])
+        alert_rule = self.create_alert_rule(projects=[project])
+        alert_rule.owner = team.actor
+        alert_rule.save()
+
+        other_user = self.create_user()
+        self.login_as(other_user)
+        other_team = self.create_team(organization=self.organization, members=[other_user])
+        other_project = self.create_project(
+            name="ahh", organization=self.organization, teams=[other_team]
+        )
+        other_alert_rule = self.create_alert_rule(projects=[other_project])
+        other_alert_rule.owner = other_team.actor
+        other_alert_rule.save()
+
+        with self.feature("organizations:incidents"):
+            self.get_error_response(self.organization.slug, alert_rule.id, status_code=403)
+
+        with self.feature("organizations:incidents"):
+            self.get_success_response(self.organization.slug, other_alert_rule.id, status_code=204)

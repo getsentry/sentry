@@ -31,18 +31,15 @@ from sentry.auth.access import (
     maybe_singular_rpc_access_org_context,
 )
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import (
-    ExternalActor,
-    InviteStatus,
-    Organization,
-    OrganizationAccessRequest,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Team,
-    TeamAvatar,
-    User,
-)
+from sentry.models.avatars.team_avatar import TeamAvatar
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.organization import Organization
+from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.projectteam import ProjectTeam
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.roles import organization_roles, team_roles
 from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
 from sentry.utils.query import RangeQuerySetWrapper
@@ -299,8 +296,9 @@ class BaseTeamSerializer(Serializer):
                 result[team]["projects"] = project_map[team.id]
 
         if self._expand("externalTeams"):
-            actor_mapping = {team.actor_id: team for team in item_list}
-            external_actors = list(ExternalActor.objects.filter(actor_id__in=actor_mapping.keys()))
+            external_actors = list(
+                ExternalActor.objects.filter(team_id__in={team.id for team in item_list})
+            )
 
             external_teams_map = defaultdict(list)
             serialized_list = serialize(external_actors, user, key="team")

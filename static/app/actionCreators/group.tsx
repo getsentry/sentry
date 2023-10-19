@@ -1,9 +1,11 @@
 import * as Sentry from '@sentry/react';
 import isNil from 'lodash/isNil';
 
+import {Tag} from 'sentry/actionCreators/events';
 import {Client, RequestCallbacks, RequestOptions} from 'sentry/api';
+import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import GroupStore from 'sentry/stores/groupStore';
-import {Actor, Group, Member, Note, User} from 'sentry/types';
+import {Actor, Group, Member, Note, Tag as GroupTag, TagValue, User} from 'sentry/types';
 import {buildTeamId, buildUserId, defined} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
 import {ApiQueryKey, useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
@@ -15,6 +17,7 @@ type AssignToUserParams = {
    * Issue id
    */
   id: string;
+  orgSlug: string;
   user: User | Actor;
   member?: Member;
 };
@@ -22,7 +25,7 @@ type AssignToUserParams = {
 export function assignToUser(params: AssignToUserParams) {
   const api = new Client();
 
-  const endpoint = `/issues/${params.id}/`;
+  const endpoint = `/organizations/${params.orgSlug}/issues/${params.id}/`;
 
   const id = uniqueId();
 
@@ -52,10 +55,14 @@ export function assignToUser(params: AssignToUserParams) {
   return request;
 }
 
-export function clearAssignment(groupId: string, assignedBy: AssignedBy) {
+export function clearAssignment(
+  groupId: string,
+  orgSlug: string,
+  assignedBy: AssignedBy
+) {
   const api = new Client();
 
-  const endpoint = `/issues/${groupId}/`;
+  const endpoint = `/organizations/${orgSlug}/issues/${groupId}/`;
 
   const id = uniqueId();
 
@@ -90,12 +97,13 @@ type AssignToActorParams = {
    * Issue id
    */
   id: string;
+  orgSlug: string;
 };
 
-export function assignToActor({id, actor, assignedBy}: AssignToActorParams) {
+export function assignToActor({id, actor, assignedBy, orgSlug}: AssignToActorParams) {
   const api = new Client();
 
-  const endpoint = `/issues/${id}/`;
+  const endpoint = `/organizations/${orgSlug}/issues/${id}/`;
 
   const guid = uniqueId();
   let actorId = '';
@@ -131,7 +139,13 @@ export function assignToActor({id, actor, assignedBy}: AssignToActorParams) {
     });
 }
 
-export function deleteNote(api: Client, group: Group, id: string, _oldText: string) {
+export function deleteNote(
+  api: Client,
+  orgSlug: string,
+  group: Group,
+  id: string,
+  _oldText: string
+) {
   const restore = group.activity.find(activity => activity.id === id);
   const index = GroupStore.removeActivity(group.id, id);
 
@@ -140,20 +154,26 @@ export function deleteNote(api: Client, group: Group, id: string, _oldText: stri
     return Promise.reject(new Error('Group was not found in store'));
   }
 
-  const promise = api.requestPromise(`/issues/${group.id}/comments/${id}/`, {
-    method: 'DELETE',
-  });
+  const promise = api.requestPromise(
+    `/organizations/${orgSlug}/issues/${group.id}/comments/${id}/`,
+    {
+      method: 'DELETE',
+    }
+  );
 
   promise.catch(() => GroupStore.addActivity(group.id, restore, index));
 
   return promise;
 }
 
-export function createNote(api: Client, group: Group, note: Note) {
-  const promise = api.requestPromise(`/issues/${group.id}/comments/`, {
-    method: 'POST',
-    data: note,
-  });
+export function createNote(api: Client, orgSlug: string, group: Group, note: Note) {
+  const promise = api.requestPromise(
+    `/organizations/${orgSlug}/issues/${group.id}/comments/`,
+    {
+      method: 'POST',
+      data: note,
+    }
+  );
 
   promise.then(data => GroupStore.addActivity(group.id, data));
 
@@ -162,19 +182,23 @@ export function createNote(api: Client, group: Group, note: Note) {
 
 export function updateNote(
   api: Client,
+  orgSlug: string,
   group: Group,
   note: Note,
   id: string,
   oldText: string
 ) {
-  GroupStore.updateActivity(group.id, id, {data: {text: note.text}});
+  GroupStore.updateActivity(group.id, id, {text: note.text});
 
-  const promise = api.requestPromise(`/issues/${group.id}/comments/${id}/`, {
-    method: 'PUT',
-    data: note,
-  });
+  const promise = api.requestPromise(
+    `/organizations/${orgSlug}/issues/${group.id}/comments/${id}/`,
+    {
+      method: 'PUT',
+      data: note,
+    }
+  );
 
-  promise.catch(() => GroupStore.updateActivity(group.id, id, {data: {text: oldText}}));
+  promise.catch(() => GroupStore.updateActivity(group.id, id, {text: oldText}));
 
   return promise;
 }
@@ -389,28 +413,132 @@ export type GroupTagsResponse = GroupTagResponseItem[];
 
 type FetchIssueTagsParameters = {
   environment: string[];
-  limit: number;
-  readable: boolean;
+  orgSlug: string;
   groupId?: string;
+  isStatisticalDetector?: boolean;
+  limit?: number;
+  readable?: boolean;
+  statisticalDetectorParameters?: {
+    durationBaseline: number;
+    end: string;
+    start: string;
+    transaction: string;
+  };
 };
 
 export const makeFetchIssueTagsQueryKey = ({
   groupId,
+  orgSlug,
   environment,
   readable,
   limit,
 }: FetchIssueTagsParameters): ApiQueryKey => [
-  `/issues/${groupId}/tags/`,
+  `/organizations/${orgSlug}/issues/${groupId}/tags/`,
   {query: {environment, readable, limit}},
 ];
 
+const makeFetchStatisticalDetectorTagsQueryKey = ({
+  orgSlug,
+  environment,
+  statisticalDetectorParameters,
+}: FetchIssueTagsParameters): ApiQueryKey => {
+  const {transaction, durationBaseline, start, end} = statisticalDetectorParameters ?? {
+    transaction: '',
+    durationBaseline: 0,
+    start: undefined,
+    end: undefined,
+  };
+  return [
+    `/organizations/${orgSlug}/events-facets/`,
+    {
+      query: {
+        environment,
+        transaction,
+        includeAll: true,
+        query: getSampleEventQuery({transaction, durationBaseline, addUpperBound: false}),
+        start,
+        end,
+      },
+    },
+  ];
+};
+
 export const useFetchIssueTags = (
   parameters: FetchIssueTagsParameters,
-  {enabled = true, ...options}: Partial<UseApiQueryOptions<GroupTagsResponse>> = {}
+  {
+    enabled = true,
+    ...options
+  }: Partial<UseApiQueryOptions<GroupTagsResponse | Tag[]>> = {}
 ) => {
-  return useApiQuery<GroupTagsResponse>(makeFetchIssueTagsQueryKey(parameters), {
+  let queryKey = makeFetchIssueTagsQueryKey(parameters);
+  if (parameters.isStatisticalDetector) {
+    // Statistical detector issues need to use a Discover query for tags
+    queryKey = makeFetchStatisticalDetectorTagsQueryKey(parameters);
+  }
+
+  return useApiQuery<GroupTagsResponse | Tag[]>(queryKey, {
     staleTime: 30000,
     enabled: defined(parameters.groupId) && enabled,
     ...options,
   });
 };
+
+type FetchIssueTagValuesParameters = {
+  groupId: string;
+  orgSlug: string;
+  tagKey: string;
+  cursor?: string;
+  environment?: string[];
+  sort?: string | string[];
+};
+
+export const makeFetchIssueTagValuesQueryKey = ({
+  orgSlug,
+  groupId,
+  tagKey,
+  environment,
+  sort,
+  cursor,
+}: FetchIssueTagValuesParameters): ApiQueryKey => [
+  `/organizations/${orgSlug}/issues/${groupId}/tags/${tagKey}/values/`,
+  {query: {environment, sort, cursor}},
+];
+
+export function useFetchIssueTagValues(
+  parameters: FetchIssueTagValuesParameters,
+  options: Partial<UseApiQueryOptions<TagValue[]>> = {}
+) {
+  return useApiQuery<TagValue[]>(makeFetchIssueTagValuesQueryKey(parameters), {
+    staleTime: 0,
+    retry: false,
+    ...options,
+  });
+}
+
+type FetchIssueTagParameters = {
+  groupId: string;
+  orgSlug: string;
+  tagKey: string;
+};
+
+export const makeFetchIssueTagQueryKey = ({
+  orgSlug,
+  groupId,
+  tagKey,
+  environment,
+  sort,
+}: FetchIssueTagValuesParameters): ApiQueryKey => [
+  `/organizations/${orgSlug}/issues/${groupId}/tags/${tagKey}/`,
+  {query: {environment, sort}},
+];
+
+export function useFetchIssueTag(
+  parameters: FetchIssueTagParameters,
+  options: Partial<UseApiQueryOptions<GroupTag>> = {}
+) {
+  return useApiQuery<GroupTag>(makeFetchIssueTagQueryKey(parameters), {
+    staleTime: 0,
+    retry: false,
+    ...options,
+  });
+}

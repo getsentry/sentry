@@ -1,6 +1,6 @@
-import {PullRequest as PullRequestType} from 'sentry/types';
+import {Repository} from 'sentry-fixture/repository';
 
-import {Repository} from './repository';
+import {PullRequest as PullRequestType} from 'sentry/types';
 
 export function PullRequest(params: Partial<PullRequestType> = {}): PullRequestType {
   return {

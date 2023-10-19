@@ -2,19 +2,22 @@ from __future__ import annotations
 
 import re
 import secrets
-from typing import Any
+from typing import Any, Optional, Tuple
 from urllib.parse import urlparse
 
 import petname
 from django.conf import settings
 from django.db import ProgrammingError, models
+from django.forms import model_to_dict
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
 from sentry import features, options
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import ImportKind
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
@@ -24,6 +27,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.silo.base import SiloMode
 from sentry.tasks.relay import schedule_invalidate_project_config
 
 _token_re = re.compile(r"^[a-f0-9]{32}$")
@@ -227,11 +231,15 @@ class ProjectKey(Model):
             )
 
     def get_endpoint(self, public=True):
+        from sentry.api.utils import generate_region_url
+
         if public:
             endpoint = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
         else:
             endpoint = settings.SENTRY_ENDPOINT
 
+        if not endpoint and SiloMode.get_current_mode() == SiloMode.REGION:
+            endpoint = generate_region_url()
         if not endpoint:
             endpoint = options.get("system.url-prefix")
 
@@ -248,12 +256,12 @@ class ProjectKey(Model):
             urlparts = urlparse(endpoint)
             if urlparts.scheme and urlparts.netloc:
                 endpoint = "{}://{}.{}{}".format(
-                    urlparts.scheme,
+                    str(urlparts.scheme),
                     settings.SENTRY_ORG_SUBDOMAIN_TEMPLATE.format(
                         organization_id=self.project.organization_id
                     ),
-                    urlparts.netloc,
-                    urlparts.path,
+                    str(urlparts.netloc),
+                    str(urlparts.path),
                 )
 
         return endpoint
@@ -276,3 +284,26 @@ class ProjectKey(Model):
 
     def get_scopes(self):
         return self.scopes
+
+    def write_relocation_import(
+        self, _s: ImportScope, _f: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
+        # If there is a key collision, generate new keys.
+        matching_public_key = self.__class__.objects.filter(public_key=self.public_key).first()
+        if not self.public_key or matching_public_key:
+            self.public_key = self.generate_api_key()
+        matching_secret_key = self.__class__.objects.filter(secret_key=self.secret_key).first()
+        if not self.secret_key or matching_secret_key:
+            self.secret_key = self.generate_api_key()
+
+        # ProjectKeys for the project are automatically generated at insertion time via a
+        # `post_save()` hook, so the keys for the project should already exist. We simply need to
+        # update them with the correct values here.
+        (key, _) = ProjectKey.objects.get_or_create(
+            project=self.project, defaults=model_to_dict(self)
+        )
+        if key:
+            self.pk = key.pk
+            self.save()
+
+        return (self.pk, ImportKind.Inserted)

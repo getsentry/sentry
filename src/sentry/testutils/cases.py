@@ -3,11 +3,12 @@ from __future__ import annotations
 import hashlib
 import inspect
 import os.path
+import re
 import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
-from typing import Dict, List, Literal, Optional, Sequence, Union
+from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -30,10 +31,11 @@ from django.test import TestCase as DjangoTestCase
 from django.test import TransactionTestCase as DjangoTransactionTestCase
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
-from django.urls import reverse
+from django.urls import resolve, reverse
 from django.utils import timezone as django_timezone
 from django.utils.functional import cached_property
 from pkg_resources import iter_entry_points
+from requests.utils import CaseInsensitiveDict, get_encoding_from_headers
 from rest_framework import status
 from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -58,41 +60,41 @@ from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.mail import mail_adapter
-from sentry.mediators.project_rules import Creator
-from sentry.models import ApiToken
-from sentry.models import AuthProvider as AuthProviderModel
-from sentry.models import (
-    Commit,
-    CommitAuthor,
-    Dashboard,
+from sentry.mediators.project_rules.creator import Creator
+from sentry.models.apitoken import ApiToken
+from sentry.models.authprovider import AuthProvider as AuthProviderModel
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
-    DeletedOrganization,
-    Deploy,
-    Environment,
-    File,
-    GroupMeta,
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    NotificationSetting,
-    Organization,
-    OrganizationMember,
-    Project,
-    ProjectOption,
-    Release,
-    ReleaseCommit,
-    Repository,
-    RuleSource,
-    User,
-    UserEmail,
-    UserOption,
 )
+from sentry.models.deletedorganization import DeletedOrganization
+from sentry.models.deploy import Deploy
+from sentry.models.environment import Environment
+from sentry.models.files.file import File
+from sentry.models.groupmeta import GroupMeta
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.options.user_option import UserOption
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.repository import Repository
+from sentry.models.rule import RuleSource
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
+from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
+from sentry.rules.base import RuleBase
 from sentry.search.events.constants import (
     METRIC_FRUSTRATED_TAG_VALUE,
     METRIC_SATISFACTION_TAG_KEY,
@@ -107,12 +109,13 @@ from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
 from sentry.silo import SiloMode
 from sentry.snuba.metrics.datasource import get_series
-from sentry.tagstore.snuba import SnubaTagStorage
+from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.pytest.selenium import Browser
+from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
@@ -171,6 +174,8 @@ __all__ = (
     "MonitorTestCase",
     "MonitorIngestTestCase",
 )
+
+from ..types.region import get_region_by_name
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
@@ -443,6 +448,39 @@ class TestCase(BaseTestCase, DjangoTestCase):
     # We need Django to flush all databases.
     databases: set[str] | str = "__all__"
 
+    @contextmanager
+    def auto_select_silo_mode_on_redirects(self):
+        """
+        Tests that utilize follow=True may follow redirects between silo modes.  This isn't ideal but convenient for
+        testing certain work flows.  Using this context manager, the silo mode in the test will swap automatically
+        for each view's decorator in order to prevent otherwise unavoidable SiloAvailability errors.
+        """
+        old_request = self.client.request
+
+        def request(**request: Any) -> Any:
+            resolved = resolve(request["PATH_INFO"])
+            view_class = getattr(resolved.func, "view_class", None)
+            if view_class is not None:
+                endpoint_silo_limit = getattr(view_class, "silo_limit", None)
+                if endpoint_silo_limit:
+                    for mode in endpoint_silo_limit.modes:
+                        if mode is SiloMode.MONOLITH or mode is SiloMode.get_current_mode():
+                            continue
+                        region = None
+                        if mode is SiloMode.REGION:
+                            # TODO: Can we infer the correct region here?  would need to package up the
+                            # the request dictionary into a higher level object, which also involves invoking
+                            # _base_environ and maybe other logic buried in Client.....
+                            region = get_region_by_name(settings.SENTRY_MONOLITH_REGION)
+                        with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
+                            mode, region
+                        ):
+                            return old_request(**request)
+            return old_request(**request)
+
+        with mock.patch.object(self.client, "request", new=request):
+            yield
+
     # Ensure that testcases that ask for DB setup actually make use of the
     # DB. If they don't, they're wasting CI time.
     if DETECT_TESTCASE_MISUSE:
@@ -498,8 +536,8 @@ class TestCase(BaseTestCase, DjangoTestCase):
                     # good enough as we do not expect subclasses, secondly however because
                     # it turns out doing an isinstance check on untrusted input can cause
                     # bad things to happen because it's hookable.  In particular this
-                    # blows through max recursion limits here if it encounters certain
-                    # types of broken lazy proxy objects.
+                    # blows through max recursion limits here if it encounters certain types
+                    # of broken lazy proxy objects.
                     if type(first_arg) is state.base and info.function in state.used_db:
                         state.used_db[info.function] = True
                         break
@@ -573,10 +611,6 @@ class PerformanceIssueTestCase(BaseTestCase):
             issue_type, "noise_config", new=NoiseConfig(noise_limit, timedelta(minutes=1))
         ), override_options(
             {"performance.issues.all.problem-detection": 1.0, detector_option: 1.0}
-        ), self.feature(
-            [
-                "projects:performance-suspect-spans-ingestion",
-            ]
         ):
             event = perf_event_manager.save(project_id)
             if mock_eventstream.call_args:
@@ -702,6 +736,49 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
             )
         ]
 
+    # The analytics event `name` was called with `kwargs` being a subset of its properties
+    def analytics_called_with_args(self, fn, name, **kwargs):
+        for call_args, call_kwargs in fn.call_args_list:
+            event_name = call_args[0]
+            if event_name == name:
+                assert all(call_kwargs.get(key, None) == val for key, val in kwargs.items())
+                return True
+        return False
+
+    @contextmanager
+    def api_gateway_proxy_stubbed(self):
+        """Mocks a fake api gateway proxy that redirects via Client objects"""
+
+        def proxy_raw_request(
+            method: str,
+            url: str,
+            headers: Mapping[str, str],
+            params: Mapping[str, str] | None,
+            data: Any,
+            **kwds: Any,
+        ) -> requests.Response:
+            from django.test.client import Client
+
+            client = Client()
+            extra: Mapping[str, Any] = {
+                f"HTTP_{k.replace('-', '_').upper()}": v for k, v in headers.items()
+            }
+            if params:
+                url += "?" + urlencode(params)
+            with assume_test_silo_mode(SiloMode.REGION):
+                resp = getattr(client, method.lower())(
+                    url, b"".join(data), headers["Content-Type"], **extra
+                )
+            response = requests.Response()
+            response.status_code = resp.status_code
+            response.headers = CaseInsensitiveDict(resp.headers)
+            response.encoding = get_encoding_from_headers(response.headers)
+            response.raw = BytesIO(resp.content)
+            return response
+
+        with mock.patch("sentry.api_gateway.proxy.external_request", new=proxy_raw_request):
+            yield
+
 
 class TwoFactorAPITestCase(APITestCase):
     @cached_property
@@ -789,6 +866,24 @@ class RuleTestCase(TestCase):
         kwargs.setdefault("is_new_group_environment", True)
         kwargs.setdefault("has_reappeared", True)
         return EventState(**kwargs)
+
+    def get_condition_activity(self, **kwargs) -> ConditionActivity:
+        kwargs.setdefault("group_id", self.event.group.id)
+        kwargs.setdefault("type", ConditionActivityType.CREATE_ISSUE)
+        kwargs.setdefault("timestamp", self.event.datetime)
+        return ConditionActivity(**kwargs)
+
+    def passes_activity(
+        self,
+        rule: RuleBase,
+        condition_activity: Optional[ConditionActivity] = None,
+        event_map: Optional[Dict[str, Any]] = None,
+    ):
+        if condition_activity is None:
+            condition_activity = self.get_condition_activity()
+        if event_map is None:
+            event_map = {}
+        return rule.passes_activity(condition_activity, event_map)
 
     def assertPasses(self, rule, event=None, **kwargs):
         if event is None:
@@ -891,6 +986,7 @@ class PermissionTestCase(TestCase):
         self.assert_cannot_access(user, path, **kwargs)
 
 
+@requires_snuba
 class PluginTestCase(TestCase):
     @property
     def plugin(self):
@@ -1291,22 +1387,22 @@ class BaseMetricsTestCase(SnubaTestCase):
         # seq=0 is equivalent to relay's session.init, init=True is transformed
         # to seq=0 in Relay.
         if session["seq"] == 0:  # init
-            push("counter", SessionMRI.SESSION.value, {"session.status": "init"}, +1)
+            push("counter", SessionMRI.RAW_SESSION.value, {"session.status": "init"}, +1)
 
         status = session["status"]
 
         # Mark the session as errored, which includes fatal sessions.
         if session.get("errors", 0) > 0 or status not in ("ok", "exited"):
-            push("set", SessionMRI.ERROR.value, {}, session["session_id"])
+            push("set", SessionMRI.RAW_ERROR.value, {}, session["session_id"])
             if not user_is_nil:
-                push("set", SessionMRI.USER.value, {"session.status": "errored"}, user)
+                push("set", SessionMRI.RAW_USER.value, {"session.status": "errored"}, user)
         elif not user_is_nil:
-            push("set", SessionMRI.USER.value, {}, user)
+            push("set", SessionMRI.RAW_USER.value, {}, user)
 
         if status in ("abnormal", "crashed"):  # fatal
-            push("counter", SessionMRI.SESSION.value, {"session.status": status}, +1)
+            push("counter", SessionMRI.RAW_SESSION.value, {"session.status": status}, +1)
             if not user_is_nil:
-                push("set", SessionMRI.USER.value, {"session.status": status}, user)
+                push("set", SessionMRI.RAW_USER.value, {"session.status": status}, user)
 
         if status == "exited":
             if session["duration"] is not None:
@@ -1651,6 +1747,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "transaction.duration": "metrics_distributions",
         "span.duration": "metrics_distributions",
         "span.self_time": "metrics_distributions",
+        "http.response_content_length": "metrics_distributions",
         "measurements.lcp": "metrics_distributions",
         "measurements.fp": "metrics_distributions",
         "measurements.fcp": "metrics_distributions",
@@ -1941,6 +2038,19 @@ class ReplaysSnubaTestCase(TestCase):
         )
         assert response.status_code == 200
 
+    def mock_event_links(self, timestamp, project_id, level, replay_id, event_id):
+        event = self.store_event(
+            data={
+                "timestamp": int(timestamp.timestamp()),
+                "event_id": event_id,
+                "level": level,
+                "message": "testing",
+                "contexts": {"replay": {"replay_id": replay_id}},
+            },
+            project_id=project_id,
+        )
+        return transform_event_for_linking_payload(replay_id, event)
+
 
 # AcceptanceTestCase and TestCase are mutually exclusive base classses
 class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
@@ -1985,6 +2095,11 @@ class IntegrationRepositoryTestCase(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
+
+    @pytest.fixture(autouse=True)
+    def responses_context(self):
+        with responses.mock:
+            yield
 
     def add_create_repository_responses(self, repository_config):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
@@ -2221,12 +2336,10 @@ class TestMigrations(TransactionTestCase):
     def setUp(self):
         super().setUp()
 
-        self.migrate_from = [(self.app, self.migrate_from)]
-        self.migrate_to = [(self.app, self.migrate_to)]
+        migrate_from = [(self.app, self.migrate_from)]
+        migrate_to = [(self.app, self.migrate_to)]
 
         connection = connections[self.connection]
-        with connection.cursor() as cursor:
-            cursor.execute("SET ROLE 'postgres'")
 
         self.setup_initial_state()
 
@@ -2238,19 +2351,19 @@ class TestMigrations(TransactionTestCase):
                 "try running this test with `MIGRATIONS_TEST_MIGRATE=1 pytest ...`"
             )
         self.current_migration = [max(matching_migrations)]
-        old_apps = executor.loader.project_state(self.migrate_from).apps
+        old_apps = executor.loader.project_state(migrate_from).apps
 
         # Reverse to the original migration
-        executor.migrate(self.migrate_from)
+        executor.migrate(migrate_from)
 
         self.setup_before_migration(old_apps)
 
         # Run the migration to test
         executor = MigrationExecutor(connection)
         executor.loader.build_graph()  # reload.
-        executor.migrate(self.migrate_to)
+        executor.migrate(migrate_to)
 
-        self.apps = executor.loader.project_state(self.migrate_to).apps
+        self.apps = executor.loader.project_state(migrate_to).apps
 
     def tearDown(self):
         super().tearDown()
@@ -2347,6 +2460,12 @@ class ActivityTestCase(TestCase):
 
         return release, deploy
 
+    def get_notification_uuid(self, text: str) -> str:
+        # Allow notification\\_uuid and notification_uuid
+        result = re.search("notification.*_uuid=([a-zA-Z0-9-]+)", text)
+        assert result is not None
+        return result[1]
+
 
 class SlackActivityNotificationTest(ActivityTestCase):
     @cached_property
@@ -2395,6 +2514,11 @@ class SlackActivityNotificationTest(ActivityTestCase):
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id
 
+    @pytest.fixture(autouse=True)
+    def responses_context(self):
+        with responses.mock:
+            yield
+
     def assert_performance_issue_attachments(
         self, attachment, project_slug, referrer, alert_type="workflow"
     ):
@@ -2403,9 +2527,10 @@ class SlackActivityNotificationTest(ActivityTestCase):
             attachment["text"]
             == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
         )
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             attachment["footer"]
-            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}|Notification Settings>"
+            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     def assert_generic_issue_attachments(
@@ -2413,33 +2538,35 @@ class SlackActivityNotificationTest(ActivityTestCase):
     ):
         assert attachment["title"] == TEST_ISSUE_OCCURRENCE.issue_title
         assert attachment["text"] == TEST_ISSUE_OCCURRENCE.evidence_display[0].value
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             attachment["footer"]
-            == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}|Notification Settings>"
+            == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
 
 class MSTeamsActivityNotificationTest(ActivityTestCase):
     def setUp(self):
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.MSTEAMS,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.MSTEAMS,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.MSTEAMS,
-            NotificationSettingTypes.DEPLOY,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
-        UserOption.objects.create(user=self.user, key="self_notifications", value="1")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.MSTEAMS,
+                NotificationSettingTypes.WORKFLOW,
+                NotificationSettingOptionValues.ALWAYS,
+                user_id=self.user.id,
+            )
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.MSTEAMS,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.ALWAYS,
+                user_id=self.user.id,
+            )
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.MSTEAMS,
+                NotificationSettingTypes.DEPLOY,
+                NotificationSettingOptionValues.ALWAYS,
+                user_id=self.user.id,
+            )
+            UserOption.objects.create(user=self.user, key="self_notifications", value="1")
 
         self.tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"
         self.integration = self.create_integration(
@@ -2576,13 +2703,23 @@ class MonitorTestCase(APITestCase):
         )
 
     def _create_alert_rule(self, monitor):
+        conditions = [
+            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
+            {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
+            {
+                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                "key": "monitor.slug",
+                "match": "eq",
+                "value": monitor.slug,
+            },
+        ]
         rule = Creator(
             name="New Cool Rule",
             owner=None,
             project=self.project,
-            action_match="all",
-            filter_match="any",
-            conditions=[],
+            action_match="any",
+            filter_match="all",
+            conditions=conditions,
             actions=[],
             frequency=5,
             environment=self.environment.id,

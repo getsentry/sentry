@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
-from typing import Any, List, Mapping, Optional, cast
+from typing import Any, List, Mapping, Optional
 
 from sentry.services.hybrid_cloud.app import (
     RpcAlertRuleActionResult,
@@ -64,6 +64,11 @@ class AppService(RpcService):
         *,
         organization_id: int,
     ) -> List[RpcSentryAppInstallation]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def get_sentry_app_by_id(self, *, id: int) -> Optional[RpcSentryApp]:
         pass
 
     @rpc_method
@@ -128,5 +133,24 @@ class AppService(RpcService):
     ) -> List[RpcSentryApp]:
         pass
 
+    @rpc_method
+    @abc.abstractmethod
+    def create_internal_integration_for_channel_request(
+        self,
+        *,
+        organization_id: int,
+        integration_creator: str,
+        integration_name: str,
+        integration_scopes: List[str],
+    ) -> RpcSentryAppInstallation:
+        pass
 
-app_service = cast(AppService, AppService.create_delegation())
+    @rpc_method
+    @abc.abstractmethod
+    def prepare_sentry_app_components(
+        self, *, installation_id: int, component_type: str, project_slug: Optional[str] = None
+    ) -> Optional[RpcSentryAppComponent]:
+        pass
+
+
+app_service = AppService.create_delegation()

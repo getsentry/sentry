@@ -1,7 +1,8 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import tagstore
+from sentry import analytics, tagstore
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -12,6 +13,10 @@ from sentry.api.serializers.models.tagvalue import UserTagValueSerializer
 
 @region_silo_endpoint
 class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, group, key) -> Response:
         """
         List a Tag's Values
@@ -24,6 +29,11 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
         :pparam string key: the tag key to look the values up for.
         :auth: required
         """
+        analytics.record(
+            "eventuser_endpoint.request",
+            project_id=group.project_id,
+            endpoint="sentry.api.endpoints.group_tagkey_values.get",
+        )
         lookup_key = tagstore.prefix_reserved_key(key)
 
         environment_ids = [e.id for e in get_environments(request, group.project.organization)]

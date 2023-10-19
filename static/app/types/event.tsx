@@ -1,18 +1,16 @@
 import type {
+  AggregateSpanType,
   RawSpanType,
   TraceContextType,
 } from 'sentry/components/events/interfaces/spans/types';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
-import type {PlatformKey} from 'sentry/data/platformCategories';
-import type {IssueType} from 'sentry/types';
+import type {IssueType, PlatformKey} from 'sentry/types';
 
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';
 import type {IssueAttachment, IssueCategory} from './group';
 import type {Release} from './release';
 import type {RawStacktrace, StackTraceMechanism, StacktraceType} from './stacktrace';
-// TODO(epurkhiser): objc and cocoa should almost definitely be moved into PlatformKey
-export type PlatformType = PlatformKey | 'objc' | 'cocoa';
 
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample' | 'unknown';
 
@@ -182,7 +180,7 @@ export type Frame = {
   lineNo: number | null;
   module: string | null;
   package: string | null;
-  platform: PlatformType | null;
+  platform: PlatformKey | null;
   rawFunction: string | null;
   symbol: string | null;
   symbolAddr: string | null;
@@ -197,6 +195,7 @@ export type Frame = {
   mapUrl?: string | null;
   minGroupingLevel?: number;
   origAbsPath?: string | null;
+  sourceLink?: string | null;
   symbolicatorStatus?: SymbolicatorStatus;
 };
 
@@ -264,6 +263,7 @@ export enum EventOrGroupType {
   EXPECTSTAPLE = 'expectstaple',
   DEFAULT = 'default',
   TRANSACTION = 'transaction',
+  AGGREGATE_TRANSACTION = 'aggregateTransaction',
   GENERIC = 'generic',
 }
 
@@ -322,6 +322,11 @@ export type EntryStacktrace = {
 
 export type EntrySpans = {
   data: RawSpanType[];
+  type: EntryType.SPANS;
+};
+
+export type AggregateEntrySpans = {
+  data: AggregateSpanType[];
   type: EntryType.SPANS;
 };
 
@@ -766,10 +771,11 @@ interface EventBase {
   nextEventID?: string | null;
   oldestEventID?: string | null;
   packages?: Record<string, string>;
-  platform?: PlatformType;
+  platform?: PlatformKey;
   previousEventID?: string | null;
   projectSlug?: string;
   release?: EventRelease | null;
+  resolvedWith?: string[];
   sdk?: {
     name: string;
     version: string;
@@ -789,10 +795,38 @@ export interface EventTransaction
   endTimestamp: number;
   // EntryDebugMeta is required for profiles to render in the span
   // waterfall with the correct symbolication statuses
-  entries: (EntrySpans | EntryRequest | EntryDebugMeta)[];
+  entries: (EntrySpans | EntryRequest | EntryDebugMeta | AggregateEntrySpans)[];
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
   perfProblem?: PerformanceDetectorData;
+}
+
+export interface AggregateEventTransaction
+  extends Omit<
+    EventTransaction,
+    | 'crashFile'
+    | 'culprit'
+    | 'dist'
+    | 'dateReceived'
+    | 'errors'
+    | 'location'
+    | 'metadata'
+    | 'message'
+    | 'occurrence'
+    | 'type'
+    | 'size'
+    | 'user'
+    | 'eventID'
+    | 'fingerprints'
+    | 'id'
+    | 'projectID'
+    | 'tags'
+    | 'title'
+  > {
+  count: number;
+  frequency: number;
+  total: number;
+  type: EventOrGroupType.AGGREGATE_TRANSACTION;
 }
 
 export interface EventError extends Omit<EventBase, 'entries' | 'type'> {

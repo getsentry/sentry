@@ -7,7 +7,7 @@ from sentry.middleware.integrations.parsers.jira import JiraRequestParser
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.outbox import assert_webhook_outboxes
+from sentry.testutils.outbox import assert_webhook_outboxes, outbox_runner
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 
@@ -17,7 +17,7 @@ class JiraRequestParserTest(TestCase):
     get_response = MagicMock()
     factory = RequestFactory()
     path_base = f"{IntegrationClassification.integration_prefix}jira"
-    region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
+    region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
 
     def setUp(self):
         super().setUp()
@@ -105,7 +105,7 @@ class JiraRequestParserTest(TestCase):
             parser,
             "get_regions_from_organizations",
             return_value=[
-                Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT),
+                Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT),
                 Region("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT),
             ],
         ) as mock_get_regions:
@@ -117,7 +117,8 @@ class JiraRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_webhook_outbox_creation(self):
         path = f"{self.path_base}/issue-updated/"
-        request = self.factory.post(path=path)
+        with outbox_runner():
+            request = self.factory.post(path=path)
         parser = JiraRequestParser(request, self.get_response)
 
         assert ControlOutbox.objects.count() == 0

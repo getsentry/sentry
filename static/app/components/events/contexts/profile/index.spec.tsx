@@ -1,9 +1,11 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProfileEventContext} from 'sentry/components/events/contexts/profile';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-const organization = TestStubs.Organization({
+const organization = Organization({
   features: ['profiling'],
 });
 

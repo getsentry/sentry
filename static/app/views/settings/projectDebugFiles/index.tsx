@@ -64,7 +64,11 @@ class ProjectDebugSymbols extends DeprecatedAsyncView<Props, State> {
     ];
 
     if (!builtinSymbolSources && organization.features.includes('symbol-sources')) {
-      endpoints.push(['builtinSymbolSources', '/builtin-symbol-sources/', {}]);
+      endpoints.push([
+        'builtinSymbolSources',
+        `/organizations/${organization.slug}/builtin-symbol-sources/`,
+        {},
+      ]);
     }
 
     return endpoints;
@@ -127,7 +131,7 @@ class ProjectDebugSymbols extends DeprecatedAsyncView<Props, State> {
 
   renderDebugFiles() {
     const {debugFiles, showDetails} = this.state;
-    const {organization, params} = this.props;
+    const {organization, params, project} = this.props;
 
     if (!debugFiles?.length) {
       return null;
@@ -145,6 +149,7 @@ class ProjectDebugSymbols extends DeprecatedAsyncView<Props, State> {
           onDelete={this.handleDelete}
           key={debugFile.id}
           orgSlug={organization.slug}
+          project={project}
         />
       );
     });
@@ -169,13 +174,13 @@ class ProjectDebugSymbols extends DeprecatedAsyncView<Props, State> {
 
         {organization.features.includes('symbol-sources') && (
           <Fragment>
-            <PermissionAlert />
+            <PermissionAlert project={project} />
 
             <Sources
               api={this.api}
               location={location}
               router={router}
-              projSlug={project.slug}
+              project={project}
               organization={organization}
               customRepositories={
                 (project.symbolSources
@@ -262,6 +267,7 @@ const Filters = styled('div')`
 const Label = styled('label')`
   font-weight: normal;
   display: flex;
+  align-items: center;
   margin-bottom: 0;
   white-space: nowrap;
   gap: ${space(1)};

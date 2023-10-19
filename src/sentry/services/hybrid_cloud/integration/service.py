@@ -5,7 +5,7 @@
 
 from abc import abstractmethod
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from sentry.models.integrations.organization_integration import (
     OrganizationIntegration,
@@ -263,14 +263,15 @@ class IntegrationService(RpcService):
         new_status: int,
         incident_attachment_json: str,
         metric_value: Optional[str] = None,
-    ) -> None:
+        notification_uuid: Optional[str] = None,
+    ) -> bool:
         pass
 
     @rpc_method
     @abstractmethod
     def send_msteams_incident_alert_notification(
         self, *, integration_id: int, channel: str, attachment: Dict[str, Any]
-    ) -> None:
+    ) -> bool:
         raise NotImplementedError
 
     @rpc_method
@@ -286,6 +287,4 @@ class IntegrationService(RpcService):
         pass
 
 
-integration_service: IntegrationService = cast(
-    IntegrationService, IntegrationService.create_delegation()
-)
+integration_service = IntegrationService.create_delegation()

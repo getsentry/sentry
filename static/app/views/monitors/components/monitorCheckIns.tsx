@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -79,27 +79,31 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
 
   const emptyCell = <Text>{'\u2014'}</Text>;
 
+  // XXX(epurkhiser): Attachmnets are still experimental and may not exist in
+  // the future. For now hide these if they're not being used.
+  const hasAttachments = checkInList?.some(checkin => checkin.attachmentId !== null);
+
+  const headers = [
+    t('Status'),
+    t('Started'),
+    t('Duration'),
+    t('Issues'),
+    ...(hasAttachments ? [t('Attachment')] : []),
+    t('Expected At'),
+  ];
+
   return (
-    <React.Fragment>
+    <Fragment>
       <SectionHeading>{t('Recent Check-Ins')}</SectionHeading>
-      <PanelTable
-        headers={[
-          t('Status'),
-          t('Started'),
-          t('Duration'),
-          t('Issues'),
-          t('Attachment'),
-          t('Timestamp'),
-        ]}
-      >
+      <PanelTable headers={headers}>
         {isLoading
-          ? [...new Array(6)].map((_, i) => (
+          ? [...new Array(headers.length)].map((_, i) => (
               <RowPlaceholder key={i}>
                 <Placeholder height="2rem" />
               </RowPlaceholder>
             ))
           : checkInList.map(checkIn => (
-              <React.Fragment key={checkIn.id}>
+              <Fragment key={checkIn.id}>
                 <Status>
                   <StatusIndicator
                     status={checkStatusToIndicatorStatus[checkIn.status]}
@@ -119,13 +123,14 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                             forcedTimezone={monitor.config.timezone}
                             timeZone
                             timeOnly
+                            seconds
                           />
                         }
                       >
-                        {<DateTime date={checkIn.dateCreated} timeOnly />}
+                        {<DateTime date={checkIn.dateCreated} timeOnly seconds />}
                       </Tooltip>
                     ) : (
-                      <DateTime date={checkIn.dateCreated} timeOnly />
+                      <DateTime date={checkIn.dateCreated} timeOnly seconds />
                     )}
                   </div>
                 ) : (
@@ -167,7 +172,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                 ) : (
                   emptyCell
                 )}
-                {checkIn.attachmentId ? (
+                {!hasAttachments ? null : checkIn.attachmentId ? (
                   <Button
                     size="xs"
                     icon={<IconDownload size="xs" />}
@@ -178,12 +183,12 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                 ) : (
                   emptyCell
                 )}
-                <Timestamp date={checkIn.dateCreated} />
-              </React.Fragment>
+                <Timestamp date={checkIn.expectedTime} seconds />
+              </Fragment>
             ))}
       </PanelTable>
       <Pagination pageLinks={getResponseHeader?.('Link')} />
-    </React.Fragment>
+    </Fragment>
   );
 }
 

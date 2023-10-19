@@ -112,7 +112,22 @@ export function OrganizationAuthTokensAuthTokenRow({
         )}
       </div>
 
-      <LastUsedDate>
+      <DateTime>
+        {isProjectLoading ? (
+          <Placeholder height="1.25em" />
+        ) : (
+          <Fragment>
+            <TimeSince
+              date={getDynamicText({
+                value: token.dateCreated,
+                fixed: new Date(1508208080000), // National Pasta Day
+              })}
+            />
+          </Fragment>
+        )}
+      </DateTime>
+
+      <DateTime>
         {isProjectLoading ? (
           <Placeholder height="1.25em" />
         ) : (
@@ -122,7 +137,7 @@ export function OrganizationAuthTokensAuthTokenRow({
             organization={organization}
           />
         )}
-      </LastUsedDate>
+      </DateTime>
 
       <Actions>
         <Tooltip
@@ -166,7 +181,7 @@ const Actions = styled('div')`
   justify-content: flex-end;
 `;
 
-const LastUsedDate = styled('div')`
+const DateTime = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};

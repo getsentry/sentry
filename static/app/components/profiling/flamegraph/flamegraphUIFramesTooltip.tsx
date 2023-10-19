@@ -56,6 +56,8 @@ export function FlamegraphUIFramesTooltip({
       canvasView={uiFramesView}
     >
       {uiFramesInConfigSpace.map((frame, i) => {
+        const rect = frame.rect.transformRect(uiFramesView.configSpaceTransform);
+
         return (
           <React.Fragment key={i}>
             <FlamegraphTooltipFrameMainInfo>
@@ -64,12 +66,12 @@ export function FlamegraphUIFramesTooltip({
                   ...uiFramesRenderer.getColorForFrame(frame.type)
                 )}
               />
-              {uiFrames.formatter(frame.rect.width)}{' '}
+              {uiFrames.formatter(rect.width)}{' '}
               {frame.type === 'frozen' ? t('frozen frame') : t('slow frame')}
             </FlamegraphTooltipFrameMainInfo>
             <FlamegraphTooltipTimelineInfo>
-              {uiFrames.timelineFormatter(frame.rect.left)} {' \u2014 '}
-              {uiFrames.timelineFormatter(frame.rect.right)}
+              {uiFrames.timelineFormatter(rect.left)} {' \u2014 '}
+              {uiFrames.timelineFormatter(rect.right)}
             </FlamegraphTooltipTimelineInfo>
           </React.Fragment>
         );

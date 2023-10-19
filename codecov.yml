@@ -76,3 +76,23 @@ comment:
   require_changes: true
   require_base: true # must have a base report to post
   require_head: true # must have a head report to post
+
+cli:
+  # This would be used when uploading the ats results
+  # But we will not be doing that yet
+  plugins:
+    pycoverage:
+      report_type: "json"
+  runners:
+    python:
+      include_curr_dir: true
+      # Same args used for the backend tests
+      collect_tests_options:
+        - "tests/sentry"
+        - "tests/integration"
+        - "--ignore=tests/sentry/eventstream/kafka"
+        - "--ignore=tests/sentry/post_process_forwarder"
+        - "--ignore=tests/sentry/snuba"
+        - "--ignore=tests/sentry/search/events"
+        - "--ignore=tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py"
+        - "--ignore=tests/sentry/region_to_control/test_region_to_control_kafka.py"

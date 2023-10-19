@@ -1,5 +1,6 @@
 import re
 from datetime import datetime, timedelta
+from enum import Enum
 
 from django.db.models import Max
 from rest_framework import serializers
@@ -11,8 +12,8 @@ from sentry.api.serializers.rest_framework.base import convert_dict_key_case, sn
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import (
-    Dashboard,
+from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
@@ -20,6 +21,7 @@ from sentry.models import (
 )
 from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.fields import is_function
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils.dates import parse_stats_period
@@ -191,14 +193,17 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
             builder = UnresolvedQuery(
                 dataset=Dataset.Discover,
                 params=params,
-                equation_config={
-                    "auto_add": not is_table or injected_orderby_equation,
-                    "aggregates_only": not is_table,
-                },
+                config=QueryBuilderConfig(
+                    equation_config={
+                        "auto_add": not is_table or injected_orderby_equation,
+                        "aggregates_only": not is_table,
+                    },
+                    use_aggregate_conditions=True,
+                ),
             )
 
             builder.resolve_time_conditions()
-            builder.resolve_conditions(conditions, use_aggregate_conditions=True)
+            builder.resolve_conditions(conditions)
             # We need to resolve params to set time range params here since some
             # field aliases might those params to be resolved (total.count)
             builder.where = builder.resolve_params()
@@ -232,6 +237,11 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
         return empty_value
 
 
+class ThresholdMaxKeys(Enum):
+    MAX_1 = "max1"
+    MAX_2 = "max2"
+
+
 class DashboardWidgetSerializer(CamelSnakeSerializer):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
@@ -239,6 +249,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
     description = serializers.CharField(
         required=False, max_length=255, allow_null=True, allow_blank=True
     )
+    thresholds = serializers.JSONField(required=False, allow_null=True)
     display_type = serializers.ChoiceField(
         choices=DashboardWidgetDisplayTypes.as_text_choices(), required=False
     )
@@ -296,6 +307,49 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
                 raise serializers.ValidationError(
                     {"displayType": "displayType is required during creation."}
                 )
+
+        # Validate widget thresholds
+        thresholds = data.get("thresholds")
+        if thresholds:
+            max_values = thresholds.get("max_values")
+            allowed_max_keys = [key.value for key in ThresholdMaxKeys]
+            if max_values:
+                for i in range(len(max_values)):
+                    max_key = f"max{i+1}"
+
+                    if max_key not in allowed_max_keys:
+                        raise serializers.ValidationError(
+                            {"thresholds": f"Invalid maximum key {max_key}"}
+                        )
+
+                    if max_values.get(max_key):
+                        if max_values.get(max_key) < 0:
+                            raise serializers.ValidationError(
+                                {"thresholds": {max_key: "Maximum values can not be negative"}}
+                            )
+                        elif i > 0:
+                            prev_max_key = f"max{i}"
+                            if max_values.get(prev_max_key) and max_values.get(
+                                prev_max_key
+                            ) >= max_values.get(max_key):
+                                raise serializers.ValidationError(
+                                    {
+                                        "thresholds": {
+                                            max_key: "Maximum value must be greater than minimum."
+                                        }
+                                    }
+                                )
+
+                if len(max_values) < len(ThresholdMaxKeys):
+                    for key in allowed_max_keys:
+                        if max_values.get(key) is None:
+                            raise serializers.ValidationError(
+                                {
+                                    "thresholds": {
+                                        key: "Must set all threshold maximums or none at all."
+                                    }
+                                }
+                            )
         return data
 
 
@@ -445,6 +499,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             display_type=widget_data["display_type"],
             title=widget_data["title"],
             description=widget_data.get("description", None),
+            thresholds=widget_data.get("thresholds", None),
             interval=widget_data.get("interval", "5m"),
             widget_type=widget_data.get("widget_type", DashboardWidgetTypes.DISCOVER),
             order=order,
@@ -472,6 +527,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         prev_layout = widget.detail.get("layout") if widget.detail else None
         widget.title = data.get("title", widget.title)
         widget.description = data.get("description", widget.description)
+        widget.thresholds = data.get("thresholds", widget.thresholds)
         widget.display_type = data.get("display_type", widget.display_type)
         widget.interval = data.get("interval", widget.interval)
         widget.widget_type = data.get("widget_type", widget.widget_type)

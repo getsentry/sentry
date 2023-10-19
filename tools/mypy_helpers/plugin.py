@@ -94,6 +94,9 @@ def _adjust_http_request_members(ctx: ClassDefContext) -> None:
         # added by sentry.middleware.subdomain
         subdomain_tp = UnionType([NoneType(), ctx.api.named_type("builtins.str")])
         add_attribute_to_class(ctx.api, ctx.cls, "subdomain", subdomain_tp)
+        # added by sentry.middleware.superuser
+        # TODO: figure out how to get the real types here
+        add_attribute_to_class(ctx.api, ctx.cls, "superuser", AnyType(TypeOfAny.explicit))
 
 
 class SentryMypyPlugin(Plugin):

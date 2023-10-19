@@ -6,13 +6,18 @@ from django.test import RequestFactory
 
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.github.issues import GitHubIssueBasic
-from sentry.models import ExternalIssue, Integration
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.silo import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test
@@ -24,10 +29,11 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
     def setUp(self):
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
-        self.model = Integration.objects.create(
-            provider="github", external_id="github_external_id", name="getsentry"
-        )
-        self.model.add_organization(self.organization, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.model = Integration.objects.create(
+                provider="github", external_id="github_external_id", name="getsentry"
+            )
+            self.model.add_organization(self.organization, self.user)
         self.integration = GitHubIntegration(self.model, self.organization.id)
         self.min_ago = iso_format(before_now(minutes=1))
 

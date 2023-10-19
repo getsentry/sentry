@@ -10,7 +10,7 @@ from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
@@ -23,14 +23,15 @@ def send_incident_alert_notification(
     incident: Incident,
     metric_value: int,
     new_status: IncidentStatus,
-) -> None:
+    notification_uuid: str | None = None,
+) -> bool:
     # Make sure organization integration is still active:
     integration, org_integration = integration_service.get_organization_context(
         organization_id=incident.organization_id, integration_id=action.integration_id
     )
     if org_integration is None or integration is None or integration.status != ObjectStatus.ACTIVE:
         # Integration removed, but rule is still active.
-        return
+        return False
 
     chart_url = None
     if features.has("organizations:metric-alert-chartcuterie", incident.organization):
@@ -45,7 +46,7 @@ def send_incident_alert_notification(
 
     channel = action.target_identifier
     attachment: Any = SlackIncidentsMessageBuilder(
-        incident, new_status, metric_value, chart_url
+        incident, new_status, metric_value, chart_url, notification_uuid
     ).build()
     text = attachment["text"]
     blocks = {"blocks": attachment["blocks"], "color": attachment["color"]}
@@ -63,8 +64,10 @@ def send_incident_alert_notification(
     client = SlackClient(integration_id=integration.id)
     try:
         client.post("/chat.postMessage", data=payload, timeout=5)
+        return True
     except ApiError:
         logger.info("rule.fail.slack_post", exc_info=True)
+    return False
 
 
 def send_slack_response(

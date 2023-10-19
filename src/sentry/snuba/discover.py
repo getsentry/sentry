@@ -14,7 +14,7 @@ from typing_extensions import TypedDict
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Group
+from sentry.models.group import Group
 from sentry.search.events.builder import (
     HistogramQueryBuilder,
     QueryBuilder,
@@ -27,7 +27,7 @@ from sentry.search.events.fields import (
     get_json_meta_type,
     is_function,
 )
-from sentry.search.events.types import HistogramParams, ParamsType
+from sentry.search.events.types import HistogramParams, ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.dates import to_timestamp
@@ -57,6 +57,7 @@ __all__ = (
     "histogram_query",
     "check_multihistogram_fields",
 )
+DEFAULT_DATASET_REASON = "unchanged"
 
 
 logger = logging.getLogger(__name__)
@@ -229,17 +230,19 @@ def query(
         selected_columns=selected_columns,
         equations=equations,
         orderby=orderby,
-        auto_fields=auto_fields,
-        auto_aggregations=auto_aggregations,
-        use_aggregate_conditions=use_aggregate_conditions,
-        functions_acl=functions_acl,
         limit=limit,
         offset=offset,
-        equation_config={"auto_add": include_equation_fields},
         sample_rate=sample,
-        has_metrics=has_metrics,
-        transform_alias_to_input_format=transform_alias_to_input_format,
-        skip_tag_resolution=skip_tag_resolution,
+        config=QueryBuilderConfig(
+            auto_fields=auto_fields,
+            auto_aggregations=auto_aggregations,
+            use_aggregate_conditions=use_aggregate_conditions,
+            functions_acl=functions_acl,
+            equation_config={"auto_add": include_equation_fields},
+            has_metrics=has_metrics,
+            transform_alias_to_input_format=transform_alias_to_input_format,
+            skip_tag_resolution=skip_tag_resolution,
+        ),
     )
     if conditions is not None:
         builder.add_conditions(conditions)
@@ -259,7 +262,7 @@ def timeseries_query(
     referrer: Optional[str] = None,
     zerofill_results: bool = True,
     comparison_delta: Optional[timedelta] = None,
-    functions_acl: Optional[Sequence[str]] = None,
+    functions_acl: Optional[List[str]] = None,
     allow_metric_aggregates=False,
     has_metrics=False,
     use_metrics_layer=False,
@@ -297,8 +300,10 @@ def timeseries_query(
             query=query,
             selected_columns=columns,
             equations=equations,
-            functions_acl=functions_acl,
-            has_metrics=has_metrics,
+            config=QueryBuilderConfig(
+                functions_acl=functions_acl,
+                has_metrics=has_metrics,
+            ),
         )
         query_list = [base_builder]
         if comparison_delta:
@@ -456,8 +461,10 @@ def top_events_timeseries(
         selected_columns=selected_columns,
         timeseries_columns=timeseries_columns,
         equations=equations,
-        functions_acl=functions_acl,
-        skip_tag_resolution=True,
+        config=QueryBuilderConfig(
+            functions_acl=functions_acl,
+            skip_tag_resolution=True,
+        ),
     )
     if len(top_events["data"]) == limit and include_other:
         other_events_builder = TopEventsQueryBuilder(

@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features, roles
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
@@ -24,13 +25,11 @@ from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import (
-    Organization,
-    OrganizationAccessRequest,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Team,
-)
+from sentry.models.organization import Organization
+from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import Team
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 from sentry.utils import metrics
@@ -96,7 +95,12 @@ def _is_org_owner_or_manager(access: Access) -> bool:
 @extend_schema(tags=["Teams"])
 @region_silo_endpoint
 class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
-    public = {"DELETE", "POST"}
+    publish_status = {
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PUBLIC,
+    }
     permission_classes = (OrganizationTeamMemberPermission,)
 
     def _can_create_team_member(self, request: Request, team: Team) -> bool:
@@ -338,7 +342,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             except KeyError:
                 return Response(status=400)
 
-            if not can_set_team_role(request.access, team, new_role):
+            if not can_set_team_role(request, team, new_role):
                 return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
 
             self._change_team_member_role(omt, new_role)

@@ -1,3 +1,5 @@
+import {Plugins} from 'sentry-fixture/plugins';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -23,7 +25,7 @@ describe('ProjectReleaseTracking', function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/plugins/`,
       method: 'GET',
-      body: TestStubs.Plugins(),
+      body: Plugins(),
     });
     MockApiClient.addMockResponse({
       url,
@@ -45,7 +47,7 @@ describe('ProjectReleaseTracking', function () {
       <ProjectReleaseTracking
         organization={org}
         project={project}
-        plugins={{loading: false, plugins: TestStubs.Plugins()}}
+        plugins={{loading: false, plugins: Plugins()}}
         {...routerProps}
       />
     );
@@ -58,7 +60,7 @@ describe('ProjectReleaseTracking', function () {
       <ProjectReleaseTracking
         organization={org}
         project={project}
-        plugins={{loading: false, plugins: TestStubs.Plugins()}}
+        plugins={{loading: false, plugins: Plugins()}}
         {...routerProps}
       />
     );

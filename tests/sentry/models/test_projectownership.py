@@ -1,12 +1,20 @@
-from sentry.models import ActorTuple, GroupAssignee, Repository, Team, User, UserAvatar
+from sentry.models.actor import ActorTuple
+from sentry.models.avatars.user_avatar import UserAvatar
+from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, OwnerRuleType
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.repository import Repository
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema, resolve_actors
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
+
+pytestmark = requires_snuba
 
 
 def actor_key(actor):
@@ -560,6 +568,53 @@ class ProjectOwnershipTestCase(TestCase):
             auto_assignment=False,
         )
         assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
+
+    def test_force_handle_auto_assignment(self):
+        # Run auto-assignment first
+        self.code_mapping = self.create_code_mapping(project=self.project)
+
+        rule_a = Rule(Matcher("path", "*.py"), [Owner("team", self.team.slug)])
+
+        self.create_codeowners(
+            self.project, self.code_mapping, raw="*.py @tiger-team", schema=dump_schema([rule_a])
+        )
+
+        self.event = self.store_event(
+            data=self.python_event_data(),
+            project_id=self.project.id,
+        )
+        assert self.event.group is not None
+
+        GroupOwner.objects.create(
+            group=self.event.group,
+            type=GroupOwnerType.CODEOWNERS.value,
+            user_id=None,
+            team_id=self.team.id,
+            project=self.project,
+            organization=self.project.organization,
+            context={"rule": str(rule_a)},
+        )
+
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
+        assert len(GroupAssignee.objects.all()) == 1
+        assignee = GroupAssignee.objects.get(group=self.event.group)
+        assert assignee.team_id == self.team.id
+
+        # Unassign the auto-assigned user
+        GroupAssignee.objects.deassign(self.event.group)
+        assert len(GroupAssignee.objects.all()) == 0
+
+        # Manually assign the group to someone else
+        GroupAssignee.objects.assign(self.event.group, self.user)
+        assert len(GroupAssignee.objects.all()) == 1
+        assignee = GroupAssignee.objects.get(group=self.event.group)
+        assert assignee.user_id == self.user.id
+
+        # Run force auto-assignment
+        ProjectOwnership.handle_auto_assignment(self.project.id, group=self.event.group)
+        assert len(GroupAssignee.objects.all()) == 1
+        assignee = GroupAssignee.objects.get(group=self.event.group)
+        assert assignee.team_id == self.team.id
 
 
 class ResolveActorsTestCase(TestCase):

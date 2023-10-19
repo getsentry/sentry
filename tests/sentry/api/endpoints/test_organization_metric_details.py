@@ -125,7 +125,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         )
         assert response.status_code == 404
 
-        _indexer_record(self.organization.id, SessionMRI.SESSION.value)
+        _indexer_record(self.organization.id, SessionMRI.RAW_SESSION.value)
         response = self.get_response(
             self.organization.slug,
             SessionMetricKey.CRASH_FREE_RATE.value,

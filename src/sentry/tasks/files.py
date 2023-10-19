@@ -1,5 +1,8 @@
+from datetime import timedelta
+
 from django.apps import apps
 from django.db import DatabaseError, IntegrityError, router
+from django.utils import timezone
 
 from sentry.locks import locks
 from sentry.silo import SiloMode
@@ -25,7 +28,7 @@ def delete_file_region(path, checksum, **kwargs):
 
 @instrumented_task(
     name="sentry.tasks.files.delete_file_control",
-    queue="files.delete",
+    queue="files.delete.control",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
     autoretry_for=(DatabaseError, IntegrityError),
@@ -39,13 +42,14 @@ def delete_file_control(path, checksum, **kwargs):
 
 
 def delete_file(file_blob_model, path, checksum, **kwargs):
-    from sentry.locks import locks
-    from sentry.models.files import get_storage
-    from sentry.utils.retries import TimedRetryPolicy
+    from sentry.models.files.utils import get_storage, lock_blob
 
-    lock = locks.get(f"fileblob:upload:{checksum}", duration=60 * 10, name="fileblob_upload")
-    with TimedRetryPolicy(60)(lock.acquire):
-        if not file_blob_model.objects.filter(checksum=checksum).exists():
+    lock = lock_blob(checksum, "fileblob_upload")
+    with lock:
+        # check that the fileblob with *this* path exists, as its possible
+        # that a concurrent re-upload added the same chunk once again, with a
+        # different path that time
+        if not file_blob_model.objects.filter(checksum=checksum, path=path).exists():
             get_storage().delete(path)
 
 
@@ -58,21 +62,23 @@ def delete_file(file_blob_model, path, checksum, **kwargs):
 )
 @retry
 def delete_unreferenced_blobs_region(blob_ids):
-    from sentry.models import FileBlob, FileBlobIndex
+    from sentry.models.files.fileblob import FileBlob
+    from sentry.models.files.fileblobindex import FileBlobIndex
 
     delete_unreferenced_blobs(FileBlob, FileBlobIndex, blob_ids)
 
 
 @instrumented_task(
     name="sentry.tasks.files.delete_unreferenced_blobs_control",
-    queue="files.delete",
+    queue="files.delete.control",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
     silo_mode=SiloMode.CONTROL,
 )
 @retry
 def delete_unreferenced_blobs_control(blob_ids):
-    from sentry.models import ControlFileBlob, ControlFileBlobIndex
+    from sentry.models.files.control_fileblob import ControlFileBlob
+    from sentry.models.files.control_fileblobindex import ControlFileBlobIndex
 
     delete_unreferenced_blobs(ControlFileBlob, ControlFileBlobIndex, blob_ids)
 
@@ -80,10 +86,14 @@ def delete_unreferenced_blobs_control(blob_ids):
 def delete_unreferenced_blobs(blob_model, blob_index_model, blob_ids):
 
     for blob_id in blob_ids:
+        # If a blob is referenced, we do not want to delete it
         if blob_index_model.objects.filter(blob_id=blob_id).exists():
             continue
         try:
-            blob = blob_model.objects.get(id=blob_id)
+            # We also want to skip new blobs which are just in the process of
+            # being uploaded. See `cleanup.py::cleanup_unused_files` as well.
+            cutoff = timezone.now() - timedelta(days=1)
+            blob = blob_model.objects.get(id=blob_id, timestamp__lte=cutoff)
         except blob_model.DoesNotExist:
             pass
         else:

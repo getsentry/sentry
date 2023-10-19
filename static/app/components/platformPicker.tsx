@@ -9,19 +9,16 @@ import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
 import SearchBar from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import categoryList, {filterAliases, PlatformKey} from 'sentry/data/platformCategories';
-import platforms from 'sentry/data/platforms';
+import categoryList, {
+  createablePlatforms,
+  filterAliases,
+} from 'sentry/data/platformPickerCategories';
+import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PlatformIntegration} from 'sentry/types';
+import {Organization, PlatformIntegration, PlatformKey} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-
-export const PLATFORM_CATEGORIES: {
-  id: string;
-  name: string;
-  platforms?: PlatformKey[];
-}[] = [...JSON.parse(JSON.stringify(categoryList)), {id: 'all', name: t('All')}];
 
 const PlatformList = styled('div')`
   display: grid;
@@ -30,7 +27,11 @@ const PlatformList = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-export type Category = (typeof PLATFORM_CATEGORIES)[number]['id'];
+const selectablePlatforms = platforms.filter(platform =>
+  createablePlatforms.has(platform.id)
+);
+
+export type Category = (typeof categoryList)[number]['id'];
 
 export type Platform = PlatformIntegration & {
   category: Category;
@@ -59,7 +60,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
   };
 
   state: State = {
-    category: this.props.defaultCategory ?? PLATFORM_CATEGORIES[0].id,
+    category: this.props.defaultCategory ?? categoryList[0].id,
     filter: this.props.noAutoFilter ? '' : (this.props.platform || '').split('-')[0],
   };
 
@@ -76,24 +77,10 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
       filterAliases[platform.id as PlatformKey]?.some(alias => alias.includes(filter));
 
     const categoryMatch = (platform: PlatformIntegration) => {
-      if (category === 'all') {
-        return true;
-      }
-
-      // Symfony was no appering under the server category
-      // because the php-symfony entry in src/sentry/integration-docs/_platforms.json
-      // does not contain the suffix 2.
-      // This is a temporary fix until we can update that file or completly remove the php-symfony2 occurrences
-      if (
-        (platform.id as any) === 'php-symfony' &&
-        (currentCategory?.platforms as undefined | string[])?.includes('php-symfony2')
-      ) {
-        return true;
-      }
-      return (currentCategory?.platforms as undefined | string[])?.includes(platform.id);
+      return currentCategory?.platforms?.has(platform.id);
     };
 
-    const filtered = platforms
+    const filtered = selectablePlatforms
       .filter(this.state.filter ? subsetMatch : categoryMatch)
       .sort((a, b) => a.id.localeCompare(b.id));
 
@@ -120,7 +107,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
       <Fragment>
         <NavContainer>
           <CategoryNav>
-            {PLATFORM_CATEGORIES.map(({id, name}) => (
+            {categoryList.map(({id, name}) => (
               <ListLink
                 key={id}
                 onClick={(e: React.MouseEvent) => {
@@ -175,8 +162,20 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
             icon={<IconProject size="xl" />}
             title={t("We don't have an SDK for that yet!")}
           >
-            {t(
-              "Make sure you've typed the platform correctly. If that doesn't help, we have several SDKs that are still useful if you use a lesser-known platform. For example, Browser JavaScript, Python, Node, .NET & Java."
+            {tct(
+              `Sure you haven't misspelled? If you're using a lesser-known platform, consider choosing a more generic SDK like Browser JavaScript, Python, Node, .NET & Java or create a generic project, by selecting [linkOther:“Other”].`,
+              {
+                linkOther: (
+                  <Button
+                    aria-label={t("Select 'Other'")}
+                    priority="link"
+                    onClick={() => {
+                      this.setState({filter: otherPlatform.name});
+                      setPlatform({...otherPlatform, category});
+                    }}
+                  />
+                ),
+              }
             )}
           </EmptyMessage>
         )}

@@ -6,10 +6,12 @@ from unittest.mock import patch
 from django.conf import settings
 from django.test.utils import override_settings
 
+from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.constants import ObjectStatus
-from sentry.models import Rule, RuleSource
+from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
 from sentry.testutils.cases import MonitorTestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
 
 
@@ -190,6 +192,13 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         self.project.refresh_from_db()
         assert self.project.flags.has_cron_monitors
 
+        mock_record.assert_any_call(
+            "cron_monitor.created",
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            from_upsert=False,
+        )
         mock_record.assert_called_with(
             "first_cron_monitor.created",
             user_id=self.user.id,
@@ -209,6 +218,32 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         response = self.get_success_response(self.organization.slug, **data)
 
         assert response.data["slug"] == "my-monitor"
+
+    @override_options({"api.prevent-numeric-slugs": True})
+    def test_invalid_numeric_slug(self):
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "slug": "1234",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+        }
+        response = self.get_error_response(self.organization.slug, **data, status_code=400)
+        assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
+
+    @override_options({"api.prevent-numeric-slugs": True})
+    def test_generated_slug_not_entirely_numeric(self):
+        data = {
+            "project": self.project.slug,
+            "name": "1234",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+        }
+        response = self.get_success_response(self.organization.slug, **data, status_code=201)
+
+        slug = response.data["slug"]
+        assert slug.startswith("1234-")
+        assert not slug.isdecimal()
 
     @override_settings(MAX_MONITORS_PER_ORG=2)
     def test_monitor_organization_limit(self):
@@ -251,3 +286,19 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         )
         assert rule is not None
         assert rule.environment_id == self.environment.id
+
+    def test_checkin_margin_zero(self):
+        # Invalid checkin margin
+        #
+        # XXX(epurkhiser): We currently transform 0 -> 1 for backwards
+        # compatability. If we remove the custom transformer in the config
+        # validator this test will chagne to a get_error_response test.
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "slug": "cron_job",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily", "checkin_margin": 0},
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+        assert Monitor.objects.get(slug=response.data["slug"]).config["checkin_margin"] == 1

@@ -7,10 +7,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import ratelimits as ratelimiter
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.validators import AllowedEmailField
-from sentry.models import InviteStatus, OrganizationMember, outbox_context
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.outbox import outbox_context
 from sentry.notifications.notifications.organization_request import JoinRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
 from sentry.services.hybrid_cloud.auth import auth_service
@@ -49,6 +51,9 @@ def create_organization_join_request(organization, email, ip_address=None):
 
 @region_silo_endpoint
 class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     # Disable authentication and permission requirements.
     permission_classes = []
 
@@ -68,8 +73,8 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
 
         # users can already join organizations with SSO enabled without an invite
         # so they should join that way and not through a request to the admins
-        providers = auth_service.get_auth_providers(organization_id=organization.id)
-        if len(providers) != 0:
+        provider = auth_service.get_auth_provider(organization_id=organization.id)
+        if provider is not None:
             return Response(status=403)
 
         ip_address = request.META["REMOTE_ADDR"]

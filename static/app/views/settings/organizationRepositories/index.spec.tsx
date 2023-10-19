@@ -1,10 +1,12 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationRepositoriesContainer from 'sentry/views/settings/organizationRepositories';
 
 describe('OrganizationRepositoriesContainer', function () {
   const context = TestStubs.routerContext();
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const router = TestStubs.router();
 
   beforeEach(function () {
@@ -24,7 +26,7 @@ describe('OrganizationRepositoriesContainer', function () {
     });
 
     it('is loading when initially rendering', function () {
-      const wrapper = render(
+      render(
         <OrganizationRepositoriesContainer
           router={router}
           routes={router.routes}
@@ -38,7 +40,6 @@ describe('OrganizationRepositoriesContainer', function () {
           context,
         }
       );
-      expect(wrapper.container).toSnapshot();
     });
   });
 });

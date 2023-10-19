@@ -1,12 +1,13 @@
 import time
+from unittest.mock import patch
 
 import responses
-from freezegun import freeze_time
 
 from sentry.incidents.action_handlers import MsTeamsActionHandler
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.silo import SiloMode
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
@@ -74,6 +75,20 @@ class MsTeamsActionHandlerTest(FireTest):
 
     def test_resolve_metric_alert(self):
         self.run_fire_test("resolve")
+
+    @patch("sentry.analytics.record")
+    def test_alert_sent_recorded(self, mock_record):
+        self.run_fire_test()
+        mock_record.assert_called_with(
+            "alert.sent",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            provider="msteams",
+            alert_id=self.alert_rule.id,
+            alert_type="metric_alert",
+            external_id=str(self.action.target_identifier),
+            notification_uuid="",
+        )
 
     @responses.activate
     def test_rule_snoozed(self):

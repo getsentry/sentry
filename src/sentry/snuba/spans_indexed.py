@@ -10,6 +10,7 @@ from sentry.search.events.builder import (
     TimeseriesSpanIndexedQueryBuilder,
     TopEventsSpanIndexedQueryBuilder,
 )
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import SnubaTSResult, bulk_snql_query
@@ -50,17 +51,19 @@ def query(
         selected_columns=selected_columns,
         equations=equations,
         orderby=orderby,
-        auto_fields=auto_fields,
-        auto_aggregations=auto_aggregations,
-        use_aggregate_conditions=use_aggregate_conditions,
-        functions_acl=functions_acl,
         limit=limit,
         offset=offset,
-        equation_config={"auto_add": include_equation_fields},
         sample_rate=sample,
-        has_metrics=has_metrics,
-        transform_alias_to_input_format=transform_alias_to_input_format,
-        skip_tag_resolution=skip_tag_resolution,
+        config=QueryBuilderConfig(
+            has_metrics=has_metrics,
+            transform_alias_to_input_format=transform_alias_to_input_format,
+            skip_tag_resolution=skip_tag_resolution,
+            equation_config={"auto_add": include_equation_fields},
+            auto_fields=auto_fields,
+            auto_aggregations=auto_aggregations,
+            use_aggregate_conditions=use_aggregate_conditions,
+            functions_acl=functions_acl,
+        ),
     )
 
     result = builder.process_results(builder.run_query(referrer))
@@ -94,7 +97,9 @@ def timeseries_query(
             rollup,
             query=query,
             selected_columns=columns,
-            functions_acl=functions_acl,
+            config=QueryBuilderConfig(
+                functions_acl=functions_acl,
+            ),
         )
         result = query.run_query(referrer)
     with sentry_sdk.start_span(op="spans_indexed", description="query.transform_results"):
@@ -170,8 +175,10 @@ def top_events_timeseries(
         selected_columns=selected_columns,
         timeseries_columns=timeseries_columns,
         equations=equations,
-        functions_acl=functions_acl,
-        skip_tag_resolution=True,
+        config=QueryBuilderConfig(
+            functions_acl=functions_acl,
+            skip_tag_resolution=True,
+        ),
     )
     if len(top_events["data"]) == limit and include_other:
         other_events_builder = TopEventsSpanIndexedQueryBuilder(

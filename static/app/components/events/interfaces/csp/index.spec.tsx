@@ -1,3 +1,5 @@
+import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -21,7 +23,7 @@ describe('Csp report entry', function () {
     };
     render(<Csp data={event.entries[0].data} event={event} />, {
       organization: {
-        relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
       },
     });
 

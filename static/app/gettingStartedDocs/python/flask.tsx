@@ -2,22 +2,41 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
+const performanceConfiguration = `    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    traces_sample_rate=1.0,`;
+
+const profilingConfiguration = `    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,`;
+
+const introduction = (
+  <p>
+    {tct('The Flask integration adds support for the [link:Flask Framework].', {
+      link: <ExternalLink href="https://flask.palletsprojects.com" />,
+    })}
+  </p>
+);
+
 export const steps = ({
-  dsn,
-}: Partial<Pick<ModuleProps, 'dsn'>> = {}): LayoutProps['steps'] => [
+  sentryInitContent,
+}: {
+  sentryInitContent: string;
+}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
       <p>
         {tct(
-          'The Flask integration adds support for the [flaskWebFrameworkLink:Flask Web Framework].',
+          'Install [sentrySdkCode:sentry-sdk] from PyPI with the [sentryFlaskCode:flask] extra:',
           {
-            flaskWebFrameworkLink: (
-              <ExternalLink href="https://flask.palletsprojects.com/en/2.3.x/" />
-            ),
+            sentrySdkCode: <code />,
+            sentryFlaskCode: <code />,
           }
         )}
       </p>
@@ -25,25 +44,21 @@ export const steps = ({
     configurations: [
       {
         language: 'bash',
-        description: (
-          <p>
-            {tct(
-              'Install [sentrySdkCode:sentry-sdk] from PyPI with the [sentryFlaskCode:flask] extra:',
-              {
-                sentrySdkCode: <code />,
-                sentryFlaskCode: <code />,
-              }
-            )}
-          </p>
-        ),
         code: "pip install --upgrade 'sentry-sdk[flask]'",
       },
     ],
   },
   {
     type: StepType.CONFIGURE,
-    description: t(
-      'To configure the SDK, initialize it with the integration before or after your app has been initialized:'
+    description: (
+      <p>
+        {tct(
+          'If you have the [codeFlask:flask] package in your dependencies, the Flask integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
+          {
+            codeFlask: <code />,
+          }
+        )}
+      </p>
     ),
     configurations: [
       {
@@ -51,18 +66,9 @@ export const steps = ({
         code: `
 import sentry_sdk
 from flask import Flask
-from sentry_sdk.integrations.flask import FlaskIntegration
 
 sentry_sdk.init(
-    dsn="${dsn}",
-    integrations=[
-        FlaskIntegration(),
-    ],
-
-    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
-    # We recommend adjusting this value in production.
-    traces_sample_rate=1.0
+${sentryInitContent}
 )
 
 app = Flask(__name__)
@@ -86,22 +92,72 @@ app = Flask(__name__)
     configurations: [
       {
         language: 'python',
-        code: `
-@app.route('/debug-sentry')
-def trigger_error():
-  division_by_zero = 1 / 0
+        code: `from flask import Flask
+import sentry_sdk
+
+sentry_sdk.init(
+${sentryInitContent}
+)
+
+app = Flask(__name__)
+
+@app.route("/")
+def hello_world():
+  1/0  # raises an error
+  return "<p>Hello, World!</p>"
         `,
       },
     ],
-    additionalInfo: t(
-      'Visiting this route will trigger an error that will be captured by Sentry.'
+    additionalInfo: (
+      <span>
+        <p>
+          {tct(
+            'When you point your browser to [link:http://localhost:5000/] a transaction in the Performance section of Sentry will be created.',
+            {
+              link: <ExternalLink href="http://localhost:5000/" />,
+            }
+          )}
+        </p>
+        <p>
+          {t(
+            'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+          )}
+        </p>
+        <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
+      </span>
     ),
   },
 ];
 // Configuration End
 
-export function GettingStartedWithFlask({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} {...props} />;
+export function GettingStartedWithFlask({
+  dsn,
+  activeProductSelection = [],
+  ...props
+}: ModuleProps) {
+  const otherConfigs: string[] = [];
+
+  let sentryInitContent: string[] = [`    dsn="${dsn}",`];
+
+  if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {
+    otherConfigs.push(performanceConfiguration);
+  }
+
+  if (activeProductSelection.includes(ProductSolution.PROFILING)) {
+    otherConfigs.push(profilingConfiguration);
+  }
+
+  sentryInitContent = sentryInitContent.concat(otherConfigs);
+
+  return (
+    <Layout
+      introduction={introduction}
+      steps={steps({
+        sentryInitContent: sentryInitContent.join('\n'),
+      })}
+      {...props}
+    />
+  );
 }
 
 export default GettingStartedWithFlask;

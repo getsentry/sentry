@@ -5,7 +5,7 @@ from typing import Any, Dict
 from django.utils import timezone
 
 from sentry import eventstore
-from sentry.models import UserReport
+from sentry.models.userreport import UserReport
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils.iterators import chunked

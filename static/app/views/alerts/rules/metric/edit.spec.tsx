@@ -114,7 +114,6 @@ describe('MetricRulesEdit', function () {
       expect.anything(),
       expect.objectContaining({
         data: expect.objectContaining({
-          aggregation: 0,
           dataset: 'events',
           id: '4',
           name: 'My Incident Rule',
@@ -200,7 +199,6 @@ describe('MetricRulesEdit', function () {
       expect.anything(),
       expect.objectContaining({
         data: expect.objectContaining({
-          aggregation: 0,
           dataset: 'events',
           id: '4',
           name: 'My Incident Rule',

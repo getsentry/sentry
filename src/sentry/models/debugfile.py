@@ -52,7 +52,7 @@ from sentry.utils import json
 from sentry.utils.zip import safe_extract_zip
 
 if TYPE_CHECKING:
-    from sentry.models import Project
+    from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
 

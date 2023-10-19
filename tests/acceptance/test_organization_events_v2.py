@@ -17,6 +17,7 @@ FEATURE_NAMES = [
     "organizations:discover-basic",
     "organizations:discover-query",
     "organizations:performance-view",
+    "organizations:performance-tracing-without-performance",
 ]
 
 
@@ -167,19 +168,16 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.landing_path)
             self.wait_until_loaded()
-            self.browser.snapshot("events-v2 - default landing")
 
     def test_all_events_query_empty_state(self):
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.result_path + "?" + all_events_query())
             self.wait_until_loaded()
-            self.browser.snapshot("events-v2 - all events query - empty state")
 
         with self.feature(FEATURE_NAMES):
             # expect table to expand to the right when no tags are provided
             self.browser.get(self.result_path + "?" + all_events_query(tag=[]))
             self.wait_until_loaded()
-            self.browser.snapshot("events-v2 - all events query - empty state - no tags")
 
     @patch("django.utils.timezone.now")
     def test_all_events_query(self, mock_now):
@@ -222,25 +220,19 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             # This test is flakey in that we sometimes load this page before the event is processed
             # depend on pytest-retry to reload the page
             self.browser.wait_until('[data-test-id="grid-editable"] > tbody > tr:nth-child(2)')
-            self.browser.snapshot("events-v2 - all events query - list")
 
         with self.feature(FEATURE_NAMES):
             # expect table to expand to the right when no tags are provided
             self.browser.get(self.result_path + "?" + all_events_query(tag=[]))
             self.wait_until_loaded()
             self.browser.wait_until('[data-test-id="grid-editable"] > tbody > tr:nth-child(2)')
-            self.browser.snapshot("events-v2 - all events query - list - no tags")
 
     def test_errors_query_empty_state(self):
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.result_path + "?" + errors_query())
             self.wait_until_loaded()
-            self.browser.snapshot("events-v2 - errors query - empty state")
 
             self.browser.click_when_visible('[data-test-id="grid-edit-enable"]')
-            self.browser.snapshot(
-                "events-v2 - errors query - empty state - querybuilder - column edit state"
-            )
 
     @patch("django.utils.timezone.now")
     def test_errors_query(self, mock_now):
@@ -284,19 +276,16 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.result_path + "?" + errors_query())
             self.wait_until_loaded()
-            self.browser.snapshot("events-v2 - errors")
 
     def test_transactions_query_empty_state(self):
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.result_path + "?" + transactions_query())
             self.wait_until_loaded()
-            self.browser.snapshot("events-v2 - transactions query - empty state")
 
         with self.feature(FEATURE_NAMES):
             # expect table to expand to the right when no tags are provided
             self.browser.get(self.result_path + "?" + transactions_query(tag=[]))
             self.wait_until_loaded()
-            self.browser.snapshot("events-v2 - transactions query - empty state - no tags")
 
     @patch("django.utils.timezone.now")
     def test_transactions_query(self, mock_now):
@@ -312,7 +301,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until_not(
                 '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
             )
-            self.browser.snapshot("events-v2 - transactions query - list")
 
     @patch("django.utils.timezone.now")
     def test_event_detail_view_from_all_events(self, mock_now):
@@ -350,8 +338,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             # header = self.browser.element('[data-test-id="event-header"] div div span')
             # assert event_data["message"] in header.text
 
-            self.browser.snapshot("events-v2 - single error details view")
-
     @patch("django.utils.timezone.now")
     def test_event_detail_view_from_errors_view(self, mock_now):
         now = before_now().replace(tzinfo=timezone.utc)
@@ -386,8 +372,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.elements('[data-test-id="view-event"]')[0].click()
             self.wait_until_loaded()
 
-            self.browser.snapshot("events-v2 - error event detail view")
-
     @patch("django.utils.timezone.now")
     def test_event_detail_view_from_transactions_query(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
@@ -419,8 +403,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.elements('[data-test-id="view-event"]')[0].click()
             self.wait_until_loaded()
 
-            self.browser.snapshot("events-v2 - transactions event with auto-grouped spans")
-
             # Expand auto-grouped spans
             self.browser.element('[data-test-id="span-row-5"]').click()
 
@@ -431,7 +413,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             # Wait until the child event loads.
             child_button = '[data-test-id="view-child-transaction"]'
             self.browser.wait_until(child_button)
-            self.browser.snapshot("events-v2 - transactions event detail view")
 
             # Click on the child transaction.
             self.browser.click(child_button)
@@ -495,10 +476,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.elements('[data-test-id="view-event"]')[0].click()
             self.wait_until_loaded()
 
-            self.browser.snapshot(
-                "events-v2 - transactions event with descendant and sibling auto-grouped spans"
-            )
-
             # Expand auto-grouped descendant spans
             self.browser.element('[data-test-id="span-row-5"]').click()
 
@@ -506,10 +483,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.element('[data-test-id="span-row-9"]').click()
             self.browser.element('[data-test-id="span-row-18"]').click()
             self.browser.element('[data-test-id="span-row-23"]').click()
-
-            self.browser.snapshot(
-                "events-v2 - transactions event with expanded descendant and sibling auto-grouped spans"
-            )
 
             # Click to collapse all of these spans back into autogroups, we expect the span tree to look like it did initially
             first_row = self.browser.element('[data-test-id="span-row-23"]')
@@ -520,10 +493,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
             third_row = self.browser.element('[data-test-id="span-row-9"]')
             third_row.find_element(By.CSS_SELECTOR, "a").click()
-
-            self.browser.snapshot(
-                "events-v2 - transactions event after regrouping expanded sibling auto-grouped spans"
-            )
 
     @patch("django.utils.timezone.now")
     def test_transaction_event_detail_view_ops_filtering(self, mock_now):
@@ -550,8 +519,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
             # select django.middleware
             self.browser.elements('[data-test-id="django\\\\.middleware"]')[0].click()
-
-            self.browser.snapshot("events-v2 - transactions event detail view - ops filtering")
 
     def test_create_saved_query(self):
         # Simulate a custom query

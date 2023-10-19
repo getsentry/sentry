@@ -1,18 +1,19 @@
 import {Fragment} from 'react';
 import type {RouteComponentProps} from 'react-router';
 
+import Alert from 'sentry/components/alert';
 import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {
-  Provider as ReplayContextProvider,
-  useReplayContext,
-} from 'sentry/components/replays/replayContext';
+import {Flex} from 'sentry/components/profiling/flex';
+import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useInitialTimeOffsetMs, {
   TimeOffsetLocationQueryParams,
@@ -75,9 +76,28 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     orgSlug,
     projectSlug,
     replayId,
-    replayStartTimestampMs: replayRecord?.started_at.getTime(),
+    replayStartTimestampMs: replayRecord?.started_at?.getTime(),
   });
 
+  if (replayRecord?.is_archived) {
+    return (
+      <Page
+        orgSlug={orgSlug}
+        replayRecord={replayRecord}
+        projectSlug={projectSlug}
+        replayErrors={replayErrors}
+      >
+        <Layout.Page>
+          <Alert system type="warning" data-test-id="replay-deleted">
+            <Flex gap={space(0.5)}>
+              <IconDelete color="gray500" size="sm" />
+              {t('This replay has been deleted.')}
+            </Flex>
+          </Alert>
+        </Layout.Page>
+      </Page>
+    );
+  }
   if (fetchError) {
     if (fetchError.statusText === 'Not Found') {
       return (
@@ -187,12 +207,10 @@ function DetailsInsideContext({
   replayRecord: ReplayRecord | undefined;
 }) {
   const {getLayout} = useReplayLayout();
-  const {replay} = useReplayContext();
 
   return (
     <Page
       orgSlug={orgSlug}
-      frames={replay?.getNavigationFrames()}
       replayRecord={replayRecord}
       projectSlug={projectSlug}
       replayErrors={replayErrors}

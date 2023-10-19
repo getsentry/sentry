@@ -6,6 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import RpcSignatureAuthentication
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
@@ -19,6 +20,9 @@ from sentry.utils.env import in_test_environment
 
 @all_silo_endpoint
 class RpcServiceEndpoint(Endpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     owner = ApiOwner.HYBRID_CLOUD
     authentication_classes = (RpcSignatureAuthentication,)
     permission_classes = ()

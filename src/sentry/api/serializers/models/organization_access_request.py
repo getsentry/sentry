@@ -1,5 +1,5 @@
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import OrganizationAccessRequest
+from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.services.hybrid_cloud.user.service import user_service
 
 

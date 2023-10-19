@@ -1,5 +1,6 @@
 from sentry.api.serializers import Serializer, register
-from sentry.models import EventAttachment, File
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.files.file import File
 
 
 @register(EventAttachment)

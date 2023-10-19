@@ -7,9 +7,10 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options
@@ -18,6 +19,9 @@ from sentry.utils.samples import load_data
 
 @region_silo_endpoint
 class IssueOccurrenceEndpoint(Endpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (SuperuserPermission,)
 
     def post(self, request: Request) -> Response:

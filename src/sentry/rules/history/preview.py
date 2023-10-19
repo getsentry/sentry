@@ -7,7 +7,9 @@ from typing import Any, Callable, Dict, List, Sequence, Tuple
 from django.utils import timezone
 
 from sentry.issues.grouptype import get_group_type_by_type_id
-from sentry.models import Group, Organization, Project
+from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.rules import RuleBase, rules
 from sentry.rules.history.preview_strategy import (
     DATASET_TO_COLUMN_NAME,

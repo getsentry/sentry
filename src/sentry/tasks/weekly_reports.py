@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import heapq
 import logging
+import uuid
 from datetime import timedelta
 from functools import partial, reduce
 from typing import Tuple
@@ -22,17 +23,15 @@ from snuba_sdk.query import Limit, Query
 from sentry import analytics, features
 from sentry.api.serializers.snuba import zerofill
 from sentry.constants import DataCategory
-from sentry.models import (
-    Activity,
-    Group,
-    GroupHistory,
-    GroupHistoryStatus,
-    GroupStatus,
-    Organization,
-    OrganizationMember,
-    OrganizationStatus,
-)
-from sentry.notifications.utils import generate_notification_uuid
+from sentry.models.activity import Activity
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmember import OrganizationMember
+from sentry.notifications.helpers import should_use_notifications_v2
+from sentry.notifications.notificationcontroller import NotificationController
+from sentry.notifications.types import NotificationSettingEnum
+from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -225,10 +224,16 @@ def prepare_organization_report(
         )
         return
 
+    use_notifications_v2 = should_use_notifications_v2(ctx.organization)
+
     # Finally, deliver the reports
     with sentry_sdk.start_span(op="weekly_reports.deliver_reports"):
         deliver_reports(
-            ctx, dry_run=dry_run, target_user=target_user, email_override=email_override
+            ctx,
+            dry_run=dry_run,
+            target_user=target_user,
+            email_override=email_override,
+            use_notifications_v2=use_notifications_v2,
         )
 
 
@@ -277,6 +282,9 @@ def project_event_counts_for_organization(ctx):
 
     for dat in data:
         project_id = dat["project_id"]
+        # Project no longer in organization, but events still exist
+        if project_id not in ctx.projects:
+            continue
         project_ctx = ctx.projects[project_id]
         total = dat["total"]
         timestamp = int(to_timestamp(parse_snuba_datetime(dat["time"])))
@@ -634,14 +642,14 @@ def fetch_key_performance_issue_groups(ctx):
 # For all users in the organization, we generate the template context for the user, and send the email.
 
 
-def deliver_reports(ctx, dry_run=False, target_user=None, email_override=None):
+def deliver_reports(
+    ctx, dry_run=False, target_user=None, email_override=None, use_notifications_v2=False
+):
     # Specify a sentry user to send this email.
     if email_override:
         send_email(ctx, target_user, dry_run=dry_run, email_override=email_override)
-    else:
-        # We save the subscription status of the user in a field in UserOptions.
-        # Here we do a raw query and LEFT JOIN on a subset of UserOption table where sentry_useroption.key = 'reports:disabled-organizations'
-        user_set = list(
+    elif use_notifications_v2:
+        user_list = list(
             OrganizationMember.objects.filter(
                 user_is_active=True,
                 organization_id=ctx.organization.id,
@@ -649,14 +657,37 @@ def deliver_reports(ctx, dry_run=False, target_user=None, email_override=None):
             .filter(flags=F("flags").bitand(~OrganizationMember.flags["member-limit:restricted"]))
             .values_list("user_id", flat=True)
         )
+
+        users = [RpcUser(id=user_id) for user_id in user_list]
+        controller = NotificationController(
+            recipients=users,
+            organization_id=ctx.organization.id,
+            type=NotificationSettingEnum.REPORTS,
+        )
+
+        user_ids = controller.get_users_for_weekly_reports()
+        for user_id in user_ids:
+            send_email(ctx, user_id, dry_run=dry_run)
+
+    else:
+        # We save the subscription status of the user in a field in UserOptions.
+        user_list = list(
+            OrganizationMember.objects.filter(
+                user_is_active=True,
+                organization_id=ctx.organization.id,
+            )
+            .filter(flags=F("flags").bitand(~OrganizationMember.flags["member-limit:restricted"]))
+            .values_list("user_id", flat=True)
+        )
+        user_list = list(filter(lambda v: v is not None, user_list))
         options_by_user_id = {
             option.user_id: option.value
             for option in user_option_service.get_many(
-                filter=dict(user_ids=user_set, keys=["reports:disabled-organizations"])
+                filter=dict(user_ids=user_list, keys=["reports:disabled-organizations"])
             )
         }
 
-        for user_id in user_set:
+        for user_id in user_list:
             option = list(options_by_user_id.get(user_id, []))
             user_subscribed_to_organization_reports = ctx.organization.id not in option
             if user_subscribed_to_organization_reports:
@@ -740,7 +771,7 @@ def render_template_context(ctx, user_id):
         "organizations:session-replay", ctx.organization
     ) and features.has("organizations:session-replay-weekly-email", ctx.organization)
 
-    notification_uuid = generate_notification_uuid()
+    notification_uuid = str(uuid.uuid4())
 
     # Render the first section of the email where we had the table showing the
     # number of accepted/dropped errors/transactions for each project.

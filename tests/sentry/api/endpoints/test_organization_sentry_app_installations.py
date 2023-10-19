@@ -1,11 +1,11 @@
-from django.urls import reverse
-
-from sentry.models import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
 class SentryAppInstallationsTest(APITestCase):
+    endpoint = "sentry-api-0-sentry-app-installations"
+
     def setUp(self):
         self.superuser = self.create_user(email="a@example.com", is_superuser=True)
         self.user = self.create_user(email="boop@example.com")
@@ -23,7 +23,6 @@ class SentryAppInstallationsTest(APITestCase):
             user=self.superuser,
             prevent_token_exchange=True,
         )
-
         self.installation2 = self.create_sentry_app_installation(
             slug=self.unpublished_app.slug,
             organization=self.org,
@@ -31,16 +30,15 @@ class SentryAppInstallationsTest(APITestCase):
             prevent_token_exchange=True,
         )
 
-        self.url = reverse("sentry-api-0-sentry-app-installations", args=[self.org.slug])
-
 
 @control_silo_test(stable=True)
 class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
+    method = "get"
+
     def test_superuser_sees_all_installs(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = self.client.get(self.url, format="json")
+        response = self.get_success_response(self.org.slug, status_code=200)
 
-        assert response.status_code == 200
         assert response.data == [
             {
                 "app": {"slug": self.unpublished_app.slug, "uuid": self.unpublished_app.uuid},
@@ -51,11 +49,8 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
             }
         ]
 
-        url = reverse("sentry-api-0-sentry-app-installations", args=[self.super_org.slug])
+        response = self.get_success_response(self.super_org.slug, status_code=200)
 
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200
         assert response.data == [
             {
                 "app": {"slug": self.published_app.slug, "uuid": self.published_app.uuid},
@@ -68,9 +63,8 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
 
     def test_users_only_sees_installs_on_their_org(self):
         self.login_as(user=self.user)
-        response = self.client.get(self.url, format="json")
+        response = self.get_success_response(self.org.slug, status_code=200)
 
-        assert response.status_code == 200
         assert response.data == [
             {
                 "app": {"slug": self.unpublished_app.slug, "uuid": self.unpublished_app.uuid},
@@ -82,36 +76,34 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
         ]
 
         # Org the User is not a part of
-        url = reverse("sentry-api-0-sentry-app-installations", args=[self.super_org.slug])
-
-        response = self.client.get(url, format="json")
+        response = self.get_error_response(self.super_org.slug, status_code=404)
         assert response.status_code == 404
 
 
 @control_silo_test(stable=True)
 class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
+    method = "post"
+
     def test_install_unpublished_app(self):
         self.login_as(user=self.user)
         app = self.create_sentry_app(name="Sample", organization=self.org)
-        response = self.client.post(self.url, data={"slug": app.slug}, format="json")
+        response = self.get_success_response(self.org.slug, slug=app.slug, status_code=200)
         expected = {
             "app": {"slug": app.slug, "uuid": app.uuid},
             "organization": {"slug": self.org.slug},
         }
 
-        assert response.status_code == 200, response.content
         assert expected.items() <= response.data.items()
 
     def test_install_published_app(self):
         self.login_as(user=self.user)
         app = self.create_sentry_app(name="Sample", organization=self.org, published=True)
-        response = self.client.post(self.url, data={"slug": app.slug}, format="json")
+        response = self.get_success_response(self.org.slug, slug=app.slug, status_code=200)
         expected = {
             "app": {"slug": app.slug, "uuid": app.uuid},
             "organization": {"slug": self.org.slug},
         }
 
-        assert response.status_code == 200, response.content
         assert expected.items() <= response.data.items()
 
     def test_members_cannot_install_apps(self):
@@ -119,13 +111,13 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
         self.create_member(organization=self.org, user=user, role="member")
         self.login_as(user)
         app = self.create_sentry_app(name="Sample", organization=self.org, published=True)
-        response = self.client.post(self.url, data={"slug": app.slug}, format="json")
-        assert response.status_code == 403
+        self.get_error_response(self.org.slug, slug=app.slug, status_code=403)
 
     def test_install_twice(self):
         self.login_as(user=self.user)
         app = self.create_sentry_app(name="Sample", organization=self.org)
-        self.client.post(self.url, data={"slug": app.slug}, format="json")
-        response = self.client.post(self.url, data={"slug": app.slug}, format="json")
+        self.get_success_response(self.org.slug, slug=app.slug, status_code=200)
+        response = self.get_success_response(self.org.slug, slug=app.slug, status_code=200)
+
         assert SentryAppInstallation.objects.filter(sentry_app=app).count() == 1
         assert response.status_code == 200

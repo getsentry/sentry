@@ -1,11 +1,12 @@
+from unittest.mock import patch
 from urllib.parse import parse_qs
 
 import responses
-from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.action_handlers import SlackActionHandler
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
@@ -150,3 +151,17 @@ class SlackActionHandlerTest(FireTest):
             handler.fire(metric_value, IncidentStatus(incident.status))
 
         assert len(responses.calls) == 1
+
+    @patch("sentry.analytics.record")
+    def test_alert_sent_recorded(self, mock_record):
+        self.run_fire_test()
+        mock_record.assert_called_with(
+            "alert.sent",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            provider="slack",
+            alert_id=self.alert_rule.id,
+            alert_type="metric_alert",
+            external_id=str(self.action.target_identifier),
+            notification_uuid="",
+        )

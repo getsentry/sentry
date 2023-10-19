@@ -3,7 +3,9 @@ from unittest import mock
 
 from django.utils import timezone
 
-from sentry.models import GroupRelease, GroupStatus, ReleaseProject
+from sentry.models.group import GroupStatus
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.release import ReleaseProject
 from sentry.signals import release_created
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test

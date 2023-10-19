@@ -6,7 +6,10 @@ import ProjectSecurityAndPrivacy from 'sentry/views/settings/projectSecurityAndP
 describe('projectSecurityAndPrivacy', function () {
   it('renders form fields', function () {
     const {organization} = initializeOrg();
-    const project = TestStubs.ProjectDetails();
+    const project = TestStubs.Project({
+      sensitiveFields: ['creditcard', 'ssn'],
+      safeFields: ['business-email', 'company'],
+    });
 
     render(<ProjectSecurityAndPrivacy project={project} organization={organization} />);
 
@@ -49,7 +52,7 @@ describe('projectSecurityAndPrivacy', function () {
 
   it('disables field when equivalent org setting is true', function () {
     const {organization} = initializeOrg();
-    const project = TestStubs.ProjectDetails();
+    const project = TestStubs.Project();
 
     organization.dataScrubber = true;
     organization.scrubIPAddresses = false;

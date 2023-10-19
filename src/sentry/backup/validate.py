@@ -6,7 +6,7 @@ from difflib import unified_diff
 from typing import Dict, Tuple
 
 from sentry.backup.comparators import ComparatorMap, ForeignKeyComparator, get_default_comparators
-from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.dependencies import ImportKind, NormalizedModelName, PrimaryKeyMap
 from sentry.backup.findings import (
     ComparatorFinding,
     ComparatorFindingKind,
@@ -44,7 +44,7 @@ def validate(
             """Assigns the next available ordinal to the supplied `obj` model."""
 
             pk = obj["pk"]
-            model = obj["model"]
+            model_name = NormalizedModelName(obj["model"])
             findings = []
             if pk > self.max_seen_pk:
                 self.max_seen_pk = pk
@@ -52,7 +52,7 @@ def validate(
                 findings.append(
                     ComparatorFinding(
                         kind=ComparatorFindingKind.UnorderedInput,
-                        on=InstanceID(model, self.next_ordinal),
+                        on=InstanceID(str(model_name), self.next_ordinal),
                         left_pk=pk if side == Side.left else None,
                         right_pk=pk if side == Side.right else None,
                         reason=f"""instances not listed in ascending `pk` order; `pk` {pk} is less than or equal to {self.max_seen_pk} which precedes it""",
@@ -63,7 +63,7 @@ def validate(
             self.next_ordinal += 1
             return (obj["ordinal"], findings if findings else [])
 
-    OrdinalCounters = Dict[str, OrdinalCounter]
+    OrdinalCounters = Dict[NormalizedModelName, OrdinalCounter]
     ModelMap = Dict[InstanceID, JSONData]
 
     def build_model_map(
@@ -74,11 +74,11 @@ def validate(
         model_map: ModelMap = {}
         ordinal_counters: OrdinalCounters = defaultdict(OrdinalCounter)
         for model in models:
-            model_name = model["model"]
+            model_name = NormalizedModelName(model["model"])
             counter = ordinal_counters[model_name]
             ordinal, found = counter.assign(model, side)
             findings.extend(found)
-            id = InstanceID(model_name, ordinal)
+            id = InstanceID(str(model_name), ordinal)
             model_map[id] = model
         return (model_map, ordinal_counters)
 
@@ -109,7 +109,7 @@ def validate(
             findings.append(
                 ComparatorFinding(
                     kind=ComparatorFindingKind.UnequalCounts,
-                    on=InstanceID(model_name),
+                    on=InstanceID(str(model_name)),
                     reason=f"""counted {left_count} left entries and {right_count} right entries""",
                 )
             )
@@ -139,8 +139,12 @@ def validate(
             raise RuntimeError("all InstanceIDs used for comparisons must have their ordinal set")
 
         left = left_models[id]
-        left_pk_map.insert(id.model, left_models[id]["pk"], id.ordinal)
-        right_pk_map.insert(id.model, right["pk"], id.ordinal)
+        left_pk_map.insert(
+            NormalizedModelName(id.model), left_models[id]["pk"], id.ordinal, ImportKind.Inserted
+        )
+        right_pk_map.insert(
+            NormalizedModelName(id.model), right["pk"], id.ordinal, ImportKind.Inserted
+        )
 
     # We only perform custom comparisons and JSON diffs on non-duplicate entries that exist in both
     # outputs.
@@ -173,7 +177,7 @@ def validate(
                 cmp.scrub(left, right)
 
         # Finally, perform a diff on the remaining JSON.
-        diff = list(unified_diff(json_lines(left["fields"]), json_lines(right["fields"]), n=3))
+        diff = list(unified_diff(json_lines(left["fields"]), json_lines(right["fields"]), n=15))
         if diff:
             findings.append(
                 ComparatorFinding(

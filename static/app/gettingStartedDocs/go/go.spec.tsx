@@ -6,7 +6,7 @@ import {GettingStartedWithGo, steps} from './go';
 
 describe('GettingStartedWithGo', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithGo dsn="test-dsn" />);
+    render(<GettingStartedWithGo dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithGo', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

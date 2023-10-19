@@ -5,7 +5,9 @@ from operator import or_
 from django.db.models import Q
 
 from sentry.constants import ObjectStatus
-from sentry.models import EventUser, Project, Release
+from sentry.models.eventuser import EventUser
+from sentry.models.project import Project
+from sentry.models.release import Release
 from sentry.utils.dates import to_timestamp
 from sentry.utils.geo import geo_by_addr
 

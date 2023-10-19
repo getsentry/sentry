@@ -12,11 +12,11 @@ import {SpanEvidencePreview} from './spanEvidencePreview';
 describe('SpanEvidencePreview', () => {
   beforeEach(() => {
     jest.useFakeTimers();
-    jest.restoreAllMocks();
+    jest.resetAllMocks();
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/issues/group-id/',
+      url: '/organizations/org-slug/issues/group-id/',
     });
   });
 
@@ -99,7 +99,7 @@ describe('SpanEvidencePreview', () => {
       .getEvent();
 
     MockApiClient.addMockResponse({
-      url: `/issues/group-id/events/latest/`,
+      url: `/organizations/org-slug/issues/group-id/events/recommended/`,
       body: event,
     });
 
@@ -113,9 +113,11 @@ describe('SpanEvidencePreview', () => {
     expect(screen.getByRole('cell', {name: event.title})).toBeInTheDocument();
 
     expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'db - connect'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: 'connect'})).toBeInTheDocument();
 
     expect(screen.getByRole('cell', {name: 'Repeating Spans (9)'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'db - group me'})).toBeInTheDocument();
+
+    // SQLish formatter uppercases group
+    expect(screen.getByRole('cell', {name: 'GROUP me'})).toBeInTheDocument();
   });
 });

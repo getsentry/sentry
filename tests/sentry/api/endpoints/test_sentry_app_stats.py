@@ -5,7 +5,8 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils.dates import to_timestamp
 
 
-class SentryAppStatsTest(APITestCase):
+@control_silo_test(stable=True)
+class GetSentryAppStatsTest(APITestCase):
     def setUp(self):
         self.superuser = self.create_user(email="superuser@example.com", is_superuser=True)
         self.user = self.create_user(email="user@example.com")
@@ -33,9 +34,6 @@ class SentryAppStatsTest(APITestCase):
             slug=self.unowned_published_app.slug, organization=self.create_organization()
         )
 
-
-@control_silo_test(stable=True)
-class GetSentryAppStatsTest(SentryAppStatsTest):
     def test_superuser_sees_unowned_published_stats(self):
         self.login_as(user=self.superuser, superuser=True)
 

@@ -150,6 +150,7 @@ class Frame(Interface):
             "platform",
             "post_context",
             "pre_context",
+            "source_link",
             "symbol",
             "symbol_addr",
             "trust",
@@ -187,13 +188,18 @@ class Frame(Interface):
                 "lineno": self.lineno,
                 "colno": self.colno,
                 "lock": self.lock,
+                "source_link": self.source_link or None,
             }
         )
 
     def get_api_context(self, is_public=False, pad_addr=None, platform=None):
-        from sentry.stacktraces.functions import get_function_name_for_frame
+        from sentry.stacktraces.functions import (
+            get_function_name_for_frame,
+            get_source_link_for_frame,
+        )
 
         function = get_function_name_for_frame(self, platform)
+        source_link = get_source_link_for_frame(self)
         data = {
             "filename": self.filename,
             "absPath": self.abs_path,
@@ -217,7 +223,9 @@ class Frame(Interface):
             "trust": self.trust,
             "errors": self.errors,
             "lock": self.lock,
+            "sourceLink": source_link,
         }
+
         if not is_public:
             data["vars"] = self.vars
 
@@ -279,6 +287,7 @@ class Frame(Interface):
             "trust": meta.get("trust"),
             "errors": meta.get("errors"),
             "lock": meta.get("lock"),
+            "sourceLink": meta.get("source_link"),
         }
 
     def is_url(self):

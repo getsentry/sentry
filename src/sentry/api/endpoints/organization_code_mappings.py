@@ -4,6 +4,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import (
     OrganizationEndpoint,
@@ -12,7 +13,9 @@ from sentry.api.bases.organization import (
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
-from sentry.models import Project, Repository, RepositoryProjectPathConfig
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.project import Project
+from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 
 
@@ -126,6 +129,10 @@ class OrganizationIntegrationMixin:
 
 @region_silo_endpoint
 class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegrationMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 
     def get(self, request: Request, organization) -> Response:
@@ -180,6 +187,14 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
 
         if not integration_id:
             return self.respond("Missing param: integration_id", status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            project = Project.objects.get(id=request.data.get("projectId"))
+        except Project.DoesNotExist:
+            return self.respond("Could not find project", status=status.HTTP_404_NOT_FOUND)
+
+        if not request.access.has_project_access(project):
+            return self.respond(status=status.HTTP_403_FORBIDDEN)
 
         try:
             # We expect there to exist an org_integration

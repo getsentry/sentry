@@ -2,12 +2,15 @@ from unittest import mock
 
 import responses
 
-from sentry.models import Activity
+from sentry.models.activity import Activity
 from sentry.notifications.notifications.activity.resolved import ResolvedActivityNotification
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import get_attachment, send_notification
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+
+pytestmark = [requires_snuba]
 
 
 class SlackResolvedNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):
@@ -32,13 +35,14 @@ class SlackResolvedNotificationTest(SlackActivityNotificationTest, PerformanceIs
             self.create_notification(self.group).send()
 
         attachment, text = get_attachment()
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             text
-            == f"{self.name} marked <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity_notification|{self.short_id}> as resolved"
+            == f"{self.name} marked <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity_notification&notification_uuid={notification_uuid}|{self.short_id}> as resolved"
         )
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_activity-slack-user|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     @responses.activate
@@ -57,9 +61,10 @@ class SlackResolvedNotificationTest(SlackActivityNotificationTest, PerformanceIs
             self.create_notification(event.group).send()
 
         attachment, text = get_attachment()
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             text
-            == f"{self.name} marked <http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/?referrer=activity_notification|{self.project.slug.upper()}-{event.group.short_id}> as resolved"
+            == f"{self.name} marked <http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/?referrer=activity_notification&notification_uuid={notification_uuid}|{self.project.slug.upper()}-{event.group.short_id}> as resolved"
         )
         self.assert_performance_issue_attachments(
             attachment, self.project.slug, "resolved_activity-slack-user"
@@ -84,9 +89,10 @@ class SlackResolvedNotificationTest(SlackActivityNotificationTest, PerformanceIs
             self.create_notification(group_event.group).send()
 
         attachment, text = get_attachment()
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             text
-            == f"{self.name} marked <http://testserver/organizations/{self.organization.slug}/issues/{group_event.group.id}/?referrer=activity_notification|{self.project.slug.upper()}-{group_event.group.short_id}> as resolved"
+            == f"{self.name} marked <http://testserver/organizations/{self.organization.slug}/issues/{group_event.group.id}/?referrer=activity_notification&notification_uuid={notification_uuid}|{self.project.slug.upper()}-{group_event.group.short_id}> as resolved"
         )
         self.assert_generic_issue_attachments(
             attachment, self.project.slug, "resolved_activity-slack-user"

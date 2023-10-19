@@ -9,25 +9,25 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
-import {SpanIndexedFields, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
+import {SpanIndexedField, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
 import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
 import {DATE_FORMAT} from 'sentry/views/starfish/utils/useSpansQuery';
 
-const {SPAN_SELF_TIME, SPAN_GROUP} = SpanIndexedFields;
+const {SPAN_SELF_TIME, SPAN_GROUP} = SpanIndexedField;
 
 type Options = {
   groupId: string;
-  transactionMethod: string;
   transactionName: string;
+  transactionMethod?: string;
 };
 
 export type SpanSample = Pick<
   SpanIndexedFieldTypes,
-  | SpanIndexedFields.SPAN_SELF_TIME
-  | SpanIndexedFields.TRANSACTION_ID
-  | SpanIndexedFields.PROJECT
-  | SpanIndexedFields.TIMESTAMP
-  | SpanIndexedFields.ID
+  | SpanIndexedField.SPAN_SELF_TIME
+  | SpanIndexedField.TRANSACTION_ID
+  | SpanIndexedField.PROJECT
+  | SpanIndexedField.TIMESTAMP
+  | SpanIndexedField.ID
 >;
 
 export const useSpanSamples = (options: Options) => {
@@ -41,19 +41,30 @@ export const useSpanSamples = (options: Options) => {
   const query = new MutableSearch([
     `${SPAN_GROUP}:${groupId}`,
     `transaction:"${transactionName}"`,
-    `transaction.method:${transactionMethod}`,
   ]);
+
+  if (transactionMethod) {
+    query.addFilterValue('transaction.method', transactionMethod);
+  }
+
+  const filters = {
+    transactionName,
+  };
+
+  if (transactionMethod) {
+    filters['transaction.method'] = transactionMethod;
+  }
 
   const dateCondtions = getDateConditions(pageFilter.selection);
 
   const {isLoading: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
     groupId,
-    {transactionName, 'transaction.method': transactionMethod},
-    [`p95(${SPAN_SELF_TIME})`],
+    filters,
+    [`avg(${SPAN_SELF_TIME})`],
     'api.starfish.sidebar-span-metrics'
   );
 
-  const maxYValue = computeAxisMax([spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`]]);
+  const maxYValue = computeAxisMax([spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`]]);
 
   const enabled = Boolean(
     groupId && transactionName && !isLoadingSeries && pageFilter.isReady

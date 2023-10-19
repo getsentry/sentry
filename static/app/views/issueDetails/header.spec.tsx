@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -8,7 +9,7 @@ import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 describe('groupDetails', () => {
   const baseUrl = 'BASE_URL/';
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const project = TestStubs.Project({
     teams: [TestStubs.Team()],
   });
@@ -23,7 +24,7 @@ describe('groupDetails', () => {
     };
 
     it('displays the correct tabs with all features enabled', async () => {
-      const orgWithFeatures = TestStubs.Organization({
+      const orgWithFeatures = Organization({
         features: ['similarity-view', 'event-attachments', 'session-replay'],
       });
       const jsProjectWithSimilarityView = TestStubs.Project({
@@ -91,7 +92,7 @@ describe('groupDetails', () => {
     };
 
     it('displays the correct tabs with all features enabled', async () => {
-      const orgWithFeatures = TestStubs.Organization({
+      const orgWithFeatures = Organization({
         features: ['similarity-view', 'event-attachments', 'session-replay'],
       });
       const mobileProjectWithSimilarityView = TestStubs.Project({
@@ -135,12 +136,22 @@ describe('groupDetails', () => {
     };
 
     it('displays the correct tabs with all features enabled', async () => {
-      const orgWithFeatures = TestStubs.Organization({
-        features: ['similarity-view', 'event-attachments'],
+      const orgWithFeatures = Organization({
+        features: ['similarity-view', 'event-attachments', 'session-replay'],
       });
 
       const projectWithSimilarityView = TestStubs.Project({
         features: ['similarity-view'],
+      });
+
+      const MOCK_GROUP = TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE});
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/replay-count/`,
+        method: 'GET',
+        body: {
+          [MOCK_GROUP.id]: ['replay42', 'replay256'],
+        },
       });
 
       render(
@@ -158,7 +169,7 @@ describe('groupDetails', () => {
       await userEvent.click(screen.getByRole('tab', {name: /tags/i}));
       expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/tags/');
 
-      await userEvent.click(screen.getByRole('tab', {name: /all events/i}));
+      await userEvent.click(screen.getByRole('tab', {name: /sampled events/i}));
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: 'BASE_URL/events/',
         query: {},
@@ -170,6 +181,7 @@ describe('groupDetails', () => {
       expect(
         screen.queryByRole('tab', {name: /similar issues/i})
       ).not.toBeInTheDocument();
+      expect(screen.queryByRole('tab', {name: /replays/i})).not.toBeInTheDocument();
     });
   });
 });

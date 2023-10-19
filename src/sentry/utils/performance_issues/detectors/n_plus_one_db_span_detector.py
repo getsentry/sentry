@@ -5,12 +5,12 @@ from typing import Optional
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models import Organization, Project
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
 from ..base import (
-    PARAMETERIZED_SQL_QUERY_REGEX,
     DetectorType,
     PerformanceDetector,
     get_notification_attachment_body,
@@ -229,8 +229,10 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         return total_span_time(self.n_spans) >= duration_threshold
 
     def _contains_valid_repeating_query(self, span: Span) -> bool:
+        # Make sure we at least have a space, to exclude e.g. MongoDB and
+        # Prisma's `rawQuery`.
         query = span.get("description", None)
-        return query and PARAMETERIZED_SQL_QUERY_REGEX.search(query)
+        return bool(query) and " " in query
 
     def _metrics_for_extra_matching_spans(self):
         # Checks for any extra spans that match the detected problem but are not part of affected spans.
@@ -265,7 +267,7 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
     - Extend N+1 DB Detector to make it compatible with more frameworks.
     """
 
-    type: DetectorType = DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED
+    type = DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED
 
     __slots__ = (
         "stored_problems",
@@ -282,14 +284,6 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
     def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
         # Only collecting metrics.
         return False
-
-    def _contains_valid_repeating_query(self, span: Span) -> bool:
-        # Remove the regular expression check for parameterization, relying on
-        # the parameterization in span hashing to handle it.  Make sure we at
-        # least have a space though, to exclude e.g. MongoDB and Prisma's
-        # `rawQuery`.
-        query = span.get("description", None)
-        return bool(query) and " " in query
 
 
 def contains_complete_query(span: Span, is_source: Optional[bool] = False) -> bool:

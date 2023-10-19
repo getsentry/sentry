@@ -95,7 +95,7 @@ function importJSSelfProfile(
   traceID: string,
   options: ImportOptions
 ): ProfileGroup {
-  const frameIndex = createFrameIndex('web', input.frames);
+  const frameIndex = createFrameIndex('javascript', input.frames);
   const profile = importSingleProfile(input, frameIndex, options);
 
   return {
@@ -115,7 +115,10 @@ function importSentrySampledProfile(
   input: Readonly<Profiling.SentrySampledProfile>,
   options: ImportOptions
 ): ProfileGroup {
-  const frameIndex = createSentrySampleProfileFrameIndex(input.profile.frames);
+  const frameIndex = createSentrySampleProfileFrameIndex(
+    input.profile.frames,
+    input.platform
+  );
   const samplesByThread: Record<
     string,
     Profiling.SentrySampledProfile['profile']['samples']
@@ -203,7 +206,11 @@ export function importSchema(
   options: ImportOptions
 ): ProfileGroup {
   const frameIndex = createFrameIndex(
-    input.metadata.platform === 'node' ? 'node' : 'mobile',
+    input.metadata.platform === 'node'
+      ? 'node'
+      : input.metadata.platform === 'javascript'
+      ? 'javascript'
+      : 'mobile',
     input.shared.frames
   );
 
@@ -266,17 +273,25 @@ function importSingleProfile(
   if (isJSProfile(profile)) {
     // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
     if (!transaction) {
-      return JSSelfProfile.FromProfile(profile, createFrameIndex('web', profile.frames), {
-        type,
-      });
+      return JSSelfProfile.FromProfile(
+        profile,
+        createFrameIndex('javascript', profile.frames),
+        {
+          type,
+        }
+      );
     }
 
     return wrapWithSpan(
       transaction,
       () =>
-        JSSelfProfile.FromProfile(profile, createFrameIndex('web', profile.frames), {
-          type,
-        }),
+        JSSelfProfile.FromProfile(
+          profile,
+          createFrameIndex('javascript', profile.frames),
+          {
+            type,
+          }
+        ),
       {
         op: 'profile.import',
         description: 'js-self-profile',

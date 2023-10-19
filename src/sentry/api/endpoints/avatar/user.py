@@ -3,16 +3,21 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.avatar import AvatarMixin
 from sentry.api.bases.user import UserEndpoint
-from sentry.models import UserAvatar
+from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.services.hybrid_cloud.user.service import user_service
 
 
 @control_silo_endpoint
 class UserAvatarEndpoint(AvatarMixin, UserEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     object_type = "user"
     model = UserAvatar
 
@@ -43,4 +48,6 @@ class UserAvatarEndpoint(AvatarMixin, UserEndpoint):
             user_id=request.user.id,
             attrs=dict(avatar_url=avatar_url, avatar_type=user_avatar.avatar_type),
         )
-        return Response(serialized_user)
+        if serialized_user:
+            return Response(serialized_user)
+        return Response(status=status.HTTP_404_NOT_FOUND)

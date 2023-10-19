@@ -2,11 +2,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.sentryapps import COMPONENT_TYPES, SentryAppBaseEndpoint
 from sentry.constants import SentryAppStatus
-from sentry.models import SentryAppAvatar
-from sentry.models.avatars.sentry_app_avatar import SentryAppAvatarTypes
+from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar, SentryAppAvatarTypes
 from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import email
@@ -14,6 +14,10 @@ from sentry.utils import email
 
 @control_silo_endpoint
 class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     def has_ui_component(self, sentry_app):
         """Determine if the sentry app supports issue linking or stack trace linking."""
         elements = (sentry_app.schema or {}).get("elements", [])

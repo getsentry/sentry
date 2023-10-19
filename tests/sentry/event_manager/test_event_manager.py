@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import uuid
 from datetime import datetime, timedelta
@@ -10,7 +12,6 @@ import responses
 from django.core.cache import cache
 from django.test.utils import override_settings
 from django.utils import timezone
-from freezegun import freeze_time
 from rest_framework.status import HTTP_404_NOT_FOUND
 
 from fixtures.github import (
@@ -49,32 +50,28 @@ from sentry.issues.grouptype import (
     PerformanceSlowDBQueryGroupType,
 )
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models import (
-    Activity,
-    Commit,
-    CommitAuthor,
-    Environment,
-    ExternalIssue,
-    Group,
-    GroupEnvironment,
-    GroupHash,
-    GroupLink,
-    GroupRelease,
-    GroupResolution,
-    GroupStatus,
-    GroupTombstone,
-    Integration,
-    Project,
-    PullRequest,
-    PullRequestCommit,
-    Release,
-    ReleaseCommit,
-    ReleaseHeadCommit,
-    ReleaseProjectEnvironment,
-    UserReport,
-)
+from sentry.models.activity import Activity
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.environment import Environment
 from sentry.models.eventuser import EventUser
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouphash import GroupHash
+from sentry.models.grouplink import GroupLink
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.grouptombstone import GroupTombstone
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
+from sentry.models.project import Project
+from sentry.models.pullrequest import PullRequest, PullRequestCommit
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releaseheadcommit import ReleaseHeadCommit
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.userreport import UserReport
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.silo import SiloMode
 from sentry.spans.grouping.utils import hash_values
@@ -86,10 +83,11 @@ from sentry.testutils.cases import (
     TransactionTestCase,
 )
 from sentry.testutils.helpers import apply_feature_flag_on_cls, override_options
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.utils import json
@@ -97,6 +95,8 @@ from sentry.utils.cache import cache_key_for_event
 from sentry.utils.outcomes import Outcome
 from sentry.utils.samples import load_data
 from tests.sentry.integrations.github.test_repository import stub_installation_token
+
+pytestmark = [requires_snuba]
 
 
 def make_event(**kwargs):
@@ -914,6 +914,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=event.group.id)
+        assert group.active_at
         assert group.active_at.replace(second=0) == event2.datetime.replace(second=0)
         assert group.active_at.replace(second=0) != event.datetime.replace(second=0)
 
@@ -2364,11 +2365,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_no_associate_error_event(self):
         """Test that you can't associate an error event with a performance issue"""
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            {
-                "projects:performance-suspect-spans-ingestion": True,
-            }
-        ):
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             manager = EventManager(make_event())
             manager.normalize()
             event = manager.save(self.project.id)
@@ -2388,11 +2385,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation_ignored(self):
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            {
-                "projects:performance-suspect-spans-ingestion": True,
-            }
-        ):
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event = self.create_performance_issue(
                 event_data=make_event(**get_event("n-plus-one-in-django-index-view")),
                 noise_limit=2,
@@ -2403,11 +2396,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation_over_ignored_threshold(self):
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            {
-                "projects:performance-suspect-spans-ingestion": True,
-            }
-        ):
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event_1 = self.create_performance_issue(
                 event_data=make_event(**get_event("n-plus-one-in-django-index-view")), noise_limit=3
             )
@@ -2933,7 +2922,7 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @freeze_time("2022-11-03 10:00:00")
     def test_boost_release_with_non_observed_release(self):
-        ts = time()
+        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
 
         project = self.create_project(platform="python")
         release_1 = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())
@@ -2994,7 +2983,7 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @freeze_time("2022-11-03 10:00:00")
     def test_boost_release_boosts_only_latest_release(self):
-        ts = time()
+        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
 
         project = self.create_project(platform="python")
         release_1 = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())
@@ -3188,7 +3177,7 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @freeze_time("2022-11-03 10:00:00")
     def test_release_not_boosted_with_deleted_release_after_event_received(self):
-        ts = time()
+        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
 
         project = self.create_project(platform="python")
         release_1 = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())
@@ -3238,7 +3227,7 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @freeze_time("2022-11-03 10:00:00")
     def test_get_boosted_releases_with_old_and_new_cache_keys(self):
-        ts = time()
+        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
 
         project = self.create_project(platform="python")
 
@@ -3308,7 +3297,7 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @freeze_time("2022-11-03 10:00:00")
     def test_expired_boosted_releases_are_removed(self):
-        ts = time()
+        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
 
         # We want to test with multiple platforms.
         for platform in ("python", "java", None):
@@ -3387,10 +3376,10 @@ class DSLatestReleaseBoostTest(TestCase):
             for o in mocked_invalidate.mock_calls
         )
 
-    @freeze_time()
+    @freeze_time("2022-11-03 10:00:00")
     @mock.patch("sentry.dynamic_sampling.rules.helpers.latest_releases.BOOSTED_RELEASES_LIMIT", 2)
     def test_least_recently_boosted_release_is_removed_if_limit_is_exceeded(self):
-        ts = time()
+        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
 
         project = self.create_project(platform="python")
         release_1 = Release.get_or_create(
@@ -3460,7 +3449,7 @@ class DSLatestReleaseBoostTest(TestCase):
     @freeze_time()
     @mock.patch("sentry.dynamic_sampling.rules.helpers.latest_releases.BOOSTED_RELEASES_LIMIT", 2)
     def test_removed_boost_not_added_again_if_limit_is_exceeded(self):
-        ts = time()
+        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
 
         project = self.create_project(platform="python")
         release_1 = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())

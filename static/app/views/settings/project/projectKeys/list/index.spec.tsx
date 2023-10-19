@@ -1,3 +1,5 @@
+import {ProjectKeys as ProjectKeysFixture} from 'sentry-fixture/projectKeys';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -11,7 +13,7 @@ import ProjectKeys from 'sentry/views/settings/project/projectKeys/list';
 
 describe('ProjectKeys', function () {
   const {organization, project, routerProps} = initializeOrg();
-  const projectKeys = TestStubs.ProjectKeys();
+  const projectKeys = ProjectKeysFixture();
   let deleteMock: jest.Mock;
 
   beforeEach(function () {
@@ -84,7 +86,7 @@ describe('ProjectKeys', function () {
       name: 'Minidump Endpoint URL',
     });
     const unrealEndpoint = screen.queryByRole('textbox', {
-      name: 'Unreal Engine 4 Endpoint URL',
+      name: 'Unreal Engine Endpoint URL',
     });
     const securityHeaderEndpoint = screen.queryByRole('textbox', {
       name: 'Security Header Endpoint URL',
@@ -114,7 +116,7 @@ describe('ProjectKeys', function () {
       name: 'Minidump Endpoint URL',
     });
     const unrealEndpoint = screen.queryByRole('textbox', {
-      name: 'Unreal Engine 4 Endpoint URL',
+      name: 'Unreal Engine Endpoint URL',
     });
     const securityHeaderEndpoint = screen.queryByRole('textbox', {
       name: 'Security Header Endpoint URL',
@@ -152,7 +154,7 @@ describe('ProjectKeys', function () {
       name: 'Minidump Endpoint URL',
     });
     const unrealEndpoint = screen.queryByRole('textbox', {
-      name: 'Unreal Engine 4 Endpoint URL',
+      name: 'Unreal Engine Endpoint URL',
     });
     const securityHeaderEndpoint = screen.queryByRole('textbox', {
       name: 'Security Header Endpoint URL',

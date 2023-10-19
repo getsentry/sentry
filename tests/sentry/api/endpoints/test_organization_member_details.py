@@ -6,21 +6,19 @@ from django.urls import reverse
 
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.models import (
-    Authenticator,
-    AuthProvider,
-    InviteStatus,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    SentryAppInstallationToken,
-    UserOption,
-)
+from sentry.models.authenticator import Authenticator
+from sentry.models.authprovider import AuthProvider
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.models.options.user_option import UserOption
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 class OrganizationMemberTestBase(APITestCase):
@@ -31,6 +29,7 @@ class OrganizationMemberTestBase(APITestCase):
         self.login_as(self.user)
 
 
+@region_silo_test(stable=True)
 class GetOrganizationMemberTest(OrganizationMemberTestBase):
     def test_me(self):
         response = self.get_success_response(self.organization.slug, "me")
@@ -138,7 +137,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         assert role_ids == ["contributor", "admin"]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMixin):
     method = "put"
 
@@ -260,7 +259,10 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
     def test_reinvite_sso_link(self):
         member = self.create_user("bar@example.com")
         member_om = self.create_member(organization=self.organization, user=member, role="member")
-        AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy", flags=1)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            AuthProvider.objects.create(
+                organization_id=self.organization.id, provider="dummy", flags=1
+            )
 
         with self.tasks():
             self.get_success_response(self.organization.slug, member_om.id, reinvite=1)
@@ -522,8 +524,9 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
             scopes=("member:admin",),
             webhook_url="http://example.com",
         )
-        # there should only be one record created so just grab the first one
-        token = SentryAppInstallationToken.objects.first()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # there should only be one record created so just grab the first one
+            token = SentryAppInstallationToken.objects.first()
 
         response = self.client.put(
             reverse(self.endpoint, args=[self.organization.slug, member_om.id]),
@@ -538,7 +541,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         assert response.status_code == 400
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
     method = "delete"
 
@@ -558,22 +561,24 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
         org = self.create_organization()
         project2 = self.create_project(organization=org)
         member = self.create_user("ahmed@ahmed.io")
-        u1 = UserOption.objects.create(
-            user=member, project_id=self.project.id, key="mail:email", value="ahmed@ahmed.io"
-        )
-        u2 = UserOption.objects.create(
-            user=member, project_id=project2.id, key="mail:email", value="ahmed@ahmed.io"
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            u1 = UserOption.objects.create(
+                user=member, project_id=self.project.id, key="mail:email", value="ahmed@ahmed.io"
+            )
+            u2 = UserOption.objects.create(
+                user=member, project_id=project2.id, key="mail:email", value="ahmed@ahmed.io"
+            )
 
         member_om = self.create_member(organization=self.organization, user=member, role="member")
 
         self.get_success_response(self.organization.slug, member_om.id)
 
         assert not OrganizationMember.objects.filter(id=member_om.id).exists()
-        assert not UserOption.objects.filter(id=u1.id).exists()
-        # Ensure that `UserOption` for a user in a different org does not get deleted when that
-        # same member is deleted from another org
-        assert UserOption.objects.filter(id=u2.id).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not UserOption.objects.filter(id=u1.id).exists()
+            # Ensure that `UserOption` for a user in a different org does not get
+            # deleted when that same member is deleted from another org
+            assert UserOption.objects.filter(id=u2.id).exists()
 
     def test_invalid_id(self):
         member = self.create_user("bar@example.com")
@@ -715,8 +720,14 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
             user_id=member_user.id, organization=self.organization
         ).exists()
 
+    def test_can_delete_pending_invite(self):
+        invite = self.create_member(
+            organization=self.organization, user=None, email="invitee@example.com", role="member"
+        )
+        self.get_success_response(self.organization.slug, invite.id)
 
-@region_silo_test
+
+@region_silo_test(stable=True)
 class ResetOrganizationMember2faTest(APITestCase):
     def setUp(self):
         self.owner = self.create_user()
@@ -727,11 +738,13 @@ class ResetOrganizationMember2faTest(APITestCase):
             organization=self.org, user=self.member, role="member", teams=[]
         )
         self.login_as(self.member)
-        totp = TotpInterface()
-        totp.enroll(self.member)
-        assert totp.authenticator is not None
-        self.interface_id = totp.authenticator.id
-        assert Authenticator.objects.filter(user=self.member).exists()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            totp = TotpInterface()
+            totp.enroll(self.member)
+            assert totp.authenticator is not None
+            self.interface_id = totp.authenticator.id
+            assert Authenticator.objects.filter(user=self.member).exists()
 
     def assert_can_get_authenticators(self):
         path = reverse(
@@ -756,6 +769,7 @@ class ResetOrganizationMember2faTest(APITestCase):
         assert "authenticators" not in data["user"]
         assert "canReset2fa" not in data["user"]
 
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def assert_can_remove_authenticators(self):
         path = reverse(
             "sentry-api-0-user-authenticator-details", args=[self.member.id, self.interface_id]
@@ -764,6 +778,7 @@ class ResetOrganizationMember2faTest(APITestCase):
         assert resp.status_code == 204
         assert not Authenticator.objects.filter(user=self.member).exists()
 
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def assert_cannot_remove_authenticators(self):
         path = reverse(
             "sentry-api-0-user-authenticator-details", args=[self.member.id, self.interface_id]
@@ -772,11 +787,14 @@ class ResetOrganizationMember2faTest(APITestCase):
         assert resp.status_code == 403
         assert Authenticator.objects.filter(user=self.member).exists()
 
-    def test_org_owner_can_reset_member_2fa(self):
+    @patch("sentry.security.utils.generate_security_email")
+    def test_org_owner_can_reset_member_2fa(self, mock_generate_security_email):
         self.login_as(self.owner)
 
         self.assert_can_get_authenticators()
         self.assert_can_remove_authenticators()
+
+        mock_generate_security_email.assert_called_once()
 
     def test_owner_must_have_org_membership(self):
         owner = self.create_user()
@@ -791,13 +809,16 @@ class ResetOrganizationMember2faTest(APITestCase):
 
         self.assert_cannot_remove_authenticators()
 
-    def test_org_manager_can_reset_member_2fa(self):
+    @patch("sentry.security.utils.generate_security_email")
+    def test_org_manager_can_reset_member_2fa(self, mock_generate_security_email):
         manager = self.create_user()
         self.create_member(organization=self.org, user=manager, role="manager", teams=[])
         self.login_as(manager)
 
         self.assert_can_get_authenticators()
         self.assert_can_remove_authenticators()
+
+        mock_generate_security_email.assert_called_once()
 
     def test_org_admin_cannot_reset_member_2fa(self):
         admin = self.create_user()
@@ -834,13 +855,15 @@ class ResetOrganizationMember2faTest(APITestCase):
 
     def test_cannot_reset_member_2fa__org_requires_2fa(self):
         self.login_as(self.owner)
-        TotpInterface().enroll(self.owner)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            TotpInterface().enroll(self.owner)
 
         self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
         assert self.org.flags.require_2fa.is_set is True
 
         self.assert_cannot_remove_authenticators()
 
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def test_owner_can_only_reset_member_2fa(self):
         self.login_as(self.owner)
 

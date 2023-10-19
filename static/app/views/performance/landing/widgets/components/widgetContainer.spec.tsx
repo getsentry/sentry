@@ -16,6 +16,8 @@ import WidgetContainer from 'sentry/views/performance/landing/widgets/components
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
+import {QUERY_LIMIT_PARAM} from '../utils';
+
 const initializeData = (query = {}, rest: InitializeDataSettings = {}) => {
   const data = _initializeData({
     query: {statsPeriod: '7d', environment: ['prod'], project: [-42], ...query},
@@ -39,6 +41,7 @@ function WrappedComponent({data, withStaticFilters = false, ...rest}) {
             value={{performanceType: ProjectPerformanceType.ANY}}
           >
             <WidgetContainer
+              chartHeight={100}
               allowedCharts={[
                 PerformanceWidgetSetting.TPM_AREA,
                 PerformanceWidgetSetting.FAILURE_RATE_AREA,
@@ -237,7 +240,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           interval: undefined,
           middle: undefined,
           noPagination: true,
-          per_page: 3,
+          per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query:
             'transaction.op:pageload tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
@@ -737,7 +740,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         query: expect.objectContaining({
           environment: ['prod'],
           field: ['transaction', 'project.id', 'failure_count()'],
-          per_page: 3,
+          per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query: 'transaction.op:pageload failure_count():>0',
           sort: '-failure_count()',
@@ -768,7 +771,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         query: expect.objectContaining({
           environment: ['prod'],
           field: ['issue', 'transaction', 'title', 'project.id', 'count()'],
-          per_page: 3,
+          per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query: 'event.type:error !tags[transaction]:"" count():>0',
           sort: '-count()',
@@ -832,7 +835,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           field: ['transaction', 'project'],
           interval: undefined,
           middle: undefined,
-          per_page: 3,
+          per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query:
             'transaction.op:pageload tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
@@ -840,6 +843,48 @@ describe('Performance > Widgets > WidgetContainer', function () {
           statsPeriod: '7d',
           trendFunction: 'p50(transaction.duration)',
           trendType: 'improved',
+        }),
+      })
+    );
+  });
+
+  it('Most time spent in db queries widget', async function () {
+    const data = initializeData();
+
+    wrapper = render(
+      <MEPSettingProvider forceTransactions>
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES}
+        />
+      </MEPSettingProvider>
+    );
+
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
+      'Most Time-Consuming Queries'
+    );
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'spansMetrics',
+          environment: ['prod'],
+          field: [
+            'span.op',
+            'span.group',
+            'project.id',
+            'span.description',
+            'sum(span.self_time)',
+            'avg(span.self_time)',
+            'time_spent_percentage()',
+          ],
+          per_page: QUERY_LIMIT_PARAM,
+          project: ['-42'],
+          query: 'has:span.description span.module:db transaction.op:pageload',
+          sort: '-time_spent_percentage()',
+          statsPeriod: '7d',
         }),
       })
     );
@@ -868,7 +913,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           field: ['transaction', 'project'],
           interval: undefined,
           middle: undefined,
-          per_page: 3,
+          per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query:
             'transaction.op:pageload tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
@@ -905,7 +950,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           environment: ['prod'],
           field: ['transaction', 'project.id', 'epm()', 'avg(measurements.frames_slow)'],
           noPagination: true,
-          per_page: 3,
+          per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_slow):>0',
           sort: '-avg(measurements.frames_slow)',
@@ -946,7 +991,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           environment: ['prod'],
           field: ['transaction', 'project.id', 'epm()', 'avg(measurements.frames_slow)'],
           noPagination: true,
-          per_page: 3,
+          per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_slow):>0',
           sort: '-avg(measurements.frames_slow)',
@@ -987,7 +1032,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'avg(measurements.frames_frozen)',
           ],
           noPagination: true,
-          per_page: 3,
+          per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_frozen):>0',
           sort: '-avg(measurements.frames_frozen)',

@@ -9,12 +9,11 @@ import {space} from 'sentry/styles/space';
 import {
   EventTransaction,
   getIssueTypeFromOccurenceType,
-  IssueType,
   Organization,
 } from 'sentry/types';
+import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
-import {projectDetectorSettingsId} from 'sentry/views/settings/projectPerformance/projectPerformance';
 
 import TraceView from '../spans/traceView';
 import {TraceContextType} from '../spans/types';
@@ -44,13 +43,8 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
   const hasProfilingFeature = organization.features.includes('profiling');
 
   const issueType = getIssueTypeFromOccurenceType(event.occurrence?.type);
-  const hasConfigurableThresholds =
-    organization.features.includes('project-performance-settings-admin') &&
-    issueType &&
-    ![
-      IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS, // TODO Abdullah Khan: Remove check when thresholds for these two issues are configurable.
-      IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
-    ].includes(issueType);
+  const issueTitle = event.occurrence?.issueTitle;
+  const sanitizedIssueTitle = issueTitle && sanitizeQuerySelector(issueTitle);
 
   return (
     <EventDataSection
@@ -60,10 +54,10 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
         'Span Evidence identifies the root cause of this issue, found in other similar events within the same issue.'
       )}
       actions={
-        hasConfigurableThresholds && (
+        issueType && (
           <LinkButton
             data-test-id="span-evidence-settings-btn"
-            to={`/settings/projects/${projectSlug}/performance/#${projectDetectorSettingsId}`}
+            to={`/settings/projects/${projectSlug}/performance/?issueType=${issueType}#${sanitizedIssueTitle}`}
             size="xs"
           >
             <StyledSettingsIcon size="xs" />

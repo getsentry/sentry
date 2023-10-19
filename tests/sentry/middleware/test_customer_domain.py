@@ -130,9 +130,9 @@ class CustomerDomainMiddlewareTest(TestCase):
         clear_global_regions()
         region_configs: list[dict[str, Any]] = [
             {
-                "name": "na",
+                "name": "us",
                 "snowflake_id": 1,
-                "address": "http://na.testserver",
+                "address": "http://us.testserver",
                 "category": RegionCategory.MULTI_TENANT.name,
             },
             {

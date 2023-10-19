@@ -6,7 +6,7 @@ import {GettingStartedWithEcho, steps} from './echo';
 
 describe('GettingStartedWithEcho', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithEcho dsn="test-dsn" />);
+    render(<GettingStartedWithEcho dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithEcho', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

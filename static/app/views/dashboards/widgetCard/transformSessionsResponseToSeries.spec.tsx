@@ -1,13 +1,14 @@
+import {
+  SessionEmptyGroupedResponse,
+  SessionUserCountByStatusByRelease,
+} from 'sentry-fixture/sessions';
+
 import {transformSessionsResponseToSeries} from 'sentry/views/dashboards/widgetCard/transformSessionsResponseToSeries';
 
 describe('transformSessionsResponseToSeries', function () {
   it('transforms sessions into series', () => {
     expect(
-      transformSessionsResponseToSeries(
-        TestStubs.SessionUserCountByStatusByRelease(),
-        [],
-        []
-      )
+      transformSessionsResponseToSeries(SessionUserCountByStatusByRelease(), [], [])
     ).toEqual([
       {
         seriesName: 'crashed, 1 : sum(session)',
@@ -319,7 +320,7 @@ describe('transformSessionsResponseToSeries', function () {
   it('adds derived status series', () => {
     expect(
       transformSessionsResponseToSeries(
-        TestStubs.SessionUserCountByStatusByRelease(),
+        SessionUserCountByStatusByRelease(),
         ['count_crashed(session)'],
         []
       )
@@ -785,7 +786,7 @@ describe('transformSessionsResponseToSeries', function () {
   it('omits injected fields', () => {
     expect(
       transformSessionsResponseToSeries(
-        TestStubs.SessionUserCountByStatusByRelease(),
+        SessionUserCountByStatusByRelease(),
         ['count_crashed(session)'],
         ['sum(session)']
       )
@@ -1099,7 +1100,7 @@ describe('transformSessionsResponseToSeries', function () {
 
   it('returns a single series with 0 as values when there are no groups returned', () => {
     expect(
-      transformSessionsResponseToSeries(TestStubs.SessionEmptyGroupedResponse(), [], [])
+      transformSessionsResponseToSeries(SessionEmptyGroupedResponse(), [], [])
     ).toEqual([
       {
         seriesName: '(no results)',
@@ -1126,7 +1127,7 @@ describe('transformSessionsResponseToSeries', function () {
   it('supports legend aliases', () => {
     expect(
       transformSessionsResponseToSeries(
-        TestStubs.SessionUserCountByStatusByRelease(),
+        SessionUserCountByStatusByRelease(),
         [],
         [],
         'Lorem'

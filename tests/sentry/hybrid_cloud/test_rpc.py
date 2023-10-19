@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -8,8 +8,7 @@ import responses
 from django.db import router
 from django.test import override_settings
 
-from sentry.models import OrganizationMapping
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.auth import AuthService
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
@@ -18,7 +17,7 @@ from sentry.services.hybrid_cloud.organization import (
 )
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.services.hybrid_cloud.rpc import (
-    RpcServiceSetupException,
+    RpcAuthenticationSetupException,
     dispatch_remote_call,
     dispatch_to_local_service,
 )
@@ -89,26 +88,6 @@ class RpcServiceTest(TestCase):
         }
         assert serial_arguments["organization_id"] == organization.id
 
-    @mock.patch("sentry.services.hybrid_cloud.in_test_environment")
-    @mock.patch("sentry.services.hybrid_cloud.report_pydantic_type_validation_error")
-    def test_models_tolerate_invalid_types(self, mock_report, mock_in_test_environment):
-        # Check reporting of validation errors, rather than suppressing as in most tests
-        mock_in_test_environment.return_value = False
-
-        # Create an RpcModel instance whose fields don't obey type annotations and
-        # ensure that it does not raise an exception.
-        RpcActor(
-            id="hey, this isn't an int",
-            actor_id=None,  # this one is okay
-            actor_type=None,  # should not be Optional
-        )
-
-        assert mock_report.call_count == 2
-        field_names = {c.args[0].name for c in mock_report.call_args_list}
-        model_classes = [c.args[3] for c in mock_report.call_args_list]
-        assert field_names == {"id", "actor_type"}
-        assert model_classes == [RpcActor] * 2
-
     def test_dispatch_to_local_service(self):
         user = self.create_user()
         organization = self.create_organization()
@@ -149,7 +128,7 @@ class DispatchRemoteCallTest(TestCase):
         SENTRY_CONTROL_ADDRESS="",
     )
     def test_while_not_allowed(self):
-        with pytest.raises(RpcServiceSetupException):
+        with pytest.raises(RpcAuthenticationSetupException):
             dispatch_remote_call(None, "user", "get_user", {"user_id": 0})
 
     @staticmethod
@@ -201,9 +180,11 @@ class DispatchRemoteCallTest(TestCase):
     def test_control_to_region_happy_path(self):
         user = self.create_user()
         serial = serialize_rpc_user(user)
-        self._set_up_mock_response("user/get_user", serial.dict(), address="http://na.sentry.io")
+        self._set_up_mock_response(
+            "user/get_first_superuser", serial.dict(), address="http://na.sentry.io"
+        )
 
-        result = dispatch_remote_call(_REGIONS[0], "user", "get_user", {"id": 0})
+        result = dispatch_remote_call(_REGIONS[0], "user", "get_first_superuser", {})
         assert result == serial
 
     @responses.activate
@@ -226,8 +207,6 @@ class DispatchRemoteCallTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL, DEV_HYBRID_CLOUD_RPC_SENDER={"is_allowed": True})
     def test_early_halt_from_null_region_resolution(self):
         with override_settings(SILO_MODE=SiloMode.CONTROL):
-            org_service_delgn = cast(
-                OrganizationService, OrganizationService.create_delegation(use_test_client=False)
-            )
+            org_service_delgn = OrganizationService.create_delegation(use_test_client=False)
         result = org_service_delgn.get_org_by_slug(slug="this_is_not_a_valid_slug")
         assert result is None

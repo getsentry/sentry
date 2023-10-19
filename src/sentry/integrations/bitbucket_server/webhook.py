@@ -8,10 +8,15 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 from rest_framework.request import Request
 
-from sentry.models import Commit, CommitAuthor, Integration, Organization, Repository
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.integrations.integration import Integration
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import json
+from sentry.web.frontend.base import region_silo_view
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -101,6 +106,7 @@ class PushEventWebhook(Webhook):
                     pass
 
 
+@region_silo_view
 class BitbucketServerWebhookEndpoint(View):
     _handlers = {"repo:refs_changed": PushEventWebhook}
 

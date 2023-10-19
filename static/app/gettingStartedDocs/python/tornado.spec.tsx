@@ -6,15 +6,13 @@ import {GettingStartedWithTornado, steps} from './tornado';
 
 describe('GettingStartedWithTornado', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithTornado dsn="test-dsn" />);
+    render(<GettingStartedWithTornado dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
-    for (const step of steps()) {
+    for (const step of steps({sentryInitContent: 'test-init-content'})) {
       expect(
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

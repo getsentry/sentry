@@ -3,6 +3,7 @@ import logging
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from social_auth.backends import get_backend
@@ -13,6 +14,10 @@ logger = logging.getLogger("sentry.accounts")
 
 @control_silo_endpoint
 class UserSocialIdentityDetailsEndpoint(UserEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+    }
+
     def delete(self, request: Request, user, identity_id) -> Response:
         """
         Disconnect a Identity from Account

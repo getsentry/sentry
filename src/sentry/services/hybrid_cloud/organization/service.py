@@ -4,19 +4,22 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 import abc
 from abc import abstractmethod
-from typing import Any, Iterable, List, Mapping, Optional, Union, cast
+from typing import Any, Iterable, Mapping, Optional, Union
 
 from django.dispatch import Signal
 
 from sentry.services.hybrid_cloud import OptionValue, silo_mode_delegation
 from sentry.services.hybrid_cloud.organization.model import (
+    RpcAuditLogEntryActor,
     RpcOrganization,
+    RpcOrganizationDeleteResponse,
     RpcOrganizationFlagsUpdate,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
     RpcOrganizationSignal,
     RpcOrganizationSummary,
     RpcRegionUser,
+    RpcTeam,
     RpcUserInviteContext,
     RpcUserOrganizationContext,
 )
@@ -175,7 +178,7 @@ class OrganizationService(RpcService):
         """
         Defers to check_organization_by_slug -> get_organization_by_id
         """
-        from sentry.models import OrganizationStatus
+        from sentry.models.organization import OrganizationStatus
 
         org_id = self.check_organization_by_slug(slug=slug, only_visible=only_visible)
         if org_id is None:
@@ -211,12 +214,22 @@ class OrganizationService(RpcService):
     ) -> RpcOrganizationMember:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationIdAttribute("organization_member"))
+    @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:
+    def get_single_team(self, *, organization_id: int) -> Optional[RpcTeam]:
+        """If the organization has exactly one team, return it.
+
+        Return None if the organization has no teams or more than one.
+        """
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def add_team_member(
+        self, *, organization_id: int, team_id: int, organization_member_id: int
+    ) -> None:
         pass
 
-    @regional_rpc_method(resolve=UnimplementedRegionResolution())
+    @regional_rpc_method(resolve=UnimplementedRegionResolution("organization", "get_team_members"))
     @abstractmethod
     def get_team_members(self, *, team_id: int) -> Iterable[RpcOrganizationMember]:
         pass
@@ -229,21 +242,6 @@ class OrganizationService(RpcService):
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def merge_users(self, *, organization_id: int, from_user_id: int, to_user_id: int) -> None:
-        pass
-
-    @regional_rpc_method(resolve=ByOrganizationId())
-    @abstractmethod
-    def get_all_org_roles(
-        self,
-        *,
-        organization_id: int,
-        member_id: int,
-    ) -> List[str]:
-        pass
-
-    @regional_rpc_method(resolve=ByOrganizationId())
-    @abstractmethod
-    def get_top_dog_team_member_ids(self, *, organization_id: int) -> List[int]:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
@@ -279,6 +277,27 @@ class OrganizationService(RpcService):
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def delete_option(self, *, organization_id: int, key: str) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def send_sso_link_emails(
+        self, *, organization_id: int, sending_user_email: str, provider_key: str
+    ) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def delete_organization(
+        self, *, organization_id: int, user: RpcUser
+    ) -> RpcOrganizationDeleteResponse:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def create_org_delete_log(
+        self, *, organization_id: int, audit_log_actor: RpcAuditLogEntryActor
+    ) -> None:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
@@ -336,4 +355,4 @@ _organization_signal_service: OrganizationSignalService = silo_mode_delegation(
     }
 )
 
-organization_service = cast(OrganizationService, OrganizationService.create_delegation())
+organization_service = OrganizationService.create_delegation()

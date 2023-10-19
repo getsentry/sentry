@@ -1,9 +1,10 @@
-import {Fragment} from 'react';
+import {Fragment, MouseEvent as ReactMouseEvent} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment';
 
+import {navigateTo} from 'sentry/actionCreators/navigation';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
 import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
@@ -58,7 +59,7 @@ type UsageStatsOrganizationState = {
  */
 class UsageStatsOrganization<
   P extends UsageStatsOrganizationProps = UsageStatsOrganizationProps,
-  S extends UsageStatsOrganizationState = UsageStatsOrganizationState
+  S extends UsageStatsOrganizationState = UsageStatsOrganizationState,
 > extends DeprecatedAsyncComponent<P, S> {
   componentDidUpdate(prevProps: UsageStatsOrganizationProps) {
     const {dataDatetime: prevDateTime, projectIds: prevProjectIds} = prevProps;
@@ -254,8 +255,16 @@ class UsageStatsOrganization<
   }
 
   get cardMetadata() {
-    const {dataCategory, dataCategoryName, organization, projectIds} = this.props;
+    const {dataCategory, dataCategoryName, organization, projectIds, router} = this.props;
     const {total, accepted, dropped, filtered} = this.chartData.cardStats;
+
+    const navigateToInboundFilterSettings = (event: ReactMouseEvent) => {
+      event.preventDefault();
+      const url = `/settings/${organization.slug}/projects/:projectId/filters/data-filters/`;
+      if (router) {
+        navigateTo(url, router);
+      }
+    };
 
     const cardMetadata: Record<string, ScoreCardProps> = {
       total: {
@@ -279,8 +288,13 @@ class UsageStatsOrganization<
       filtered: {
         title: tct('Filtered [dataCategory]', {dataCategory: dataCategoryName}),
         help: tct(
-          'Filtered [dataCategory] were blocked due to your inbound data filter rules',
-          {dataCategory}
+          'Filtered [dataCategory] were blocked due to your [filterSettings: inbound data filter] rules',
+          {
+            dataCategory,
+            filterSettings: (
+              <a href="#" onClick={event => navigateToInboundFilterSettings(event)} />
+            ),
+          }
         ),
         score: filtered,
       },
@@ -448,6 +462,7 @@ class UsageStatsOrganization<
         score={loading ? undefined : card.score}
         help={card.help}
         trend={card.trend}
+        isTooltipHoverable
       />
     ));
   }

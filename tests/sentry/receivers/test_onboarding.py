@@ -5,14 +5,14 @@ import pytest
 from django.utils import timezone as django_timezone
 
 from sentry.api.invite_helper import ApiInviteHelper
-from sentry.models import (
-    Integration,
+from sentry.models.integrations.integration import Integration
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organizationonboardingtask import (
     OnboardingTask,
     OnboardingTaskStatus,
     OrganizationOnboardingTask,
-    OrganizationOption,
-    Rule,
 )
+from sentry.models.rule import Rule
 from sentry.plugins.bases.issue import IssueTrackingPlugin
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import (
@@ -29,14 +29,19 @@ from sentry.signals import (
     plugin_enabled,
     project_created,
 )
+from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test
 class OrganizationOnboardingTaskTest(TestCase):
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_integration(self, provider, external_id=9999):
         return Integration.objects.create(
             provider=provider,

@@ -18,7 +18,7 @@ import {
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import type {FlamegraphChart as FlamegraphChartType} from 'sentry/utils/profiling/flamegraphChart';
+import {FlamegraphChart as FlamegraphChartModel} from 'sentry/utils/profiling/flamegraphChart';
 import {
   getConfigViewTranslationBetweenVectors,
   getPhysicalSpacePositionFromOffset,
@@ -41,10 +41,11 @@ import {FlamegraphChartTooltip} from './flamegraphChartTooltip';
 interface FlamegraphChartProps {
   canvasBounds: Rect;
   canvasPoolManager: CanvasPoolManager;
-  chart: FlamegraphChartType | null;
+  chart: FlamegraphChartModel | null;
   chartCanvas: FlamegraphCanvas | null;
   chartCanvasRef: HTMLCanvasElement | null;
-  chartView: CanvasView<FlamegraphChartType> | null;
+  chartView: CanvasView<FlamegraphChartModel> | null;
+  noMeasurementMessage: string | undefined;
   setChartCanvasRef: (ref: HTMLCanvasElement | null) => void;
 }
 
@@ -56,6 +57,7 @@ export function FlamegraphChart({
   chartCanvasRef,
   setChartCanvasRef,
   canvasBounds,
+  noMeasurementMessage,
 }: FlamegraphChartProps) {
   const profiles = useProfiles();
   const scheduler = useCanvasScheduler(canvasPoolManager);
@@ -97,22 +99,29 @@ export function FlamegraphChart({
       offsetPhysicalSpace
     );
 
-    const fromConfigView = mat3.create();
+    const configToPhysicalSpace = mat3.create();
     mat3.multiply(
-      fromConfigView,
+      configToPhysicalSpace,
       physicalSpaceToOffsetPhysicalSpaceTransform,
       configViewToPhysicalSpaceTransform
     );
+
     mat3.multiply(
-      fromConfigView,
+      configToPhysicalSpace,
+      transformMatrixBetweenRect(chartView.configView, chartCanvas.physicalSpace),
+      chartView.configSpaceTransform
+    );
+
+    mat3.multiply(
+      configToPhysicalSpace,
       chartCanvas.physicalSpace.invertYTransform(),
-      fromConfigView
+      configToPhysicalSpace
     );
 
     chartRenderer.draw(
-      chartView.configView,
-      fromConfigView,
-      chartView.toConfigView(chartCanvas.logicalSpace),
+      chartView.toOriginConfigView(chartView.configView),
+      configToPhysicalSpace, // this
+      chartView.fromTransformedConfigView(chartCanvas.logicalSpace),
       configSpaceCursorRef
     );
   }, [chart, chartCanvas, chartRenderer, chartView, theme]);
@@ -165,7 +174,7 @@ export function FlamegraphChart({
         return;
       }
 
-      const configSpaceMouse = chartView.getConfigViewCursor(
+      const configSpaceMouse = chartView.getTransformedConfigViewCursor(
         vec2.fromValues(evt.nativeEvent.offsetX, evt.nativeEvent.offsetY),
         chartCanvas
       );
@@ -286,7 +295,14 @@ export function FlamegraphChart({
         <CollapsibleTimelineLoadingIndicator />
       ) : profiles.type === 'resolved' && !chart?.series.length ? (
         <CollapsibleTimelineMessage>
-          {t('Profile has no measurements')}
+          {noMeasurementMessage || t('Profile has no measurements')}
+        </CollapsibleTimelineMessage>
+      ) : (chart?.series?.length ?? 0) > 0 &&
+        chart?.series.every(
+          s => s.points.length < FlamegraphChartModel.MIN_RENDERABLE_POINTS
+        ) ? (
+        <CollapsibleTimelineMessage>
+          {noMeasurementMessage || t('Profile has no measurements')}
         </CollapsibleTimelineMessage>
       ) : null}
     </Fragment>

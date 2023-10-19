@@ -1,9 +1,10 @@
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
+from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-@control_silo_test  # TODO(hybrid-cloud): blocked on org membership mapping
+@region_silo_test(stable=True)
 class ExternalUserTest(APITestCase):
     endpoint = "sentry-api-0-organization-external-user"
     method = "post"
@@ -13,11 +14,12 @@ class ExternalUserTest(APITestCase):
         self.login_as(self.user)
 
         self.org_slug = self.organization.slug  # force creation
-        self.integration = Integration.objects.create(
-            provider="github", name="GitHub", external_id="github:1"
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(
+                provider="github", name="GitHub", external_id="github:1"
+            )
 
-        self.integration.add_organization(self.organization, self.user)
+            self.integration.add_organization(self.organization, self.user)
         self.data = {
             "externalName": "@NisanthanNanthakumar",
             "provider": "github",

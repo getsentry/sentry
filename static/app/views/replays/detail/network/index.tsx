@@ -3,12 +3,13 @@ import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualiz
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
+import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
-import type {SpanFrame} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import useUrlParams from 'sentry/utils/useUrlParams';
@@ -26,16 +27,9 @@ import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import useVirtualizedGrid from 'sentry/views/replays/detail/useVirtualizedGrid';
 
 const HEADER_HEIGHT = 25;
-const BODY_HEIGHT = 28;
+const BODY_HEIGHT = 25;
 
 const RESIZEABLE_HANDLE_HEIGHT = 90;
-
-type Props = {
-  isNetworkDetailsSetup: boolean;
-  networkFrames: undefined | SpanFrame[];
-  projectId: undefined | string;
-  startTimestampMs: number;
-};
 
 const cellMeasurer = {
   defaultHeight: BODY_HEIGHT,
@@ -43,15 +37,15 @@ const cellMeasurer = {
   fixedHeight: true,
 };
 
-function NetworkList({
-  isNetworkDetailsSetup,
-  networkFrames,
-  projectId,
-  startTimestampMs,
-}: Props) {
+function NetworkList() {
   const organization = useOrganization();
-  const {currentTime, currentHoverTime} = useReplayContext();
+  const {currentTime, currentHoverTime, replay} = useReplayContext();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
+
+  const isNetworkDetailsSetup = Boolean(replay?.isNetworkDetailsSetup());
+  const networkFrames = replay?.getNetworkFrames();
+  const projectId = replay?.getReplay()?.project_id;
+  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() || 0;
 
   const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
 
@@ -94,6 +88,18 @@ function NetworkList({
     networkFrames && detailDataIndex
       ? Math.min(maxContainerHeight, containerSize)
       : undefined;
+
+  const {
+    showJumpUpButton,
+    showJumpDownButton,
+    handleClick: onClickToJump,
+    handleScroll,
+  } = useJumpButtons({
+    currentTime,
+    frames: filteredItems,
+    setScrollToRow,
+    rowHeight: BODY_HEIGHT,
+  });
 
   const onClickCell = useCallback(
     ({dataIndex, rowIndex}: {dataIndex: number; rowIndex: number}) => {
@@ -202,10 +208,11 @@ function NetworkList({
                       </NoRowRenderer>
                     )}
                     onScrollbarPresenceChange={onScrollbarPresenceChange}
-                    onScroll={() => {
+                    onScroll={scrollParams => {
                       if (scrollToRow !== undefined) {
                         setScrollToRow(undefined);
                       }
+                      handleScroll(scrollParams);
                     }}
                     scrollToRow={scrollToRow}
                     overscanColumnCount={COLUMN_COUNT}
@@ -216,6 +223,13 @@ function NetworkList({
                   />
                 )}
               </AutoSizer>
+              {sortConfig.by === 'startTimestamp' && networkFrames?.length ? (
+                <JumpButtons
+                  jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
+                  onClick={onClickToJump}
+                  tableHeaderHeight={HEADER_HEIGHT}
+                />
+              ) : null}
             </OverflowHidden>
           ) : (
             <Placeholder height="100%" />
@@ -253,6 +267,7 @@ const OverflowHidden = styled('div')`
   position: relative;
   height: 100%;
   overflow: hidden;
+  display: grid;
 `;
 
 const NetworkTable = styled(FluidHeight)`

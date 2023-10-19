@@ -10,10 +10,9 @@ from sentry.constants import ObjectStatus
 from sentry.db.models.fields.node import NodeData
 from sentry.integrations.utils.code_mapping import CodeMapping, CodeMappingTreesHelper
 from sentry.locks import locks
-from sentry.models import Project
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
@@ -88,7 +87,7 @@ def derive_code_mappings(
     # When you look at the performance page the user is a default column
     set_user({"username": org.slug})
     set_tag("project.slug", project.slug)
-    extra = {
+    extra: Dict[str, Any] = {
         "organization.slug": org.slug,
     }
 
@@ -104,7 +103,7 @@ def derive_code_mappings(
         return
 
     installation, organization_integration = get_installation(org)
-    if not installation:
+    if not installation or not organization_integration:
         return
 
     trees = {}
@@ -194,7 +193,7 @@ def get_installation(
 
 def set_project_codemappings(
     code_mappings: List[CodeMapping],
-    organization_integration: OrganizationIntegration,
+    organization_integration: RpcOrganizationIntegration,
     project: Project,
 ) -> None:
     """
@@ -203,15 +202,18 @@ def set_project_codemappings(
     """
     organization_id = organization_integration.organization_id
     for code_mapping in code_mappings:
-        repository, _ = Repository.objects.get_or_create(
-            name=code_mapping.repo.name,
-            organization_id=organization_id,
-            defaults={
-                "name": code_mapping.repo.name,
-                "organization_id": organization_id,
-                "integration_id": organization_integration.integration_id,
-            },
+        repository = (
+            Repository.objects.filter(name=code_mapping.repo.name, organization_id=organization_id)
+            .order_by("-date_added")
+            .first()
         )
+
+        if not repository:
+            repository = Repository.objects.create(
+                name=code_mapping.repo.name,
+                organization_id=organization_id,
+                integration_id=organization_integration.integration_id,
+            )
 
         cm, created = RepositoryProjectPathConfig.objects.get_or_create(
             project=project,
@@ -219,6 +221,8 @@ def set_project_codemappings(
             defaults={
                 "repository": repository,
                 "organization_integration_id": organization_integration.id,
+                "integration_id": organization_integration.integration_id,
+                "organization_id": organization_integration.organization_id,
                 "source_root": code_mapping.source_path,
                 "default_branch": code_mapping.repo.branch,
                 "automatically_generated": True,

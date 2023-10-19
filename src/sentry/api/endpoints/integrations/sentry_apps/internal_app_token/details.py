@@ -5,13 +5,18 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, deletions
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppBaseEndpoint, SentryInternalAppTokenPermission
-from sentry.models import ApiToken, SentryAppInstallationToken
+from sentry.models.apitoken import ApiToken
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 
 
 @control_silo_endpoint
 class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (SentryInternalAppTokenPermission,)
 
     def convert_args(self, request: Request, sentry_app_slug, api_token, *args, **kwargs):

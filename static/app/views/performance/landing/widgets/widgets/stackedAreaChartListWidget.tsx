@@ -2,6 +2,7 @@ import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import pick from 'lodash/pick';
 
+import Accordion from 'sentry/components/accordion/accordion';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import StackedAreaChart from 'sentry/components/charts/stackedAreaChart';
 import {getInterval} from 'sentry/components/charts/utils';
@@ -29,7 +30,6 @@ import {
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
 
-import Accordion from '../components/accordion';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {
   GrowLink,
@@ -40,7 +40,11 @@ import {
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToStackedArea} from '../transforms/transformEventsToStackedBars';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
-import {eventsRequestQueryProps, getMEPParamsIfApplicable} from '../utils';
+import {
+  eventsRequestQueryProps,
+  getMEPParamsIfApplicable,
+  QUERY_LIMIT_PARAM,
+} from '../utils';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToStackedArea>;
@@ -94,7 +98,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
             {...provided}
             eventView={eventView}
             location={location}
-            limit={3}
+            limit={QUERY_LIMIT_PARAM}
             cursor="0:0:1"
             noPagination
             queryExtras={getMEPParamsIfApplicable(mepSetting, props.chartSetting)}

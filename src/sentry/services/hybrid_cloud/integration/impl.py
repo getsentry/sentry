@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Set, Tuple
+
+from django.utils import timezone
 
 from sentry import analytics
 from sentry.api.paginator import OffsetPaginator
@@ -10,9 +12,10 @@ from sentry.constants import SentryAppInstallationStatus
 from sentry.incidents.models import INCIDENT_STATUS, IncidentStatus
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.msteams import MsTeamsClient
-from sentry.models import SentryApp, SentryAppInstallation
 from sentry.models.integrations import Integration, OrganizationIntegration
 from sentry.models.integrations.integration_external_project import IntegrationExternalProject
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.rules.actions.notify_event_service import find_alert_rule_action_ui_component
 from sentry.services.hybrid_cloud.integration import (
     IntegrationService,
@@ -258,6 +261,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
         if not integration_kwargs:
             return []
+        integration_kwargs["date_updated"] = timezone.now()
 
         integrations.update(**integration_kwargs)
 
@@ -288,25 +292,23 @@ class DatabaseBackedIntegrationService(IntegrationService):
         grace_period_end: datetime | None = None,
         set_grace_period_end_null: bool | None = None,
     ) -> List[RpcOrganizationIntegration]:
-        ois = OrganizationIntegration.objects.filter(id__in=org_integration_ids)
-        if not ois.exists():
-            return []
+        ois: List[OrganizationIntegration] = []
+        fields: Set[str] = set()
+        for oi in OrganizationIntegration.objects.filter(id__in=org_integration_ids):
+            if config is not None:
+                oi.config = config
+                fields.add("config")
+            if status is not None:
+                oi.status = status
+                fields.add("status")
+            if grace_period_end is not None or set_grace_period_end_null:
+                gpe_value = grace_period_end if not set_grace_period_end_null else None
+                oi.grace_period_end = gpe_value
+                fields.add("grace_period_end")
+            ois.append(oi)
 
-        oi_kwargs: Dict[str, Any] = {}
-
-        if config is not None:
-            oi_kwargs["config"] = config
-        if status is not None:
-            oi_kwargs["status"] = status
-        if grace_period_end is not None or set_grace_period_end_null:
-            gpe_value = grace_period_end if not set_grace_period_end_null else None
-            oi_kwargs["grace_period_end"] = gpe_value
-
-        if not oi_kwargs:
-            return []
-
-        ois.update(**oi_kwargs)
-
+        if fields:
+            OrganizationIntegration.objects.bulk_update(ois, fields=list(fields))
         return [serialize_organization_integration(oi) for oi in ois]
 
     def update_organization_integration(
@@ -347,7 +349,8 @@ class DatabaseBackedIntegrationService(IntegrationService):
         new_status: int,
         incident_attachment_json: str,
         metric_value: Optional[str] = None,
-    ) -> None:
+        notification_uuid: str | None = None,
+    ) -> bool:
         sentry_app = SentryApp.objects.get(id=sentry_app_id)
 
         metrics.incr("notifications.sent", instance=sentry_app.slug, skip_internal=False)
@@ -369,7 +372,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
                 },
                 exc_info=True,
             )
-            return None
+            return False
 
         app_platform_event = AppPlatformEvent(
             resource="metric_alert",
@@ -394,16 +397,19 @@ class DatabaseBackedIntegrationService(IntegrationService):
                 sentry_app_id=sentry_app.id,
                 event=f"{app_platform_event.resource}.{app_platform_event.action}",
             )
+        return alert_rule_action_ui_component
 
     def send_msteams_incident_alert_notification(
         self, *, integration_id: int, channel: str, attachment: Dict[str, Any]
-    ) -> None:
+    ) -> bool:
         integration = Integration.objects.get(id=integration_id)
         client = MsTeamsClient(integration)
         try:
             client.send_card(channel, attachment)
+            return True
         except ApiError:
             logger.info("rule.fail.msteams_post", exc_info=True)
+        return False
 
     def delete_integration(self, *, integration_id: int) -> None:
         integration = Integration.objects.filter(id=integration_id).first()

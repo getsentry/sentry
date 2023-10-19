@@ -4,6 +4,7 @@ from rest_framework.response import Response
 
 from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import ControlSiloOrganizationEndpoint
 from sentry.api.bases.organization import OrganizationAuditPermission
@@ -11,7 +12,7 @@ from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.audit_log.manager import AuditLogEventNotRegistered
 from sentry.db.models.fields.bounded import BoundedIntegerField
-from sentry.models import AuditLogEntry
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.services.hybrid_cloud.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
@@ -32,6 +33,9 @@ class AuditLogQueryParamSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class OrganizationAuditLogsEndpoint(ControlSiloOrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+    }
     owner = ApiOwner.ENTERPRISE
     permission_classes = (OrganizationAuditPermission,)
 

@@ -1,3 +1,5 @@
+import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -172,7 +174,7 @@ describe('EventExtraData', function () {
 
     render(<EventExtraData event={event} />, {
       organization: {
-        relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
       },
     });
 

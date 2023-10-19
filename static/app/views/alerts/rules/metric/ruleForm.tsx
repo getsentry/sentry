@@ -126,23 +126,6 @@ type State = {
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
 
-function determineAlertDataset(
-  org: Organization,
-  selectedDataset: Dataset,
-  query: string
-) {
-  if (!hasOnDemandMetricAlertFeature(org)) {
-    return selectedDataset;
-  }
-
-  if (isOnDemandQueryString(query) && selectedDataset === Dataset.TRANSACTIONS) {
-    // for on-demand metrics extraction we want to override the dataset and use performance metrics instead
-    return Dataset.GENERIC_METRICS;
-  }
-
-  return selectedDataset;
-}
-
 class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   form = new FormModel();
   pollingTimeout: number | undefined = undefined;
@@ -154,7 +137,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   get chartQuery(): string {
     const {query, eventTypes, dataset} = this.state;
     const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
-    const queryWithTypeFilter = `${query} ${eventTypeFilter}`.trim();
+    const queryWithTypeFilter = (
+      query ? `(${query}) AND (${eventTypeFilter})` : eventTypeFilter
+    ).trim();
     return isCrashFreeAlert(dataset) ? query : queryWithTypeFilter;
   }
 
@@ -479,9 +464,15 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleFieldChange = (name: string, value: unknown) => {
     const {projects} = this.props;
+    const dataset = this.checkOnDemandMetricsDataset(
+      this.state.dataset,
+      this.state.query
+    );
+
     if (name === 'alertType') {
       this.setState({
         alertType: value as MetricAlertType,
+        dataset,
       });
       return;
     }
@@ -498,14 +489,18 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         'alertType',
       ].includes(name)
     ) {
-      this.setState(({project: _project, aggregate, dataset, alertType}) => {
-        const newAlertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
+      this.setState(({project: _project, aggregate, alertType}) => {
+        const newAlertType = getAlertTypeFromAggregateDataset({
+          aggregate,
+          dataset,
+        });
 
         return {
           [name]: value,
           project:
             name === 'projectId' ? projects.find(({id}) => id === value) : _project,
           alertType: alertType !== newAlertType ? 'custom' : alertType,
+          dataset,
         };
       });
     }
@@ -523,7 +518,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       query,
     });
 
-    this.setState({query, isQueryValid});
+    const dataset = this.checkOnDemandMetricsDataset(this.state.dataset, query);
+    this.setState({query, dataset, isQueryValid});
   };
 
   validateOnDemandMetricAlert() {
@@ -611,7 +607,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       transaction.setTag('operation', !rule.id ? 'create' : 'edit');
       for (const trigger of sanitizedTriggers) {
         for (const action of trigger.actions) {
-          if (action.type === 'slack') {
+          if (action.type === 'slack' || action.type === 'discord') {
             transaction.setTag(action.type, true);
           }
         }
@@ -619,12 +615,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       transaction.setData('actions', sanitizedTriggers);
 
       const hasMetricDataset = organization.features.includes('mep-rollout-flag');
-
-      const dataset = determineAlertDataset(
-        organization,
-        this.state.dataset,
-        model.getTransformedData().query
-      );
 
       this.setState({loading: true});
       const [data, , resp] = await addOrUpdateRule(
@@ -641,10 +631,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           comparisonDelta: comparisonDelta ?? null,
           timeWindow,
           aggregate,
-          ...(hasMetricDataset ? {queryType: DatasetMEPAlertQueryTypes[dataset]} : {}),
+          ...(hasMetricDataset
+            ? {queryType: DatasetMEPAlertQueryTypes[rule.dataset]}
+            : {}),
           // Remove eventTypes as it is no longer required for crash free
           eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
-          dataset,
+          dataset: this.determinePerformanceDataset(),
         },
         {
           duplicateRule: this.isDuplicateRule ? 'true' : 'false',
@@ -787,7 +779,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     }
 
     const {dataset} = this.state;
-
     if (isMetricsData && dataset === Dataset.TRANSACTIONS) {
       this.setState({dataset: Dataset.GENERIC_METRICS});
     }
@@ -801,9 +792,41 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const {isExtrapolatedData} = data ?? {};
 
     this.setState({isExtrapolatedChartData: Boolean(isExtrapolatedData)});
-    if (!isOnDemandMetricAlert(this.state.dataset, this.state.query)) {
+
+    const {dataset, aggregate, query} = this.state;
+    if (!isOnDemandMetricAlert(dataset, aggregate, query)) {
       this.handleMEPAlertDataset(data);
     }
+  };
+
+  // If the user is creating an on-demand metric alert, we want to override the dataset
+  // to be generic metrics instead of transactions
+  checkOnDemandMetricsDataset = (dataset: Dataset, query: string) => {
+    if (!hasOnDemandMetricAlertFeature(this.props.organization)) {
+      return dataset;
+    }
+    if (dataset !== Dataset.TRANSACTIONS || !isOnDemandQueryString(query)) {
+      return dataset;
+    }
+    return Dataset.GENERIC_METRICS;
+  };
+
+  // We are not allowing the creation of new transaction alerts
+  determinePerformanceDataset = () => {
+    // TODO: once all alerts are migrated to MEP, we can set the default to GENERIC_METRICS and remove this as well as
+    // logic in handleMEPDataset, handleTimeSeriesDataFetched and checkOnDemandMetricsDataset
+    const {dataset} = this.state;
+    const {ruleId, organization} = this.props;
+    const hasMetricsFeatureFlags =
+      organization.features.includes('mep-rollout-flag') ||
+      organization.features.includes('on-demand-metrics-extraction');
+
+    const isCreatingRule = !ruleId;
+
+    if (isCreatingRule && hasMetricsFeatureFlags && dataset === Dataset.TRANSACTIONS) {
+      return Dataset.GENERIC_METRICS;
+    }
+    return dataset;
   };
 
   renderLoading() {
@@ -831,8 +854,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       location,
     } = this.state;
 
-    const onDemandMetricsAlert = isOnDemandMetricAlert(dataset, query);
-
     const chartProps = {
       organization,
       projects: [project],
@@ -849,7 +870,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       comparisonDelta,
       comparisonType,
       isQueryValid,
-      isOnDemandMetricAlert: onDemandMetricsAlert,
+      isOnDemandMetricAlert: isOnDemandMetricAlert(dataset, aggregate, query),
       onDataLoaded: this.handleTimeSeriesDataFetched,
     };
 
@@ -1031,7 +1052,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 }
 
 const Main = styled(Layout.Main)`
-  padding: ${space(2)} ${space(4)};
+  max-width: 1000px;
 `;
 
 const StyledListItem = styled(ListItem)`

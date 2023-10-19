@@ -4,7 +4,9 @@ from collections import defaultdict
 from typing import Any, Iterable, Mapping, MutableMapping
 
 from sentry.constants import ObjectStatus
-from sentry.models import ExternalActor, Organization, Team
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.organization import Organization
+from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import identity_service
@@ -72,7 +74,7 @@ def _get_channel_and_integration_by_user(
 
 
 def _get_channel_and_integration_by_team(
-    team_actor_id: int, organization: Organization, provider: ExternalProviders
+    team_id: int, organization: Organization, provider: ExternalProviders
 ) -> Mapping[str, RpcIntegration]:
     org_integrations = integration_service.get_organization_integrations(
         status=ObjectStatus.ACTIVE, organization_id=organization.id
@@ -81,7 +83,7 @@ def _get_channel_and_integration_by_team(
     try:
         external_actor = ExternalActor.objects.get(
             provider=provider.value,
-            actor_id=team_actor_id,
+            team_id=team_id,
             organization_id=organization.id,
             integration_id__in=[oi.integration_id for oi in org_integrations],
         )
@@ -108,7 +110,7 @@ def get_integrations_by_channel_by_recipient(
             )
         elif recipient.actor_type == ActorType.TEAM and recipient.actor_id is not None:
             channels_to_integrations = _get_channel_and_integration_by_team(
-                recipient.actor_id, organization, provider
+                recipient.id, organization, provider
             )
         if channels_to_integrations is not None:
             output[recipient] = channels_to_integrations

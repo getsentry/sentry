@@ -6,22 +6,10 @@ from django.db.models import prefetch_related_objects
 from typing_extensions import TypedDict
 
 from sentry.api.serializers import ProjectSerializerResponse, Serializer, register, serialize
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.monitors.utils import fetch_associated_groups
 
 from .models import Monitor, MonitorCheckIn, MonitorEnvironment, MonitorStatus
-
-
-@register(MonitorEnvironment)
-class MonitorEnvironmentSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
-        return {
-            "name": obj.environment.name,
-            "status": obj.get_status_display(),
-            "lastCheckIn": obj.last_checkin,
-            "nextCheckIn": obj.next_checkin,
-            "dateCreated": obj.monitor.date_added,
-        }
 
 
 class MonitorEnvironmentSerializerResponse(TypedDict):
@@ -30,6 +18,36 @@ class MonitorEnvironmentSerializerResponse(TypedDict):
     dateCreated: datetime
     lastCheckIn: datetime
     nextCheckIn: datetime
+    nextCheckInLatest: datetime
+
+
+@register(MonitorEnvironment)
+class MonitorEnvironmentSerializer(Serializer):
+    def serialize(self, obj, attrs, user, **kwargs) -> MonitorEnvironmentSerializerResponse:
+        return {
+            "name": obj.environment.name,
+            "status": obj.get_status_display(),
+            "dateCreated": obj.monitor.date_added,
+            "lastCheckIn": obj.last_checkin,
+            "nextCheckIn": obj.next_checkin,
+            "nextCheckInLatest": obj.next_checkin_latest,
+        }
+
+
+class MonitorSerializerResponseOptional(TypedDict, total=False):
+    alertRule: Any  # TODO: Find out what type this is
+
+
+class MonitorSerializerResponse(MonitorSerializerResponseOptional):
+    id: str
+    name: str
+    slug: str
+    status: str
+    type: str
+    config: Any
+    dateCreated: datetime
+    project: ProjectSerializerResponse
+    environments: MonitorEnvironmentSerializerResponse
 
 
 @register(Monitor)
@@ -86,12 +104,12 @@ class MonitorSerializer(Serializer):
 
         return attrs
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs) -> MonitorSerializerResponse:
         config = obj.config.copy()
         if "schedule_type" in config:
             config["schedule_type"] = obj.get_schedule_type_display()
 
-        result = {
+        result: MonitorSerializerResponse = {
             "id": str(obj.guid),
             "status": obj.get_status_display(),
             "type": obj.get_type_display(),
@@ -115,16 +133,19 @@ class MonitorSerializer(Serializer):
         return key in self.expand
 
 
-class MonitorSerializerResponse(TypedDict):
+class MonitorCheckInSerializerResponseOptional(TypedDict, total=False):
+    groups: List[str]
+
+
+class MonitorCheckInSerializerResponse(MonitorCheckInSerializerResponseOptional):
     id: str
-    name: str
-    slug: str
+    environment: str
     status: str
-    type: str
-    config: Any
+    duration: int
     dateCreated: datetime
-    project: ProjectSerializerResponse
-    environments: MonitorEnvironmentSerializerResponse
+    attachmentId: str
+    expectedTime: datetime
+    monitorConfig: Any
 
 
 @register(MonitorCheckIn)
@@ -164,8 +185,8 @@ class MonitorCheckInSerializer(Serializer):
 
         return attrs
 
-    def serialize(self, obj, attrs, user):
-        result = {
+    def serialize(self, obj, attrs, user, **kwargs) -> MonitorCheckInSerializerResponse:
+        result: MonitorCheckInSerializerResponse = {
             "id": str(obj.guid),
             "environment": obj.monitor_environment.environment.name
             if obj.monitor_environment
@@ -188,15 +209,3 @@ class MonitorCheckInSerializer(Serializer):
             return False
 
         return key in self.expand
-
-
-class MonitorCheckInSerializerResponse(TypedDict):
-    id: str
-    environment: str
-    status: str
-    duration: int
-    dateCreated: datetime
-    attachmentId: str
-    expectedTime: datetime
-    monitorConfig: Any
-    group_ids: List[str]

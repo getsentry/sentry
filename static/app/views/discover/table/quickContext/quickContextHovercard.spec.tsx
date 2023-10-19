@@ -1,31 +1,26 @@
+import {Organization} from 'sentry-fixture/organization';
+
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {Event, EventOrGroupType} from 'sentry/types/event';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import {QuickContextHoverWrapper} from './quickContextWrapper';
 import {defaultRow, mockedCommit, mockedUser1, mockedUser2} from './testUtils';
 import {ContextType} from './utils';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
-});
-
 const renderQuickContextContent = (
   dataRow: EventData = defaultRow,
   contextType: ContextType = ContextType.ISSUE,
   eventView?: EventView
 ) => {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   render(
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={makeTestQueryClient()}>
       <QuickContextHoverWrapper
         dataRow={dataRow}
         contextType={contextType}
@@ -61,7 +56,6 @@ describe('Quick Context', function () {
     });
 
     afterEach(() => {
-      queryClient.clear();
       MockApiClient.clearMockResponses();
       jest.mocked(useLocation).mockReset();
     });
@@ -142,7 +136,9 @@ describe('Quick Context', function () {
 
     it('Renders release header with copy button', async () => {
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/releases/backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76/',
+        url: `/organizations/org-slug/releases/${encodeURIComponent(
+          'backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76'
+        )}/`,
         body: TestStubs.Release({
           id: '1',
           shortVersion: 'sentry-android-shop@1.2.0',

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Sequence, Tuple
+from typing import Optional, Sequence, Tuple
 
 from sentry.integrations.pagerduty.actions import PagerDutyNotifyServiceForm
 from sentry.integrations.pagerduty.client import PagerDutyProxyClient
@@ -39,7 +39,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 return pds
         return None
 
-    def after(self, event, state):
+    def after(self, event, state, notification_uuid: Optional[str] = None):
         integration = self.get_integration()
         if not integration:
             logger.exception("Integration removed, however, the rule still refers to it.")
@@ -65,7 +65,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 integration_key=service["integration_key"],
             )
             try:
-                resp = client.send_trigger(event)
+                resp = client.send_trigger(event, notification_uuid=notification_uuid)
             except ApiError as e:
                 self.logger.info(
                     "rule.fail.pagerduty_trigger",
@@ -78,6 +78,9 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                     },
                 )
                 raise e
+            rules = [f.rule for f in futures]
+            rule = rules[0] if rules else None
+            self.record_notification_sent(event, str(service["id"]), rule, notification_uuid)
 
             # TODO(meredith): Maybe have a generic success log statements for
             # first-party integrations similar to plugin `notification.dispatched`

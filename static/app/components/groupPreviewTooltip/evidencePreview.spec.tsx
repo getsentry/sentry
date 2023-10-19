@@ -10,7 +10,7 @@ describe('EvidencePreview', () => {
     jest.restoreAllMocks();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/issues/group-id/',
+      url: '/organizations/org-slug/issues/group-id/',
     });
   });
 
@@ -50,7 +50,7 @@ describe('EvidencePreview', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/issues/group-id/events/latest/`,
+      url: `/organizations/org-slug/issues/group-id/events/recommended/`,
       body: event,
     });
 

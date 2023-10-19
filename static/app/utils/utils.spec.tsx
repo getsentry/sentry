@@ -178,22 +178,22 @@ describe('utils.explodeSlug', function () {
 describe('utils.projectDisplayCompare', function () {
   it('sorts by bookmark and project slug', function () {
     const projects = [
-      {isBookmarked: true, slug: 'm'},
-      {isBookmarked: false, slug: 'm'},
-      {isBookmarked: false, slug: 'a'},
-      {isBookmarked: true, slug: 'a'},
-      {isBookmarked: true, slug: 'z'},
-      {isBookmarked: false, slug: 'z'},
-    ].map(TestStubs.Project);
+      TestStubs.Project({isBookmarked: true, slug: 'm'}),
+      TestStubs.Project({isBookmarked: false, slug: 'm'}),
+      TestStubs.Project({isBookmarked: false, slug: 'a'}),
+      TestStubs.Project({isBookmarked: true, slug: 'a'}),
+      TestStubs.Project({isBookmarked: true, slug: 'z'}),
+      TestStubs.Project({isBookmarked: false, slug: 'z'}),
+    ];
 
     const expected = [
-      {isBookmarked: true, slug: 'a'},
-      {isBookmarked: true, slug: 'm'},
-      {isBookmarked: true, slug: 'z'},
-      {isBookmarked: false, slug: 'a'},
-      {isBookmarked: false, slug: 'm'},
-      {isBookmarked: false, slug: 'z'},
-    ].map(TestStubs.Project);
+      expect.objectContaining({isBookmarked: true, slug: 'a'}),
+      expect.objectContaining({isBookmarked: true, slug: 'm'}),
+      expect.objectContaining({isBookmarked: true, slug: 'z'}),
+      expect.objectContaining({isBookmarked: false, slug: 'a'}),
+      expect.objectContaining({isBookmarked: false, slug: 'm'}),
+      expect.objectContaining({isBookmarked: false, slug: 'z'}),
+    ];
 
     const sortedProjects = sortProjects(projects);
 

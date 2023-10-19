@@ -3,14 +3,21 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.models import Commit, Group, Release
+from sentry.models.commit import Commit
+from sentry.models.group import Group
+from sentry.models.release import Release
 from sentry.utils.committers import get_serialized_event_file_committers
 
 
 @region_silo_endpoint
 class EventFileCommittersEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, project, event_id) -> Response:
         """
         Retrieve Committer information for an event

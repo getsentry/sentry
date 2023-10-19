@@ -1,3 +1,128 @@
+23.10.0
+-------
+
+### Discord Integration (ongoing)
+
+By: @17hogeju (#57522)
+
+### Notification Analytics Milestone 2 (ongoing)
+
+By: @scttcper (#56700)
+
+### Notification Settings 2.0 (ongoing)
+
+By: @snigdhas (#57053, #56717, #56621)
+
+### Various fixes & improvements
+
+- feat(crons): Add cron monitor created metric (#58017) by @davidenwang
+- ref(participants): Check for group list (#58204) by @ceorourke
+- feat(hybridcloud) Fix silo issues in shared issue HTML view (#57978) by @markstory
+- feat(sdk): Upgrade `@sentry` SDKs to v7.74.0 (#58198) by @billyvg
+- test(backup): Create backup version snapshot tests (#58173) by @azaslavsky
+- fix(hc): Silo fixes for alert rule actions (#58185) by @RyanSkonnord
+- meta(crons): Update API help text (#58048) by @rjo100
+- fix(ci): fix rate limit test (#58184) by @volokluev
+- feat(ui): Throw error on non-json api responses (#58129) by @scttcper
+- ref(bug reports): display name and email in list and details (#58087) by @michellewzhang
+- chore(actionable-items): remove feature flag backend (#57934) by @roggenkemper
+- update release threshold api routes (#58177) by @nhsiehgit
+- feat(backup): Support import decryption (#58128) by @azaslavsky
+- chore(alert-rule): Add jira server action to frontend enum (#58186) by @schew2381
+- feat(metrics): Add new option to toggle reading from new cache schema for indexer (#58170) by @john-z-yang
+- fix(hybridcloud) Assign control silo tasks to correct queues (#58112) by @markstory
+- fix(feedback): Improve spacing between feedback list items (#58182) by @ryan953
+- ref(bug reports): modify blueprint name and contact_email to reflect BE (#58083) by @michellewzhang
+- fix(hc): Fix silo availability error in send_alert_event (#58044) by @RyanSkonnord
+- ref(replay): Improve accessibility type names, and compat with replay frames (#58179) by @ryan953
+- feat(notifications): adds backfill for weekly report settings (#58168) by @scefali
+- feat(notifications): remove notification double write feature flag (#57863) by @scefali
+- feat(discord): adds logging of discord errors (#58176) by @scefali
+- fix(stat-detectors): Use 7 days for span analysis (#58096) by @narsaynorath
+
+_Plus 1060 more_
+
+23.9.1
+------
+
+### Various fixes & improvements
+
+- fix(fly): return user with correct auth (#56523) by @sentaur-athena
+- chore(api): Delete acceptance test for user tokens (#56537) by @schew2381
+- fix(backup): Suppress verbose SQL error reporting (#56583) by @azaslavsky
+- chore(github-growth): remove auto repo linking feature flag (#56581) by @cathteng
+- docs: Create some stories for PageBanner (#56519) by @ryan953
+- docs: Create a story for FeatureBadge (#56510) by @ryan953
+- ref(ui): Refine featureDisabled prop type (#56538) by @scttcper
+- migration(crons): Add MonitorIncident table (#56435) by @rjo100
+- ref(escalating-issues): Auto-transition tasks should update up to 500_000 groups per minute (#56168) by @NisanthanNanthakumar
+- chore(notifications): rename approval notifications to nudges in the UI (#56505) by @cathteng
+- feat(trace-view-load-more): Added ui for loading longer traces. (#56476) by @Abdkhan14
+- feat(starfish): add span domain array (#56494) by @wmak
+- chore(profiling): Track accepted profile outcomes (#56575) by @Zylphrex
+- feat(replay): Link page breadcrumb on Replay Details to the list page, filtered by project (#56574) by @ryan953
+- feat(crons): Add mark_environment_missed task (#56528) by @rjo100
+- fix(notifications): fixes bug for commited_only settings (#56518) by @scefali
+- ref(ddm): datetime params (#56567) by @obostjancic
+- chore(github-growth): stop writing to commitfilechange language column (#56491) by @cathteng
+- chore(github-growth): more FE analytics (#56507) by @cathteng
+- chore(hybrid-cloud): Mark extract_user_ids_from_mentions to be a region silo function (#56441) by @dashed
+- feat(statistical-detectors): Integrate detector with breakpoint detection (#56384) by @Zylphrex
+- feat(trace-view-load-more): Fixed bug that loads an extra row of orphans. (#56561) by @Abdkhan14
+- fix(dashboards): Use loading indicator to avoid multiple requests (#56558) by @narsaynorath
+- chore(hybrid-cloud): Stabilize issue integration defaults for split silo (#56297) by @dashed
+
+_Plus 46 more_
+
+23.9.0
+------
+
+### Notify on Disabled Integration  (ongoing)
+
+https://www.notion.so/sentry/Tech-Spec-Notify-on-Disabled-Integration-Spec-e7ea0f86ccd6419cb3e564067cf4a2ef?pvs=4
+
+By: @chloeho7 (#54286)
+
+### save_event improvements (ongoing)
+
+With the new 2023 grouping config, we started incurring a higher processing cost per saved event.
+In order to bring it back under controlled a series of code changes will be perform to improve the understandability of the code and its performance.
+
+By: @armenzg (#53643)
+
+### Notification Analytics Milestone 2 (ongoing)
+
+By: @scttcper (#56280, #56151, #56141, #55937, #55479, #55366, #54891, #54809)
+
+### Various fixes & improvements
+
+- feat(crons): Fan out `check_missing` task to each `monitor_environment` (#55924) by @rjo100
+- fix(severity): Prevent skipping severity score when equal to zero (#56225) by @lobsterkatie
+- docs(api): Clarify how to use id param in bulk delete issue endpoint (#56422) by @malwilley
+- feat(perf): Add link to Database view to sidebar (#56341) by @gggritso
+- chore(codeowners): update enterprise codeowners (#56487) by @cathteng
+- fix(commits): use externalId in filechange and project release commits FE (#56146) by @cathteng
+- fix(github-growth): improve performance of missing members API (#56477) by @cathteng
+- fix(api): test symbol sources in DetailedProjectSerializer (#56473) by @cathteng
+- feat(replay): Upgrade rrweb packages to v2 (#56088) by @billyvg
+- fix(backup): Handle UserRole name collisions (#56479) by @azaslavsky
+- logging(apis): better logging for api failures (#56432) by @scefali
+- Release threshold folder imports nit (#56400) by @nhsiehgit
+- docs: Document our loadingTriangle component (#56438) by @ryan953
+- ref(tests): Split error event tests into classes (#56448) by @lobsterkatie
+- fix(jira-server): try a second project for jira server if the first one fails (#56439) by @scefali
+- ref(snuba-sdk): Update snuba-sdk version to latest 2.0.1 (#56419) by @enochtangg
+- fix(actionable-items): Remove source map debug from actionable items (#56405) by @roggenkemper
+- feat(save_event): Always use cache for stacktrace processing (#56413) by @armenzg
+- feat(stat-detectors): Add param to fetch all tags (#56434) by @narsaynorath
+- feat(ddm): support for 1m interval (#56467) by @obostjancic
+- fix(minimetrics): Fix broken recursion detection (#56466) by @mitsuhiko
+- ref(typing): Few typing changes for sentry.snuba.metrics (#56397) by @armenzg
+- ref(sentry-sdk): Upgrade SDK (#56461) by @mitsuhiko
+- feat(ddm): Add metrics explorer from getsentry (#56460) by @matejminar
+
+_Plus 1078 more_
+
 23.8.0
 ------
 

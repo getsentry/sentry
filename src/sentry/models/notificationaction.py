@@ -51,6 +51,7 @@ class ActionService(FlexibleIntEnum):
     SENTRY_APP = 4
     SENTRY_NOTIFICATION = 5  # Use personal notification platform (src/sentry/notifications)
     OPSGENIE = 6
+    DISCORD = 7
 
     @classmethod
     def as_choices(cls) -> tuple[tuple[int, str], ...]:
@@ -59,6 +60,7 @@ class ActionService(FlexibleIntEnum):
         assert ExternalProviders.SLACK.name is not None
         assert ExternalProviders.MSTEAMS.name is not None
         assert ExternalProviders.OPSGENIE.name is not None
+        assert ExternalProviders.DISCORD.name is not None
         return (
             (cls.EMAIL.value, ExternalProviders.EMAIL.name),
             (cls.PAGERDUTY.value, ExternalProviders.PAGERDUTY.name),
@@ -67,6 +69,7 @@ class ActionService(FlexibleIntEnum):
             (cls.SENTRY_APP.value, "sentry_app"),
             (cls.SENTRY_NOTIFICATION.value, "sentry_notification"),
             (cls.OPSGENIE.value, ExternalProviders.OPSGENIE.name),
+            (cls.DISCORD.value, ExternalProviders.DISCORD.name),
         )
 
 
@@ -152,7 +155,7 @@ class TriggerGenerator:
 
 @region_silo_only_model
 class NotificationActionProject(Model):
-    __relocation_scope__ = RelocationScope.Global
+    __relocation_scope__ = {RelocationScope.Global, RelocationScope.Organization}
 
     project = FlexibleForeignKey("sentry.Project")
     action = FlexibleForeignKey("sentry.NotificationAction")
@@ -160,6 +163,10 @@ class NotificationActionProject(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_notificationactionproject"
+
+    def get_relocation_scope(self) -> RelocationScope:
+        action = NotificationAction.objects.get(id=self.action_id)
+        return action.get_relocation_scope()
 
 
 class ActionRegistration(metaclass=ABCMeta):
@@ -205,7 +212,7 @@ class NotificationAction(AbstractNotificationAction):
     Generic notification action model to programmatically route depending on the trigger (or source) for the notification
     """
 
-    __relocation_scope__ = RelocationScope.Global
+    __relocation_scope__ = {RelocationScope.Global, RelocationScope.Organization}
     __repr__ = sane_repr("id", "trigger_type", "service_type", "target_display")
 
     _trigger_types: tuple[tuple[int, str], ...] = ActionTrigger.as_choices()
@@ -331,3 +338,10 @@ class NotificationAction(AbstractNotificationAction):
                     "target_type": self.target_type,
                 },
             )
+
+    def get_relocation_scope(self) -> RelocationScope:
+        if self.integration_id is not None or self.sentry_app_id is not None:
+            # TODO(getsentry/team-ospo#188): this should be extension scope once that gets added.
+            return RelocationScope.Global
+
+        return RelocationScope.Organization

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from datetime import timezone
 
@@ -5,10 +7,15 @@ from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
 from django.http import Http404
 
-from sentry.models import Commit, CommitAuthor, Integration, Repository
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.integrations.integration import Integration
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.plugins.providers import RepositoryProvider
 from sentry.services.hybrid_cloud import coerce_id_from
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry_plugins.github.client import GithubPluginClient
@@ -159,18 +166,24 @@ class PushEventWebhook(Webhook):
                 pass
 
     # https://developer.github.com/v3/activity/events/types/#pushevent
-    def __call__(self, event, organization=None):
+    def __call__(self, event, organization: Organization | None = None):
         is_apps = "installation" in event
         if organization is None:
             if "installation" not in event:
                 return
 
-            integration = Integration.objects.get(
+            integration = integration_service.get_integration(
                 external_id=event["installation"]["id"], provider="github_apps"
             )
-            organizations = list(
-                integration.organizationintegration_set.values_list("organization_id", flat=True)
+            if integration is None:
+                raise Integration.DoesNotExist
+
+            integration_orgs = integration_service.get_organization_integrations(
+                integration_id=integration.id
             )
+
+            organizations = [org.organization_id for org in integration_orgs]
+
         else:
             organizations = [coerce_id_from(organization)]
 

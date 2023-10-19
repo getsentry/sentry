@@ -6,10 +6,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.helpers.environments import get_environments
-from sentry.models import Group, GroupStatus, Team
+from sentry.models.group import Group, GroupStatus
+from sentry.models.team import Team
 
 buckets = (
     ("< 1 hour", timedelta(hours=1)),
@@ -26,6 +28,10 @@ OLDEST_LABEL = "> 1 year"
 
 @region_silo_endpoint
 class TeamUnresolvedIssueAgeEndpoint(TeamEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, team: Team) -> Response:
         """
         Return a time bucketed list of how old unresolved issues are.

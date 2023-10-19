@@ -5,12 +5,16 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
-from sentry.models import Authenticator
+from sentry.models.authenticator import Authenticator
 
 
 @control_silo_endpoint
 class AuthenticatorIndexEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     owner = ApiOwner.ENTERPRISE
     permission_classes = (IsAuthenticated,)
 

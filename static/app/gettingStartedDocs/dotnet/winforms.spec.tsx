@@ -6,7 +6,7 @@ import {GettingStartedWithWinForms, steps} from './winforms';
 
 describe('GettingStartedWithWinForms', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithWinForms dsn="test-dsn" />);
+    render(<GettingStartedWithWinForms dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithWinForms', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

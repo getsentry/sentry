@@ -206,15 +206,27 @@ class EventsTable extends Component<Props, State> {
 
     if (field === 'profile.id') {
       const target = generateProfileLink()(organization, dataRow, undefined);
+      const transactionMeetsProfilingRequirements =
+        typeof dataRow['transaction.duration'] === 'number' &&
+        dataRow['transaction.duration'] > 20;
+
       return (
-        <CellAction
-          column={column}
-          dataRow={dataRow}
-          handleCellAction={this.handleCellAction(column)}
-          allowActions={allowActions}
+        <Tooltip
+          title={
+            !transactionMeetsProfilingRequirements && !dataRow['profile.id']
+              ? t('Profiles require a transaction duration of at least 20ms')
+              : null
+          }
         >
-          {target ? <Link to={target}>{rendered}</Link> : rendered}
-        </CellAction>
+          <CellAction
+            column={column}
+            dataRow={dataRow}
+            handleCellAction={this.handleCellAction(column)}
+            allowActions={allowActions}
+          >
+            {target ? <Link to={target}>{rendered}</Link> : rendered}
+          </CellAction>
+        </Tooltip>
       );
     }
 

@@ -4,7 +4,6 @@ from collections import namedtuple
 from datetime import datetime
 from typing import Any, Dict, Generator, List, Optional, Sequence, Union
 
-from rest_framework.exceptions import ParseError
 from snuba_sdk import (
     Column,
     Condition,
@@ -14,7 +13,6 @@ from snuba_sdk import (
     Identifier,
     Lambda,
     Limit,
-    Offset,
     Op,
     Or,
     Query,
@@ -23,23 +21,14 @@ from snuba_sdk import (
 from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry import features
 from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
 from sentry.models.organization import Organization
-from sentry.replays.lib.query import (
-    InvalidField,
-    ListField,
-    Number,
-    QueryConfig,
-    Selector,
-    String,
-    Tag,
-    UUIDField,
-    all_values_for_tag_key,
-    generate_valid_conditions,
-    get_valid_sort_commands,
+from sentry.replays.lib.query import all_values_for_tag_key
+from sentry.replays.usecases.query import (
+    execute_query,
+    make_full_aggregation_query,
+    query_using_optimized_search,
 )
-from sentry.replays.usecases.query import query_using_aggregated_search
 from sentry.utils.snuba import raw_snql_query
 
 MAX_PAGE_SIZE = 100
@@ -64,63 +53,19 @@ def query_replays_collection(
     actor: Optional[Any] = None,
 ) -> dict:
     """Query aggregated replay collection."""
-    if organization:
-        tenant_ids = {"organization_id": organization.id}
-    else:
-        tenant_ids = {}
-
-    conditions = []
-    if environment:
-        conditions.append(Condition(Column("agg_environment"), Op.IN, environment))
-
     paginators = make_pagination_values(limit, offset)
 
-    if features.has("organizations:session-replay-optimized-search", organization, actor=actor):
-        return query_using_aggregated_search(
-            fields,
-            search_filters,
-            environment,
-            sort,
-            paginators,
-            organization,
-            project_ids,
-            start,
-            end,
-        )
-
-    # Attempt to eager return with subquery.
-
-    try:
-        response = query_replays_dataset_with_subquery(
-            project_ids=project_ids,
-            start=start,
-            end=end,
-            fields=fields,
-            environments=environment,
-            search_filters=search_filters,
-            sort=sort,
-            pagination=paginators,
-            tenant_ids=tenant_ids,
-        )
-        return response["data"]
-    except ParseError:
-        # Subquery could not continue because it found search filters which required
-        # aggregation to satisfy.
-        pass
-
-    response = query_replays_dataset(
-        project_ids=project_ids,
-        start=start,
-        end=end,
-        where=[],
-        having=conditions,
+    return query_using_optimized_search(
         fields=fields,
-        pagination=paginators,
         search_filters=search_filters,
+        environments=environment,
         sort=sort,
-        tenant_ids=tenant_ids,
+        pagination=paginators,
+        organization=organization,
+        project_ids=project_ids,
+        period_start=start,
+        period_stop=end,
     )
-    return response["data"]
 
 
 def query_replay_instance(
@@ -128,189 +73,25 @@ def query_replay_instance(
     replay_id: str,
     start: datetime,
     end: datetime,
-    tenant_ids: dict[str, Any],
+    organization: Optional[Organization] = None,
 ):
     """Query aggregated replay instance."""
-    response = query_replays_dataset(
-        project_ids=[project_id] if isinstance(project_id, int) else project_id,
-        start=start,
-        end=end,
-        where=[
-            Condition(Column("replay_id"), Op.EQ, replay_id),
-        ],
-        having=[Condition(Column("isArchived"), Op.EQ, 0)],
-        fields=[],
-        sort=None,
-        pagination=None,
-        search_filters=[],
-        tenant_ids=tenant_ids,
-    )
-    return response["data"]
+    if isinstance(project_id, list):
+        project_ids = project_id
+    else:
+        project_ids = [project_id]
 
-
-def query_replays_dataset(
-    project_ids: List[int],
-    start: datetime,
-    end: datetime,
-    where: List[Condition],
-    having: List[Condition],
-    fields: List[str],
-    pagination: Optional[Paginators],
-    search_filters: List[SearchFilter],
-    sort: Optional[str],
-    tenant_ids: dict[str, Any] | None = None,
-):
-    query_options = {}
-
-    # Instance requests do not paginate.
-    if pagination:
-        query_options["limit"] = Limit(pagination.limit)
-        query_options["offset"] = Offset(pagination.offset)
-
-    sorting = get_valid_sort_commands(
-        sort,
-        default=OrderBy(Column("started_at"), Direction.DESC),
-        query_config=ReplayQueryConfig(),
-    )
-
-    snuba_request = Request(
-        dataset="replays",
-        app_id="replay-backend-web",
-        query=Query(
-            match=Entity("replays"),
-            select=make_select_statement(fields, sorting, search_filters),
-            # Be careful adding conditions to this query.  You must only filter by columns that
-            # are true for every column in the set!
-            where=[
-                Condition(Column("project_id"), Op.IN, project_ids),
-                # We don't actually know when a replay is finished ingesting until we reach the
-                # end of the dataset.  For this reason we scan to the end and then in the having
-                # clause we ask if the replay is in range.  This is more expensive but is required
-                # to ensure correct operation and is especially pertinent in the case where an
-                # archive request was submitted.
-                #
-                # Hard deletes may be more appropriate for replays than archival records.
-                Condition(Column("timestamp"), Op.LT, datetime.now()),
-                Condition(Column("timestamp"), Op.GTE, start),
-                *where,
-            ],
-            having=[
-                # Must include the first sequence otherwise the replay is too old.
-                Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
-                # Make sure we're not too old.
-                Condition(Column("finished_at"), Op.LT, end),
-                # User conditions.
-                *generate_valid_conditions(search_filters, query_config=ReplayQueryConfig()),
-                # Other conditions.
-                *having,
-            ],
-            orderby=sorting,
-            groupby=[Column("project_id"), Column("replay_id")],
-            granularity=Granularity(3600),
-            **query_options,
+    return execute_query(
+        query=make_full_aggregation_query(
+            fields=[],
+            replay_ids=[replay_id],
+            project_ids=project_ids,
+            period_start=start,
+            period_end=end,
         ),
-        tenant_ids=tenant_ids,
-    )
-    return raw_snql_query(snuba_request, "replays.query.query_replays_dataset")
-
-
-def query_replays_dataset_with_subquery(
-    project_ids: List[int],
-    start: datetime,
-    end: datetime,
-    environments: List[str],
-    search_filters: List[SearchFilter],
-    sort: Optional[str],
-    fields: List[str],
-    pagination: Optional[Paginators],
-    tenant_ids: dict[str, Any] | None = None,
-):
-    conditions = generate_valid_conditions(search_filters, query_config=ReplaySubqueryConfig())
-    if environments:
-        conditions.append(Condition(Column("environment"), Op.IN, environments))
-
-    sorting = get_valid_sort_commands(
-        sort,
-        default=OrderBy(Column("started_at"), Direction.DESC),
-        query_config=ReplaySubqueryConfig(),
-    )
-
-    subquery_snuba_request = Request(
-        dataset="replays",
-        app_id="replay-backend-web",
-        query=Query(
-            match=Entity("replays"),
-            select=[
-                Column("replay_id"),
-                Column("timestamp"),
-                Function(
-                    "identity", parameters=[Column("replay_start_timestamp")], alias="started_at"
-                ),
-            ],
-            where=[
-                Condition(Column("project_id"), Op.IN, project_ids),
-                Condition(Column("timestamp"), Op.LT, end),
-                Condition(Column("timestamp"), Op.GTE, start),
-                Condition(Column("segment_id"), Op.EQ, 0),
-                *conditions,
-            ],
-            orderby=sorting,
-            granularity=Granularity(3600),
-            limit=Limit(pagination.limit),
-            offset=Offset(pagination.offset),
-        ),
-        tenant_ids=tenant_ids,
-    )
-
-    replay_ids_to_filter_results = raw_snql_query(
-        subquery_snuba_request, "replays.query.query_replays_dataset_subquery"
-    )
-
-    if len(replay_ids_to_filter_results["data"]) == 0:
-        # if no results, no need to carry on
-        return {"data": []}
-    min_subquery_ts = datetime.now().timestamp()
-    replay_ids_to_filter = []
-
-    for replay in replay_ids_to_filter_results["data"]:
-        ts = int(datetime.fromisoformat(replay["timestamp"]).timestamp())
-        replay_ids_to_filter.append(replay["replay_id"])
-        min_subquery_ts = min(min_subquery_ts, ts)
-
-    # do the full query to get all aggregated fields
-    sorting = get_valid_sort_commands(
-        sort,
-        default=OrderBy(Column("started_at"), Direction.DESC),
-        query_config=ReplayQueryConfig(),
-    )
-
-    snuba_request = Request(
-        dataset="replays",
-        app_id="replay-backend-web",
-        query=Query(
-            match=Entity("replays"),
-            select=make_select_statement(fields, sorting, []),
-            # these should be the only filters in this query,
-            # as all previous filters should have been done subquery,
-            # so project_id, timestamp and replay_id are only filters
-            where=[
-                Condition(Column("project_id"), Op.IN, project_ids),
-                Condition(Column("replay_id"), Op.IN, replay_ids_to_filter),
-                Condition(
-                    Column("timestamp"),
-                    Op.GTE,
-                    datetime.fromtimestamp(min_subquery_ts),
-                ),
-                Condition(Column("timestamp"), Op.LT, datetime.now()),
-            ],
-            orderby=sorting,
-            groupby=[Column("project_id"), Column("replay_id")],
-            granularity=Granularity(3600),
-            # this second query doesn't need offsetting / limits, as those are handled by the first query
-        ),
-        tenant_ids=tenant_ids,
-    )
-    return raw_snql_query(snuba_request, "replays.query.query_replays_dataset")
+        tenant_id={"organization_id": organization.id} if organization else {},
+        referrer="replays.query.details_query",
+    )["data"]
 
 
 def query_replays_count(
@@ -428,37 +209,6 @@ def query_replays_dataset_tagkey_values(
     )
 
 
-def make_select_statement(
-    fields: List[str],
-    sorting: List[OrderBy],
-    search_filters: List[Union[SearchFilter, str, ParenExpression]],
-) -> List[Union[Column, Function]]:
-    """Return the selection that forms the base of our replays response payload."""
-    if not fields:
-        return QUERY_ALIAS_COLUMN_MAP.values()
-
-    unique_fields = set(fields)
-
-    # Select fields used for filtering.
-    #
-    # These fields can filter a query without being selected.  However, if we did not select these
-    # values we could not reuse those columns which are expensive to calculate.  This coupled with
-    # the complexity of dependency management means we filter these columns manually in the final
-    # output.
-    for fltr in search_filters:
-        if isinstance(fltr, SearchFilter):
-            unique_fields.add(fltr.key.name)
-        elif isinstance(fltr, ParenExpression):
-            for f in _extract_children(fltr):
-                unique_fields.add(f.key.name)
-
-    # Select fields used for sorting.
-    for sort in sorting:
-        unique_fields.add(sort.exp.name)
-
-    return select_from_fields(list(unique_fields))
-
-
 def anyIfNonZeroIP(
     column_name: str,
     alias: Optional[str] = None,
@@ -535,139 +285,11 @@ replay_url_parser_config = SearchConfig(
         "count_dead_clicks",
         "count_rage_clicks",
         "activity",
+        "new_count_errors",
+        "count_warnings",
+        "count_infos",
     },
 )
-
-
-class ReplayQueryConfig(QueryConfig):
-    # Numeric filters.
-    duration = Number()
-    count_dead_clicks = Number()
-    count_rage_clicks = Number()
-    count_errors = Number(query_alias="count_errors")
-    count_segments = Number(query_alias="count_segments")
-    count_urls = Number(query_alias="count_urls")
-    activity = Number()
-
-    # String filters.
-    replay_id = UUIDField(field_alias="id")
-    replay_type = String(query_alias="replay_type")
-    platform = String()
-    releases = ListField()
-    release = ListField(query_alias="releases")
-    dist = String()
-    error_ids = ListField(query_alias="errorIds")
-    error_id = ListField(query_alias="errorIds")
-    trace_ids = ListField(query_alias="traceIds")
-    trace_id = ListField(query_alias="traceIds")
-    trace = ListField(query_alias="traceIds")
-    urls = ListField(query_alias="urls_sorted")
-    url = ListField(query_alias="urls_sorted")
-    user_id = String(field_alias="user.id", query_alias="user_id")
-    user_email = String(field_alias="user.email", query_alias="user_email")
-    user_username = String(field_alias="user.username")
-    user_ip_address = String(field_alias="user.ip", query_alias="user_ip")
-    os_name = String(field_alias="os.name", query_alias="os_name")
-    os_version = String(field_alias="os.version", query_alias="os_version")
-    browser_name = String(field_alias="browser.name", query_alias="browser_name")
-    browser_version = String(field_alias="browser.version", query_alias="browser_version")
-    device_name = String(field_alias="device.name", query_alias="device_name")
-    device_brand = String(field_alias="device.brand", query_alias="device_brand")
-    device_family = String(field_alias="device.family", query_alias="device_family")
-    device_model = String(field_alias="device.model", query_alias="device_model")
-    sdk_name = String(field_alias="sdk.name", query_alias="sdk_name")
-    sdk_version = String(field_alias="sdk.version", query_alias="sdk_version")
-
-    # These are object-type fields.  User's who query by these fields are likely querying by
-    # the "name" value.
-    user = String(field_alias="user", query_alias="user_username")
-    os = String(field_alias="os", query_alias="os_name")
-    browser = String(field_alias="browser", query_alias="browser_name")
-    device = String(field_alias="device", query_alias="device_name")
-    sdk = String(field_alias="sdk", query_alias="sdk_name")
-
-    # Click
-    click_alt = ListField(field_alias="click.alt", is_sortable=False)
-    click_class = ListField(field_alias="click.class", query_alias="clickClass", is_sortable=False)
-    click_id = ListField(field_alias="click.id", is_sortable=False)
-    click_aria_label = ListField(field_alias="click.label", is_sortable=False)
-    click_role = ListField(field_alias="click.role", is_sortable=False)
-    click_tag = ListField(field_alias="click.tag", is_sortable=False)
-    click_testid = ListField(field_alias="click.testid", is_sortable=False)
-    click_text = ListField(field_alias="click.textContent", is_sortable=False)
-    click_title = ListField(field_alias="click.title", is_sortable=False)
-    click_selector = Selector(field_alias="click.selector", is_sortable=False)
-
-    # Tag
-    tags = Tag(field_alias="*")
-
-    # Sort keys
-    agg_environment = String(field_alias="environment", is_filterable=False)
-    started_at = String(is_filterable=False)
-    finished_at = String(is_filterable=False)
-    # Dedicated url parameter should be used.
-    project_id = String(query_alias="project_id", is_filterable=False)
-    project = String(query_alias="project_id", is_filterable=False)
-
-
-class ReplaySubqueryConfig(QueryConfig):
-    browser = String(field_alias="browser", query_alias="browser_name")
-    browser_name = String(field_alias="browser.name")
-    browser_version = String(field_alias="browser.version")
-    device = String(field_alias="device", query_alias="device_name")
-    device_brand = String(field_alias="device.brand")
-    device_family = String(field_alias="device.family")
-    device_model = String(field_alias="device.model")
-    device_name = String(field_alias="device.name")
-    dist = String()
-    os = String(field_alias="os", query_alias="os_name")
-    os_name = String(field_alias="os.name")
-    os_version = String(field_alias="os.version")
-    platform = String()
-    project = String(query_alias="project_id")
-    project_id = String()
-    replay_id = UUIDField(field_alias="id")
-    replay_type = String()
-    sdk = String(field_alias="sdk", query_alias="sdk_name")
-    sdk_name = String(field_alias="sdk.name")
-    sdk_version = String(field_alias="sdk.version")
-    started_at = String(is_filterable=False)
-
-    # we have to explicitly define the rest of the fields as invalid fields or else
-    # they will be parsed as tags for the subquery
-    releases = InvalidField()
-    release = InvalidField()
-    click_alt = InvalidField(field_alias="click.alt")
-    click_class = InvalidField(field_alias="click.class", query_alias="clickClass")
-    click_id = InvalidField(field_alias="click.id")
-    click_aria_label = InvalidField(field_alias="click.label")
-    click_role = InvalidField(field_alias="click.role")
-    click_tag = InvalidField(field_alias="click.tag")
-    click_testid = InvalidField(field_alias="click.testid")
-    click_text = InvalidField(field_alias="click.textContent")
-    click_title = InvalidField(field_alias="click.title")
-    click_selector = InvalidField(field_alias="click.selector")
-    duration = InvalidField()
-    count_errors = InvalidField(query_alias="count_errors")
-    count_segments = InvalidField(query_alias="count_segments")
-    count_urls = InvalidField(query_alias="count_urls")
-    count_dead_clicks = InvalidField()
-    count_rage_clicks = InvalidField()
-    activity = InvalidField()
-    error_ids = InvalidField(query_alias="errorIds")
-    error_id = InvalidField(query_alias="errorIds")
-    trace_ids = InvalidField(query_alias="traceIds")
-    trace_id = InvalidField(query_alias="traceIds")
-    trace = InvalidField(query_alias="traceIds")
-    urls = InvalidField(query_alias="urls_sorted")
-    url = InvalidField(query_alias="urls_sorted")
-
-    # User fields, removing from subquery eligibility for now.
-    user = InvalidField(field_alias="user", query_alias="user_name")
-    user_email = InvalidField(field_alias="user.email")
-    user_id = InvalidField(field_alias="user.id")
-    user_name = InvalidField(field_alias="user.username")
-    user_ip_address = InvalidField(field_alias="user.ip", query_alias="ip_address_v4")
 
 
 # Pagination.
@@ -749,6 +371,83 @@ def _activity_score():
             )
         ],
         alias="activity",
+    )
+
+
+def _collect_event_ids(alias, ids_type_list):
+    id_types_to_aggregate = []
+    for id_type in ids_type_list:
+        id_types_to_aggregate.append(_filter_empty_uuids(id_type))
+
+    return Function(
+        "arrayMap",
+        parameters=[
+            Lambda(
+                ["error_id_no_dashes"],
+                _strip_uuid_dashes("error_id_no_dashes", Identifier("error_id_no_dashes")),
+            ),
+            Function("flatten", [id_types_to_aggregate]),
+        ],
+        alias=alias,
+    )
+
+
+def _collect_new_errors():
+    def _collect_non_empty_error_and_fatals():
+        return [
+            _filter_empty_uuids("error_id"),
+            _filter_empty_uuids("fatal_id"),
+        ]
+
+    return Function(
+        "arrayMap",
+        parameters=[
+            Lambda(
+                ["error_id_no_dashes"],
+                _strip_uuid_dashes("error_id_no_dashes", Identifier("error_id_no_dashes")),
+            ),
+            Function(
+                "arrayDistinct",
+                parameters=[
+                    Function(
+                        "flatten",
+                        [
+                            [
+                                Function(
+                                    "groupArrayArray",
+                                    parameters=[Column("error_ids")],
+                                    alias="old_err_ids_for_new_query",
+                                ),
+                                *_collect_non_empty_error_and_fatals(),
+                            ]
+                        ],
+                    ),
+                ],
+            ),
+        ],
+        alias="new_error_ids",
+    )
+
+
+def _filter_empty_uuids(column_name):
+    def _empty_uuids_lambda():
+        return Lambda(
+            ["id"],
+            Function(
+                "notEquals",
+                parameters=[
+                    Identifier("id"),
+                    "00000000-0000-0000-0000-000000000000",
+                ],
+            ),
+        )
+
+    return Function(
+        "arrayFilter",
+        parameters=[
+            _empty_uuids_lambda(),
+            Function("groupArray", parameters=[Column(column_name)]),
+        ],
     )
 
 
@@ -841,6 +540,15 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
         "click.text",
         "click.title",
     ],
+    "new_error_id": ["new_error_ids"],
+    "warning_id": ["warning_ids"],
+    "info_id": ["info_ids"],
+    "new_error_ids": ["new_error_ids"],
+    "warning_ids": ["warning_ids"],
+    "info_ids": ["info_ids"],
+    "new_count_errors": ["new_count_errors"],
+    "count_warnings": ["count_warnings"],
+    "count_infos": ["count_infos"],
 }
 
 
@@ -867,7 +575,7 @@ QUERY_ALIAS_COLUMN_MAP = {
     "error_ids": Function(
         "arrayMap",
         parameters=[
-            Lambda(["error_id"], _strip_uuid_dashes("error_id", Identifier("error_id"))),
+            Lambda(["id"], _strip_uuid_dashes("id", Identifier("id"))),
             Function(
                 "groupUniqArrayArray",
                 parameters=[Column("error_ids")],
@@ -983,6 +691,24 @@ QUERY_ALIAS_COLUMN_MAP = {
     ),
     "click.text": Function("groupArray", parameters=[Column("click_text")], alias="click_text"),
     "click.title": Function("groupArray", parameters=[Column("click_title")], alias="click_title"),
+    "new_error_ids": _collect_new_errors(),
+    "warning_ids": _collect_event_ids("warning_ids", ["warning_id"]),
+    "info_ids": _collect_event_ids("info_ids", ["info_id", "debug_id"]),
+    "new_count_errors": Function(
+        "sum",
+        parameters=[Column("count_error_events")],
+        alias="new_count_errors",
+    ),
+    "count_warnings": Function(
+        "sum",
+        parameters=[Column("count_warning_events")],
+        alias="count_warnings",
+    ),
+    "count_infos": Function(
+        "sum",
+        parameters=[Column("count_info_events")],
+        alias="count_infos",
+    ),
 }
 
 

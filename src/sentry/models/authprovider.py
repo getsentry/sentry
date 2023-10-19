@@ -17,7 +17,8 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
-from sentry.models import ControlOutbox, OutboxCategory, OutboxScope
+from sentry.db.models.outboxes import ReplicatedControlModel
+from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope
 from sentry.types.region import find_regions_for_orgs
 
 logger = logging.getLogger("sentry.authprovider")
@@ -44,8 +45,9 @@ class AuthProviderDefaultTeams(Model):
 
 
 @control_silo_only_model
-class AuthProvider(Model):
-    __relocation_scope__ = RelocationScope.Organization
+class AuthProvider(ReplicatedControlModel):
+    __relocation_scope__ = RelocationScope.Global
+    category = OutboxCategory.AUTH_PROVIDER_UPDATE
 
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade", unique=True)
     provider = models.CharField(max_length=128)
@@ -57,6 +59,15 @@ class AuthProvider(Model):
 
     default_role = BoundedPositiveIntegerField(default=50)
     default_global_access = models.BooleanField(default=True)
+
+    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+        from sentry.services.hybrid_cloud.auth.serial import serialize_auth_provider
+        from sentry.services.hybrid_cloud.replica.service import region_replica_service
+
+        serialized = serialize_auth_provider(self)
+        region_replica_service.upsert_replicated_auth_provider(
+            auth_provider=serialized, region_name=region_name
+        )
 
     class flags(TypedClassBitField):
         # Grant access to members who have not linked SSO accounts.
@@ -88,7 +99,10 @@ class AuthProvider(Model):
         return get_scim_token(self.flags.scim_enabled, self.organization_id, self.provider)
 
     def enable_scim(self, user):
-        from sentry.models import SentryAppInstallation, SentryAppInstallationForProvider
+        from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+        from sentry.models.integrations.sentry_app_installation_for_provider import (
+            SentryAppInstallationForProvider,
+        )
         from sentry.sentry_apps.apps import SentryAppCreator
 
         if (
@@ -149,7 +163,9 @@ class AuthProvider(Model):
 
     def disable_scim(self):
         from sentry import deletions
-        from sentry.models import SentryAppInstallationForProvider
+        from sentry.models.integrations.sentry_app_installation_for_provider import (
+            SentryAppInstallationForProvider,
+        )
 
         if self.flags.scim_enabled:
             # Only one SCIM installation allowed per organization. So we can reset the idp flags for the orgs

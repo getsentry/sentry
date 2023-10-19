@@ -2,6 +2,7 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import Accordion from 'sentry/components/accordion/accordion';
 import {Button} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
@@ -35,7 +36,6 @@ import {_VitalChart} from 'sentry/views/performance/vitalDetail/vitalChart';
 
 import {excludeTransaction} from '../../utils';
 import {VitalBar} from '../../vitalsCards';
-import Accordion from '../components/accordion';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import SelectableList, {
   GrowLink,
@@ -47,7 +47,12 @@ import SelectableList, {
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToVitals} from '../transforms/transformEventsToVitals';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
-import {eventsRequestQueryProps, getMEPQueryParams} from '../utils';
+import {
+  eventsRequestQueryProps,
+  getMEPQueryParams,
+  QUERY_LIMIT_PARAM,
+  TOTAL_EXPANDABLE_ROWS_HEIGHT,
+} from '../utils';
 import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {
@@ -241,7 +246,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
     };
 
   const getItems = provided =>
-    provided.widgetData.list.data.slice(0, 3).map(
+    provided.widgetData.list.data.slice(0, QUERY_LIMIT_PARAM).map(
       listItem =>
         function () {
           const transaction = (listItem?.transaction as string | undefined) ?? '';
@@ -322,7 +327,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
             />
           ),
           // accordion items height + chart height
-          height: 120 + props.chartHeight,
+          height: TOTAL_EXPANDABLE_ROWS_HEIGHT + props.chartHeight,
           noPadding: true,
         },
       ]

@@ -2,16 +2,22 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
 from sentry.api.validators.notifications import validate, validate_type_option
-from sentry.models import NotificationSetting, Team
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.team import Team
 
 
 @region_silo_endpoint
 class TeamNotificationSettingsDetailsEndpoint(TeamEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     """
     This Notification Settings endpoint is the generic way to interact with the
     NotificationSettings table via the API.
@@ -68,6 +74,8 @@ class TeamNotificationSettingsDetailsEndpoint(TeamEndpoint):
         """
 
         notification_settings = validate(request.data)
-        NotificationSetting.objects.update_settings_bulk(notification_settings, team=team)
+        NotificationSetting.objects.update_settings_bulk(
+            notification_settings, team=team, organization_id_for_team=team.organization_id
+        )
 
         return Response(status=status.HTTP_204_NO_CONTENT)

@@ -18,7 +18,9 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import ServerlessMixin
-from sentry.models import Integration, OrganizationIntegration, User
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.user import User
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
 from sentry.services.hybrid_cloud.project import project_service
@@ -244,9 +246,10 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
         extra: Any | None = None,
     ) -> None:
         default_project_id = extra["default_project_id"]
-        OrganizationIntegration.objects.filter(
+        for oi in OrganizationIntegration.objects.filter(
             organization_id=organization.id, integration=integration
-        ).update(config={"default_project_id": default_project_id})
+        ):
+            oi.update(config={"default_project_id": default_project_id})
 
 
 class AwsLambdaProjectSelectPipelineView(PipelineView):

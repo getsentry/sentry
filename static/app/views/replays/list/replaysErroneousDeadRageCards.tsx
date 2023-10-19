@@ -1,16 +1,14 @@
-import {Fragment, useMemo} from 'react';
-import {browserHistory} from 'react-router';
+import {ComponentProps, Fragment, ReactNode, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
-import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import ReplayTable from 'sentry/views/replays/replayTable';
@@ -18,10 +16,10 @@ import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 function ReplaysErroneousDeadRageCards() {
-  const organization = useOrganization();
   const location = useLocation<ReplayListLocationQuery>();
 
-  const newLocation = useMemo(() => {
+  const {project, environment, start, statsPeriod, utc, end} = location.query;
+  const searchLocation: Location<ReplayListLocationQuery> = useMemo(() => {
     return {
       pathname: '',
       search: '',
@@ -29,138 +27,143 @@ function ReplaysErroneousDeadRageCards() {
       state: '',
       action: 'PUSH' as const,
       key: '',
-      query: {
-        project: location.query.project,
-        environment: location.query.environment,
-        start: location.query.start,
-        statsPeriod: location.query.statsPeriod,
-        utc: location.query.utc,
-        end: location.query.end,
-      },
+      query: {project, environment, start, statsPeriod, utc, end},
     };
-  }, [
-    location.query.project,
-    location.query.environment,
-    location.query.start,
-    location.query.statsPeriod,
-    location.query.utc,
-    location.query.end,
-  ]);
+  }, [project, environment, start, statsPeriod, utc, end]);
 
-  const eventViewDead = useMemo(() => {
-    return EventView.fromNewQueryWithLocation(
-      {
-        id: '',
-        name: '',
-        version: 2,
-        fields: [
-          'activity',
-          'duration',
-          'count_dead_clicks',
-          'id',
-          'project_id',
-          'user',
-          'finished_at',
-          'is_archived',
-          'started_at',
-        ],
-        projects: [],
-        query: 'count_dead_clicks:>0',
-        orderby: '-count_dead_clicks',
-      },
-      newLocation
-    );
-  }, [newLocation]);
-
-  const eventViewRage = useMemo(() => {
-    return EventView.fromNewQueryWithLocation(
-      {
-        id: '',
-        name: '',
-        version: 2,
-        fields: [
-          'activity',
-          'duration',
-          'count_rage_clicks',
-          'id',
-          'project_id',
-          'user',
-          'finished_at',
-          'is_archived',
-          'started_at',
-        ],
-        projects: [],
-        query: 'count_rage_clicks:>0',
-        orderby: '-count_rage_clicks',
-      },
-      newLocation
-    );
-  }, [newLocation]);
-
-  const hasSessionReplay = organization.features.includes('session-replay');
-  const {hasSentOneReplay, fetching} = useHaveSelectedProjectsSentAnyReplayEvents();
-
-  const deadCols = [
-    ReplayColumn.MOST_DEAD_CLICKS,
-    ReplayColumn.COUNT_DEAD_CLICKS_NO_HEADER,
-  ];
-
-  const rageCols = [
-    ReplayColumn.MOST_RAGE_CLICKS,
-    ReplayColumn.COUNT_RAGE_CLICKS_NO_HEADER,
-  ];
-
-  return hasSessionReplay && hasSentOneReplay && !fetching ? (
+  return (
     <SplitCardContainer>
-      <CardTable
-        eventView={eventViewDead}
-        location={newLocation}
-        organization={organization}
-        visibleColumns={deadCols}
-        searchQuery={{
-          ...location.query,
-          cursor: undefined,
-          query: 'count_dead_clicks:>0',
-          sort: '-count_dead_clicks',
-        }}
-        buttonLabel={t('Show all replays with dead clicks')}
-      />
-      <CardTable
-        eventView={eventViewRage}
-        location={newLocation}
-        organization={organization}
-        visibleColumns={rageCols}
-        searchQuery={{
-          ...location.query,
-          cursor: undefined,
-          query: 'count_rage_clicks:>0',
-          sort: '-count_rage_clicks',
-        }}
-        buttonLabel={t('Show all replays with rage clicks')}
-      />
+      <DeadClickTable searchLocation={searchLocation} />
+      <RageClickTable searchLocation={searchLocation} />
     </SplitCardContainer>
-  ) : null;
+  );
+}
+
+function DeadClickTable({
+  searchLocation,
+}: {
+  searchLocation: Location<ReplayListLocationQuery>;
+}) {
+  const organization = useOrganization();
+  const eventView = useMemo(
+    () =>
+      EventView.fromNewQueryWithLocation(
+        {
+          id: '',
+          name: '',
+          version: 2,
+          fields: [
+            'activity',
+            'duration',
+            'count_dead_clicks',
+            'id',
+            'project_id',
+            'user',
+            'finished_at',
+            'is_archived',
+            'started_at',
+          ],
+          projects: [],
+          query: 'count_dead_clicks:>0',
+          orderby: '-count_dead_clicks',
+        },
+        searchLocation
+      ),
+    [searchLocation]
+  );
+
+  useEffect(() => {
+    trackAnalytics('replay.dead-click-card.rendered', {organization});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <CardTable
+      eventView={eventView}
+      location={searchLocation}
+      visibleColumns={[
+        ReplayColumn.MOST_DEAD_CLICKS,
+        ReplayColumn.COUNT_DEAD_CLICKS_NO_HEADER,
+      ]}
+    >
+      <SearchButton
+        analyticsEventKey="replay.dead-click-card.click_search"
+        analyticsEventName="Replay Dead Click Card Search Click"
+        analyticsParams={{}}
+        eventView={eventView}
+        label={t('Show all replays with dead clicks')}
+      />
+    </CardTable>
+  );
+}
+function RageClickTable({
+  searchLocation,
+}: {
+  searchLocation: Location<ReplayListLocationQuery>;
+}) {
+  const organization = useOrganization();
+  const eventView = useMemo(
+    () =>
+      EventView.fromNewQueryWithLocation(
+        {
+          id: '',
+          name: '',
+          version: 2,
+          fields: [
+            'activity',
+            'duration',
+            'count_rage_clicks',
+            'id',
+            'project_id',
+            'user',
+            'finished_at',
+            'is_archived',
+            'started_at',
+          ],
+          projects: [],
+          query: 'count_rage_clicks:>0',
+          orderby: '-count_rage_clicks',
+        },
+        searchLocation
+      ),
+    [searchLocation]
+  );
+
+  useEffect(() => {
+    trackAnalytics('replay.rage-click-card.rendered', {organization});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <CardTable
+      eventView={eventView}
+      location={searchLocation}
+      visibleColumns={[
+        ReplayColumn.MOST_RAGE_CLICKS,
+        ReplayColumn.COUNT_RAGE_CLICKS_NO_HEADER,
+      ]}
+    >
+      <SearchButton
+        analyticsEventKey="replay.rage-click-card.click_search"
+        analyticsEventName="Replay Rage Click Card Search Click"
+        analyticsParams={{}}
+        eventView={eventView}
+        label={t('Show all replays with rage clicks')}
+      />
+    </CardTable>
+  );
 }
 
 function CardTable({
-  buttonLabel,
+  children,
   eventView,
   location,
-  organization,
-  searchQuery,
   visibleColumns,
 }: {
-  buttonLabel: string;
+  children: ReactNode;
   eventView: EventView;
-  location: Location;
-  organization: Organization;
-  searchQuery: {
-    cursor: undefined;
-    query: string;
-    sort: string;
-  };
+  location: Location<ReplayListLocationQuery>;
   visibleColumns: ReplayColumn[];
 }) {
+  const organization = useOrganization();
   const {replays, isFetching, fetchError} = useReplayList({
     eventView,
     location,
@@ -168,19 +171,8 @@ function CardTable({
     perPage: 3,
   });
 
-  const gridRows = new Array(replays ? (replays.length > 0 ? 3 : 1) : 1)
-    .fill(' ')
-    .map(_ => '1fr')
-    .join(' ');
-
-  const emptyLocation = useLocation();
-
-  const emptySearchQuery = {
-    ...emptyLocation.query,
-    cursor: undefined,
-    query: '',
-    sort: '',
-  };
+  const length = replays?.length ?? 0;
+  const rows = length > 0 ? 3 : 1;
 
   return (
     <Fragment>
@@ -191,33 +183,42 @@ function CardTable({
         sort={undefined}
         visibleColumns={visibleColumns}
         saveLocation
-        gridRows={'auto ' + gridRows}
+        gridRows={`auto repeat(${rows}, 1fr)`}
+        showDropdownFilters={false}
       />
-      <StyledButton
-        size="sm"
-        onClick={() => {
-          const newQuery =
-            emptyLocation.query.query === searchQuery.query
-              ? emptySearchQuery
-              : searchQuery;
-          browserHistory.push({
-            pathname: emptyLocation.pathname,
-            query: newQuery,
-          });
-        }}
-        icon={
-          emptyLocation.query.query === searchQuery.query ? (
-            <IconClose size="xs" />
-          ) : (
-            <IconSearch size="xs" />
-          )
-        }
-      >
-        {emptyLocation.query.query === searchQuery.query
-          ? t('Clear filter')
-          : buttonLabel}
-      </StyledButton>
+      {children}
     </Fragment>
+  );
+}
+
+function SearchButton({
+  eventView,
+  label,
+  ...props
+}: {
+  eventView: EventView;
+  label: ReactNode;
+} & Omit<ComponentProps<typeof LinkButton>, 'size' | 'to' | 'icon'>) {
+  const location = useLocation();
+  const isActive = location.query.query === eventView.query;
+
+  return (
+    <StyledButton
+      {...props}
+      size="sm"
+      to={{
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          cursor: undefined,
+          query: isActive ? '' : eventView.query,
+          sort: isActive ? '' : eventView.sorts[0].field,
+        },
+      }}
+      icon={isActive ? <IconClose size="xs" /> : <IconSearch size="xs" />}
+    >
+      {isActive ? t('Clear filter') : label}
+    </StyledButton>
   );
 }
 
@@ -230,7 +231,7 @@ const SplitCardContainer = styled('div')`
   align-items: stretch;
 `;
 
-const StyledButton = styled(Button)`
+const StyledButton = styled(LinkButton)`
   width: 100%;
   border-top: none;
   border-radius: ${p => p.theme.borderRadiusBottom};

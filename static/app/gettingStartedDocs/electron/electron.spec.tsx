@@ -6,7 +6,7 @@ import {GettingStartedWithElectron, steps} from './electron';
 
 describe('GettingStartedWithElectron', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithElectron dsn="test-dsn" />);
+    render(<GettingStartedWithElectron dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithElectron', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

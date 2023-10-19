@@ -8,14 +8,17 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features, ratelimits, roles
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization_member as organization_member_serializers
 from sentry.api.validators import AllowedEmailField
-from sentry.models import ExternalActor, InviteStatus, OrganizationMember, Team, TeamStatus
-from sentry.models.authenticator import available_authenticators
+from sentry.auth.authenticators import available_authenticators
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.team import Team, TeamStatus
 from sentry.roles import organization_roles, team_roles
 from sentry.search.utils import tokenize_query
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -46,12 +49,14 @@ class OrganizationMemberSerializer(serializers.Serializer):
         choices=roles.get_choices(), default=organization_roles.get_default().id
     )  # deprecated, use orgRole
     orgRole = serializers.ChoiceField(
-        choices=roles.get_choices(), default=organization_roles.get_default().id
+        choices=roles.get_choices(), default=organization_roles.get_default().id, required=False
     )
     teams = serializers.ListField(
         required=False, allow_null=False, default=[]
     )  # deprecated, use teamRoles
-    teamRoles = serializers.ListField(required=False, allow_null=True, default=[])
+    teamRoles = serializers.ListField(
+        required=False, allow_null=True, default=[], child=serializers.JSONField()
+    )
     sendInvite = serializers.BooleanField(required=False, default=True, write_only=True)
     reinvite = serializers.BooleanField(required=False)
     regenerate = serializers.BooleanField(required=False)
@@ -121,6 +126,10 @@ class OrganizationMemberSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (MemberPermission,)
 
     def get(self, request: Request, organization) -> Response:
@@ -185,7 +194,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 elif key == "hasExternalUsers":
                     externalactor_user_ids = ExternalActor.objects.filter(
                         organization=organization,
-                    ).values_list("actor__user_id", flat=True)
+                    ).values_list("user_id", flat=True)
 
                     hasExternalUsers = "true" in value
                     if hasExternalUsers:
@@ -300,7 +309,8 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             save_team_assignments(om, teams)
 
         if settings.SENTRY_ENABLE_INVITES and result.get("sendInvite"):
-            om.send_invite_email()
+            referrer = request.query_params.get("referrer")
+            om.send_invite_email(referrer)
             member_invited.send_robust(
                 member=om, user=request.user, sender=self, referrer=request.data.get("referrer")
             )

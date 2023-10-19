@@ -1,20 +1,30 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
+import {screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import docs from './aspnet';
 
-import {GettingStartedWithAspnet, steps} from './aspnet';
+describe('aspnet onboarding docs', function () {
+  it('renders gradle docs correctly', async function () {
+    renderWithOnboardingLayout(docs, {
+      releaseRegistry: {
+        'sentry.dotnet.aspnet': {
+          version: '1.99.9',
+        },
+      },
+    });
 
-describe('GettingStartedWithAspnet', function () {
-  it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithAspnet dsn="test-dsn" />);
+    // Renders main headings
+    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Documentation'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Samples'})).toBeInTheDocument();
 
-    // Steps
-    for (const step of steps()) {
-      expect(
-        screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
-      ).toBeInTheDocument();
-    }
-
-    expect(container).toSnapshot();
+    // Renders SDK version from registry
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(/Install-Package Sentry.AspNet -Version 1\.99\.9/)
+      )
+    ).toBeInTheDocument();
   });
 });

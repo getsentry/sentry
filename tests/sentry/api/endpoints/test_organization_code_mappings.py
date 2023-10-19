@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from sentry.api.endpoints.organization_code_mappings import BRANCH_NAME_ERROR_MESSAGE
-from sentry.models import Repository
+from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -240,6 +240,15 @@ class OrganizationCodeMappingsTest(APITestCase):
         self.login_as(user=self.user2)
         response = self.make_post()
         assert response.status_code == 201, response.content
+
+    def test_basic_post_from_non_member_permissions(self):
+        # disable open membership => no project level access
+        # user2 is not in a team1 that has access to project1
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        self.login_as(user=self.user2)
+        response = self.make_post()
+        assert response.status_code == 403, response.content
 
     def test_basic_post_with_invalid_integrationId(self):
         response = self.make_post({"integrationId": 100})

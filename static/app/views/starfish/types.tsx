@@ -16,7 +16,7 @@ export enum ModuleName {
   OTHER = 'other',
 }
 
-export enum SpanMetricsFields {
+export enum SpanMetricsField {
   SPAN_OP = 'span.op',
   SPAN_DESCRIPTION = 'span.description',
   SPAN_MODULE = 'span.module',
@@ -26,20 +26,57 @@ export enum SpanMetricsFields {
   SPAN_DURATION = 'span.duration',
   SPAN_SELF_TIME = 'span.self_time',
   PROJECT_ID = 'project.id',
+  RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
+  HTTP_RESPONSE_CONTENT_LENGTH = 'http.response_content_length',
+  HTTP_DECODED_RESPONSE_BODY_LENGTH = 'http.decoded_response_body_length',
+  HTTP_RESPONSE_TRANSFER_SIZE = 'http.response_transfer_size',
 }
 
-export type SpanMetricsFieldTypes = {
-  [SpanMetricsFields.SPAN_OP]: string;
-  [SpanMetricsFields.SPAN_DESCRIPTION]: string;
-  [SpanMetricsFields.SPAN_MODULE]: string;
-  [SpanMetricsFields.SPAN_ACTION]: string;
-  [SpanMetricsFields.SPAN_DOMAIN]: string;
-  [SpanMetricsFields.SPAN_GROUP]: string;
-  [SpanMetricsFields.SPAN_SELF_TIME]: number;
-  [SpanMetricsFields.SPAN_DURATION]: number;
+export type SpanNumberFields =
+  | SpanMetricsField.SPAN_SELF_TIME
+  | SpanMetricsField.SPAN_DURATION
+  | SpanMetricsField.HTTP_DECODED_RESPONSE_BODY_LENGTH
+  | SpanMetricsField.HTTP_RESPONSE_CONTENT_LENGTH
+  | SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE;
+
+export type SpanStringFields =
+  | 'span.op'
+  | 'span.description'
+  | 'span.module'
+  | 'span.action'
+  | 'span.group'
+  | 'project.id'
+  | 'transaction'
+  | 'transaction.method';
+
+export type SpanStringArrayFields = 'span.domain';
+
+export type SpanFunctions =
+  | 'sps'
+  | 'spm'
+  | 'count'
+  | 'time_spent_percentage'
+  | 'http_error_count';
+
+export type MetricsResponse = {
+  [Property in SpanNumberFields as `avg(${Property})`]: number;
+} & {
+  [Property in SpanNumberFields as `sum(${Property})`]: number;
+} & {
+  [Property in SpanFunctions as `${Property}()`]: number;
+} & {
+  [Property in SpanStringFields as `${Property}`]: string;
+} & {
+  [Property in SpanStringArrayFields as `${Property}`]: string[];
 };
 
-export enum SpanIndexedFields {
+export type MetricsFilters = {
+  [Property in SpanStringFields as `${Property}`]?: string | string[];
+};
+
+export type MetricsProperty = keyof MetricsResponse;
+
+export enum SpanIndexedField {
   SPAN_SELF_TIME = 'span.self_time',
   SPAN_GROUP = 'span.group', // Span group computed from the normalized description. Matches the group in the metrics data set
   SPAN_GROUP_RAW = 'span.group_raw', // Span group computed from non-normalized description. Matches the group in the event payload
@@ -57,68 +94,61 @@ export enum SpanIndexedFields {
 }
 
 export type SpanIndexedFieldTypes = {
-  [SpanIndexedFields.SPAN_SELF_TIME]: number;
-  [SpanIndexedFields.SPAN_GROUP]: string;
-  [SpanIndexedFields.SPAN_GROUP_RAW]: string;
-  [SpanIndexedFields.SPAN_MODULE]: string;
-  [SpanIndexedFields.SPAN_DESCRIPTION]: string;
-  [SpanIndexedFields.SPAN_OP]: string;
-  [SpanIndexedFields.ID]: string;
-  [SpanIndexedFields.SPAN_ACTION]: string;
-  [SpanIndexedFields.TRANSACTION_ID]: string;
-  [SpanIndexedFields.TRANSACTION_METHOD]: string;
-  [SpanIndexedFields.TRANSACTION_OP]: string;
-  [SpanIndexedFields.SPAN_DOMAIN]: string;
-  [SpanIndexedFields.TIMESTAMP]: string;
-  [SpanIndexedFields.PROJECT]: string;
+  [SpanIndexedField.SPAN_SELF_TIME]: number;
+  [SpanIndexedField.SPAN_GROUP]: string;
+  [SpanIndexedField.SPAN_GROUP_RAW]: string;
+  [SpanIndexedField.SPAN_MODULE]: string;
+  [SpanIndexedField.SPAN_DESCRIPTION]: string;
+  [SpanIndexedField.SPAN_OP]: string;
+  [SpanIndexedField.ID]: string;
+  [SpanIndexedField.SPAN_ACTION]: string;
+  [SpanIndexedField.TRANSACTION_ID]: string;
+  [SpanIndexedField.TRANSACTION_METHOD]: string;
+  [SpanIndexedField.TRANSACTION_OP]: string;
+  [SpanIndexedField.SPAN_DOMAIN]: string[];
+  [SpanIndexedField.TIMESTAMP]: string;
+  [SpanIndexedField.PROJECT]: string;
 };
 
-export type Op = SpanIndexedFieldTypes[SpanIndexedFields.SPAN_OP];
+export type Op = SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
 
-export enum StarfishFunctions {
+export enum SpanFunction {
   SPS = 'sps',
   SPM = 'spm',
-  SPS_PERCENENT_CHANGE = 'sps_percent_change',
   TIME_SPENT_PERCENTAGE = 'time_spent_percentage',
   HTTP_ERROR_COUNT = 'http_error_count',
 }
 
 export const StarfishDatasetFields = {
-  [DiscoverDatasets.SPANS_METRICS]: SpanIndexedFields,
-  [DiscoverDatasets.SPANS_INDEXED]: SpanIndexedFields,
+  [DiscoverDatasets.SPANS_METRICS]: SpanIndexedField,
+  [DiscoverDatasets.SPANS_INDEXED]: SpanIndexedField,
 };
 
 export const STARFISH_AGGREGATION_FIELDS: Record<
-  StarfishFunctions,
+  SpanFunction,
   FieldDefinition & {defaultOutputType: AggregationOutputType}
 > = {
-  [StarfishFunctions.SPS]: {
+  [SpanFunction.SPS]: {
     desc: t('Spans per second'),
     kind: FieldKind.FUNCTION,
     defaultOutputType: 'number',
     valueType: FieldValueType.NUMBER,
   },
-  [StarfishFunctions.SPM]: {
+  [SpanFunction.SPM]: {
     desc: t('Spans per minute'),
     kind: FieldKind.FUNCTION,
     defaultOutputType: 'number',
     valueType: FieldValueType.NUMBER,
   },
-  [StarfishFunctions.TIME_SPENT_PERCENTAGE]: {
+  [SpanFunction.TIME_SPENT_PERCENTAGE]: {
     desc: t('Span time spent percentage'),
     defaultOutputType: 'percentage',
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
-  [StarfishFunctions.HTTP_ERROR_COUNT]: {
+  [SpanFunction.HTTP_ERROR_COUNT]: {
     desc: t('Count of 5XX http errors'),
     defaultOutputType: 'integer',
-    kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NUMBER,
-  },
-  [StarfishFunctions.SPS_PERCENENT_CHANGE]: {
-    desc: t('Spans per second percentage change'),
-    defaultOutputType: 'percentage',
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },

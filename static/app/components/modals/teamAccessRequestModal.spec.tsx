@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -11,7 +12,7 @@ describe('TeamAccessRequestModal', function () {
   let createMock;
 
   const closeModal = jest.fn();
-  const orgId = TestStubs.Organization().slug;
+  const orgId = Organization().slug;
   const memberId = TestStubs.Member().id;
   const teamId = TestStubs.Team().slug;
 

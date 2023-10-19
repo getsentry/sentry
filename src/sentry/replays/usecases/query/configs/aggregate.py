@@ -12,12 +12,11 @@ acts as a validation step as must as a type coercion step.
 """
 from __future__ import annotations
 
-from typing import Union
-
 from sentry.replays.lib.new_query.conditions import IntegerScalar, StringScalar
 from sentry.replays.lib.new_query.fields import (
     ColumnField,
     CountField,
+    FieldProtocol,
     StringColumnField,
     SumField,
     SumLengthField,
@@ -31,12 +30,16 @@ from sentry.replays.usecases.query.conditions import (
     SumOfClickArray,
     SumOfClickScalar,
     SumOfClickSelectorComposite,
+    SumOfDeadClickSelectorComposite,
     SumOfErrorIdsArray,
     SumOfIPv4Scalar,
+    SumOfRageClickSelectorComposite,
     SumOfStringArray,
     SumOfStringScalar,
     SumOfUUIDArray,
 )
+from sentry.replays.usecases.query.conditions.aggregate import SumOfUUIDScalar
+from sentry.replays.usecases.query.conditions.event_ids import SumOfErrorIdScalar, SumOfInfoIdScalar
 from sentry.replays.usecases.query.fields import ComputedField, TagField
 
 
@@ -68,7 +71,7 @@ def array_string_field(column_name: str) -> StringColumnField:
     return StringColumnField(column_name, parse_str, SumOfStringArray)
 
 
-search_config: dict[str, Union[ColumnField, ComputedField, TagField]] = {
+search_config: dict[str, FieldProtocol] = {
     "activity": ComputedField(parse_int, AggregateActivityScalar),
     "browser.name": string_field("browser_name"),
     "browser.version": string_field("browser_version"),
@@ -84,9 +87,13 @@ search_config: dict[str, Union[ColumnField, ComputedField, TagField]] = {
     "click.title": click_field("click_title"),
     "count_dead_clicks": sum_field("click_is_dead"),
     "count_errors": sum_field("count_errors"),
+    "count_infos": sum_field("count_info_events"),
+    "count_warnings": sum_field("count_warning_events"),
+    "new_count_errors": sum_field("count_error_events"),
     "count_rage_clicks": sum_field("click_is_rage"),
     "count_segments": count_field("segment_id"),
     "count_urls": sum_field("count_urls"),
+    "dead.selector": ComputedField(parse_selector, SumOfDeadClickSelectorComposite),
     "device.brand": string_field("device_brand"),
     "device.family": string_field("device_family"),
     "device.model": string_field("device_model"),
@@ -95,12 +102,16 @@ search_config: dict[str, Union[ColumnField, ComputedField, TagField]] = {
     "duration": ComputedField(parse_int, SimpleAggregateDurationScalar),
     "environment": string_field("environment"),
     "error_ids": ComputedField(parse_uuid, SumOfErrorIdsArray),
+    "new_error_ids": ComputedField(parse_uuid, SumOfErrorIdScalar),
+    "warning_ids": UUIDColumnField("warning_id", parse_uuid, SumOfUUIDScalar),
+    "info_ids": ComputedField(parse_uuid, SumOfInfoIdScalar),
     # Backwards Compat: We pass a simple string to the UUID column. Older versions of ClickHouse
     # do not understand the UUID type.
     "id": ColumnField("replay_id", lambda x: str(parse_uuid(x)), StringScalar),
     "os.name": string_field("os_name"),
     "os.version": string_field("os_version"),
     "platform": string_field("platform"),
+    "rage.selector": ComputedField(parse_selector, SumOfRageClickSelectorComposite),
     "releases": string_field("release"),
     "replay_type": string_field("replay_type"),
     "sdk.name": string_field("sdk_name"),
@@ -125,7 +136,13 @@ search_config["user"] = search_config["user.username"]
 
 
 # Fields which have multiple names that represent the same search operation are defined here.
+# QQ:JFERG: why dont we have these on the scalar search
 search_config["error_id"] = search_config["error_ids"]
+search_config["new_error_id"] = search_config["new_error_ids"]
+search_config["warning_id"] = search_config["warning_ids"]
+search_config["info_id"] = search_config["info_ids"]
+
+
 search_config["release"] = search_config["releases"]
 search_config["trace_id"] = search_config["trace_ids"]
 search_config["trace"] = search_config["trace_ids"]

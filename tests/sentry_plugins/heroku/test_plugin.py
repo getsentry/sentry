@@ -8,17 +8,15 @@ import pytest
 from django.utils import timezone
 
 from sentry.exceptions import HookValidationError
-from sentry.models import (
-    Commit,
-    Deploy,
-    Environment,
-    ProjectOption,
-    Release,
-    ReleaseCommit,
-    ReleaseHeadCommit,
-    Repository,
-    User,
-)
+from sentry.models.commit import Commit
+from sentry.models.deploy import Deploy
+from sentry.models.environment import Environment
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releaseheadcommit import ReleaseHeadCommit
+from sentry.models.repository import Repository
+from sentry.models.user import User
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 from sentry_plugins.heroku.plugin import HerokuReleaseHook

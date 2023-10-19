@@ -8,11 +8,12 @@ from django.http.response import FileResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
 from sentry.api.endpoints.project_release_file_details import ClosesDependentFiles
-from sentry.models import ArtifactBundle, ArtifactBundleArchive
+from sentry.models.artifactbundle import ArtifactBundle, ArtifactBundleArchive
 
 
 class ProjectArtifactBundleFileDetailsMixin:
@@ -47,6 +48,9 @@ class ProjectArtifactBundleFileDetailsMixin:
 class ProjectArtifactBundleFileDetailsEndpoint(
     ProjectEndpoint, ProjectArtifactBundleFileDetailsMixin
 ):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project, bundle_id, file_id) -> Response:

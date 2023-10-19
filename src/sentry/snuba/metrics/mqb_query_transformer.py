@@ -11,9 +11,9 @@ from sentry.snuba.metrics import (
     FILTERABLE_TAGS,
     OPERATIONS,
     DerivedMetricException,
-    TransactionMRI,
 )
 from sentry.snuba.metrics.fields.base import DERIVED_OPS, metric_object_factory
+from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.metrics.query import MetricConditionField, MetricField, MetricGroupByField
 from sentry.snuba.metrics.query import MetricOrderByField
 from sentry.snuba.metrics.query import MetricOrderByField as MetricOrderBy

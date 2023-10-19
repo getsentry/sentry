@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {PlatformType} from 'sentry/types';
+import {PlatformKey} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {StacktraceType, StackView} from 'sentry/types/stacktrace';
 import {isNativePlatform} from 'sentry/utils/platform';
@@ -18,7 +18,7 @@ type Props = Pick<
   event: Event;
   hasHierarchicalGrouping: boolean;
   newestFirst: boolean;
-  platform: PlatformType;
+  platform: PlatformKey;
   stacktrace: StacktraceType;
   inlined?: boolean;
   lockAddress?: string;

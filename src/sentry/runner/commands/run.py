@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import signal
 import sys
@@ -606,6 +607,7 @@ def occurrences_ingest_consumer(**options):
 @click.option("max_msg_batch_time", "--max-msg-batch-time-ms", type=int, default=10000)
 @click.option("max_parallel_batch_size", "--max-parallel-batch-size", type=int, default=50)
 @click.option("max_parallel_batch_time", "--max-parallel-batch-time-ms", type=int, default=10000)
+@click.option("--group-instance-id", type=str, default=None)
 def metrics_parallel_consumer(**options):
     from sentry.sentry_metrics.consumers.indexer.parallel import get_parallel_metrics_consumer
 
@@ -684,7 +686,12 @@ def profiles_consumer(**options):
 @click.option(
     "--max-poll-interval-ms",
     type=int,
-    default=45000,
+    default=30000,
+)
+@click.option(
+    "--group-instance-id",
+    type=str,
+    default=None,
 )
 @click.option(
     "--synchronize-commit-log-topic",
@@ -697,6 +704,11 @@ def profiles_consumer(**options):
 @click.option(
     "--healthcheck-file-path",
     help="A file to touch roughly every second to indicate that the consumer is still alive. See https://getsentry.github.io/arroyo/strategies/healthcheck.html for more information.",
+)
+@click.option(
+    "--log-level",
+    type=click.Choice(["debug", "info", "warning", "error", "critical"], case_sensitive=False),
+    help="log level to pass to the arroyo consumer",
 )
 @strict_offset_reset_option()
 @configuration
@@ -722,6 +734,10 @@ def basic_consumer(consumer_name, consumer_args, topic, **options):
     from sentry.consumers import get_stream_processor
     from sentry.metrics.middleware import add_global_tags
     from sentry.utils.arroyo import initialize_arroyo_main
+
+    log_level = options.pop("log_level", None)
+    if log_level is not None:
+        logging.getLogger("arroyo").setLevel(log_level.upper())
 
     add_global_tags(kafka_topic=topic, consumer_group=options["group_id"])
     initialize_arroyo_main()

@@ -4,16 +4,16 @@ from unittest import mock
 import jwt
 import responses
 from django.test import override_settings
-from freezegun import freeze_time
 from requests import PreparedRequest, Request
 from responses.matchers import header_matcher, query_string_matcher
 
 from sentry.integrations.jira.client import JiraCloudClient
 from sentry.integrations.utils.atlassian_connect import get_query_hash
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 

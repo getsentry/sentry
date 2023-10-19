@@ -1,4 +1,8 @@
-from sentry.models import Authenticator, OrganizationMember, SavedSearch, User, UserEmail
+from sentry.models.authenticator import Authenticator
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.savedsearch import SavedSearch
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
 from sentry.silo import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import TestCase

@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
@@ -17,7 +19,7 @@ describe('Discover > MiniGraph', function () {
   let organization, eventView, initialData;
 
   beforeEach(() => {
-    organization = TestStubs.Organization({
+    organization = Organization({
       features,
       projects: [TestStubs.Project()],
     });

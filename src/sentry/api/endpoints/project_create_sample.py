@@ -3,6 +3,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers import serialize
@@ -12,6 +13,9 @@ from sentry.utils.samples import create_sample_event
 
 @region_silo_endpoint
 class ProjectCreateSampleEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     # Members should be able to create sample events.
     # This is the same scope that allows members to view all issues for a project.
     permission_classes = (ProjectEventPermission,)

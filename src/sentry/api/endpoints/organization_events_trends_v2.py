@@ -4,25 +4,24 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict, List, cast
 
 import sentry_sdk
-from django.conf import settings
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Column
-from urllib3 import Retry
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.net.http import connection_from_url
 from sentry.search.events.constants import METRICS_GRANULARITIES
+from sentry.seer.utils import BreakpointData, detect_breakpoints
 from sentry.snuba import metrics_performance
 from sentry.snuba.discover import create_result_key, zerofill
 from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.referrer import Referrer
+from sentry.statistical_detectors.issue_platform_adapter import send_regressions_to_plaform
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils import json
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger(__name__)
@@ -44,30 +43,14 @@ DEFAULT_RATE_LIMIT_WINDOW = 1
 DEFAULT_CONCURRENT_RATE_LIMIT = 15
 ORGANIZATION_RATE_LIMIT = 30
 
-ads_connection_pool = connection_from_url(
-    settings.ANOMALY_DETECTION_URL,
-    retries=Retry(
-        total=5,
-        status_forcelist=[408, 429, 502, 503, 504],
-    ),
-    timeout=settings.ANOMALY_DETECTION_TIMEOUT,
-)
-
 _query_thread_pool = ThreadPoolExecutor()
-
-
-def get_trends(snuba_io):
-    response = ads_connection_pool.urlopen(
-        "POST",
-        "/trends/breakpoint-detector",
-        body=json.dumps(snuba_io),
-        headers={"content-type": "application/json;charset=utf-8"},
-    )
-    return json.loads(response.data)
 
 
 @region_silo_endpoint
 class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
@@ -107,9 +90,18 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
         query = request.GET.get("query")
 
+        top_trending_transactions = {}
+
+        experiment_use_project_id = features.has(
+            "organizations:performance-trendsv2-dev-only",
+            organization,
+            actor=request.user,
+        )
+
         def get_top_events(user_query, params, event_limit, referrer):
             top_event_columns = cast(List[str], selected_columns[:])
             top_event_columns.append("count()")
+            top_event_columns.append("project_id")
 
             # Granularity is set to 1d - the highest granularity possible
             # in order to optimize the top event query since we don't care
@@ -147,7 +139,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             timeseries_columns.append(trend_function)
 
             # When all projects or my projects options selected,
-            # keep only projects that had top events to reduce query cardinality
+            # keep only projects that top events belong to to reduce query cardinality
             used_project_ids = list({event["project"] for event in data})
 
             request.GET.projectSlugs = used_project_ids  # type: ignore
@@ -172,11 +164,18 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             formatted_results = {}
             for index, item in enumerate(top_events["data"]):
                 result_key = create_result_key(item, translated_groupby, {})
-                results[result_key] = {
-                    "order": index,
-                    "data": [],
-                    "project": item["project"],
-                }
+                if experiment_use_project_id:
+                    results[result_key] = {
+                        "order": index,
+                        "data": [],
+                        "project_id": item["project_id"],
+                    }
+                else:
+                    results[result_key] = {
+                        "order": index,
+                        "data": [],
+                        "project": item["project"],
+                    }
             for row in result.get("data", []):  # type: ignore
                 result_key = create_result_key(row, translated_groupby, {})
                 if result_key in results:
@@ -191,7 +190,11 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                         },
                     )
             for key, item in results.items():
-                key = f'{item["project"]},{key}'
+                key = (
+                    f'{item["project_id"]},{key}'
+                    if experiment_use_project_id
+                    else f'{item["project"]},{key}'
+                )
                 formatted_results[key] = SnubaTSResult(
                     {
                         "data": zerofill(
@@ -203,7 +206,9 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                         )
                         if zerofill_results
                         else item["data"],
-                        "project": item["project"],
+                        "project": item["project_id"]
+                        if experiment_use_project_id
+                        else item["project"],
                         "isMetricsData": True,
                         "order": item["order"],
                     },
@@ -218,8 +223,10 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 int(request.GET.get("topEvents", DEFAULT_TOP_EVENTS_LIMIT)),
                 MAX_TOP_EVENTS_LIMIT,
             )
+
             # Fetch transactions names with the highest event count
-            top_events = get_top_events(
+            nonlocal top_trending_transactions
+            top_trending_transactions = get_top_events(
                 user_query=user_query,
                 params=params,
                 event_limit=top_event_limit,
@@ -227,13 +234,14 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             )
 
             sentry_sdk.set_tag(
-                "performance.trendsv2.top_events", top_events.get("data", None) is not None
+                "performance.trendsv2.top_events",
+                top_trending_transactions.get("data", None) is not None,
             )
-            if len(top_events.get("data", [])) == 0:
+            if len(top_trending_transactions.get("data", [])) == 0:
                 return {}
 
             # Fetch timeseries for each top transaction name
-            return get_timeseries(top_events, params, rollup, zerofill_results)
+            return get_timeseries(top_trending_transactions, params, rollup, zerofill_results)
 
         def format_start_end(data):
             # format start and end
@@ -280,7 +288,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 trends_requests.append(trends_request)
 
             # send the data to microservice
-            results = list(_query_thread_pool.map(get_trends, trends_requests))
+            results = list(_query_thread_pool.map(detect_breakpoints, trends_requests))
             trend_results = []
 
             # append all the results
@@ -315,7 +323,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 for t in results["data"]:
                     transaction_name = t["transaction"]
                     project = t["project"]
-                    t_p_key = project + "," + transaction_name
+                    t_p_key = f"{project},{transaction_name}"
                     if t_p_key in stats_data:
                         selected_stats_data = stats_data[t_p_key]
                         idx = next(
@@ -351,6 +359,39 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 else {},
             }
 
+        def parse_and_send_regressions_to_plaform(found_trending_events):
+            nonlocal top_trending_transactions
+            qualifying_trends = []
+            for trend in found_trending_events:
+                if (
+                    request.GET.get("statsPeriod", None) == "14d"
+                    and trend.get("change", None) == "regression"
+                    # trends >50%
+                    and (trend.get("trend_percentage", None) - 1) >= 0.5
+                    and trend_function == "p95(transaction.duration)"
+                ):
+                    qualifying_trends.append(trend)
+
+            if len(qualifying_trends) > 0:
+                regressions_to_send = []
+                for qualifying_trend in qualifying_trends:
+                    project_id = qualifying_trend["project"]
+                    if not experiment_use_project_id:
+                        project_id = next(
+                            transaction["project_id"]
+                            for transaction in top_trending_transactions["data"]
+                            if transaction["transaction"] == qualifying_trend["transaction"]
+                        )
+
+                    regression: BreakpointData = {
+                        **qualifying_trend,  # type: ignore
+                        "project": project_id,
+                    }
+
+                    regressions_to_send.append(regression)
+
+                send_regressions_to_plaform(regressions_to_send, False)
+
         with self.handle_query_errors():
             stats_data = self.get_event_stats_data(
                 request,
@@ -384,6 +425,14 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 trending_events,
                 trends_requests,
             ) = get_trends_data(stats_data, request)
+
+            if features.has(
+                "organizations:performance-trends-issues", organization, actor=request.user
+            ):
+                try:
+                    parse_and_send_regressions_to_plaform(trending_events)
+                except Exception as error:
+                    sentry_sdk.capture_exception(error)
 
             return self.paginate(
                 request=request,

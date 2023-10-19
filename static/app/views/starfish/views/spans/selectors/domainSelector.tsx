@@ -9,15 +9,13 @@ import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {
   EMPTY_OPTION_VALUE,
   EmptyContainer,
 } from 'sentry/views/starfish/views/spans/selectors/emptyOption';
-
-const {SPAN_DOMAIN} = SpanMetricsFields;
 
 type Props = {
   moduleName?: ModuleName;
@@ -46,15 +44,31 @@ export function DomainSelector({
   const location = useLocation();
   const eventView = getEventView(location, moduleName, spanCategory, state.search);
 
-  const {data: domains, isLoading} = useSpansQuery<{'span.domain': string}[]>({
+  const {data: domains, isLoading} = useSpansQuery<
+    Array<{[SpanMetricsField.SPAN_DOMAIN]: Array<string>}>
+  >({
     eventView,
     initialData: [],
     limit: LIMIT,
     referrer: 'api.starfish.get-span-domains',
   });
 
+  const transformedDomains = Array.from(
+    domains?.reduce((acc, curr) => {
+      const spanDomainArray = curr[SpanMetricsField.SPAN_DOMAIN];
+      if (spanDomainArray) {
+        spanDomainArray.forEach(name => acc.add(name));
+      }
+      return acc;
+    }, new Set<string>()) || []
+  );
+
   // If the maximum number of domains is returned, we need to requery on input change to get full results
-  if (!state.shouldRequeryOnInputChange && domains && domains.length >= LIMIT) {
+  if (
+    !state.shouldRequeryOnInputChange &&
+    transformedDomains &&
+    transformedDomains.length >= LIMIT
+  ) {
     setState({...state, shouldRequeryOnInputChange: true});
   }
 
@@ -71,12 +85,11 @@ export function DomainSelector({
   const options = optionsReady
     ? [
         {value: '', label: 'All'},
-        ...(domains ?? [])
-          .filter(datum => Boolean(datum[SPAN_DOMAIN]))
+        ...transformedDomains
           .map(datum => {
             return {
-              value: datum[SPAN_DOMAIN],
-              label: datum[SPAN_DOMAIN],
+              value: datum,
+              label: datum,
             };
           })
           .sort((a, b) => a.value.localeCompare(b.value)),
@@ -115,7 +128,7 @@ export function DomainSelector({
           ...location,
           query: {
             ...location.query,
-            [SPAN_DOMAIN]: newValue.value,
+            [SpanMetricsField.SPAN_DOMAIN]: newValue.value,
           },
         });
       }}
@@ -140,15 +153,20 @@ function getEventView(
   const query = [
     ...buildEventViewQuery({
       moduleName,
-      location: {...location, query: omit(location.query, SPAN_DOMAIN)},
+      location: {
+        ...location,
+        query: omit(location.query, SpanMetricsField.SPAN_DOMAIN),
+      },
       spanCategory,
     }),
-    ...(search && search.length > 0 ? [`span.domain:*${search}*`] : []),
+    ...(search && search.length > 0
+      ? [`${SpanMetricsField.SPAN_DOMAIN}:*${[search]}*`]
+      : []),
   ].join(' ');
   return EventView.fromNewQueryWithLocation(
     {
       name: '',
-      fields: ['span.domain', 'count()'],
+      fields: [SpanMetricsField.SPAN_DOMAIN, 'count()'],
       orderby: '-count',
       query,
       dataset: DiscoverDatasets.SPANS_METRICS,

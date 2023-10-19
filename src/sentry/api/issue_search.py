@@ -19,8 +19,12 @@ from sentry.issues.grouptype import (
     get_group_type_by_slug,
     get_group_types_by_category,
 )
-from sentry.models import Environment, Organization, Project, Team, User
+from sentry.models.environment import Environment
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES, GroupStatus
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.search.events.constants import EQUALITY_OPERATORS, INEQUALITY_OPERATORS
 from sentry.search.events.filter import to_list
 from sentry.search.utils import (

@@ -3,6 +3,7 @@ import logging
 from django.http import HttpRequest, HttpResponse
 
 from sentry import eventstore
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -16,6 +17,10 @@ logger = logging.getLogger(__name__)
 
 @region_silo_endpoint
 class EventGroupingInfoEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: HttpRequest, project, event_id) -> HttpResponse:
         """
         Returns the grouping information for an event

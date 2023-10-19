@@ -1,7 +1,7 @@
 /* eslint-env node */
 module.exports = {
-  customSyntax: 'postcss-jsx',
-  extends: ['stylelint-config-recommended', 'stylelint-config-prettier'],
+  customSyntax: 'postcss-styled-syntax',
+  extends: ['stylelint-config-recommended'],
   rules: {
     'declaration-colon-newline-after': null,
 
@@ -38,5 +38,8 @@ module.exports = {
         message: 'Disallowed property. (See `stylelint.config.js` as to why)',
       },
     ],
+
+    // Disable no invalid media query, doesn't like our theme values
+    'media-query-no-invalid': null,
   },
 };

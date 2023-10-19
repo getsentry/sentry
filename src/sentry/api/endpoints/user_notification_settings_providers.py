@@ -4,23 +4,26 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.exceptions import ParameterValidationError
 from sentry.api.serializers import serialize
 from sentry.api.validators.notifications import validate_type
-from sentry.models import User
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.models.user import User
 from sentry.notifications.serializers import NotificationSettingsProviderSerializer
 from sentry.notifications.types import NotificationSettingsOptionEnum
-from sentry.notifications.validators import (
-    UserNotificationSettingsProvidersDetailsSerializer,
-    allowed_providers,
-)
+from sentry.notifications.validators import UserNotificationSettingsProvidersDetailsSerializer
+from sentry.types.integrations import PERSONAL_NOTIFICATION_PROVIDERS
 
 
 @control_silo_endpoint
 class UserNotificationSettingsProvidersEndpoint(UserEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+    }
     owner = ApiOwner.ISSUES
     # TODO(Steve): Make not private when we launch new system
     private = True
@@ -62,7 +65,7 @@ class UserNotificationSettingsProvidersEndpoint(UserEndpoint):
         data = serializer.validated_data
         new_rows = []
         with transaction.atomic(router.db_for_write(NotificationSettingProvider)):
-            for provider in allowed_providers:
+            for provider in PERSONAL_NOTIFICATION_PROVIDERS:
                 value = (
                     NotificationSettingsOptionEnum.ALWAYS.value
                     if provider in data["providers"]

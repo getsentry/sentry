@@ -2,15 +2,13 @@ from rest_framework import serializers
 
 from sentry.api.exceptions import ParameterValidationError
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
-from sentry.api.validators.notifications import validate_scope_type, validate_type, validate_value
+from sentry.api.validators.notifications import (
+    validate_scope_type,
+    validate_type,
+    validate_value_v2,
+)
 from sentry.notifications.types import NOTIFICATION_SETTING_V2_CHOICES, NotificationScopeEnum
-from sentry.types.integrations import ExternalProviderEnum
-
-allowed_providers = [
-    ExternalProviderEnum.EMAIL.value,
-    ExternalProviderEnum.SLACK.value,
-    ExternalProviderEnum.MSTEAMS.value,
-]
+from sentry.types.integrations import PERSONAL_NOTIFICATION_PROVIDERS
 
 
 class UserNotificationSettingsOptionsDetailsSerializer(CamelSnakeSerializer):
@@ -46,7 +44,7 @@ class UserNotificationSettingOptionWithValueSerializer(
     def validate(self, data):
         try:
             int_type = validate_type(data["type"])
-            validate_value(int_type, data["value"])
+            validate_value_v2(int_type, data["value"])
         except ParameterValidationError:
             raise serializers.ValidationError("Invalid type for value")
         return data
@@ -59,7 +57,7 @@ class UserNotificationSettingsProvidersDetailsSerializer(
 
     def validate_providers(self, value):
         for provider in value:
-            if provider not in allowed_providers:
+            if provider not in PERSONAL_NOTIFICATION_PROVIDERS:
                 raise serializers.ValidationError("Invalid provider")
         return value
 

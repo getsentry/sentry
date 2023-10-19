@@ -7,8 +7,11 @@ from django.db import DEFAULT_DB_ALIAS, connections
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
-from sentry.models import GroupRuleStatus, GroupStatus, Rule
+from sentry.constants import ObjectStatus
+from sentry.models.group import GroupStatus
+from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.types import ActionTargetType
 from sentry.rules import init_registry
@@ -17,7 +20,13 @@ from sentry.rules.filters.base import EventFilter
 from sentry.rules.processor import RuleProcessor
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+from sentry.utils import json
+from sentry.utils.safe import safe_execute
+
+pytestmark = [requires_snuba]
 
 EMAIL_ACTION_DATA = {
     "id": "sentry.mail.actions.NotifyEmailAction",
@@ -85,10 +94,12 @@ class RuleProcessorTest(TestCase):
 
         results = list(rp.apply())
         assert len(results) == 1
-        assert (
-            RuleFireHistory.objects.filter(rule=self.rule, group=self.group_event.group).count()
-            == 2
+        rule_fire_histories = RuleFireHistory.objects.filter(
+            rule=self.rule, group=self.group_event.group
         )
+        assert rule_fire_histories.count() == 2
+        for rule_fire_history in rule_fire_histories:
+            assert getattr(rule_fire_history, "notification_uuid", None) is not None
 
     def test_ignored_issue(self):
         self.group_event.group.status = GroupStatus.IGNORED
@@ -117,6 +128,23 @@ class RuleProcessorTest(TestCase):
         )
         results = list(rp.apply())
         assert len(results) == 0
+
+    def test_disabled_rule(self):
+        self.rule.status = ObjectStatus.DISABLED
+        self.rule.save()
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=True,
+            has_reappeared=True,
+        )
+        results = list(rp.apply())
+        assert len(results) == 0
+        assert (
+            RuleFireHistory.objects.filter(rule=self.rule, group=self.group_event.group).count()
+            == 0
+        )
 
     def test_muted_slack_rule(self):
         """Test that we don't sent a notification for a muted Slack rule"""
@@ -160,14 +188,16 @@ class RuleProcessorTest(TestCase):
             ).count()
             == 0
         )
-        assert (
-            RuleFireHistory.objects.filter(rule=slack_rule, group=self.group_event.group).count()
-            == 1
+        slack_rule_fire_history = RuleFireHistory.objects.filter(
+            rule=slack_rule, group=self.group_event.group
         )
-        assert (
-            RuleFireHistory.objects.filter(rule=self.rule, group=self.group_event.group).count()
-            == 1
+        assert slack_rule_fire_history.count() == 1
+        assert getattr(slack_rule_fire_history[0], "notification_uuid", None) is not None
+        rule_fire_history = RuleFireHistory.objects.filter(
+            rule=self.rule, group=self.group_event.group
         )
+        assert rule_fire_history.count() == 1
+        assert getattr(rule_fire_history[0], "notification_uuid", None) is not None
 
     def test_muted_msteams_rule(self):
         """Test that we don't sent a notification for a muted MSTeams rule"""
@@ -225,14 +255,19 @@ class RuleProcessorTest(TestCase):
             ).count()
             == 0
         )
+        msteams_rule_fire_history = RuleFireHistory.objects.filter(
+            rule=msteams_rule, group=self.group_event.group
+        )
         assert (
             RuleFireHistory.objects.filter(rule=msteams_rule, group=self.group_event.group).count()
             == 1
         )
-        assert (
-            RuleFireHistory.objects.filter(rule=self.rule, group=self.group_event.group).count()
-            == 1
+        assert getattr(msteams_rule_fire_history[0], "notification_uuid", None) is not None
+        rule_fire_history = RuleFireHistory.objects.filter(
+            rule=self.rule, group=self.group_event.group
         )
+        assert rule_fire_history.count() == 1
+        assert getattr(rule_fire_history[0], "notification_uuid", None) is not None
 
     def run_query_test(self, rp, expected_queries):
         with CaptureQueriesContext(connections[DEFAULT_DB_ALIAS]) as queries:
@@ -635,3 +670,104 @@ class RuleProcessorTestFilters(TestCase):
         assert len(futures) == 1
         assert futures[0].rule == self.rule
         assert futures[0].kwargs == {}
+
+    @patch("sentry.shared_integrations.client.base.BaseApiClient.post")
+    def test_slack_title_link_notification_uuid(self, mock_post):
+        """Test that the slack title link includes the notification uuid from apply function"""
+        integration = install_slack(self.organization)
+        action_data = [
+            {
+                "channel": "#my-channel",
+                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                "workspace": integration.id,
+            },
+        ]
+        self.create_project_rule(self.project, action_data)
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=True,
+            has_reappeared=True,
+        )
+
+        for callback, futures in rp.apply():
+            safe_execute(callback, self.group_event, futures, _with_transaction=False)
+        mock_post.assert_called_once()
+        assert (
+            "notification_uuid"
+            in json.loads(mock_post.call_args[1]["data"]["attachments"])[0]["title_link"]
+        )
+
+    @patch("sentry.shared_integrations.client.base.BaseApiClient.post")
+    def test_msteams_title_link_notification_uuid(self, mock_post):
+        """Test that the slack title link includes the notification uuid from apply function"""
+        tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"
+        integration = self.create_integration(
+            self.organization,
+            tenant_id,
+            metadata={
+                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "service_url": "https://testserviceurl.com/testendpoint/",
+                "installation_type": "tenant",
+                "expires_at": 1234567890,
+                "tenant_id": tenant_id,
+            },
+            name="Personal Installation",
+            provider="msteams",
+        )
+
+        action_data = [
+            {
+                "channel": "secrets",
+                "id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+                "team": integration.id,
+            },
+        ]
+        self.create_project_rule(self.project, action_data, [])
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=True,
+            has_reappeared=True,
+        )
+
+        for callback, futures in rp.apply():
+            safe_execute(callback, self.group_event, futures, _with_transaction=False)
+        mock_post.assert_called_once()
+        assert (
+            "notification\\_uuid"
+            in mock_post.call_args[1]["data"]["attachments"][0]["content"]["body"][0]["text"]
+        )
+
+    @with_feature("organizations:integrations-discord-notifications")
+    @patch("sentry.integrations.discord.message_builder.base.DiscordMessageBuilder._build")
+    def test_discord_title_link_notification_uuid(self, mock_build):
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="1234567890",
+            name="Cool server",
+            provider="discord",
+        )
+
+        action_data = [
+            {
+                "channel": "Cool server",
+                "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                "server": integration.id,
+            },
+        ]
+        self.create_project_rule(self.project, action_data, [])
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=True,
+            has_reappeared=True,
+        )
+
+        for callback, futures in rp.apply():
+            safe_execute(callback, self.group_event, futures, _with_transaction=False)
+        mock_build.assert_called_once()
+        assert "notification_uuid" in mock_build.call_args[1]["embeds"][0].url

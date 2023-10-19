@@ -17,15 +17,14 @@ from sentry.api.serializers.models.project import (
     bulk_fetch_project_latest_releases,
 )
 from sentry.app import env
-from sentry.models import (
-    Deploy,
-    Environment,
-    EnvironmentProject,
-    Project,
-    Release,
-    ReleaseProjectEnvironment,
-    UserReport,
-)
+from sentry.features.base import ProjectFeature
+from sentry.models.deploy import Deploy
+from sentry.models.environment import Environment, EnvironmentProject
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.userreport import UserReport
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -46,6 +45,13 @@ class ProjectSerializerTest(TestCase):
         self.project = self.create_project(teams=[self.team], organization=self.organization)
 
     def test_simple(self):
+        result = serialize(self.project, self.user)
+        assert result["slug"] == self.project.slug
+        assert result["name"] == self.project.name
+        assert result["id"] == str(self.project.id)
+
+    @with_feature("organizations:notification-settings-v2")
+    def test_simple_settings_v2(self):
         result = serialize(self.project, self.user)
         assert result["slug"] == self.project.slug
         assert result["name"] == self.project.name
@@ -172,20 +178,20 @@ class ProjectSerializerTest(TestCase):
         req = self.make_request()
         req.user = self.user
         req.superuser.set_logged_in(req.user)
-        env.request = req
 
-        result = serialize(self.project, self.user)
-        assert result["access"] == TEAM_ADMIN["scopes"]
-        assert result["hasAccess"] is True
-        assert result["isMember"] is False
+        with mock.patch.object(env, "request", req):
+            result = serialize(self.project, self.user)
+            assert result["access"] == TEAM_ADMIN["scopes"]
+            assert result["hasAccess"] is True
+            assert result["isMember"] is False
 
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
-        result = serialize(self.project, self.user)
-        # after changing to allow_joinleave=False
-        assert result["access"] == TEAM_ADMIN["scopes"]
-        assert result["hasAccess"] is True
-        assert result["isMember"] is False
+            self.organization.flags.allow_joinleave = False
+            self.organization.save()
+            result = serialize(self.project, self.user)
+            # after changing to allow_joinleave=False
+            assert result["access"] == TEAM_ADMIN["scopes"]
+            assert result["hasAccess"] is True
+            assert result["isMember"] is False
 
     def test_member_on_owner_team(self):
         organization = self.create_organization()
@@ -271,9 +277,9 @@ class ProjectSerializerTest(TestCase):
 
             return ProjectColorFeatureHandler()
 
-        test_features.add(early_flag, features.ProjectFeature)
-        test_features.add(red_flag, features.ProjectFeature)
-        test_features.add(blue_flag, features.ProjectFeature)
+        test_features.add(early_flag, ProjectFeature)
+        test_features.add(red_flag, ProjectFeature)
+        test_features.add(blue_flag, ProjectFeature)
         red_handler = create_color_handler(red_flag, [early_red, late_red])
         blue_handler = create_color_handler(blue_flag, [early_blue, late_blue])
         for handler in (EarlyAdopterFeatureHandler(), red_handler, blue_handler):
@@ -690,6 +696,17 @@ class DetailedProjectSerializerTest(TestCase):
         assert "releases" in result["features"]
         assert result["platform"] == self.project.platform
         assert result["latestRelease"] == {"version": self.release.version}
+
+    def test_symbol_sources(self):
+        ProjectOption.objects.set_value(
+            project=self.project,
+            key="sentry:symbol_sources",
+            value='[{"id":"1","name":"hello","password":"password",}]',
+        )
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+
+        assert "sentry:token" not in result["options"]
+        assert "sentry:symbol_sources" not in result["options"]
 
 
 @region_silo_test(stable=True)

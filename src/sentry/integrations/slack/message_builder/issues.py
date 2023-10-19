@@ -17,7 +17,12 @@ from sentry.integrations.message_builder import (
 from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT, SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
-from sentry.models import ActorTuple, Group, GroupStatus, Project, Rule, Team, User
+from sentry.models.actor import ActorTuple
+from sentry.models.group import Group, GroupStatus
+from sentry.models.project import Project
+from sentry.models.rule import Rule
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
@@ -230,7 +235,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         """
         return True
 
-    def build(self) -> SlackBody:
+    def build(self, notification_uuid: str | None = None) -> SlackBody:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
 
@@ -286,6 +291,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
                 self.notification,
                 ExternalProviders.SLACK,
                 rule_id,
+                notification_uuid=notification_uuid,
             ),
             ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
         )
@@ -301,6 +307,7 @@ def build_group_attachment(
     link_to_event: bool = False,
     issue_details: bool = False,
     is_unfurl: bool = False,
+    notification_uuid: str | None = None,
 ) -> SlackBody:
     """@deprecated"""
     return SlackIssuesMessageBuilder(
@@ -313,4 +320,4 @@ def build_group_attachment(
         link_to_event,
         issue_details,
         is_unfurl=is_unfurl,
-    ).build()
+    ).build(notification_uuid=notification_uuid)

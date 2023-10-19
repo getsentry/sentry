@@ -1,83 +1,241 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from typing import NamedTuple
+import io
+from typing import BinaryIO
 
 import click
-from django.core.serializers import serialize
-from django.core.serializers.json import DjangoJSONEncoder
 
-from sentry.backup.dependencies import sorted_dependencies
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import (
+    PrimaryKeyMap,
+    dependencies,
+    get_model_name,
+    sorted_dependencies,
+)
+from sentry.backup.helpers import Filter, create_encrypted_export_tarball
+from sentry.backup.scopes import ExportScope
+from sentry.services.hybrid_cloud.import_export.model import (
+    RpcExportError,
+    RpcExportScope,
+    RpcFilter,
+    RpcPrimaryKeyMap,
+)
+from sentry.services.hybrid_cloud.import_export.service import (
+    ImportExportService,
+    import_export_service,
+)
+from sentry.silo.base import SiloMode
+from sentry.utils import json
 
-UTC_0 = timezone(timedelta(hours=0))
-
-
-class DatetimeSafeDjangoJSONEncoder(DjangoJSONEncoder):
-    """A wrapper around the default `DjangoJSONEncoder` that always retains milliseconds, even when
-    their implicit value is `.000`. This is necessary because the ECMA-262 compatible
-    `DjangoJSONEncoder` drops these by default."""
-
-    def default(self, obj):
-        if isinstance(obj, datetime):
-            return obj.astimezone(UTC_0).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
-        return super().default(obj)
-
-
-class OldExportConfig(NamedTuple):
-    """While we are migrating to the new backup system, we need to take care not to break the old
-    and relatively untested workflows. This model allows us to stub in the old configs."""
-
-    # Do we include models that aren't in `sentry.*` databases, like the native Django ones (sites,
-    # sessions, etc)?
-    include_non_sentry_models: bool = False
-
-    # A list of models to exclude from the export - eventually we want to deprecate and remove this
-    # option.
-    excluded_models: set[str] = set()
-
-    # Old exports use "natural" foreign keys, which in practice only changes how foreign keys into
-    # `sentry.User` are represented.
-    use_natural_foreign_keys: bool = False
+__all__ = (
+    "ExportingError",
+    "export_in_user_scope",
+    "export_in_organization_scope",
+    "export_in_config_scope",
+    "export_in_global_scope",
+)
 
 
-def exports(dest, old_config: OldExportConfig, indent: int, printer=click.echo):
-    """Exports core data for the Sentry installation."""
+class ExportingError(Exception):
+    def __init__(self, context: RpcExportError) -> None:
+        self.context = context
 
-    def yield_objects():
-        # Collate the objects to be serialized.
-        for model in sorted_dependencies():
-            # This is a bit confusing, but what it's saying is: any model that does not have
-            # `__relocation_scope__` set MUST be a non-Sentry model (we check this both in init-time
-            # testing and at runtime startup). We "deduce" a `RelocationScope` setting for this
-            # non-Sentry model based on the config the user passed in: if they set
-            # `old_config.include_non_sentry_models` to `True`, we set all deduced non-Sentry
-            # relocation scopes to `Global`. Otherwise, we just exclude them.
-            # print(f"Deduced rel scope for {model.__name__}: {inferred_relocation_scope.name}\n")
-            includable = old_config.include_non_sentry_models
-            if hasattr(model, "__relocation_scope__"):
-                # TODO(getsentry/team-ospo#166): Make this check more precise once we pipe the
-                # `scope` argument through.
-                if getattr(model, "__relocation_scope__") != RelocationScope.Excluded:
-                    includable = True
 
-            if (
-                not includable
-                or model.__name__.lower() in old_config.excluded_models
-                or model._meta.proxy
-            ):
-                printer(f">> Skipping model <{model.__name__}>", err=True)
-                continue
+def _export(
+    dest: BinaryIO,
+    scope: ExportScope,
+    *,
+    encrypt_with: BinaryIO | None = None,
+    indent: int = 2,
+    filter_by: Filter | None = None,
+    printer=click.echo,
+):
+    """
+    Exports core data for the Sentry installation.
 
-            queryset = model._base_manager.order_by(model._meta.pk.name)
-            yield from queryset.iterator()
+    It is generally preferable to avoid calling this function directly, as there are certain combinations of input parameters that should not be used together. Instead, use one of the other wrapper functions in this file, named `export_in_XXX_scope()`.
+    """
 
-    printer(">> Beginning export", err=True)
-    serialize(
-        "json",
-        yield_objects(),
+    # Import here to prevent circular module resolutions.
+    from sentry.models.organization import Organization
+    from sentry.models.organizationmember import OrganizationMember
+    from sentry.models.user import User
+
+    if SiloMode.get_current_mode() == SiloMode.CONTROL:
+        errText = "Exports must be run in REGION or MONOLITH instances only"
+        printer(errText, err=True)
+        raise RuntimeError(errText)
+
+    json_export = []
+    pk_map = PrimaryKeyMap()
+    allowed_relocation_scopes = scope.value
+    filters = []
+    if filter_by is not None:
+        filters.append(filter_by)
+        if filter_by.model == Organization:
+            if filter_by.field not in {"pk", "id", "slug"}:
+                raise ValueError(
+                    "Filter arguments must only apply to `Organization`'s `slug` field"
+                )
+
+            org_pks = set(
+                Organization.objects.filter(slug__in=filter_by.values).values_list("id", flat=True)
+            )
+            user_pks = set(
+                OrganizationMember.objects.filter(organization_id__in=org_pks).values_list(
+                    "user_id", flat=True
+                )
+            )
+            filters.append(Filter(User, "pk", set(user_pks)))
+        elif filter_by.model == User:
+            if filter_by.field not in {"pk", "id", "username"}:
+                raise ValueError("Filter arguments must only apply to `User`'s `username` field")
+        else:
+            raise ValueError("Filter arguments must only apply to `Organization` or `User` models")
+
+    # TODO(getsentry/team-ospo#190): Another optimization opportunity to use a generator with ijson # to print the JSON objects in a streaming manner.
+    for model in sorted_dependencies():
+        from sentry.db.models.base import BaseModel
+
+        if not issubclass(model, BaseModel):
+            continue
+
+        possible_relocation_scopes = model.get_possible_relocation_scopes()
+        includable = possible_relocation_scopes & allowed_relocation_scopes
+        if not includable or model._meta.proxy:
+            continue
+
+        model_name = get_model_name(model)
+        model_relations = dependencies().get(model_name)
+        if not model_relations:
+            continue
+
+        dep_models = {get_model_name(d) for d in model_relations.get_dependencies_for_relocation()}
+        export_by_model = ImportExportService.get_exporter_for_model(model)
+        result = export_by_model(
+            model_name=str(model_name),
+            scope=RpcExportScope.into_rpc(scope),
+            from_pk=0,
+            filter_by=[RpcFilter.into_rpc(f) for f in filters],
+            pk_map=RpcPrimaryKeyMap.into_rpc(pk_map.partition(dep_models)),
+            indent=indent,
+        )
+
+        if isinstance(result, RpcExportError):
+            printer(result.pretty(), err=True)
+            raise ExportingError(result)
+
+        pk_map.extend(result.mapped_pks.from_rpc())
+
+        # TODO(getsentry/team-ospo#190): Since the structure of this data is very predictable (an
+        # array of serialized model objects), we could probably avoid re-ingesting the JSON string
+        # as a future optimization.
+        for json_model in json.loads(result.json_data):
+            json_export.append(json_model)
+
+    # If no `encrypt_with` argument was passed in, this is an unencrypted export, so we can just
+    # dump the JSON into the `dest` file and exit early.
+    if encrypt_with is None:
+        dest_wrapper = io.TextIOWrapper(dest, encoding="utf-8", newline="")
+        json.dump(json_export, dest_wrapper)
+        dest_wrapper.detach()
+        return
+
+    dest.write(create_encrypted_export_tarball(json_export, encrypt_with).getvalue())
+
+
+def export_in_user_scope(
+    dest: BinaryIO,
+    *,
+    encrypt_with: BinaryIO | None = None,
+    user_filter: set[str] | None = None,
+    indent: int = 2,
+    printer=click.echo,
+):
+    """
+    Perform an export in the `User` scope, meaning that only models with `RelocationScope.User` will
+    be exported from the provided `dest` file.
+    """
+
+    # Import here to prevent circular module resolutions.
+    from sentry.models.user import User
+
+    return _export(
+        dest,
+        ExportScope.User,
+        encrypt_with=encrypt_with,
+        filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
         indent=indent,
-        stream=dest,
-        use_natural_foreign_keys=old_config.use_natural_foreign_keys,
-        cls=DatetimeSafeDjangoJSONEncoder,
+        printer=printer,
+    )
+
+
+def export_in_organization_scope(
+    dest: BinaryIO,
+    *,
+    encrypt_with: BinaryIO | None = None,
+    org_filter: set[str] | None = None,
+    indent: int = 2,
+    printer=click.echo,
+):
+    """
+    Perform an export in the `Organization` scope, meaning that only models with
+    `RelocationScope.User` or `RelocationScope.Organization` will be exported from the provided
+    `dest` file.
+    """
+
+    # Import here to prevent circular module resolutions.
+    from sentry.models.organization import Organization
+
+    return _export(
+        dest,
+        ExportScope.Organization,
+        encrypt_with=encrypt_with,
+        filter_by=Filter(Organization, "slug", org_filter) if org_filter is not None else None,
+        indent=indent,
+        printer=printer,
+    )
+
+
+def export_in_config_scope(
+    dest: BinaryIO,
+    *,
+    encrypt_with: BinaryIO | None = None,
+    indent: int = 2,
+    printer=click.echo,
+):
+    """
+    Perform an export in the `Config` scope, meaning that only models directly related to the global
+    configuration and administration of an entire Sentry instance will be exported.
+    """
+
+    # Import here to prevent circular module resolutions.
+    from sentry.models.user import User
+
+    return _export(
+        dest,
+        ExportScope.Config,
+        encrypt_with=encrypt_with,
+        filter_by=Filter(User, "pk", import_export_service.get_all_globally_privileged_users()),
+        indent=indent,
+        printer=printer,
+    )
+
+
+def export_in_global_scope(
+    dest: BinaryIO,
+    *,
+    encrypt_with: BinaryIO | None = None,
+    indent: int = 2,
+    printer=click.echo,
+):
+    """
+    Perform an export in the `Global` scope, meaning that all models will be exported from the
+    provided source file.
+    """
+    return _export(
+        dest,
+        ExportScope.Global,
+        encrypt_with=encrypt_with,
+        indent=indent,
+        printer=printer,
     )

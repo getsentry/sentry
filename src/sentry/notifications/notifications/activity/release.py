@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 from typing import Any, Iterable, Mapping, MutableMapping, Sequence
+from urllib.parse import urlencode
 
 from sentry_relay.processing import parse_release
 
-from sentry.models import Activity, Commit, OrganizationMember, Project
+from sentry.models.activity import Activity
+from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.notifications.utils import (
     get_deploy,
@@ -82,7 +86,10 @@ class ReleaseActivityNotification(ActivityNotification):
             "release": self.release,
             "repos": self.repos,
             "setup_repo_link": self.organization.absolute_url(
-                f"/organizations/{self.organization.slug}/repos/"
+                f"/organizations/{self.organization.slug}/repos/",
+                query=urlencode(
+                    {"referrer": self.metrics_key, "notification_uuid": self.notification_uuid}
+                ),
             ),
             "text_description": f"Version {self.version_parsed} was deployed to {self.environment}",
             "version_parsed": self.version_parsed,
@@ -110,7 +117,10 @@ class ReleaseActivityNotification(ActivityNotification):
         projects = self.get_projects(recipient)
         release_links = [
             self.organization.absolute_url(
-                f"/organizations/{self.organization.slug}/releases/{self.version}/?project={p.id}"
+                f"/organizations/{self.organization.slug}/releases/{self.version}/?project={p.id}",
+                query=urlencode(
+                    {"referrer": self.metrics_key, "notification_uuid": self.notification_uuid}
+                ),
             )
             for p in projects
         ]
@@ -150,7 +160,7 @@ class ReleaseActivityNotification(ActivityNotification):
                         name=project.slug,
                         url=self.organization.absolute_url(
                             f"/organizations/{project.organization.slug}/releases/{release.version}/",
-                            query=f"project={project.id}&unselectedSeries=Healthy",
+                            query=f"project={project.id}&unselectedSeries=Healthy&referrer={self.metrics_key}&notification_uuid={self.notification_uuid}",
                         ),
                     )
                     for project in self.release.projects.all()

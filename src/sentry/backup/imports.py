@@ -1,125 +1,325 @@
 from __future__ import annotations
 
-from io import StringIO
-from typing import NamedTuple
+from typing import BinaryIO, Iterator, Optional, Tuple, Type
 
 import click
-from django.apps import apps
-from django.core import management, serializers
-from django.db import IntegrityError, connection, transaction
-from django.forms import model_to_dict
+from django.core import serializers
+from django.db import transaction
+from django.db.models.base import Model
 
-from sentry.backup.dependencies import PrimaryKeyMap, dependencies, normalize_model_name
-from sentry.backup.helpers import EXCLUDED_APPS
+from sentry.backup.dependencies import (
+    NormalizedModelName,
+    PrimaryKeyMap,
+    dependencies,
+    get_model_name,
+)
+from sentry.backup.helpers import Filter, ImportFlags, decrypt_encrypted_tarball
+from sentry.backup.scopes import ImportScope
+from sentry.services.hybrid_cloud.import_export.model import (
+    RpcFilter,
+    RpcImportError,
+    RpcImportErrorKind,
+    RpcImportFlags,
+    RpcImportScope,
+    RpcPrimaryKeyMap,
+)
+from sentry.services.hybrid_cloud.import_export.service import ImportExportService
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
+from sentry.utils import json
+from sentry.utils.env import is_split_db
+
+__all__ = (
+    "ImportingError",
+    "import_in_user_scope",
+    "import_in_organization_scope",
+    "import_in_config_scope",
+    "import_in_global_scope",
+)
 
 
-class OldImportConfig(NamedTuple):
-    """While we are migrating to the new backup system, we need to take care not to break the old
-    and relatively untested workflows. This model allows us to stub in the old configs."""
-
-    # Do we allow users to update existing models, or force them to only insert new ones? The old
-    # behavior was to allow updates of already included models, but we want to move away from this.
-    # TODO(getsentry/team-ospo#170): This is a noop for now, but will be used as we migrate to
-    # `INSERT-only` importing logic.
-    use_update_instead_of_create: bool = False
-
-    # Old imports use "natural" foreign keys, which in practice only changes how foreign keys into
-    # `sentry.User` are represented.
-    use_natural_foreign_keys: bool = False
+class ImportingError(Exception):
+    def __init__(self, context: RpcImportError) -> None:
+        self.context = context
 
 
-def imports(src, old_config: OldImportConfig, printer=click.echo):
-    """Imports core data for the Sentry installation."""
+def _import(
+    src: BinaryIO,
+    scope: ImportScope,
+    *,
+    decrypt_with: BinaryIO | None = None,
+    flags: ImportFlags | None = None,
+    filter_by: Filter | None = None,
+    printer=click.echo,
+):
+    """
+    Imports core data for a Sentry installation.
 
-    # TODO(hybrid-cloud): actor refactor. Remove this import when done.
-    from sentry.models.actor import Actor
+    It is generally preferable to avoid calling this function directly, as there are certain combinations of input parameters that should not be used together. Instead, use one of the other wrapper functions in this file, named `import_in_XXX_scope()`.
+    """
 
-    try:
-        # Import / export only works in monolith mode with a consolidated db.
-        with transaction.atomic("default"):
-            pk_map = PrimaryKeyMap()
-            deps = dependencies()
+    # Import here to prevent circular module resolutions.
+    from sentry.models.email import Email
+    from sentry.models.organization import Organization
+    from sentry.models.organizationmember import OrganizationMember
+    from sentry.models.user import User
 
-            for obj in serializers.deserialize(
-                "json", src, stream=True, use_natural_keys=old_config.use_natural_foreign_keys
-            ):
-                if obj.object._meta.app_label not in EXCLUDED_APPS:
-                    # TODO(getsentry/team-ospo#183): This conditional should be removed once we want
-                    # to roll out the new API to self-hosted.
-                    if old_config.use_update_instead_of_create:
-                        obj.save()
-                    else:
-                        o = obj.object
-                        label = o._meta.label_lower
-                        model_name = normalize_model_name(o)
-                        for field, model_relation in deps[model_name].foreign_keys.items():
-                            field_id = field if field.endswith("_id") else f"{field}_id"
-                            fk = getattr(o, field_id, None)
-                            if fk is not None:
-                                new_pk = pk_map.get(normalize_model_name(model_relation.model), fk)
-                                # TODO(getsentry/team-ospo#167): Will allow missing items when we
-                                # implement org-based filtering.
-                                setattr(o, field_id, new_pk)
+    if SiloMode.get_current_mode() == SiloMode.CONTROL:
+        errText = "Imports must be run in REGION or MONOLITH instances only"
+        printer(errText, err=True)
+        raise RuntimeError(errText)
 
-                        old_pk = o.pk
-                        o.pk = None
-                        o.id = None
+    flags = flags if flags is not None else ImportFlags()
+    user_model_name = get_model_name(User)
+    org_model_name = get_model_name(Organization)
+    org_member_model_name = get_model_name(OrganizationMember)
 
-                        # TODO(hybrid-cloud): actor refactor. Remove this conditional when done.
-                        #
-                        # `Actor` and `Team` have a direct circular dependency between them for the
-                        # time being due to an ongoing refactor (that is, `Actor` foreign keys
-                        # directly into `Team`, and `Team` foreign keys directly into `Actor`). If
-                        # we use `INSERT` database calls naively, they will always fail, because one
-                        # half of the cycle will always be missing.
-                        #
-                        # Because `Actor` ends up first in the dependency sorting (see:
-                        # fixtures/backup/model_dependencies/sorted.json), a viable solution here is
-                        # to always null out the `team_id` field of the `Actor` when we write it,
-                        # and then make sure to circle back and update the relevant actor after we
-                        # create the `Team` models later on (see snippet at the end of this scope).
-                        if label == "sentry.actor":
-                            o.team_id = None
+    # TODO(getsentry#team-ospo/190): Reading the entire export into memory as a string is quite
+    # wasteful - in the future, we should explore chunking strategies to enable a smaller memory
+    # footprint when processing super large (>100MB) exports.
+    content = (
+        decrypt_encrypted_tarball(src, decrypt_with)
+        if decrypt_with is not None
+        else src.read().decode("utf-8")
+    )
+    filters = []
+    if filter_by is not None:
+        filters.append(filter_by)
 
-                        # TODO(getsentry/team-ospo#181): what's up with email/useremail here? Seems
-                        # like both gets added with `sentry.user` simultaneously? Will need to make
-                        # more robust user handling logic, and to test what happens when a UserEmail
-                        # already exists.
-                        if label == "sentry.useremail":
-                            (o, _) = o.__class__.objects.get_or_create(
-                                user=o.user, email=o.email, defaults=model_to_dict(o)
-                            )
-                            pk_map.insert(model_name, old_pk, o.pk)
-                            continue
+        # `sentry.Email` models don't have any explicit dependencies on `User`, so we need to find
+        # and record them manually.
+        user_to_email = dict()
 
-                        obj.save(force_insert=True)
-                        pk_map.insert(model_name, old_pk, o.pk)
+        if filter_by.model == Organization:
+            # To properly filter organizations, we need to grab their users first. There is no
+            # elegant way to do this: we'll just have to read the import JSON until we get to the
+            # bit that contains the `sentry.Organization` entries, filter them by their slugs, then
+            # look through the subsequent `sentry.OrganizationMember` entries to pick out members of
+            # matched orgs, and finally add those pks to a `User.pk` instance of `Filter`.
+            filtered_org_pks = set()
+            seen_first_org_member_model = False
+            user_filter: Filter[int] = Filter(model=User, field="pk")
+            filters.append(user_filter)
 
-                        # TODO(hybrid-cloud): actor refactor. Remove this conditional when done.
-                        if label == "sentry.team":
-                            if o.actor_id is not None:
-                                actor = Actor.objects.get(pk=o.actor_id)
-                                actor.team_id = o.pk
-                                actor.save()
+            # TODO(getsentry#team-ospo/190): It turns out that Django's "streaming" JSON
+            # deserializer does no such thing, and actually loads the entire JSON into memory! If we
+            # don't want to choke on large imports, we'll need use a truly "chunkable" JSON
+            # importing library like ijson for this.
+            for obj in serializers.deserialize("json", content):
+                o = obj.object
+                model_name = get_model_name(o)
+                if model_name == user_model_name:
+                    username = getattr(o, "username", None)
+                    email = getattr(o, "email", None)
+                    if username is not None and email is not None:
+                        user_to_email[username] = email
+                elif model_name == org_model_name:
+                    pk = getattr(o, "pk", None)
+                    slug = getattr(o, "slug", None)
+                    if pk is not None and slug in filter_by.values:
+                        filtered_org_pks.add(pk)
+                elif model_name == org_member_model_name:
+                    seen_first_org_member_model = True
+                    user = getattr(o, "user_id", None)
+                    org = getattr(o, "organization_id", None)
+                    if user is not None and org in filtered_org_pks:
+                        user_filter.values.add(user)
+                elif seen_first_org_member_model:
+                    # Exports should be grouped by model, so we've already seen every user, org and
+                    # org member we're going to see. We can ignore the rest of the models.
+                    break
+        elif filter_by.model == User:
+            seen_first_user_model = False
+            for obj in serializers.deserialize("json", content):
+                o = obj.object
+                model_name = get_model_name(o)
+                if model_name == user_model_name:
+                    seen_first_user_model = False
+                    username = getattr(o, "username", None)
+                    email = getattr(o, "email", None)
+                    if username is not None and email is not None:
+                        user_to_email[username] = email
+                elif seen_first_user_model:
+                    break
+        else:
+            raise TypeError("Filter arguments must only apply to `Organization` or `User` models")
 
-    # For all database integrity errors, let's warn users to follow our
-    # recommended backup/restore workflow before reraising exception. Most of
-    # these errors come from restoring on a different version of Sentry or not restoring
-    # on a clean install.
-    except IntegrityError as e:
-        warningText = ">> Are you restoring from a backup of the same version of Sentry?\n>> Are you restoring onto a clean database?\n>> If so then this IntegrityError might be our fault, you can open an issue here:\n>> https://github.com/getsentry/sentry/issues/new/choose"
-        printer(
-            warningText,
-            err=True,
+        user_filter = next(f for f in filters if f.model == User)
+        email_filter = Filter(
+            model=Email,
+            field="email",
+            values={v for k, v in user_to_email.items() if k in user_filter.values},
         )
-        raise (e)
 
-    sequence_reset_sql = StringIO()
+        filters.append(email_filter)
 
-    for app in apps.get_app_configs():
-        management.call_command(
-            "sqlsequencereset", app.label, "--no-color", stdout=sequence_reset_sql
-        )
+    # The input JSON blob should already be ordered by model kind. We simply break up 1 JSON blob
+    # with N model kinds into N json blobs with 1 model kind each.
+    def yield_json_models(src) -> Iterator[Tuple[NormalizedModelName, str]]:
+        # TODO(getsentry#team-ospo/190): Better error handling for unparsable JSON.
+        models = json.loads(content)
+        last_seen_model_name: Optional[NormalizedModelName] = None
+        batch: list[Type[Model]] = []
+        for model in models:
+            model_name = NormalizedModelName(model["model"])
+            if last_seen_model_name != model_name:
+                if last_seen_model_name is not None and len(batch) > 0:
+                    yield (last_seen_model_name, json.dumps(batch))
 
-    with connection.cursor() as cursor:
-        cursor.execute(sequence_reset_sql.getvalue())
+                batch = []
+                last_seen_model_name = model_name
+
+            batch.append(model)
+
+        if last_seen_model_name is not None and batch:
+            yield (last_seen_model_name, json.dumps(batch))
+
+    # Extract some write logic into its own internal function, so that we may call it irrespective
+    # of how we do atomicity: on a per-model (if using multiple dbs) or global (if using a single
+    # db) basis.
+    def do_write():
+        pk_map = PrimaryKeyMap()
+        for model_name, json_data in yield_json_models(src):
+            model_relations = dependencies().get(model_name)
+            if not model_relations:
+                continue
+
+            dep_models = {
+                get_model_name(d) for d in model_relations.get_dependencies_for_relocation()
+            }
+            import_by_model = ImportExportService.get_importer_for_model(model_relations.model)
+            result = import_by_model(
+                model_name=str(model_name),
+                scope=RpcImportScope.into_rpc(scope),
+                flags=RpcImportFlags.into_rpc(flags),
+                filter_by=[RpcFilter.into_rpc(f) for f in filters],
+                pk_map=RpcPrimaryKeyMap.into_rpc(pk_map.partition(dep_models)),
+                json_data=json_data,
+            )
+
+            if isinstance(result, RpcImportError):
+                printer(result.pretty(), err=True)
+                if result.get_kind() == RpcImportErrorKind.IntegrityError:
+                    warningText = ">> Are you restoring from a backup of the same version of Sentry?\n>> Are you restoring onto a clean database?\n>> If so then this IntegrityError might be our fault, you can open an issue here:\n>> https://github.com/getsentry/sentry/issues/new/choose"
+                    printer(warningText, err=True)
+                raise ImportingError(result)
+            pk_map.extend(result.mapped_pks)
+
+    if SiloMode.get_current_mode() == SiloMode.MONOLITH and not is_split_db():
+        with unguarded_write(using="default"), transaction.atomic(using="default"):
+            do_write()
+    else:
+        do_write()
+
+
+def import_in_user_scope(
+    src: BinaryIO,
+    *,
+    decrypt_with: BinaryIO | None = None,
+    flags: ImportFlags | None = None,
+    user_filter: set[str] | None = None,
+    printer=click.echo,
+):
+    """
+    Perform an import in the `User` scope, meaning that only models with `RelocationScope.User` will be imported from the provided `src` file.
+
+    The `user_filter` argument allows imports to be filtered by username. If the argument is set to `None`, there is no filtering, meaning all encountered users are imported.
+    """
+
+    # Import here to prevent circular module resolutions.
+    from sentry.models.user import User
+
+    return _import(
+        src,
+        ImportScope.User,
+        decrypt_with=decrypt_with,
+        flags=flags,
+        filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
+        printer=printer,
+    )
+
+
+def import_in_organization_scope(
+    src: BinaryIO,
+    *,
+    decrypt_with: BinaryIO | None = None,
+    flags: ImportFlags | None = None,
+    org_filter: set[str] | None = None,
+    printer=click.echo,
+):
+    """
+    Perform an import in the `Organization` scope, meaning that only models with
+    `RelocationScope.User` or `RelocationScope.Organization` will be imported from the provided
+    `src` file.
+
+    The `org_filter` argument allows imports to be filtered by organization slug. If the argument
+    is set to `None`, there is no filtering, meaning all encountered organizations and users are
+    imported.
+    """
+
+    # Import here to prevent circular module resolutions.
+    from sentry.models.organization import Organization
+
+    return _import(
+        src,
+        ImportScope.Organization,
+        decrypt_with=decrypt_with,
+        flags=flags,
+        filter_by=Filter(Organization, "slug", org_filter) if org_filter is not None else None,
+        printer=printer,
+    )
+
+
+def import_in_config_scope(
+    src: BinaryIO,
+    *,
+    decrypt_with: BinaryIO | None = None,
+    flags: ImportFlags | None = None,
+    user_filter: set[str] | None = None,
+    printer=click.echo,
+):
+    """
+    Perform an import in the `Config` scope, meaning that we will import all models required to
+    globally configure and administrate a Sentry instance from the provided `src` file. This
+    requires importing all users in the supplied file, including those with administrator
+    privileges.
+
+    Like imports in the `Global` scope, superuser and administrator privileges are not sanitized.
+    Unlike the `Global` scope, however, user-specific authentication information 2FA methods and
+    social login connections are not retained.
+    """
+
+    # Import here to prevent circular module resolutions.
+    from sentry.models.user import User
+
+    return _import(
+        src,
+        ImportScope.Config,
+        decrypt_with=decrypt_with,
+        flags=flags,
+        filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
+        printer=printer,
+    )
+
+
+def import_in_global_scope(
+    src: BinaryIO,
+    *,
+    decrypt_with: BinaryIO | None = None,
+    flags: ImportFlags | None = None,
+    printer=click.echo,
+):
+    """
+    Perform an import in the `Global` scope, meaning that all models will be imported from the
+    provided source file. Because a `Global` import is really only useful when restoring to a fresh
+    Sentry instance, some behaviors in this scope are different from the others. In particular,
+    superuser privileges are not sanitized. This method can be thought of as a "pure" backup/restore, simply serializing and deserializing a (partial) snapshot of the database state.
+    """
+
+    return _import(
+        src,
+        ImportScope.Global,
+        decrypt_with=decrypt_with,
+        flags=flags,
+        printer=printer,
+    )

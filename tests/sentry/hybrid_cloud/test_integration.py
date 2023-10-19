@@ -3,8 +3,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import List
 
-from freezegun import freeze_time
-
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
 from sentry.models.integrations.integration import Integration
@@ -20,6 +18,7 @@ from sentry.services.hybrid_cloud.integration.serial import (
 )
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.types.integrations import ExternalProviders
 
@@ -168,9 +167,11 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
             integration_ids=[i.id for i in integrations], metadata=new_metadata
         )
         for i in integrations:
+            original_time = i.date_updated
             assert i.metadata != new_metadata
             i.refresh_from_db()
             assert i.metadata == new_metadata
+            assert original_time != i.date_updated, "date_updated should change"
 
     def test_get_installation(self):
         api_integration1 = serialize_integration(integration=self.integration1)

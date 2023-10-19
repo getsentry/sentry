@@ -11,6 +11,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import QuietBasicAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import SsoRequired
@@ -18,7 +19,7 @@ from sentry.api.serializers import DetailedSelfUserSerializer, serialize
 from sentry.api.validators import AuthVerifyValidator
 from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.auth.superuser import Superuser
-from sentry.models import Authenticator
+from sentry.models.authenticator import Authenticator
 from sentry.services.hybrid_cloud.auth.impl import promote_request_rpc_user
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import auth, json, metrics
@@ -40,6 +41,12 @@ DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = getattr(
 
 @control_silo_endpoint
 class AuthIndexEndpoint(Endpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     """
     Manage session authentication
 

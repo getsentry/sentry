@@ -10,6 +10,7 @@ from sentry_sdk import start_span
 
 from sentry import features, search
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventPermission, OrganizationEventsEndpointBase
 from sentry.api.event_search import SearchFilter
@@ -28,15 +29,11 @@ from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnub
 from sentry.api.utils import InvalidParams, get_date_range_from_stats_period
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import (
-    QUERY_STATUS_LOOKUP,
-    Environment,
-    Group,
-    GroupEnvironment,
-    GroupInbox,
-    GroupStatus,
-    Project,
-)
+from sentry.models.environment import Environment
+from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.groupinbox import GroupInbox
+from sentry.models.project import Project
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import get_search_filter
@@ -140,6 +137,11 @@ def inbox_search(
 
 @region_silo_endpoint
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     owner = ApiOwner.ISSUES
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
@@ -226,7 +228,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                                           issues belong to.
         :auth: required
         :qparam list expand: an optional list of strings to opt in to additional data. Supports `inbox`
-        :qparam list collapse: an optional list of strings to opt out of certain pieces of data. Supports `stats`, `lifetime`, `base`
+        :qparam list collapse: an optional list of strings to opt out of certain pieces of data. Supports `stats`, `lifetime`, `base`, `unhandled`
         """
         stats_period = request.GET.get("groupStatsPeriod")
         try:
@@ -469,11 +471,13 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         Only queries by 'id' are accepted.
 
-        If any ids are out of scope this operation will succeed without
+        If any IDs are out of scope this operation will succeed without
         any data mutation.
 
         :qparam int id: a list of IDs of the issues to be removed.  This
-                        parameter shall be repeated for each issue.
+                        parameter shall be repeated for each issue, e.g.
+                        `?id=1&id=2&id=3`. If this parameter is not provided,
+                        it will attempt to remove the first 1000 issues.
         :pparam string organization_slug: the slug of the organization the
                                           issues belong to.
         :auth: required

@@ -6,17 +6,25 @@ from sentry import digests
 from sentry.digests import Digest
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import event_to_record, unsplit_key
-from sentry.models import NotificationSetting, Project, ProjectOption
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
+from sentry.notifications.helpers import should_use_notifications_v2
+from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.notifications.user_report import UserReportNotification
-from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.notifications.types import (
+    ActionTargetType,
+    FallthroughChoiceType,
+    NotificationSettingEnum,
+)
 from sentry.plugins.base.structs import Notification
 from sentry.services.hybrid_cloud.actor import ActorType
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.tasks.digests import deliver_digest
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -41,6 +49,7 @@ class MailAdapter:
         target_identifier: Optional[int] = None,
         fallthrough_choice: Optional[FallthroughChoiceType] = None,
         skip_digests: bool = False,
+        notification_uuid: Optional[str] = None,
     ) -> None:
         metrics.incr("mail_adapter.rule_notify")
         rules = []
@@ -76,18 +85,20 @@ class MailAdapter:
             extra["digest_key"] = digest_key
             immediate_delivery = digests.add(
                 digest_key,
-                event_to_record(event, rules),
+                event_to_record(event, rules, notification_uuid=notification_uuid),
                 increment_delay=get_digest_option("increment_delay"),
                 maximum_delay=get_digest_option("maximum_delay"),
             )
             if immediate_delivery:
-                deliver_digest.delay(digest_key)
+                deliver_digest.delay(digest_key, notification_uuid=notification_uuid)
             else:
                 log_event = "digested"
 
         else:
             notification = Notification(event=event, rules=rules)
-            self.notify(notification, target_type, target_identifier, fallthrough_choice)
+            self.notify(
+                notification, target_type, target_identifier, fallthrough_choice, notification_uuid
+            )
 
         logger.info("mail.adapter.notification.%s" % log_event, extra=extra)
 
@@ -99,6 +110,19 @@ class MailAdapter:
         """
         user_ids = project.member_set.values_list("user_id", flat=True)
         users = user_service.get_many(filter=dict(user_ids=list(user_ids)))
+
+        if should_use_notifications_v2(project.organization):
+            controller = NotificationController(
+                recipients=users,
+                project_ids=[project.id],
+                organization_id=project.organization_id,
+                provider=ExternalProviderEnum.EMAIL,
+                type=NotificationSettingEnum.ISSUE_ALERTS,
+            )
+            return controller.get_notification_recipients(
+                type=NotificationSettingEnum.ISSUE_ALERTS,
+                actor_type=ActorType.USER,
+            )[ExternalProviders.EMAIL]
 
         accepting_recipients = NotificationSetting.objects.filter_to_accepting_recipients(
             project, users
@@ -123,10 +147,19 @@ class MailAdapter:
 
     @staticmethod
     def notify(
-        notification, target_type, target_identifier=None, fallthrough_choice=None, **kwargs
+        notification,
+        target_type,
+        target_identifier=None,
+        fallthrough_choice=None,
+        notification_uuid: Optional[str] = None,
+        **kwargs,
     ):
         AlertRuleNotification(
-            notification, target_type, target_identifier, fallthrough_choice
+            notification,
+            target_type,
+            target_identifier,
+            fallthrough_choice,
+            notification_uuid=notification_uuid,
         ).send()
 
     @staticmethod
@@ -136,10 +169,16 @@ class MailAdapter:
         target_type: ActionTargetType,
         target_identifier: Optional[int] = None,
         fallthrough_choice: Optional[FallthroughChoiceType] = None,
+        notification_uuid: Optional[str] = None,
     ) -> None:
         metrics.incr("mail_adapter.notify_digest")
         return DigestNotification(
-            project, digest, target_type, target_identifier, fallthrough_choice
+            project,
+            digest,
+            target_type,
+            target_identifier,
+            fallthrough_choice,
+            notification_uuid=notification_uuid,
         ).send()
 
     @staticmethod

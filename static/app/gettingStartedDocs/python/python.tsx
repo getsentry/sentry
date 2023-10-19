@@ -1,12 +1,24 @@
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
+const performanceConfiguration = `    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    traces_sample_rate=1.0,`;
+
+const profilingConfiguration = `    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,`;
+
 export const steps = ({
-  dsn,
-}: Partial<Pick<ModuleProps, 'dsn'>> = {}): LayoutProps['steps'] => [
+  sentryInitContent,
+}: {
+  sentryInitContent?: string;
+} = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
@@ -35,14 +47,8 @@ export const steps = ({
 import sentry_sdk
 
 sentry_sdk.init(
-  dsn="${dsn}",
-
-  # Set traces_sample_rate to 1.0 to capture 100%
-  # of transactions for performance monitoring.
-  # We recommend adjusting this value in production.
-  traces_sample_rate=1.0
-)
-        `,
+${sentryInitContent}
+) `,
       },
     ],
     additionalInfo: (
@@ -72,8 +78,33 @@ sentry_sdk.init(
 ];
 // Configuration End
 
-export function GettingStartedWithPython({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} {...props} />;
+export function GettingStartedWithPython({
+  dsn,
+  activeProductSelection = [],
+  ...props
+}: ModuleProps) {
+  const otherConfigs: string[] = [];
+
+  let sentryInitContent: string[] = [`    dsn="${dsn}",`];
+
+  if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {
+    otherConfigs.push(performanceConfiguration);
+  }
+
+  if (activeProductSelection.includes(ProductSolution.PROFILING)) {
+    otherConfigs.push(profilingConfiguration);
+  }
+
+  sentryInitContent = sentryInitContent.concat(otherConfigs);
+
+  return (
+    <Layout
+      steps={steps({
+        sentryInitContent: sentryInitContent.join('\n'),
+      })}
+      {...props}
+    />
+  );
 }
 
 export default GettingStartedWithPython;

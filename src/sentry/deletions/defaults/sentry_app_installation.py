@@ -4,9 +4,11 @@ from .apigrant import ModelApiGrantDeletionTask
 
 class SentryAppInstallationDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
-        from sentry.models import (
-            ApiGrant,
+        from sentry.models.apigrant import ApiGrant
+        from sentry.models.integrations.sentry_app_installation_for_provider import (
             SentryAppInstallationForProvider,
+        )
+        from sentry.models.integrations.sentry_app_installation_token import (
             SentryAppInstallationToken,
         )
 

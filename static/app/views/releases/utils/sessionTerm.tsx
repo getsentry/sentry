@@ -1,5 +1,5 @@
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
+import type {PlatformKey} from 'sentry/types';
 
 export enum SessionTerm {
   CRASHES = 'crashes',

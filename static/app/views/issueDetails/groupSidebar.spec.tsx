@@ -1,12 +1,20 @@
+import {Tags} from 'sentry-fixture/tags';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
 
 import GroupSidebar from './groupSidebar';
 
 describe('GroupSidebar', function () {
-  let group = TestStubs.Group({tags: TestStubs.Tags()});
+  let group = TestStubs.Group({tags: Tags()});
   const {organization, project} = initializeOrg();
   const environment = 'production';
   let tagsMock: jest.Mock;
@@ -27,22 +35,22 @@ describe('GroupSidebar', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/groups/1/integrations/',
+      url: `/organizations/${organization.slug}/issues/1/integrations/`,
       body: [],
     });
 
     MockApiClient.addMockResponse({
-      url: '/issues/1/',
+      url: `/organizations/${organization.slug}/issues/1/`,
       body: group,
     });
 
     MockApiClient.addMockResponse({
-      url: '/issues/1/current-release/',
+      url: `/organizations/${organization.slug}/issues/1/current-release/`,
       body: {},
     });
 
     MockApiClient.addMockResponse({
-      url: '/groups/1/external-issues/',
+      url: `/organizations/${organization.slug}/issues/1/external-issues/`,
       body: [],
     });
 
@@ -60,15 +68,15 @@ describe('GroupSidebar', function () {
       body: [],
     });
     tagsMock = MockApiClient.addMockResponse({
-      url: '/issues/1/tags/',
-      body: TestStubs.Tags(),
+      url: `/organizations/${organization.slug}/issues/1/tags/`,
+      body: Tags(),
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/users/`,
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/first-last-release/`,
+      url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
       method: 'GET',
     });
   });
@@ -139,7 +147,7 @@ describe('GroupSidebar', function () {
       expect(await screen.findByText('browser')).toBeInTheDocument();
       expect(tagsMock).toHaveBeenCalledTimes(2);
       expect(tagsMock).toHaveBeenCalledWith(
-        '/issues/1/tags/',
+        '/organizations/org-slug/issues/1/tags/',
         expect.objectContaining({
           query: expect.objectContaining({
             environment: ['staging'],
@@ -154,11 +162,11 @@ describe('GroupSidebar', function () {
       group = TestStubs.Group();
 
       MockApiClient.addMockResponse({
-        url: '/issues/1/',
+        url: '/organization/org-slug/issues/1/',
         body: group,
       });
       MockApiClient.addMockResponse({
-        url: '/issues/1/tags/',
+        url: '/organizations/org-slug/issues/1/tags/',
         body: [],
       });
     });
@@ -206,8 +214,59 @@ describe('GroupSidebar', function () {
       />
     );
 
-    expect(await screen.findByText('Participants (2)')).toBeInTheDocument();
-    expect(screen.getByText('Viewers (2)')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {name: 'Participants (2)'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Viewers (2)'})).toBeInTheDocument();
+  });
+
+  it('expands participants and viewers', async () => {
+    const org = {
+      ...organization,
+      features: ['participants-purge'],
+    };
+    const teams = [{...TestStubs.Team(), type: 'team'}];
+    const users = [
+      TestStubs.User({
+        id: '2',
+        name: 'John Smith',
+        email: 'johnsmith@example.com',
+        type: 'user',
+      }),
+      TestStubs.User({
+        id: '3',
+        name: 'Sohn Jmith',
+        email: 'sohnjmith@example.com',
+        type: 'user',
+      }),
+    ];
+    render(
+      <GroupSidebar
+        group={{
+          ...group,
+          participants: [...teams, ...users],
+          seenBy: users,
+        }}
+        project={project}
+        organization={org}
+        event={TestStubs.Event()}
+        environments={[]}
+      />,
+      {
+        organization: org,
+      }
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'Participants (1 Team, 2 Individuals)'})
+    ).toBeInTheDocument();
+    expect(screen.queryByText('#team-slug')).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getAllByRole('button', {name: 'Expand Participants'})[0]
+    );
+
+    await waitFor(() => expect(screen.getByText('#team-slug')).toBeVisible());
   });
 
   describe('displays mobile tags when issue platform is mobile', function () {

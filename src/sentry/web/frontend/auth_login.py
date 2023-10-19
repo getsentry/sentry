@@ -19,7 +19,9 @@ from sentry.api.utils import generate_organization_url
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
-from sentry.models import AuthProvider, OrganizationMapping, OrganizationStatus
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.user import User
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
@@ -37,7 +39,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import capture_exception
 from sentry.utils.urls import add_params_to_url
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, control_silo_view
 
 ERR_NO_SSO = _("The organization does not exist or does not have Single Sign-On enabled.")
 
@@ -71,6 +73,7 @@ additional_context = AdditionalContext()
 
 
 # TODO(hybridcloud) Make this view control silo only.
+@control_silo_view
 class AuthLoginView(BaseView):
     auth_required = False
 

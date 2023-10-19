@@ -43,6 +43,9 @@ HTTP_STATUS_CODE_ALIAS = "http.status_code"
 DEVICE_CLASS_ALIAS = "device.class"
 TOTAL_SPAN_DURATION_ALIAS = "total.span_duration"
 SPAN_MODULE_ALIAS = "span.module"
+SPAN_DOMAIN_ALIAS = "span.domain"
+SPAN_DOMAIN_SEPARATOR = ","
+UNIQUE_SPAN_DOMAIN_ALIAS = "unique.span_domains"
 
 
 class ThresholdDict(TypedDict):
@@ -277,6 +280,7 @@ SPAN_METRICS_MAP = {
     "user": "s:spans/user@none",
     "span.self_time": "d:spans/exclusive_time@millisecond",
     "span.duration": "d:spans/duration@millisecond",
+    "http.response_content_length": "d:spans/http.response_content_length@byte",
 }
 SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
 # 50 to match the size of tables in the UI + 1 for pagination reasons
@@ -299,6 +303,11 @@ SPAN_METRIC_DURATION_COLUMNS = {
     key
     for key, value in SPAN_METRICS_MAP.items()
     if value.endswith("@millisecond") and value.startswith("d:")
+}
+SPAN_METRIC_BYTES_COLUMNS = {
+    key
+    for key, value in SPAN_METRICS_MAP.items()
+    if value.endswith("@byte") and value.startswith("d:")
 }
 METRIC_PERCENTILES = {
     0.25,
@@ -325,6 +334,8 @@ METRIC_FUNCTION_LIST_BY_TYPE = {
         "min",
         "sum",
         "percentile",
+        "http_error_count",
+        "http_error_rate",
     ],
     "generic_set": [
         "count_miserable",

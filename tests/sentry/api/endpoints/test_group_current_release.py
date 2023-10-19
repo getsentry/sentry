@@ -1,7 +1,11 @@
-from sentry.models import GroupRelease, ReleaseEnvironment
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import MockClock
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test(stable=True)

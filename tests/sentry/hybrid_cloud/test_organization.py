@@ -3,15 +3,13 @@ from typing import Any, Callable, List, Optional, Sequence, Tuple
 
 import pytest
 
-from sentry.models import (
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-    Team,
-    TeamStatus,
-    User,
-)
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
+from sentry.models.team import Team, TeamStatus
+from sentry.models.user import User
+from sentry.services.hybrid_cloud.access.service import access_service
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
     RpcOrganizationMember,
@@ -248,7 +246,7 @@ def test_get_all_org_roles(org_factory: Callable[[], Tuple[Organization, List[Us
         member = OrganizationMember.objects.get(user_id=orm_users[1].id)
 
     all_org_roles = ["owner", "member", "manager"]
-    service_org_roles = organization_service.get_all_org_roles(
+    service_org_roles = access_service.get_all_org_roles(
         organization_id=member.organization_id, member_id=member.id
     )
     assert set(all_org_roles) == set(service_org_roles)
@@ -263,7 +261,7 @@ def test_get_top_dog_team_member_ids(org_factory: Callable[[], Tuple[Organizatio
         members = [OrganizationMember.objects.get(user_id=user.id) for user in orm_users]
 
     all_top_dogs = [members[1].id, members[2].id]
-    service_top_dogs = organization_service.get_top_dog_team_member_ids(organization_id=orm_org.id)
+    service_top_dogs = access_service.get_top_dog_team_member_ids(organization_id=orm_org.id)
     assert set(all_top_dogs) == set(service_top_dogs)
 
 

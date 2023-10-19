@@ -24,17 +24,18 @@ export class Frame {
 
   totalWeight: number = 0;
   selfWeight: number = 0;
+  aggregateDuration: number = 0;
 
-  static Root = new Frame(
-    {
-      key: ROOT_KEY,
-      name: ROOT_KEY,
-      is_application: false,
-    },
-    'mobile'
-  );
+  static Root = new Frame({
+    key: ROOT_KEY,
+    name: ROOT_KEY,
+    is_application: false,
+  });
 
-  constructor(frameInfo: Profiling.FrameInfo, type?: 'mobile' | 'web' | 'node') {
+  constructor(
+    frameInfo: Profiling.FrameInfo,
+    type?: 'mobile' | 'javascript' | 'node' | string
+  ) {
     this.key = frameInfo.key;
     this.file = frameInfo.file;
     this.name = frameInfo.name;
@@ -66,18 +67,22 @@ export class Frame {
 
     // If the frame is a web frame and there is no name associated to it, then it was likely invoked as an iife or anonymous callback as
     // most modern browser engines properly show anonymous functions when they are assigned to references (e.g. `let foo = function() {};`)
-    if (type === 'web' || type === 'node') {
+    if (type === 'javascript' || type === 'node') {
       if (this.name === '(garbage collector)' || this.name === '(root)') {
         this.is_application = false;
       }
 
-      if (!this.name || this.name.startsWith('unknown ')) {
+      if (!this.name || this.name === 'unknown') {
         this.name = t('<anonymous>');
       }
       // If the frame had no line or column, it was part of the native code, (e.g. calling String.fromCharCode)
       if (this.line === undefined && this.column === undefined) {
         this.name += ` ${t('[native code]')}`;
         this.is_application = false;
+      }
+
+      if (!this.file && this.path) {
+        this.file = this.path;
       }
 
       // Doing this on the frontend while we figure out how to do this on the backend/client properly

@@ -11,17 +11,17 @@ class OriginField(serializers.CharField):
         rv = super().to_internal_value(data)
         if not rv:
             return
-        if not self.is_valid_origin(rv):
-            raise serializers.ValidationError("%s is not an acceptable domain" % rv)
+        self.validate_origin(rv)
         return rv
 
-    def is_valid_origin(self, value):
+    def validate_origin(self, value):
         if value in self.WHITELIST_ORIGINS:
-            return True
+            return
 
         bits = parse_uri_match(value)
-        # ports are not supported on matching expressions (yet)
-        if ":" in bits.domain:
-            return False
+        if ":*" in bits.domain:
+            raise serializers.ValidationError(
+                "%s is not an acceptable domain. Wildcard ports are not allowed." % value
+            )
 
-        return True
+        return

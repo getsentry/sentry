@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest import mock
 from unittest.mock import patch
@@ -8,6 +9,7 @@ from urllib.parse import urlencode, urlparse
 import pytest
 import responses
 from django.urls import reverse
+from isodate import parse_datetime
 
 import sentry
 from sentry.api.utils import generate_organization_url
@@ -19,7 +21,10 @@ from sentry.integrations.github import (
     client,
 )
 from sentry.integrations.utils.code_mapping import Repo, RepoTree
-from sentry.models import Integration, OrganizationIntegration, Project, Repository
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.project import Project
+from sentry.models.repository import Repository
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
@@ -880,3 +885,165 @@ class GitHubIntegrationTest(IntegrationTestCase):
                     ("baz", "master", []),
                 ]
             )
+
+    @responses.activate
+    def test_get_commit_context(self):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.com/Test-Organization/foo",
+                provider="github",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+
+        installation = integration.get_installation(self.organization.id)
+
+        filepath = "sentry/tasks.py"
+        event_frame = {
+            "function": "handle_set_commits",
+            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
+            "module": "sentry.tasks",
+            "in_app": True,
+            "lineno": 30,
+            "filename": "sentry/tasks.py",
+        }
+        ref = "master"
+        query = f"""query {{
+            repository(name: "foo", owner: "Test-Organization") {{
+                ref(qualifiedName: "{ref}") {{
+                    target {{
+                        ... on Commit {{
+                            blame(path: "{filepath}") {{
+                                ranges {{
+                                        commit {{
+                                            oid
+                                            author {{
+                                                name
+                                                email
+                                            }}
+                                            message
+                                            committedDate
+                                        }}
+                                    startingLine
+                                    endingLine
+                                    age
+                                }}
+                            }}
+                        }}
+                    }}
+                }}
+            }}
+        }}"""
+        commit_date = (datetime.now(tz=timezone.utc) - timedelta(days=4)).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json={
+                "query": query,
+                "data": {
+                    "repository": {
+                        "ref": {
+                            "target": {
+                                "blame": {
+                                    "ranges": [
+                                        {
+                                            "commit": {
+                                                "oid": "d42409d56517157c48bf3bd97d3f75974dde19fb",
+                                                "author": {
+                                                    "date": commit_date,
+                                                    "email": "nisanthan.nanthakumar@sentry.io",
+                                                    "name": "Nisanthan Nanthakumar",
+                                                },
+                                                "message": "Add installation instructions",
+                                                "committedDate": commit_date,
+                                            },
+                                            "startingLine": 30,
+                                            "endingLine": 30,
+                                            "age": 3,
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+            },
+            content_type="application/json",
+        )
+        commit_context = installation.get_commit_context(repo, filepath, ref, event_frame)
+
+        commit_context_expected = {
+            "commitId": "d42409d56517157c48bf3bd97d3f75974dde19fb",
+            "committedDate": parse_datetime(commit_date),
+            "commitMessage": "Add installation instructions",
+            "commitAuthorName": "Nisanthan Nanthakumar",
+            "commitAuthorEmail": "nisanthan.nanthakumar@sentry.io",
+        }
+
+        assert commit_context == commit_context_expected
+
+    @responses.activate
+    def test_source_url_matches(self):
+        installation = self.get_installation_helper()
+
+        test_cases = [
+            (
+                "https://github.com/Test-Organization/sentry/blob/master/src/sentry/integrations/github/integration.py",
+                True,
+            ),
+            (
+                "https://notgithub.com/Test-Organization/sentry/blob/master/src/sentry/integrations/github/integration.py",
+                False,
+            ),
+            ("https://jianyuan.io", False),
+        ]
+        for source_url, matches in test_cases:
+            assert installation.source_url_matches(source_url) == matches
+
+    @responses.activate
+    def test_extract_branch_from_source_url(self):
+        installation = self.get_installation_helper()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/repo",
+                url="https://github.com/Test-Organization/repo",
+                provider="integrations:github",
+                external_id=123,
+                config={"name": "Test-Organization/repo"},
+                integration_id=integration.id,
+            )
+        source_url = "https://github.com/Test-Organization/repo/blob/master/src/sentry/integrations/github/integration.py"
+
+        assert installation.extract_branch_from_source_url(repo, source_url) == "master"
+
+    @responses.activate
+    def test_extract_source_path_from_source_url(self):
+        installation = self.get_installation_helper()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/repo",
+                url="https://github.com/Test-Organization/repo",
+                provider="integrations:github",
+                external_id=123,
+                config={"name": "Test-Organization/repo"},
+                integration_id=integration.id,
+            )
+        source_url = "https://github.com/Test-Organization/repo/blob/master/src/sentry/integrations/github/integration.py"
+
+        assert (
+            installation.extract_source_path_from_source_url(repo, source_url)
+            == "src/sentry/integrations/github/integration.py"
+        )

@@ -5,7 +5,9 @@ ahead of you.
 To resolve this, rebase against latest master and regenerate your migration. This file
 will then be regenerated, and you should be able to merge without conflicts.
 
+feedback: 0003_feedback_add_env
+hybridcloud: 0005_add_missing_org_integration_scope
 nodestore: 0002_nodestore_no_dictfield
 replays: 0003_add_size_to_recording_segment
-sentry: 0535_add_created_date_to_outbox_model
+sentry: 0576_add_missing_org_integration_scope
 social_auth: 0002_default_auto_field

@@ -29,7 +29,7 @@ export const steps = ({
 sentry = "${
           sourcePackageRegistries?.isLoading
             ? t('\u2026loading')
-            : sourcePackageRegistries?.data?.['sentry.rust'] ?? '0.31.5'
+            : sourcePackageRegistries?.data?.['sentry.rust']?.version ?? '0.31.5'
         }"
         `,
       },

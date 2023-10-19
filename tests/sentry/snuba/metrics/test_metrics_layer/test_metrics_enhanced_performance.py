@@ -9,11 +9,10 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
-from freezegun import freeze_time
 from snuba_sdk import Column, Condition, Direction, Function, Granularity, Limit, Offset, Op
 
 from sentry.api.utils import InvalidParams
-from sentry.models import (
+from sentry.models.transaction_threshold import (
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
     TransactionMetric,
@@ -42,11 +41,13 @@ from sentry.testutils.cases import (
     MetricsEnhancedPerformanceTestCase,
     TestCase,
 )
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.skips import requires_snuba
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
+@pytest.mark.snuba_ci
 @freeze_time(BaseMetricsLayerTestCase.MOCK_DATETIME)
 class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     @property
@@ -2099,7 +2100,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                     self.organization.id,
                     something_custom_metric,
                 ),
-                "mri_string": something_custom_metric,
+                "mri": something_custom_metric,
             }
         ]
 
@@ -2153,7 +2154,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                     self.organization.id,
                     something_custom_metric,
                 ),
-                "mri_string": something_custom_metric,
+                "mri": something_custom_metric,
             }
         ]
 

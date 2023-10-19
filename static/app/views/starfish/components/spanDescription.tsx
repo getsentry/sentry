@@ -1,22 +1,22 @@
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {SpanMetricsFields, SpanMetricsFieldTypes} from 'sentry/views/starfish/types';
+import {MetricsResponse, SpanMetricsField} from 'sentry/views/starfish/types';
 import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
 type Props = {
   span: Pick<
-    SpanMetricsFieldTypes,
-    SpanMetricsFields.SPAN_OP | SpanMetricsFields.SPAN_DESCRIPTION
+    MetricsResponse,
+    SpanMetricsField.SPAN_OP | SpanMetricsField.SPAN_DESCRIPTION
   >;
 };
 
 export function SpanDescription({span}: Props) {
-  if (span[SpanMetricsFields.SPAN_OP].startsWith('db')) {
+  if (span[SpanMetricsField.SPAN_OP]?.startsWith('db')) {
     return <DatabaseSpanDescription span={span} />;
   }
 
-  return <WordBreak>{span[SpanMetricsFields.SPAN_DESCRIPTION]}</WordBreak>;
+  return <WordBreak>{span[SpanMetricsField.SPAN_DESCRIPTION]}</WordBreak>;
 }
 
 function DatabaseSpanDescription({span}: Props) {
@@ -24,7 +24,7 @@ function DatabaseSpanDescription({span}: Props) {
 
   return (
     <CodeSnippet language="sql">
-      {formatter.toString(span[SpanMetricsFields.SPAN_DESCRIPTION])}
+      {formatter.toString(span[SpanMetricsField.SPAN_DESCRIPTION])}
     </CodeSnippet>
   );
 }

@@ -5,17 +5,23 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.validators import ServiceHookValidator
 from sentry.constants import ObjectStatus
-from sentry.models import ServiceHook
+from sentry.models.servicehook import ServiceHook
 from sentry.services.hybrid_cloud.hook import hook_service
 
 
 @region_silo_endpoint
 class ProjectServiceHooksEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     def has_feature(self, request: Request, project):
         return features.has("projects:servicehooks", project=project, actor=request.user)
 

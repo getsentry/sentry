@@ -4,7 +4,6 @@ import classNames from 'classnames';
 import beautify from 'js-beautify';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import {space} from 'sentry/styles/space';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
@@ -36,7 +35,7 @@ function DomMutationRow({
   const isBeforeHover =
     currentHoverTime === undefined || currentHoverTime >= frame.offsetMs;
 
-  const {color, title, type} = getFrameDetails(frame);
+  const {color, title, icon} = getFrameDetails(frame);
 
   return (
     <MutationListItem
@@ -51,7 +50,7 @@ function DomMutationRow({
       style={style}
     >
       <IconWrapper color={color} hasOccurred={hasOccurred}>
-        <BreadcrumbIcon type={type} />
+        {icon}
       </IconWrapper>
       <List>
         <Row>
@@ -67,11 +66,13 @@ function DomMutationRow({
         </Row>
         {/* @ts-expect-error */}
         <Selector>{frame.message ?? ''}</Selector>
-        <CodeContainer>
-          <CodeSnippet language="html" hideCopyButton>
-            {beautify.html(html, {indent_size: 2})}
-          </CodeSnippet>
-        </CodeContainer>
+        {html ? (
+          <CodeContainer>
+            <CodeSnippet language="html" hideCopyButton>
+              {beautify.html(html, {indent_size: 2})}
+            </CodeSnippet>
+          </CodeContainer>
+        ) : null}
       </List>
     </MutationListItem>
   );

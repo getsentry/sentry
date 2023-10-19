@@ -2,16 +2,21 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore, features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import EventAttachment, event_attachment_screenshot_filter
+from sentry.models.eventattachment import EventAttachment, event_attachment_screenshot_filter
 from sentry.search.utils import tokenize_query
 
 
 @region_silo_endpoint
 class EventAttachmentsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, project, event_id) -> Response:
         """
         Retrieve attachments for an event

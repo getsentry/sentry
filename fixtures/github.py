@@ -16,7 +16,7 @@ PUSH_EVENT_EXAMPLE_INSTALLATION = r"""{
       "id": "133d60480286590a610a0eb7352ff6e02b9674c4",
       "tree_id": "f9d2a07e9488b91af2641b26b9407fe22a451433",
       "distinct": true,
-      "message": "Update README.md (àgain)",
+      "message": "Update hello.py",
       "timestamp": "2015-05-05T19:45:15-04:00",
       "url": "https://github.com/baxterthehacker/public-repo/commit/133d60480286590a610a0eb7352ff6e02b9674c4",
       "author": {
@@ -33,10 +33,10 @@ PUSH_EVENT_EXAMPLE_INSTALLATION = r"""{
 
       ],
       "removed": [
-
+        "setup.jsx"
       ],
       "modified": [
-        "README.md"
+        "hello.py"
       ]
     },
     {
@@ -57,7 +57,7 @@ PUSH_EVENT_EXAMPLE_INSTALLATION = r"""{
         "username": "baxterthehacker"
       },
       "added": [
-
+        "setup.jsx"
       ],
       "removed": [
 
@@ -98,7 +98,7 @@ PUSH_EVENT_EXAMPLE_INSTALLATION = r"""{
     "id": "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
     "tree_id": "f9d2a07e9488b91af2641b26b9407fe22a451433",
     "distinct": true,
-    "message": "Update README.md",
+    "message": "Update hello.py",
     "timestamp": "2015-05-05T19:40:15-04:00",
     "url": "https://github.com/baxterthehacker/public-repo/commit/0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
     "author": {
@@ -118,7 +118,7 @@ PUSH_EVENT_EXAMPLE_INSTALLATION = r"""{
 
     ],
     "modified": [
-      "README.md"
+      "hello.py"
     ]
   },
   "repository": {

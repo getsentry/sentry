@@ -12,7 +12,8 @@ from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
-from sentry.models import Activity, ActorTuple
+from sentry.models.activity import Activity
+from sentry.models.actor import ActorTuple
 from sentry.models.groupowner import OwnerRuleType
 from sentry.models.project import Project
 from sentry.ownership.grammar import Rule, load_schema, resolve_actors
@@ -21,7 +22,8 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
-    from sentry.models import ProjectCodeOwners, Team
+    from sentry.models.projectcodeowners import ProjectCodeOwners
+    from sentry.models.team import Team
     from sentry.services.hybrid_cloud.user import RpcUser
 
 logger = logging.getLogger(__name__)
@@ -118,7 +120,7 @@ class ProjectOwnership(Model):
             The order is determined by iterating through rules sequentially, evaluating
             CODEOWNERS (if present), followed by Ownership Rules
         """
-        from sentry.models import ProjectCodeOwners
+        from sentry.models.projectcodeowners import ProjectCodeOwners
 
         ownership = cls.get_ownership_cached(project_id)
         if not ownership:
@@ -183,7 +185,7 @@ class ProjectOwnership(Model):
 
         Returns list of tuple (rule, owners, rule_type)
         """
-        from sentry.models import ProjectCodeOwners
+        from sentry.models.projectcodeowners import ProjectCodeOwners
 
         with metrics.timer("projectownership.get_autoassign_owners"):
             ownership = cls.get_ownership_cached(project_id)
@@ -222,7 +224,7 @@ class ProjectOwnership(Model):
 
     @classmethod
     def _get_autoassignment_types(cls, ownership):
-        from sentry.models import GroupOwnerType
+        from sentry.models.groupowner import GroupOwnerType
 
         autoassignment_types = []
         if ownership.suspect_committer_auto_assignment:
@@ -235,7 +237,7 @@ class ProjectOwnership(Model):
         return autoassignment_types
 
     @classmethod
-    def handle_auto_assignment(cls, project_id, event):
+    def handle_auto_assignment(cls, project_id, event=None, group=None):
         """
         Get the auto-assign owner for a project if there are any.
 
@@ -243,14 +245,17 @@ class ProjectOwnership(Model):
 
         """
         from sentry import analytics
-        from sentry.models import (
-            ActivityIntegration,
-            GroupAssignee,
-            GroupOwner,
-            GroupOwnerType,
-            Team,
-            User,
-        )
+        from sentry.models.activity import ActivityIntegration
+        from sentry.models.groupassignee import GroupAssignee
+        from sentry.models.groupowner import GroupOwner, GroupOwnerType
+        from sentry.models.team import Team
+        from sentry.models.user import User
+
+        # If event is passed in, then this is not called from the force auto-assign API, else it is
+        force_autoassign = True
+        if event:
+            force_autoassign = False
+            group = event.group
 
         with metrics.timer("projectownership.get_autoassign_owners"):
             ownership = cls.get_ownership_cached(project_id)
@@ -263,7 +268,7 @@ class ProjectOwnership(Model):
 
             # Get the most recent GroupOwner that matches the following order: Suspect Committer, then Ownership Rule, then Code Owner
             issue_owner = GroupOwner.get_autoassigned_owner_cached(
-                event.group.id, project_id, autoassignment_types
+                group.id, project_id, autoassignment_types
             )
             if issue_owner is False:
                 return
@@ -291,11 +296,11 @@ class ProjectOwnership(Model):
                 }
             )
             activity = Activity.objects.filter(
-                group=event.group, type=ActivityType.ASSIGNED.value
+                group=group, type=ActivityType.ASSIGNED.value
             ).order_by("-datetime")
             if activity:
                 auto_assigned = activity[0].data.get("integration")
-                if not auto_assigned:
+                if not auto_assigned and not force_autoassign:
                     logger.info(
                         "autoassignment.post_manual_assignment",
                         extra={
@@ -309,10 +314,11 @@ class ProjectOwnership(Model):
                     return
 
             assignment = GroupAssignee.objects.assign(
-                event.group,
+                group,
                 owner,
-                create_only=True,
+                create_only=not force_autoassign,
                 extra=details,
+                force_autoassign=force_autoassign,
             )
 
             if assignment["new_assignment"] or assignment["updated_assignment"]:
@@ -322,15 +328,15 @@ class ProjectOwnership(Model):
                     else "issueowners.assignment",
                     organization_id=ownership.project.organization_id,
                     project_id=project_id,
-                    group_id=event.group.id,
+                    group_id=group.id,
                 )
                 logger.info(
                     "handle_auto_assignment.success",
                     extra={
-                        "event": event.event_id,
-                        "group": event.group_id,
-                        "project": event.project_id,
-                        "organization": event.project.organization_id,
+                        "event": event.event_id if event else None,
+                        "group": group.id,
+                        "project": group.project.id,
+                        "organization": group.project.organization_id,
                         # owner_id returns a string including the owner type (user or team) and id
                         "assignee": issue_owner.owner_id(),
                         "reason": "created" if assignment["new_assignment"] else "updated",
@@ -355,7 +361,7 @@ class ProjectOwnership(Model):
 
 
 def process_resource_change(instance, change, **kwargs):
-    from sentry.models import GroupOwner
+    from sentry.models.groupowner import GroupOwner
     from sentry.models.projectownership import ProjectOwnership
 
     cache.set(

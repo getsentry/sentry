@@ -1,14 +1,21 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {Location} from 'history';
 
+import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import LoadingError from 'sentry/components/loadingError';
 import {
   PlatformCategory,
-  PlatformKey,
   profiling as PROFILING_PLATFORMS,
 } from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import {EventTransaction, Group, IssueCategory, Organization} from 'sentry/types';
+import {
+  EventTransaction,
+  Group,
+  IssueCategory,
+  IssueType,
+  Organization,
+  PlatformKey,
+} from 'sentry/types';
 import EventView, {decodeSorts} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -36,6 +43,7 @@ function AllEventsTable(props: Props) {
   const [error, setError] = useState<string>('');
   const routes = useRoutes();
   const {fields, columnTitles} = getColumns(group, organization);
+  const now = useMemo(() => Date.now(), []);
 
   const endpointUrl = makeGroupPreviewRequestUrl({
     groupId: group.id,
@@ -71,13 +79,32 @@ function AllEventsTable(props: Props) {
     eventView.sorts = [{field: 'timestamp', kind: 'desc'}];
   }
 
-  const idQuery =
-    group.issueCategory === IssueCategory.PERFORMANCE && !groupIsOccurrenceBacked
-      ? `performance.issue_ids:${issueId} event.type:transaction`
-      : `issue.id:${issueId}`;
+  eventView.statsPeriod = '90d';
+
+  let idQuery = `issue.id:${issueId}`;
+  if (group.issueCategory === IssueCategory.PERFORMANCE && !groupIsOccurrenceBacked) {
+    idQuery = `performance.issue_ids:${issueId} event.type:transaction`;
+  } else if (
+    group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION &&
+    groupIsOccurrenceBacked
+  ) {
+    const {transaction, aggregateRange2, breakpoint} =
+      data?.occurrence?.evidenceData ?? {};
+
+    // Surface the "bad" events that occur after the breakpoint
+    idQuery = getSampleEventQuery({
+      transaction,
+      durationBaseline: aggregateRange2,
+      addUpperBound: false,
+    });
+
+    eventView.dataset = DiscoverDatasets.DISCOVER;
+    eventView.start = new Date(breakpoint * 1000).toISOString();
+    eventView.end = new Date(now).toISOString();
+    eventView.statsPeriod = undefined;
+  }
   eventView.project = [parseInt(group.project.id, 10)];
   eventView.query = `${idQuery} ${props.location.query.query || ''}`;
-  eventView.statsPeriod = '90d';
 
   if (error || isLoadingError) {
     return (

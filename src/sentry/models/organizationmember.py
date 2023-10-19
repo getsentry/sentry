@@ -6,7 +6,7 @@ from collections import defaultdict
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
-from typing import TYPE_CHECKING, FrozenSet, List, Mapping, MutableMapping, Set, TypedDict
+from typing import TYPE_CHECKING, Any, FrozenSet, List, Mapping, MutableMapping, Set, TypedDict
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -24,20 +24,25 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    Model,
     region_silo_only_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
+from sentry.db.models.outboxes import ReplicatedRegionModel
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
+from sentry.models.outbox import OutboxCategory, outbox_context
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole
 from sentry.services.hybrid_cloud import extract_id_from
+from sentry.services.hybrid_cloud.identity import identity_service
+from sentry.services.hybrid_cloud.organizationmember_mapping import (
+    RpcOrganizationMemberMappingUpdate,
+    organizationmember_mapping_service,
+)
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import member_invited
 from sentry.utils.http import absolute_uri
@@ -188,7 +193,7 @@ class OrganizationMemberManager(BaseManager):
 
 
 @region_silo_only_model
-class OrganizationMember(Model):
+class OrganizationMember(ReplicatedRegionModel):
     """
     Identifies relationships between organizations and users.
 
@@ -198,6 +203,7 @@ class OrganizationMember(Model):
     """
 
     __relocation_scope__ = RelocationScope.Organization
+    category = OutboxCategory.ORGANIZATION_MEMBER_UPDATE
 
     objects = OrganizationMemberManager()
 
@@ -253,11 +259,6 @@ class OrganizationMember(Model):
     # Used to reduce redundant queries
     __org_roles_from_teams = None
 
-    def delete(self, *args, **kwds):
-        with outbox_context(transaction.atomic(using=router.db_for_write(OrganizationMember))):
-            self.save_outbox_for_update()
-            return super().delete(*args, **kwds)
-
     def save(self, *args, **kwargs):
         assert (self.user_id is None and self.email) or (
             self.user_id and self.email is None
@@ -267,7 +268,6 @@ class OrganizationMember(Model):
             if self.token and not self.token_expires_at:
                 self.refresh_expires_at()
             super().save(*args, **kwargs)
-            self.save_outbox_for_update()
             self.__org_roles_from_teams = None
 
     def refresh_from_db(self, *args, **kwargs):
@@ -289,19 +289,8 @@ class OrganizationMember(Model):
         self.token = self.generate_token()
         self.refresh_expires_at()
 
-    def outbox_for_update(self) -> RegionOutbox:
-        return RegionOutbox(
-            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
-            shard_identifier=self.organization_id,
-            category=OutboxCategory.ORGANIZATION_MEMBER_UPDATE,
-            object_identifier=self.id,
-            payload=dict(user_id=self.user_id),
-        )
-
-    def save_outbox_for_update(self) -> RegionOutbox:
-        outbox = self.outbox_for_update()
-        outbox.save()
-        return outbox
+    def payload_for_update(self) -> Mapping[str, Any] | None:
+        return dict(user_id=self.user_id)
 
     def refresh_expires_at(self):
         now = timezone.now()
@@ -356,7 +345,7 @@ class OrganizationMember(Model):
     def generate_token(self):
         return secrets.token_hex(nbytes=32)
 
-    def get_invite_link(self):
+    def get_invite_link(self, referrer: str | None = None):
         if not self.is_pending or not self.invite_approved:
             return None
         path = reverse(
@@ -366,15 +355,18 @@ class OrganizationMember(Model):
                 "token": self.token or self.legacy_token,
             },
         )
-        return self.organization.absolute_url(path)
+        invite_link = self.organization.absolute_url(path)
+        if referrer:
+            invite_link += "?referrer=" + referrer
+        return invite_link
 
-    def send_invite_email(self):
+    def send_invite_email(self, referrer: str | None = None):
         from sentry.utils.email import MessageBuilder
 
         context = {
             "email": self.email,
             "organization": self.organization,
-            "url": self.get_invite_link(),
+            "url": self.get_invite_link(referrer),
         }
 
         msg = MessageBuilder(
@@ -391,19 +383,13 @@ class OrganizationMember(Model):
             logger = get_logger(name="sentry.mail")
             logger.exception(e)
 
-    def send_sso_link_email(self, user_id: int, provider):
+    def send_sso_link_email(self, sending_user_email: str, provider):
         from sentry.utils.email import MessageBuilder
 
         link_args = {"organization_slug": self.organization.slug}
-
-        email = ""
-        user = user_service.get_user(user_id=user_id)
-        if user:
-            email = user.email
-
         context = {
             "organization": self.organization,
-            "email": email,
+            "actor_email": sending_user_email,
             "provider": provider,
             "url": absolute_uri(reverse("sentry-auth-organization", kwargs=link_args)),
         }
@@ -442,7 +428,7 @@ class OrganizationMember(Model):
             "recover_url": absolute_uri(recover_uri),
             "has_password": has_password,
             "organization": self.organization,
-            "disabled_by_email": disabling_user.email,
+            "actor_email": disabling_user.email,
             "provider": provider,
         }
 
@@ -485,7 +471,7 @@ class OrganizationMember(Model):
                 user = user_service.get_user(user_id=self.user_id)
             if user and user.email:
                 return user.email
-        return self.email
+        return self.email or ""
 
     def get_avatar_type(self):
         if self.user_id:
@@ -495,7 +481,8 @@ class OrganizationMember(Model):
         return "letter_avatar"
 
     def get_audit_log_data(self):
-        from sentry.models import OrganizationMemberTeam, Team
+        from sentry.models.organizationmemberteam import OrganizationMemberTeam
+        from sentry.models.team import Team
 
         teams = list(
             Team.objects.filter(
@@ -516,7 +503,8 @@ class OrganizationMember(Model):
         }
 
     def get_teams(self):
-        from sentry.models import OrganizationMemberTeam, Team
+        from sentry.models.organizationmemberteam import OrganizationMemberTeam
+        from sentry.models.team import Team
 
         return Team.objects.filter(
             status=TeamStatus.ACTIVE,
@@ -652,8 +640,8 @@ class OrganizationMember(Model):
         Return a list of org-level roles which that member could invite
         Must check if member member has member:admin first before checking
         """
-        highest_role_priority = self.get_all_org_roles_sorted()[0].priority
-        return [r for r in organization_roles.get_all() if r.priority <= highest_role_priority]
+        member_scopes = self.get_scopes()
+        return [r for r in organization_roles.get_all() if r.scopes.issubset(member_scopes)]
 
     def is_only_owner(self) -> bool:
         if organization_roles.get_top_dog().id not in self.get_all_org_roles():
@@ -666,3 +654,25 @@ class OrganizationMember(Model):
             .exists()
         )
         return is_only_owner
+
+    @classmethod
+    def handle_async_deletion(
+        cls, identifier: int, shard_identifier: int, payload: Mapping[str, Any] | None
+    ) -> None:
+        if payload and payload.get("user_id") is not None:
+            identity_service.delete_identities(
+                user_id=payload["user_id"], organization_id=shard_identifier
+            )
+        organizationmember_mapping_service.delete(
+            organizationmember_id=identifier,
+            organization_id=shard_identifier,
+        )
+
+    def handle_async_replication(self, shard_identifier: int) -> None:
+        rpc_org_member_update = RpcOrganizationMemberMappingUpdate.from_orm(self)
+
+        organizationmember_mapping_service.upsert_mapping(
+            organizationmember_id=self.id,
+            organization_id=shard_identifier,
+            mapping=rpc_org_member_update,
+        )

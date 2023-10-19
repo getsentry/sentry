@@ -17,36 +17,37 @@ from typing import (
 from django.db.models import Q
 
 from sentry import features
-from sentry.models import (
-    ActorTuple,
-    Group,
-    GroupAssignee,
-    GroupSubscription,
-    NotificationSetting,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-    Release,
-    Rule,
-    Team,
-    User,
-)
+from sentry.models.actor import ActorTuple
 from sentry.models.commit import Commit
+from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.release import Release
+from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.notifications.helpers import (
-    get_settings_by_provider,
     get_values_by_provider_by_type,
+    should_use_notifications_v2,
     transform_to_notification_settings_by_recipient,
 )
+from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.notify import notification_providers
 from sentry.notifications.types import (
+    NOTIFICATION_SETTING_TYPES,
     ActionTargetType,
     FallthroughChoiceType,
     GroupSubscriptionReason,
-    NotificationScopeType,
+    NotificationSettingEnum,
     NotificationSettingOptionValues,
+    NotificationSettingsOptionEnum,
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
@@ -168,14 +169,23 @@ def get_participants_for_group(group: Group, user_id: int | None = None) -> Part
 
 
 def get_reason(
-    user: Union[User, RpcActor], value: NotificationSettingOptionValues, user_ids: set[int]
+    user: Union[User, RpcActor],
+    value: NotificationSettingOptionValues | NotificationSettingsOptionEnum,
+    user_ids: set[int],
 ) -> int | None:
     # Members who opt into all deploy emails.
-    if value == NotificationSettingOptionValues.ALWAYS:
+    if value in [NotificationSettingOptionValues.ALWAYS, NotificationSettingsOptionEnum.ALWAYS]:
         return GroupSubscriptionReason.deploy_setting
 
     # Members which have been seen in the commit log.
-    elif value == NotificationSettingOptionValues.COMMITTED_ONLY and user.id in user_ids:
+    elif (
+        value
+        in [
+            NotificationSettingOptionValues.COMMITTED_ONLY,
+            NotificationSettingsOptionEnum.COMMITTED_ONLY,
+        ]
+        and user.id in user_ids
+    ):
         return GroupSubscriptionReason.committed
     return None
 
@@ -203,6 +213,24 @@ def get_participants_for_release(
     )
 
     actors = RpcActor.many_from_object(RpcUser(id=user_id) for user_id in user_ids)
+    if should_use_notifications_v2(organization):
+        # don't pass in projects since the settings are scoped to the organization only for now
+        providers_by_recipient = notifications_service.get_participants(
+            type=NotificationSettingEnum.DEPLOY,
+            recipients=actors,
+            organization_id=organization.id,
+        )
+
+        users_to_reasons_by_provider = ParticipantMap()
+        for actor in actors:
+            settings = providers_by_recipient.get(actor.id, {})
+            for provider_str, val_str in settings.items():
+                provider = ExternalProviders(provider_str)
+                val = NotificationSettingsOptionEnum(val_str)
+                reason = get_reason(actor, val, commited_user_ids)
+                if reason:
+                    users_to_reasons_by_provider.add(provider, actor, reason)
+        return users_to_reasons_by_provider
 
     # Get all the involved users' settings for deploy-emails (including
     # users' organization-independent settings.)
@@ -300,38 +328,6 @@ def get_owner_reason(
     return None
 
 
-def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, set[User]]:
-    """Get a set of users that have disabled Issue Alert notifications for a given project."""
-    user_ids = list(project.member_set.values_list("user", flat=True))
-    rpc_users = user_service.get_many(filter={"user_ids": user_ids})
-    users = RpcActor.many_from_object(rpc_users)
-
-    notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
-        NotificationSettingTypes.ISSUE_ALERTS,
-        parent=project,
-        recipients=users,
-    )
-    notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
-        notification_settings, users
-    )
-    # Although this can be done with dict comprehension, looping for clarity.
-    output = defaultdict(set)
-    for user in users:
-        settings = notification_settings_by_recipient.get(user)
-        if settings:
-            settings_by_provider = get_settings_by_provider(settings)
-            for provider, settings_value_by_scope in settings_by_provider.items():
-                project_setting = settings_value_by_scope.get(NotificationScopeType.PROJECT)
-                user_setting = settings_value_by_scope.get(
-                    NotificationScopeType.USER
-                ) or settings_value_by_scope.get(NotificationScopeType.TEAM)
-                if project_setting == NotificationSettingOptionValues.NEVER or (
-                    not project_setting and user_setting == NotificationSettingOptionValues.NEVER
-                ):
-                    output[provider].add(user)
-    return output
-
-
 def get_suspect_commit_users(project: Project, event: Event) -> List[RpcUser]:
     """
     Returns a list of users that are suspect committers for the given event.
@@ -376,7 +372,7 @@ def determine_eligible_recipients(
     elif target_type == ActionTargetType.MEMBER:
         user = get_user_from_identifier(project, target_identifier)
         if user:
-            return [RpcActor.from_orm_user(user)]
+            return [RpcActor.from_object(user)]
 
     elif target_type == ActionTargetType.TEAM:
         team = get_team_from_identifier(project, target_identifier)
@@ -384,6 +380,9 @@ def determine_eligible_recipients(
             return [RpcActor.from_orm_team(team)]
 
     elif target_type == ActionTargetType.ISSUE_OWNERS:
+        if not event:
+            return []
+
         suggested_assignees, outcome = get_owners(project, event, fallthrough_choice)
 
         # We're adding the current assignee to the list of suggested assignees because
@@ -493,7 +492,9 @@ def get_fallthrough_recipients(
     raise NotImplementedError(f"Unknown fallthrough choice: {fallthrough_choice}")
 
 
-def get_user_from_identifier(project: Project, target_identifier: str | int | None) -> User | None:
+def get_user_from_identifier(
+    project: Project, target_identifier: str | int | None
+) -> RpcUser | None:
     if target_identifier is None:
         return None
 
@@ -557,8 +558,8 @@ def get_users_from_team_fall_back(
 
 
 def combine_recipients_by_provider(
-    teams_by_provider: Mapping[ExternalProviders, set[RpcActor]],
-    users_by_provider: Mapping[ExternalProviders, set[RpcActor]],
+    teams_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]],
+    users_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]],
 ) -> Mapping[ExternalProviders, set[RpcActor]]:
     """TODO(mgaeta): Make this more generic and move it to utils."""
     recipients_by_provider = defaultdict(set)
@@ -582,9 +583,24 @@ def get_recipients_by_provider(
     users = recipients_by_type[ActorType.USER]
 
     # First evaluate the teams.
-    teams_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
-        project, teams, notification_type
-    )
+    setting_type = NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[notification_type])
+    teams_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
+
+    if should_use_notifications_v2(project.organization):
+        # get by team
+        controller = NotificationController(
+            recipients=teams,
+            organization_id=project.organization_id,
+            project_ids=[project.id],
+            type=setting_type,
+        )
+        teams_by_provider = controller.get_notification_recipients(
+            type=setting_type, actor_type=ActorType.TEAM
+        )
+    else:
+        teams_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
+            project, teams, notification_type
+        )
 
     # Teams cannot receive emails so omit EMAIL settings.
     teams_by_provider = {
@@ -597,8 +613,20 @@ def get_recipients_by_provider(
     users |= set(RpcActor.many_from_object(get_users_from_team_fall_back(teams, teams_by_provider)))
 
     # Repeat for users.
-    users_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
-        project, users, notification_type
-    )
+    users_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
+    if should_use_notifications_v2(project.organization):
+        controller = NotificationController(
+            recipients=users,
+            organization_id=project.organization_id,
+            project_ids=[project.id],
+            type=setting_type,
+        )
+        users_by_provider = controller.get_notification_recipients(
+            type=setting_type, actor_type=ActorType.USER
+        )
+    else:
+        users_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
+            project, users, notification_type
+        )
 
     return combine_recipients_by_provider(teams_by_provider, users_by_provider)

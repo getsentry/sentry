@@ -81,7 +81,7 @@ function useOverflowTabs({
   return overflowTabs.filter(tabKey => !tabItemKeyToHiddenMap[tabKey]);
 }
 
-interface TabListProps
+export interface TabListProps
   extends AriaTabListOptions<TabListItemProps>,
     TabListStateOptions<TabListItemProps> {
   className?: string;

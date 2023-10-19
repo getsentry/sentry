@@ -13,8 +13,11 @@ from sentry.event_manager import EventManager
 from sentry.ingest.consumer.factory import get_ingest_consumer
 from sentry.ingest.types import ConsumerType
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.utils import json
 from sentry.utils.batching_kafka_consumer import create_topics
+
+pytestmark = [requires_snuba, requires_kafka]
 
 logger = logging.getLogger(__name__)
 

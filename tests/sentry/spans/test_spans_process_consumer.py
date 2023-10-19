@@ -1,13 +1,13 @@
 from datetime import datetime
 from unittest.mock import Mock
 
-import msgpack
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
 from sentry.receivers import create_default_projects
-from sentry.spans.consumers.process.factory import ProcessSpansStrategyFactory
+from sentry.spans.consumers.process.factory import ProcessSpansStrategyFactory, _process_message
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils import json
 
 
 @django_db_all
@@ -30,6 +30,8 @@ def test_ingest_span(request):
         "type": "span",
         "start_time": 1691779097,
         "project_id": 1,
+        "organization_id": 1,
+        "retention_days": 90,
         "span": {
             "data": {
                 "blocked_main_thread": False,
@@ -48,10 +50,9 @@ def test_ingest_span(request):
             "status": "ok",
             "timestamp": 1699208266.441931,
             "trace_id": "3f0bba60b0a7471abe18732abe6506c2",
-            "type": "trace",
         },
     }
-    payload = msgpack.packb(message_dict)
+    payload = json.dumps(message_dict).encode("utf-8")
 
     strategy.submit(
         Message(
@@ -71,3 +72,64 @@ def test_ingest_span(request):
     strategy.join(1)
     strategy.terminate()
     request.addfinalizer(factory.shutdown)
+
+
+def test_v1_span():
+    # Taken from https://github.com/getsentry/relay/blob/e27eff09c32f2604e5b9e4533d891dabdd52978a/tests/integration/test_store.py#L1225-L1261
+    payload = json.dumps(
+        {
+            "event_id": "cbf6960622e14a45abc1f03b2055b186",
+            "project_id": 42,
+            "organization_id": 1,
+            "retention_days": 90,
+            "span": {
+                "description": "GET /api/0/organizations/?member=1",
+                "exclusive_time": 500.0,
+                "is_segment": False,
+                "op": "http",
+                "parent_span_id": "aaaaaaaaaaaaaaaa",
+                "segment_id": "968cff94913ebb07",
+                "sentry_tags": {
+                    "category": "http",
+                    "description": "GET *",
+                    "group": "37e3d9fab1ae9162",
+                    "module": "http",
+                    "op": "http",
+                    "transaction": "hi",
+                    "transaction.op": "hi",
+                },
+                "span_id": "bbbbbbbbbbbbbbbb",
+                "start_timestamp": 123.456,
+                "timestamp": 124.567,
+                "trace_id": "ff62a8b040f340bda5d830223def1d81",
+            },
+        }
+    ).encode()
+    value = BrokerValue(KafkaPayload(None, payload, []), None, 0, None)  # type: ignore
+    processed = _process_message(Message(value))
+    assert isinstance(processed, KafkaPayload)
+    assert json.loads(processed.value) == {
+        "description": "GET /api/0/organizations/?member=1",
+        "duration_ms": 1111,
+        "event_id": "cbf6960622e14a45abc1f03b2055b186",
+        "exclusive_time_ms": 500,
+        "group_raw": "3f9ccdec3e17d794",
+        "is_segment": False,
+        "organization_id": 1,
+        "parent_span_id": "aaaaaaaaaaaaaaaa",
+        "project_id": 42,
+        "retention_days": 90,
+        "segment_id": "968cff94913ebb07",
+        "sentry_tags": {
+            "description": "GET *",
+            "group": "37e3d9fab1ae9162",
+            "module": "http",
+            "op": "http",
+            "category": "http",
+            "transaction": "hi",
+            "transaction.op": "hi",
+        },
+        "span_id": "bbbbbbbbbbbbbbbb",
+        "start_timestamp_ms": 123456,
+        "trace_id": "ff62a8b040f340bda5d830223def1d81",
+    }

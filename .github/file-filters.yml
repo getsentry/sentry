@@ -63,6 +63,7 @@ backend_src: &backend_src
   - '**/*.sh'
   - '**/*.pysnap'
   - 'src/sentry/!(static)/**'
+  - 'src/sentry_plugins/**/*.html'
   - 'migrations_lockfile.txt'
   - 'config/**/*'
   - 'fixtures/search-syntax/**/*'
@@ -80,10 +81,6 @@ acceptance: &acceptance
   - '.github/actions/setup-sentry/action.yml'
   - '.github/workflows/acceptance.yml'
 
-plugins: &plugins
-  - *backend_all
-  - 'src/sentry_plugins/**/*.html'
-
 api_docs: &api_docs
   - *backend_all
   - 'api-docs/**'
@@ -93,7 +90,6 @@ api_docs: &api_docs
 backend_any_type: &backend_any_type
   - *backend_all
   - *api_docs
-  - *plugins
 
 migrations_added:
   - added: 'src/sentry/migrations/*'

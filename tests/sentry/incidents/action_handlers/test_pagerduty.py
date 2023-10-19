@@ -1,10 +1,13 @@
+import uuid
+from unittest.mock import patch
+
 import responses
-from freezegun import freeze_time
 
 from sentry.incidents.action_handlers import PagerDutyActionHandler
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus, IncidentStatusMethod
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
 
 from . import FireTest
@@ -57,8 +60,13 @@ class PagerDutyActionHandlerTest(FireTest):
             integration=self.integration,
         )
         metric_value = 1000
+        notification_uuid = str(uuid.uuid4())
         data = build_incident_attachment(
-            incident, self.integration_key, IncidentStatus(incident.status), metric_value
+            incident,
+            self.integration_key,
+            IncidentStatus(incident.status),
+            metric_value,
+            notification_uuid,
         )
 
         assert data["routing_key"] == self.integration_key
@@ -73,7 +81,7 @@ class PagerDutyActionHandlerTest(FireTest):
         assert data["links"][0]["text"] == f"Critical: {alert_rule.name}"
         assert (
             data["links"][0]["href"]
-            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert_pagerduty&notification_uuid={notification_uuid}"
         )
 
     @responses.activate
@@ -137,3 +145,17 @@ class PagerDutyActionHandlerTest(FireTest):
             handler.fire(metric_value, IncidentStatus(incident.status))
 
         assert len(responses.calls) == 0
+
+    @patch("sentry.analytics.record")
+    def test_alert_sent_recorded(self, mock_record):
+        self.run_fire_test()
+        mock_record.assert_called_with(
+            "alert.sent",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            provider="pagerduty",
+            alert_id=self.alert_rule.id,
+            alert_type="metric_alert",
+            external_id=str(self.action.target_identifier),
+            notification_uuid="",
+        )

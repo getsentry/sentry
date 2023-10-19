@@ -114,6 +114,10 @@ declare global {
   }
 }
 
+interface Region {
+  name: string;
+  url: string;
+}
 interface CustomerDomain {
   organizationUrl: string | undefined;
   sentryUrl: string;
@@ -150,7 +154,8 @@ export interface Config {
   messages: {level: keyof Theme['alert']; message: string}[];
   needsUpgrade: boolean;
   privacyUrl: string | null;
-
+  // The list of regions the current user has memberships in.
+  regions: Region[];
   sentryConfig: {
     allowUrls: string[];
     dsn: string;

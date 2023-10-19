@@ -8,10 +8,14 @@ from rest_framework.response import Response
 from sentry_sdk import Hub, set_tag, start_span, start_transaction
 
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import RelayAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import RelayPermission
-from sentry.models import Organization, OrganizationOption, Project, ProjectKey, ProjectKeyStatus
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.relay import config, projectconfig_cache
 from sentry.relay.globalconfig import get_global_config
 from sentry.tasks.relay import schedule_build_project_config
@@ -31,6 +35,9 @@ def _sample_apm():
 
 @region_silo_endpoint
 class RelayProjectConfigsEndpoint(Endpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     owner = ApiOwner.OWNERS_INGEST
     authentication_classes = (RelayAuthentication,)
     permission_classes = (RelayPermission,)
@@ -55,7 +62,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         version = request.GET.get("version") or "1"
         set_tag("relay_protocol_version", version)
 
-        if version == "4" and request.relay_request_data.get("global"):
+        if version == "3" and request.relay_request_data.get("global"):
             response["global"] = get_global_config()
 
         if self._should_post_or_schedule(version, request):
@@ -63,7 +70,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
             # configs to processing relays, and these validate the requests they
             # get with permissions and trim configs down accordingly.
             response.update(self._post_or_schedule_by_key(request))
-        elif version in ["2", "3", "4"]:
+        elif version in ["2", "3"]:
             response["configs"] = self._post_by_key(
                 request=request,
                 full_config_requested=full_config_requested,
@@ -74,7 +81,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
                 full_config_requested=full_config_requested,
             )
         else:
-            return Response("Unsupported version, we only support versions 1 to 4.", 400)
+            return Response("Unsupported version, we only support versions 1 to 3.", 400)
 
         return Response(response, status=200)
 
@@ -83,7 +90,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         used for project configs.
 
         `_post_or_schedule_by_key` should be used for v3 requests with full
-        config and v4.
+        config.
 
         By default, Relay requests full configs and the number of partial config
         requests should be low enough to handle them per-request, instead of
@@ -98,7 +105,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         post_or_schedule = True
         reason = "version"
 
-        if version not in ["3", "4"]:
+        if version != "3":
             post_or_schedule = False
             reason = "version"
         elif not is_full_config:

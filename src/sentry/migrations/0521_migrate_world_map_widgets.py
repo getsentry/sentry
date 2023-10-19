@@ -2,11 +2,12 @@
 
 from django.db import migrations
 
-from sentry.models import DashboardWidgetQuery
 from sentry.new_migrations.migrations import CheckedMigration
 
 
 def migrate_worldmap_widgets_to_table_widgets(apps, schema_editor):
+    DashboardWidgetQuery = apps.get_model("sentry", "DashboardWidgetQuery")
+
     # World map visulization has display_type 5
     widgetQueries = DashboardWidgetQuery.objects.select_related("widget").filter(
         widget__display_type=5

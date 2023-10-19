@@ -7,7 +7,7 @@ from django.db import IntegrityError
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.repository import GitHubRepositoryProvider
-from sentry.models import Repository
+from sentry.models.repository import Repository
 from sentry.plugins.providers.integration_repository import RepoExistsError
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import TestCase
@@ -28,6 +28,7 @@ class IntegrationRepositoryTestCase(TestCase):
             "identifier": self.repo_name,
             "external_id": "654321",
             "integration_id": self.integration.id,
+            "url": "https://github.com/getsentry/sentry",
         }
 
         responses.add(
@@ -45,15 +46,20 @@ class IntegrationRepositoryTestCase(TestCase):
     def provider(self):
         return GitHubRepositoryProvider("integrations:github")
 
-    def _create_repo(self, external_id=None, name=None):
+    def _create_repo(
+        self, external_id=None, name=None, status=ObjectStatus.ACTIVE, integration_id=None
+    ):
+        if not name:
+            name = self.repo_name
         return Repository.objects.create(
-            name=name if name else self.repo_name,
+            name=name,
             provider="integrations:github",
             organization_id=self.organization.id,
-            integration_id=self.integration.id,
-            url="https://github.com/" + self.repo_name,
-            config={"name": self.repo_name},
+            integration_id=integration_id if integration_id else self.integration.id,
+            url="https://github.com/" + name,
+            config={"name": name},
             external_id=external_id if external_id else "123456",
+            status=status,
         )
 
     def test_create_repository(self, get_jwt):
@@ -70,6 +76,23 @@ class IntegrationRepositoryTestCase(TestCase):
 
         with pytest.raises(RepoExistsError):
             self.provider.create_repository(self.config, self.organization)
+
+    def test_create_repository__transfer_repo_in_org(self, get_jwt):
+        # can transfer a disabled repo from one integration to another in a single org
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="123456"
+        )
+        self._create_repo(
+            external_id=self.config["external_id"],
+            name="getsentry/santry",
+            status=ObjectStatus.DISABLED,
+            integration_id=integration.id,
+        )
+
+        _, repo = self.provider.create_repository(self.config, self.organization)
+
+        assert repo.name == self.config["identifier"]
+        assert repo.url == self.config["url"]
 
     def test_create_repository__repo_exists_update_name(self, get_jwt):
         repo = self._create_repo(external_id=self.config["external_id"], name="getsentry/santry")

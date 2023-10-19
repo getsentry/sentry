@@ -6,7 +6,7 @@ import {GettingStartedWithRust, steps} from './rust';
 
 describe('GettingStartedWithRust', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithRust dsn="test-dsn" />);
+    render(<GettingStartedWithRust dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithRust', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

@@ -27,18 +27,17 @@ from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import (
-    Authenticator,
-    AuthIdentity,
-    OrganizationMember,
-    OrganizationStatus,
-    User,
-    UserAvatar,
-    UserEmail,
-    UserOption,
-    UserPermission,
-    UserRoleUser,
-)
+from sentry.models.authenticator import Authenticator
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.avatars.user_avatar import UserAvatar
+from sentry.models.options.user_option import UserOption
+from sentry.models.organization import OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
+from sentry.models.userpermission import UserPermission
+from sentry.models.userrole import UserRoleUser
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -271,18 +270,23 @@ class DetailedUserSerializer(UserSerializer):
             lambda x: not x.interface.is_backup_interface,
         )
 
-        memberships = manytoone_to_dict(
-            OrganizationMember.objects.filter(
-                user_id__in={u.id for u in item_list},
-                organization__status=OrganizationStatus.ACTIVE,
-            ),
-            "user_id",
-        )
+        memberships = OrganizationMemberMapping.objects.filter(
+            user_id__in={u.id for u in item_list}
+        ).values_list("user_id", "organization_id", named=True)
+        active_organizations = OrganizationMapping.objects.filter(
+            organization_id__in={m.organization_id for m in memberships},
+            status=OrganizationStatus.ACTIVE,
+        ).values_list("organization_id", flat=True)
+
+        active_memberships = defaultdict(int)
+        for membership in memberships:
+            if membership.organization_id in active_organizations:
+                active_memberships[membership.user_id] += 1
 
         for item in item_list:
             attrs[item]["authenticators"] = authenticators[item.id]
             # org can reset 2FA if the user is only in one org
-            attrs[item]["canReset2fa"] = len(memberships[item.id]) == 1
+            attrs[item]["canReset2fa"] = active_memberships[item.id] == 1
 
         return attrs
 

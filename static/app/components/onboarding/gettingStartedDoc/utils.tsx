@@ -1,7 +1,6 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization, PlatformKey} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 export function getUploadSourceMapsStep({

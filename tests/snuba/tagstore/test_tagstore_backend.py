@@ -5,7 +5,10 @@ import pytest
 from django.utils import timezone
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
-from sentry.models import Environment, EventUser, Release, ReleaseProjectEnvironment, ReleaseStages
+from sentry.models.environment import Environment
+from sentry.models.eventuser import EventUser
+from sentry.models.release import Release
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
@@ -20,6 +23,7 @@ from sentry.tagstore.exceptions import (
 )
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.tagstore.types import GroupTagValue, TagValue
+from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
@@ -173,6 +177,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             [("foo", "bar"), ("biz", "baz")],
             "releaseme",
         )
+        assert group_info is not None
         return group_info.group, env
 
     def test_get_group_tag_keys_and_top_values(self):
@@ -1271,7 +1276,8 @@ class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
             None,
             first_group_timestamp_start + timedelta(minutes=4),
         )
-        first_group = group_info.group if group_info else None
+        assert group_info is not None
+        first_group = group_info.group
 
         second_group_fingerprint = f"{ProfileFileIOGroupType.type_id}-group2"
         second_group_timestamp_start = timezone.now() - timedelta(hours=5)
@@ -1283,7 +1289,8 @@ class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
                 self.environment.name if incr != 4 else None,
                 second_group_timestamp_start + timedelta(minutes=incr),
             )
-            second_group = group_info.group if group_info else None
+            assert group_info is not None
+            second_group = group_info.group
 
         assert self.ts.get_generic_groups_user_counts(
             [self.project.id],
@@ -1317,7 +1324,8 @@ class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
             self.environment.name,
             last_event_ts,
         )
-        group = group_info.group if group_info else None
+        assert group_info is not None
+        group = group_info.group
 
         group_seen_stats = self.ts.get_generic_group_list_tag_value(
             [group.project_id],
@@ -1340,7 +1348,9 @@ class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
         }
 
 
-class BaseSemverTest:
+class BaseSemverTest(TestCase, SnubaTestCase):
+    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+
     KEY: str
 
     def setUp(self):
@@ -1369,7 +1379,7 @@ class BaseSemverTest:
         ]
 
 
-class GetTagValuePaginatorForProjectsSemverTest(BaseSemverTest, TestCase, SnubaTestCase):
+class GetTagValuePaginatorForProjectsSemverTest(BaseSemverTest):
     KEY = SEMVER_ALIAS
 
     def test_semver(self):
@@ -1467,7 +1477,7 @@ class GetTagValuePaginatorForProjectsSemverTest(BaseSemverTest, TestCase, SnubaT
         )
 
 
-class GetTagValuePaginatorForProjectsSemverPackageTest(BaseSemverTest, TestCase, SnubaTestCase):
+class GetTagValuePaginatorForProjectsSemverPackageTest(BaseSemverTest):
     KEY = SEMVER_PACKAGE_ALIAS
 
     def test_semver_package(self):
@@ -1547,7 +1557,7 @@ class GetTagValuePaginatorForProjectsReleaseStageTest(TestCase, SnubaTestCase):
         self.run_test(ReleaseStages.ADOPTED, [], project=project_2, environment=self.environment)
 
 
-class GetTagValuePaginatorForProjectsSemverBuildTest(BaseSemverTest, TestCase, SnubaTestCase):
+class GetTagValuePaginatorForProjectsSemverBuildTest(BaseSemverTest):
     KEY = SEMVER_BUILD_ALIAS
 
     def test_semver_package(self):

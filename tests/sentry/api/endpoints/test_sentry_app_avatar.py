@@ -1,7 +1,7 @@
 from base64 import b64encode
 
 from sentry import options as options_store
-from sentry.models import SentryAppAvatar
+from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 from sentry.models.files.control_file import ControlFile
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
@@ -204,6 +204,7 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         self.get_error_response(self.unpublished_app.slug, avatar_type="upload", status_code=400)
 
 
+@control_silo_test(stable=True)
 class SentryAppAvatarDeleteTest(SentryAppAvatarTestBase):
     def test_delete(self):
         """Test that when the related sentryapp is deleted (not really deleted, but date_deleted is set), the associated avatars are deleted"""

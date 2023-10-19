@@ -6,7 +6,8 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from sentry.models import File, ProjectDebugFile
+from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.files.file import File
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.relay import RelayStoreHelper

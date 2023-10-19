@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -7,7 +9,7 @@ import TeamDetails from 'sentry/views/settings/organizationTeams/teamDetails';
 describe('TeamMembers', () => {
   let joinMock;
 
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const team = TestStubs.Team({hasAccess: false});
   const teamHasAccess = TestStubs.Team({id: '1337', slug: 'django', hasAccess: true});
 

@@ -59,6 +59,7 @@ export interface ResolveActionsProps {
   isAutoResolved?: boolean;
   isResolved?: boolean;
   latestRelease?: Project['latestRelease'];
+  multipleProjectsSelected?: boolean;
   priority?: 'primary';
   projectFetchError?: boolean;
   projectSlug?: string;
@@ -80,6 +81,7 @@ function ResolveActions({
   disableDropdown,
   priority,
   projectFetchError,
+  multipleProjectsSelected,
   onUpdate,
 }: ResolveActionsProps) {
   const organization = useOrganization();
@@ -171,7 +173,8 @@ function ResolveActions({
       return renderResolved();
     }
 
-    const actionTitle = !hasRelease
+    const shouldDisplayCta = !hasRelease && !multipleProjectsSelected;
+    const actionTitle = shouldDisplayCta
       ? t('Set up release tracking in order to use this feature.')
       : '';
 
@@ -220,7 +223,7 @@ function ResolveActions({
 
     return (
       <StyledDropdownMenu
-        itemsHidden={!hasRelease}
+        itemsHidden={shouldDisplayCta}
         items={items}
         trigger={triggerProps => (
           <DropdownTrigger
@@ -233,11 +236,13 @@ function ResolveActions({
           />
         )}
         disabledKeys={
-          disabled || !hasRelease
+          multipleProjectsSelected
+            ? ['next-release', 'current-release', 'another-release', 'a-commit']
+            : disabled || !hasRelease
             ? ['next-release', 'current-release', 'another-release']
             : []
         }
-        menuTitle={hasRelease ? t('Resolved In') : <SetupReleasesPrompt />}
+        menuTitle={shouldDisplayCta ? <SetupReleasesPrompt /> : t('Resolved In')}
         isDisabled={isDisabled}
       />
     );

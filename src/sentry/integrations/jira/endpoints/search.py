@@ -5,9 +5,10 @@ from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 
@@ -17,6 +18,9 @@ from ..utils import build_user_choice
 
 @control_silo_endpoint
 class JiraSearchEndpoint(IntegrationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     """
     Called by our front end when it needs to make requests to Jira's API for data.
     """

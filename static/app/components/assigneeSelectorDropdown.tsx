@@ -59,7 +59,7 @@ export interface AssigneeSelectorDropdownProps {
   children: (props: RenderProps) => React.ReactNode;
   id: string;
   organization: Organization;
-  assignedTo?: Actor;
+  assignedTo?: Actor | null;
   disabled?: boolean;
   memberList?: User[];
   onAssign?: OnAssignCallback;
@@ -186,14 +186,23 @@ export class AssigneeSelectorDropdown extends Component<
   }
 
   assignToUser(user: User | Actor) {
-    assignToUser({id: this.props.id, user, assignedBy: 'assignee_selector'});
+    const {organization} = this.props;
+    assignToUser({
+      id: this.props.id,
+      orgSlug: organization.slug,
+      user,
+      assignedBy: 'assignee_selector',
+    });
     this.setState({loading: true});
   }
 
   assignToTeam(team: Team) {
+    const {organization} = this.props;
+
     assignToActor({
       actor: {id: team.id, type: 'team'},
       id: this.props.id,
+      orgSlug: organization.slug,
       assignedBy: 'assignee_selector',
     });
     this.setState({loading: true});
@@ -225,8 +234,10 @@ export class AssigneeSelectorDropdown extends Component<
   };
 
   clearAssignTo = (e: React.MouseEvent<HTMLDivElement>) => {
+    const {organization} = this.props;
+
     // clears assignment
-    clearAssignment(this.props.id, 'assignee_selector');
+    clearAssignment(this.props.id, organization.slug, 'assignee_selector');
     this.setState({loading: true});
     e.stopPropagation();
   };

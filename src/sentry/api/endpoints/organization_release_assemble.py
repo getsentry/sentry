@@ -2,21 +2,27 @@ import jsonschema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Release
+from sentry.models.release import Release
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
     get_assemble_status,
     set_assemble_status,
 )
-from sentry.utils import json
+from sentry.utils import json, metrics
 
 
 @region_silo_endpoint
 class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     def post(self, request: Request, organization, version) -> Response:
         """
         Handle an artifact bundle and merge it into the release
@@ -57,7 +63,24 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
         checksum = data.get("checksum", None)
         chunks = data.get("chunks", [])
 
-        state, detail = get_assemble_status(AssembleTask.RELEASE_BUNDLE, organization.id, checksum)
+        upload_as_artifact_bundle = False
+        is_release_bundle_migration = False
+        project_ids = []
+        if features.has("organizations:sourcemaps-upload-release-as-artifact-bundle", organization):
+            upload_as_artifact_bundle = True
+            is_release_bundle_migration = True
+            # NOTE: this list of projects can be further refined based on the
+            # `project` embedded in the bundle manifest.
+            project_ids = [project.id for project in release.projects.all()]
+            metrics.incr("sourcemaps.upload.release_as_artifact_bundle")
+
+        assemble_task = (
+            AssembleTask.ARTIFACT_BUNDLE
+            if upload_as_artifact_bundle
+            else AssembleTask.RELEASE_BUNDLE
+        )
+
+        state, detail = get_assemble_status(assemble_task, organization.id, checksum)
         if state == ChunkFileState.OK:
             return Response({"state": state, "detail": None, "missingChunks": []}, status=200)
         elif state is not None:
@@ -69,9 +92,7 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
         if not chunks:
             return Response({"state": ChunkFileState.NOT_FOUND, "missingChunks": []}, status=200)
 
-        set_assemble_status(
-            AssembleTask.RELEASE_BUNDLE, organization.id, checksum, ChunkFileState.CREATED
-        )
+        set_assemble_status(assemble_task, organization.id, checksum, ChunkFileState.CREATED)
 
         from sentry.tasks.assemble import assemble_artifacts
 
@@ -81,7 +102,11 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
                 "version": version,
                 "checksum": checksum,
                 "chunks": chunks,
-                "upload_as_artifact_bundle": False,
+                # NOTE: The `dist` is embedded in the Bundle manifest and optional here.
+                # It will be backfilled from the manifest within the `assemble_artifacts` task.
+                "project_ids": project_ids,
+                "upload_as_artifact_bundle": upload_as_artifact_bundle,
+                "is_release_bundle_migration": is_release_bundle_migration,
             }
         )
 

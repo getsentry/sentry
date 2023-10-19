@@ -3,15 +3,17 @@ import uuid
 from time import time
 from unittest import mock
 
-from freezegun import freeze_time
-
 from sentry import tsdb
 from sentry.event_manager import EventManager
-from sentry.models import Group, GroupHash
+from sentry.models.group import Group
+from sentry.models.grouphash import GroupHash
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.tsdb.base import TSDBModel
+
+pytestmark = [requires_snuba]
 
 
 def make_event(**kwargs):

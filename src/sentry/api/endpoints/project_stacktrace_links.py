@@ -5,11 +5,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.mixins import RepositoryMixin
-from sentry.models import Project, RepositoryProjectPathConfig
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.project import Project
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.sdk import set_measurement
@@ -28,6 +30,9 @@ class StacktraceLinksSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class ProjectStacktraceLinksEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     """
     Returns valid links for source code providers so that
     users can go from files in the stack trace to the

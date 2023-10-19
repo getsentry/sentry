@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -14,7 +16,7 @@ import {
 jest.mock('sentry/utils/analytics');
 
 describe('SourceMapDebug', () => {
-  const organization = TestStubs.Organization({});
+  const organization = Organization({});
   const project = TestStubs.Project();
   const eventId = '1ec1bd65b0b1484b97162087a652421b';
   const exceptionValues: ExceptionValue[] = [

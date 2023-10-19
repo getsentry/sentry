@@ -2,8 +2,8 @@ import pytest
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.partnership_configs import ChannelName
-from sentry.auth.provider import MigratingIdentityId
-from sentry.models import AuthIdentity, AuthProvider
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -61,9 +61,7 @@ class FlyOAuth2ProviderTest(TestCase):
             "data": data,
             "user": user_info,
         }
-        expected_user_id = MigratingIdentityId(
-            id=user_info["user_id"], legacy_id=user_info["email"]
-        )
+        expected_user_id = user_info["user_id"]
         result = provider.build_identity(state)
         assert result == {
             "id": expected_user_id,

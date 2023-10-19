@@ -1,16 +1,22 @@
 from __future__ import annotations
 
-from typing import Callable, List, Mapping, Optional, Sequence
+from typing import Callable, List, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 from django.db import router, transaction
 from django.db.models import Q, QuerySet
 
 from sentry.api.serializers.base import Serializer
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
-from sentry.models import NotificationSetting, User
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.models.user import User
 from sentry.notifications.helpers import get_scope_type
+from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import (
+    NotificationScopeEnum,
     NotificationScopeType,
+    NotificationSettingEnum,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
@@ -24,6 +30,7 @@ from sentry.services.hybrid_cloud.notifications import NotificationsService, Rpc
 from sentry.services.hybrid_cloud.notifications.model import NotificationSettingFilterArgs
 from sentry.services.hybrid_cloud.notifications.serial import serialize_notification_setting
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders
 
 
@@ -48,6 +55,8 @@ class DatabaseBackedNotificationsService(NotificationsService):
         actor: RpcActor,
         project_id: Optional[int] = None,
         organization_id: Optional[int] = None,
+        skip_provider_updates: bool = False,
+        organization_id_for_team: Optional[int] = None,
     ) -> None:
         NotificationSetting.objects.update_settings(
             provider=external_provider,
@@ -56,6 +65,8 @@ class DatabaseBackedNotificationsService(NotificationsService):
             project=project_id,
             organization=organization_id,
             actor=actor,
+            skip_provider_updates=skip_provider_updates,
+            organization_id_for_team=organization_id_for_team,
         )
 
     def bulk_update_settings(
@@ -74,8 +85,12 @@ class DatabaseBackedNotificationsService(NotificationsService):
                     actor=RpcActor(id=user_id, actor_type=ActorType.USER),
                     notification_type=notification_type,
                     setting_option=setting_option,
+                    skip_provider_updates=True,
                 )
+            # update the providers at the end
+            NotificationSetting.objects.update_provider_settings(user_id, None)
 
+    # TODO(snigdha): This can be removed in V2.
     def get_settings_for_users(
         self,
         *,
@@ -157,16 +172,15 @@ class DatabaseBackedNotificationsService(NotificationsService):
         NotificationSetting.objects._filter(
             team_ids=team_ids, user_ids=user_ids, provider=provider
         ).delete()
+        # delete all options for team/user
+        query_args = {"team_id": team_id, "user_id": user_id}
+        NotificationSettingOption.objects.filter(**query_args).delete()
+        NotificationSettingProvider.objects.filter(**query_args).delete()
 
     def remove_notification_settings_for_team(
         self, *, team_id: int, provider: ExternalProviders
     ) -> None:
         self.remove_notification_settings(team_id=team_id, user_id=None, provider=provider)
-
-    def remove_notification_settings_for_user(
-        self, *, user_id: int, provider: ExternalProviders
-    ) -> None:
-        self.remove_notification_settings(team_id=None, user_id=user_id, provider=provider)
 
     def get_many(self, *, filter: NotificationSettingFilterArgs) -> List[RpcNotificationSetting]:
         return self._FQ.get_many(filter)
@@ -174,9 +188,25 @@ class DatabaseBackedNotificationsService(NotificationsService):
     def remove_notification_settings_for_organization(self, *, organization_id: int) -> None:
         assert organization_id, "organization_id must be a positive integer"
         NotificationSetting.objects.remove_for_organization(organization_id=organization_id)
+        NotificationSettingOption.objects.filter(
+            scope_type=NotificationScopeEnum.ORGANIZATION.value,
+            scope_identifier=organization_id,
+        ).delete()
+        NotificationSettingProvider.objects.filter(
+            scope_type=NotificationScopeEnum.ORGANIZATION.value,
+            scope_identifier=organization_id,
+        ).delete()
 
     def remove_notification_settings_for_project(self, *, project_id: int) -> None:
         NotificationSetting.objects.remove_for_project(project_id=project_id)
+        NotificationSettingOption.objects.filter(
+            scope_type=NotificationScopeEnum.PROJECT.value,
+            scope_identifier=project_id,
+        ).delete()
+        NotificationSettingProvider.objects.filter(
+            scope_type=NotificationScopeEnum.PROJECT.value,
+            scope_identifier=project_id,
+        ).delete()
 
     def serialize_many(
         self,
@@ -186,6 +216,54 @@ class DatabaseBackedNotificationsService(NotificationsService):
         auth_context: Optional[AuthenticationContext] = None,
     ) -> List[OpaqueSerializedResponse]:
         return self._FQ.serialize_many(filter, as_user, auth_context)
+
+    def get_subscriptions_for_projects(
+        self,
+        *,
+        user_id: int,
+        project_ids: List[int],
+        type: NotificationSettingEnum,
+    ) -> Mapping[int, Tuple[bool, bool, bool]]:
+        """
+        Returns a mapping of project_id to a tuple of (is_disabled, is_active, has_only_inactive_subscriptions)
+        """
+        user = user_service.get_user(user_id)
+        if not user:
+            return {}
+
+        controller = NotificationController(
+            recipients=[user],
+            project_ids=project_ids,
+            type=type,
+        )
+        return {
+            project: (s.is_disabled, s.is_active, s.has_only_inactive_subscriptions)
+            for project, s in controller.get_subscriptions_status_for_projects(
+                user=user, project_ids=project_ids, type=type
+            ).items()
+        }
+
+    def get_participants(
+        self,
+        *,
+        recipients: List[RpcActor],
+        type: NotificationSettingEnum,
+        project_ids: Optional[List[int]] = None,
+        organization_id: Optional[int] = None,
+    ) -> MutableMapping[
+        int, MutableMapping[int, str]
+    ]:  # { actor_id : { provider_str: value_str } }
+        controller = NotificationController(
+            recipients=recipients,
+            project_ids=project_ids,
+            organization_id=organization_id,
+            type=type,
+        )
+        participants = controller.get_participants()
+        return {
+            actor.id: {provider.value: value.value for provider, value in providers.items()}
+            for actor, providers in participants.items()
+        }
 
     class _NotificationSettingsQuery(
         FilterQueryDatabaseImpl[

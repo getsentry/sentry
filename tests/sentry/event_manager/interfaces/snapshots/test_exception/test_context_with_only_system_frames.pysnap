@@ -25,6 +25,7 @@ get_api_context:
         package: null
         platform: null
         rawFunction: null
+        sourceLink: null
         symbol: null
         symbolAddr: null
         trust: null
@@ -54,6 +55,7 @@ get_api_context:
         package: null
         platform: null
         rawFunction: null
+        sourceLink: null
         symbol: null
         symbolAddr: null
         trust: null

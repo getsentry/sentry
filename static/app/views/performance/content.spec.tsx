@@ -1,6 +1,8 @@
 import {browserHistory} from 'react-router';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as pageFilters from 'sentry/actionCreators/pageFilters';
@@ -8,7 +10,7 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import PerformanceContent from 'sentry/views/performance/content';
 import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
@@ -17,10 +19,8 @@ import {RouteContext} from 'sentry/views/routeContext';
 const FEATURES = ['performance-view'];
 
 function WrappedComponent({organization, router}) {
-  const client = new QueryClient();
-
   return (
-    <QueryClientProvider client={client}>
+    <QueryClientProvider client={makeTestQueryClient()}>
       <RouteContext.Provider
         value={{
           location: router.location,
@@ -40,7 +40,7 @@ function WrappedComponent({organization, router}) {
 }
 
 function initializeData(projects, query, features = FEATURES) {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
     projects,
   });
@@ -63,8 +63,8 @@ function initializeTrendsData(query, addDefaultQuery = true) {
     TestStubs.Project({id: '1', firstTransactionEvent: false}),
     TestStubs.Project({id: '2', firstTransactionEvent: true}),
   ];
-  const organization = TestStubs.Organization({
-    FEATURES,
+  const organization = Organization({
+    features: FEATURES,
     projects,
   });
 

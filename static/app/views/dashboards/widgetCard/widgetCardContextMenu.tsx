@@ -93,8 +93,6 @@ function WidgetCardContextMenu({
             {metricSettingContext => (
               <ContextWrapper>
                 {!organization.features.includes('performance-mep-bannerless-ui') &&
-                  (organization.features.includes('dashboards-mep') ||
-                    organization.features.includes('mep-rollout-flag')) &&
                   isMetricsData === false &&
                   metricSettingContext &&
                   metricSettingContext.metricSettingState !==
@@ -234,8 +232,6 @@ function WidgetCardContextMenu({
           {metricSettingContext => (
             <ContextWrapper>
               {!organization.features.includes('performance-mep-bannerless-ui') &&
-                (organization.features.includes('dashboards-mep') ||
-                  organization.features.includes('mep-rollout-flag')) &&
                 isMetricsData === false &&
                 metricSettingContext &&
                 metricSettingContext.metricSettingState !==

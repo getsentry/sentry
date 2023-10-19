@@ -6,7 +6,7 @@ import {GettingStartedWithNativeQT, steps} from './native-qt';
 
 describe('GettingStartedWithNativeQT', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithNativeQT dsn="test-dsn" />);
+    render(<GettingStartedWithNativeQT dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithNativeQT', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

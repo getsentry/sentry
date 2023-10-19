@@ -18,7 +18,7 @@ import {Organization, Project} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {NotificationOptionsObject} from 'sentry/views/settings/account/notifications/constants';
-import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields2';
+import {NOTIFICATION_SETTING_FIELDS_V2} from 'sentry/views/settings/account/notifications/fields2';
 import {OrganizationSelectHeader} from 'sentry/views/settings/account/notifications/organizationSelectHeader';
 
 type Value = 'always' | 'never' | 'subscribe_only' | 'committed_only';
@@ -231,16 +231,20 @@ function NotificationSettingsByEntity(props: Props) {
     );
   };
 
-  const valueOptions = NOTIFICATION_SETTING_FIELDS[notificationType].choices;
+  const valueOptions = NOTIFICATION_SETTING_FIELDS_V2[notificationType].choices;
   return (
     <Fragment>
       <Panel>
         <StyledPanelHeader>
-          <OrganizationSelectHeader
-            organizations={organizations}
-            organizationId={orgId}
-            handleOrgChange={handleOrgChange}
-          />
+          {entityType === 'project' ? (
+            <OrganizationSelectHeader
+              organizations={organizations}
+              organizationId={orgId}
+              handleOrgChange={handleOrgChange}
+            />
+          ) : (
+            t('Settings for Organizations')
+          )}
         </StyledPanelHeader>
         <Item>
           {/* TODO: enable search for sentry projects */}

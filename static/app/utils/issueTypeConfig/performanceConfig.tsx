@@ -22,7 +22,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
     },
     attachments: {enabled: false},
     mergedIssues: {enabled: false},
-    replays: {enabled: false},
+    replays: {enabled: true},
     similarIssues: {enabled: false},
     userFeedback: {enabled: false},
     // Performance issues render a custom SpanEvidence component
@@ -187,6 +187,9 @@ const performanceConfig: IssueCategoryConfigMapping = {
       linksByPlatform: {},
     },
   },
+  [IssueType.PERFORMANCE_DURATION_REGRESSION]: {
+    stats: {enabled: false},
+  },
   [IssueType.PROFILE_FILE_IO_MAIN_THREAD]: {
     resources: {
       description: t(
@@ -242,6 +245,40 @@ const performanceConfig: IssueCategoryConfigMapping = {
       ],
       linksByPlatform: {},
     },
+  },
+  [IssueType.PROFILE_FRAME_DROP]: {
+    resources: {
+      description: t(
+        'The main (or UI) thread in a mobile app is responsible for handling all user interaction and needs to be able to respond to gestures and taps in real time. If a long-running operation blocks the main thread, the app becomes unresponsive, impacting the quality of the user experience. To learn more, read our documentation:'
+      ),
+      links: [
+        {
+          text: t('Frame Drop'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/frame-drop/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [IssueType.PROFILE_FRAME_DROP_EXPERIMENTAL]: {
+    resources: {
+      description: t(
+        'The main (or UI) thread in a mobile app is responsible for handling all user interaction and needs to be able to respond to gestures and taps in real time. If a long-running operation blocks the main thread, the app becomes unresponsive, impacting the quality of the user experience. To learn more, read our documentation:'
+      ),
+      links: [
+        {
+          text: t('Frame Drop'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/frame-drop/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL]: {
+    events: {enabled: false},
+    replays: {enabled: false},
+    stats: {enabled: false},
+    tags: {enabled: false},
   },
 };
 

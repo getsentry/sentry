@@ -6,7 +6,7 @@ import {GettingStartedWithIris, steps} from './iris';
 
 describe('GettingStartedWithIris', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithIris dsn="test-dsn" />);
+    render(<GettingStartedWithIris dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithIris', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

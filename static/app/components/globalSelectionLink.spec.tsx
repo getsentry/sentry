@@ -21,11 +21,7 @@ describe('GlobalSelectionLink', function () {
     };
     const context = getContext(query);
 
-    const {container} = render(
-      <GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>,
-      {context}
-    );
-    expect(container).toSnapshot();
+    render(<GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>, {context});
     expect(screen.getByText('Go somewhere!')).toHaveAttribute(
       'href',
       'http://some.url/?environment=staging&project=foo&project=bar'
@@ -36,14 +32,11 @@ describe('GlobalSelectionLink', function () {
   });
 
   it('does not have global selection values in query', function () {
-    const {container} = render(
-      <GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>,
-      {context: getContext()}
-    );
+    render(<GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>, {
+      context: getContext(),
+    });
 
     expect(screen.getByText('Go somewhere!')).toHaveAttribute('href', path);
-
-    expect(container).toSnapshot();
   });
 
   it('combines query parameters with custom query', async function () {

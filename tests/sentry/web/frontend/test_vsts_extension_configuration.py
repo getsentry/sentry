@@ -3,7 +3,7 @@ from urllib.parse import parse_qsl, urlparse
 from django.test import override_settings
 from django.urls import reverse
 
-from sentry.models import OrganizationMember
+from sentry.models.organizationmember import OrganizationMember
 from sentry.testutils.cases import TestCase
 
 

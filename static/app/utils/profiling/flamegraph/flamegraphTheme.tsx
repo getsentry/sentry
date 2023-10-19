@@ -46,11 +46,12 @@ export interface FlamegraphTheme {
   // They should instead be defined as arrays of numbers so we can use them with glsl and avoid unnecessary parsing
   COLORS: {
     BAR_LABEL_FONT_COLOR: string;
+    BATTERY_CHART_COLORS: ColorChannels[];
     CHART_CURSOR_INDICATOR: string;
+    CHART_LABEL_COLOR: string;
     COLOR_BUCKET: (t: number) => ColorChannels;
     COLOR_MAPS: Record<FlamegraphColorCodings[number], ColorMapFn>;
     CPU_CHART_COLORS: ColorChannels[];
-    CPU_CHART_LABEL_COLOR: string;
     CURSOR_CROSSHAIR: string;
     DIFFERENTIAL_DECREASE: ColorChannels;
     DIFFERENTIAL_INCREASE: ColorChannels;
@@ -93,9 +94,11 @@ export interface FlamegraphTheme {
     FRAME_FONT: string;
   };
   SIZES: {
+    AGGREGATE_FLAMEGRAPH_DEPTH_OFFSET: number;
     BAR_FONT_SIZE: number;
     BAR_HEIGHT: number;
     BAR_PADDING: number;
+    BATTERY_CHART_HEIGHT: number;
     CHART_PX_PADDING: number;
     CPU_CHART_HEIGHT: number;
     FLAMEGRAPH_DEPTH_OFFSET: number;
@@ -107,6 +110,7 @@ export interface FlamegraphTheme {
     LABEL_FONT_SIZE: number;
     MAX_SPANS_HEIGHT: number;
     MEMORY_CHART_HEIGHT: number;
+    METRICS_FONT_SIZE: number;
     MINIMAP_HEIGHT: number;
     MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: number;
     SPANS_BAR_HEIGHT: number;
@@ -150,9 +154,11 @@ const SPANS_LCH_DARK = {
 };
 
 const SIZES: FlamegraphTheme['SIZES'] = {
+  AGGREGATE_FLAMEGRAPH_DEPTH_OFFSET: 4,
   BAR_FONT_SIZE: 11,
   BAR_HEIGHT: 20,
   BAR_PADDING: 4,
+  BATTERY_CHART_HEIGHT: 80,
   FLAMEGRAPH_DEPTH_OFFSET: 12,
   HOVERED_FRAME_BORDER_WIDTH: 2,
   HIGHLIGHTED_FRAME_BORDER_WIDTH: 3,
@@ -167,6 +173,7 @@ const SIZES: FlamegraphTheme['SIZES'] = {
   SPANS_BAR_HEIGHT: 20,
   SPANS_DEPTH_OFFSET: 3,
   SPANS_FONT_SIZE: 11,
+  METRICS_FONT_SIZE: 9,
   MAX_SPANS_HEIGHT: 160,
   TIMELINE_HEIGHT: 20,
   TOOLTIP_FONT_SIZE: 12,
@@ -184,6 +191,7 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
   SIZES,
   COLORS: {
     BAR_LABEL_FONT_COLOR: '#000',
+    BATTERY_CHART_COLORS: [[0.4, 0.56, 0.9, 0.65]],
     COLOR_BUCKET: makeColorBucketTheme(LCH_LIGHT),
     SPAN_COLOR_BUCKET: makeColorBucketTheme(SPAN_LCH_LIGHT, 140, 220),
     COLOR_MAPS: {
@@ -201,7 +209,7 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
       hexToColorChannels(CHART_PALETTE[4][3], 0.8),
     ],
     CHART_CURSOR_INDICATOR: 'rgba(31,35,58,.75)',
-    CPU_CHART_LABEL_COLOR: 'rgba(31,35,58,.75)',
+    CHART_LABEL_COLOR: 'rgba(31,35,58,.75)',
     CURSOR_CROSSHAIR: '#bbbbbb',
     DIFFERENTIAL_DECREASE: [0.309, 0.2058, 0.98],
     DIFFERENTIAL_INCREASE: [0.98, 0.2058, 0.4381],
@@ -237,6 +245,7 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
   SIZES,
   COLORS: {
     BAR_LABEL_FONT_COLOR: 'rgb(255 255 255 / 80%)',
+    BATTERY_CHART_COLORS: [[0.4, 0.56, 0.9, 0.5]],
     COLOR_BUCKET: makeColorBucketTheme(LCH_DARK),
     SPAN_COLOR_BUCKET: makeColorBucketTheme(SPANS_LCH_DARK, 140, 220),
     COLOR_MAPS: {
@@ -250,18 +259,18 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
     },
     CPU_CHART_COLORS: CHART_PALETTE[12].map(c => hexToColorChannels(c, 0.8)),
     MEMORY_CHART_COLORS: [
-      hexToColorChannels(CHART_PALETTE[4][2], 0.8),
-      hexToColorChannels(CHART_PALETTE[4][3], 0.8),
+      hexToColorChannels(CHART_PALETTE[4][2], 0.5),
+      hexToColorChannels(CHART_PALETTE[4][3], 0.5),
     ],
     CHART_CURSOR_INDICATOR: 'rgba(255, 255, 255, 0.5)',
-    CPU_CHART_LABEL_COLOR: 'rgba(255, 255, 255, 0.5)',
+    CHART_LABEL_COLOR: 'rgba(255, 255, 255, 0.5)',
     CURSOR_CROSSHAIR: '#828285',
     DIFFERENTIAL_DECREASE: [0.309, 0.2058, 0.98],
     DIFFERENTIAL_INCREASE: [0.98, 0.2058, 0.4381],
     FOCUSED_FRAME_BORDER_COLOR: darkTheme.focus,
     FRAME_GRAYSCALE_COLOR: [0.5, 0.5, 0.5, 0.4],
-    FRAME_APPLICATION_COLOR: [0.1, 0.1, 0.8, 0.4],
-    FRAME_SYSTEM_COLOR: [0.7, 0.1, 0.1, 0.5],
+    FRAME_APPLICATION_COLOR: [0.1, 0.1, 0.5, 0.4],
+    FRAME_SYSTEM_COLOR: [0.6, 0.15, 0.25, 0.3],
     SPAN_FALLBACK_COLOR: [1, 1, 1, 0.3],
     GRID_FRAME_BACKGROUND_COLOR: 'rgb(26, 20, 31,1)',
     GRID_LINE_COLOR: '#222227',

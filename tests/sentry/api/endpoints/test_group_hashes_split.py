@@ -1,6 +1,6 @@
 import pytest
 
-from sentry.models import GroupHash
+from sentry.models.grouphash import GroupHash
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 

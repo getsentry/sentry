@@ -1,6 +1,7 @@
 from rest_framework import status
 from rest_framework.request import Request
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import (
     OrganizationEndpoint,
@@ -8,12 +9,17 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.validators.project_codeowners import validate_codeowners_associations
 from sentry.constants import ObjectStatus
-from sentry.models import Organization, Project, ProjectCodeOwners
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.services.hybrid_cloud.integration import integration_service
 
 
 @region_silo_endpoint
 class OrganizationCodeOwnersAssociationsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 
     def get(self, request: Request, organization: Organization):

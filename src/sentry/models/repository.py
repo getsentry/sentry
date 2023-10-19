@@ -15,13 +15,14 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.array import ArrayField
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import pending_delete
 
 
 @region_silo_only_model
 class Repository(Model, PendingDeletionMixin):
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Global
 
     organization_id = BoundedBigIntegerField(db_index=True)
     name = models.CharField(max_length=200)
@@ -35,6 +36,7 @@ class Repository(Model, PendingDeletionMixin):
     )
     date_added = models.DateTimeField(default=timezone.now)
     integration_id = BoundedPositiveIntegerField(db_index=True, null=True)
+    languages = ArrayField(null=True)
 
     class Meta:
         app_label = "sentry"

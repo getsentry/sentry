@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 from collections import defaultdict, namedtuple
-from typing import TYPE_CHECKING, Sequence, Union, overload
+from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Union, overload
 
 import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
 from django.db.models.signals import post_save
+from django.forms import model_to_dict
 from rest_framework import serializers
 
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import Model, region_silo_only_model
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -17,14 +20,16 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 
 if TYPE_CHECKING:
-    from sentry.models import Team, User
+    from sentry.models.team import Team
+    from sentry.models.user import User
 
 ACTOR_TYPES = {"team": 0, "user": 1}
 
 
 def actor_type_to_class(type: int) -> type[Team] | type[User]:
-    # type will be 0 or 1 and we want to get Team or User
-    from sentry.models import Team, User
+    # `type` will be 0 or 1 and we want to get Team or User
+    from sentry.models.team import Team
+    from sentry.models.user import User
 
     if type == ACTOR_TYPES["team"]:
         return Team
@@ -54,7 +59,8 @@ def fetch_actors_by_actor_ids(cls: type[Team], actor_ids: list[int]) -> list[Tea
 def fetch_actors_by_actor_ids(
     cls: type[User] | type[Team], actor_ids: list[int]
 ) -> list[Team] | list[RpcUser]:
-    from sentry.models import Team, User
+    from sentry.models.team import Team
+    from sentry.models.user import User
 
     if cls is User:
         user_ids = Actor.objects.filter(type=ACTOR_TYPES["user"], id__in=actor_ids).values_list(
@@ -78,7 +84,8 @@ def fetch_actor_by_id(cls: type[Team], id: int) -> Team:
 
 
 def fetch_actor_by_id(cls: type[User] | type[Team], id: int) -> Team | RpcUser:
-    from sentry.models import Team, User
+    from sentry.models.team import Team
+    from sentry.models.user import User
 
     if cls is Team:
         return Team.objects.get(id=id)
@@ -93,7 +100,7 @@ def fetch_actor_by_id(cls: type[User] | type[Team], id: int) -> Team | RpcUser:
 
 
 def actor_type_to_string(type: int) -> str | None:
-    # type will be 0 or 1 and we want to get "team" or "user"
+    # `type` will be 0 or 1 and we want to get "team" or "user"
     for k, v in ACTOR_TYPES.items():
         if v == type:
             return k
@@ -141,6 +148,36 @@ class Actor(Model):
         # essentially forwards request to ActorTuple.get_actor_identifier
         return self.get_actor_tuple().get_actor_identifier()
 
+    @classmethod
+    def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
+        # Actors that can have both their `user` and `team` value set to null. Exclude such actors # from the export.
+        q = super().query_for_relocation_export(q, pk_map)
+
+        return q & ~models.Q(team__isnull=True, user_id__isnull=True)
+
+    # TODO(hybrid-cloud): actor refactor. Remove this method when done.
+    def write_relocation_import(
+        self, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
+        if self.team is None:
+            return super().write_relocation_import(scope, flags)
+
+        # `Actor` and `Team` have a direct circular dependency between them for the time being due
+        # to an ongoing refactor (that is, `Actor` foreign keys directly into `Team`, and `Team`
+        # foreign keys directly into `Actor`). If we use `INSERT` database calls naively, they will
+        # always fail, because one half of the cycle will always be missing.
+        #
+        # Because `Team` ends up first in the dependency sorting (see:
+        # fixtures/backup/model_dependencies/sorted.json), a viable solution here is to always null
+        # out the `actor_id` field of the `Team` when we import it, then rely on that model's
+        # `post_save()` hook to fill in the `Actor` model.
+        (actor, created) = Actor.objects.get_or_create(team=self.team, defaults=model_to_dict(self))
+        if actor:
+            self.pk = actor.pk
+            self.save()
+
+        return (self.pk, ImportKind.Inserted if created else ImportKind.Existing)
+
 
 def get_actor_id_for_user(user: Union[User, RpcUser]) -> int:
     return get_actor_for_user(user).id
@@ -183,7 +220,8 @@ class ActorTuple(namedtuple("Actor", "id type")):
 
     @classmethod
     def from_actor_identifier(cls, actor_identifier: int | str | None) -> ActorTuple | None:
-        from sentry.models import Team, User
+        from sentry.models.team import Team
+        from sentry.models.user import User
 
         """
         Returns an Actor tuple corresponding to a User or Team associated with
@@ -242,7 +280,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
         :param actors:
         :return:
         """
-        from sentry.models import User
+        from sentry.models.user import User
 
         if not actors:
             return []

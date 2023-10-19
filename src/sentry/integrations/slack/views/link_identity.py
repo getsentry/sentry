@@ -4,12 +4,16 @@ from django.utils.decorators import method_decorator
 from rest_framework.request import Request
 
 from sentry.integrations.utils import get_identity_or_404
-from sentry.models import Identity, Integration, NotificationSetting
+from sentry.models.identity import Identity
+from sentry.models.integrations.integration import Integration
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.notifications.helpers import should_use_notifications_v2
+from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.notifications.integration_nudge import IntegrationNudgeNotification
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
 from ..utils import send_slack_response
@@ -33,6 +37,7 @@ def build_linking_url(
     )
 
 
+@control_silo_view
 class SlackLinkIdentityView(BaseView):
     """
     Django view for linking user to slack account. Creates an entry on Identity table.
@@ -65,9 +70,22 @@ class SlackLinkIdentityView(BaseView):
         Identity.objects.link_identity(user=request.user, idp=idp, external_id=params["slack_id"])
 
         send_slack_response(integration, SUCCESS_LINKED_MESSAGE, params, command="link")
-        if not NotificationSetting.objects.has_any_provider_settings(
-            request.user, ExternalProviders.SLACK
-        ):
+        has_slack_settings = None
+        if should_use_notifications_v2(organization):
+            controller = NotificationController(
+                recipients=[request.user],
+                organization_id=organization.id,
+                provider=ExternalProviderEnum.SLACK,
+            )
+            has_slack_settings = controller.user_has_any_provider_settings(
+                ExternalProviderEnum.SLACK
+            )
+        else:
+            has_slack_settings = NotificationSetting.objects.has_any_provider_settings(
+                request.user, ExternalProviders.SLACK
+            )
+
+        if not has_slack_settings:
             IntegrationNudgeNotification(organization, request.user, ExternalProviders.SLACK).send()
 
         # TODO(epurkhiser): We could do some fancy slack querying here to
