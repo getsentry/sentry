@@ -41,6 +41,7 @@ from sentry.models.projectteam import ProjectTeam
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.replays.lib import kafka as replays_kafka
 from sentry.rules import init_registry
+from sentry.rules.actions.base import EventAction
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import unguarded_write
 from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES
@@ -394,7 +395,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
         ), patch("sentry.constants._SENTRY_RULES", MOCK_RULES), patch(
             "sentry.rules.processor.rules", init_registry()
         ) as rules:
-            MockAction = mock.Mock()
+            MockAction = mock.Mock(spec=EventAction)
             MockAction.rule_type = "action/event"
             MockAction.id = "tests.sentry.tasks.post_process.tests.MockAction"
             MockAction.return_value.after.return_value = []
