@@ -7,10 +7,11 @@ from uuid import uuid4
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import CharField, region_silo_only_model
+from sentry.db.models import region_silo_only_model
 from sentry.db.models.base import DefaultFieldsModel, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.fields.uuid import UUIDField
 from sentry.db.models.manager.base import BaseManager
 
 logger = logging.getLogger(__name__)
@@ -79,7 +80,7 @@ class Relocation(DefaultFieldsModel):
 
     # Unique ID for this import attempt. This can also be used as the name of
     # the import blob in Google Cloud Storage.
-    uuid = CharField(max_length=32, unique=True, default=default_guid)
+    uuid = UUIDField(db_index=True, default=default_guid)
 
     # Possible values are in the the Stage enum.
     step = models.SmallIntegerField(choices=Step.get_choices(), default=None)

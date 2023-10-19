@@ -33,6 +33,7 @@ from sentry.api.endpoints.release_thresholds.release_threshold_index import (
 from sentry.api.endpoints.release_thresholds.release_threshold_status_index import (
     ReleaseThresholdStatusIndexEndpoint,
 )
+from sentry.api.endpoints.relocation import RelocationEndpoint
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
@@ -2998,6 +2999,13 @@ urlpatterns = [
     re_path(
         r"^internal/",
         include(INTERNAL_URLS),
+    ),
+    # Relocation
+    # TODO(getsentry/team-ospo#169): Add URL endpoint to pull encryption public key.
+    re_path(
+        r"^relocation/$",
+        RelocationEndpoint.as_view(),
+        name="sentry-api-0-relocation",
     ),
     # Catch all
     re_path(
