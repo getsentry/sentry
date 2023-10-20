@@ -276,7 +276,7 @@ const StyledLegendWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: ${space(1.5)};
+  gap: ${space(3)};
 `;
 
 const SpanOpChange = styled('span')<{regressed: boolean}>`
