@@ -126,9 +126,6 @@ class MetricsQueryBuilder(QueryBuilder):
         if not field:
             return None
 
-        if self.query is None:
-            return None
-
         if not should_use_on_demand_metrics(self.dataset, field, self.query):
             return None
 
