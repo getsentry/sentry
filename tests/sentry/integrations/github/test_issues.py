@@ -10,7 +10,8 @@ from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.silo import SiloMode
-from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
+from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
+from sentry.testutils.cases import IntegratedApiTestCase, PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -20,8 +21,8 @@ from sentry.utils import json
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
-class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
+@region_silo_test(stable=True)
+class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTestCase):
     @cached_property
     def request(self):
         return RequestFactory()
@@ -36,6 +37,13 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
             self.model.add_organization(self.organization, self.user)
         self.integration = GitHubIntegration(self.model, self.organization.id)
         self.min_ago = iso_format(before_now(minutes=1))
+
+    def _check_proxying(self) -> None:
+        assert len(responses.calls) == 1
+        request = responses.calls[0].request
+        assert request.headers[PROXY_OI_HEADER] == str(self.integration.org_integration.id)
+        assert request.headers[PROXY_BASE_URL_HEADER] == "https://api.github.com"
+        assert PROXY_SIGNATURE_HEADER in request.headers
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -57,11 +65,16 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
             ("MeredithAnya", "MeredithAnya"),
         )
 
-        request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer jwt_token_1"
+        if self.should_call_api_without_proxying():
+            assert len(responses.calls) == 2
 
-        request = responses.calls[1].request
-        assert request.headers["Authorization"] == "Bearer token_1"
+            request = responses.calls[0].request
+            assert request.headers["Authorization"] == "Bearer jwt_token_1"
+
+            request = responses.calls[1].request
+            assert request.headers["Authorization"] == "Bearer token_1"
+        else:
+            self._check_proxying()
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -122,18 +135,24 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
             "url": "https://github.com/getsentry/sentry/issues/231",
             "repo": "getsentry/sentry",
         }
-        request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer jwt_token_1"
 
-        request = responses.calls[1].request
-        assert request.headers["Authorization"] == "Bearer token_1"
-        payload = json.loads(request.body)
-        assert payload == {
-            "body": "This is the description",
-            "assignee": None,
-            "title": "hello",
-            "labels": None,
-        }
+        if self.should_call_api_without_proxying():
+            assert len(responses.calls) == 2
+
+            request = responses.calls[0].request
+            assert request.headers["Authorization"] == "Bearer jwt_token_1"
+
+            request = responses.calls[1].request
+            assert request.headers["Authorization"] == "Bearer token_1"
+            payload = json.loads(request.body)
+            assert payload == {
+                "body": "This is the description",
+                "assignee": None,
+                "title": "hello",
+                "labels": None,
+            }
+        else:
+            self._check_proxying()
 
     def test_performance_issues_content(self):
         """Test that a GitHub issue created from a performance issue has the expected title and description"""
@@ -199,11 +218,16 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
         repo = "getsentry/sentry"
         assert self.integration.get_repo_issues(repo) == ((321, "#321 hello"),)
 
-        request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer jwt_token_1"
+        if self.should_call_api_without_proxying():
+            assert len(responses.calls) == 2
 
-        request = responses.calls[1].request
-        assert request.headers["Authorization"] == "Bearer token_1"
+            request = responses.calls[0].request
+            assert request.headers["Authorization"] == "Bearer jwt_token_1"
+
+            request = responses.calls[1].request
+            assert request.headers["Authorization"] == "Bearer token_1"
+        else:
+            self._check_proxying()
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -235,11 +259,17 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
             "url": "https://github.com/getsentry/sentry/issues/231",
             "repo": "getsentry/sentry",
         }
-        request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer jwt_token_1"
 
-        request = responses.calls[1].request
-        assert request.headers["Authorization"] == "Bearer token_1"
+        if self.should_call_api_without_proxying():
+            assert len(responses.calls) == 2
+
+            request = responses.calls[0].request
+            assert request.headers["Authorization"] == "Bearer jwt_token_1"
+
+            request = responses.calls[1].request
+            assert request.headers["Authorization"] == "Bearer token_1"
+        else:
+            self._check_proxying()
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")

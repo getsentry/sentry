@@ -150,7 +150,8 @@
     "sentry.project"
   ],
   "sentry.customdynamicsamplingrule": [
-    "sentry.organization"
+    "sentry.organization",
+    "sentry.user"
   ],
   "sentry.customdynamicsamplingruleproject": [
     "sentry.customdynamicsamplingrule",
@@ -807,8 +808,6 @@
     "sentry.user",
     "sentry.userrole"
   ],
-  "sessions.session": [],
-  "sites.site": [],
   "social_auth.usersocialauth": [
     "sentry.user"
   ]

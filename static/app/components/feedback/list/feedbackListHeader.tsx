@@ -85,11 +85,6 @@ function HasSelection({checked}) {
                 label: t('Mark as unread'),
                 onAction: () => {},
               },
-              {
-                key: 'delete',
-                label: t('Delete'),
-                onAction: () => {},
-              },
             ]}
           />
         </ErrorBoundary>
