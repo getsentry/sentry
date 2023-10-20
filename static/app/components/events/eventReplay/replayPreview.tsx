@@ -114,7 +114,7 @@ function ReplayPreview({orgSlug, replaySlug, eventTimestampMs, buttonProps}: Pro
     pathname: normalizeUrl(`/organizations/${orgSlug}/replays/${replayId}/`),
     query: {
       referrer: getRouteStringFromRoutes(routes),
-      t_main: 'console',
+      t_main: 'errors',
       t: initialTimeOffsetMs / 1000,
     },
   };
