@@ -1,3 +1,5 @@
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -9,7 +11,7 @@ jest.mock('sentry/utils/useProjectSdkNeedsUpdate');
 
 import {Setup} from 'sentry/views/replays/detail/network/details/onboarding';
 
-const [MOCK_ITEM] = hydrateSpans(TestStubs.ReplayRecord(), [
+const [MOCK_ITEM] = hydrateSpans(ReplayRecordFixture(), [
   TestStubs.Replay.RequestFrame({
     op: 'resource.fetch',
     startTimestamp: new Date(),

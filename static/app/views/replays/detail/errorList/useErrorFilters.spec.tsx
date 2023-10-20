@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import type {Location} from 'history';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -17,7 +18,7 @@ const mockUseLocation = jest.mocked(useLocation);
 
 const [ERROR_1_JS_RANGEERROR, ERROR_2_NEXTJS_TYPEERROR, ERROR_3_JS_UNDEFINED] =
   hydrateErrors(
-    TestStubs.ReplayRecord({started_at: new Date('2023-06-09T12:00:00+00:00')}),
+    ReplayRecordFixture({started_at: new Date('2023-06-09T12:00:00+00:00')}),
     [
       TestStubs.Replay.RawReplayError({
         'error.type': ['RangeError'],

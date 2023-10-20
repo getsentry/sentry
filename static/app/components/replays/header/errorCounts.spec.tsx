@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -7,7 +8,7 @@ import useProjects from 'sentry/utils/useProjects';
 
 jest.mock('sentry/utils/useProjects');
 
-const replayRecord = TestStubs.ReplayRecord();
+const replayRecord = ReplayRecordFixture();
 const organization = Organization({});
 
 describe('ErrorCounts', () => {

@@ -1,10 +1,12 @@
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const ONE_DAY_MS = ONE_HOUR_MS * 24;
 
 describe('hydrateSpans', () => {
-  const replayRecord = TestStubs.ReplayRecord({started_at: new Date('2023/12/23')});
+  const replayRecord = ReplayRecordFixture({started_at: new Date('2023/12/23')});
 
   it('should set the start & end timestamps, & offsetMs for each span in the list', () => {
     const spans = [

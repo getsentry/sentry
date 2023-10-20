@@ -1,3 +1,5 @@
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+
 import {
   countColumns,
   divide,
@@ -84,7 +86,7 @@ describe('getFramesByColumn', () => {
   const durationMs = 25710; // milliseconds
 
   const [CRUMB_1, CRUMB_2, CRUMB_3, CRUMB_4, CRUMB_5] = hydrateErrors(
-    TestStubs.ReplayRecord({
+    ReplayRecordFixture({
       started_at: new Date('2022-04-14T14:19:47.326000Z'),
     }),
     [
@@ -148,7 +150,7 @@ describe('flattenFrames', () => {
   });
 
   it('should return the FlattenedSpanRange for a single span', () => {
-    const frames = hydrateSpans(TestStubs.ReplayRecord(), [
+    const frames = hydrateSpans(ReplayRecordFixture(), [
       TestStubs.Replay.RequestFrame({
         op: 'resource.fetch',
         startTimestamp: new Date(10000),
@@ -166,7 +168,7 @@ describe('flattenFrames', () => {
   });
 
   it('should return two non-overlapping spans', () => {
-    const frames = hydrateSpans(TestStubs.ReplayRecord(), [
+    const frames = hydrateSpans(ReplayRecordFixture(), [
       TestStubs.Replay.RequestFrame({
         op: 'resource.fetch',
         startTimestamp: new Date(10000),
@@ -196,7 +198,7 @@ describe('flattenFrames', () => {
   });
 
   it('should merge two overlapping spans', () => {
-    const frames = hydrateSpans(TestStubs.ReplayRecord(), [
+    const frames = hydrateSpans(ReplayRecordFixture(), [
       TestStubs.Replay.RequestFrame({
         op: 'resource.fetch',
         startTimestamp: new Date(10000),
@@ -220,7 +222,7 @@ describe('flattenFrames', () => {
   });
 
   it('should merge overlapping spans that are not first in the list', () => {
-    const frames = hydrateSpans(TestStubs.ReplayRecord(), [
+    const frames = hydrateSpans(ReplayRecordFixture(), [
       TestStubs.Replay.RequestFrame({
         op: 'resource.fetch',
         startTimestamp: new Date(0),

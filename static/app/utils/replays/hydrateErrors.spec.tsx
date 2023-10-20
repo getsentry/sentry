@@ -1,9 +1,11 @@
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+
 import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
 
 const ONE_DAY_MS = 60 * 60 * 24 * 1000;
 
 describe('hydrateErrors', () => {
-  const replayRecord = TestStubs.ReplayRecord({started_at: new Date('2023/12/23')});
+  const replayRecord = ReplayRecordFixture({started_at: new Date('2023/12/23')});
 
   it('should set the timestamp & offsetMs for each span in the list', () => {
     const errors = [

@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import type {Location} from 'history';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -16,7 +17,7 @@ jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
 
-const replayRecord = TestStubs.ReplayRecord();
+const replayRecord = ReplayRecordFixture();
 
 const CRUMB_1_NAV: ReplayTraceRow = {
   durationMs: 100,

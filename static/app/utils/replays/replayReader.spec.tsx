@@ -1,10 +1,11 @@
 import {EventType} from '@sentry-internal/rrweb';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 
 describe('ReplayReader', () => {
-  const replayRecord = TestStubs.ReplayRecord({});
+  const replayRecord = ReplayRecordFixture({});
 
   it('Should return null if there are missing arguments', () => {
     const missingAttachments = ReplayReader.factory({
@@ -39,7 +40,7 @@ describe('ReplayReader', () => {
         TestStubs.Replay.ConsoleEvent({timestamp: minuteTen}),
       ],
       errors: [],
-      replayRecord: TestStubs.ReplayRecord({
+      replayRecord: ReplayRecordFixture({
         started_at: new Date('2023-12-25T00:01:00'),
         finished_at: new Date('2023-12-25T00:09:00'),
         duration: undefined, // will be calculated

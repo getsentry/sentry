@@ -1,3 +1,5 @@
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+
 import {
   getNextReplayFrame,
   getPrevReplayFrame,
@@ -5,7 +7,7 @@ import {
 import hydrateBreadcrumbs from 'sentry/utils/replays/hydrateBreadcrumbs';
 
 const frames = hydrateBreadcrumbs(
-  TestStubs.ReplayRecord({
+  ReplayRecordFixture({
     started_at: new Date('2022-05-04T19:41:30.00Z'),
   }),
   [

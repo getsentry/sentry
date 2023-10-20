@@ -1,3 +1,5 @@
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
@@ -6,7 +8,7 @@ import MessageFormatter from 'sentry/views/replays/detail/console/messageFormatt
 
 describe('MessageFormatter', () => {
   it('Should print console message with placeholders correctly', () => {
-    const [frame] = hydrateBreadcrumbs(TestStubs.ReplayRecord(), [
+    const [frame] = hydrateBreadcrumbs(ReplayRecordFixture(), [
       TestStubs.Replay.ConsoleFrame({
         data: {
           arguments: ['This is a %s', 'test'],
@@ -24,7 +26,7 @@ describe('MessageFormatter', () => {
   });
 
   it('Should print console message without data', () => {
-    const [frame] = hydrateBreadcrumbs(TestStubs.ReplayRecord(), [
+    const [frame] = hydrateBreadcrumbs(ReplayRecordFixture(), [
       TestStubs.Replay.ConsoleFrame({
         level: BreadcrumbLevelType.LOG,
         message: 'This is only a test',
@@ -44,7 +46,7 @@ describe('MessageFormatter', () => {
   });
 
   it('Should print console message with objects correctly', () => {
-    const [frame] = hydrateBreadcrumbs(TestStubs.ReplayRecord(), [
+    const [frame] = hydrateBreadcrumbs(ReplayRecordFixture(), [
       TestStubs.Replay.ConsoleFrame({
         data: {
           arguments: ['test', 1, false, {}],
@@ -63,7 +65,7 @@ describe('MessageFormatter', () => {
   });
 
   it('Should print console message correctly when it is an Error object', () => {
-    const [frame] = hydrateBreadcrumbs(TestStubs.ReplayRecord(), [
+    const [frame] = hydrateBreadcrumbs(ReplayRecordFixture(), [
       TestStubs.Replay.ConsoleFrame({
         data: {
           arguments: [{}],
@@ -81,7 +83,7 @@ describe('MessageFormatter', () => {
   });
 
   it('Should print empty object in case there is no message prop', () => {
-    const [frame] = hydrateBreadcrumbs(TestStubs.ReplayRecord(), [
+    const [frame] = hydrateBreadcrumbs(ReplayRecordFixture(), [
       TestStubs.Replay.ConsoleFrame({
         data: {
           arguments: [{}],
@@ -98,7 +100,7 @@ describe('MessageFormatter', () => {
   });
 
   it('Should style "%c" placeholder and print the console message correctly', () => {
-    const [frame] = hydrateBreadcrumbs(TestStubs.ReplayRecord(), [
+    const [frame] = hydrateBreadcrumbs(ReplayRecordFixture(), [
       TestStubs.Replay.ConsoleFrame({
         data: {
           arguments: [
@@ -129,7 +131,7 @@ describe('MessageFormatter', () => {
   });
 
   it('Should print arrays correctly', () => {
-    const [frame] = hydrateBreadcrumbs(TestStubs.ReplayRecord(), [
+    const [frame] = hydrateBreadcrumbs(ReplayRecordFixture(), [
       TestStubs.Replay.ConsoleFrame({
         data: {
           arguments: ['test', ['foo', 'bar']],
@@ -152,7 +154,7 @@ describe('MessageFormatter', () => {
   });
 
   it('Should print literal %', () => {
-    const [frame] = hydrateBreadcrumbs(TestStubs.ReplayRecord(), [
+    const [frame] = hydrateBreadcrumbs(ReplayRecordFixture(), [
       TestStubs.Replay.ConsoleFrame({
         data: {
           arguments: ['This is a literal 100%'],
@@ -170,7 +172,7 @@ describe('MessageFormatter', () => {
   });
 
   it('Should print unbound %s placeholder', () => {
-    const [frame] = hydrateBreadcrumbs(TestStubs.ReplayRecord(), [
+    const [frame] = hydrateBreadcrumbs(ReplayRecordFixture(), [
       TestStubs.Replay.ConsoleFrame({
         data: {
           arguments: ['Unbound placeholder %s'],
@@ -188,7 +190,7 @@ describe('MessageFormatter', () => {
   });
 
   it('Should print placeholder with literal %', () => {
-    const [frame] = hydrateBreadcrumbs(TestStubs.ReplayRecord(), [
+    const [frame] = hydrateBreadcrumbs(ReplayRecordFixture(), [
       TestStubs.Replay.ConsoleFrame({
         data: {
           arguments: ['Placeholder %s with 100%', 'myPlaceholder'],

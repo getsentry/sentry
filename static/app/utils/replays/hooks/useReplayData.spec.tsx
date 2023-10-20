@@ -1,5 +1,6 @@
 import {duration} from 'moment';
 import {ReplayError} from 'sentry-fixture/replayError';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
@@ -24,7 +25,7 @@ jest.mocked(useProjects).mockReturnValue({
 });
 
 function getMockReplayRecord(replayRecord?: Partial<ReplayRecord>) {
-  const HYDRATED_REPLAY = TestStubs.ReplayRecord({
+  const HYDRATED_REPLAY = ReplayRecordFixture({
     ...replayRecord,
     project_id: project.id,
   });

@@ -1,4 +1,5 @@
 import {act} from 'react-test-renderer';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -32,7 +33,7 @@ const [
   SPAN_6_PUSH,
   SPAN_7_FETCH_GET,
   SPAN_8_FETCH_POST,
-] = hydrateSpans(TestStubs.ReplayRecord(), [
+] = hydrateSpans(ReplayRecordFixture(), [
   TestStubs.Replay.NavigationFrame({
     op: 'navigation.navigate',
     description: 'http://localhost:3000/',

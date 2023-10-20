@@ -1,3 +1,5 @@
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
@@ -20,7 +22,7 @@ const [
   fetchBodySkipped,
   fetchWithHeaders,
   fetchWithRespBody,
-] = hydrateSpans(TestStubs.ReplayRecord(), [
+] = hydrateSpans(ReplayRecordFixture(), [
   TestStubs.Replay.ResourceFrame({
     op: 'resource.img',
     startTimestamp: new Date(),

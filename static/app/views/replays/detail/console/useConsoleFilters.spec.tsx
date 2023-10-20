@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import type {Location} from 'history';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -15,7 +16,7 @@ jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
 
-const frames = hydrateBreadcrumbs(TestStubs.ReplayRecord(), [
+const frames = hydrateBreadcrumbs(ReplayRecordFixture(), [
   TestStubs.Replay.ConsoleFrame({
     type: BreadcrumbType.DEFAULT,
     timestamp: new Date('2022-05-11T23:00:45.094000Z'),
@@ -209,7 +210,7 @@ describe('useConsoleFilters', () => {
 
   describe('getOptions', () => {
     const [CRUMB_LOG_1, CRUMB_LOG_2, CRUMB_WARN, CRUMB_ERROR] = hydrateBreadcrumbs(
-      TestStubs.ReplayRecord(),
+      ReplayRecordFixture(),
       [
         TestStubs.Replay.ConsoleFrame({
           timestamp: new Date(),
