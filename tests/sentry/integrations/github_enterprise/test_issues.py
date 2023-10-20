@@ -102,7 +102,12 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
         request = responses.calls[1].request
         assert request.headers["Authorization"] == "Bearer token_1"
         payload = json.loads(request.body)
-        assert payload == {"body": "This is the description", "assignee": None, "title": "hello"}
+        assert payload == {
+            "body": "This is the description",
+            "assignee": None,
+            "title": "hello",
+            "labels": None,
+        }
 
     @responses.activate
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
