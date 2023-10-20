@@ -203,10 +203,7 @@ class Incident(Model):
         app_label = "sentry"
         db_table = "sentry_incident"
         unique_together = (("organization", "identifier"),)
-        index_together = (
-            ("alert_rule", "type", "status"),
-            ("id", "date_added"),
-        )
+        index_together = (("alert_rule", "type", "status"),)
 
     @property
     def current_end_date(self):
@@ -526,6 +523,7 @@ class IncidentTrigger(Model):
         app_label = "sentry"
         db_table = "sentry_incidenttrigger"
         unique_together = (("incident", "alert_rule_trigger"),)
+        index_together = (("alert_rule_trigger", "incident_id"),)
 
 
 class AlertRuleTriggerManager(BaseManager):

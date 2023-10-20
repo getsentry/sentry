@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -7,10 +7,10 @@ import {
 } from 'react-virtualized';
 
 import Placeholder from 'sentry/components/placeholder';
+import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
-import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useExtractedDomNodes from 'sentry/utils/replays/hooks/useExtractedDomNodes';
 import useVirtualizedInspector from 'sentry/views/replays/detail//useVirtualizedInspector';
@@ -32,30 +32,22 @@ const cellMeasurer = {
 };
 
 function Breadcrumbs() {
-  const {replay} = useReplayContext();
+  const {currentTime, replay} = useReplayContext();
   const {onClickTimestamp} = useCrumbHandlers();
   const {data: frameToExtraction, isLoading: isLoadingExtractions} = useExtractedDomNodes(
     {replay}
   );
 
+  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() ?? 0;
   const frames = replay?.getChapterFrames();
-  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() || 0;
 
-  const {setActiveTab} = useActiveReplayTab();
-
-  const listRef = useRef<ReactVirtualizedList>(null);
-  // Keep a reference of object paths that are expanded (via <ObjectInspector>)
-  // by log row, so they they can be restored as the Console pane is scrolling.
-  // Due to virtualization, components can be unmounted as the user scrolls, so
-  // state needs to be remembered.
-  //
-  // Note that this is intentionally not in state because we do not want to
-  // re-render when items are expanded/collapsed, though it may work in state as well.
-  const expandPathsRef = useRef(new Map<number, Set<string>>());
+  const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
 
   const filterProps = useBreadcrumbFilters({frames: frames || []});
-  const {items, searchTerm, setSearchTerm} = filterProps;
+  const {expandPathsRef, items, searchTerm, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
+
+  const listRef = useRef<ReactVirtualizedList>(null);
 
   const deps = useMemo(() => [items, searchTerm], [items, searchTerm]);
   const {cache, updateList} = useVirtualizedList({
@@ -63,10 +55,23 @@ function Breadcrumbs() {
     ref: listRef,
     deps,
   });
+
   const {handleDimensionChange} = useVirtualizedInspector({
     cache,
     listRef,
     expandPathsRef,
+  });
+
+  const {
+    handleClick: onClickToJump,
+    onRowsRendered,
+    showJumpDownButton,
+    showJumpUpButton,
+  } = useJumpButtons({
+    currentTime,
+    frames: items,
+    isTable: false,
+    setScrollToRow,
   });
 
   useScrollToCurrentItem({
@@ -101,7 +106,6 @@ function Breadcrumbs() {
           expandPaths={Array.from(expandPathsRef.current?.get(index) || [])}
           onClick={() => {
             onClickTimestamp(item);
-            setActiveTab(getFrameDetails(item).tabKey);
           }}
           onDimensionChange={handleDimensionChange}
         />
@@ -129,11 +133,18 @@ function Breadcrumbs() {
                     {t('No breadcrumbs recorded')}
                   </NoRowRenderer>
                 )}
+                onRowsRendered={onRowsRendered}
+                onScroll={() => {
+                  if (scrollToRow !== undefined) {
+                    setScrollToRow(undefined);
+                  }
+                }}
                 overscanRowCount={5}
                 ref={listRef}
                 rowCount={items.length}
                 rowHeight={cache.rowHeight}
                 rowRenderer={renderRow}
+                scrollToIndex={scrollToRow}
                 width={width}
               />
             )}
@@ -141,6 +152,13 @@ function Breadcrumbs() {
         ) : (
           <Placeholder height="100%" />
         )}
+        {items?.length ? (
+          <JumpButtons
+            jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
+            onClick={onClickToJump}
+            tableHeaderHeight={0}
+          />
+        ) : null}
       </TabItemContainer>
     </FluidHeight>
   );
