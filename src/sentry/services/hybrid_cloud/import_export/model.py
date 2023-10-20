@@ -146,7 +146,9 @@ class RpcImportError(RpcModel, Finding):
         return f"RpcImportError(\n    kind: {self.get_kind()},{self._pretty_inner()}\n)"
 
     def to_dict(self) -> Dict[str, Any]:
-        return dict(self)
+        d = dict(self)
+        del d["is_err"]
+        return d
 
 
 class RpcImportOk(RpcModel):
@@ -227,7 +229,9 @@ class RpcExportError(RpcModel, Finding):
         return f"RpcExportError(\n    kind: {self.get_kind()},{self._pretty_inner()}\n)"
 
     def to_dict(self) -> Dict[str, Any]:
-        return dict(self)
+        d = dict(self)
+        del d["is_err"]
+        return d
 
 
 RpcExportResult = Annotated[Union[RpcExportOk, RpcExportError], Field(discriminator="is_err")]
