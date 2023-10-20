@@ -3,7 +3,10 @@ import {
   ReplayConsoleFrame,
   ReplaySlowClickFrame,
 } from 'sentry-fixture/replay/replayBreadcrumbFrameData';
-import * as ReplayFrameEvents from 'sentry-fixture/replay/replayFrameEvents';
+import {
+  ReplayBreadcrumbFrameEvent,
+  ReplaySpanFrameEvent,
+} from 'sentry-fixture/replay/replayFrameEvents';
 import * as ReplaySpanFrameData from 'sentry-fixture/replay/replaySpanFrameData';
 
 import {SlowClickFrame} from 'sentry/utils/replays/types';
@@ -15,7 +18,7 @@ export function ReplayConsoleEvent({
   timestamp: Date;
   message?: string;
 }) {
-  return ReplayFrameEvents.BreadcrumbFrameEvent({
+  return ReplayBreadcrumbFrameEvent({
     timestamp,
     data: {
       payload: ReplayConsoleFrame({
@@ -27,7 +30,7 @@ export function ReplayConsoleEvent({
 }
 
 export function ReplayClickEvent({timestamp}: {timestamp: Date}) {
-  return ReplayFrameEvents.BreadcrumbFrameEvent({
+  return ReplayBreadcrumbFrameEvent({
     timestamp,
     data: {
       payload: ReplayClickFrame({
@@ -42,7 +45,7 @@ export function ReplayClickEvent({timestamp}: {timestamp: Date}) {
 }
 
 export function ReplayDeadClickEvent({timestamp}: {timestamp: Date}) {
-  return ReplayFrameEvents.BreadcrumbFrameEvent({
+  return ReplayBreadcrumbFrameEvent({
     timestamp,
     data: {
       payload: ReplaySlowClickFrame({
@@ -71,7 +74,7 @@ export function ReplayNavigateEvent({
 }) {
   const duration = endTimestamp.getTime() - startTimestamp.getTime(); // in MS
 
-  return ReplayFrameEvents.SpanFrameEvent({
+  return ReplaySpanFrameEvent({
     timestamp: startTimestamp,
     data: {
       payload: ReplaySpanFrameData.NavigationFrame({
@@ -104,7 +107,7 @@ export function ReplayMemoryEvent({
   endTimestamp: Date;
   startTimestamp: Date;
 }) {
-  return ReplayFrameEvents.SpanFrameEvent({
+  return ReplaySpanFrameEvent({
     timestamp: startTimestamp,
     data: {
       payload: ReplaySpanFrameData.MemoryFrame({

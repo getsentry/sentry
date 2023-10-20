@@ -8,7 +8,7 @@ import {EventType} from 'sentry/utils/replays/types';
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
 type TestableFrameEvent<
-  FrameEvent extends TBreadcrumbFrameEvent | TSpanFrameEvent | TOptionFrameEvent
+  FrameEvent extends TBreadcrumbFrameEvent | TSpanFrameEvent | TOptionFrameEvent,
 > = Overwrite<
   Omit<FrameEvent, 'type'>,
   {
@@ -29,7 +29,7 @@ type TestableFrameEvent<
  * });
  * ```
  */
-export function BreadcrumbFrameEvent(
+export function ReplayBreadcrumbFrameEvent(
   fields: TestableFrameEvent<TBreadcrumbFrameEvent>
 ): TBreadcrumbFrameEvent {
   return {
@@ -58,7 +58,7 @@ export function BreadcrumbFrameEvent(
  * });
  * ```
  */
-export function SpanFrameEvent(
+export function ReplaySpanFrameEvent(
   fields: TestableFrameEvent<TSpanFrameEvent>
 ): TSpanFrameEvent {
   return {
@@ -71,7 +71,7 @@ export function SpanFrameEvent(
   };
 }
 
-export function OptionFrameEvent(
+export function ReplayOptionFrameEvent(
   fields: TestableFrameEvent<TOptionFrameEvent>
 ): TOptionFrameEvent {
   return {
@@ -84,7 +84,7 @@ export function OptionFrameEvent(
   };
 }
 
-export function OptionFrame(
+export function ReplayOptionFrame(
   fields: Partial<TOptionFrameEvent['data']['payload']>
 ): TOptionFrameEvent['data']['payload'] {
   return {

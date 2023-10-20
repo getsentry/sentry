@@ -7,6 +7,12 @@ import {
   ReplayNavigateEvent,
 } from 'sentry-fixture/replay/helpers';
 import {ReplayNavFrame} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
+import {
+  ReplayBreadcrumbFrameEvent,
+  ReplayOptionFrame,
+  ReplayOptionFrameEvent,
+  ReplaySpanFrameEvent,
+} from 'sentry-fixture/replay/replayFrameEvents';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
@@ -77,8 +83,8 @@ describe('ReplayReader', () => {
     const secondTimestamp = new Date('2023-12-25T00:04:00');
     const thirdTimestamp = new Date('2023-12-25T00:05:00');
 
-    const optionsFrame = TestStubs.Replay.OptionFrame({});
-    const optionsEvent = TestStubs.Replay.OptionFrameEvent({
+    const optionsFrame = ReplayOptionFrame({});
+    const optionsEvent = ReplayOptionFrameEvent({
       timestamp,
       data: {payload: optionsFrame},
     });
@@ -100,7 +106,7 @@ describe('ReplayReader', () => {
       startTimestamp: new Date('2023-12-25T00:03:00'),
       endTimestamp: new Date('2023-12-25T00:03:30'),
     });
-    const navCrumb = TestStubs.Replay.BreadcrumbFrameEvent({
+    const navCrumb = ReplayBreadcrumbFrameEvent({
       timestamp: new Date('2023-12-25T00:03:00'),
       data: {
         payload: ReplayNavFrame({
@@ -109,7 +115,7 @@ describe('ReplayReader', () => {
       },
     });
     const consoleEvent = ReplayConsoleEvent({timestamp});
-    const customEvent = TestStubs.Replay.BreadcrumbFrameEvent({
+    const customEvent = ReplayBreadcrumbFrameEvent({
       timestamp: new Date('2023-12-25T00:02:30'),
       data: {
         payload: {
@@ -212,11 +218,11 @@ describe('ReplayReader', () => {
 
   it('shoud return the SDK config if there is a RecordingOptions event found', () => {
     const timestamp = new Date();
-    const optionsFrame = TestStubs.Replay.OptionFrame({});
+    const optionsFrame = ReplayOptionFrame({});
 
     const replay = ReplayReader.factory({
       attachments: [
-        TestStubs.Replay.OptionFrameEvent({
+        ReplayOptionFrameEvent({
           timestamp,
           data: {payload: optionsFrame},
         }),
@@ -234,10 +240,10 @@ describe('ReplayReader', () => {
 
       const replay = ReplayReader.factory({
         attachments: [
-          TestStubs.Replay.OptionFrameEvent({
+          ReplayOptionFrameEvent({
             timestamp,
             data: {
-              payload: TestStubs.Replay.OptionFrame({
+              payload: ReplayOptionFrame({
                 networkDetailHasUrls: true,
               }),
             },
@@ -269,7 +275,7 @@ describe('ReplayReader', () => {
       const endTimestamp = new Date();
       const replay = ReplayReader.factory({
         attachments: [
-          TestStubs.Replay.SpanFrameEvent({
+          ReplaySpanFrameEvent({
             timestamp: startTimestamp,
             data: {
               payload: TestStubs.Replay.RequestFrame({
