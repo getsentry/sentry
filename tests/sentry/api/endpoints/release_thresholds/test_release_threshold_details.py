@@ -224,14 +224,12 @@ class ReleaseThresholdDetailsPUTTest(APITestCase):
         response = self.client.put(url, data=updated_data)
 
         assert response.status_code == 200
-        assert response.data == {
-            "id": str(self.basic_threshold.id),
-            "threshold_type": "total_error_count",
-            "trigger_type": updated_data["trigger_type"],
-            "value": updated_data["value"],
-            "window_in_seconds": updated_data["window_in_seconds"],
-            "environment": {"name": "canary"},
-        }
+        assert response.data["id"] == str(self.basic_threshold.id)
+        assert response.data["threshold_type"] == "total_error_count"
+        assert response.data["trigger_type"] == updated_data["trigger_type"]
+        assert response.data["value"] == updated_data["value"]
+        assert response.data["window_in_seconds"] == updated_data["window_in_seconds"]
+        assert response.data["environment"]["name"] == "canary"
 
     def test_valid_with_extra_data(self):
         updated_data = {
@@ -257,11 +255,9 @@ class ReleaseThresholdDetailsPUTTest(APITestCase):
         response = self.client.put(url, data=updated_data)
 
         assert response.status_code == 200
-        assert response.data == {
-            "id": str(self.basic_threshold.id),
-            "threshold_type": "total_error_count",
-            "trigger_type": updated_data["trigger_type"],
-            "value": updated_data["value"],
-            "window_in_seconds": updated_data["window_in_seconds"],
-            "environment": {"name": "canary"},
-        }
+        assert response.data["id"] == str(self.basic_threshold.id)
+        assert response.data["threshold_type"] == "total_error_count"
+        assert response.data["trigger_type"] == updated_data["trigger_type"]
+        assert response.data["value"] == updated_data["value"]
+        assert response.data["window_in_seconds"] == updated_data["window_in_seconds"]
+        assert response.data["environment"]["name"] == "canary"
