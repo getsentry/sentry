@@ -1,5 +1,5 @@
 import {duration} from 'moment';
-import {ReplayError} from 'sentry-fixture/replayError';
+import {ReplayErrorFixture} from 'sentry-fixture/replayError';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -184,14 +184,14 @@ describe('useReplayData', () => {
     });
 
     const mockErrorResponse1 = [
-      ReplayError({
+      ReplayErrorFixture({
         id: ERROR_IDS[0],
         issue: 'JAVASCRIPT-123E',
         timestamp: startedAt.toISOString(),
       }),
     ];
     const mockErrorResponse2 = [
-      ReplayError({
+      ReplayErrorFixture({
         id: ERROR_IDS[1],
         issue: 'JAVASCRIPT-789Z',
         timestamp: startedAt.toISOString(),
@@ -271,7 +271,7 @@ describe('useReplayData', () => {
       timestamp: startedAt,
     });
     const mockErrorResponse = [
-      ReplayError({
+      ReplayErrorFixture({
         id: ERROR_ID,
         issue: 'JAVASCRIPT-123E',
         timestamp: startedAt.toISOString(),
