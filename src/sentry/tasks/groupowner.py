@@ -12,7 +12,7 @@ from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
 from sentry.utils.cache import cache
-from sentry.utils.committers import get_event_file_committers
+from sentry.utils.committers import SuspectCommitType, get_event_file_committers
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.sdk import set_current_event_project
 
@@ -80,7 +80,8 @@ def _process_suspect_commits(
                             project=project,
                             organization_id=project.organization_id,
                             defaults={
-                                "date_added": timezone.now()
+                                "context": {"type": SuspectCommitType.RELEASE_COMMIT.value},
+                                "date_added": timezone.now(),
                             },  # Updates date of an existing owner, since we just matched them with this new event
                         )
                         if created:

@@ -14,7 +14,11 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
-from sentry.utils.committers import get_frame_paths, get_serialized_event_file_committers
+from sentry.utils.committers import (
+    SuspectCommitType,
+    get_frame_paths,
+    get_serialized_event_file_committers,
+)
 
 pytestmark = [requires_snuba]
 
@@ -94,12 +98,13 @@ class TestGroupOwners(TestCase):
             group_id=self.event.group_id,
             project_id=self.event.project_id,
         )
-        assert GroupOwner.objects.get(
+        group_owner = GroupOwner.objects.get(
             group=self.event.group,
             project=self.event.project,
             organization=self.event.project.organization,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         )
+        assert group_owner.context == {"type": SuspectCommitType.RELEASE_COMMIT.value}
 
     def test_user_deletion_cascade(self):
         other_user = self.create_user()

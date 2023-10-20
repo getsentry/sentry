@@ -158,8 +158,17 @@ class AnnotatedFrame(TypedDict):
 class SuspectCommitType(Enum):
     """Used to distinguish old suspect commits from the newer commits obtained via the commit_context."""
 
-    RELEASE_COMMIT = "via commit in release"
-    INTEGRATION_COMMIT = "via SCM integration"
+    RELEASE_COMMIT = "release_commit"
+    INTEGRATION_COMMIT = "scm_integration"
+
+
+def get_suspect_commit_type_label(suspect_commit_type: str) -> str:
+    if suspect_commit_type == SuspectCommitType.RELEASE_COMMIT.value:
+        return "via commit in release"
+    elif suspect_commit_type == SuspectCommitType.INTEGRATION_COMMIT.value:
+        return "via SCM integration"
+    else:
+        return suspect_commit_type
 
 
 def _get_committers(
@@ -345,7 +354,9 @@ def get_serialized_event_file_committers(
                         commit,
                         serializer=CommitSerializer(
                             exclude=["author"],
-                            type=SuspectCommitType.INTEGRATION_COMMIT.value,
+                            type=get_suspect_commit_type_label(
+                                SuspectCommitType.INTEGRATION_COMMIT.value
+                            ),
                         ),
                     )
                 ],
@@ -373,7 +384,7 @@ def get_serialized_event_file_committers(
             [c for (c, score) in commits],
             serializer=CommitSerializer(
                 exclude=["author"],
-                type=SuspectCommitType.RELEASE_COMMIT.value,
+                type=get_suspect_commit_type_label(SuspectCommitType.RELEASE_COMMIT.value),
             ),
         )
 

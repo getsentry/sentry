@@ -23,7 +23,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
-from sentry.utils.committers import get_frame_paths
+from sentry.utils.committers import SuspectCommitType, get_frame_paths
 
 pytestmark = [requires_snuba]
 
@@ -120,7 +120,10 @@ class TestCommitContext(TestCommitContextMixin):
             project=self.event.project,
             organization=self.event.project.organization,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
-        ).context == {"commitId": self.commit.id}
+        ).context == {
+            "commitId": self.commit.id,
+            "type": SuspectCommitType.INTEGRATION_COMMIT.value,
+        }
 
     @patch("sentry.analytics.record")
     @patch(
@@ -333,7 +336,10 @@ class TestCommitContext(TestCommitContextMixin):
         assert owner.type == GroupOwnerType.SUSPECT_COMMIT.value
         assert owner.user_id is None
         assert owner.team is None
-        assert owner.context == {"commitId": self.commit_2.id}
+        assert owner.context == {
+            "commitId": self.commit_2.id,
+            "type": SuspectCommitType.INTEGRATION_COMMIT.value,
+        }
 
     @patch("sentry.tasks.commit_context.get_users_for_authors", return_value={})
     @patch(
@@ -375,7 +381,10 @@ class TestCommitContext(TestCommitContextMixin):
         assert owner.type == GroupOwnerType.SUSPECT_COMMIT.value
         assert owner.user_id is None
         assert owner.team is None
-        assert owner.context == {"commitId": self.commit_2.id}
+        assert owner.context == {
+            "commitId": self.commit_2.id,
+            "type": SuspectCommitType.INTEGRATION_COMMIT.value,
+        }
 
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
@@ -434,7 +443,10 @@ class TestCommitContext(TestCommitContextMixin):
         assert owner.type == GroupOwnerType.SUSPECT_COMMIT.value
         assert owner.user_id is None
         assert owner.team is None
-        assert owner.context == {"commitId": self.commit_2.id}
+        assert owner.context == {
+            "commitId": self.commit_2.id,
+            "type": SuspectCommitType.INTEGRATION_COMMIT.value,
+        }
 
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
@@ -568,7 +580,10 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
         assert commit.message == "placeholder commit message"
 
         assert created_group_owner
-        assert created_group_owner.context == {"commitId": existing_commit.id}
+        assert created_group_owner.context == {
+            "commitId": existing_commit.id,
+            "type": SuspectCommitType.INTEGRATION_COMMIT.value,
+        }
 
         mock_record.assert_any_call(
             "integrations.successfully_fetched_commit_context_all_frames",
@@ -629,7 +644,10 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
             project=self.event.project,
             organization=self.event.project.organization,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
-        ).context == {"commitId": created_commit.id}
+        ).context == {
+            "commitId": created_commit.id,
+            "type": SuspectCommitType.INTEGRATION_COMMIT.value,
+        }
 
     @patch("sentry.analytics.record")
     @patch(
@@ -666,7 +684,10 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
 
         created_commit = Commit.objects.get(key="commit-id-recent")
 
-        assert created_group_owner.context == {"commitId": created_commit.id}
+        assert created_group_owner.context == {
+            "commitId": created_commit.id,
+            "type": SuspectCommitType.INTEGRATION_COMMIT.value,
+        }
 
     @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
     @patch("sentry.analytics.record")

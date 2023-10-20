@@ -29,6 +29,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.tasks.groupowner import process_suspect_commits
 from sentry.utils import metrics
 from sentry.utils.cache import cache
+from sentry.utils.committers import SuspectCommitType
 from sentry.utils.event_frames import munged_filename_and_frames
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.sdk import set_current_event_project
@@ -408,9 +409,12 @@ def process_commit_context(
                 user_id=author_to_user.get(str(commit.author_id), {}).get("id"),
                 project=project,
                 organization_id=project.organization_id,
-                context={"commitId": commit.id},
                 defaults={
-                    "date_added": timezone.now()
+                    "context": {
+                        "commitId": commit.id,
+                        "type": SuspectCommitType.INTEGRATION_COMMIT.value,
+                    },
+                    "date_added": timezone.now(),
                 },  # Updates date of an existing owner, since we just matched them with this new event
             )
 
