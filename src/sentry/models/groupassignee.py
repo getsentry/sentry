@@ -68,20 +68,23 @@ class GroupAssigneeManager(BaseManager):
         return (assignee_type, assignee_type_attr, other_type)
 
     def remove_old_assignees(
-        self, group: Group, previous_assignee: Optional(GroupAssignee)
+        self, group: Group, previous_assignee: Optional[GroupAssignee]
     ) -> None:
-        if features.has("organizations:participants-purge", group.organization):
+        if (
+            features.has("organizations:participants-purge", group.organization)
+            and previous_assignee
+        ):
             if (
                 features.has("organizations:team-workflow-notifications", group.organization)
-                and previous_assignee.team_id
+                and previous_assignee.team
             ):
                 GroupSubscription.objects.filter(
                     group=group,
                     project=group.project,
-                    team=previous_assignee.team_id,
+                    team=previous_assignee.team,
                     reason=GroupSubscriptionReason.assigned,
                 ).delete()
-            elif previous_assignee.team_id:
+            elif previous_assignee.team:
                 team_members = list(
                     previous_assignee.team.member_set.values_list("user_id", flat=True)
                 )

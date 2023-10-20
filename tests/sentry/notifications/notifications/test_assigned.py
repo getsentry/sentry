@@ -7,7 +7,13 @@ from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.options.user_option import UserOption
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import get_attachment, get_channel, install_slack, link_team
+from sentry.testutils.helpers import (
+    get_attachment,
+    get_channel,
+    install_slack,
+    link_team,
+    with_feature,
+)
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
@@ -123,6 +129,7 @@ class AssignedNotificationAPITest(APITestCase):
         assert self.project.slug in attachment["footer"]
 
     @responses.activate
+    @with_feature("organizations:participants-purge")
     def test_sends_reassignment_notification_user(self):
         """Test that if a user is assigned to an issue and then the issue is reassigned to a different user
         that the original assignee receives an unassignment notification as well as the new assignee
@@ -136,7 +143,7 @@ class AssignedNotificationAPITest(APITestCase):
         url = f"/api/0/issues/{self.group.id}/"
 
         # assign to user 1
-        with self.tasks(), self.feature("organizations:participants-purge"):
+        with self.tasks():
             response = self.client.put(
                 url,
                 format="json",
@@ -157,7 +164,7 @@ class AssignedNotificationAPITest(APITestCase):
         self.validate_email(mail.outbox, 0, user1.email, txt_msg, html_msg)
 
         # re-assign to user 2
-        with self.tasks(), self.feature("organizations:participants-purge"):
+        with self.tasks():
             response = self.client.put(
                 url,
                 format="json",
@@ -183,6 +190,7 @@ class AssignedNotificationAPITest(APITestCase):
         self.validate_slack_message(msg, self.group, self.project, user1.id, index=2)
 
     @responses.activate
+    @with_feature("organizations:participants-purge")
     def test_sends_reassignment_notification_team(self):
         """Test that if a team is assigned to an issue and then the issue is reassigned to a different team
         that the originally assigned team receives an unassignment notification as well as the new assigned
@@ -205,7 +213,7 @@ class AssignedNotificationAPITest(APITestCase):
         url = f"/api/0/issues/{group.id}/"
 
         # assign to team1
-        with self.tasks(), self.feature("organizations:participants-purge"):
+        with self.tasks():
             response = self.client.put(
                 url,
                 format="json",
@@ -227,7 +235,7 @@ class AssignedNotificationAPITest(APITestCase):
         self.validate_slack_message(msg, group, project, user1.id, index=1)
 
         # reassign to team2
-        with self.tasks(), self.feature("organizations:participants-purge"):
+        with self.tasks():
             response = self.client.put(
                 url,
                 format="json",
