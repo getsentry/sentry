@@ -134,19 +134,18 @@ def schedule_auto_transition_issues_new_to_ongoing(
     )
 
     with sentry_sdk.start_span(description="iterate_chunked_group_ids"):
-        for new_group_ids in chunked(
+        for groups in chunked(
             RangeQuerySetWrapper(
-                base_queryset._clone().values_list("id", flat=True),
+                base_queryset._clone(),
                 step=ITERATOR_CHUNK,
                 limit=ITERATOR_CHUNK * CHILD_TASK_COUNT,
-                result_value_getter=lambda item: item,
                 callbacks=[get_total_count],
                 order_by="first_seen",
             ),
             ITERATOR_CHUNK,
         ):
             run_auto_transition_issues_new_to_ongoing.delay(
-                group_ids=new_group_ids,
+                group_ids=[group.id for group in groups],
             )
 
     metrics.incr(
