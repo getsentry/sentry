@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {RRWebInitFrameEvents} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -20,7 +21,7 @@ const now = new Date();
 const mockReplay = ReplayReader.factory({
   replayRecord: ReplayRecordFixture({started_at: now}),
   errors: [],
-  attachments: TestStubs.Replay.RRWebInitFrameEvents({timestamp: now}),
+  attachments: RRWebInitFrameEvents({timestamp: now}),
 });
 
 jest.mocked(useReplayReader).mockImplementation(() => {

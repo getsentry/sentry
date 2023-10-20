@@ -7,7 +7,10 @@ import {
   ReplayBreadcrumbFrameEvent,
   ReplaySpanFrameEvent,
 } from 'sentry-fixture/replay/replayFrameEvents';
-import * as ReplaySpanFrameData from 'sentry-fixture/replay/replaySpanFrameData';
+import {
+  ReplayMemoryFrame,
+  ReplayNavigationFrame,
+} from 'sentry-fixture/replay/replaySpanFrameData';
 
 import {SlowClickFrame} from 'sentry/utils/replays/types';
 
@@ -77,7 +80,7 @@ export function ReplayNavigateEvent({
   return ReplaySpanFrameEvent({
     timestamp: startTimestamp,
     data: {
-      payload: ReplaySpanFrameData.NavigationFrame({
+      payload: ReplayNavigationFrame({
         op: 'navigation.navigate',
         startTimestamp,
         endTimestamp,
@@ -110,7 +113,7 @@ export function ReplayMemoryEvent({
   return ReplaySpanFrameEvent({
     timestamp: startTimestamp,
     data: {
-      payload: ReplaySpanFrameData.MemoryFrame({
+      payload: ReplayMemoryFrame({
         op: 'memory',
         startTimestamp,
         endTimestamp,

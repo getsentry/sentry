@@ -1,5 +1,6 @@
 import {duration} from 'moment';
 import {ReplayConsoleEvent, ReplayNavigateEvent} from 'sentry-fixture/replay/helpers';
+import {RRWebInitFrameEvents} from 'sentry-fixture/replay/rrweb';
 import {ReplayErrorFixture} from 'sentry-fixture/replayError';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
@@ -118,7 +119,7 @@ describe('useReplayData', () => {
       },
     });
 
-    const mockSegmentResponse1 = TestStubs.Replay.RRWebInitFrameEvents({
+    const mockSegmentResponse1 = RRWebInitFrameEvents({
       timestamp: startedAt,
     });
     const mockSegmentResponse2 = [
@@ -268,7 +269,7 @@ describe('useReplayData', () => {
       count_segments: 1,
       error_ids: [ERROR_ID],
     });
-    const mockSegmentResponse = TestStubs.Replay.RRWebInitFrameEvents({
+    const mockSegmentResponse = RRWebInitFrameEvents({
       timestamp: startedAt,
     });
     const mockErrorResponse = [

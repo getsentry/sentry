@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {RRWebInitFrameEvents} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -43,7 +44,7 @@ const mockReplay = ReplayReader.factory({
     },
   }),
   errors: [],
-  attachments: TestStubs.Replay.RRWebInitFrameEvents({
+  attachments: RRWebInitFrameEvents({
     timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
   }),
 });
