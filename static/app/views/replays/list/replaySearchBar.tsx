@@ -72,10 +72,11 @@ function getSupportedTags(supportedTags: TagCollection) {
 type Props = React.ComponentProps<typeof SmartSearchBar> & {
   organization: Organization;
   pageFilters: PageFilters;
+  placeholder: string;
 };
 
 function ReplaySearchBar(props: Props) {
-  const {organization, pageFilters} = props;
+  const {organization, pageFilters, placeholder} = props;
   const api = useApi();
   const projectIdStrings = pageFilters.projects?.map(String);
   const tags = useTags();
@@ -113,9 +114,10 @@ function ReplaySearchBar(props: Props) {
       {...props}
       onGetTagValues={getTagValues}
       supportedTags={getSupportedTags(tags)}
-      placeholder={t(
-        'Search for users, duration, clicked elements, count_errors, and more'
-      )}
+      placeholder={
+        placeholder ??
+        t('Search for users, duration, clicked elements, count_errors, and more')
+      }
       prepareQuery={prepareQuery}
       maxQueryLength={MAX_QUERY_LENGTH}
       searchSource="replay_index"
