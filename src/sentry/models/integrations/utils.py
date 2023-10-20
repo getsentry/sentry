@@ -8,8 +8,8 @@ if TYPE_CHECKING:
         IntegrationInstallation,
         IntegrationProvider,
     )
-    from sentry.models import SentryApp
     from sentry.models.integrations.integration import Integration
+    from sentry.models.integrations.sentry_app import SentryApp
     from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 
 
@@ -49,7 +49,7 @@ def is_response_error(resp) -> bool:
 
 
 def get_redis_key(sentryapp: SentryApp, org_id):
-    from sentry.models import SentryAppInstallation
+    from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 
     installations = SentryAppInstallation.objects.filter(
         organization_id=org_id,

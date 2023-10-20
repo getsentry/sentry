@@ -7,7 +7,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.helpers.releases import get_group_ids_resolved_in_release
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
-from sentry.models import Group
+from sentry.models.group import Group
 
 
 @region_silo_endpoint

@@ -6,16 +6,13 @@ from django.urls import reverse
 
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.models import (
-    Authenticator,
-    AuthProvider,
-    InviteStatus,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    SentryAppInstallationToken,
-    UserOption,
-)
+from sentry.models.authenticator import Authenticator
+from sentry.models.authprovider import AuthProvider
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.models.options.user_option import UserOption
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature

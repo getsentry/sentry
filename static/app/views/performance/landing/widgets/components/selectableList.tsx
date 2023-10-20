@@ -13,7 +13,7 @@ import {space} from 'sentry/styles/space';
 import {getConfigureIntegrationsDocsLink} from 'sentry/utils/docs';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {NoDataDueToOldSDKMessage} from 'sentry/views/performance/database/noDataDueToOldSDKMessage';
+import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
 import {getIsMultiProject} from 'sentry/views/performance/utils';
 
 type Props = {
@@ -96,8 +96,7 @@ export function TimeSpentInDatabaseWidgetEmptyStateWarning() {
     <StyledEmptyStateWarning>
       <PrimaryMessage>{t('No results found')}</PrimaryMessage>
       <SecondaryMessage>
-        {t('Spans may not be listed due to the filters above.')}{' '}
-        <NoDataDueToOldSDKMessage Wrapper={Fragment} />
+        <NoDataMessage Wrapper={Fragment} />
       </SecondaryMessage>
     </StyledEmptyStateWarning>
   );

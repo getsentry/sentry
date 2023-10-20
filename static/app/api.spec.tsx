@@ -141,6 +141,15 @@ describe('resolveHostname', function () {
     expect(result).toBe('https://sentry.io/api/0/broadcasts/');
   });
 
+  it('matches if querystrings are in path', function () {
+    const result = resolveHostname(
+      '/api/0/organizations/acme/sentry-app-components/?projectId=123'
+    );
+    expect(result).toBe(
+      'https://sentry.io/api/0/organizations/acme/sentry-app-components/?projectId=123'
+    );
+  });
+
   it('uses paths for region silo in dev-ui', function () {
     window.__SENTRY_DEV_UI = true;
 

@@ -5,7 +5,7 @@ from sentry import tsdb
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import StatsMixin, control_silo_endpoint
 from sentry.api.bases import SentryAppBaseEndpoint, SentryAppStatsPermission
-from sentry.models import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 
 
 @control_silo_endpoint

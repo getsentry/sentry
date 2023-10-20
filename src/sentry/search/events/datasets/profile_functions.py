@@ -21,7 +21,7 @@ from sentry.search.events.fields import (
     NumberRange,
     NumericColumn,
     SnQLFunction,
-    SnQLStringArg,
+    TimestampArg,
     with_default,
 )
 from sentry.search.events.types import NormalizedArg, ParamsType, SelectType, WhereType
@@ -287,7 +287,7 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                     default_result_type="string",  # TODO: support array type
                 ),
                 SnQLFunction(
-                    "percentiles",
+                    "percentile",
                     required_args=[
                         ProfileFunctionNumericColumn("column"),
                         NumberRange("percentile", 0, 1),
@@ -366,23 +366,44 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
-                    "slope",
-                    required_args=[SnQLStringArg("column", allowed_strings=AGG_STATE_COLUMNS)],
-                    snql_aggregate=lambda args, alias: Function(
-                        "tupleElement",
-                        [
-                            Function(
-                                "simpleLinearRegression",
-                                [
-                                    Function("toUInt32", [SnQLColumn("timestamp")]),
-                                    Function("finalizeAggregation", [SnQLColumn(args["column"])]),
-                                ],
-                            ),
-                            1,
-                        ],
-                        alias,
+                    "percentile_before",
+                    required_args=[
+                        ProfileFunctionNumericColumn("column"),
+                        NumberRange("percentile", 0, 1),
+                        TimestampArg("timestamp"),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile_cond(
+                        args, alias, "less"
                     ),
-                    default_result_type="number",
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "percentile_after",
+                    required_args=[
+                        ProfileFunctionNumericColumn("column"),
+                        NumberRange("percentile", 0, 1),
+                        TimestampArg("timestamp"),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile_cond(
+                        args, alias, "greater"
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "percentile_delta",
+                    required_args=[
+                        ProfileFunctionNumericColumn("column"),
+                        NumberRange("percentile", 0, 1),
+                        TimestampArg("timestamp"),
+                    ],
+                    snql_aggregate=self._resolve_percentile_delta,
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
                 ),
             ]
         }
@@ -448,6 +469,47 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                     [args["column"]],
                 ),
                 1,
+            ],
+            alias,
+        )
+
+    def _resolve_percentile_cond(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: str | None,
+        cond: str,
+    ) -> SelectType:
+        return Function(
+            "arrayElement",
+            [
+                Function(
+                    f'quantilesMergeIf({args["percentile"]})',
+                    [
+                        args["column"],
+                        Function(
+                            cond,
+                            [
+                                self.builder.column("timestamp"),
+                                args["timestamp"],
+                            ],
+                        ),
+                    ],
+                ),
+                1,
+            ],
+            alias,
+        )
+
+    def _resolve_percentile_delta(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: str,
+    ) -> SelectType:
+        return Function(
+            "minus",
+            [
+                self._resolve_percentile_cond(args, None, "greater"),
+                self._resolve_percentile_cond(args, None, "less"),
             ],
             alias,
         )

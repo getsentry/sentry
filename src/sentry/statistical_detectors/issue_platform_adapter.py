@@ -5,7 +5,7 @@ from typing import List
 
 from sentry.issues.grouptype import PerformanceDurationRegressionGroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-from sentry.issues.producer import produce_occurrence_to_kafka
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.seer.utils import BreakpointData
 from sentry.utils import metrics
 
@@ -36,7 +36,7 @@ def send_regressions_to_plaform(regressions: List[BreakpointData], automatic_det
             resource_id=None,
             project_id=project_id,
             event_id=uuid.uuid4().hex,
-            fingerprint=[fingerprint_regression(regression, automatic_detection)],
+            fingerprint=[fingerprint_regression(regression["transaction"], automatic_detection)],
             type=PerformanceDurationRegressionGroupType,
             issue_title=PerformanceDurationRegressionGroupType.description,
             subtitle=f"Increased from {displayed_old_baseline}ms to {displayed_new_baseline}ms (P95)",
@@ -45,7 +45,7 @@ def send_regressions_to_plaform(regressions: List[BreakpointData], automatic_det
             evidence_display=[
                 IssueEvidence(
                     name="Regression",
-                    value=f"Increased from {displayed_old_baseline}ms to {displayed_new_baseline}ms (P95)",
+                    value=f'{regression["transaction"]} duration increased from {displayed_old_baseline}ms to {displayed_new_baseline}ms (P95)',
                     important=True,
                 ),
                 IssueEvidence(
@@ -71,4 +71,6 @@ def send_regressions_to_plaform(regressions: List[BreakpointData], automatic_det
         metrics.incr(
             "performance.trends.sent_occurrence", tags={"automatic_detection": automatic_detection}
         )
-        produce_occurrence_to_kafka(occurrence, event_data)
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_data
+        )

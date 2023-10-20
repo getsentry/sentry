@@ -1,5 +1,5 @@
 from sentry.api.serializers import Serializer, register
-from sentry.models import Repository
+from sentry.models.repository import Repository
 
 
 @register(Repository)

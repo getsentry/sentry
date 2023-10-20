@@ -38,23 +38,23 @@ describe('useActiveReplayTab', () => {
     mockPush.mockReset();
   });
 
-  it('should use Console as a default', () => {
+  it('should use Breadcrumbs as a default', () => {
     const {result} = reactHooks.renderHook(useActiveReplayTab);
 
-    expect(result.current.getActiveTab()).toBe(TabKey.CONSOLE);
+    expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
   });
 
-  it('should use DOM as a default, when there is a click search in the url', () => {
+  it('should use Breadcrumbs as a default, when there is a click search in the url', () => {
     mockLocation('click.tag:button');
 
     const {result} = reactHooks.renderHook(useActiveReplayTab);
 
-    expect(result.current.getActiveTab()).toBe(TabKey.DOM);
+    expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
   });
 
   it('should allow case-insensitive tab names', () => {
     const {result} = reactHooks.renderHook(useActiveReplayTab);
-    expect(result.current.getActiveTab()).toBe(TabKey.CONSOLE);
+    expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
 
     result.current.setActiveTab('nEtWoRk');
     expect(mockPush).toHaveBeenLastCalledWith({
@@ -65,12 +65,12 @@ describe('useActiveReplayTab', () => {
 
   it('should set the default tab if the name is invalid', () => {
     const {result} = reactHooks.renderHook(useActiveReplayTab);
-    expect(result.current.getActiveTab()).toBe(TabKey.CONSOLE);
+    expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
 
     result.current.setActiveTab('foo bar');
     expect(mockPush).toHaveBeenLastCalledWith({
       pathname: '',
-      query: {t_main: TabKey.CONSOLE},
+      query: {t_main: TabKey.BREADCRUMBS},
     });
   });
 
@@ -80,12 +80,12 @@ describe('useActiveReplayTab', () => {
     });
 
     const {result} = reactHooks.renderHook(useActiveReplayTab);
-    expect(result.current.getActiveTab()).toBe(TabKey.CONSOLE);
+    expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
 
     result.current.setActiveTab(TabKey.PERF);
     expect(mockPush).toHaveBeenLastCalledWith({
       pathname: '',
-      query: {t_main: TabKey.CONSOLE},
+      query: {t_main: TabKey.BREADCRUMBS},
     });
   });
 
@@ -94,7 +94,7 @@ describe('useActiveReplayTab', () => {
       features: ['session-replay-trace-table'],
     });
     const {result} = reactHooks.renderHook(useActiveReplayTab);
-    expect(result.current.getActiveTab()).toBe(TabKey.CONSOLE);
+    expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
 
     result.current.setActiveTab(TabKey.PERF);
     expect(mockPush).toHaveBeenLastCalledWith({

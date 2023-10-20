@@ -1,17 +1,18 @@
 import os
 
 from sentry.logging import LoggingFormat
-from sentry.options import (
+from sentry.options import register
+from sentry.options.manager import (
     FLAG_ALLOW_EMPTY,
     FLAG_AUTOMATOR_MODIFIABLE,
+    FLAG_CREDENTIAL,
     FLAG_IMMUTABLE,
+    FLAG_MODIFIABLE_BOOL,
     FLAG_MODIFIABLE_RATE,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
-    register,
 )
-from sentry.options.manager import FLAG_CREDENTIAL, FLAG_MODIFIABLE_BOOL
 from sentry.utils.types import Any, Bool, Dict, Int, Sequence, String
 
 # Cache
@@ -289,6 +290,8 @@ register("filestore.control.options", default={}, flags=FLAG_NOSTORE)
 
 # Whether to use a redis lock on fileblob uploads and deletes
 register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Whether to use redis to cache `FileBlob.id` lookups
+register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Symbol server
 register(
@@ -719,6 +722,22 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enable sending the flag to the microservice to tell it to purposefully take longer than our
+# timeout, to see the effect on the overall error event processing backlog
+register(
+    "processing.severity-backlog-test.timeout",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enable sending the flag to the microservice to tell it to purposefully send back an error, to see
+# the effect on the overall error event processing backlog
+register(
+    "processing.severity-backlog-test.error",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # ## sentry.killswitches
 #
@@ -748,13 +767,6 @@ register(
 register(
     "store.save-event-highcpu-platforms", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
-# For platform belongs to store.save-event-highcpu-platforms option, we want to reroute
-# events to highcpu dedicated queue. During rollout, I would like to have an option to control
-# the percentage of traffic to route to highcpu dedicated queue, so I can route
-# small amount of traffic to new highcpu worker pool, and observe the worker throughput
-# to adjust autoscaling. Once we verify the deployment, we can remove the usage for this
-# option.
-register("store.save-event-highcpu-percentage", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
     "store.symbolicate-event-lpq-never", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
@@ -975,6 +987,20 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# An option to enable reading from the new schema for the caching indexer
+register(
+    "sentry-metrics.indexer.read-new-cache-namespace",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# An option to enable writing from the new schema for the caching indexer
+register(
+    "sentry-metrics.indexer.write-new-cache-namespace",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {
@@ -1088,7 +1114,9 @@ register(
 )
 register(
     "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
-    default=[],
+    default=[
+        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
+    ],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1100,7 +1128,9 @@ register(
 )
 register(
     "sentry-metrics.cardinality-limiter.limits.sessions.per-org",
-    default=[],
+    default=[
+        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
+    ],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1132,6 +1162,11 @@ register(
 register(
     "sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate",
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sentry-metrics.10s-granularity",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1341,12 +1376,12 @@ register(
 )
 register(
     "performance.issues.n_plus_one_db.duration_threshold",
-    default=90.0,
+    default=50.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.slow_db_query.duration_threshold",
-    default=900.0,  # ms
+    default=500.0,  # ms
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1381,7 +1416,7 @@ register(
 )
 register(
     "performance.issues.consecutive_http.span_duration_threshold",
-    default=900,  # ms
+    default=500,  # ms
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1558,6 +1593,12 @@ register(
     default=100,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "statistical_detectors.query.transactions.timeseries_days",
+    type=Int,
+    default=14,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "options_automator_slack_webhook_enabled",
@@ -1603,6 +1644,24 @@ register(
 
 register(
     "delightful_metrics.enable_common_tags",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "delightful_metrics.allow_all_incr",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "delightful_metrics.allow_all_timing",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "delightful_metrics.allow_all_gauge",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

@@ -9,7 +9,7 @@ from sentry.loader.browsersdkversion import (
     get_selected_browser_sdk_version,
 )
 from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption, get_dynamic_sdk_loader_option
-from sentry.models import ProjectKey
+from sentry.models.projectkey import ProjectKey
 
 
 class RateLimit(TypedDict):

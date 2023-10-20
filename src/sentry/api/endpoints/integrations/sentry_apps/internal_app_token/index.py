@@ -7,9 +7,10 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppBaseEndpoint, SentryInternalAppTokenPermission
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
 from sentry.exceptions import ApiTokenLimitError
-from sentry.models import ApiToken, SentryAppInstallation
+from sentry.models.apitoken import ApiToken
 from sentry.models.integrations.sentry_app import MASKED_VALUE
-from sentry.sentry_apps import SentryAppInstallationTokenCreator
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.installations import SentryAppInstallationTokenCreator
 
 
 @control_silo_endpoint

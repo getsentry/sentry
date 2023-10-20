@@ -8,7 +8,7 @@ from requests.exceptions import HTTPError, SSLError
 
 from sentry import digests, ratelimits
 from sentry.exceptions import InvalidIdentity, PluginError
-from sentry.models import NotificationSetting
+from sentry.models.notificationsetting import NotificationSetting
 from sentry.notifications.helpers import should_use_notifications_v2
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import NotificationSettingEnum
@@ -113,7 +113,7 @@ class NotificationPlugin(Plugin):
         pass
 
     def get_notification_recipients(self, project, user_option: str) -> Set:
-        from sentry.models import UserOption
+        from sentry.models.options.user_option import UserOption
 
         alert_settings = {
             o.user_id: int(o.value)

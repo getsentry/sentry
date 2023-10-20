@@ -23,19 +23,31 @@ import SampleTable from 'sentry/views/starfish/views/spanSummaryPage/sampleList/
 
 type Props = {
   groupId: string;
-  transactionMethod: string;
   transactionName: string;
+  onClose?: () => void;
+  spanDescription?: string;
+  transactionMethod?: string;
+  transactionRoute?: string;
 };
 
-export function SampleList({groupId, transactionName, transactionMethod}: Props) {
+export function SampleList({
+  groupId,
+  transactionName,
+  transactionMethod,
+  spanDescription,
+  onClose,
+  transactionRoute = '/performance/summary/',
+}: Props) {
   const router = useRouter();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
     undefined
   );
-  const detailKey =
-    groupId && transactionName && transactionMethod
-      ? `${groupId}:${transactionName}:${transactionMethod}`
-      : undefined;
+
+  // A a transaction name is required to show the panel, but a transaction
+  // method is not
+  const detailKey = transactionName
+    ? [groupId, transactionName, transactionMethod].filter(Boolean).join(':')
+    : undefined;
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debounceSetHighlightedSpanId = useCallback(
@@ -65,35 +77,44 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
       ? `${transactionMethod} ${transactionName}`
       : transactionName;
 
-  const link = `/performance/summary/?${qs.stringify({
+  const link = `${transactionRoute}?${qs.stringify({
     project: query.project,
     transaction: transactionName,
   })}`;
+
+  function defaultOnClose() {
+    router.replace({
+      pathname: router.location.pathname,
+      query: omit(router.location.query, 'transaction', 'transactionMethod'),
+    });
+  }
 
   return (
     <PageErrorProvider>
       <DetailPanel
         detailKey={detailKey}
         onClose={() => {
-          router.replace({
-            pathname: router.location.pathname,
-            query: omit(router.location.query, 'transaction', 'transactionMethod'),
-          });
+          onClose ? onClose() : defaultOnClose();
         }}
         onOpen={onOpenDetailPanel}
       >
-        {project && (
-          <SpanSummaryProjectAvatar
-            project={project}
-            direction="left"
-            size={40}
-            hasTooltip
-            tooltip={project.slug}
-          />
-        )}
-        <h3>
-          <Link to={link}>{label}</Link>
-        </h3>
+        <HeaderContainer>
+          {project && (
+            <SpanSummaryProjectAvatar
+              project={project}
+              direction="left"
+              size={40}
+              hasTooltip
+              tooltip={project.slug}
+            />
+          )}
+          <TitleContainer>
+            {spanDescription && <SpanDescription>{spanDescription}</SpanDescription>}
+            <Title>
+              <Link to={link}>{label}</Link>
+            </Title>
+          </TitleContainer>
+        </HeaderContainer>
         <PageErrorAlert />
 
         <SampleInfo
@@ -130,6 +151,39 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
 }
 
 const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
-  padding-top: ${space(1)};
+  padding-right: ${space(1)};
+`;
+
+const HeaderContainer = styled('div')`
+  width: 100%;
   padding-bottom: ${space(2)};
+  padding-top: ${space(1)};
+
+  display: grid;
+  grid-template-rows: auto auto auto;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-rows: auto;
+    grid-template-columns: auto 1fr auto;
+  }
+`;
+
+const TitleContainer = styled('div')`
+  width: 100%;
+  position: relative;
+  height: 40px;
+`;
+
+const Title = styled('h4')`
+  position: absolute;
+  bottom: 0;
+  margin-bottom: 0;
+`;
+
+const SpanDescription = styled('div')`
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 35vw;
 `;

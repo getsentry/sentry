@@ -5,7 +5,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import GroupHash, GroupTombstone
+from sentry.models.grouphash import GroupHash
+from sentry.models.grouptombstone import GroupTombstone
 
 
 @region_silo_endpoint

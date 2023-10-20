@@ -5,7 +5,9 @@ from django.utils import timezone
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.providers.dummy import DummyProvider
-from sentry.models import AuthIdentity, AuthProvider, OrganizationMember
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organizationmember import OrganizationMember
 from sentry.silo import SiloMode
 from sentry.tasks.check_auth import AUTH_CHECK_INTERVAL, check_auth, check_auth_identity
 from sentry.testutils.cases import TestCase

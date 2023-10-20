@@ -3,7 +3,8 @@ from collections import defaultdict
 from django.db.models import Count, Max
 
 from sentry.api.serializers import serialize
-from sentry.models import ProcessingIssue, ReprocessingReport
+from sentry.models.processingissue import ProcessingIssue
+from sentry.models.reprocessingreport import ReprocessingReport
 
 
 def get_processing_issues(user, projects, include_detailed_issues=False):

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import uuid
 from itertools import chain
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any, Collection, List, Mapping
 
-from django.db import models, router, transaction
+from django.db import models
 from django.db.models import OuterRef, QuerySet, Subquery
 from django.utils import timezone
 
@@ -18,13 +18,17 @@ from sentry.db.models import (
     control_silo_only_model,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.outboxes import ReplicatedControlModel
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken
+from sentry.services.hybrid_cloud.project import RpcProject
 from sentry.types.region import find_regions_for_orgs
 
 if TYPE_CHECKING:
-    from sentry.models import ApiToken, Project, SentryAppComponent
+    from sentry.models.apitoken import ApiToken
+    from sentry.models.integrations.sentry_app_component import SentryAppComponent
+    from sentry.models.project import Project
 
-from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
+from sentry.models.outbox import ControlOutboxBase, OutboxCategory, outbox_context
 
 
 def default_uuid():
@@ -46,7 +50,8 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
         return self.filter(status=SentryAppInstallationStatus.INSTALLED, api_token_id=token_id)
 
     def get_projects(self, token: ApiToken | AuthenticatedToken) -> QuerySet[Project]:
-        from sentry.models import Project, is_api_token_auth
+        from sentry.models.apitoken import is_api_token_auth
+        from sentry.models.project import Project
 
         if not is_api_token_auth(token) or token.organization_id is None:
             return Project.objects.none()
@@ -60,7 +65,7 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
         type: str,
         group_by="sentry_app_id",
     ):
-        from sentry.models import SentryAppComponent
+        from sentry.models.integrations.sentry_app_component import SentryAppComponent
 
         component_query = SentryAppComponent.objects.filter(
             sentry_app_id=OuterRef("sentry_app_id"), type=type
@@ -97,8 +102,9 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
 
 
 @control_silo_only_model
-class SentryAppInstallation(ParanoidModel):
+class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
     __relocation_scope__ = RelocationScope.Global
+    category = OutboxCategory.SENTRY_APP_INSTALLATION_UPDATE
 
     sentry_app = FlexibleForeignKey("sentry.SentryApp", related_name="installations")
 
@@ -162,61 +168,77 @@ class SentryAppInstallation(ParanoidModel):
         self.date_updated = timezone.now()
         return super().save(*args, **kwargs)
 
-    def delete(self, **kwargs):
-        with outbox_context(
-            transaction.atomic(router.db_for_write(SentryAppInstallation)), flush=False
-        ):
-            for outbox in self.outboxes_for_update():
-                outbox.save()
-            return super().delete(**kwargs)
-
     @property
     def api_application_id(self) -> int | None:
-        from sentry.models import SentryApp
+        from sentry.models.integrations.sentry_app import SentryApp
 
         try:
             return self.sentry_app.application_id
         except SentryApp.DoesNotExist:
             return None
 
-    def outboxes_for_update(self) -> List[ControlOutbox]:
-        return [
-            ControlOutbox(
-                shard_scope=OutboxScope.APP_SCOPE,
-                # In the case of a bad relation, it's ok to just replicate this in a special ordering.
-                shard_identifier=self.api_application_id or 0,
-                object_identifier=self.id,
-                category=OutboxCategory.SENTRY_APP_INSTALLATION_UPDATE,
-                region_name=region_name,
-            )
-            for region_name in find_regions_for_orgs([self.organization_id])
-        ]
+    def outbox_region_names(self) -> Collection[str]:
+        return find_regions_for_orgs([self.organization_id])
 
-    def prepare_sentry_app_components(self, component_type, project=None, values=None):
-        from sentry.models import SentryAppComponent
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
+        # Use 0 in case of bad relations from api_applicaiton_id -- the replication ordering for
+        # these isn't so important in that case.
+        return super().outboxes_for_update(shard_identifier=self.api_application_id or 0)
 
-        try:
-            component = SentryAppComponent.objects.get(
-                sentry_app_id=self.sentry_app_id, type=component_type
-            )
-        except SentryAppComponent.DoesNotExist:
-            return None
-
-        return self.prepare_ui_component(component, project, values)
-
-    def prepare_ui_component(self, component, project=None, values=None):
+    def prepare_ui_component(
+        self,
+        component: SentryAppComponent,
+        project: Project | RpcProject | None = None,
+        values: Any = None,
+    ) -> SentryAppComponent | None:
         return prepare_ui_component(
             self, component, project_slug=project.slug if project else None, values=values
         )
+
+    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+        if self.api_token is not None:
+            # ApiTokens replicate the organization_id they are associated with.
+            with outbox_context(flush=False):
+                for ob in self.api_token.outboxes_for_update():
+                    ob.save()
+
+    @classmethod
+    def handle_async_deletion(
+        cls,
+        identifier: int,
+        region_name: str,
+        shard_identifier: int,
+        payload: Mapping[str, Any] | None,
+    ) -> None:
+        from sentry.models.apitoken import ApiToken
+
+        if payload:
+            api_token_id = payload.get("api_token_id", None)
+            user_id = payload.get("user_id", None)
+            if isinstance(api_token_id, int) and isinstance(user_id, int):
+                with outbox_context(flush=False):
+                    for ob in ApiToken(id=api_token_id, user_id=user_id).outboxes_for_update():
+                        ob.save()
+
+    def payload_for_update(self) -> Mapping[str, Any] | None:
+        from sentry.models.apitoken import ApiToken
+
+        try:
+            return dict(
+                api_token_id=self.api_token_id,
+                user_id=self.api_token.user_id if self.api_token else None,
+            )
+        except ApiToken.DoesNotExist:
+            return None
 
 
 def prepare_sentry_app_components(
     installation: SentryAppInstallation,
     component_type: str,
     project_slug: str | None = None,
-    values: Any = None,
-):
-    from sentry.models import SentryAppComponent
+    values: List[Mapping[str, Any]] | None = None,
+) -> SentryAppComponent | None:
+    from sentry.models.integrations.sentry_app_component import SentryAppComponent
 
     try:
         component = SentryAppComponent.objects.get(
@@ -232,7 +254,7 @@ def prepare_ui_component(
     installation: SentryAppInstallation,
     component: SentryAppComponent,
     project_slug: str | None = None,
-    values: Any = None,
+    values: List[Mapping[str, Any]] | None = None,
 ) -> SentryAppComponent | None:
     from sentry.coreapi import APIError
     from sentry.sentry_apps.components import SentryAppComponentPreparer

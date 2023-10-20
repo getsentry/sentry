@@ -18,7 +18,7 @@ from sentry.incidents.models import (
     IncidentStatusMethod,
 )
 from sentry.incidents.utils.types import SubscriptionUpdate
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode

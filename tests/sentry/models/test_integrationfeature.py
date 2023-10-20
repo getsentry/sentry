@@ -1,5 +1,4 @@
-from sentry.models import IntegrationFeature
-from sentry.models.integrations.integration_feature import IntegrationTypes
+from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 

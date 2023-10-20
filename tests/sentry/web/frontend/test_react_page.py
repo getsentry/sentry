@@ -2,7 +2,7 @@ from fnmatch import fnmatch
 
 from django.urls import URLResolver, get_resolver, reverse
 
-from sentry.models import OrganizationStatus
+from sentry.models.organization import OrganizationStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.web.frontend.react_page import NON_CUSTOMER_DOMAIN_URL_NAMES, ReactMixin

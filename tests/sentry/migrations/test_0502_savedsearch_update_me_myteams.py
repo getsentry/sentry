@@ -1,6 +1,7 @@
 import pytest
 
-from sentry.models import SavedSearch, SearchType
+from sentry.models.savedsearch import SavedSearch
+from sentry.models.search_common import SearchType
 from sentry.testutils.cases import TestMigrations
 
 

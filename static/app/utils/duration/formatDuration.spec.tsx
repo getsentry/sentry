@@ -8,7 +8,7 @@ describe('formatDuration', () => {
       {value: 1, unit: 'min' as const},
     ])('should convert "$value $unit" and return the count of ms', ({value, unit}) => {
       expect(
-        formatDuration({style: 'count', precision: 'ms', timespan: [value, unit]})
+        formatDuration({style: 'count', precision: 'ms', duration: [value, unit]})
       ).toBe('60000');
     });
 
@@ -18,7 +18,7 @@ describe('formatDuration', () => {
       {value: 1, unit: 'week' as const},
     ])('should convert "$value $unit" and return the count of ms', ({value, unit}) => {
       expect(
-        formatDuration({style: 'count', precision: 'ms', timespan: [value, unit]})
+        formatDuration({style: 'count', precision: 'ms', duration: [value, unit]})
       ).toBe('604800000');
     });
   });
@@ -34,7 +34,7 @@ describe('formatDuration', () => {
         formatDuration({
           style,
           precision: 'sec',
-          timespan: [500.012, 'sec'],
+          duration: [500.012, 'sec'],
         })
       ).toBe(expected);
     });
@@ -44,7 +44,7 @@ describe('formatDuration', () => {
         formatDuration({
           style: 'count-locale',
           precision: 'ms',
-          timespan: [60, 'sec'],
+          duration: [60, 'sec'],
         })
       ).toBe('60,000');
     });
@@ -54,7 +54,7 @@ describe('formatDuration', () => {
         formatDuration({
           style: 'count',
           precision: 'ms',
-          timespan: [60, 'sec'],
+          duration: [60, 'sec'],
         })
       ).toBe('60000');
 
@@ -62,7 +62,7 @@ describe('formatDuration', () => {
         formatDuration({
           style: 'count',
           precision: 'hour',
-          timespan: [45, 'min'],
+          duration: [45, 'min'],
         })
       ).toBe('0.75');
     });
@@ -72,7 +72,7 @@ describe('formatDuration', () => {
         formatDuration({
           style: 'h:mm:ss',
           precision: 'sec',
-          timespan: [500, 'sec'],
+          duration: [500, 'sec'],
         })
       ).toBe('8:20');
     });
@@ -82,7 +82,7 @@ describe('formatDuration', () => {
         formatDuration({
           style: 'h:mm:ss',
           precision: 'sec',
-          timespan: [500012, 'ms'],
+          duration: [500012, 'ms'],
         })
       ).toBe('8:20');
     });
@@ -92,7 +92,7 @@ describe('formatDuration', () => {
         formatDuration({
           style: 'h:mm:ss.sss',
           precision: 'sec',
-          timespan: [500, 'sec'],
+          duration: [500, 'sec'],
         })
       ).toBe('8:20.000');
     });
@@ -102,7 +102,7 @@ describe('formatDuration', () => {
         formatDuration({
           style: 'h:mm:ss.sss',
           precision: 'sec',
-          timespan: [500012, 'ms'],
+          duration: [500012, 'ms'],
         })
       ).toBe('8:20.012');
     });

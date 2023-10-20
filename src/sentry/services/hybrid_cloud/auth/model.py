@@ -44,6 +44,18 @@ class RpcApiKey(RpcModel):
     scope_list: List[str] = Field(default_factory=list)
 
 
+class RpcApiToken(RpcModel):
+    id: int = -1
+    user_id: int = -1
+    organization_id: Optional[int] = None
+    application_id: Optional[int] = None
+    application_is_active: bool = False
+    token: str = ""
+    expires_at: Optional[datetime.datetime] = None
+    allowed_origins: List[str] = Field(default_factory=list)
+    scope_list: List[str] = Field(default_factory=list)
+
+
 class RpcAuthenticatorType(IntEnum):
     UNUSUED_ONE = 0
     USER_AUTH_TOKEN_AUTHENTICATION = 1
@@ -327,7 +339,7 @@ class RpcAuthProvider(RpcModel):
         return manager.get(self.provider, **self.config)
 
     def get_scim_token(self) -> Optional[str]:
-        from sentry.models import get_scim_token
+        from sentry.models.authprovider import get_scim_token
 
         return get_scim_token(self.flags.scim_enabled, self.organization_id, self.provider)
 

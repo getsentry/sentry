@@ -133,6 +133,16 @@ class IssueAlertParams:
     )
 
 
+class MetricAlertParams:
+    METRIC_RULE_ID = OpenApiParameter(
+        name="alert_rule_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the rule you'd like to query.",
+    )
+
+
 class VisibilityParams:
     QUERY = OpenApiParameter(
         name="query",
@@ -298,6 +308,13 @@ class NotificationParams:
         required=False,
         type=str,
         description="Type of the trigger that causes the notification. The only supported value right now is: `spike-protection`",
+    )
+    ACTION_ID = OpenApiParameter(
+        name="action_id",
+        location="path",
+        required=True,
+        type=int,
+        description="ID of the notification action to retrieve",
     )
 
 

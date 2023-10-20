@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from typing import Mapping
 
-from sentry.models import Group, GroupSubscription, NotificationSetting, User
+from sentry.models.group import Group
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.models.user import User
 from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationScopeEnum,
@@ -208,12 +211,11 @@ class GetParticipantsTest(TestCase):
             NotificationSettingOptionValues.ALWAYS,
             user_id=self.user.id,
         )
-        NotificationSettingProvider.objects.update_or_create(
+        NotificationSettingOption.objects.update_or_create(
             scope_type=NotificationScopeEnum.USER.value,
             scope_identifier=self.user.id,
             type=NotificationSettingEnum.WORKFLOW.value,
             user_id=self.user.id,
-            provider=ExternalProviderEnum.EMAIL.value,
             defaults={"value": NotificationSettingsOptionEnum.ALWAYS.value},
         )
 
@@ -367,7 +369,10 @@ class GetParticipantsTest(TestCase):
         self.create_member(user=user2, organization=self.org)
 
         # implicit membership
-        self._assert_subscribers_are(group, email={self.user: GroupSubscriptionReason.implicit})
+        self._assert_subscribers_are(
+            group,
+            email={self.user: GroupSubscriptionReason.implicit},
+        )
 
         # unsubscribed
         GroupSubscription.objects.create(
@@ -398,8 +403,50 @@ class GetParticipantsTest(TestCase):
             slack={self.user: GroupSubscriptionReason.comment},
         )
 
+    @with_feature("organizations:notification-settings-v2")
     def test_simple_v2(self):
-        self.test_simple()
+        # Include an extra team here to prove the subquery works
+        team_2 = self.create_team(organization=self.org)
+        project = self.create_project(teams=[self.team, team_2], organization=self.org)
+        group = self.create_group(project=project)
+        user2 = self.create_user("bar@example.com")
+        self.create_member(user=user2, organization=self.org)
+
+        # implicit membership
+        self._assert_subscribers_are(
+            group,
+            email={self.user: GroupSubscriptionReason.implicit},
+            slack={self.user: GroupSubscriptionReason.implicit},
+        )
+
+        # unsubscribed
+        GroupSubscription.objects.create(
+            user_id=self.user.id, group=group, project=project, is_active=False
+        )
+
+        self._assert_subscribers_are(group)
+
+        # not participating by default
+        GroupSubscription.objects.filter(user_id=self.user.id, group=group).delete()
+
+        self.update_user_setting_subscribe_only()
+
+        self._assert_subscribers_are(group)
+
+        # explicitly participating
+        GroupSubscription.objects.create(
+            user_id=self.user.id,
+            group=group,
+            project=project,
+            is_active=True,
+            reason=GroupSubscriptionReason.comment,
+        )
+
+        self._assert_subscribers_are(
+            group,
+            email={self.user: GroupSubscriptionReason.comment},
+            slack={self.user: GroupSubscriptionReason.comment},
+        )
 
     def test_no_conversations(self):
         # Implicit subscription, ensure the project setting overrides the
@@ -480,7 +527,10 @@ class GetParticipantsTest(TestCase):
     def test_no_conversations_v2(self):
         # Implicit subscription, ensure the project setting overrides the
         # default global option.
-        self._assert_subscribers_are(email={self.user: GroupSubscriptionReason.implicit})
+        self._assert_subscribers_are(
+            email={self.user: GroupSubscriptionReason.implicit},
+            slack={self.user: GroupSubscriptionReason.implicit},
+        )
         self.update_project_setting_never()
         self._assert_subscribers_are()
 
@@ -499,7 +549,10 @@ class GetParticipantsTest(TestCase):
 
         self.update_user_settings_always()
 
-        self._assert_subscribers_are(email={self.user: GroupSubscriptionReason.implicit})
+        self._assert_subscribers_are(
+            email={self.user: GroupSubscriptionReason.implicit},
+            slack={self.user: GroupSubscriptionReason.implicit},
+        )
         self.update_project_setting_never()
         self._assert_subscribers_are()
 
@@ -732,7 +785,10 @@ class GetParticipantsTest(TestCase):
     @with_feature("organizations:notification-settings-v2")
     def test_participating_only_v2(self):
         # Implicit subscription, ensure the project setting overrides the default global option.
-        self._assert_subscribers_are(email={self.user: GroupSubscriptionReason.implicit})
+        self._assert_subscribers_are(
+            email={self.user: GroupSubscriptionReason.implicit},
+            slack={self.user: GroupSubscriptionReason.implicit},
+        )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSettingOption.objects.update_or_create(
@@ -767,7 +823,10 @@ class GetParticipantsTest(TestCase):
         # explicit global option.
         self.update_user_settings_always()
 
-        self._assert_subscribers_are(email={self.user: GroupSubscriptionReason.implicit})
+        self._assert_subscribers_are(
+            email={self.user: GroupSubscriptionReason.implicit},
+            slack={self.user: GroupSubscriptionReason.implicit},
+        )
         with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSettingProvider.objects.update_or_create(
                 scope_type=NotificationScopeEnum.PROJECT.value,
@@ -777,7 +836,9 @@ class GetParticipantsTest(TestCase):
                 user_id=self.user.id,
                 defaults={"value": NotificationSettingsOptionEnum.NEVER.value},
             )
-        self._assert_subscribers_are()
+        self._assert_subscribers_are(
+            slack={self.user: GroupSubscriptionReason.implicit},
+        )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSettingOption.objects.filter(
@@ -875,7 +936,10 @@ class GetParticipantsTest(TestCase):
         self.update_user_setting_subscribe_only()
         self.update_project_setting_always()
 
-        self._assert_subscribers_are(email={self.user: GroupSubscriptionReason.implicit})
+        self._assert_subscribers_are(
+            email={self.user: GroupSubscriptionReason.implicit},
+            slack={self.user: GroupSubscriptionReason.implicit},
+        )
         subscription = GroupSubscription.objects.create(
             user_id=self.user.id,
             group=self.group,

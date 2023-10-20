@@ -4,18 +4,15 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
-from sentry.models import (
-    Group,
-    GroupLink,
-    GroupResolution,
-    GroupSnooze,
-    GroupStatus,
-    GroupSubscription,
-    NotificationSetting,
-    UserOption,
-)
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.models.options.user_option import UserOption
 from sentry.notifications.types import (
     NotificationScopeEnum,
     NotificationSettingEnum,
@@ -407,7 +404,7 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
                             scope_identifier=user.id,
                             user_id=user.id,
                             type=NotificationSettingEnum.WORKFLOW.value,
-                            defaults={"value": NotificationSettingsOptionEnum.ALWAYS.value},
+                            defaults={"value": default_value.value},
                         )
                         NotificationSettingProvider.objects.update_or_create(
                             provider=provider,
@@ -415,7 +412,7 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
                             user_id=user.id,
                             scope_type=NotificationScopeEnum.USER.value,
                             scope_identifier=user.id,
-                            defaults={"value": default_value.value},
+                            defaults={"value": NotificationSettingsOptionEnum.ALWAYS.value},
                         )
 
                     if project_value is None:
@@ -438,7 +435,7 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
                             scope_identifier=group.project.id,
                             user_id=user.id,
                             type=NotificationSettingEnum.WORKFLOW.value,
-                            defaults={"value": NotificationSettingsOptionEnum.ALWAYS.value},
+                            defaults={"value": project_value.value},
                         )
                         NotificationSettingProvider.objects.update_or_create(
                             provider=provider,
@@ -446,7 +443,7 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
                             user_id=user.id,
                             scope_type=NotificationScopeEnum.PROJECT.value,
                             scope_identifier=group.project.id,
-                            defaults={"value": project_value.value},
+                            defaults={"value": NotificationSettingsOptionEnum.ALWAYS.value},
                         )
 
             result = serialize(group, user)

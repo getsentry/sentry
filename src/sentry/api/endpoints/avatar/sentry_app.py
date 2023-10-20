@@ -6,7 +6,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppBaseEndpoint
 from sentry.api.bases.avatar import AvatarMixin
 from sentry.api.serializers.rest_framework.sentry_app import SentryAppAvatarSerializer
-from sentry.models import SentryAppAvatar
+from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 
 
 @control_silo_endpoint

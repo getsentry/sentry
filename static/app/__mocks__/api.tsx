@@ -255,7 +255,7 @@ class Client implements ApiNamespace.Client {
       const body =
         typeof response.body === 'function' ? response.body(url, options) : response.body;
 
-      if (![200, 202].includes(response.statusCode)) {
+      if (response.statusCode >= 300) {
         response.callCount++;
 
         const errorResponse = Object.assign(

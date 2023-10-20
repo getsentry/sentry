@@ -1,11 +1,10 @@
 from rest_framework import status
 
-from sentry.models import NotificationSetting
+from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
 
@@ -125,7 +124,6 @@ class UserNotificationSettingsUpdateTest(UserNotificationSettingsTestBase):
             == NotificationSettingOptionValues.ALWAYS
         )
 
-    @with_feature("organizations:notifications-double-write")
     def test_double_write(self):
         org = self.create_organization()
         self.create_member(user=self.user, organization=org)
@@ -180,7 +178,6 @@ class UserNotificationSettingsUpdateTest(UserNotificationSettingsTestBase):
             **query_args, value="never", provider="slack"
         )
 
-    @with_feature("organizations:notifications-double-write")
     def test_double_write_with_email_off(self):
         org = self.create_organization()
         self.create_member(user=self.user, organization=org)

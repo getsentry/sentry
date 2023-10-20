@@ -55,7 +55,7 @@ class OrganizationMapping(Model):
             2.  no organization member mapping exists for the given org and user_id
             3.  the organization member mapping for the given org and user_id is not the owner.
         """
-        from sentry.models import OrganizationMemberMapping
+        from sentry.models.organizationmembermapping import OrganizationMemberMapping
 
         try:
             mapping = OrganizationMapping.objects.get(slug=slug)

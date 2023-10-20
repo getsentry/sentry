@@ -33,8 +33,11 @@ export type RawSpanType = {
 };
 
 export type AggregateSpanType = RawSpanType & {
+  count: number;
+  frequency: number;
+  samples: Array<[string, string]>;
+  total: number;
   type: 'aggregate';
-  frequency?: number;
 };
 
 /**
@@ -155,10 +158,13 @@ export type ParsedTraceType = {
   traceEndTimestamp: number;
   traceID: string;
   traceStartTimestamp: number;
+  count?: number;
   description?: string;
   exclusiveTime?: number;
+  frequency?: number;
   hash?: string;
   parentSpanID?: string;
+  total?: number;
 };
 
 export enum TickAlignment {
@@ -168,13 +174,16 @@ export enum TickAlignment {
 }
 
 export type TraceContextType = {
+  count?: number;
   description?: string;
   exclusive_time?: number;
+  frequency?: number;
   hash?: string;
   op?: string;
   parent_span_id?: string;
   span_id?: string;
   status?: string;
+  total?: number;
   trace_id?: string;
   type?: 'trace';
 };

@@ -7,7 +7,7 @@ from sentry.statistical_detectors.issue_platform_adapter import send_regressions
 
 
 @mock.patch("sentry.statistical_detectors.issue_platform_adapter.produce_occurrence_to_kafka")
-def test_send_regressions_to_platform(mock_produce_occurrence_to_kafka):
+def test_send_regressions_to_plaform(mock_produce_occurrence_to_kafka):
     project_id = "123"
 
     mock_regressions: List[BreakpointData] = [
@@ -29,21 +29,23 @@ def test_send_regressions_to_platform(mock_produce_occurrence_to_kafka):
 
     assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
 
-    occurrence, event = mock_produce_occurrence_to_kafka.mock_calls[0].args
+    kwargs = mock_produce_occurrence_to_kafka.call_args.kwargs
+    occurrence = kwargs["occurrence"]
+    event = kwargs["event_data"]
     occurrence = occurrence.to_dict()
 
     assert dict(
         occurrence,
         **{
             "project_id": 123,
-            "issue_title": "Exp Duration Regression",
+            "issue_title": "Transaction Duration Regression (Experimental)",
             "subtitle": "Increased from 14.0ms to 28.0ms (P95)",
             "resource_id": None,
             "evidence_data": mock_regressions[0],
             "evidence_display": [
                 {
                     "name": "Regression",
-                    "value": "Increased from 14.0ms to 28.0ms (P95)",
+                    "value": "foo duration increased from 14.0ms to 28.0ms (P95)",
                     "important": True,
                 },
                 {"name": "Transaction", "value": "foo", "important": True},

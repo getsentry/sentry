@@ -1,5 +1,5 @@
 from sentry.api.serializers import Serializer, register
-from sentry.models import GroupSeen
+from sentry.models.groupseen import GroupSeen
 from sentry.services.hybrid_cloud.user.service import user_service
 
 

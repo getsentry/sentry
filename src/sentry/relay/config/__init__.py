@@ -37,7 +37,8 @@ from sentry.ingest.transaction_clusterer.rules import (
     get_sorted_rules,
 )
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
-from sentry.models import Project, ProjectKey
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
 from sentry.relay.config.metric_extraction import (
     get_metric_conditional_tagging_rules,
     get_metric_extraction_config,
@@ -54,6 +55,7 @@ EXPOSABLE_FEATURES = [
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-ga-modules",
     "projects:span-metrics-extraction-all-modules",
+    "projects:span-metrics-extraction-resource",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:transaction-name-normalize",
     "organizations:profiling",
@@ -135,9 +137,10 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
 
         error_messages += project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}") or []
 
-    # TODO: refactor the system to allow management of error messages filtering via the inbound filters, since right
-    #  now the system maps an option to a single top-level filter like "ignoreTransactions".
-    enable_react = project.get_option("filters:react-hydration-errors")
+    # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
+    # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
+    # why the value true is determined by either "1" or True.
+    enable_react = project.get_option("filters:react-hydration-errors") in ("1", True)
     if enable_react:
         # 418 - Hydration failed because the initial UI does not match what was rendered on the server.
         # 419 - The server could not finish this Suspense boundary, likely due to an error during server rendering. Switched to client rendering.
@@ -588,8 +591,8 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
 #: Version of the transaction metrics extraction.
 #: When you increment this version, outdated Relays will stop extracting
 #: transaction metrics.
-#: See https://github.com/getsentry/relay/blob/4f3e224d5eeea8922fe42163552e8f20db674e86/relay-server/src/metrics_extraction/transactions.rs#L71
-TRANSACTION_METRICS_EXTRACTION_VERSION = 2
+#: See https://github.com/getsentry/relay/blob/6181c6e80b9485ed394c40bc860586ae934704e2/relay-dynamic-config/src/metrics.rs#L85
+TRANSACTION_METRICS_EXTRACTION_VERSION = 3
 
 
 class CustomMeasurementSettings(TypedDict):

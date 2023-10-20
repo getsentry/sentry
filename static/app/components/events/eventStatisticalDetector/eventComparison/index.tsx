@@ -1,4 +1,6 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import moment from 'moment';
 
 import {EventDisplay} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import {t} from 'sentry/locale';
@@ -18,14 +20,10 @@ type EventComparisonProps = {
 };
 
 function EventComparison({event, project, group}: EventComparisonProps) {
-  const {
-    aggregateRange1,
-    aggregateRange2,
-    requestStart,
-    requestEnd,
-    breakpoint,
-    transaction,
-  } = event?.occurrence?.evidenceData ?? {};
+  const now = useMemo(() => Date.now(), []);
+  const retentionPeriodMs = moment().subtract(90, 'days').valueOf();
+  const {aggregateRange1, aggregateRange2, dataStart, breakpoint, transaction} =
+    event?.occurrence?.evidenceData ?? {};
 
   return (
     <DataSection>
@@ -36,8 +34,8 @@ function EventComparison({event, project, group}: EventComparisonProps) {
           <EventDisplay
             eventSelectLabel={t('Baseline Event ID')}
             project={project}
-            start={requestStart}
-            end={breakpoint}
+            start={Math.max(dataStart * 1000, retentionPeriodMs)}
+            end={breakpoint * 1000}
             transaction={transaction}
             durationBaseline={aggregateRange1}
             group={group}
@@ -47,8 +45,8 @@ function EventComparison({event, project, group}: EventComparisonProps) {
           <EventDisplay
             eventSelectLabel={t('Regressed Event ID')}
             project={project}
-            start={breakpoint}
-            end={requestEnd}
+            start={breakpoint * 1000}
+            end={now}
             transaction={transaction}
             durationBaseline={aggregateRange2}
             group={group}

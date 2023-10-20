@@ -15,7 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.search.utils import DEVICE_CLASS
 
 if TYPE_CHECKING:
-    from sentry.models import Group
+    from sentry.models.group import Group
 
 
 @region_silo_endpoint

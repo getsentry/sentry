@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from sentry.models import GroupHash
+from sentry.models.grouphash import GroupHash
 from sentry.receivers import create_default_projects
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.utils import snuba

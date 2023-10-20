@@ -1,4 +1,5 @@
-from sentry.models import ACTOR_TYPES, Actor, ExternalActor
+from sentry.models.actor import ACTOR_TYPES, Actor
+from sentry.models.integrations.external_actor import ExternalActor
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 

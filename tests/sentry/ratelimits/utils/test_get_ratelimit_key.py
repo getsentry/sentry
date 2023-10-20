@@ -5,7 +5,8 @@ from rest_framework.permissions import AllowAny
 from sentry.api.base import Endpoint
 from sentry.api.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from sentry.auth.system import SystemToken
-from sentry.models import ApiToken, User
+from sentry.models.apitoken import ApiToken
+from sentry.models.user import User
 from sentry.ratelimits import get_rate_limit_config, get_rate_limit_key
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken

@@ -89,7 +89,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
     t('Duration'),
     t('Issues'),
     ...(hasAttachments ? [t('Attachment')] : []),
-    t('Timestamp'),
+    t('Expected At'),
   ];
 
   return (
@@ -123,13 +123,14 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                             forcedTimezone={monitor.config.timezone}
                             timeZone
                             timeOnly
+                            seconds
                           />
                         }
                       >
-                        {<DateTime date={checkIn.dateCreated} timeOnly />}
+                        {<DateTime date={checkIn.dateCreated} timeOnly seconds />}
                       </Tooltip>
                     ) : (
-                      <DateTime date={checkIn.dateCreated} timeOnly />
+                      <DateTime date={checkIn.dateCreated} timeOnly seconds />
                     )}
                   </div>
                 ) : (
@@ -182,7 +183,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                 ) : (
                   emptyCell
                 )}
-                <Timestamp date={checkIn.dateCreated} />
+                <Timestamp date={checkIn.expectedTime} seconds />
               </Fragment>
             ))}
       </PanelTable>

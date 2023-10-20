@@ -8,7 +8,7 @@ from sentry.dynamic_sampling.rules.utils import (
     PolymorphicRule,
     RuleType,
 )
-from sentry.models import Project
+from sentry.models.project import Project
 
 
 class IgnoreHealthChecksBias(Bias):

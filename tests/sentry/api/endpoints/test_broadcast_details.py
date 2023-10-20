@@ -1,4 +1,4 @@
-from sentry.models import Broadcast, BroadcastSeen
+from sentry.models.broadcast import Broadcast, BroadcastSeen
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 

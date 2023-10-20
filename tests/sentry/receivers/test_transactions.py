@@ -3,7 +3,8 @@ from unittest.mock import patch
 
 from django.db import router
 
-from sentry.models import OrganizationMember, Project
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
 from sentry.signals import event_processed, transaction_processed
 from sentry.silo import unguarded_write
 from sentry.testutils.cases import TestCase

@@ -1,15 +1,20 @@
 import logging
+import re
 from typing import Any
 
 from sentry.debug_files.artifact_bundles import maybe_renew_artifact_bundles_from_processing
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
-from sentry.models import EventError
+from sentry.models.eventerror import EventError
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
+
+# Matches "app:", "webpack:",
+# "x:" where x is a single ASCII letter, or "/".
+NON_BUILTIN_PATH_REGEX = re.compile(r"^((app|webpack|[a-zA-Z]):|/)")
 
 
 def _merge_frame_context(new_frame, symbolicated):
@@ -185,7 +190,7 @@ def _is_native_frame(abs_path):
 
 
 def _is_built_in(abs_path, platform):
-    return platform == "node" and not abs_path.startswith(("/", "app:", "webpack:"))
+    return platform == "node" and not NON_BUILTIN_PATH_REGEX.match(abs_path)
 
 
 # We want to make sure that some specific frames are always marked as non-inapp prior to going into grouping.

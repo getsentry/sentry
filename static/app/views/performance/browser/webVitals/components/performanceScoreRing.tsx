@@ -16,6 +16,8 @@ type Props = React.HTMLAttributes<SVGSVGElement> & {
    * The width of the progress ring bar
    */
   barWidth?: number;
+  onHoverActions?: (() => void)[];
+  onUnhover?: () => void;
   /**
    * Endcaps on the progress bar
    */
@@ -34,7 +36,6 @@ const BASE_ROTATE = -90;
 const PADDING = 1;
 
 const Text = styled('div')<Omit<TextProps, 'theme'>>`
-  position: absolute;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -56,6 +57,8 @@ function PerformanceScoreRing({
   segmentColors,
   backgroundColors,
   progressEndcaps,
+  onHoverActions,
+  onUnhover,
   ...p
 }: Props) {
   const textNode = (
@@ -76,9 +79,13 @@ function PerformanceScoreRing({
 
   maxValues.forEach((maxValue, index) => {
     const boundedValue = Math.min(Math.max(values[index], 0), maxValue);
-    // TODO: Hacky way to add padding to ring segments. Should clean this up so it's more accurate.
-    const maxOffset = (1 - (maxValue - PADDING) / sumMaxValues) * circumference;
-    const progressOffset = (1 - (boundedValue - PADDING) / sumMaxValues) * circumference;
+    const ringSegmentPadding = values.length > 1 ? PADDING : 0;
+    // TODO: Hacky way to add padding to ring segments. Should clean this up so it's more accurate to the value.
+    // This only mostly works because we expect values to be somewhere between 0 and 100.
+    const maxOffset =
+      (1 - (maxValue - ringSegmentPadding) / sumMaxValues) * circumference;
+    const progressOffset =
+      (1 - (boundedValue - ringSegmentPadding) / sumMaxValues) * circumference;
     const rotate = currentRotate;
     currentRotate += (360 * maxValue) / sumMaxValues;
 
@@ -92,6 +99,8 @@ function PerformanceScoreRing({
         cy={radius + barWidth / 2}
         color={backgroundColors[index]}
         rotate={rotate}
+        onMouseOver={() => onHoverActions?.[index]()}
+        onMouseLeave={() => onUnhover?.()}
       />
     );
     rings.push(
@@ -105,6 +114,8 @@ function PerformanceScoreRing({
         cy={radius + barWidth / 2}
         color={segmentColors[index]}
         rotate={rotate}
+        onMouseOver={() => onHoverActions?.[index]()}
+        onMouseLeave={() => onUnhover?.()}
       />
     );
   });

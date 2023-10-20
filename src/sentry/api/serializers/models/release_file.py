@@ -1,7 +1,8 @@
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import Distribution, ReleaseFile
+from sentry.models.distribution import Distribution
+from sentry.models.releasefile import ReleaseFile
 
 
 def encode_release_file_id(obj):

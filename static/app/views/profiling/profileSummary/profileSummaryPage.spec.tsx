@@ -80,6 +80,7 @@ describe('ProfileSummaryPage', () => {
 
     render(
       <ProfileSummaryPage
+        view="flamegraph"
         params={{}}
         selection={GlobalSelection()}
         location={
@@ -116,7 +117,7 @@ describe('ProfileSummaryPage', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
-      body: [],
+      body: {},
     });
 
     MockApiClient.addMockResponse({
@@ -126,7 +127,9 @@ describe('ProfileSummaryPage', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: [],
+      body: {
+        data: [{'last_seen()': new Date()}],
+      },
     });
 
     MockApiClient.addMockResponse({
@@ -136,6 +139,7 @@ describe('ProfileSummaryPage', () => {
 
     render(
       <ProfileSummaryPage
+        view="flamegraph"
         params={{}}
         selection={GlobalSelection()}
         location={

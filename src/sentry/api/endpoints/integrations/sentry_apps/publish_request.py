@@ -6,8 +6,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.sentryapps import COMPONENT_TYPES, SentryAppBaseEndpoint
 from sentry.constants import SentryAppStatus
-from sentry.models import SentryAppAvatar
-from sentry.models.avatars.sentry_app_avatar import SentryAppAvatarTypes
+from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar, SentryAppAvatarTypes
 from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import email

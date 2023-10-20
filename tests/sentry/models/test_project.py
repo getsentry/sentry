@@ -1,26 +1,21 @@
 from typing import Iterable
 
-from sentry.models import (
-    ActorTuple,
-    Environment,
-    EnvironmentProject,
-    ExternalIssue,
-    GroupLink,
-    NotificationSetting,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-    RegionScheduledDeletion,
-    Release,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-    Rule,
-    User,
-    UserOption,
-)
-from sentry.models.actor import get_actor_for_user
+from sentry.models.actor import ActorTuple, get_actor_for_user
+from sentry.models.environment import Environment, EnvironmentProject
+from sentry.models.grouplink import GroupLink
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.options.user_option import UserOption
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
+from sentry.models.release import Release, ReleaseProject
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.rule import Rule
+from sentry.models.scheduledeletion import RegionScheduledDeletion
+from sentry.models.user import User
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor

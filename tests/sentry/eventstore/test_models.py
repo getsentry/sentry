@@ -9,7 +9,7 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.grouping.enhancer import Enhancements
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
-from sentry.models import Environment
+from sentry.models.environment import Environment
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format

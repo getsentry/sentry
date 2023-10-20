@@ -19,8 +19,11 @@ from sentry.debug_files.artifact_bundles import (
     query_artifact_bundles_containing_file,
 )
 from sentry.lang.native.sources import get_internal_artifact_lookup_source_url
-from sentry.models import ArtifactBundle, Distribution, Project, Release, ReleaseFile
-from sentry.models.artifactbundle import NULL_STRING, ArtifactBundleFlatFileIndex
+from sentry.models.artifactbundle import NULL_STRING, ArtifactBundle, ArtifactBundleFlatFileIndex
+from sentry.models.distribution import Distribution
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releasefile import ReleaseFile
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.api")

@@ -2,7 +2,8 @@ from typing import List, cast
 
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.utils import Condition, PolymorphicRule
-from sentry.models import CUSTOM_RULE_DATE_FORMAT, CustomDynamicSamplingRule, Project
+from sentry.models.dynamicsampling import CUSTOM_RULE_DATE_FORMAT, CustomDynamicSamplingRule
+from sentry.models.project import Project
 from sentry.utils import json
 
 

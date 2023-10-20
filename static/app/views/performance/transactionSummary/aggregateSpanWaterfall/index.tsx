@@ -1,6 +1,3 @@
-import {Fragment} from 'react';
-import styled from '@emotion/styled';
-
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
@@ -30,6 +27,7 @@ function AggregateSpanWaterfall(): React.ReactElement {
   const projects = useProjects();
 
   const transaction = decodeScalar(location.query.transaction);
+  const httpMethod = decodeScalar(location.query['http.method']);
   return (
     <Feature
       features={['starfish-aggregate-span-waterfall']}
@@ -45,12 +43,11 @@ function AggregateSpanWaterfall(): React.ReactElement {
         getDocumentTitle={() => t(`Aggregate Waterfall: %s`, transaction)}
         childComponent={() => {
           return (
-            <Fragment>
-              <TitleWrapper>{t('Aggregate Span Waterfall')}</TitleWrapper>
-              <Layout.Main>
-                {defined(transaction) && <AggregateSpans transaction={transaction} />}
-              </Layout.Main>
-            </Fragment>
+            <Layout.Main fullWidth>
+              {defined(transaction) && (
+                <AggregateSpans transaction={transaction} httpMethod={httpMethod} />
+              )}
+            </Layout.Main>
           );
         }}
       />
@@ -59,10 +56,3 @@ function AggregateSpanWaterfall(): React.ReactElement {
 }
 
 export default AggregateSpanWaterfall;
-
-const TitleWrapper = styled('div')`
-  padding: 0px 30px 0px 0px;
-  font-size: ${p => p.theme.headerFontSize};
-  font-weight: bold;
-  margin-top: 20px;
-`;

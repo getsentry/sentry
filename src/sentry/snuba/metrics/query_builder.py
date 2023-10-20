@@ -34,7 +34,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 from sentry.api.event_search import SearchFilter
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.types import QueryBuilderConfig, WhereType
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -111,7 +111,6 @@ def _strip_project_id(condition: Condition) -> Optional[Condition]:
 
 
 def parse_field(field: str, allow_mri: bool = False, allow_private: bool = False) -> MetricField:
-
     if allow_mri:
         mri_matches = MRI_SCHEMA_REGEX.match(field) or MRI_EXPRESSION_REGEX.match(field)
         if mri_matches:
@@ -501,7 +500,7 @@ class QueryDefinition:
             parse_field(
                 key,
                 allow_mri=allow_mri,
-                allow_private=bool(query_params.get("allowPrivate", False)),
+                allow_private=query_params.get("allowPrivate") == "true",
             )
             for key in query_params.getlist("field", [])
         ]

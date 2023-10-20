@@ -2,14 +2,8 @@ import re
 
 import pytest
 
-from sentry.models import (
-    Organization,
-    OrganizationStatus,
-    OutboxCategory,
-    OutboxScope,
-    RegionOutbox,
-    outbox_context,
-)
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.services.hybrid_cloud.organization_actions.impl import (
     create_organization_with_outbox_message,
     generate_deterministic_organization_slug,

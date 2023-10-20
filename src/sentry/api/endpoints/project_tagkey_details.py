@@ -8,7 +8,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.constants import PROTECTED_TAG_KEYS
-from sentry.models import Environment
+from sentry.models.environment import Environment
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 

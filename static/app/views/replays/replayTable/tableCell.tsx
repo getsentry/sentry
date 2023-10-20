@@ -29,6 +29,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -314,17 +315,16 @@ export function ReplayCell({
     query: {
       referrer,
       ...eventView.generateQueryStringObject(),
-      t_main: 'errors',
+      t_main: TabKey.ERRORS,
     },
   };
 
-  const replayDetailsDOMEventsTab = {
+  const replayDetailsDeadRage = {
     pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
     query: {
       referrer,
       ...eventView.generateQueryStringObject(),
-      t_main: 'dom',
-      f_d_type: 'ui.slowClickDetected',
+      f_b_type: 'rageOrDead',
     },
   };
 
@@ -335,7 +335,7 @@ export function ReplayCell({
       case 'dead-table':
       case 'rage-table':
       case 'selector-widget':
-        return replayDetailsDOMEventsTab;
+        return replayDetailsDeadRage;
       default:
         return replayDetails;
     }
@@ -392,10 +392,10 @@ export function ReplayCell({
         avatarSize={24}
         displayName={
           replay.is_archived ? (
-            replay.user.display_name || t('Unknown User')
+            replay.user.display_name || t('Anonymous User')
           ) : (
             <MainLink to={detailsTab} onClick={trackNavigationEvent}>
-              {replay.user.display_name || t('Unknown User')}
+              {replay.user.display_name || t('Anonymous User')}
             </MainLink>
           )
         }
@@ -465,7 +465,7 @@ export function OSCell({replay, showDropdownFilters}: Props) {
   return (
     <Item>
       <Container>
-        <Tooltip title={`${name} ${version}`}>
+        <Tooltip title={`${name ?? ''} ${version ?? ''}`}>
           <ContextIcon
             name={name ?? ''}
             version={version && hasRoomForColumns ? version : undefined}
@@ -634,6 +634,7 @@ const Item = styled('div')<{isArchived?: boolean; isWidget?: boolean}>`
       ? `padding: ${space(0.75)} ${space(1.5)} ${space(1.5)} ${space(1.5)};`
       : `padding: ${space(1.5)};`};
   ${p => (p.isArchived ? 'opacity: 0.5;' : '')};
+  overflow: scroll;
 `;
 
 const Count = styled('span')`

@@ -9,15 +9,11 @@ from django.utils import timezone
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.issues.forecasts import generate_and_save_forecasts
-from sentry.models import (
-    Group,
-    GroupInboxRemoveAction,
-    GroupSnooze,
-    GroupStatus,
-    Project,
-    User,
-    remove_group_from_inbox,
-)
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
+from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.project import Project
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service

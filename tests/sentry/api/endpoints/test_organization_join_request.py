@@ -5,7 +5,9 @@ from urllib.parse import parse_qs, urlparse
 import responses
 from django.core import mail
 
-from sentry.models import AuthProvider, InviteStatus, OrganizationMember, OrganizationOption
+from sentry.models.authprovider import AuthProvider
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.features import with_feature

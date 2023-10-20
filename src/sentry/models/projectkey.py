@@ -296,11 +296,14 @@ class ProjectKey(Model):
         if not self.secret_key or matching_secret_key:
             self.secret_key = self.generate_api_key()
 
-        (key, created) = ProjectKey.objects.get_or_create(
+        # ProjectKeys for the project are automatically generated at insertion time via a
+        # `post_save()` hook, so the keys for the project should already exist. We simply need to
+        # update them with the correct values here.
+        (key, _) = ProjectKey.objects.get_or_create(
             project=self.project, defaults=model_to_dict(self)
         )
         if key:
             self.pk = key.pk
             self.save()
 
-        return (self.pk, ImportKind.Inserted if created else ImportKind.Existing)
+        return (self.pk, ImportKind.Inserted)

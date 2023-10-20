@@ -1,6 +1,7 @@
 import pytest
 
-from sentry.models import Organization, OrganizationMapping
+from sentry.models.organization import Organization
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.testutils.cases import TestMigrations
 
 

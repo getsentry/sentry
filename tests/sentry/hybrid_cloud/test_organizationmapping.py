@@ -1,9 +1,9 @@
 import pytest
 from django.db import IntegrityError
 
-from sentry.models import outbox_context
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.outbox import outbox_context
 from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMappingUpdate,
     organization_mapping_service,

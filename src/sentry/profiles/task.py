@@ -14,7 +14,10 @@ from sentry import quotas
 from sentry.constants import DataCategory
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorTaskKind
-from sentry.models import EventError, Organization, Project, ProjectDebugFile
+from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.eventerror import EventError
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.profiles.device import classify_device
 from sentry.profiles.java import deobfuscate_signature
 from sentry.profiles.utils import get_from_profiling_service
@@ -324,11 +327,11 @@ def symbolicate(
     symbolicator: Symbolicator, profile: Profile, modules: List[Any], stacktraces: List[Any]
 ) -> Any:
     if profile["platform"] in SHOULD_SYMBOLICATE_JS:
-        return process_js_stacktraces(
-            symbolicator=symbolicator,
-            profile=profile,
-            modules=modules,
+        return symbolicator.process_js(
             stacktraces=stacktraces,
+            modules=modules,
+            release=profile.get("release"),
+            dist=profile.get("dist"),
             apply_source_context=False,
         )
     return symbolicator.process_payload(
@@ -750,19 +753,3 @@ def _push_profile_to_vroom(profile: Profile, project: Project) -> bool:
         reason="profiling_failed_vroom_insertion",
     )
     return False
-
-
-def process_js_stacktraces(
-    symbolicator: Symbolicator,
-    profile: Profile,
-    modules: List[Any],
-    stacktraces: List[Any],
-    apply_source_context: bool = False,
-) -> Any:
-    return symbolicator.process_js(
-        stacktraces=stacktraces,
-        modules=modules,
-        release=profile.get("release"),
-        dist=profile.get("dist"),
-        apply_source_context=apply_source_context,
-    )

@@ -33,7 +33,9 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
-    from sentry.models import Group, Team, User
+    from sentry.models.group import Group
+    from sentry.models.team import Team
+    from sentry.models.user import User
     from sentry.notifications.utils.participants import ParticipantMap
 
 
@@ -48,7 +50,8 @@ class GroupSubscriptionManager(BaseManager):
         Subscribe a user or team to an issue, but only if that user or team has not explicitly
         unsubscribed.
         """
-        from sentry.models import Team, User
+        from sentry.models.team import Team
+        from sentry.models.user import User
 
         try:
             with transaction.atomic(router.db_for_write(GroupSubscription)):
@@ -79,7 +82,8 @@ class GroupSubscriptionManager(BaseManager):
         reason: int = GroupSubscriptionReason.unknown,
     ) -> Optional[bool]:
         from sentry import features
-        from sentry.models import Team, User
+        from sentry.models.team import Team
+        from sentry.models.user import User
 
         if isinstance(actor, (RpcUser, User)):
             return self.subscribe(group, actor, reason)

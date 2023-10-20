@@ -8,7 +8,7 @@ from django.test.utils import override_settings
 
 from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.constants import ObjectStatus
-from sentry.models import Rule, RuleSource
+from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.options import override_options
@@ -192,6 +192,13 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         self.project.refresh_from_db()
         assert self.project.flags.has_cron_monitors
 
+        mock_record.assert_any_call(
+            "cron_monitor.created",
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            from_upsert=False,
+        )
         mock_record.assert_called_with(
             "first_cron_monitor.created",
             user_id=self.user.id,

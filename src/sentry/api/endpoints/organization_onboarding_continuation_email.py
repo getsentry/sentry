@@ -9,7 +9,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
-from sentry.models import Organization, User
+from sentry.models.organization import Organization
+from sentry.models.user import User
 from sentry.utils.email import MessageBuilder
 from sentry.utils.strings import oxfordize_list
 

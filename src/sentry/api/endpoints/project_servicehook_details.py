@@ -11,7 +11,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.validators import ServiceHookValidator
 from sentry.constants import ObjectStatus
-from sentry.models import ServiceHook
+from sentry.models.servicehook import ServiceHook
 
 
 @region_silo_endpoint

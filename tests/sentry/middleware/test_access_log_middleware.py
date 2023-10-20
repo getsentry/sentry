@@ -8,7 +8,8 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.models import ApiToken
+from sentry.models.apitoken import ApiToken
+from sentry.models.outbox import outbox_context
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test, region_silo_test
@@ -192,7 +193,8 @@ class TestAccessLogSuccessNotLoggedInDev(LogCaptureAPITestCase):
     endpoint = "dummy-endpoint"
 
     def test_access_log_success(self):
-        token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
+        with outbox_context(flush=False):
+            token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
         self.login_as(user=self.create_user())
         self.get_success_response(extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"})
         assert len(self.captured_logs) == 0

@@ -4,8 +4,7 @@ import requests
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.models import AlertRuleThresholdType, IncidentTrigger, TriggerStatus
-from sentry.models import Rule
-from sentry.models.rule import RuleSource
+from sentry.models.rule import Rule, RuleSource
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
@@ -860,7 +859,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert resp.data[0]["lastTriggered"] == datetime.now().replace(tzinfo=timezone.utc)
 
     def test_project_deleted(self):
-        from sentry.models import RegionScheduledDeletion
+        from sentry.models.scheduledeletion import RegionScheduledDeletion
         from sentry.tasks.deletion.scheduled import run_deletion
 
         org = self.create_organization(owner=self.user, name="Rowdy Tiger")
@@ -891,3 +890,23 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         for data in response.data:
             if data["name"] == disabled_alert.label:
                 assert data["status"] == "disabled"
+
+    def test_dataset_filter(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.create_alert_rule(dataset=Dataset.Metrics)
+        transaction_rule = self.create_alert_rule(dataset=Dataset.Transactions)
+        events_rule = self.create_alert_rule(dataset=Dataset.Events)
+        self.login_as(self.user)
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            transactions_res = self.get_success_response(
+                self.organization.slug, dataset=[Dataset.Transactions.value]
+            )
+            self.assert_alert_rule_serialized(
+                transaction_rule, transactions_res.data[0], skip_dates=True
+            )
+
+        with self.feature("organizations:incidents"):
+            # without performance-view, we should only see events rules
+            res = self.get_success_response(self.organization.slug)
+            self.assert_alert_rule_serialized(events_rule, res.data[0], skip_dates=True)

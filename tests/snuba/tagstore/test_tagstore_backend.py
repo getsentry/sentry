@@ -5,7 +5,10 @@ import pytest
 from django.utils import timezone
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
-from sentry.models import Environment, EventUser, Release, ReleaseProjectEnvironment, ReleaseStages
+from sentry.models.environment import Environment
+from sentry.models.eventuser import EventUser
+from sentry.models.release import Release
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,

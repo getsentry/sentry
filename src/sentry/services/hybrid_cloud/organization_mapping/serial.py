@@ -1,6 +1,7 @@
 from typing import Optional, Tuple
 
-from sentry.models import Organization, OrganizationMapping
+from sentry.models.organization import Organization
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMapping,
     RpcOrganizationMappingUpdate,

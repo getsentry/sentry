@@ -12,8 +12,12 @@ from sentry.api.issue_search import convert_query_values, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Environment, Group, Organization, Project, Release, User
-from sentry.models.group import looks_like_short_id
+from sentry.models.environment import Environment
+from sentry.models.group import Group, looks_like_short_id
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.user import User
 from sentry.signals import advanced_search_feature_gated
 from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult

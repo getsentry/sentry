@@ -5,14 +5,11 @@ from typing import Any
 from unittest.mock import patch
 
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.models import (
-    Authenticator,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    OrganizationStatus,
-    Team,
-)
+from sentry.models.authenticator import Authenticator
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import Team
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.helpers.options import override_options

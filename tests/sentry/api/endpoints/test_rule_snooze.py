@@ -4,8 +4,8 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sentry import audit_log
-from sentry.models import Rule
 from sentry.models.actor import ActorTuple
+from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.services.hybrid_cloud.log.service import log_rpc_service
 from sentry.testutils.cases import APITestCase

@@ -1,4 +1,4 @@
-import {useTheme} from '@emotion/react';
+import {Theme, useTheme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
 import {EChartClickHandler, EChartHighlightHandler, Series} from 'sentry/types/echarts';
@@ -22,14 +22,37 @@ const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
 type Props = {
   groupId: string;
-  transactionMethod: string;
   transactionName: string;
   highlightedSpanId?: string;
   onClickSample?: (sample: SpanSample) => void;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
   spanDescription?: string;
+  transactionMethod?: string;
 };
+
+export function getSampleSymbol(
+  duration: number,
+  compareToDuration: number,
+  theme: Theme
+): {color: string; symbol: string} {
+  if (isNearAverage(duration, compareToDuration)) {
+    return {
+      symbol: crossIconPath,
+      color: theme.gray500,
+    };
+  }
+
+  return duration > compareToDuration
+    ? {
+        symbol: upwardPlayIconPath,
+        color: theme.red300,
+      }
+    : {
+        symbol: downwardPlayIconPath,
+        color: theme.green300,
+      };
+}
 
 function DurationChart({
   groupId,
@@ -44,27 +67,13 @@ function DurationChart({
   const {setPageError} = usePageError();
   const pageFilter = usePageFilters();
 
-  const getSampleSymbol = (
-    duration: number,
-    compareToDuration: number
-  ): {color: string; symbol: string} => {
-    if (isNearAverage(duration, compareToDuration)) {
-      return {
-        symbol: crossIconPath,
-        color: theme.gray500,
-      };
-    }
-
-    return duration > compareToDuration
-      ? {
-          symbol: upwardPlayIconPath,
-          color: theme.red300,
-        }
-      : {
-          symbol: downwardPlayIconPath,
-          color: theme.green300,
-        };
+  const filters = {
+    transactionName,
   };
+
+  if (transactionMethod) {
+    filters['transaction.method'] = transactionMethod;
+  }
 
   const {
     isLoading,
@@ -72,7 +81,7 @@ function DurationChart({
     error: spanMetricsSeriesError,
   } = useSpanMetricsSeries(
     groupId,
-    {transactionName, 'transaction.method': transactionMethod},
+    filters,
     [`avg(${SPAN_SELF_TIME})`],
     'api.starfish.sidebar-span-metrics-chart'
   );
@@ -123,7 +132,7 @@ function DurationChart({
       'transaction.id': transaction_id,
       span_id,
     }) => {
-      const {symbol, color} = getSampleSymbol(duration, avg);
+      const {symbol, color} = getSampleSymbol(duration, avg, theme);
       return {
         data: [
           {

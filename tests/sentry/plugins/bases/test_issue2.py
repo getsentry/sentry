@@ -2,7 +2,8 @@ from unittest import mock
 
 import pytest
 
-from sentry.models import GroupMeta, User
+from sentry.models.groupmeta import GroupMeta
+from sentry.models.user import User
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.testutils.cases import TestCase

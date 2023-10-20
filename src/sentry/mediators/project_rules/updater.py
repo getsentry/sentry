@@ -3,7 +3,9 @@ from rest_framework.request import Request
 
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
-from sentry.models import Actor, Project, Rule
+from sentry.models.actor import Actor
+from sentry.models.project import Project
+from sentry.models.rule import Rule
 
 
 class Updater(Mediator):

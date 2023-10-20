@@ -2,8 +2,8 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
@@ -42,6 +42,7 @@ export function ProfilesSummaryChart({
   }, [hideCount]);
 
   const profileStats = useProfileEventsStats({
+    dataset: 'profiles',
     query,
     referrer,
     yAxes: seriesOrder,
@@ -54,9 +55,9 @@ export function ProfilesSummaryChart({
 
     // the timestamps in the response is in seconds but echarts expects
     // a timestamp in milliseconds, so multiply by 1e3 to do the conversion
-    const timestamps = profileStats.data[0].timestamps.map(ts => ts * 1e3);
+    const timestamps = profileStats.data.timestamps.map(ts => ts * 1e3);
 
-    const allSeries = profileStats.data[0].data
+    const allSeries = profileStats.data.data
       .filter(rawData => seriesOrder.includes(rawData.axis))
       .map(rawData => {
         if (timestamps.length !== rawData.values.length) {
@@ -100,8 +101,8 @@ export function ProfilesSummaryChart({
     return allSeries;
   }, [profileStats, seriesOrder]);
 
-  const chartProps: LineChartProps = useMemo(() => {
-    const baseProps: LineChartProps = {
+  const chartProps: AreaChartProps = useMemo(() => {
+    const baseProps: AreaChartProps = {
       height: 150,
       series,
       grid: [
@@ -174,10 +175,10 @@ export function ProfilesSummaryChart({
 
   return (
     <ProfilesChartContainer>
-      <ProfilesChartTitle>{t('Profile durations')}</ProfilesChartTitle>
+      <ProfilesChartTitle>{t('Durations')}</ProfilesChartTitle>
       <ChartZoom router={router} {...selection?.datetime}>
         {zoomRenderProps => (
-          <LineChart
+          <AreaChart
             {...chartProps}
             isGroupedByDate
             showTimeInTooltip
@@ -193,7 +194,7 @@ const ProfilesChartTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.textColor};
   font-weight: 600;
-  padding: ${space(1)};
+  padding: ${space(0.25)} ${space(1)};
 `;
 
 const ProfilesChartContainer = styled('div')`

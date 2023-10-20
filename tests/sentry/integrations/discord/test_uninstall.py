@@ -5,7 +5,10 @@ import responses
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.discord.client import DiscordClient
-from sentry.models import Integration, Organization, OrganizationIntegration, ScheduledDeletion
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.organization import Organization
+from sentry.models.scheduledeletion import ScheduledDeletion
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase

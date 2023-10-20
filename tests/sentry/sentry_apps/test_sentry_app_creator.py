@@ -3,16 +3,13 @@ from unittest.mock import MagicMock, patch
 from django.db import IntegrityError
 
 from sentry import audit_log
-from sentry.models import (
-    ApiApplication,
-    AuditLogEntry,
-    IntegrationFeature,
-    SentryApp,
-    SentryAppComponent,
-    SentryAppInstallation,
-    User,
-)
-from sentry.models.integrations.integration_feature import IntegrationTypes
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.integrations.sentry_app_component import SentryAppComponent
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.user import User
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -130,11 +127,7 @@ class TestCreator(TestCase):
         assert AuditLogEntry.objects.filter(event=audit_log.get_event_id("SENTRY_APP_ADD")).exists()
 
     def test_blank_schema(self):
-        self.creator.schema = ""
-        assert self.creator.run(user=self.user)
-
-    def test_none_schema(self):
-        self.creator.schema = None
+        self.creator.schema = {}
         assert self.creator.run(user=self.user)
 
     def test_schema_with_no_elements(self):

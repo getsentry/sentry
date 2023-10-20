@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from sentry.models import ProjectOption
+from sentry.models.options.project_option import ProjectOption
 from sentry.relay.utils import to_camel_case_name
 from sentry.signals import inbound_filter_toggled
 from sentry.tsdb.base import TSDBModel

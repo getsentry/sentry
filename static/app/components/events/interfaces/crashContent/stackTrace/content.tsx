@@ -35,6 +35,7 @@ type Props = {
   className?: string;
   frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
   hideIcon?: boolean;
+  hideSourceMapDebugger?: boolean;
   isHoverPreviewed?: boolean;
   lockAddress?: string;
   maxDepth?: number;
@@ -61,6 +62,7 @@ function Content({
   lockAddress,
   organization,
   frameSourceMapDebuggerData,
+  hideSourceMapDebugger,
 }: Props) {
   const [showingAbsoluteAddresses, setShowingAbsoluteAddresses] = useState(false);
   const [showCompleteFunctionName, setShowCompleteFunctionName] = useState(false);
@@ -248,6 +250,7 @@ function Content({
           hiddenFrameCount: frameCountMap[frameIndex],
           organization,
           frameSourceResolutionResults: frameSourceMapDebuggerData?.[frameIndex],
+          hideSourceMapDebugger,
         };
 
         nRepeats = 0;

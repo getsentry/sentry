@@ -105,18 +105,14 @@ export function getProductInitParams({
   const params: string[] = [];
   if (productSelection['performance-monitoring']) {
     params.push(`// Performance Monitoring`);
-    params.push(
-      `tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!`
-    );
+    params.push(`tracesSampleRate: 1.0,`);
   }
 
   if (productSelection.profiling) {
     params.push(
       `// Set sampling rate for profiling - this is relative to tracesSampleRate`
     );
-    params.push(
-      `profilesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!`
-    );
+    params.push(`profilesSampleRate: 1.0,`);
   }
 
   return params;

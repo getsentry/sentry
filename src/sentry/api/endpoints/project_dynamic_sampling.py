@@ -10,7 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.dynamic_sampling.rules.base import get_guarded_blended_sample_rate
-from sentry.models import Project
+from sentry.models.project import Project
 
 
 class EmptyTransactionDatasetException(Exception):

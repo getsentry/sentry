@@ -481,7 +481,8 @@ class OrganizationMember(ReplicatedRegionModel):
         return "letter_avatar"
 
     def get_audit_log_data(self):
-        from sentry.models import OrganizationMemberTeam, Team
+        from sentry.models.organizationmemberteam import OrganizationMemberTeam
+        from sentry.models.team import Team
 
         teams = list(
             Team.objects.filter(
@@ -502,7 +503,8 @@ class OrganizationMember(ReplicatedRegionModel):
         }
 
     def get_teams(self):
-        from sentry.models import OrganizationMemberTeam, Team
+        from sentry.models.organizationmemberteam import OrganizationMemberTeam
+        from sentry.models.team import Team
 
         return Team.objects.filter(
             status=TeamStatus.ACTIVE,

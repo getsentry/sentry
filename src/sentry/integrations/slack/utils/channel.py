@@ -6,7 +6,8 @@ from typing import List, Optional, Tuple
 from django.core.exceptions import ValidationError
 
 from sentry.integrations.slack.client import SlackClient
-from sentry.models import Integration, Organization
+from sentry.models.integrations.integration import Integration
+from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.shared_integrations.exceptions import (
     ApiError,

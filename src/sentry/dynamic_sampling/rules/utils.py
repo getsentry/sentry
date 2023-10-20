@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Literal, Optional, Set, Tuple, TypedDict, Un
 from django.conf import settings
 from typing_extensions import NotRequired
 
-from sentry.models import CUSTOM_RULE_START
+from sentry.models.dynamicsampling import CUSTOM_RULE_START
 from sentry.utils import json, redis
 
 BOOSTED_RELEASES_LIMIT = 10
@@ -169,7 +169,12 @@ def get_rule_hash(rule: PolymorphicRule) -> int:
 
 def get_sampling_value(rule: PolymorphicRule) -> Optional[Tuple[str, float]]:
     sampling = rule["samplingValue"]
-    return sampling["type"], float(sampling["value"])
+    if sampling["type"] == "reservoir":
+        return sampling["type"], float(sampling["limit"])
+    elif sampling["type"] in ("sampleRate", "factor"):
+        return sampling["type"], float(sampling["value"])
+    else:
+        return None
 
 
 def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]]:

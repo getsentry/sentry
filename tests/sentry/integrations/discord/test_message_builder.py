@@ -32,13 +32,16 @@ class BuildMetricAlertAttachmentTest(TestCase):
             )
         )
 
-        assert DiscordMetricAlertMessageBuilder(self.alert_rule).build() == {
+        uuid = "uuid"
+        assert DiscordMetricAlertMessageBuilder(alert_rule=self.alert_rule,).build(
+            notification_uuid=uuid
+        ) == {
             "content": "",
             "embeds": [
                 {
                     "title": title,
                     "description": "",
-                    "url": f"{link}&referrer=discord",
+                    "url": f"{link}&referrer=discord&notification_uuid={uuid}",
                     "color": LEVEL_TO_COLOR["_incident_resolved"],
                 }
             ],
@@ -66,13 +69,17 @@ class BuildMetricAlertAttachmentTest(TestCase):
             + f"?alert={incident.identifier}"
         )
 
-        assert DiscordMetricAlertMessageBuilder(self.alert_rule, incident).build() == {
+        uuid = "uuid"
+        assert DiscordMetricAlertMessageBuilder(
+            alert_rule=self.alert_rule,
+            incident=incident,
+        ).build(notification_uuid=uuid) == {
             "content": "",
             "embeds": [
                 {
                     "title": title,
                     "description": get_started_at(incident.date_started),
-                    "url": f"{link}&referrer=discord",
+                    "url": f"{link}&referrer=discord&notification_uuid={uuid}",
                     "color": LEVEL_TO_COLOR["_incident_resolved"],
                 }
             ],
@@ -96,15 +103,17 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 },
             )
         )
-
-        assert DiscordMetricAlertMessageBuilder(self.alert_rule).build() == {
+        uuid = "uuid"
+        assert DiscordMetricAlertMessageBuilder(alert_rule=self.alert_rule,).build(
+            notification_uuid=uuid
+        ) == {
             "content": "",
             "embeds": [
                 {
                     "color": LEVEL_TO_COLOR["fatal"],
                     "title": title,
                     "description": "0 events in the last 10 minutes",
-                    "url": f"{link}&referrer=discord",
+                    "url": f"{link}&referrer=discord&notification_uuid={uuid}",
                 }
             ],
             "components": [],
@@ -130,17 +139,20 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 },
             )
         )
-
+        uuid = "uuid"
         assert DiscordMetricAlertMessageBuilder(
-            self.alert_rule, incident, IncidentStatus.CRITICAL, metric_value=metric_value
-        ).build() == {
+            alert_rule=self.alert_rule,
+            incident=incident,
+            new_status=IncidentStatus.CRITICAL,
+            metric_value=metric_value,
+        ).build(notification_uuid=uuid) == {
             "content": "",
             "embeds": [
                 {
                     "title": title,
                     "color": LEVEL_TO_COLOR["fatal"],
                     "description": f"{metric_value} events in the last 10 minutes{get_started_at(incident.date_started)}",
-                    "url": f"{link}?alert={incident.identifier}&referrer=discord",
+                    "url": f"{link}?alert={incident.identifier}&referrer=discord&notification_uuid={uuid}",
                 }
             ],
             "components": [],
@@ -162,17 +174,52 @@ class BuildMetricAlertAttachmentTest(TestCase):
         )
 
         new_status = IncidentStatus.CLOSED
+        uuid = "uuid"
         assert DiscordMetricAlertMessageBuilder(
-            self.alert_rule, incident, new_status, chart_url="chart_url"
-        ).build() == {
+            alert_rule=self.alert_rule,
+            incident=incident,
+            new_status=new_status,
+            chart_url="chart_url",
+        ).build(notification_uuid=uuid) == {
             "content": "",
             "embeds": [
                 {
                     "title": title,
                     "description": get_started_at(incident.date_started),
-                    "url": f"{link}?alert={incident.identifier}&referrer=discord",
-                    "color": 5097329,
+                    "url": f"{link}?alert={incident.identifier}&referrer=discord&notification_uuid={uuid}",
+                    "color": LEVEL_TO_COLOR["_incident_resolved"],
                     "image": {"url": "chart_url"},
+                }
+            ],
+            "components": [],
+        }
+
+    def test_metric_alert_no_uuid(self):
+        new_status = IncidentStatus.CRITICAL.value
+        incident = self.create_incident(alert_rule=self.alert_rule, status=new_status)
+        trigger = self.create_alert_rule_trigger(self.alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
+        title = f"Critical: {self.alert_rule.name}"
+        link = absolute_uri(
+            reverse(
+                "sentry-metric-alert-details",
+                kwargs={
+                    "organization_slug": self.alert_rule.organization.slug,
+                    "alert_rule_id": self.alert_rule.id,
+                },
+            )
+        )
+
+        assert DiscordMetricAlertMessageBuilder(alert_rule=self.alert_rule,).build() == {
+            "content": "",
+            "embeds": [
+                {
+                    "color": LEVEL_TO_COLOR["fatal"],
+                    "title": title,
+                    "description": "0 events in the last 10 minutes",
+                    "url": f"{link}&referrer=discord",
                 }
             ],
             "components": [],

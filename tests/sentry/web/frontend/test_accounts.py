@@ -3,7 +3,7 @@ from functools import cached_property
 from django.test import override_settings
 from django.urls import reverse
 
-from sentry.models import LostPasswordHash
+from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 

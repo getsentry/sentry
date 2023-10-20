@@ -8,7 +8,8 @@ from django.urls import reverse
 
 from sentry import eventstore
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
-from sentry.models import EventAttachment, File
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.files.file import File
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.task_runner import BurstTaskRunner

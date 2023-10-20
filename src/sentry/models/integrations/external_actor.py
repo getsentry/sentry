@@ -33,6 +33,7 @@ class ExternalActor(DefaultFieldsModel):
             (ExternalProviders.MSTEAMS, "msteams"),
             (ExternalProviders.PAGERDUTY, "pagerduty"),
             (ExternalProviders.GITHUB, "github"),
+            (ExternalProviders.GITHUB_ENTERPRISE, "github_enterprise"),
             (ExternalProviders.GITLAB, "gitlab"),
             # TODO: do migration to delete this from database
             (ExternalProviders.CUSTOM, "custom_scm"),
@@ -77,7 +78,8 @@ class ExternalActor(DefaultFieldsModel):
 
 
 def process_resource_change(instance, **kwargs):
-    from sentry.models import Organization, Project
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
     from sentry.tasks.codeowners import update_code_owners_schema
 
     def _spawn_task():

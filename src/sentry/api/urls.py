@@ -27,6 +27,9 @@ from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThr
 from sentry.api.endpoints.release_thresholds.release_threshold_details import (
     ReleaseThresholdDetailsEndpoint,
 )
+from sentry.api.endpoints.release_thresholds.release_threshold_index import (
+    ReleaseThresholdIndexEndpoint,
+)
 from sentry.api.endpoints.release_thresholds.release_threshold_status_index import (
     ReleaseThresholdStatusIndexEndpoint,
 )
@@ -1624,6 +1627,11 @@ ORGANIZATION_URLS = [
         OrganizationReleasesEndpoint.as_view(),
         name="sentry-api-0-organization-releases",
     ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/release-thresholds/$",
+        ReleaseThresholdIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-release-thresholds",
+    ),
     # TODO: also integrate release threshold status into the releases response?
     re_path(
         r"^(?P<organization_slug>[^\/]+)/release-threshold-statuses/$",
@@ -2178,12 +2186,12 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-releases",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/thresholds/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/release-thresholds/$",
         ReleaseThresholdEndpoint.as_view(),
         name="sentry-api-0-project-release-thresholds",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/thresholds/(?P<release_threshold>[^/]+)/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/release-thresholds/(?P<release_threshold>[^/]+)/$",
         ReleaseThresholdDetailsEndpoint.as_view(),
         name="sentry-api-0-project-release-thresholds-details",
     ),

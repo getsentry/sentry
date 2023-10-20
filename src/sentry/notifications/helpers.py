@@ -2,13 +2,11 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 
 from django.contrib.auth.models import AnonymousUser
 
 from sentry import features
-from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.notifications.defaults import (
     NOTIFICATION_SETTING_DEFAULTS,
     NOTIFICATION_SETTINGS_ALL_SOMETIMES,
@@ -41,7 +39,12 @@ from sentry.types.integrations import (
 )
 
 if TYPE_CHECKING:
-    from sentry.models import Group, GroupSubscription, Organization, Project, Team, User
+    from sentry.models.group import Group
+    from sentry.models.groupsubscription import GroupSubscription
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
+    from sentry.models.team import Team
+    from sentry.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -96,10 +99,7 @@ def get_default_for_provider(
     # Defaults are defined for the old int enum
     _type = [key for key, val in NOTIFICATION_SETTING_TYPES.items() if val == type.value]
     if len(_type) != 1 or _type[0] not in NOTIFICATION_SETTINGS_ALL_SOMETIMES_V2:
-        logger.warning(
-            "Could not find default for notification type",
-            extra={"type": type, "_type": _type, "provider": provider},
-        )
+        # some keys are missing that we should default to never
         return NotificationSettingsOptionEnum.NEVER
 
     try:
@@ -713,34 +713,6 @@ def get_recipient_from_team_or_user(user_id: int | None, team_id: int | None) ->
     if not recipient:
         raise Exception("Unable to find user or team")
     return recipient
-
-
-def is_double_write_enabled(
-    user_id: Optional[int] = None, organization_id_for_team: Optional[int] = None
-):
-    from sentry.services.hybrid_cloud.organization_mapping.serial import (
-        serialize_organization_mapping,
-    )
-
-    # all operations are expected to happen in the control siolo
-    if organization_id_for_team is not None:
-        org_ids = [organization_id_for_team]
-    elif user_id is not None:
-        org_ids = OrganizationMemberMapping.objects.filter(user_id=user_id).values_list(
-            "organization_id", flat=True
-        )
-    else:
-        raise ValueError("Need organization_id_for_team or user_id")
-    orgs = list(
-        map(
-            serialize_organization_mapping,
-            OrganizationMapping.objects.filter(organization_id__in=list(org_ids)),
-        )
-    )
-    # if no orgs, then automatically enable the feature
-    if not orgs:
-        return True
-    return any(features.has("organizations:notifications-double-write", org) for org in orgs)
 
 
 PROVIDER_DEFAULTS: list[ExternalProviderEnum] = get_provider_defaults()

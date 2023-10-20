@@ -3,14 +3,15 @@ from django.db import router
 from django.db.transaction import get_connection
 
 from sentry import deletions
-from sentry.models import (
-    ApiGrant,
-    ApiToken,
-    SentryAppInstallation,
+from sentry.models.apigrant import ApiGrant
+from sentry.models.apitoken import ApiToken
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
-    ServiceHook,
 )
+from sentry.models.servicehook import ServiceHook
 from sentry.sentry_apps.installations import SentryAppInstallationCreator
+from sentry.silo import unguarded_write
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import TestCase
@@ -44,7 +45,8 @@ class TestSentryAppInstallationDeletionTask(TestCase):
 
     def test_deletes_without_grant(self):
         assert self.install.api_grant is not None
-        self.install.api_grant.delete()
+        with unguarded_write(router.db_for_write(ApiGrant)):
+            self.install.api_grant.delete()
         self.install.update(api_grant=None)
         deletions.exec_sync(self.install)
 

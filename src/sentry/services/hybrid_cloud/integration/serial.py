@@ -1,5 +1,6 @@
-from sentry.models import Integration, OrganizationIntegration
+from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.integration_external_project import IntegrationExternalProject
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import RpcIntegration, RpcOrganizationIntegration
 from sentry.services.hybrid_cloud.integration.model import RpcIntegrationExternalProject
 

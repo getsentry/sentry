@@ -20,7 +20,8 @@ from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
-from sentry.models import Environment, Organization
+from sentry.models.environment import Environment
+from sentry.models.organization import Organization
 from sentry.monitors.models import (
     Monitor,
     MonitorEnvironment,
@@ -29,7 +30,7 @@ from sentry.monitors.models import (
     MonitorType,
 )
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
-from sentry.monitors.utils import create_alert_rule, signal_first_monitor_created
+from sentry.monitors.utils import create_alert_rule, signal_monitor_created
 from sentry.monitors.validators import MonitorValidator
 from sentry.search.utils import tokenize_query
 
@@ -88,7 +89,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        Lists monitors, including nested monitor enviroments. May be filtered to a project or environment.
+        Lists monitors, including nested monitor environments. May be filtered to a project or environment.
         """
         try:
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
@@ -103,6 +104,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         environments = None
         if "environment" in filter_params:
             environments = filter_params["environment_objects"]
+            # use a distinct() filter as queries spanning multiple tables can include duplicates
             if request.GET.get("includeNew"):
                 queryset = queryset.filter(
                     Q(monitorenvironment__environment__in=environments) | Q(monitorenvironment=None)
@@ -225,7 +227,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         )
 
         project = result["project"]
-        signal_first_monitor_created(project, request.user, False)
+        signal_monitor_created(project, request.user, False)
 
         validated_alert_rule = result.get("alert_rule")
         if validated_alert_rule:
