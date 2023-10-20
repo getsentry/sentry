@@ -3,6 +3,8 @@ all: develop
 
 PIP := python -m pip --disable-pip-version-check
 WEBPACK := yarn build-acceptance
+# I didn't change it here  because IIRC we already create a separate test
+# instance of postgres
 POSTGRES_CONTAINER := sentry_postgres
 
 freeze-requirements:

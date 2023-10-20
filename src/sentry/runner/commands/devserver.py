@@ -322,7 +322,9 @@ def devserver(
             kafka_consumers.add("billing-metrics-consumer")
 
         if settings.SENTRY_USE_RELAY:
-            daemons += [("relay", ["sentry", "devservices", "attach", "relay"])]
+            daemons += [
+                ("relay", ["sentry", "devservices", "attach", "relay", "--project", "test"])
+            ]
 
             kafka_consumers.add("ingest-events")
             kafka_consumers.add("ingest-attachments")
@@ -358,7 +360,14 @@ def devserver(
     if kafka_consumers:
         with get_docker_client() as docker:
             containers = {c.name for c in docker.containers.list(filters={"status": "running"})}
-        if "sentry_kafka" not in containers:
+        # a kludgy attempt to account for running the devserver when devservices have been started
+        # with a `--project` value other than `sentry` (the default)
+        prefix = "sentry"
+        for c in containers:
+            if c.endswith("postgres"):
+                prefix = c.replace("_postgres", "")
+                break
+        if f"{prefix}_kafka" not in containers:
             raise click.ClickException(
                 f"""
 Devserver is configured to start some kafka consumers, but Kafka

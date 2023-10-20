@@ -1,3 +1,7 @@
+# I have no idea what the file does, but it didn't seem to be necessary to
+# change the postgres or kafka container names here in order for the devserver
+# to work
+
 version: 1
 
 logging:

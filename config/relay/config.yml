@@ -11,11 +11,13 @@ limits:
 processing:
   enabled: true
   kafka_config:
-    - {name: 'bootstrap.servers', value: 'sentry_kafka:9093'}
+    # - {name: 'bootstrap.servers', value: 'sentry_kafka:9093'}
+    - {name: 'bootstrap.servers', value: 'test_kafka:9093'}
     # The maximum attachment chunk size is 1MB. Together with some meta data,
     # messages will never get larger than 2MB in total.
     - {name: 'message.max.bytes', value: 2097176}
   topics:
     metrics_transactions: ingest-performance-metrics
     metrics_sessions: ingest-metrics
-  redis: redis://sentry_redis:6379
+  # redis: redis://sentry_redis:6379
+  redis: redis://test_redis:6379

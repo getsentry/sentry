@@ -74,8 +74,8 @@ def relay_server_setup(live_server, tmpdir_factory):
     template_vars = {
         "SENTRY_HOST": f"http://host.docker.internal:{port}/",
         "RELAY_PORT": relay_port,
-        "KAFKA_HOST": "sentry_kafka",
-        "REDIS_HOST": "sentry_redis",
+        "KAFKA_HOST": "test_kafka",
+        "REDIS_HOST": "test_redis",
         "REDIS_DB": redis_db,
     }
 
@@ -143,7 +143,10 @@ def relay_server(relay_server_setup, settings):
                 raise ValueError(
                     f"relay did not start in time {url}:\n{container.logs().decode()}"
                 ) from ex
-            time.sleep(0.1 * 2**i)
+            sleep_time = 0.1 * 1.4**i
+            print(f"i = {i} - sleeping for {sleep_time} seconds")
+            time.sleep(sleep_time)
+            # time.sleep(0.1 * 2**i)
     else:
         raise ValueError("relay did not start in time")
 
