@@ -246,7 +246,7 @@ def _detect_transaction_change_points(
 def get_all_transaction_payloads(
     org_ids: List[int], project_ids: List[int], start: datetime, end: datetime
 ) -> Generator[DetectorPayload, None, None]:
-    projects_per_query = options.get("statistical_detectors.query.batch-size")
+    projects_per_query = options.get("statistical_detectors.query.batch_size")
     assert projects_per_query > 0
 
     for chunked_project_ids in chunked(project_ids, projects_per_query):
