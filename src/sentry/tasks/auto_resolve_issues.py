@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from datetime import datetime, timedelta
 from time import time
-from typing import List, Mapping, Type
+from typing import Mapping, Type
 
 from django.utils import timezone
 
@@ -72,7 +74,7 @@ def schedule_auto_resolution():
 @log_error_if_queue_has_items
 def auto_resolve_project_issues(
     project_id,
-    enabled_issue_types: List[Type[grouptype.GroupType]],
+    enabled_issue_types: list[Type[grouptype.GroupType]],
     cutoff=None,
     chunk_size=1000,
     **kwargs,
