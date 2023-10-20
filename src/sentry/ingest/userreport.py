@@ -207,10 +207,10 @@ def _is_snuba_result_equal_to_eventuser(snuba_result: Mapping[str, Any], eventus
         "username": ["user_name"],
         "ip_address": ["ip_address_v6", "ip_address_v4"],
     }
+
     for eventuser_key, snuba_result_keys in EVENTUSER_TO_SNUBA_KEY_MAP.items():
-        if getattr(eventuser, eventuser_key) not in [
-            snuba_result[key] for key in snuba_result_keys
-        ]:
+        value = getattr(eventuser, eventuser_key) if eventuser is not None else None
+        if value not in [snuba_result[key] for key in snuba_result_keys]:
             return False
 
     return True
@@ -234,9 +234,8 @@ def _is_event_data_equal_to_eventuser(event: Event, eventuser: EventUser):
         "ip_address": ["user.ip_address"],
     }
     for eventuser_key, event_data_keys in EVENTUSER_TO_EVENT_DATA_KEY_MAP.items():
-        if getattr(eventuser, eventuser_key) not in [
-            get_nested_value(event.data, key) for key in event_data_keys
-        ]:
+        value = getattr(eventuser, eventuser_key) if eventuser is not None else None
+        if value not in [get_nested_value(event.data, key) for key in event_data_keys]:
             return False
 
     return True
