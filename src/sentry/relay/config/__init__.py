@@ -414,7 +414,7 @@ def _get_project_config(
             "profiles": [
                 {
                     "name": "Desktop",
-                    "score_components": [
+                    "scoreComponents": [
                         {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600},
                         {"measurement": "lcp", "weight": 0.30, "p10": 1200, "p50": 2400},
                         {"measurement": "fid", "weight": 0.30, "p10": 100, "p50": 300},
