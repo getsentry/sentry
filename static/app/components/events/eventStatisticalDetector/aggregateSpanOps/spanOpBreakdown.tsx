@@ -6,7 +6,6 @@ import moment from 'moment';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {DataSection} from 'sentry/components/events/styles';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event} from 'sentry/types';
@@ -168,15 +167,7 @@ function EventSpanOpBreakdown({event}: {event: Event}) {
   return (
     <Wrapper>
       <DataSection>
-        <TitleWrapper>
-          <strong>{t('Operation Breakdown')}</strong>
-          <QuestionTooltip
-            title={t(
-              'Percentage of total transaction duration spent on each span operation along with, changes in the total duration of each span operation.'
-            )}
-            size="sm"
-          />
-        </TitleWrapper>
+        <strong>{t('Operation Breakdown:')}</strong>
         <PieChart data={spanOpDiffs} series={series} />
       </DataSection>
     </Wrapper>
@@ -190,12 +181,6 @@ const EmptyStateWrapper = styled('div')`
   justify-content: center;
   align-items: center;
   margin: ${space(1.5)} ${space(4)};
-`;
-
-const TitleWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;
 
 const Wrapper = styled('div')`
