@@ -1,6 +1,7 @@
 from typing import Any
 
 from django.http import HttpResponse
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -11,14 +12,38 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models.project import Project
+from sentry.models.release_threshold.constants import (
+    THRESHOLD_TYPE_STR_TO_INT,
+    TRIGGER_TYPE_STRING_TO_INT,
+    ReleaseThresholdType,
+)
+from sentry.models.release_threshold.constants import TriggerType as ReleaseThresholdTriggerType
 from sentry.models.release_threshold.release_threshold import ReleaseThreshold
+
+
+class ReleaseThresholdPUTSerializer(serializers.Serializer):
+    threshold_type = serializers.ChoiceField(choices=ReleaseThresholdType.as_str_choices())
+    trigger_type = serializers.ChoiceField(choices=ReleaseThresholdTriggerType.as_str_choices())
+    value = serializers.IntegerField()
+    window_in_seconds = serializers.IntegerField(min_value=0)
+
+    def validate_threshold_type(self, threshold_type: str):
+        if threshold_type not in THRESHOLD_TYPE_STR_TO_INT:
+            raise serializers.ValidationError("Invalid threshold type")
+        return THRESHOLD_TYPE_STR_TO_INT[threshold_type]
+
+    def validate_trigger_type(self, trigger_type: str):
+        if trigger_type not in TRIGGER_TYPE_STRING_TO_INT:
+            raise serializers.ValidationError("Invalid trigger type")
+        return TRIGGER_TYPE_STRING_TO_INT[trigger_type]
 
 
 @region_silo_endpoint
 class ReleaseThresholdDetailsEndpoint(ProjectEndpoint):
     owner: ApiOwner = ApiOwner.ENTERPRISE
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
 
     def convert_args(
@@ -40,4 +65,16 @@ class ReleaseThresholdDetailsEndpoint(ProjectEndpoint):
     def get(
         self, request: Request, project: Project, release_threshold: ReleaseThreshold
     ) -> HttpResponse:
+        return Response(serialize(release_threshold, request.user), status=200)
+
+    def put(
+        self, request: Request, project: Project, release_threshold: ReleaseThreshold
+    ) -> HttpResponse:
+        serializer = ReleaseThresholdPUTSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        validated_data = serializer.validated_data
+        release_threshold.update(**validated_data)
         return Response(serialize(release_threshold, request.user), status=200)

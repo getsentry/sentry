@@ -29,18 +29,22 @@ class ReleaseThresholdPOSTSerializer(serializers.Serializer):
     environment = EnvironmentField(required=False, allow_null=True)
 
     def validate_threshold_type(self, threshold_type: str):
+        if threshold_type not in THRESHOLD_TYPE_STR_TO_INT:
+            raise serializers.ValidationError("Invalid threshold type")
         return THRESHOLD_TYPE_STR_TO_INT[threshold_type]
 
-    def validate_trigger_type(self, threshold_type: str):
-        return TRIGGER_TYPE_STRING_TO_INT[threshold_type]
+    def validate_trigger_type(self, trigger_type: str):
+        if trigger_type not in TRIGGER_TYPE_STRING_TO_INT:
+            raise serializers.ValidationError("Invalid trigger type")
+        return TRIGGER_TYPE_STRING_TO_INT[trigger_type]
 
 
 @region_silo_endpoint
 class ReleaseThresholdEndpoint(ProjectEndpoint):
     owner: ApiOwner = ApiOwner.ENTERPRISE
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
     }
 
     def post(self, request: Request, project: Project) -> HttpResponse:
