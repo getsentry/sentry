@@ -988,7 +988,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const submitDisabled = formDisabled || !this.state.isQueryValid;
 
     const showMigrationWarning =
-      ruleId && hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
+      !!ruleId && hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
 
     return (
       <Main fullWidth>
