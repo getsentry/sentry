@@ -25,6 +25,7 @@ from sentry.services.hybrid_cloud.import_export.model import (
     RpcPrimaryKeyMap,
 )
 from sentry.services.hybrid_cloud.import_export.service import ImportExportService
+from sentry.services.organization import should_use_control_provisioning
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.utils import json
@@ -246,7 +247,7 @@ def _import(
             org_id, _, org_slug = org_pk_mapping[old_primary_key]
             org_ids_and_slugs.add((org_id, org_slug or ""))
 
-        if len(org_ids_and_slugs) > 0:
+        if should_use_control_provisioning() and len(org_ids_and_slugs) > 0:
             organization_provisioning_service.bulk_create_organization_slugs(
                 org_ids_and_slugs=org_ids_and_slugs
             )

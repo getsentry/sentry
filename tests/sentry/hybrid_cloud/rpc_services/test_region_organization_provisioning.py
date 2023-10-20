@@ -1,3 +1,4 @@
+import pytest
 from django.db import router, transaction
 
 from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
@@ -23,6 +24,7 @@ from sentry.services.organization import (
 )
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -197,6 +199,11 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
 
 @control_silo_test(stable=True)
 class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
+    @pytest.fixture(autouse=True)
+    def _enable_control_provisioning_option(self):
+        with override_options({"hybrid_cloud.control-organization-provisioning": True}):
+            yield
+
     def setUp(self):
         self.provisioning_user = self.create_user()
         self.provisioned_org = self.create_organization(

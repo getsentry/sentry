@@ -1,6 +1,7 @@
 from typing import Optional
 
-from django.db import router, transaction
+import pytest
+from django.db import IntegrityError, router, transaction
 
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
@@ -15,21 +16,21 @@ from sentry.services.hybrid_cloud.organization_mapping import (
 )
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test(stable=True)
-class OrganizationMappingTest(TransactionTestCase):
-    def assert_matching_organization_mapping(
-        self, org: Organization, customer_id: Optional[str] = None
-    ):
-        org_mapping = OrganizationMapping.objects.get(organization_id=org.id)
-        assert org_mapping.name == org.name
-        assert org_mapping.slug == org.slug
-        assert org_mapping.status == org.status
-        assert org_mapping.region_name
-        assert org_mapping.customer_id == customer_id
+def assert_matching_organization_mapping(org: Organization, customer_id: Optional[str] = None):
+    org_mapping = OrganizationMapping.objects.get(organization_id=org.id)
+    assert org_mapping.name == org.name
+    assert org_mapping.slug == org.slug
+    assert org_mapping.status == org.status
+    assert org_mapping.region_name
+    assert org_mapping.customer_id == customer_id
 
+
+@control_silo_test(stable=True)
+class OrganizationMappingServiceControlProvisioningDisabledTest(TransactionTestCase):
     def test_upsert__create_if_not_found(self):
         self.organization = self.create_organization(name="test name", slug="foobar", region="us")
 
@@ -48,7 +49,7 @@ class OrganizationMappingTest(TransactionTestCase):
             ),
         )
 
-        self.assert_matching_organization_mapping(org=self.organization)
+        assert_matching_organization_mapping(org=self.organization)
 
     def test_upsert__update_if_found(self):
         with assume_test_silo_mode(SiloMode.REGION):
@@ -77,12 +78,53 @@ class OrganizationMappingTest(TransactionTestCase):
         self.organization = self.create_organization(slug="alreadytaken", region="us")
 
         fake_org_id = 7654321
+        with pytest.raises(IntegrityError):
+            organization_mapping_service.upsert(
+                organization_id=fake_org_id,
+                update=RpcOrganizationMappingUpdate(slug=self.organization.slug, region_name="us"),
+            )
+
+        assert_matching_organization_mapping(org=self.organization)
+        assert not OrganizationMapping.objects.filter(organization_id=fake_org_id).exists()
+
+
+@control_silo_test(stable=True)
+class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCase):
+    @pytest.fixture(autouse=True)
+    def _enable_provisioning_option(self):
+        with override_options({"hybrid_cloud.control-organization-provisioning": True}):
+            yield
+
+    def test_upsert__create_if_not_found(self):
+        self.organization = self.create_organization(name="test name", slug="foobar", region="us")
+
+        fixture_org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+        fixture_org_mapping.delete()
+
+        assert not OrganizationMapping.objects.filter(organization_id=self.organization.id).exists()
+
+        organization_mapping_service.upsert(
+            organization_id=self.organization.id,
+            update=RpcOrganizationMappingUpdate(
+                name=self.organization.name,
+                slug=self.organization.slug,
+                status=self.organization.status,
+                region_name="us",
+            ),
+        )
+
+        assert_matching_organization_mapping(org=self.organization)
+
+    def test_upsert__reject_duplicate_slug(self):
+        self.organization = self.create_organization(slug="alreadytaken", region="us")
+
+        fake_org_id = 7654321
         organization_mapping_service.upsert(
             organization_id=fake_org_id,
             update=RpcOrganizationMappingUpdate(slug=self.organization.slug, region_name="us"),
         )
 
-        self.assert_matching_organization_mapping(org=self.organization)
+        assert_matching_organization_mapping(org=self.organization)
         assert not OrganizationMapping.objects.filter(organization_id=fake_org_id).exists()
 
     def test_upsert__reject_org_slug_reservation_region_mismatch(self):
@@ -96,7 +138,7 @@ class OrganizationMappingTest(TransactionTestCase):
         )
 
         # Assert that org mapping is rejected
-        self.assert_matching_organization_mapping(org=self.organization)
+        assert_matching_organization_mapping(org=self.organization)
 
     def test_upsert__reject_org_slug_reservation_slug_mismatch(self):
         self.organization = self.create_organization(slug="santry", region="us")
@@ -107,7 +149,7 @@ class OrganizationMappingTest(TransactionTestCase):
         )
 
         # Assert that org mapping is rejected
-        self.assert_matching_organization_mapping(org=self.organization)
+        assert_matching_organization_mapping(org=self.organization)
 
     def test_upsert__update_when_slug_matches_temporary_alias(self):
         user = self.create_user()
@@ -151,4 +193,4 @@ class OrganizationMappingTest(TransactionTestCase):
         )
 
         # Organization mapping shouldn't have changed
-        self.assert_matching_organization_mapping(org=self.organization)
+        assert_matching_organization_mapping(org=self.organization)
