@@ -168,15 +168,15 @@ function EventSpanOpBreakdown({event}: {event: Event}) {
   return (
     <Wrapper>
       <DataSection>
-        <strong>
-          {t('Operation Breakdown')}{' '}
+        <TitleWrapper>
+          <strong>{t('Operation Breakdown')}</strong>
           <QuestionTooltip
             title={t(
               'Percentage of total transaction duration spent on each span operation along with, changes in the total duration of each span operation.'
             )}
             size="sm"
           />
-        </strong>
+        </TitleWrapper>
         <PieChart data={spanOpDiffs} series={series} />
       </DataSection>
     </Wrapper>
@@ -190,6 +190,12 @@ const EmptyStateWrapper = styled('div')`
   justify-content: center;
   align-items: center;
   margin: ${space(1.5)} ${space(4)};
+`;
+
+const TitleWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
 
 const Wrapper = styled('div')`

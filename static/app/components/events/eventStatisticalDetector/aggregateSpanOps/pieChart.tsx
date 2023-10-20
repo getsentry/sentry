@@ -83,6 +83,10 @@ class PieChart extends Component<Props> {
       );
   };
 
+  getSpanOpDurationChange = (op: string) => {
+    return this.props.data[op].oldBaseline / this.props.data[op].newBaseline - 1;
+  };
+
   render() {
     const {series, theme, ...props} = this.props;
     if (!series || !series.length) {
@@ -131,11 +135,7 @@ class PieChart extends Component<Props> {
           theme,
           data: [
             ...Object.keys(this.props.data).sort((a, b) => {
-              const changeA =
-                this.props.data[a].oldBaseline / this.props.data[a].newBaseline - 1;
-              const changeB =
-                this.props.data[b].oldBaseline / this.props.data[b].newBaseline - 1;
-              return changeA - changeB;
+              return this.getSpanOpDurationChange(a) - this.getSpanOpDurationChange(b);
             }),
           ],
           orient: 'vertical',
@@ -150,9 +150,6 @@ class PieChart extends Component<Props> {
                 color: theme.red300,
                 fontWeight: 600,
                 fontSize: 14,
-                backgroundColor: {
-                  image: new Image(),
-                },
               },
               greenText: {
                 color: theme.green300,
@@ -168,8 +165,7 @@ class PieChart extends Component<Props> {
           },
           itemWidth: 12,
           formatter: name => {
-            const change =
-              this.props.data[name].oldBaseline / this.props.data[name].newBaseline - 1;
+            const change = this.getSpanOpDurationChange(name);
             const oldValue = getDuration(
               this.props.data[name].oldBaseline / 1000,
               2,
@@ -188,10 +184,7 @@ class PieChart extends Component<Props> {
           },
           tooltip: {
             formatter: data => {
-              const change =
-                this.props.data[data.name].oldBaseline /
-                  this.props.data[data.name].newBaseline -
-                1;
+              const change = this.getSpanOpDurationChange(data.name);
               const changeText = change < 0 ? t('up') : t('down');
               const oldValue = getDuration(
                 this.props.data[data.name].oldBaseline / 1000,
