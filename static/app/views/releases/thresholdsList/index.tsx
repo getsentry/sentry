@@ -152,6 +152,7 @@ function ReleaseThresholdList({}: Props) {
                       thresholds={thresholdGroup}
                       refetch={refetch}
                       columns={5}
+                      orgSlug={organization.slug}
                     />
                   ));
                 })}

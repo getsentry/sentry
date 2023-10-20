@@ -7,7 +7,13 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {IconAdd, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {getExactDuration, parseLargestSuffix} from 'sentry/utils/formatters';
+import {Environment, Project} from 'sentry/types';
+import {
+  deriveSeconds,
+  getExactDuration,
+  parseLargestSuffix,
+} from 'sentry/utils/formatters';
+import useApi from 'sentry/utils/useApi';
 
 import {Threshold} from '../utils/types';
 
@@ -15,21 +21,30 @@ const NEW_THRESHOLD_PREFIX = 'newthreshold';
 
 type Props = {
   columns: number;
+  orgSlug: string;
   refetch: () => void;
   thresholds: Threshold[];
 };
 
 type EditingThreshold = {
-  windowSuffix?: string;
-  windowValue?: number;
+  environment: Environment;
+  id: string;
+  project: Project;
+  threshold_type: string;
+  trigger_type: string;
+  value: number;
+  windowSuffix: string;
+  windowValue: number;
+  date_added?: string;
 };
 
-export function ThresholdGroupRows({thresholds, columns}: Props) {
+export function ThresholdGroupRows({thresholds, columns, orgSlug, refetch}: Props) {
   const [editingThresholds, setEditingThresholds] = useState<{
-    [key: string]: Threshold & EditingThreshold;
+    [key: string]: EditingThreshold;
   }>({});
   const [newThresholdIterator, setNewThresholdIterator] = useState<number>(0); // used simply to initialize new threshold
-  const projectId = thresholds[0].project;
+  const api = useApi();
+  const project = thresholds[0].project;
   const environment = thresholds[0].environment;
   const defaultWindow = thresholds[0].window_in_seconds;
 
@@ -51,17 +66,15 @@ export function ThresholdGroupRows({thresholds, columns}: Props) {
   const initializeNewThreshold = () => {
     const thresholdId = `${NEW_THRESHOLD_PREFIX}-${newThresholdIterator}`;
     const [windowValue, windowSuffix] = parseLargestSuffix(defaultWindow);
-    const newThreshold = {
+    const newThreshold: EditingThreshold = {
       id: thresholdId,
+      project,
       environment,
-      project: projectId,
-      window_in_seconds: defaultWindow,
       windowValue,
       windowSuffix,
       threshold_type: 'total_error_count',
       trigger_type: 'over',
       value: 0,
-      windowDuration: 'seconds',
     };
     const updatedEditingThresholds = {...editingThresholds};
     updatedEditingThresholds[thresholdId] = newThreshold;
@@ -82,8 +95,28 @@ export function ThresholdGroupRows({thresholds, columns}: Props) {
   };
 
   const saveThreshold = thresholdIds => {
-    thresholdIds(id => {
-      closeEditForm(id);
+    thresholdIds.forEach(id => {
+      const thresholdData = editingThresholds[id];
+      const submitData: {[key: string]: any} = {...thresholdData};
+      const path = `/projects/${orgSlug}/${thresholdData.project.slug}/release-thresholds/`;
+      submitData.window_in_seconds = deriveSeconds(
+        thresholdData.windowValue,
+        thresholdData.windowSuffix
+      );
+      submitData.environment = thresholdData.environment.name;
+      const request = api.requestPromise(path, {
+        method: 'POST',
+        data: submitData,
+      });
+      request
+        .then(data => {
+          console.log('DATA: ', data);
+          refetch();
+          closeEditForm(id);
+        })
+        .catch(err => {
+          console.log(err);
+        });
     });
     // TODO: we need to identify which threshold is being saved
     // refetch thresholds
