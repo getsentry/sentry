@@ -145,7 +145,7 @@ class RuleProcessor:
         return rule_statuses
 
     def condition_matches(
-        self, condition: Mapping[str, Any], state: EventState, rule: Rule
+        self, condition: dict[str, Any], state: EventState, rule: Rule
     ) -> bool | None:
         condition_cls = rules.get(condition["id"])
         if condition_cls is None:
