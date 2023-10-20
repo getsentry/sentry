@@ -153,7 +153,7 @@ def fetch_geo_analysis_results(transaction_name, regression_breakpoint, params, 
             orderby=["-tpm()"],
         )
 
-        return geo_code_durations[:limit]
+        return geo_code_durations
 
     # For each country code in the second half, compare it to the first half
     geo_results = [get_geo_data("before"), get_geo_data("after")]
@@ -192,7 +192,7 @@ def fetch_geo_analysis_results(transaction_name, regression_breakpoint, params, 
             )
 
     analysis_results.sort(key=lambda x: x["score"], reverse=True)
-    return analysis_results
+    return analysis_results[:limit]
 
 
 @region_silo_endpoint
