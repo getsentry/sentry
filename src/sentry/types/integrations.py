@@ -73,8 +73,8 @@ PERSONAL_NOTIFICATION_PROVIDERS = [
 ]
 
 
-def get_provider_name(value: int) -> Optional[str]:
-    return EXTERNAL_PROVIDERS.get(ExternalProviders(value))
+def get_provider_name(value: int) -> str:
+    return EXTERNAL_PROVIDERS[ExternalProviders(value)]
 
 
 def get_provider_string(provider_int: int) -> str:

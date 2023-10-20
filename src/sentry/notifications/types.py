@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 from sentry.services.hybrid_cloud import ValueEqualityEnum
 
@@ -15,16 +14,16 @@ integers to their string values.
 """
 
 
-def get_notification_setting_type_name(value: int | NotificationSettingTypes) -> Optional[str]:
-    return NOTIFICATION_SETTING_TYPES.get(NotificationSettingTypes(value))
+def get_notification_setting_type_name(value: int | NotificationSettingTypes) -> str:
+    return NOTIFICATION_SETTING_TYPES[NotificationSettingTypes(value)]
 
 
-def get_notification_setting_value_name(value: int) -> Optional[str]:
-    return NOTIFICATION_SETTING_OPTION_VALUES.get(NotificationSettingOptionValues(value))
+def get_notification_setting_value_name(value: int) -> str:
+    return NOTIFICATION_SETTING_OPTION_VALUES[NotificationSettingOptionValues(value)]
 
 
-def get_notification_scope_name(value: int) -> Optional[str]:
-    return NOTIFICATION_SCOPE_TYPE.get(NotificationScopeType(value))
+def get_notification_scope_name(value: int) -> str:
+    return NOTIFICATION_SCOPE_TYPE[NotificationScopeType(value)]
 
 
 class NotificationSettingTypes(ValueEqualityEnum):

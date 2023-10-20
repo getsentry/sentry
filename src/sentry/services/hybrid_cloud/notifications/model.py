@@ -44,7 +44,7 @@ class RpcNotificationSetting(RpcModel):
 
     @property
     def scope_str(self) -> str:
-        return get_notification_scope_name(self.scope_type)
+        return get_notification_scope_name(self.scope_type.value)
 
     @property
     def type_str(self) -> str:
@@ -52,8 +52,8 @@ class RpcNotificationSetting(RpcModel):
 
     @property
     def value_str(self) -> str:
-        return get_notification_setting_value_name(self.value)
+        return get_notification_setting_value_name(self.value.value)
 
     @property
     def provider_str(self) -> str:
-        return get_provider_name(self.provider)
+        return get_provider_name(self.provider.value)
