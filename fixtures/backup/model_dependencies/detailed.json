@@ -1103,6 +1103,11 @@
   "sentry.customdynamicsamplingrule": {
     "dangling": false,
     "foreign_keys": {
+      "created_by_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      },
       "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.organization",

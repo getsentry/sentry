@@ -8,11 +8,11 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.utils import json
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
-
 
 # max number of custom rules that can be created per organization
 MAX_CUSTOM_RULES = 2000
@@ -104,6 +104,9 @@ class CustomDynamicSamplingRule(Model):
     end_date = models.DateTimeField()
     num_samples = models.IntegerField()
     condition_hash = models.CharField(max_length=40)
+    # the raw query field from the request
+    query = models.TextField(null=True)
+    created_by_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE", null=True, blank=True)
 
     @property
     def external_rule_id(self) -> int:
@@ -160,6 +163,7 @@ class CustomDynamicSamplingRule(Model):
         organization_id: int,
         num_samples: int,
         sample_rate: float,
+        query: str,
     ) -> "CustomDynamicSamplingRule":
 
         from sentry.models.project import Project
@@ -195,6 +199,7 @@ class CustomDynamicSamplingRule(Model):
                     condition_hash=rule_hash,
                     is_active=True,
                     is_org_level=is_org_level,
+                    query=query,
                 )
 
                 rule.save()

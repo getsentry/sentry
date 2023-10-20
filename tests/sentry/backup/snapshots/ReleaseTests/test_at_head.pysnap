@@ -672,6 +672,8 @@ source: tests/sentry/backup/test_releases.py
     is_org_level: false
     num_samples: 100
     organization: 4552811202150400
+    created_by_id: null
+    query: environment:prod event.type:transaction
     rule_id: 1
     sample_rate: 0.5
     start_date: '2023-10-17T01:50:40.016Z'

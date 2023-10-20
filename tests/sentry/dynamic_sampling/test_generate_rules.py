@@ -738,6 +738,7 @@ def test_generate_rules_return_custom_rules(get_blended_sample_rate, default_old
         organization_id=default_old_project.organization.id,
         num_samples=100,
         sample_rate=0.5,
+        query="environment:prod1",
     )
     # and an organization rule
     condition = {"op": "eq", "name": "environment", "value": "prod2"}
@@ -749,6 +750,7 @@ def test_generate_rules_return_custom_rules(get_blended_sample_rate, default_old
         organization_id=default_old_project.organization.id,
         num_samples=100,
         sample_rate=0.5,
+        query="environment:prod2",
     )
 
     rules = generate_rules(default_old_project)
