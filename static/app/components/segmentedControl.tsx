@@ -42,6 +42,7 @@ type Priority = 'default' | 'primary';
 export interface SegmentedControlProps<Value extends string>
   extends Omit<RadioGroupProps, 'value' | 'defaultValue' | 'onChange'>,
     CollectionBase<any> {
+  className?: string;
   defaultValue?: Value;
   disabled?: RadioGroupProps['isDisabled'];
   onChange?: (value: Value) => void;
@@ -59,6 +60,7 @@ export function SegmentedControl<Value extends string>({
   size = 'md',
   priority = 'default',
   disabled,
+  className,
   ...props
 }: SegmentedControlProps<Value>) {
   const ref = useRef<HTMLDivElement>(null);
@@ -81,7 +83,13 @@ export function SegmentedControl<Value extends string>({
   const collectionList = useMemo(() => [...collection], [collection]);
 
   return (
-    <GroupWrap {...radioGroupProps} size={size} priority={priority} ref={ref}>
+    <GroupWrap
+      {...radioGroupProps}
+      className={className}
+      size={size}
+      priority={priority}
+      ref={ref}
+    >
       <LayoutGroup id={radioGroupProps.id}>
         {collectionList.map(option => (
           <Segment
