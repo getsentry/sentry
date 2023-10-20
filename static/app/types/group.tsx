@@ -520,6 +520,7 @@ interface GroupFiltered {
 export interface GroupStats extends GroupFiltered {
   filtered: GroupFiltered | null;
   id: string;
+  isUnhandled?: boolean;
   // for issue alert previews, the last time a group triggered a rule
   lastTriggered?: string;
   lifetime?: GroupFiltered;
@@ -611,7 +612,6 @@ export interface BaseGroup {
   isBookmarked: boolean;
   isPublic: boolean;
   isSubscribed: boolean;
-  isUnhandled: boolean;
   issueCategory: IssueCategory;
   issueType: IssueType;
   lastSeen: string;

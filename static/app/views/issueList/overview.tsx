@@ -540,7 +540,7 @@ class IssueListOverview extends Component<Props, State> {
     }
 
     requestParams.expand = ['owners', 'inbox'];
-    requestParams.collapse = 'stats';
+    requestParams.collapse = ['stats', 'unhandled'];
 
     if (this._lastRequest) {
       this._lastRequest.cancel();
