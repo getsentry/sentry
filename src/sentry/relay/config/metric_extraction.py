@@ -75,6 +75,7 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
 def on_demand_metrics_feature_flags(organization: Organization) -> Set[str]:
     feature_names = [
         "organizations:on-demand-metrics-extraction",
+        "organizations:on-demand-metrics-extraction-widgets",  # Controls extraction for widgets
         "organizations:on-demand-metrics-extraction-experimental",
         "organizations:on-demand-metrics-prefill",
     ]
@@ -150,7 +151,7 @@ def _get_widget_metric_specs(
 ) -> List[HashedMetricSpec]:
     if not (
         "organizations:on-demand-metrics-extraction" in enabled_features
-        and "organizations:on-demand-metrics-extraction-experimental" in enabled_features
+        and "organizations:on-demand-metrics-widgets-extraction" in enabled_features
     ):
         return []
 
