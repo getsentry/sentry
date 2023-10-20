@@ -69,7 +69,7 @@ function HasSelection({checked}) {
           <DropdownMenu
             position="bottom-end"
             triggerProps={{
-              'aria-label': t('Read Menu'),
+              'aria-label': t('Read or Delete Menu'),
               icon: <IconEllipsis size="xs" />,
               showChevron: false,
               size: 'xs',
