@@ -1,15 +1,15 @@
-import {RawSpanFrame as TSpanFrame} from 'sentry/utils/replays/types';
+import {RawSpanFrame} from 'sentry/utils/replays/types';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
-type TestableFrame<Op extends TSpanFrame['op']> = Overwrite<
-  Partial<Extract<TSpanFrame, {op: Op}>>,
+type TestableFrame<Op extends RawSpanFrame['op']> = Overwrite<
+  Partial<Extract<RawSpanFrame, {op: Op}>>,
   {endTimestamp: Date; startTimestamp: Date}
 >;
 
-type MockFrame<Op extends TSpanFrame['op']> = Extract<TSpanFrame, {op: Op}>;
+type MockFrame<Op extends RawSpanFrame['op']> = Extract<RawSpanFrame, {op: Op}>;
 
-function BaseFrame<T extends TSpanFrame['op']>(
+function BaseFrame<T extends RawSpanFrame['op']>(
   op: T,
   fields: TestableFrame<T>
 ): MockFrame<T> {

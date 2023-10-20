@@ -1,14 +1,14 @@
 import type {
-  BreadcrumbFrameEvent as TBreadcrumbFrameEvent,
-  OptionFrameEvent as TOptionFrameEvent,
-  SpanFrameEvent as TSpanFrameEvent,
+  BreadcrumbFrameEvent,
+  OptionFrameEvent,
+  SpanFrameEvent,
 } from 'sentry/utils/replays/types';
 import {EventType} from 'sentry/utils/replays/types';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
 type TestableFrameEvent<
-  FrameEvent extends TBreadcrumbFrameEvent | TSpanFrameEvent | TOptionFrameEvent,
+  FrameEvent extends BreadcrumbFrameEvent | SpanFrameEvent | OptionFrameEvent,
 > = Overwrite<
   Omit<FrameEvent, 'type'>,
   {
@@ -30,8 +30,8 @@ type TestableFrameEvent<
  * ```
  */
 export function ReplayBreadcrumbFrameEvent(
-  fields: TestableFrameEvent<TBreadcrumbFrameEvent>
-): TBreadcrumbFrameEvent {
+  fields: TestableFrameEvent<BreadcrumbFrameEvent>
+): BreadcrumbFrameEvent {
   return {
     type: EventType.Custom,
     timestamp: fields.timestamp.getTime(), // frame timestamps are in ms
@@ -59,8 +59,8 @@ export function ReplayBreadcrumbFrameEvent(
  * ```
  */
 export function ReplaySpanFrameEvent(
-  fields: TestableFrameEvent<TSpanFrameEvent>
-): TSpanFrameEvent {
+  fields: TestableFrameEvent<SpanFrameEvent>
+): SpanFrameEvent {
   return {
     type: EventType.Custom,
     timestamp: fields.timestamp.getTime(), // frame timestamps are in ms
@@ -72,8 +72,8 @@ export function ReplaySpanFrameEvent(
 }
 
 export function ReplayOptionFrameEvent(
-  fields: TestableFrameEvent<TOptionFrameEvent>
-): TOptionFrameEvent {
+  fields: TestableFrameEvent<OptionFrameEvent>
+): OptionFrameEvent {
   return {
     type: EventType.Custom,
     timestamp: fields.timestamp.getTime(), // frame timestamps are in ms
@@ -85,8 +85,8 @@ export function ReplayOptionFrameEvent(
 }
 
 export function ReplayOptionFrame(
-  fields: Partial<TOptionFrameEvent['data']['payload']>
-): TOptionFrameEvent['data']['payload'] {
+  fields: Partial<OptionFrameEvent['data']['payload']>
+): OptionFrameEvent['data']['payload'] {
   return {
     blockAllMedia: false,
     errorSampleRate: 0,

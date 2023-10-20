@@ -1,15 +1,15 @@
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
-import {RawBreadcrumbFrame as TBreadcrumbFrame} from 'sentry/utils/replays/types';
+import {RawBreadcrumbFrame} from 'sentry/utils/replays/types';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
-type TestableFrame<Cat extends TBreadcrumbFrame['category']> = Overwrite<
-  Partial<Extract<TBreadcrumbFrame, {category: Cat}>>,
+type TestableFrame<Cat extends RawBreadcrumbFrame['category']> = Overwrite<
+  Partial<Extract<RawBreadcrumbFrame, {category: Cat}>>,
   {timestamp: Date}
 >;
 
-type MockFrame<Cat extends TBreadcrumbFrame['category']> = Extract<
-  TBreadcrumbFrame,
+type MockFrame<Cat extends RawBreadcrumbFrame['category']> = Extract<
+  RawBreadcrumbFrame,
   {category: Cat}
 >;
 
