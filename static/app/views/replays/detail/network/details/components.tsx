@@ -58,7 +58,7 @@ export function keyValueTableOrNotFound(data: KeyValueTuple[], notFoundText: str
           key={key}
           keyName={key}
           type={type}
-          value={<span>{value}</span>}
+          value={<ValueContainer>{value}</ValueContainer>}
         />
       ))}
     </StyledKeyValueTable>
@@ -68,6 +68,10 @@ export function keyValueTableOrNotFound(data: KeyValueTuple[], notFoundText: str
     </Indent>
   );
 }
+
+const ValueContainer = styled('span')`
+  overflow: scroll;
+`;
 
 const SectionTitle = styled('dt')``;
 
