@@ -7,7 +7,7 @@ from typing import Mapping, Type
 
 from django.utils import timezone
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.issues import grouptype
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
@@ -80,6 +80,8 @@ def auto_resolve_project_issues(
     **kwargs,
 ):
     project = Project.objects.get_from_cache(id=project_id)
+    organization = project.organization
+    flag_enabled = features.has("organizations:issue-platform-api-crons-sd", organization)
 
     age = project.get_option("sentry:resolve_age", None)
     if not age:
@@ -92,14 +94,16 @@ def auto_resolve_project_issues(
     else:
         cutoff = timezone.now() - timedelta(hours=int(age))
 
-    queryset = list(
-        Group.objects.filter(
-            project=project,
-            type__in=enabled_issue_types,
-            last_seen__lte=cutoff,
-            status=GroupStatus.UNRESOLVED,
-        )[:chunk_size]
-    )
+    filter_conditions = {
+        "project_id": project_id,
+        "last_seen__lte": cutoff,
+        "status": GroupStatus.UNRESOLVED,
+    }
+
+    if flag_enabled:
+        filter_conditions["type__in"] = enabled_issue_types
+
+    queryset = list(Group.objects.filter(**filter_conditions)[:chunk_size])
 
     might_have_more = len(queryset) == chunk_size
 
