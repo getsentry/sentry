@@ -117,7 +117,7 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
             organization_id=org.id, slug="sentry"
         )
 
-    org.handle_async_replication()
+    org.handle_async_replication(org.id)
 
     project.update_option("sentry:origins", ["*"])
 
