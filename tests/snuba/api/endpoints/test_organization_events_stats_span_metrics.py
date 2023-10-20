@@ -213,8 +213,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         )
 
         assert response.status_code == 200
+
         data = response.data["data"]
         assert len(data) == 2
+        assert not data[0][1][0]["count"]
         assert data[1][1][0]["count"] == 4.0
 
 
