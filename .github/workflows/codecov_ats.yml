@@ -55,7 +55,7 @@ jobs:
             #                   (i.e. git merge-base ${{ github.sha }}^ origin/main)
             # fetch-depth: 2 - Use if the BASE_COMMIT on codecov_automated_test_selection is at known depth
             #                   (i.e. git rev-parse ${{ github.sha }}^)
-            fetch-depth: 2
+            fetch-depth: 0
         - name: Set up Python 3.10.10
           uses: actions/setup-python@v4
           with:
@@ -98,7 +98,7 @@ jobs:
         - name: Codecov Automated Test Selection
           id: codecov_automated_test_selection
           run: |
-            BASE_COMMIT=$(git rev-parse ${{ github.sha }}^)
+            BASE_COMMIT=$(git merge-base ${{ github.sha }}^ origin/master)
             echo $BASE_COMMIT
             output=$(codecovcli --codecov-yml-path=codecov.yml label-analysis --dry-run --token=${CODECOV_STATIC_TOKEN} --base-sha=${BASE_COMMIT}) || true
             if [ -n "${output}" ];
