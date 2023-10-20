@@ -15,6 +15,7 @@ from typing import (
 
 from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
+from sentry.api.utils import get_date_range_from_params
 from sentry.incidents.models import AlertRule, AlertRuleStatus
 from sentry.models.dashboard_widget import DashboardWidgetQuery, DashboardWidgetTypes
 from sentry.models.organization import Organization
@@ -25,6 +26,8 @@ from sentry.models.transaction_threshold import (
     TransactionMetric,
 )
 from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.types import QueryBuilderConfig
+
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     MetricSpec,
@@ -243,7 +246,9 @@ def _convert_widget_query_to_metric(
     if not widget_query.aggregates:
         return metrics_specs
 
-    if not _is_widget_query_cardinality_allowed(widget_query):
+    if not _is_widget_query_low_cardinality(widget_query, project):
+
+        # High cardinality widgets will be ignored
         return metrics_specs
 
     for aggregate in widget_query.aggregates:
@@ -258,8 +263,8 @@ def _convert_widget_query_to_metric(
             Dataset.PerformanceMetrics.value,
             aggregate,
             widget_query.conditions,
-            widget_query.columns,
             prefilling,
+            columns=widget_query.columns
         ):
             _log_on_demand_metric_spec(
                 project_id=project.id,
@@ -279,19 +284,31 @@ def _convert_widget_query_to_metric(
     return metrics_specs
 
 
-def _is_widget_query_cardinality_allowed(widget_query: DashboardWidgetQuery):
+def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project: Project):
     """
     Checks cardinality of existing widget queries before allowing the metric spec, so that
     group by clauses with high-cardinality tags are not added to the on_demand metric.
 
     New queries will be checked upon creation and not allowed at that time.
     """
-    params: dict[str, Any] = {}
+    params: dict[str, Any] = {
+        "statsPeriod": "1d",
+         "project_id": project.id,
+        "project_objects": [project],
+        "organization_id": project.organization_id, # Organization id has to be specified to not violate allocation policy. 
+    }
     params["statsPeriod"] = "1d"
+    start, end = get_date_range_from_params(params)
+    params["start"] = start
+    params["end"] = end
 
     query_killswitch = options.get("on_demand.max_widget_cardinality.killswitch")
     if query_killswitch:
         return False
+
+    if len(widget_query.columns) == 0:
+        # No columns means no high-cardinality tags.
+        return True
 
     max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.count")
     cache_key = f"check-widget-query-cardinality:{widget_query.id}"
@@ -303,13 +320,16 @@ def _is_widget_query_cardinality_allowed(widget_query: DashboardWidgetQuery):
     unique_columns = [f"count_unique({column})" for column in widget_query.columns]
 
     query_builder = QueryBuilder(
-        dataset=Dataset.Discover, params=params, selected_columns=unique_columns
+        dataset=Dataset.Discover, params=params, selected_columns=unique_columns, config=QueryBuilderConfig(
+            transform_alias_to_input_format=True,
+        )
     )
 
     results = query_builder.run_query(Referrer.METRIC_EXTRACTION_CARDINALITY_CHECK.value)
+    processed_results = query_builder.process_results(results)
 
     for index, column in enumerate(widget_query.columns):
-        count = results["data"][unique_columns[index]]
+        count = processed_results["data"][0][unique_columns[index]]
         if count > max_cardinality_allowed:
             cache.set(cache_key, False)
             raise HighCardinalityWidgetException(
@@ -325,8 +345,8 @@ def _convert_aggregate_and_query_to_metric(
     dataset: str,
     aggregate: str,
     query: str,
-    columns: Sequence[str],
     prefilling: bool,
+    columns: Sequence[str] = [],
 ) -> Optional[HashedMetricSpec]:
     """
     Converts an aggregate and a query to a metric spec with its hash value.
@@ -338,6 +358,7 @@ def _convert_aggregate_and_query_to_metric(
         on_demand_spec = OnDemandMetricSpec(
             field=aggregate,
             query=query,
+            columns=columns,
         )
 
         return on_demand_spec.query_hash, on_demand_spec.to_metric_spec(project)

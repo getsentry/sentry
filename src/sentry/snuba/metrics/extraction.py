@@ -792,6 +792,7 @@ class OnDemandMetricSpec:
     # Base fields from outside.
     field: str
     query: str
+    columns: Sequence[str]
 
     # Public fields.
     op: MetricOperationType
@@ -800,9 +801,10 @@ class OnDemandMetricSpec:
     _metric_type: str
     _arguments: Sequence[str]
 
-    def __init__(self, field: str, query: str):
+    def __init__(self, field: str, query: str, columns: Sequence[str] = []):
         self.field = field
         self.query = query
+        self.columns = columns
         self._arguments = []
         self._eager_process()
 
@@ -835,6 +837,10 @@ class OnDemandMetricSpec:
     def query_hash(self) -> str:
         """Returns a hash of the query and field to be used as a unique identifier for the on-demand metric."""
         str_to_hash = f"{self._field_for_hash()};{self._query_for_hash()}"
+        if len(self.columns):
+            # For compatibility with existing deployed metrics, leave existing hash untouched unless conditions are now
+            # included in the spec.
+            str_to_hash = f"{str_to_hash}:{self._columns_for_hash()}" 
         return hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
 
     def _field_for_hash(self) -> Optional[str]:
@@ -869,6 +875,10 @@ class OnDemandMetricSpec:
         # semantically identical queries.
         return str(_deep_sorted(self.condition))
 
+    def _columns_for_hash(self):
+        # A sorted list of columns (for idempotency) for the hash, since groupbys will be unique per on_demand metric.
+        return str(sorted(self.columns))
+
     @cached_property
     def condition(self) -> Optional[RuleCondition]:
         """Returns a parent condition containing a list of other conditions which determine whether of not the metric
@@ -883,11 +893,26 @@ class OnDemandMetricSpec:
 
         return tags_specs_generator(project, self._arguments)
 
+    def _tag_for_column(self, column: str) -> TagSpec:
+        """Returns a TagSpec for a dynamic column"""
+        return {
+            "key": column,
+            "field": column, 
+        }
+
+    def tags_columns(self, columns: Sequence[str]) -> List[TagSpec]:
+        """Returns a list of tag specs generate for added columns, as they need to be stored separately for group-bys to work."""
+        return [self._tag_for_column(column) for column in columns] 
+
+
     def to_metric_spec(self, project: Project) -> MetricSpec:
         """Converts the OndemandMetricSpec into a MetricSpec that Relay can understand."""
         # Tag conditions are always computed based on the project.
         extended_tags_conditions = self.tags_conditions(project).copy()
         extended_tags_conditions.append({"key": QUERY_HASH_KEY, "value": self.query_hash})
+
+        tag_from_columns = self.tags_columns(self.columns)
+        extended_tags_conditions.extend(tag_from_columns)
 
         metric_spec: MetricSpec = {
             "category": DataCategory.TRANSACTION.api_name(),

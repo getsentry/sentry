@@ -375,6 +375,8 @@ def _get_project_config(
     if get_clusterer_meta(ClustererNamespace.TRANSACTIONS, project)["runs"] >= MIN_CLUSTERER_RUNS:
         config["txNameReady"] = True
 
+    
+
     if not full_config:
         # This is all we need for external Relay processors
         return ProjectConfig(project, **cfg)
