@@ -633,6 +633,7 @@ const Item = styled('div')<{isArchived?: boolean; isWidget?: boolean}>`
       ? `padding: ${space(0.75)} ${space(1.5)} ${space(1.5)} ${space(1.5)};`
       : `padding: ${space(1.5)};`};
   ${p => (p.isArchived ? 'opacity: 0.5;' : '')};
+  overflow: scroll;
 `;
 
 const Count = styled('span')`
