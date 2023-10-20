@@ -16,6 +16,7 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import Model, region_silo_only_model
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 
@@ -133,6 +134,19 @@ class Actor(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_actor"
+
+    def outbox_for_update(self) -> RegionOutbox:
+        return RegionOutbox(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=self.id,
+            object_identifier=self.id,
+            category=OutboxCategory.ACTOR_UPDATE,
+        )
+
+    def delete(self, **kwargs):
+        with outbox_context(transaction.atomic(router.db_for_write(Actor))):
+            self.outbox_for_update().save()
+        return super().delete(**kwargs)
 
     def resolve(self) -> Union[Team, RpcUser]:
         # Returns User/Team model object

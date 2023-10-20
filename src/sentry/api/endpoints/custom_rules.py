@@ -158,6 +158,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
                 organization_id=organization.id,
                 num_samples=NUM_SAMPLES_PER_CUSTOM_RULE,
                 sample_rate=1.0,
+                query=query,
             )
 
             # schedule update for affected project configs
