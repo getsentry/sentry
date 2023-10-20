@@ -71,9 +71,11 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
           <Flex column style={{gridArea: 'right'}}>
             {''}
           </Flex>
-          <strong style={{gridArea: 'user'}}>
-            <FeedbackItemUsername feedbackItem={feedbackItem} detailDisplay={false} />
-          </strong>
+          <TextOverflow>
+            <span style={{gridArea: 'user'}}>
+              <FeedbackItemUsername feedbackItem={feedbackItem} detailDisplay={false} />
+            </span>
+          </TextOverflow>
           <span style={{gridArea: 'time'}}>
             <TimeSince date={feedbackItem.timestamp} />
           </span>
