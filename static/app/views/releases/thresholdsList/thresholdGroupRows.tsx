@@ -1,6 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {APIRequestMethod} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -98,14 +99,19 @@ export function ThresholdGroupRows({thresholds, columns, orgSlug, refetch}: Prop
     thresholdIds.forEach(id => {
       const thresholdData = editingThresholds[id];
       const submitData: {[key: string]: any} = {...thresholdData};
-      const path = `/projects/${orgSlug}/${thresholdData.project.slug}/release-thresholds/`;
+      let path = `/projects/${orgSlug}/${thresholdData.project.slug}/release-thresholds/`;
+      let method: APIRequestMethod = 'POST';
+      if (thresholdsById[id]) {
+        path = `/projects/${orgSlug}/${thresholdData.project.slug}/release-thresholds/${id}/`;
+        method = 'PUT';
+      }
       submitData.window_in_seconds = deriveSeconds(
         thresholdData.windowValue,
         thresholdData.windowSuffix
       );
       submitData.environment = thresholdData.environment.name;
       const request = api.requestPromise(path, {
-        method: 'POST',
+        method,
         data: submitData,
       });
       request
