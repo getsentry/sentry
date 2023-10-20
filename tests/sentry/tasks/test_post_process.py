@@ -396,7 +396,6 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
             "sentry.rules.processor.rules", init_registry()
         ) as rules:
             MockAction = mock.Mock(spec=EventAction)
-            MockAction.rule_type = "action/event"
             MockAction.id = "tests.sentry.tasks.post_process.tests.MockAction"
             MockAction.return_value.after.return_value = []
             rules.add(MockAction)
