@@ -173,13 +173,15 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                   emptyCell
                 )}
                 {!hasAttachments ? null : checkIn.attachmentId ? (
-                  <Button
-                    size="xs"
-                    icon={<IconDownload size="xs" />}
-                    href={generateDownloadUrl(checkIn)}
-                  >
-                    {t('Attachment')}
-                  </Button>
+                  <div>
+                    <Button
+                      size="xs"
+                      icon={<IconDownload size="xs" />}
+                      href={generateDownloadUrl(checkIn)}
+                    >
+                      {t('Attachment')}
+                    </Button>
+                  </div>
                 ) : (
                   emptyCell
                 )}
