@@ -25,21 +25,25 @@ class ReleaseThresholdPUTSerializer(serializers.Serializer):
     threshold_type = serializers.ChoiceField(choices=ReleaseThresholdType.as_str_choices())
     trigger_type = serializers.ChoiceField(choices=ReleaseThresholdTriggerType.as_str_choices())
     value = serializers.IntegerField()
-    window_in_seconds = serializers.IntegerField()
+    window_in_seconds = serializers.IntegerField(min_value=0)
 
     def validate_threshold_type(self, threshold_type: str):
+        if threshold_type not in THRESHOLD_TYPE_STR_TO_INT:
+            raise serializers.ValidationError("Invalid threshold type")
         return THRESHOLD_TYPE_STR_TO_INT[threshold_type]
 
-    def validate_trigger_type(self, threshold_type: str):
-        return TRIGGER_TYPE_STRING_TO_INT[threshold_type]
+    def validate_trigger_type(self, trigger_type: str):
+        if trigger_type not in TRIGGER_TYPE_STRING_TO_INT:
+            raise serializers.ValidationError("Invalid trigger type")
+        return TRIGGER_TYPE_STRING_TO_INT[trigger_type]
 
 
 @region_silo_endpoint
 class ReleaseThresholdDetailsEndpoint(ProjectEndpoint):
     owner: ApiOwner = ApiOwner.ENTERPRISE
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "PUT": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
 
     def convert_args(
@@ -68,19 +72,9 @@ class ReleaseThresholdDetailsEndpoint(ProjectEndpoint):
     ) -> HttpResponse:
         serializer = ReleaseThresholdPUTSerializer(data=request.data)
 
-        if serializer.is_valid():
-            result = serializer.validated_data
-            kwargs = {}
-            if "threshold_type" in result:
-                kwargs["threshold_type"] = result["threshold_type"]
-            if "trigger_type" in result:
-                kwargs["trigger_type"] = result["trigger_type"]
-            if "value" in result:
-                kwargs["value"] = result["value"]
-            if "window_in_seconds" in result:
-                kwargs["window_in_seconds"] = result["window_in_seconds"]
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
 
-            if kwargs:
-                release_threshold.update(**kwargs)
-            return Response(serialize(release_threshold, request.user), status=200)
-        return Response(serializer.errors, status=400)
+        validated_data = serializer.validated_data
+        release_threshold.update(**validated_data)
+        return Response(serialize(release_threshold, request.user), status=200)

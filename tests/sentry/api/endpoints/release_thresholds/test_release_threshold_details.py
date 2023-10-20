@@ -109,6 +109,86 @@ class ReleaseThresholdDetailsPUTTest(APITestCase):
 
         assert response.status_code == 404
 
+    def test_invalid_missing_data(self):
+        url = reverse(
+            "sentry-api-0-project-release-thresholds-details",
+            kwargs={
+                "organization_slug": self.organization.slug,
+                "project_slug": self.project.slug,
+                "release_threshold": self.basic_threshold.id,
+            },
+        )
+        data = {
+            "project": self.basic_threshold.project.id,
+            "environment": self.basic_threshold.environment.name,
+            "id": self.basic_threshold.id,
+        }
+        response = self.client.put(url, data)
+        assert response.status_code == 400
+
+    def test_invalid_trigger_type(self):
+        url = reverse(
+            "sentry-api-0-project-release-thresholds-details",
+            kwargs={
+                "organization_slug": self.organization.slug,
+                "project_slug": self.project.slug,
+                "release_threshold": self.basic_threshold.id,
+            },
+        )
+        data = {
+            "project": self.basic_threshold.project.id,
+            "environment": self.basic_threshold.environment.name,
+            "id": self.basic_threshold.id,
+            "trigger_type": "foobar",
+            "threshold_type": THRESHOLD_TYPE_INT_TO_STR[self.basic_threshold.threshold_type],
+            "value": 50,
+            "window_in_seconds": 120,
+        }
+        response = self.client.put(url, data)
+        assert response.status_code == 400
+
+    def test_invalid_threshold_type(self):
+        url = reverse(
+            "sentry-api-0-project-release-thresholds-details",
+            kwargs={
+                "organization_slug": self.organization.slug,
+                "project_slug": self.project.slug,
+                "release_threshold": self.basic_threshold.id,
+            },
+        )
+        data = {
+            "project": self.basic_threshold.project.id,
+            "environment": self.basic_threshold.environment.name,
+            "id": self.basic_threshold.id,
+            "trigger_type": "over",
+            "threshold_type": "foobar",
+            "value": 50,
+            "window_in_seconds": 120,
+        }
+        response = self.client.put(url, data)
+        assert response.status_code == 400
+
+    def test_invalid_window(self):
+        url = reverse(
+            "sentry-api-0-project-release-thresholds-details",
+            kwargs={
+                "organization_slug": self.organization.slug,
+                "project_slug": self.project.slug,
+                "release_threshold": self.basic_threshold.id,
+            },
+        )
+        data = {
+            "project": self.basic_threshold.project.id,
+            "environment": self.basic_threshold.environment.name,
+            "id": self.basic_threshold.id,
+            "trigger_type": "over",
+            "threshold_type": THRESHOLD_TYPE_INT_TO_STR[self.basic_threshold.threshold_type],
+            "value": 50,
+            "window_in_seconds": -120,
+        }
+        response = self.client.put(url, data)
+        assert response.status_code == 400
+
     def test_invalid_project(self):
         url = reverse(
             "sentry-api-0-project-release-thresholds-details",
@@ -144,9 +224,44 @@ class ReleaseThresholdDetailsPUTTest(APITestCase):
         response = self.client.put(url, data=updated_data)
 
         assert response.status_code == 200
-        assert response.data["id"] == str(self.basic_threshold.id)
-        assert response.data["threshold_type"] == "total_error_count"
-        assert response.data["trigger_type"] == updated_data["trigger_type"]
-        assert response.data["value"] == updated_data["value"]
-        assert response.data["window_in_seconds"] == updated_data["window_in_seconds"]
-        assert response.data["environment"]["name"] == "canary"
+        assert response.data == {
+            "id": str(self.basic_threshold.id),
+            "threshold_type": "total_error_count",
+            "trigger_type": updated_data["trigger_type"],
+            "value": updated_data["value"],
+            "window_in_seconds": updated_data["window_in_seconds"],
+            "environment": {"name": "canary"},
+        }
+
+    def test_valid_with_extra_data(self):
+        updated_data = {
+            "project": self.basic_threshold.project.id,
+            "environment": "foobar",
+            "date_added": self.basic_threshold.date_added,
+            "id": self.basic_threshold.id,
+            "trigger_type": "under",
+            "threshold_type": THRESHOLD_TYPE_INT_TO_STR[self.basic_threshold.threshold_type],
+            "value": 50,
+            "window_in_seconds": 120,
+            "foo": "bar",
+            "biz": "baz",
+        }
+        url = reverse(
+            "sentry-api-0-project-release-thresholds-details",
+            kwargs={
+                "organization_slug": self.organization.slug,
+                "project_slug": self.project.slug,
+                "release_threshold": self.basic_threshold.id,
+            },
+        )
+        response = self.client.put(url, data=updated_data)
+
+        assert response.status_code == 200
+        assert response.data == {
+            "id": str(self.basic_threshold.id),
+            "threshold_type": "total_error_count",
+            "trigger_type": updated_data["trigger_type"],
+            "value": updated_data["value"],
+            "window_in_seconds": updated_data["window_in_seconds"],
+            "environment": {"name": "canary"},
+        }
