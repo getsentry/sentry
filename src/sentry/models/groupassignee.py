@@ -131,6 +131,35 @@ class GroupAssigneeManager(BaseManager):
             ):
                 sync_group_assignee_outbound(group, assigned_to.id, assign=True)
 
+        if not created:  # aka re-assignment
+            if features.has("organizations:participants-purge", group.organization):
+                if (
+                    features.has("organizations:team-workflow-notifications", group.organization)
+                    and assignee.team_id
+                ):
+                    GroupSubscription.objects.filter(
+                        group=group,
+                        project=group.project,
+                        team=assignee.team_id,
+                        reason=GroupSubscriptionReason.assigned,
+                    ).delete()
+                elif assignee.team_id:
+                    team_members = list(assignee.team.member_set.values_list("user_id", flat=True))
+                    for member in team_members:
+                        GroupSubscription.objects.filter(
+                            group=group,
+                            project=group.project,
+                            user_id=member,
+                            reason=GroupSubscriptionReason.assigned,
+                        ).delete()
+                else:
+                    GroupSubscription.objects.filter(
+                        group=group,
+                        project=group.project,
+                        user_id=assignee.user_id,
+                        reason=GroupSubscriptionReason.assigned,
+                    ).delete()
+
         return {"new_assignment": created, "updated_assignment": bool(not created and affected)}
 
     def deassign(
@@ -162,16 +191,7 @@ class GroupAssigneeManager(BaseManager):
         self.filter(group=group).delete()
 
         if affected > 0:
-            if features.has("organizations:participants-purge", group.organization) and assigned_to:
-                assignee_type, _, _ = self.get_assignee_data(assigned_to)
-                data = self.get_assigned_to_data(assigned_to, assignee_type, extra)
-                Activity.objects.create_group_activity(
-                    group, ActivityType.ASSIGNED, user=acting_user, data=data
-                )
-            else:
-                Activity.objects.create_group_activity(
-                    group, ActivityType.UNASSIGNED, user=acting_user
-                )
+            Activity.objects.create_group_activity(group, ActivityType.UNASSIGNED, user=acting_user)
 
             record_group_history(group, GroupHistoryStatus.UNASSIGNED, actor=acting_user)
 
@@ -186,6 +206,17 @@ class GroupAssigneeManager(BaseManager):
                 )
             GroupOwner.invalidate_assignee_exists_cache(group.project.id, group.id)
             GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(group.project.id, group.id)
+
+            metrics.incr("group.assignee.change", instance="deassigned", skip_internal=True)
+            # sync Sentry assignee to external issues
+            if features.has(
+                "organizations:integrations-issue-sync", group.organization, actor=acting_user
+            ):
+                sync_group_assignee_outbound(group, None, assign=False)
+
+            issue_unassigned.send_robust(
+                project=group.project, group=group, user=acting_user, sender=self.__class__
+            )
 
             if (
                 features.has("organizations:participants-purge", group.organization)
@@ -207,23 +238,18 @@ class GroupAssigneeManager(BaseManager):
                     )
                     for member in team_members:
                         GroupSubscription.objects.filter(
-                            group=group, project=group.project, user_id=member
+                            group=group,
+                            project=group.project,
+                            user_id=member,
+                            reason=GroupSubscriptionReason.assigned,
                         ).delete()
                 else:
                     GroupSubscription.objects.filter(
-                        group=group, project=group.project, user_id=previous_assignee.id
+                        group=group,
+                        project=group.project,
+                        user_id=previous_assignee.id,
+                        reason=GroupSubscriptionReason.assigned,
                     ).delete()
-
-            metrics.incr("group.assignee.change", instance="deassigned", skip_internal=True)
-            # sync Sentry assignee to external issues
-            if features.has(
-                "organizations:integrations-issue-sync", group.organization, actor=acting_user
-            ):
-                sync_group_assignee_outbound(group, None, assign=False)
-
-            issue_unassigned.send_robust(
-                project=group.project, group=group, user=acting_user, sender=self.__class__
-            )
 
 
 @region_silo_only_model
