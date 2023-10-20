@@ -243,6 +243,9 @@ class GitHubIssueBasic(IssueBasicMixin):
         except Exception as e:
             self.raise_error(e)
 
-        labels = tuple((label["name"], label["name"]) for label in response)
+        # sort alphabetically
+        labels = tuple(
+            sorted(((label["name"], label["name"]) for label in response), key=lambda pair: pair[0])
+        )
 
         return labels

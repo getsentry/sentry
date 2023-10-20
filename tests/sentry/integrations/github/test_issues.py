@@ -87,12 +87,15 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/sentry/labels",
-            json=[{"name": "bug"}, {"name": "enhancement"}],
+            json=[{"name": "bug"}, {"name": "enhancement"}, {"name": "duplicate"}],
         )
 
         repo = "getsentry/sentry"
+
+        # results should be sorted alphabetically
         assert self.integration.get_repo_labels(repo) == (
             ("bug", "bug"),
+            ("duplicate", "duplicate"),
             ("enhancement", "enhancement"),
         )
 
