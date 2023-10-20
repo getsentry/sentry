@@ -25,7 +25,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         self.create_project(teams=[team], name="baz")
 
         response = self.get_success_response(self.organization.slug, project1.slug)
-        assert len(response.data["actions"]) == 11
+        assert len(response.data["actions"]) == 12
         assert len(response.data["conditions"]) == 7
         assert len(response.data["filters"]) == 8
 
@@ -114,9 +114,7 @@ class ProjectRuleConfigurationTest(APITestCase):
             self.organization.slug, self.project.slug, includeAllTickets=True
         )
         disabled_ticket_actions = response.data["disabledTicketActions"]
-        assert len(disabled_ticket_actions) == 4
-        for ticket in TICKET_ACTIONS:
-            assert ticket in disabled_ticket_actions
+        assert set(disabled_ticket_actions) == TICKET_ACTIONS
 
     def test_sentry_app_alertable_webhook(self):
         team = self.create_team()
@@ -133,7 +131,7 @@ class ProjectRuleConfigurationTest(APITestCase):
 
         response = self.get_success_response(self.organization.slug, project1.slug)
 
-        assert len(response.data["actions"]) == 12
+        assert len(response.data["actions"]) == 13
         assert {
             "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
             "label": "Send a notification via {service}",
@@ -163,7 +161,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         )
         response = self.get_success_response(self.organization.slug, project1.slug)
 
-        assert len(response.data["actions"]) == 12
+        assert len(response.data["actions"]) == 13
         assert {
             "id": SENTRY_APP_ALERT_ACTION,
             "service": sentry_app.slug,
@@ -179,7 +177,7 @@ class ProjectRuleConfigurationTest(APITestCase):
 
     def test_issue_type_and_category_filter_feature(self):
         response = self.get_success_response(self.organization.slug, self.project.slug)
-        assert len(response.data["actions"]) == 11
+        assert len(response.data["actions"]) == 12
         assert len(response.data["conditions"]) == 7
         assert len(response.data["filters"]) == 8
 
