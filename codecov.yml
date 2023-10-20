@@ -99,8 +99,7 @@ cli:
       # Because it's too big
       delete_uncompressed: true
   runners:
-    python:
-      include_curr_dir: true
+    pytest:
       # Same args used for the backend tests
       collect_tests_options:
         - "tests/sentry"
