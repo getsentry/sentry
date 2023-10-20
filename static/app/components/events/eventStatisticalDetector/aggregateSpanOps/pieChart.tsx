@@ -168,12 +168,12 @@ class PieChart extends Component<Props> {
             const change = this.getSpanOpDurationChange(name);
             const oldValue = getDuration(
               this.props.data[name].oldBaseline / 1000,
-              2,
+              0,
               true
             );
             const newValue = getDuration(
               this.props.data[name].newBaseline / 1000,
-              2,
+              0,
               true
             );
             const percentage = this.props.data ? formatPercentage(Math.abs(change)) : '';
