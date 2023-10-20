@@ -14,8 +14,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
+  // The new Accessibility tab:
   const hasA11yTab = organization.features.includes('session-replay-a11y-tab');
-  const hasPerfTab = organization.features.includes('session-replay-trace-table');
+
+  // The new trace table inside Breadcrumb items:
+  const hasTraceTable = organization.features.includes('session-replay-trace-table');
 
   return {
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
@@ -26,12 +29,8 @@ function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
         {t('Errors')} <FeatureBadge type="new" />
       </Fragment>
     ),
-    [TabKey.TRACE]: t('Trace'),
-    [TabKey.PERF]: hasPerfTab ? (
-      <Fragment>
-        {t('Perf')} <FeatureBadge type="alpha" />
-      </Fragment>
-    ) : null,
+    [TabKey.TRACE]: hasTraceTable ? null : t('Trace'),
+    [TabKey.PERF]: null,
     [TabKey.DOM]: null,
     [TabKey.A11Y]: hasA11yTab ? (
       <Fragment>
