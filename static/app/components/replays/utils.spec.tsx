@@ -1,3 +1,4 @@
+import {RawReplayErrorFixture} from 'sentry-fixture/replay/error';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {
@@ -90,19 +91,19 @@ describe('getFramesByColumn', () => {
       started_at: new Date('2022-04-14T14:19:47.326000Z'),
     }),
     [
-      TestStubs.Replay.RawReplayError({
+      RawReplayErrorFixture({
         timestamp: new Date('2022-04-14T14:19:47.326000Z'),
       }),
-      TestStubs.Replay.RawReplayError({
+      RawReplayErrorFixture({
         timestamp: new Date('2022-04-14T14:19:49.249000Z'),
       }),
-      TestStubs.Replay.RawReplayError({
+      RawReplayErrorFixture({
         timestamp: new Date('2022-04-14T14:19:51.512000Z'),
       }),
-      TestStubs.Replay.RawReplayError({
+      RawReplayErrorFixture({
         timestamp: new Date('2022-04-14T14:19:57.326000Z'),
       }),
-      TestStubs.Replay.RawReplayError({
+      RawReplayErrorFixture({
         timestamp: new Date('2022-04-14T14:20:13.036000Z'),
       }),
     ]

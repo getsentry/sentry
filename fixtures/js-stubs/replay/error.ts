@@ -2,7 +2,7 @@ import type {RawReplayError as TRawReplayError} from 'sentry/utils/replays/types
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
-export function RawReplayError(
+export function RawReplayErrorFixture(
   error: Overwrite<Partial<TRawReplayError>, {timestamp: Date}>
 ): TRawReplayError {
   return {

@@ -1,3 +1,4 @@
+import {RawReplayErrorFixture} from 'sentry-fixture/replay/error';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
@@ -9,9 +10,9 @@ describe('hydrateErrors', () => {
 
   it('should set the timestamp & offsetMs for each span in the list', () => {
     const errors = [
-      TestStubs.Replay.RawReplayError({timestamp: new Date('2023/12/23')}),
-      TestStubs.Replay.RawReplayError({timestamp: new Date('2023/12/24')}),
-      TestStubs.Replay.RawReplayError({timestamp: new Date('2023/12/25')}),
+      RawReplayErrorFixture({timestamp: new Date('2023/12/23')}),
+      RawReplayErrorFixture({timestamp: new Date('2023/12/24')}),
+      RawReplayErrorFixture({timestamp: new Date('2023/12/25')}),
     ];
 
     expect(hydrateErrors(replayRecord, errors)).toStrictEqual([
