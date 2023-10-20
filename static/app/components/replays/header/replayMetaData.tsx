@@ -3,8 +3,7 @@ import styled from '@emotion/styled';
 
 import ErrorCounts from 'sentry/components/replays/header/errorCounts';
 import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
-import TimeSince from 'sentry/components/timeSince';
-import {IconCalendar, IconCursorArrow} from 'sentry/icons';
+import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
@@ -38,22 +37,6 @@ function ReplayMetaData({replayErrors, replayRecord}: Props) {
 
   return (
     <KeyMetrics>
-      <KeyMetricLabel>{t('Start Time')}</KeyMetricLabel>
-      <KeyMetricData>
-        {replayRecord ? (
-          <TimeContainer>
-            <IconCalendar color="gray300" size="sm" />
-            <TimeSince
-              date={replayRecord.started_at}
-              isTooltipHoverable
-              unitStyle="regular"
-            />
-          </TimeContainer>
-        ) : (
-          <HeaderPlaceholder width="80px" height="16px" />
-        )}
-      </KeyMetricData>
-
       <KeyMetricLabel>{t('Dead Clicks')}</KeyMetricLabel>
       <KeyMetricData>
         {replayRecord?.count_dead_clicks ? (
@@ -97,7 +80,7 @@ function ReplayMetaData({replayErrors, replayRecord}: Props) {
 const KeyMetrics = styled('dl')`
   display: grid;
   grid-template-rows: max-content 1fr;
-  grid-template-columns: repeat(5, max-content);
+  grid-template-columns: repeat(4, max-content);
   grid-auto-flow: column;
   gap: 0 ${space(3)};
   align-items: center;
@@ -131,12 +114,6 @@ const ClickCount = styled(Count)<{color: ColorOrAlias}>`
   color: ${p => p.theme[p.color]};
   display: flex;
   gap: ${space(0.75)};
-  align-items: center;
-`;
-
-const TimeContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
   align-items: center;
 `;
 
