@@ -106,6 +106,7 @@ export default function WebVitalsLandingPage() {
               projectScore={projectScore}
               transaction={transaction}
               isProjectScoreLoading={isLoading}
+              webVital={state.webVital}
             />
           </PerformanceScoreChartContainer>
           <WebVitalMeters
