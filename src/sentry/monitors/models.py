@@ -74,14 +74,23 @@ class MonitorEnvironmentValidationFailed(Exception):
     pass
 
 
-class MonitorObjectStatus(ObjectStatus):
+class MonitorObjectStatus:
+    ACTIVE = 0
+    DISABLED = 1
+    PENDING_DELETION = 2
+    DELETION_IN_PROGRESS = 3
+
     WAITING = 4
 
     @classmethod
     def as_choices(cls) -> Sequence[Tuple[int, str]]:
-        choices = list(super().as_choices())
-        choices.append((cls.WAITING, "waiting"))
-        return tuple(choices)
+        return (
+            (cls.ACTIVE, "active"),
+            (cls.DISABLED, "disabled"),
+            (cls.PENDING_DELETION, "pending_deletion"),
+            (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
+            (cls.WAITING, "waiting"),
+        )
 
 
 class MonitorStatus:
