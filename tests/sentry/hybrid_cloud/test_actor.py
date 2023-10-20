@@ -1,4 +1,3 @@
-from sentry.models.actor import ACTOR_TYPES, Actor
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.factories import Factories
@@ -32,19 +31,6 @@ def test_many_from_object_rpc_users():
 
     assert actors[1].id == rpc_users[1].id
     assert actors[1].actor_type == ActorType.USER
-
-
-@django_db_all(transaction=True)
-def test_many_from_object_users_missing_actors():
-    users = [Factories.create_user(), Factories.create_user()]
-    # Clear all actors
-    Actor.objects.filter(type=ACTOR_TYPES["user"]).delete()
-
-    actors = RpcActor.many_from_object(users)
-    assert len(actors) == len(users)
-
-    actors = Actor.objects.filter(type=ACTOR_TYPES["user"])
-    assert len(actors) == 2, "Actors should be generated"
 
 
 @django_db_all(transaction=True)
