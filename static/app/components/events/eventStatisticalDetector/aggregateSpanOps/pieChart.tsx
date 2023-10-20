@@ -268,7 +268,7 @@ const LegendWrapper = styled('div')`
   position: absolute;
   top: 50%;
   transform: translateY(-60%);
-  left: 185px;
+  left: 195px;
   z-index: 100;
 `;
 
