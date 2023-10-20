@@ -408,6 +408,7 @@ class BackupTestCase(TransactionTestCase):
             organization_id=org.id,
             num_samples=100,
             sample_rate=0.5,
+            query="environment:prod event.type:transaction",
         )
 
         # Environment*

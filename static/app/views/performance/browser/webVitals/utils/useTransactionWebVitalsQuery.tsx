@@ -1,5 +1,6 @@
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -38,6 +39,7 @@ export const useTransactionWebVitalsQuery = ({orderBy, limit, transaction}: Prop
         'transaction.op:pageload' + (transaction ? ` transaction:"${transaction}"` : ''),
       orderby: mapWebVitalToOrderBy(orderBy, 'p75') ?? '-count',
       version: 2,
+      dataset: DiscoverDatasets.METRICS,
     },
     pageFilters.selection
   );
