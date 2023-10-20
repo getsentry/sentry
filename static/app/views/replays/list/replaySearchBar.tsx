@@ -72,7 +72,7 @@ function getSupportedTags(supportedTags: TagCollection) {
 type Props = React.ComponentProps<typeof SmartSearchBar> & {
   organization: Organization;
   pageFilters: PageFilters;
-  placeholder: string;
+  placeholder?: string;
 };
 
 function ReplaySearchBar(props: Props) {
