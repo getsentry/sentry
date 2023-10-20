@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from django.conf import settings
 from django.db import models, router, transaction
 from django.utils import timezone
 
+from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
@@ -66,6 +67,39 @@ class GroupAssigneeManager(BaseManager):
 
         return (assignee_type, assignee_type_attr, other_type)
 
+    def remove_old_assignees(
+        self, group: Group, previous_assignee: Optional(GroupAssignee)
+    ) -> None:
+        if features.has("organizations:participants-purge", group.organization):
+            if (
+                features.has("organizations:team-workflow-notifications", group.organization)
+                and previous_assignee.team_id
+            ):
+                GroupSubscription.objects.filter(
+                    group=group,
+                    project=group.project,
+                    team=previous_assignee.team_id,
+                    reason=GroupSubscriptionReason.assigned,
+                ).delete()
+            elif previous_assignee.team_id:
+                team_members = list(
+                    previous_assignee.team.member_set.values_list("user_id", flat=True)
+                )
+                for member in team_members:
+                    GroupSubscription.objects.filter(
+                        group=group,
+                        project=group.project,
+                        user_id=member,
+                        reason=GroupSubscriptionReason.assigned,
+                    ).delete()
+            else:
+                GroupSubscription.objects.filter(
+                    group=group,
+                    project=group.project,
+                    user_id=previous_assignee.user_id,
+                    reason=GroupSubscriptionReason.assigned,
+                ).delete()
+
     def assign(
         self,
         group: Group,
@@ -75,7 +109,6 @@ class GroupAssigneeManager(BaseManager):
         extra: Dict[str, str] | None = None,
         force_autoassign: bool = False,
     ):
-        from sentry import features
         from sentry.integrations.utils import sync_group_assignee_outbound
         from sentry.models.activity import Activity
         from sentry.models.groupsubscription import GroupSubscription
@@ -132,33 +165,7 @@ class GroupAssigneeManager(BaseManager):
                 sync_group_assignee_outbound(group, assigned_to.id, assign=True)
 
         if not created:  # aka re-assignment
-            if features.has("organizations:participants-purge", group.organization):
-                if (
-                    features.has("organizations:team-workflow-notifications", group.organization)
-                    and assignee.team_id
-                ):
-                    GroupSubscription.objects.filter(
-                        group=group,
-                        project=group.project,
-                        team=assignee.team_id,
-                        reason=GroupSubscriptionReason.assigned,
-                    ).delete()
-                elif assignee.team_id:
-                    team_members = list(assignee.team.member_set.values_list("user_id", flat=True))
-                    for member in team_members:
-                        GroupSubscription.objects.filter(
-                            group=group,
-                            project=group.project,
-                            user_id=member,
-                            reason=GroupSubscriptionReason.assigned,
-                        ).delete()
-                else:
-                    GroupSubscription.objects.filter(
-                        group=group,
-                        project=group.project,
-                        user_id=assignee.user_id,
-                        reason=GroupSubscriptionReason.assigned,
-                    ).delete()
+            self.remove_old_assignees(group, assignee)
 
         return {"new_assignment": created, "updated_assignment": bool(not created and affected)}
 
@@ -169,23 +176,14 @@ class GroupAssigneeManager(BaseManager):
         assigned_to: Team | RpcUser | None = None,
         extra: Dict[str, str] | None = None,
     ) -> None:
-        from sentry import features
         from sentry.integrations.utils import sync_group_assignee_outbound
         from sentry.models.activity import Activity
         from sentry.models.projectownership import ProjectOwnership
-        from sentry.models.team import Team
-        from sentry.services.hybrid_cloud.user.service import user_service
 
-        previous_assignee: User | RpcUser | Team | None = None
         try:
             previous_groupassignee = self.get(group=group)
         except GroupAssignee.DoesNotExist:
             previous_groupassignee = None
-        else:
-            if previous_groupassignee.user_id:
-                previous_assignee = user_service.get_user(previous_groupassignee.user_id)
-            else:
-                previous_assignee = Team.objects.get(id=previous_groupassignee.team.id)
 
         affected = self.filter(group=group)[:1].count()
         self.filter(group=group).delete()
@@ -217,39 +215,7 @@ class GroupAssigneeManager(BaseManager):
             issue_unassigned.send_robust(
                 project=group.project, group=group, user=acting_user, sender=self.__class__
             )
-
-            if (
-                features.has("organizations:participants-purge", group.organization)
-                and previous_assignee
-            ):
-                if (
-                    features.has("organizations:team-workflow-notifications", group.organization)
-                    and type(previous_assignee) is Team
-                ):
-                    GroupSubscription.objects.filter(
-                        group=group,
-                        project=group.project,
-                        team=previous_assignee,
-                        reason=GroupSubscriptionReason.assigned,
-                    ).delete()
-                elif type(previous_assignee) is Team:
-                    team_members = list(
-                        previous_assignee.member_set.values_list("user_id", flat=True)
-                    )
-                    for member in team_members:
-                        GroupSubscription.objects.filter(
-                            group=group,
-                            project=group.project,
-                            user_id=member,
-                            reason=GroupSubscriptionReason.assigned,
-                        ).delete()
-                else:
-                    GroupSubscription.objects.filter(
-                        group=group,
-                        project=group.project,
-                        user_id=previous_assignee.id,
-                        reason=GroupSubscriptionReason.assigned,
-                    ).delete()
+            self.remove_old_assignees(group, previous_groupassignee)
 
 
 @region_silo_only_model
