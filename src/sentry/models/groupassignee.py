@@ -70,38 +70,50 @@ class GroupAssigneeManager(BaseManager):
     def remove_old_assignees(
         self, group: Group, previous_assignee: Optional[GroupAssignee]
     ) -> None:
-        if (
+        if not (
             features.has("organizations:participants-purge", group.organization)
             and previous_assignee
         ):
-            if (
-                features.has("organizations:team-workflow-notifications", group.organization)
-                and previous_assignee.team
-            ):
+            return
+
+        if (
+            features.has("organizations:team-workflow-notifications", group.organization)
+            and previous_assignee.team
+        ):
+            GroupSubscription.objects.filter(
+                group=group,
+                project=group.project,
+                team=previous_assignee.team,
+                reason=GroupSubscriptionReason.assigned,
+            ).delete()
+            logger.info(
+                "groupassignee.remove",
+                extra={"group_id": group.id, "team_id": previous_assignee.team.id},
+            )
+        elif previous_assignee.team:
+            team_members = list(previous_assignee.team.member_set.values_list("user_id", flat=True))
+            for member in team_members:
                 GroupSubscription.objects.filter(
                     group=group,
                     project=group.project,
-                    team=previous_assignee.team,
+                    user_id=member,
                     reason=GroupSubscriptionReason.assigned,
                 ).delete()
-            elif previous_assignee.team:
-                team_members = list(
-                    previous_assignee.team.member_set.values_list("user_id", flat=True)
+                logger.info(
+                    "groupassignee.remove",
+                    extra={"group_id": group.id, "team_id": previous_assignee.team.id},
                 )
-                for member in team_members:
-                    GroupSubscription.objects.filter(
-                        group=group,
-                        project=group.project,
-                        user_id=member,
-                        reason=GroupSubscriptionReason.assigned,
-                    ).delete()
-            else:
-                GroupSubscription.objects.filter(
-                    group=group,
-                    project=group.project,
-                    user_id=previous_assignee.user_id,
-                    reason=GroupSubscriptionReason.assigned,
-                ).delete()
+        else:
+            GroupSubscription.objects.filter(
+                group=group,
+                project=group.project,
+                user_id=previous_assignee.user_id,
+                reason=GroupSubscriptionReason.assigned,
+            ).delete()
+            logger.info(
+                "groupassignee.remove",
+                extra={"group_id": group.id, "team_id": previous_assignee.user_id},
+            )
 
     def assign(
         self,
