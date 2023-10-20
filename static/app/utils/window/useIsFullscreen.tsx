@@ -8,7 +8,7 @@ import screenfull from 'screenfull';
  * as part of your component render method.
  */
 export default function useIsFullscreen() {
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(screenfull.isFullscreen);
 
   useEffect(() => {
     if (!screenfull.isEnabled) {
