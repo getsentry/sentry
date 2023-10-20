@@ -1,7 +1,5 @@
 import {EntryException} from 'sentry/types';
 
-import type {Replay} from './replay';
-
 type SimpleStub<T = any> = () => T;
 
 type OverridableStub<Params = any, Result = Params> = (
@@ -46,7 +44,6 @@ type TestStubFixtures = {
   ProjectAlertRule: OverridableStub;
   ProjectKeys: OverridableStubList;
   Release: (params?: any, healthParams?: any) => any;
-  Replay: typeof Replay;
   Repository: OverridableStub;
   SentryApp: OverridableStub;
   SentryAppComponent: OverridableStub;
