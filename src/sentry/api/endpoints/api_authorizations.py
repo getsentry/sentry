@@ -12,6 +12,7 @@ from sentry.api.serializers import serialize
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apitoken import ApiToken
+from sentry.models.outbox import outbox_context
 
 
 @control_silo_endpoint
@@ -47,10 +48,11 @@ class ApiAuthorizationsEndpoint(Endpoint):
         except ApiAuthorization.DoesNotExist:
             return Response(status=404)
 
-        with transaction.atomic(using=router.db_for_write(ApiToken)):
-            ApiToken.objects.filter(
+        with outbox_context(transaction.atomic(using=router.db_for_write(ApiToken)), flush=False):
+            for token in ApiToken.objects.filter(
                 user_id=request.user.id, application=auth.application_id
-            ).delete()
+            ):
+                token.delete()
 
             auth.delete()
 
