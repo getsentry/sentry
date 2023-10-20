@@ -9,6 +9,7 @@ from django.http.request import HttpRequest
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.constants import SentryAppInstallationStatus
 from sentry.ratelimits.concurrent import ConcurrentRateLimiter
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken
@@ -121,9 +122,13 @@ def get_rate_limit_key(
 
 
 def get_organization_id_from_token(token_id: int) -> Any:
-    from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+    from sentry.services.hybrid_cloud.app import app_service
 
-    installation = SentryAppInstallation.objects.get_by_api_token(token_id).first()
+    installations = app_service.get_many(
+        status=SentryAppInstallationStatus.INSTALLED,
+        api_token_id=token_id,
+    )
+    installation = installations[0] if len(installations) > 0 else None
 
     # Return a random uppercase/lowercase letter to avoid collisions caused by tokens not being
     # associated with a SentryAppInstallation. This is a temporary fix while we solve the root cause
