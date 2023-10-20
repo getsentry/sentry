@@ -1,3 +1,5 @@
+import {ReplayConsoleEvent, ReplayMemoryEvent} from 'sentry-fixture/replay/helpers';
+
 import hydrateFrames from 'sentry/utils/replays/hydrateFrames';
 
 describe('hydrateFrames', () => {
@@ -12,12 +14,12 @@ describe('hydrateFrames', () => {
         timestamp: new Date(),
         data: {payload: optionsFrame},
       }),
-      TestStubs.Replay.ConsoleEvent(crumbProps),
-      TestStubs.Replay.ConsoleEvent(crumbProps),
-      TestStubs.Replay.MemoryEvent(spanProps),
-      TestStubs.Replay.MemoryEvent(spanProps),
-      TestStubs.Replay.MemoryEvent(spanProps),
-      TestStubs.Replay.MemoryEvent(spanProps),
+      ReplayConsoleEvent(crumbProps),
+      ReplayConsoleEvent(crumbProps),
+      ReplayMemoryEvent(spanProps),
+      ReplayMemoryEvent(spanProps),
+      ReplayMemoryEvent(spanProps),
+      ReplayMemoryEvent(spanProps),
     ];
 
     const {breadcrumbFrames, optionFrame, rrwebFrames, spanFrames} =

@@ -1,4 +1,5 @@
 import {duration} from 'moment';
+import {ReplayConsoleEvent, ReplayNavigateEvent} from 'sentry-fixture/replay/helpers';
 import {ReplayErrorFixture} from 'sentry-fixture/replayError';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
@@ -121,8 +122,8 @@ describe('useReplayData', () => {
       timestamp: startedAt,
     });
     const mockSegmentResponse2 = [
-      TestStubs.Replay.ConsoleEvent({timestamp: startedAt}),
-      TestStubs.Replay.NavigateEvent({
+      ReplayConsoleEvent({timestamp: startedAt}),
+      ReplayNavigateEvent({
         startTimestamp: startedAt,
         endTimestamp: finishedAt,
       }),

@@ -1,4 +1,11 @@
 import {EventType} from '@sentry-internal/rrweb';
+import {
+  ReplayClickEvent,
+  ReplayConsoleEvent,
+  ReplayDeadClickEvent,
+  ReplayMemoryEvent,
+  ReplayNavigateEvent,
+} from 'sentry-fixture/replay/helpers';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
@@ -36,8 +43,8 @@ describe('ReplayReader', () => {
 
     const replay = ReplayReader.factory({
       attachments: [
-        TestStubs.Replay.ConsoleEvent({timestamp: minuteZero}),
-        TestStubs.Replay.ConsoleEvent({timestamp: minuteTen}),
+        ReplayConsoleEvent({timestamp: minuteZero}),
+        ReplayConsoleEvent({timestamp: minuteTen}),
       ],
       errors: [],
       replayRecord: ReplayRecordFixture({
@@ -76,19 +83,19 @@ describe('ReplayReader', () => {
     });
     const firstDiv = TestStubs.Replay.RRWebFullSnapshotFrameEvent({timestamp});
     const secondDiv = TestStubs.Replay.RRWebFullSnapshotFrameEvent({timestamp});
-    const clickEvent = TestStubs.Replay.ClickEvent({timestamp});
-    const secondClickEvent = TestStubs.Replay.ClickEvent({timestamp: secondTimestamp});
-    const thirdClickEvent = TestStubs.Replay.ClickEvent({timestamp: thirdTimestamp});
-    const deadClickEvent = TestStubs.Replay.DeadClickEvent({timestamp});
-    const firstMemory = TestStubs.Replay.MemoryEvent({
+    const clickEvent = ReplayClickEvent({timestamp});
+    const secondClickEvent = ReplayClickEvent({timestamp: secondTimestamp});
+    const thirdClickEvent = ReplayClickEvent({timestamp: thirdTimestamp});
+    const deadClickEvent = ReplayDeadClickEvent({timestamp});
+    const firstMemory = ReplayMemoryEvent({
       startTimestamp: timestamp,
       endTimestamp: timestamp,
     });
-    const secondMemory = TestStubs.Replay.MemoryEvent({
+    const secondMemory = ReplayMemoryEvent({
       startTimestamp: timestamp,
       endTimestamp: timestamp,
     });
-    const navigationEvent = TestStubs.Replay.NavigateEvent({
+    const navigationEvent = ReplayNavigateEvent({
       startTimestamp: new Date('2023-12-25T00:03:00'),
       endTimestamp: new Date('2023-12-25T00:03:30'),
     });
@@ -100,7 +107,7 @@ describe('ReplayReader', () => {
         }),
       },
     });
-    const consoleEvent = TestStubs.Replay.ConsoleEvent({timestamp});
+    const consoleEvent = ReplayConsoleEvent({timestamp});
     const customEvent = TestStubs.Replay.BreadcrumbFrameEvent({
       timestamp: new Date('2023-12-25T00:02:30'),
       data: {

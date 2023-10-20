@@ -4,7 +4,13 @@ import * as ReplaySpanFrameData from 'sentry-fixture/replay/replaySpanFrameData'
 
 import {SlowClickFrame} from 'sentry/utils/replays/types';
 
-export function ConsoleEvent({timestamp, message}: {timestamp: Date; message?: string}) {
+export function ReplayConsoleEvent({
+  timestamp,
+  message,
+}: {
+  timestamp: Date;
+  message?: string;
+}) {
   return ReplayFrameEvents.BreadcrumbFrameEvent({
     timestamp,
     data: {
@@ -16,7 +22,7 @@ export function ConsoleEvent({timestamp, message}: {timestamp: Date; message?: s
   });
 }
 
-export function ClickEvent({timestamp}: {timestamp: Date}) {
+export function ReplayClickEvent({timestamp}: {timestamp: Date}) {
   return ReplayFrameEvents.BreadcrumbFrameEvent({
     timestamp,
     data: {
@@ -31,7 +37,7 @@ export function ClickEvent({timestamp}: {timestamp: Date}) {
   });
 }
 
-export function DeadClickEvent({timestamp}: {timestamp: Date}) {
+export function ReplayDeadClickEvent({timestamp}: {timestamp: Date}) {
   return ReplayFrameEvents.BreadcrumbFrameEvent({
     timestamp,
     data: {
@@ -52,7 +58,7 @@ export function DeadClickEvent({timestamp}: {timestamp: Date}) {
   });
 }
 
-export function NavigateEvent({
+export function ReplayNavigateEvent({
   startTimestamp,
   endTimestamp,
 }: {
@@ -87,7 +93,7 @@ export function NavigateEvent({
   });
 }
 
-export function MemoryEvent({
+export function ReplayMemoryEvent({
   startTimestamp,
   endTimestamp,
 }: {
