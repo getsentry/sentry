@@ -15,6 +15,7 @@ from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
+from sentry.silo import unguarded_write
 from sentry.utils.cache import memoize
 
 
@@ -65,7 +66,9 @@ class GrantExchanger(Mediator):
         return self.grant.expires_at > datetime.now(timezone.utc)
 
     def _delete_grant(self):
-        self.grant.delete()
+        # This will cause a set null to trigger which does not need to cascade an outbox
+        with unguarded_write(router.db_for_write(ApiGrant)):
+            self.grant.delete()
 
     def _create_token(self):
         self.token = ApiToken.objects.create(
@@ -74,7 +77,10 @@ class GrantExchanger(Mediator):
             scope_list=self.sentry_app.scope_list,
             expires_at=token_expiration(),
         )
-        SentryAppInstallation.objects.filter(id=self.install.id).update(api_token=self.token)
+        try:
+            SentryAppInstallation.objects.get(id=self.install.id).update(api_token=self.token)
+        except SentryAppInstallation.DoesNotExist:
+            pass
 
     @memoize
     def grant(self):

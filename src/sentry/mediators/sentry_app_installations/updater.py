@@ -20,9 +20,8 @@ class Updater(Mediator):
     def _update_status(self):
         # convert from string to integer
         if self.status == SentryAppInstallationStatus.INSTALLED_STR:
-            SentryAppInstallation.objects.filter(id=self.sentry_app_installation.id).update(
-                status=SentryAppInstallationStatus.INSTALLED
-            )
+            for install in SentryAppInstallation.objects.filter(id=self.sentry_app_installation.id):
+                install.update(status=SentryAppInstallationStatus.INSTALLED)
 
     def record_analytics(self):
         analytics.record(

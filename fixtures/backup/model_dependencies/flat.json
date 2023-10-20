@@ -8,6 +8,12 @@
     "sentry.apikey",
     "sentry.organization"
   ],
+  "hybridcloud.apitokenreplica": [
+    "sentry.apiapplication",
+    "sentry.apitoken",
+    "sentry.organization",
+    "sentry.user"
+  ],
   "hybridcloud.organizationslugreservationreplica": [
     "sentry.organization",
     "sentry.organizationslugreservation",

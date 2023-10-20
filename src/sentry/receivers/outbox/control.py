@@ -15,7 +15,6 @@ from django.dispatch import receiver
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.sentry_app import SentryApp
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.outbox import OutboxCategory, process_control_outbox
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSignal, organization_service
@@ -55,17 +54,6 @@ def process_api_application_updates(object_identifier: int, region_name: str, **
     ) is None:
         return
     api_application  # Currently we do not sync any other api application changes, but if we did, you can use this variable.
-
-
-@receiver(process_control_outbox, sender=OutboxCategory.SENTRY_APP_INSTALLATION_UPDATE)
-def process_sentry_app_installation_updates(object_identifier: int, region_name: str, **kwds: Any):
-    if (
-        sentry_app_installation := maybe_process_tombstone(
-            SentryAppInstallation, object_identifier, region_name=region_name
-        )
-    ) is None:
-        return
-    sentry_app_installation  # Currently we do not sync any other api application changes, but if we did, you can use this variable.
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.WEBHOOK_PROXY)

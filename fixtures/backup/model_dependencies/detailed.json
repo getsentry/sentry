@@ -54,6 +54,39 @@
     "table_name": "hybridcloud_apikeyreplica",
     "uniques": []
   },
+  "hybridcloud.apitokenreplica": {
+    "dangling": false,
+    "foreign_keys": {
+      "apitoken_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.apitoken",
+        "nullable": false
+      },
+      "application_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.apiapplication",
+        "nullable": true
+      },
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.organization",
+        "nullable": true
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": false
+      }
+    },
+    "model": "hybridcloud.apitokenreplica",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "hybridcloud_apitokenreplica",
+    "uniques": []
+  },
   "hybridcloud.organizationslugreservationreplica": {
     "dangling": false,
     "foreign_keys": {

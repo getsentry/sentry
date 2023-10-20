@@ -185,6 +185,7 @@
   "sentry_apigrant",
   "sentry_apiauthorization",
   "sentry_alertrule",
+  "hybridcloud_apitokenreplica",
   "sentry_snubaqueryeventtype",
   "sentry_sentryappinstallation",
   "sentry_sentryappcomponent",

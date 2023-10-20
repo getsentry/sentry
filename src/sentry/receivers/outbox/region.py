@@ -33,7 +33,7 @@ def process_audit_log_event(payload: Any, **kwds: Any):
         log_rpc_service.record_audit_log(event=AuditLogEvent(**payload))
 
 
-@receiver(process_region_outbox, sender=OutboxCategory.ORGAUTHTOKEN_UPDATE)
+@receiver(process_region_outbox, sender=OutboxCategory.ORGAUTHTOKEN_UPDATE_USED)
 def process_orgauthtoken_update(payload: Any, **kwds: Any):
     if payload is not None:
         orgauthtoken_rpc_service.update_orgauthtoken(**payload)
