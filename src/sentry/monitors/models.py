@@ -81,6 +81,9 @@ class MonitorObjectStatus:
     DELETION_IN_PROGRESS = 3
 
     WAITING = 4
+    """
+    Active but does not have a seat assigned yet
+    """
 
     @classmethod
     def as_choices(cls) -> Sequence[Tuple[int, str]]:
