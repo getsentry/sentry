@@ -12,6 +12,7 @@ import {
   WebVital,
 } from 'sentry/utils/fields';
 import {ON_DEMAND_METRICS_UNSUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
+import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {
   Dataset,
   EventTypes,
@@ -259,8 +260,8 @@ export function datasetSupportedTags(
 }
 
 function transactionSupportedTags(org: Organization) {
-  if (org.features.includes('on-demand-metrics-extraction')) {
-    // on-demand metrics support all tags
+  if (shouldShowOnDemandMetricAlertUI(org)) {
+    // on-demand metrics support all tags, except the ones defined in ommited tags
     return undefined;
   }
   return TRANSACTION_SUPPORTED_TAGS;
@@ -304,7 +305,7 @@ export function datasetOmittedTags(
 }
 
 function transactionOmittedTags(org: Organization) {
-  if (org.features.includes('on-demand-metrics-extraction')) {
+  if (shouldShowOnDemandMetricAlertUI(org)) {
     return [...ON_DEMAND_METRICS_UNSUPPORTED_TAGS];
   }
   return org.features.includes('alert-allow-indexed')

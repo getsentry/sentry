@@ -831,9 +831,17 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       organization.features.includes('mep-rollout-flag') ||
       hasOnDemandMetricAlertFeature(organization);
 
+    // this prevents new transaction alerts from being created
     const isCreatingRule = !ruleId;
 
-    if (isCreatingRule && hasMetricsFeatureFlags && dataset === Dataset.TRANSACTIONS) {
+    // this forces migration of existing transaction alerts to generic metrics
+    const isMigrating = hasMigrationFeatureFlag(organization);
+
+    if (
+      (isCreatingRule || isMigrating) &&
+      hasMetricsFeatureFlags &&
+      dataset === Dataset.TRANSACTIONS
+    ) {
       return Dataset.GENERIC_METRICS;
     }
     return dataset;
@@ -980,7 +988,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const submitDisabled = formDisabled || !this.state.isQueryValid;
 
     const showMigrationWarning =
-      hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
+      !!ruleId && hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
 
     return (
       <Main fullWidth>
