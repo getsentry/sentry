@@ -58,7 +58,6 @@ __all__ = [
     "StatsMixin",
     "control_silo_endpoint",
     "region_silo_endpoint",
-    "pending_silo_endpoint",
 ]
 
 from ..services.hybrid_cloud import rpcmetrics
@@ -660,14 +659,6 @@ Apply to endpoints that exist in REGION silo.
 If a request is received and the application is not in REGION
 mode 404s will be returned.
 """
-
-# Use this decorator to mark endpoints that still need to be marked as either
-# control_silo_endpoint or region_silo_endpoint. Marking a class with
-# pending_silo_endpoint keeps it from tripping SiloLimitCoverageTest, while ensuring
-# that the test will fail if a new endpoint is added with no decorator at all.
-# Eventually we should replace all instances of this decorator and delete it.
-pending_silo_endpoint = EndpointSiloLimit()
-
 
 all_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH)
 """

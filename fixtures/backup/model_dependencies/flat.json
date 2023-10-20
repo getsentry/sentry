@@ -161,7 +161,8 @@
     "sentry.project"
   ],
   "sentry.customdynamicsamplingrule": [
-    "sentry.organization"
+    "sentry.organization",
+    "sentry.user"
   ],
   "sentry.customdynamicsamplingruleproject": [
     "sentry.customdynamicsamplingrule",

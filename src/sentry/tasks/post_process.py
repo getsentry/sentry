@@ -659,7 +659,7 @@ def run_post_process_job(job: PostProcessJob):
                 "sentry.tasks.post_process.post_process_group.exception",
                 tags={
                     "issue_category": issue_category_metric,
-                    "pipeline": pipeline,
+                    "pipeline": pipeline_step.__name__,
                 },
             )
             logger.exception(
@@ -671,7 +671,7 @@ def run_post_process_job(job: PostProcessJob):
                 "sentry.tasks.post_process.post_process_group.completed",
                 tags={
                     "issue_category": issue_category_metric,
-                    "pipeline": pipeline,
+                    "pipeline": pipeline_step.__name__,
                 },
             )
 
@@ -1026,6 +1026,14 @@ def process_commits(job: PostProcessJob) -> None:
                     features.has("organizations:commit-context", event.project.organization)
                     and has_integrations
                 ):
+                    if (
+                        features.has(
+                            "organizations:suspect-commits-all-frames", event.project.organization
+                        )
+                        and not job["group_state"]["is_new"]
+                    ):
+                        return
+
                     cache_key = DEBOUNCE_CACHE_KEY(event.group_id)
                     if cache.get(cache_key):
                         metrics.incr("sentry.tasks.process_commit_context.debounce")

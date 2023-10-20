@@ -1,9 +1,7 @@
 import {Organization} from 'sentry/types';
 import {AggregationKey} from 'sentry/utils/fields';
-import {
-  hasOnDemandMetricWidgetFeature,
-  isOnDemandQueryString,
-} from 'sentry/utils/onDemandMetrics';
+import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
+import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {Widget, WidgetType} from 'sentry/views/dashboards/types';
 
 /**
