@@ -127,7 +127,7 @@ test-js-ci: node-version-check
 
 # COV_ARGS controls extra args passed to pytest to generate covereage
 # It's used in test-python-ci. Typically generated an XML coverage file
-# Except in .github/workflows/codecov_ats_input_periodic_test_run.yml
+# Except in .github/workflows/codecov_per_test_coverage.yml
 # When it's dynamically changed to include --cov-context=test flag
 # See that workflow for more info
 COV_ARGS = --cov-report="xml:.artifacts/python.coverage.xml"
