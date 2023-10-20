@@ -34,6 +34,7 @@ import type {
 } from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {
   getCrashFreeRateSeries,
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
@@ -282,6 +283,7 @@ class TriggersChart extends PureComponent<Props, State> {
       timeWindow,
       aggregate,
       comparisonType,
+      organization,
     } = this.props;
     const {statsPeriod, totalCount} = this.state;
     const statsPeriodOptions = this.availableTimePeriods[timeWindow];
@@ -291,12 +293,13 @@ class TriggersChart extends PureComponent<Props, State> {
       ? errored || errorMessage
       : errored || errorMessage || !isQueryValid;
 
-    const isExtrapolatedChartData =
+    const showExtrapolatedChartData =
+      shouldShowOnDemandMetricAlertUI(organization) &&
       seriesAdditionalInfo?.[timeseriesData[0]?.seriesName]?.isExtrapolatedData;
 
     const totalCountLabel = isSessionAggregate(aggregate)
       ? SESSION_AGGREGATE_TO_HEADING[aggregate]
-      : isExtrapolatedChartData
+      : showExtrapolatedChartData
       ? t('Estimated Transactions')
       : t('Total Transactions');
 
@@ -327,7 +330,7 @@ class TriggersChart extends PureComponent<Props, State> {
             thresholdType={thresholdType}
             aggregate={aggregate}
             minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
-            isExtrapolatedData={isExtrapolatedChartData}
+            isExtrapolatedData={showExtrapolatedChartData}
           />
         )}
 

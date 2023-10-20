@@ -19,6 +19,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import {RuleActionsCategories} from 'sentry/types/alerts';
+import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
 import {Dataset, MetricRule, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
@@ -151,7 +152,10 @@ export default function MetricDetailsBody({
   const isSnoozed = rule.snooze;
   const ruleActionCategory = getAlertRuleActionCategory(rule);
 
-  const isOnDemandAlert = isOnDemandMetricAlert(dataset, aggregate, query);
+  const showOnDemandMetricAlertUI =
+    isOnDemandMetricAlert(dataset, aggregate, query) &&
+    shouldShowOnDemandMetricAlertUI(organization);
+
   const showMigrationWarning =
     hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
 
@@ -228,7 +232,7 @@ export default function MetricDetailsBody({
             interval={getPeriodInterval()}
             query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
             filter={getFilter()}
-            isOnDemandAlert={isOnDemandAlert}
+            isOnDemandAlert={isOnDemandMetricAlert(dataset, aggregate, query)}
           />
           <DetailWrapper>
             <ActivityWrapper>
@@ -263,7 +267,10 @@ export default function MetricDetailsBody({
           </DetailWrapper>
         </Layout.Main>
         <Layout.Side>
-          <MetricDetailsSidebar rule={rule} isOnDemandMetricAlert={isOnDemandAlert} />
+          <MetricDetailsSidebar
+            rule={rule}
+            showOnDemandMetricAlertUI={showOnDemandMetricAlertUI}
+          />
         </Layout.Side>
       </Layout.Body>
     </Fragment>

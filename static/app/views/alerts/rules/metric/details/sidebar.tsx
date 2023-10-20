@@ -28,8 +28,8 @@ import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 interface MetricDetailsSidebarProps {
-  isOnDemandMetricAlert: boolean;
   rule: MetricRule;
+  showOnDemandMetricAlertUI: boolean;
 }
 
 function TriggerDescription({
@@ -123,7 +123,7 @@ function TriggerDescription({
 
 export function MetricDetailsSidebar({
   rule,
-  isOnDemandMetricAlert,
+  showOnDemandMetricAlertUI,
 }: MetricDetailsSidebarProps) {
   // get current status
   const latestIncident = rule.latestIncident;
@@ -184,7 +184,7 @@ export function MetricDetailsSidebar({
           />
         )}
       </SidebarGroup>
-      {isOnDemandMetricAlert && (
+      {showOnDemandMetricAlertUI && (
         <SidebarGroup>
           <Heading>{t('Filters Used')}</Heading>
           <KeyValueTable>

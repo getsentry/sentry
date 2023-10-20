@@ -42,10 +42,8 @@ import {
   isEquation,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
-import {
-  createOnDemandFilterWarning,
-  hasOnDemandMetricWidgetFeature,
-} from 'sentry/utils/onDemandMetrics';
+import {createOnDemandFilterWarning} from 'sentry/utils/onDemandMetrics';
+import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
