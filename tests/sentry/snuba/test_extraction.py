@@ -73,8 +73,6 @@ class TestCreatesOndemandMetricSpec:
             # we dont support custom percentiles that can be mapped to one of standard percentiles
             ("percentile(transaction.duration, 0.5)", "transaction.duration>0"),
             ("percentile(transaction.duration, 0.50)", "transaction.duration>0"),
-            ("percentile(transaction.duration, 0.9)", "transaction.duration>0"),
-            ("percentile(transaction.duration, 0.90)", "transaction.duration>0"),
             ("percentile(transaction.duration, 0.95)", "transaction.duration>0"),
             ("percentile(transaction.duration, 0.99)", "transaction.duration>0"),
             ("percentile(transaction.duration, 1)", "transaction.duration>0"),

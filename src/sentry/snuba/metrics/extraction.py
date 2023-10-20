@@ -116,7 +116,6 @@ _SEARCH_TO_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
     "max": "max",
     "p50": "p50",
     "p75": "p75",
-    "p90": "p90",
     "p95": "p95",
     "p99": "p99",
     "p100": "p100"
@@ -142,7 +141,6 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "max": "d",
     "p50": "d",
     "p75": "d",
-    "p90": "d",
     "p95": "d",
     "p99": "d",
     "p100": "d",
@@ -363,8 +361,6 @@ def _get_percentile_op(args: Sequence[str]) -> Optional[MetricOperationType]:
         return "p50"
     if percentile == "0.75":
         return "p75"
-    if percentile in ["0.9", "0.90"]:
-        return "p90"
     if percentile == "0.95":
         return "p95"
     if percentile == "0.99":
