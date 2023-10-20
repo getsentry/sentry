@@ -104,7 +104,7 @@ class PieChart extends Component<Props> {
     // Note, we only take the first series unit!
     const [firstSeries] = series;
 
-    // Attach a color to each operation. This allows us to match custom legend indicator
+    // Attach a color and index to each operation. This allows us to match custom legend indicator
     // colors to the op's pie chart color AND display the legend items sorted based on their
     // percentage changes.
     const operationToColorMap: {
@@ -263,7 +263,8 @@ const Wrapper = styled('div')`
 
 const LegendWrapper = styled('div')`
   position: absolute;
-  top: 70px;
+  top: 50%;
+  transform: translateY(-60%);
   left: 185px;
   z-index: 100;
 `;
