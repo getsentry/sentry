@@ -1,3 +1,4 @@
+import {ReplayMemoryFrame} from 'sentry-fixture/replay/replaySpanFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
@@ -10,15 +11,15 @@ describe('hydrateSpans', () => {
 
   it('should set the start & end timestamps, & offsetMs for each span in the list', () => {
     const spans = [
-      TestStubs.Replay.MemoryFrame({
+      ReplayMemoryFrame({
         startTimestamp: new Date('2023/12/23'),
         endTimestamp: new Date('2023/12/23 23:00'),
       }),
-      TestStubs.Replay.MemoryFrame({
+      ReplayMemoryFrame({
         startTimestamp: new Date('2023/12/24'),
         endTimestamp: new Date('2023/12/24 23:00'),
       }),
-      TestStubs.Replay.MemoryFrame({
+      ReplayMemoryFrame({
         startTimestamp: new Date('2023/12/25'),
         endTimestamp: new Date('2023/12/25 23:00'),
       }),

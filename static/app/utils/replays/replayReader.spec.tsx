@@ -13,6 +13,7 @@ import {
   ReplayOptionFrameEvent,
   ReplaySpanFrameEvent,
 } from 'sentry-fixture/replay/replayFrameEvents';
+import {ReplayRequestFrame} from 'sentry-fixture/replay/replaySpanFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
@@ -278,7 +279,7 @@ describe('ReplayReader', () => {
           ReplaySpanFrameEvent({
             timestamp: startTimestamp,
             data: {
-              payload: TestStubs.Replay.RequestFrame({
+              payload: ReplayRequestFrame({
                 op: 'resource.fetch',
                 startTimestamp,
                 endTimestamp,

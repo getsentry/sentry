@@ -1,3 +1,7 @@
+import {
+  ReplayRequestFrame,
+  ReplayResourceFrame,
+} from 'sentry-fixture/replay/replaySpanFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -23,19 +27,19 @@ const [
   fetchWithHeaders,
   fetchWithRespBody,
 ] = hydrateSpans(ReplayRecordFixture(), [
-  TestStubs.Replay.ResourceFrame({
+  ReplayResourceFrame({
     op: 'resource.img',
     startTimestamp: new Date(),
     endTimestamp: new Date(),
     description: '/static/img/logo.png',
   }),
-  TestStubs.Replay.RequestFrame({
+  ReplayRequestFrame({
     op: 'resource.fetch',
     startTimestamp: new Date(),
     endTimestamp: new Date(),
     description: '/api/0/issues/1234',
   }),
-  TestStubs.Replay.RequestFrame({
+  ReplayRequestFrame({
     op: 'resource.fetch',
     startTimestamp: new Date(),
     endTimestamp: new Date(),
@@ -47,7 +51,7 @@ const [
       response: {_meta: {warnings: ['URL_SKIPPED']}, headers: {}},
     },
   }),
-  TestStubs.Replay.RequestFrame({
+  ReplayRequestFrame({
     op: 'resource.fetch',
     startTimestamp: new Date(),
     endTimestamp: new Date(),
@@ -67,7 +71,7 @@ const [
       },
     },
   }),
-  TestStubs.Replay.RequestFrame({
+  ReplayRequestFrame({
     op: 'resource.fetch',
     startTimestamp: new Date(),
     endTimestamp: new Date(),
@@ -85,7 +89,7 @@ const [
       },
     },
   }),
-  TestStubs.Replay.RequestFrame({
+  ReplayRequestFrame({
     op: 'resource.fetch',
     startTimestamp: new Date(),
     endTimestamp: new Date(),

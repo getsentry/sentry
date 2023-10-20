@@ -1,4 +1,5 @@
 import {RawReplayErrorFixture} from 'sentry-fixture/replay/error';
+import {ReplayRequestFrame} from 'sentry-fixture/replay/replaySpanFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {
@@ -152,7 +153,7 @@ describe('flattenFrames', () => {
 
   it('should return the FlattenedSpanRange for a single span', () => {
     const frames = hydrateSpans(ReplayRecordFixture(), [
-      TestStubs.Replay.RequestFrame({
+      ReplayRequestFrame({
         op: 'resource.fetch',
         startTimestamp: new Date(10000),
         endTimestamp: new Date(30000),
@@ -170,12 +171,12 @@ describe('flattenFrames', () => {
 
   it('should return two non-overlapping spans', () => {
     const frames = hydrateSpans(ReplayRecordFixture(), [
-      TestStubs.Replay.RequestFrame({
+      ReplayRequestFrame({
         op: 'resource.fetch',
         startTimestamp: new Date(10000),
         endTimestamp: new Date(30000),
       }),
-      TestStubs.Replay.RequestFrame({
+      ReplayRequestFrame({
         op: 'resource.fetch',
         startTimestamp: new Date(60000),
         endTimestamp: new Date(90000),
@@ -200,12 +201,12 @@ describe('flattenFrames', () => {
 
   it('should merge two overlapping spans', () => {
     const frames = hydrateSpans(ReplayRecordFixture(), [
-      TestStubs.Replay.RequestFrame({
+      ReplayRequestFrame({
         op: 'resource.fetch',
         startTimestamp: new Date(10000),
         endTimestamp: new Date(30000),
       }),
-      TestStubs.Replay.RequestFrame({
+      ReplayRequestFrame({
         op: 'resource.fetch',
         startTimestamp: new Date(20000),
         endTimestamp: new Date(40000),
@@ -224,17 +225,17 @@ describe('flattenFrames', () => {
 
   it('should merge overlapping spans that are not first in the list', () => {
     const frames = hydrateSpans(ReplayRecordFixture(), [
-      TestStubs.Replay.RequestFrame({
+      ReplayRequestFrame({
         op: 'resource.fetch',
         startTimestamp: new Date(0),
         endTimestamp: new Date(1000),
       }),
-      TestStubs.Replay.RequestFrame({
+      ReplayRequestFrame({
         op: 'resource.fetch',
         startTimestamp: new Date(10000),
         endTimestamp: new Date(30000),
       }),
-      TestStubs.Replay.RequestFrame({
+      ReplayRequestFrame({
         op: 'resource.fetch',
         startTimestamp: new Date(20000),
         endTimestamp: new Date(40000),

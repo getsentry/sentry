@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import {ReplayClickFrame} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
+import {ReplayLargestContentfulPaintFrame} from 'sentry-fixture/replay/replaySpanFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
@@ -19,7 +20,7 @@ const mockUseLocation = jest.mocked(useLocation);
 
 const ACTION_1_DEBUG = {
   frame: hydrateSpans(ReplayRecordFixture(), [
-    TestStubs.Replay.LargestContentfulPaintFrame({
+    ReplayLargestContentfulPaintFrame({
       startTimestamp: new Date(1663691559961),
       endTimestamp: new Date(1663691559962),
       data: {

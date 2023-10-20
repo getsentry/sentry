@@ -1,6 +1,10 @@
 import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import {ReplayClickFrame} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
+import {
+  ReplayLargestContentfulPaintFrame,
+  ReplayNavigationFrame,
+} from 'sentry-fixture/replay/replaySpanFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
@@ -24,7 +28,7 @@ const CRUMB_1_NAV: ReplayTraceRow = {
   durationMs: 100,
   flattenedTraces: [],
   lcpFrames: hydrateSpans(replayRecord, [
-    TestStubs.Replay.LargestContentfulPaintFrame({
+    ReplayLargestContentfulPaintFrame({
       startTimestamp: new Date(1663691559961),
       endTimestamp: new Date(1663691559962),
       data: {
@@ -37,7 +41,7 @@ const CRUMB_1_NAV: ReplayTraceRow = {
   offsetMs: 100,
   paintFrames: [],
   replayFrame: hydrateSpans(replayRecord, [
-    TestStubs.Replay.NavigationFrame({
+    ReplayNavigationFrame({
       startTimestamp: new Date(1663691559961),
       endTimestamp: new Date(1663691559962),
     }),

@@ -51,7 +51,7 @@ export function ReplayBreadcrumbFrameEvent(
  * SpanFrameEvent({
  *   timestamp,
  *   data: {
- *     payload: TestStubs.Replay.SpanFrame({
+ *     payload: ReplaySpanFrame({
  *      data: TestStubs.ReplaySpanFrameData.FOO({...})
  *     }),
  *   },

@@ -1,4 +1,10 @@
 import {act} from 'react-test-renderer';
+import {
+  ReplayNavigationFrame,
+  ReplayNavigationPushFrame,
+  ReplayRequestFrame,
+  ReplayResourceFrame,
+} from 'sentry-fixture/replay/replaySpanFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
@@ -34,7 +40,7 @@ const [
   SPAN_7_FETCH_GET,
   SPAN_8_FETCH_POST,
 ] = hydrateSpans(ReplayRecordFixture(), [
-  TestStubs.Replay.NavigationFrame({
+  ReplayNavigationFrame({
     op: 'navigation.navigate',
     description: 'http://localhost:3000/',
     startTimestamp: new Date(1663131080.5554),
@@ -43,19 +49,19 @@ const [
       size: 1334,
     },
   }),
-  TestStubs.Replay.ResourceFrame({
+  ReplayResourceFrame({
     op: 'resource.link',
     description: 'http://localhost:3000/static/css/main.1856e8e3.chunk.css',
     startTimestamp: new Date(1663131080.5767),
     endTimestamp: new Date(1663131080.5951),
   }),
-  TestStubs.Replay.ResourceFrame({
+  ReplayResourceFrame({
     op: 'resource.script',
     description: 'http://localhost:3000/static/js/2.3b866bed.chunk.js',
     startTimestamp: new Date(1663131080.5770998),
     endTimestamp: new Date(1663131080.5979),
   }),
-  TestStubs.Replay.RequestFrame({
+  ReplayRequestFrame({
     op: 'resource.fetch',
     description: 'https://pokeapi.co/api/v2/pokemon',
     startTimestamp: new Date(1663131080.641),
@@ -65,26 +71,26 @@ const [
       statusCode: 200,
     },
   }),
-  TestStubs.Replay.ResourceFrame({
+  ReplayResourceFrame({
     op: 'resource.img',
     description: 'http://localhost:3000/static/media/logo.ddd5084d.png',
     startTimestamp: new Date(1663131080.6422),
     endTimestamp: new Date(1663131080.6441),
   }),
-  TestStubs.Replay.ResourceFrame({
+  ReplayResourceFrame({
     op: 'resource.css',
     description:
       'http://localhost:3000/static/media/glyphicons-halflings-regular.448c34a5.woff2',
     startTimestamp: new Date(1663131080.6447997),
     endTimestamp: new Date(1663131080.6548998),
   }),
-  TestStubs.Replay.NavigationPushFrame({
+  ReplayNavigationPushFrame({
     op: 'navigation.push',
     description: '/mypokemon',
     startTimestamp: new Date(1663131082.346),
     endTimestamp: new Date(1663131082.346),
   }),
-  TestStubs.Replay.RequestFrame({
+  ReplayRequestFrame({
     op: 'resource.fetch',
     description: 'https://pokeapi.co/api/v2/pokemon/pikachu',
     startTimestamp: new Date(1663131092.471),
@@ -94,7 +100,7 @@ const [
       statusCode: 200,
     },
   }),
-  TestStubs.Replay.RequestFrame({
+  ReplayRequestFrame({
     op: 'resource.fetch',
     description: 'https://pokeapi.co/api/v2/pokemon/mewtu',
     startTimestamp: new Date(1663131120.198),

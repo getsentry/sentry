@@ -22,7 +22,7 @@ function BaseFrame<T extends TSpanFrame['op']>(
   } as MockFrame<T>;
 }
 
-export function LargestContentfulPaintFrame(
+export function ReplayLargestContentfulPaintFrame(
   fields: TestableFrame<'largest-contentful-paint'>
 ): MockFrame<'largest-contentful-paint'> {
   return BaseFrame('largest-contentful-paint', {
@@ -35,7 +35,7 @@ export function LargestContentfulPaintFrame(
   });
 }
 
-export function MemoryFrame(fields: TestableFrame<'memory'>): MockFrame<'memory'> {
+export function ReplayMemoryFrame(fields: TestableFrame<'memory'>): MockFrame<'memory'> {
   return BaseFrame('memory', {
     ...fields,
     data: {
@@ -48,7 +48,7 @@ export function MemoryFrame(fields: TestableFrame<'memory'>): MockFrame<'memory'
   });
 }
 
-export function NavigationFrame(
+export function ReplayNavigationFrame(
   fields: TestableFrame<
     'navigation.navigate' | 'navigation.reload' | 'navigation.back_forward'
   >
@@ -71,7 +71,7 @@ export function NavigationFrame(
   });
 }
 
-export function NavigationPushFrame(
+export function ReplayNavigationPushFrame(
   fields: TestableFrame<'navigation.push'>
 ): MockFrame<'navigation.push'> {
   return BaseFrame('navigation.push', {
@@ -82,11 +82,11 @@ export function NavigationPushFrame(
   });
 }
 
-export function PaintFrame(fields: TestableFrame<'paint'>): MockFrame<'paint'> {
+export function ReplayPaintFrame(fields: TestableFrame<'paint'>): MockFrame<'paint'> {
   return BaseFrame('paint', fields);
 }
 
-export function RequestFrame(
+export function ReplayRequestFrame(
   fields: TestableFrame<'resource.fetch' | 'resource.xhr'>
 ): MockFrame<'resource.fetch' | 'resource.xhr'> {
   return BaseFrame(fields.op ?? 'resource.xhr', {
@@ -102,7 +102,7 @@ export function RequestFrame(
   });
 }
 
-export function ResourceFrame(
+export function ReplayResourceFrame(
   fields: TestableFrame<
     | 'resource.css'
     | 'resource.iframe'

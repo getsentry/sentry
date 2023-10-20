@@ -1,3 +1,7 @@
+import {
+  ReplayNavigationFrame,
+  ReplayNavigationPushFrame,
+} from 'sentry-fixture/replay/replaySpanFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import getCurrentUrl from 'sentry/utils/replays/getCurrentUrl';
@@ -17,13 +21,13 @@ const replayRecord = ReplayRecordFixture({
 const PAGELOAD_FRAME = replayInitBreadcrumb(replayRecord);
 
 const [NAV_FRAME, NEW_DOMAIN_FRAME] = hydrateSpans(replayRecord, [
-  TestStubs.Replay.NavigationPushFrame({
+  ReplayNavigationPushFrame({
     description:
       '/report/1655300817078_https%3A%2F%2Fmaxcdn.bootstrapcdn.com%2Fbootstrap%2F3.3.7%2Fjs%2Fbootstrap.min.js',
     startTimestamp: NAVIGATION_DATE,
     endTimestamp: NAVIGATION_DATE,
   }),
-  TestStubs.Replay.NavigationFrame({
+  ReplayNavigationFrame({
     description: 'https://a062-174-94-6-155.ngrok.io/report/jquery.min.js',
     startTimestamp: NEW_DOMAIN_DATE,
     endTimestamp: NEW_DOMAIN_DATE,
