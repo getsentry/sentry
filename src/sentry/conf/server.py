@@ -2692,6 +2692,10 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                 "max_replication_slots=1",
                 "-c",
                 "max_wal_senders=1",
+                "-c",
+                "fsync=off",
+                "-c",
+                "full_page_writes=off",
             ],
             "entrypoint": "/cdc/postgres-entrypoint.sh" if settings.SENTRY_USE_CDC_DEV else None,
         }
