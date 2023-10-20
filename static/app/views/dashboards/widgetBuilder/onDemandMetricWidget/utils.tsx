@@ -23,7 +23,7 @@ export function isOnDemandMetricWidget(widget: Widget): boolean {
   const columns = widget.queries.flatMap(query => query.columns);
 
   if (columns.length > 0) {
-    return false;
+    // return false;
   }
 
   const conditions = widget.queries.flatMap(query => query.conditions);

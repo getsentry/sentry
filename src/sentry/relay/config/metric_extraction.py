@@ -1,6 +1,17 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Literal, Optional, Sequence, Set, Tuple, TypedDict, Union
+from typing import (
+    Any,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    TypedDict,
+    Union,
+)
 
 from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
@@ -13,6 +24,7 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
+from sentry.search.events.builder import QueryBuilder
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     MetricSpec,
@@ -21,7 +33,9 @@ from sentry.snuba.metrics.extraction import (
     should_use_on_demand_metrics,
 )
 from sentry.snuba.models import SnubaQuery
+from sentry.snuba.referrer import Referrer
 from sentry.utils import metrics
+from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +50,10 @@ _MAX_ON_DEMAND_ALERTS = 50
 _MAX_ON_DEMAND_WIDGETS = 100
 
 HashedMetricSpec = Tuple[str, MetricSpec]
+
+
+class HighCardinalityWidgetException(Exception):
+    pass
 
 
 class MetricExtractionConfig(TypedDict):
@@ -225,6 +243,9 @@ def _convert_widget_query_to_metric(
     if not widget_query.aggregates:
         return metrics_specs
 
+    if not _is_widget_query_cardinality_allowed(widget_query):
+        return metrics_specs
+
     for aggregate in widget_query.aggregates:
         metrics.incr(
             "on_demand_metrics.before_widget_spec_generation",
@@ -237,6 +258,7 @@ def _convert_widget_query_to_metric(
             Dataset.PerformanceMetrics.value,
             aggregate,
             widget_query.conditions,
+            widget_query.columns,
             prefilling,
         ):
             _log_on_demand_metric_spec(
@@ -257,8 +279,54 @@ def _convert_widget_query_to_metric(
     return metrics_specs
 
 
+def _is_widget_query_cardinality_allowed(widget_query: DashboardWidgetQuery):
+    """
+    Checks cardinality of existing widget queries before allowing the metric spec, so that
+    group by clauses with high-cardinality tags are not added to the on_demand metric.
+
+    New queries will be checked upon creation and not allowed at that time.
+    """
+    params: dict[str, Any] = {}
+    params["statsPeriod"] = "1d"
+
+    query_killswitch = options.get("on_demand.max_widget_cardinality.killswitch")
+    if query_killswitch:
+        return False
+
+    max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.count")
+    cache_key = f"check-widget-query-cardinality:{widget_query.id}"
+    cardinality_allowed = cache.get(cache_key)
+
+    if cardinality_allowed is not None:
+        return cardinality_allowed
+
+    unique_columns = [f"count_unique({column})" for column in widget_query.columns]
+
+    query_builder = QueryBuilder(
+        dataset=Dataset.Discover, params=params, selected_columns=unique_columns
+    )
+
+    results = query_builder.run_query(Referrer.METRIC_EXTRACTION_CARDINALITY_CHECK.value)
+
+    for index, column in enumerate(widget_query.columns):
+        count = results["data"][unique_columns[index]]
+        if count > max_cardinality_allowed:
+            cache.set(cache_key, False)
+            raise HighCardinalityWidgetException(
+                f"Cardinality exceeded for dashboard_widget_query:{widget_query.id} with count:{count} and column:{column}"
+            )
+
+    cache.set(cache_key, True)
+    return True
+
+
 def _convert_aggregate_and_query_to_metric(
-    project: Project, dataset: str, aggregate: str, query: str, prefilling: bool
+    project: Project,
+    dataset: str,
+    aggregate: str,
+    query: str,
+    columns: Sequence[str],
+    prefilling: bool,
 ) -> Optional[HashedMetricSpec]:
     """
     Converts an aggregate and a query to a metric spec with its hash value.
