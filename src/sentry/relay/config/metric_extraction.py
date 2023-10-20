@@ -151,7 +151,7 @@ def _get_widget_metric_specs(
 ) -> List[HashedMetricSpec]:
     if not (
         "organizations:on-demand-metrics-extraction" in enabled_features
-        and "organizations:on-demand-metrics-widgets-extraction" in enabled_features
+        and "organizations:on-demand-metrics-extraction-widgets" in enabled_features
     ):
         return []
 
