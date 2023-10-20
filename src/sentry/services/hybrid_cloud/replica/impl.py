@@ -7,7 +7,7 @@ from sentry.db.models import BaseModel, FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
 from sentry.db.postgres.transactions import enforce_constraints
-from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica
+from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
 from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
@@ -21,6 +21,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
 from sentry.models.organizationslugreservationreplica import OrganizationSlugReservationReplica
+from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.outbox import OutboxCategory
 from sentry.models.team import Team
 from sentry.models.teamreplica import TeamReplica
@@ -32,6 +33,7 @@ from sentry.services.hybrid_cloud.auth import (
     RpcAuthProvider,
 )
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberTeam, RpcTeam
+from sentry.services.hybrid_cloud.orgauthtoken.model import RpcOrgAuthToken
 from sentry.services.hybrid_cloud.replica.service import ControlReplicaService, RegionReplicaService
 
 
@@ -154,6 +156,23 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
             user_id=api_token.user_id,
         )
         handle_replication(ApiToken, destination)
+
+    def upsert_replicated_org_auth_token(self, *, token: RpcOrgAuthToken, region_name: str) -> None:
+        try:
+            organization = Organization.objects.get(id=token.organization_id)
+        except Organization.DoesNotExist:
+            return
+
+        destination = OrgAuthTokenReplica(
+            organization=organization,
+            orgauthtoken_id=token.id,
+            token_hashed=token.token_hashed,
+            name=token.name,
+            scope_list=token.scope_list,
+            created_by_id=token.created_by_id,  # type: ignore
+            date_deactivated=token.date_deactivated,
+        )
+        handle_replication(OrgAuthToken, destination)
 
     def upsert_replicated_auth_provider(
         self, *, auth_provider: RpcAuthProvider, region_name: str
