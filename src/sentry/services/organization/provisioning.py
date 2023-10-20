@@ -1,13 +1,15 @@
 from typing import Any, Optional, Set, Tuple
 
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.dispatch import receiver
 from pydantic import ValidationError
 from sentry_sdk import capture_exception
 
+from sentry import options
 from sentry.hybridcloud.rpc_services.region_organization_provisioning import (
     region_organization_provisioning_rpc_service,
 )
+from sentry.models.organization import Organization
 from sentry.models.organizationslugreservation import (
     OrganizationSlugReservation,
     OrganizationSlugReservationType,
@@ -25,6 +27,10 @@ class OrganizationSlugCollisionException(Exception):
 
 class OrganizationProvisioningException(Exception):
     pass
+
+
+def should_use_control_provisioning() -> bool:
+    return options.get("hybrid_cloud.control-organization-provisioning")
 
 
 class OrganizationProvisioningService:
@@ -45,11 +51,34 @@ class OrganizationProvisioningService:
 
         return region_name
 
+    def _control_based_provisioning(
+        self,
+        provisioning_options: OrganizationProvisioningOptions,
+        region_name: str,
+    ) -> RpcOrganization:
+        from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
+            RpcOrganizationSlugReservation,
+            control_organization_provisioning_rpc_service,
+        )
+
+        rpc_org_slug_reservation: RpcOrganizationSlugReservation = (
+            control_organization_provisioning_rpc_service.provision_organization(
+                region_name=region_name, org_provision_args=provisioning_options
+            )
+        )
+
+        rpc_org = organization_service.get(id=rpc_org_slug_reservation.organization_id)
+
+        if rpc_org is None:
+            raise OrganizationProvisioningException("Provisioned organization was not found")
+
+        return rpc_org
+
     def provision_organization_in_region(
         self,
         provisioning_options: OrganizationProvisioningOptions,
         region_name: Optional[str] = None,
-    ):
+    ) -> RpcOrganization:
         """
         Creates a new Organization in the destination region. If called from a
         region silo without a region_name, the local region name will be used.
@@ -62,44 +91,27 @@ class OrganizationProvisioningService:
         """
 
         destination_region_name = self._validate_or_default_region(region_name=region_name)
-
-        from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
-            RpcOrganizationSlugReservation,
-            control_organization_provisioning_rpc_service,
-        )
-
-        rpc_org_slug_reservation: RpcOrganizationSlugReservation = (
-            control_organization_provisioning_rpc_service.provision_organization(
-                region_name=destination_region_name, org_provision_args=provisioning_options
+        if should_use_control_provisioning():
+            return self._control_based_provisioning(
+                provisioning_options=provisioning_options, region_name=destination_region_name
             )
+
+        from sentry.services.hybrid_cloud.organization_provisioning import (
+            organization_provisioning_service as rpc_org_provisioning_service,
         )
 
-        rpc_org = organization_service.get(id=rpc_org_slug_reservation.organization_id)
-
-        if rpc_org is None:
-            raise OrganizationProvisioningException("Provisioned organization was not found")
-
-        return rpc_org
+        return rpc_org_provisioning_service.provision_organization(
+            region_name=destination_region_name, org_provision_args=provisioning_options
+        )
 
     def idempotent_provision_organization_in_region(
         self, provisioning_options: OrganizationProvisioningOptions, region_name: Optional[str]
     ) -> RpcOrganization:
         raise NotImplementedError()
 
-    def change_organization_slug(
+    def _control_based_slug_change(
         self, organization_id: int, slug: str, region_name: Optional[str] = None
-    ) -> RpcOrganization:
-        """
-        Updates an organization with the given slug if available.
-
-         This is currently database backed, but will be switched to be
-         RPC based in the near future.
-        :param organization_id: the ID of the organization whose slug to change
-        :param slug: The desired slug for the organization
-        :param region_name: The region where the organization is located
-        :return:
-        """
-
+    ):
         destination_region_name = self._validate_or_default_region(region_name=region_name)
 
         from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
@@ -123,7 +135,39 @@ class OrganizationProvisioningService:
                 "Organization not found despite slug change succeeding"
             )
 
-        return rpc_org
+    def change_organization_slug(
+        self, organization_id: int, slug: str, region_name: Optional[str] = None
+    ) -> RpcOrganization:
+        """
+        Updates an organization with the given slug if available.
+
+         This is currently database backed, but will be switched to be
+         RPC based in the near future.
+        :param organization_id: the ID of the organization whose slug to change
+        :param slug: The desired slug for the organization
+        :param region_name: The region where the organization is located
+        :return:
+        """
+
+        if should_use_control_provisioning():
+            return self._control_based_slug_change(
+                organization_id=organization_id, slug=slug, region_name=region_name
+            )
+
+        # Default local monolith implementation
+        try:
+            with transaction.atomic(using=router.db_for_write(Organization)):
+                organization = Organization.objects.get(id=organization_id)
+                organization.slug = slug
+                organization.save()
+
+                from sentry.services.hybrid_cloud.organization.serial import (
+                    serialize_rpc_organization,
+                )
+
+                return serialize_rpc_organization(org=organization)
+        except IntegrityError:
+            raise OrganizationSlugCollisionException()
 
     def bulk_create_organization_slugs(
         self, org_ids_and_slugs: Set[Tuple[int, str]], region_name: Optional[str] = None
@@ -194,6 +238,11 @@ def handle_organization_provisioning_outbox_payload(
 def process_provision_organization_outbox(
     object_identifier: int, region_name: str, payload: Any, **kwds: Any
 ):
+    if not should_use_control_provisioning():
+        raise Exception(
+            "Outbox handler should not be triggered while control provisioning disabled"
+        )
+
     try:
         provision_payload = OrganizationProvisioningOptions.parse_obj(payload)
     except ValidationError as e:
@@ -217,6 +266,7 @@ def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reserva
     :param org_slug_reservation_id: the id of the organization slug reservation ID being updated
     :return:
     """
+
     org_slug_reservation_qs = OrganizationSlugReservation.objects.filter(
         id=org_slug_reservation_id,
         reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS,
@@ -225,6 +275,11 @@ def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reserva
     # Only process temporary aliases for slug swaps
     if not org_slug_reservation_qs.exists():
         return
+
+    if not should_use_control_provisioning():
+        raise Exception(
+            "Outbox handler should not be triggered while control provisioning disabled"
+        )
 
     org_slug_reservation = org_slug_reservation_qs.first()
 

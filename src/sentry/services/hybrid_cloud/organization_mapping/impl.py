@@ -11,6 +11,7 @@ from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMappingUpdate,
 )
 from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
+from sentry.services.organization import should_use_control_provisioning
 from sentry.silo import unguarded_write
 
 
@@ -84,6 +85,22 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
 
         return True
 
+    def _upsert_organization_slug_reservation_for_monolith(
+        self, organization_id: int, mapping_update: RpcOrganizationMappingUpdate
+    ):
+        org_slug_reservation_qs = OrganizationSlugReservation.objects.filter(
+            organization_id=organization_id
+        )
+        if not org_slug_reservation_qs.exists():
+            OrganizationSlugReservation(
+                region_name=mapping_update.region_name,
+                slug=mapping_update.slug,
+                organization_id=organization_id,
+                user_id=-1,
+            ).save(unsafe_write=True)
+        elif org_slug_reservation_qs.first().slug != mapping_update.slug:
+            org_slug_reservation_qs.first().update(slug=mapping_update.slug, unsafe_write=True)
+
     def upsert(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
         update_dict: Dict[str, Any] = dict(
             name=update.name,
@@ -95,16 +112,23 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         if update.customer_id is not None:
             update_dict["customer_id"] = update.customer_id[0]
 
-        mapping_is_valid = self._check_organization_mapping_integrity(
-            org_id=organization_id, update=update
-        )
-        if not mapping_is_valid:
-            return
-
         with unguarded_write(using=router.db_for_write(OrganizationMapping)):
+            use_control_provisioning = should_use_control_provisioning()
+            if use_control_provisioning:
+                mapping_is_valid = self._check_organization_mapping_integrity(
+                    org_id=organization_id, update=update
+                )
+                if not mapping_is_valid:
+                    return
+
             OrganizationMapping.objects.update_or_create(
                 organization_id=organization_id, defaults=update_dict
             )
+
+            if not use_control_provisioning:
+                self._upsert_organization_slug_reservation_for_monolith(
+                    organization_id=organization_id, mapping_update=update
+                )
 
     def delete(self, organization_id: int) -> None:
         OrganizationMapping.objects.filter(organization_id=organization_id).delete()

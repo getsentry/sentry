@@ -83,6 +83,7 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
+from sentry.models.outbox import outbox_context
 from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
@@ -286,11 +287,11 @@ class Factories:
 
         with org_creation_context():
             region_name = region.name if region is not None else get_local_region().name
-            org: Organization = Organization.objects.create(name=name, **kwargs)
+            with outbox_context(flush=False):
+                org: Organization = Organization.objects.create(name=name, **kwargs)
 
             with assume_test_silo_mode(SiloMode.CONTROL):
                 # Organization mapping creation relies on having a matching org slug reservation
-                #
                 OrganizationSlugReservation(
                     organization_id=org.id,
                     region_name=region_name,
