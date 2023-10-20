@@ -107,7 +107,8 @@ def _ensure_monitor_with_config(
                 "config": validated_config,
             },
         )
-        signal_monitor_created(project, None, True)
+        if created:
+            signal_monitor_created(project, None, True)
 
     # Update existing monitor
     if monitor and not created and monitor.config != validated_config:
