@@ -1,9 +1,9 @@
 import {browserHistory} from 'react-router';
 import type {Location} from 'history';
-import {ReplayClickFrame} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
+import {ReplayClickFrameFixture} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
 import {
-  ReplayLargestContentfulPaintFrame,
-  ReplayNavigationFrame,
+  ReplayLargestContentfulPaintFrameFixture,
+  ReplayNavigationFrameFixture,
 } from 'sentry-fixture/replay/replaySpanFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
@@ -28,7 +28,7 @@ const CRUMB_1_NAV: ReplayTraceRow = {
   durationMs: 100,
   flattenedTraces: [],
   lcpFrames: hydrateSpans(replayRecord, [
-    ReplayLargestContentfulPaintFrame({
+    ReplayLargestContentfulPaintFrameFixture({
       startTimestamp: new Date(1663691559961),
       endTimestamp: new Date(1663691559962),
       data: {
@@ -41,7 +41,7 @@ const CRUMB_1_NAV: ReplayTraceRow = {
   offsetMs: 100,
   paintFrames: [],
   replayFrame: hydrateSpans(replayRecord, [
-    ReplayNavigationFrame({
+    ReplayNavigationFrameFixture({
       startTimestamp: new Date(1663691559961),
       endTimestamp: new Date(1663691559962),
     }),
@@ -57,7 +57,7 @@ const CRUMB_2_CLICK: ReplayTraceRow = {
   offsetMs: 100,
   paintFrames: [],
   replayFrame: hydrateBreadcrumbs(replayRecord, [
-    ReplayClickFrame({
+    ReplayClickFrameFixture({
       timestamp: new Date(1663691559961),
     }),
   ])[0],

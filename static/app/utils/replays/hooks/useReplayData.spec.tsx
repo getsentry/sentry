@@ -1,5 +1,8 @@
 import {duration} from 'moment';
-import {ReplayConsoleEvent, ReplayNavigateEvent} from 'sentry-fixture/replay/helpers';
+import {
+  ReplayConsoleEventFixture,
+  ReplayNavigateEventFixture,
+} from 'sentry-fixture/replay/helpers';
 import {RRWebInitFrameEvents} from 'sentry-fixture/replay/rrweb';
 import {ReplayErrorFixture} from 'sentry-fixture/replayError';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
@@ -123,8 +126,8 @@ describe('useReplayData', () => {
       timestamp: startedAt,
     });
     const mockSegmentResponse2 = [
-      ReplayConsoleEvent({timestamp: startedAt}),
-      ReplayNavigateEvent({
+      ReplayConsoleEventFixture({timestamp: startedAt}),
+      ReplayNavigateEventFixture({
         startTimestamp: startedAt,
         endTimestamp: finishedAt,
       }),

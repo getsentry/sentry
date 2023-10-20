@@ -13,7 +13,7 @@ type MockFrame<Cat extends RawBreadcrumbFrame['category']> = Extract<
   {category: Cat}
 >;
 
-export function ReplayConsoleFrame(
+export function ReplayConsoleFrameFixture(
   fields: TestableFrame<'console'>
 ): MockFrame<'console'> {
   return {
@@ -28,7 +28,7 @@ export function ReplayConsoleFrame(
   };
 }
 
-export function ReplayClickFrame(
+export function ReplayClickFrameFixture(
   fields: TestableFrame<'ui.click'>
 ): MockFrame<'ui.click'> {
   return {
@@ -40,7 +40,7 @@ export function ReplayClickFrame(
   };
 }
 
-export function ReplayInputFrame(
+export function ReplayInputFrameFixture(
   fields: TestableFrame<'ui.input'>
 ): MockFrame<'ui.input'> {
   return {
@@ -51,7 +51,7 @@ export function ReplayInputFrame(
   };
 }
 
-export function ReplayKeyboardEventFrame(
+export function ReplayKeyboardEventFrameFixture(
   fields: TestableFrame<'ui.keyDown'>
 ): MockFrame<'ui.keyDown'> {
   return {
@@ -69,7 +69,9 @@ export function ReplayKeyboardEventFrame(
   };
 }
 
-export function ReplayBlurFrame(fields: TestableFrame<'ui.blur'>): MockFrame<'ui.blur'> {
+export function ReplayBlurFrameFixture(
+  fields: TestableFrame<'ui.blur'>
+): MockFrame<'ui.blur'> {
   return {
     category: 'ui.blur',
     message: fields.message,
@@ -78,7 +80,7 @@ export function ReplayBlurFrame(fields: TestableFrame<'ui.blur'>): MockFrame<'ui
   };
 }
 
-export function ReplayFocusFrame(
+export function ReplayFocusFrameFixture(
   fields: TestableFrame<'ui.focus'>
 ): MockFrame<'ui.focus'> {
   return {
@@ -89,7 +91,7 @@ export function ReplayFocusFrame(
   };
 }
 
-export function ReplaySlowClickFrame(
+export function ReplaySlowClickFrameFixture(
   fields: TestableFrame<'ui.slowClickDetected'>
 ): MockFrame<'ui.slowClickDetected'> {
   return {
@@ -106,7 +108,7 @@ export function ReplaySlowClickFrame(
   };
 }
 
-export function ReplayMutationFrame(
+export function ReplayMutationFrameFixture(
   fields: TestableFrame<'replay.mutations'>
 ): MockFrame<'replay.mutations'> {
   return {
@@ -121,7 +123,7 @@ export function ReplayMutationFrame(
   };
 }
 
-export function ReplayNavFrame(
+export function ReplayNavFrameFixture(
   fields: TestableFrame<'navigation'>
 ): MockFrame<'navigation'> {
   return {

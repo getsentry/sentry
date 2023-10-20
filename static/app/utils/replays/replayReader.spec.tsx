@@ -1,19 +1,19 @@
 import {EventType} from '@sentry-internal/rrweb';
 import {
-  ReplayClickEvent,
-  ReplayConsoleEvent,
-  ReplayDeadClickEvent,
-  ReplayMemoryEvent,
-  ReplayNavigateEvent,
+  ReplayClickEventFixture,
+  ReplayConsoleEventFixture,
+  ReplayDeadClickEventFixture,
+  ReplayMemoryEventFixture,
+  ReplayNavigateEventFixture,
 } from 'sentry-fixture/replay/helpers';
-import {ReplayNavFrame} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
+import {ReplayNavFrameFixture} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
 import {
-  ReplayBreadcrumbFrameEvent,
-  ReplayOptionFrame,
-  ReplayOptionFrameEvent,
-  ReplaySpanFrameEvent,
+  ReplayBreadcrumbFrameEventFixture,
+  ReplayOptionFrameEventFixture,
+  ReplayOptionFrameFixture,
+  ReplaySpanFrameEventFixture,
 } from 'sentry-fixture/replay/replayFrameEvents';
-import {ReplayRequestFrame} from 'sentry-fixture/replay/replaySpanFrameData';
+import {ReplayRequestFrameFixture} from 'sentry-fixture/replay/replaySpanFrameData';
 import {RRWebFullSnapshotFrameEvent} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
@@ -52,8 +52,8 @@ describe('ReplayReader', () => {
 
     const replay = ReplayReader.factory({
       attachments: [
-        ReplayConsoleEvent({timestamp: minuteZero}),
-        ReplayConsoleEvent({timestamp: minuteTen}),
+        ReplayConsoleEventFixture({timestamp: minuteZero}),
+        ReplayConsoleEventFixture({timestamp: minuteTen}),
       ],
       errors: [],
       replayRecord: ReplayRecordFixture({
@@ -85,39 +85,39 @@ describe('ReplayReader', () => {
     const secondTimestamp = new Date('2023-12-25T00:04:00');
     const thirdTimestamp = new Date('2023-12-25T00:05:00');
 
-    const optionsFrame = ReplayOptionFrame({});
-    const optionsEvent = ReplayOptionFrameEvent({
+    const optionsFrame = ReplayOptionFrameFixture({});
+    const optionsEvent = ReplayOptionFrameEventFixture({
       timestamp,
       data: {payload: optionsFrame},
     });
     const firstDiv = RRWebFullSnapshotFrameEvent({timestamp});
     const secondDiv = RRWebFullSnapshotFrameEvent({timestamp});
-    const clickEvent = ReplayClickEvent({timestamp});
-    const secondClickEvent = ReplayClickEvent({timestamp: secondTimestamp});
-    const thirdClickEvent = ReplayClickEvent({timestamp: thirdTimestamp});
-    const deadClickEvent = ReplayDeadClickEvent({timestamp});
-    const firstMemory = ReplayMemoryEvent({
+    const clickEvent = ReplayClickEventFixture({timestamp});
+    const secondClickEvent = ReplayClickEventFixture({timestamp: secondTimestamp});
+    const thirdClickEvent = ReplayClickEventFixture({timestamp: thirdTimestamp});
+    const deadClickEvent = ReplayDeadClickEventFixture({timestamp});
+    const firstMemory = ReplayMemoryEventFixture({
       startTimestamp: timestamp,
       endTimestamp: timestamp,
     });
-    const secondMemory = ReplayMemoryEvent({
+    const secondMemory = ReplayMemoryEventFixture({
       startTimestamp: timestamp,
       endTimestamp: timestamp,
     });
-    const navigationEvent = ReplayNavigateEvent({
+    const navigationEvent = ReplayNavigateEventFixture({
       startTimestamp: new Date('2023-12-25T00:03:00'),
       endTimestamp: new Date('2023-12-25T00:03:30'),
     });
-    const navCrumb = ReplayBreadcrumbFrameEvent({
+    const navCrumb = ReplayBreadcrumbFrameEventFixture({
       timestamp: new Date('2023-12-25T00:03:00'),
       data: {
-        payload: ReplayNavFrame({
+        payload: ReplayNavFrameFixture({
           timestamp: new Date('2023-12-25T00:03:00'),
         }),
       },
     });
-    const consoleEvent = ReplayConsoleEvent({timestamp});
-    const customEvent = ReplayBreadcrumbFrameEvent({
+    const consoleEvent = ReplayConsoleEventFixture({timestamp});
+    const customEvent = ReplayBreadcrumbFrameEventFixture({
       timestamp: new Date('2023-12-25T00:02:30'),
       data: {
         payload: {
@@ -220,11 +220,11 @@ describe('ReplayReader', () => {
 
   it('shoud return the SDK config if there is a RecordingOptions event found', () => {
     const timestamp = new Date();
-    const optionsFrame = ReplayOptionFrame({});
+    const optionsFrame = ReplayOptionFrameFixture({});
 
     const replay = ReplayReader.factory({
       attachments: [
-        ReplayOptionFrameEvent({
+        ReplayOptionFrameEventFixture({
           timestamp,
           data: {payload: optionsFrame},
         }),
@@ -242,10 +242,10 @@ describe('ReplayReader', () => {
 
       const replay = ReplayReader.factory({
         attachments: [
-          ReplayOptionFrameEvent({
+          ReplayOptionFrameEventFixture({
             timestamp,
             data: {
-              payload: ReplayOptionFrame({
+              payload: ReplayOptionFrameFixture({
                 networkDetailHasUrls: true,
               }),
             },
@@ -277,10 +277,10 @@ describe('ReplayReader', () => {
       const endTimestamp = new Date();
       const replay = ReplayReader.factory({
         attachments: [
-          ReplaySpanFrameEvent({
+          ReplaySpanFrameEventFixture({
             timestamp: startTimestamp,
             data: {
-              payload: ReplayRequestFrame({
+              payload: ReplayRequestFrameFixture({
                 op: 'resource.fetch',
                 startTimestamp,
                 endTimestamp,

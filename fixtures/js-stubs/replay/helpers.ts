@@ -1,30 +1,30 @@
 import {
-  ReplayClickFrame,
-  ReplayConsoleFrame,
-  ReplaySlowClickFrame,
+  ReplayClickFrameFixture,
+  ReplayConsoleFrameFixture,
+  ReplaySlowClickFrameFixture,
 } from 'sentry-fixture/replay/replayBreadcrumbFrameData';
 import {
-  ReplayBreadcrumbFrameEvent,
-  ReplaySpanFrameEvent,
+  ReplayBreadcrumbFrameEventFixture,
+  ReplaySpanFrameEventFixture,
 } from 'sentry-fixture/replay/replayFrameEvents';
 import {
-  ReplayMemoryFrame,
-  ReplayNavigationFrame,
+  ReplayMemoryFrameFixture,
+  ReplayNavigationFrameFixture,
 } from 'sentry-fixture/replay/replaySpanFrameData';
 
 import {SlowClickFrame} from 'sentry/utils/replays/types';
 
-export function ReplayConsoleEvent({
+export function ReplayConsoleEventFixture({
   timestamp,
   message,
 }: {
   timestamp: Date;
   message?: string;
 }) {
-  return ReplayBreadcrumbFrameEvent({
+  return ReplayBreadcrumbFrameEventFixture({
     timestamp,
     data: {
-      payload: ReplayConsoleFrame({
+      payload: ReplayConsoleFrameFixture({
         timestamp,
         message: message ?? 'Hello World',
       }),
@@ -32,11 +32,11 @@ export function ReplayConsoleEvent({
   });
 }
 
-export function ReplayClickEvent({timestamp}: {timestamp: Date}) {
-  return ReplayBreadcrumbFrameEvent({
+export function ReplayClickEventFixture({timestamp}: {timestamp: Date}) {
+  return ReplayBreadcrumbFrameEventFixture({
     timestamp,
     data: {
-      payload: ReplayClickFrame({
+      payload: ReplayClickFrameFixture({
         timestamp,
         message: 'nav[aria-label="Primary Navigation"] > div > a#sidebar-item-projects',
         data: {
@@ -47,11 +47,11 @@ export function ReplayClickEvent({timestamp}: {timestamp: Date}) {
   });
 }
 
-export function ReplayDeadClickEvent({timestamp}: {timestamp: Date}) {
-  return ReplayBreadcrumbFrameEvent({
+export function ReplayDeadClickEventFixture({timestamp}: {timestamp: Date}) {
+  return ReplayBreadcrumbFrameEventFixture({
     timestamp,
     data: {
-      payload: ReplaySlowClickFrame({
+      payload: ReplaySlowClickFrameFixture({
         timestamp,
         message: 'nav[aria-label="Primary Navigation"] > div > a#sidebar-item-projects',
         data: {
@@ -68,7 +68,7 @@ export function ReplayDeadClickEvent({timestamp}: {timestamp: Date}) {
   });
 }
 
-export function ReplayNavigateEvent({
+export function ReplayNavigateEventFixture({
   startTimestamp,
   endTimestamp,
 }: {
@@ -77,10 +77,10 @@ export function ReplayNavigateEvent({
 }) {
   const duration = endTimestamp.getTime() - startTimestamp.getTime(); // in MS
 
-  return ReplaySpanFrameEvent({
+  return ReplaySpanFrameEventFixture({
     timestamp: startTimestamp,
     data: {
-      payload: ReplayNavigationFrame({
+      payload: ReplayNavigationFrameFixture({
         op: 'navigation.navigate',
         startTimestamp,
         endTimestamp,
@@ -103,17 +103,17 @@ export function ReplayNavigateEvent({
   });
 }
 
-export function ReplayMemoryEvent({
+export function ReplayMemoryEventFixture({
   startTimestamp,
   endTimestamp,
 }: {
   endTimestamp: Date;
   startTimestamp: Date;
 }) {
-  return ReplaySpanFrameEvent({
+  return ReplaySpanFrameEventFixture({
     timestamp: startTimestamp,
     data: {
-      payload: ReplayMemoryFrame({
+      payload: ReplayMemoryFrameFixture({
         op: 'memory',
         startTimestamp,
         endTimestamp,

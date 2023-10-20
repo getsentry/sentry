@@ -22,7 +22,7 @@ function BaseFrame<T extends RawSpanFrame['op']>(
   } as MockFrame<T>;
 }
 
-export function ReplayLargestContentfulPaintFrame(
+export function ReplayLargestContentfulPaintFrameFixture(
   fields: TestableFrame<'largest-contentful-paint'>
 ): MockFrame<'largest-contentful-paint'> {
   return BaseFrame('largest-contentful-paint', {
@@ -35,7 +35,9 @@ export function ReplayLargestContentfulPaintFrame(
   });
 }
 
-export function ReplayMemoryFrame(fields: TestableFrame<'memory'>): MockFrame<'memory'> {
+export function ReplayMemoryFrameFixture(
+  fields: TestableFrame<'memory'>
+): MockFrame<'memory'> {
   return BaseFrame('memory', {
     ...fields,
     data: {
@@ -48,7 +50,7 @@ export function ReplayMemoryFrame(fields: TestableFrame<'memory'>): MockFrame<'m
   });
 }
 
-export function ReplayNavigationFrame(
+export function ReplayNavigationFrameFixture(
   fields: TestableFrame<
     'navigation.navigate' | 'navigation.reload' | 'navigation.back_forward'
   >
@@ -71,7 +73,7 @@ export function ReplayNavigationFrame(
   });
 }
 
-export function ReplayNavigationPushFrame(
+export function ReplayNavigationPushFrameFixture(
   fields: TestableFrame<'navigation.push'>
 ): MockFrame<'navigation.push'> {
   return BaseFrame('navigation.push', {
@@ -82,11 +84,13 @@ export function ReplayNavigationPushFrame(
   });
 }
 
-export function ReplayPaintFrame(fields: TestableFrame<'paint'>): MockFrame<'paint'> {
+export function ReplayPaintFrameFixture(
+  fields: TestableFrame<'paint'>
+): MockFrame<'paint'> {
   return BaseFrame('paint', fields);
 }
 
-export function ReplayRequestFrame(
+export function ReplayRequestFrameFixture(
   fields: TestableFrame<'resource.fetch' | 'resource.xhr'>
 ): MockFrame<'resource.fetch' | 'resource.xhr'> {
   return BaseFrame(fields.op ?? 'resource.xhr', {
@@ -102,7 +106,7 @@ export function ReplayRequestFrame(
   });
 }
 
-export function ReplayResourceFrame(
+export function ReplayResourceFrameFixture(
   fields: TestableFrame<
     | 'resource.css'
     | 'resource.iframe'

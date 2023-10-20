@@ -29,7 +29,7 @@ type TestableFrameEvent<
  * });
  * ```
  */
-export function ReplayBreadcrumbFrameEvent(
+export function ReplayBreadcrumbFrameEventFixture(
   fields: TestableFrameEvent<BreadcrumbFrameEvent>
 ): BreadcrumbFrameEvent {
   return {
@@ -58,7 +58,7 @@ export function ReplayBreadcrumbFrameEvent(
  * });
  * ```
  */
-export function ReplaySpanFrameEvent(
+export function ReplaySpanFrameEventFixture(
   fields: TestableFrameEvent<SpanFrameEvent>
 ): SpanFrameEvent {
   return {
@@ -71,7 +71,7 @@ export function ReplaySpanFrameEvent(
   };
 }
 
-export function ReplayOptionFrameEvent(
+export function ReplayOptionFrameEventFixture(
   fields: TestableFrameEvent<OptionFrameEvent>
 ): OptionFrameEvent {
   return {
@@ -84,7 +84,7 @@ export function ReplayOptionFrameEvent(
   };
 }
 
-export function ReplayOptionFrame(
+export function ReplayOptionFrameFixture(
   fields: Partial<OptionFrameEvent['data']['payload']>
 ): OptionFrameEvent['data']['payload'] {
   return {

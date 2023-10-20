@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 import type {Location} from 'history';
-import {ReplayConsoleFrame} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
+import {ReplayConsoleFrameFixture} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
@@ -18,7 +18,7 @@ jest.mock('sentry/utils/useLocation');
 const mockUseLocation = jest.mocked(useLocation);
 
 const frames = hydrateBreadcrumbs(ReplayRecordFixture(), [
-  ReplayConsoleFrame({
+  ReplayConsoleFrameFixture({
     type: BreadcrumbType.DEFAULT,
     timestamp: new Date('2022-05-11T23:00:45.094000Z'),
     level: BreadcrumbLevelType.INFO,
@@ -37,13 +37,13 @@ const frames = hydrateBreadcrumbs(ReplayRecordFixture(), [
       logger: 'console',
     },
   }),
-  ReplayConsoleFrame({
+  ReplayConsoleFrameFixture({
     type: BreadcrumbType.DEFAULT,
     timestamp: new Date('2022-05-11T23:00:45.094000Z'),
     level: BreadcrumbLevelType.INFO,
     message: 'longtask - does not exist [object PerformanceLongTaskTiming]',
   }),
-  ReplayConsoleFrame({
+  ReplayConsoleFrameFixture({
     type: BreadcrumbType.DEFAULT,
     timestamp: new Date('2022-05-11T23:00:45.093000Z'),
     level: BreadcrumbLevelType.INFO,
@@ -64,7 +64,7 @@ const frames = hydrateBreadcrumbs(ReplayRecordFixture(), [
       logger: 'console',
     },
   }),
-  ReplayConsoleFrame({
+  ReplayConsoleFrameFixture({
     type: BreadcrumbType.DEFAULT,
     timestamp: new Date('2022-05-11T23:04:27.576000Z'),
     level: BreadcrumbLevelType.ERROR,
@@ -77,7 +77,7 @@ const frames = hydrateBreadcrumbs(ReplayRecordFixture(), [
       logger: '',
     },
   }),
-  ReplayConsoleFrame({
+  ReplayConsoleFrameFixture({
     type: BreadcrumbType.DEFAULT,
     timestamp: new Date('2022-05-11T23:05:51.531000Z'),
     level: BreadcrumbLevelType.WARNING,
@@ -213,22 +213,22 @@ describe('useConsoleFilters', () => {
     const [CRUMB_LOG_1, CRUMB_LOG_2, CRUMB_WARN, CRUMB_ERROR] = hydrateBreadcrumbs(
       ReplayRecordFixture(),
       [
-        ReplayConsoleFrame({
+        ReplayConsoleFrameFixture({
           timestamp: new Date(),
           level: BreadcrumbLevelType.LOG,
           message: '',
         }),
-        ReplayConsoleFrame({
+        ReplayConsoleFrameFixture({
           timestamp: new Date(),
           level: BreadcrumbLevelType.LOG,
           message: '',
         }),
-        ReplayConsoleFrame({
+        ReplayConsoleFrameFixture({
           timestamp: new Date(),
           level: BreadcrumbLevelType.WARNING,
           message: '',
         }),
-        ReplayConsoleFrame({
+        ReplayConsoleFrameFixture({
           timestamp: new Date(),
           level: BreadcrumbLevelType.ERROR,
           message: '',
