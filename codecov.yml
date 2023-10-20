@@ -1,8 +1,10 @@
 # Setting coverage targets per flag
 coverage:
   status:
-    project: "off"
+    project:
+      default: false
     patch:
+      default: false
       frontend:
         # codecov will not fail status checks for master
         only_pulls: true
@@ -75,31 +77,15 @@ comment:
   require_base: true # must have a base report to post
   require_head: true # must have a head report to post
 
-# https://docs.codecov.com/docs/flags#two-approaches-to-flag-management
-flag_management:
-  individual_flags:
-    - name: smart-tests
-      carryforward: true
-      # https://docs.codecov.com/docs/getting-started-with-ats#step-2-configure-the-codecovyml-for-automated-test-selection
-      carryforward_mode: "labels"
-      statuses:
-        # https://github.com/codecov/shared/blob/main/shared/validation/user_schema.py#L310
-        - type: "patch"
-          enabled: false
-
 cli:
   # This would be used when uploading the ats results
   # But we will not be doing that yet
   plugins:
     pycoverage:
       report_type: "json"
-    compress-pycoverage:
-      file_to_compress: ".artifacts/python.coverage.json"
-      # We don't want to upload the original coverage report by accident
-      # Because it's too big
-      delete_uncompressed: true
   runners:
-    pytest:
+    python:
+      include_curr_dir: true
       # Same args used for the backend tests
       collect_tests_options:
         - "tests/sentry"
