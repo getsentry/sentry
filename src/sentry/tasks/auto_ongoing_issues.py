@@ -141,6 +141,7 @@ def schedule_auto_transition_issues_new_to_ongoing(
                 limit=ITERATOR_CHUNK * CHILD_TASK_COUNT,
                 result_value_getter=lambda item: item,
                 callbacks=[get_total_count],
+                order_by="first_seen",
             ),
             ITERATOR_CHUNK,
         ):
