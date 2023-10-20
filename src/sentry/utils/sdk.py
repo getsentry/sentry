@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import inspect
 import logging
+import os
 import random
 from typing import TYPE_CHECKING, Any, List, Mapping, NamedTuple, Sequence
 
@@ -430,6 +431,23 @@ def configure_sdk():
         enable_metrics=True,
         before_emit_metric=minimetrics.before_emit_metric,
     )
+
+    # `SENTRY_DEVSERVICES_DSN` is set by `direnv` in dev but never set in prod, so we can use that
+    # as a proxy for environment. (We use that instead of `settngs.IS_DEV` because `settngs.IS_DEV`
+    # gives a false negative the first time this code runs.)
+    if os.environ.get("SENTRY_DEVSERVICES_DSN") is not None:
+        server_dsn = os.environ.get("SENTRY_DEV_DSN")
+        if server_dsn:
+            # If `SENTRY_DEV_DSN` is set, `server.py` sets the S4S DSN to its value
+            parsed_dev_dsn = sentry4sentry_transport.parsed_dsn
+            project_id = parsed_dev_dsn.project_id
+            raw_host = parsed_dev_dsn.host
+            host = "sentry.io" if raw_host.endswith("sentry.io") else raw_host
+            logger.info(
+                f"Server errors will be reported to project {project_id} on host '{host}', using DSN {server_dsn}."
+            )
+        else:
+            logger.info("Server errors will not be reported because SENTRY_DEV_DSN is not set.")
 
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
