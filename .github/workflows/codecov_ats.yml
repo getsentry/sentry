@@ -73,7 +73,7 @@ jobs:
             pg-version: 14
         - name: Download Codecov CLI
           run: |
-            pip install --extra-index-url https://pypi.org/simple --no-cache-dir codecov-cli==0.4.0
+            pip install --extra-index-url https://pypi.org/simple --no-cache-dir codecov-cli>=0.4.0
         # Creates the commit and report objects in codecov
         - name: Codecov startup
           run: |
@@ -149,6 +149,7 @@ jobs:
             # The 1st value doesn't count, it's '--cov-context=test' (hence -gt 1)
             if [ $length_of_tests -gt 1 ]; then
               echo "Running $length_of_tests tests"
+              # --raw-output0 doesn't work.
               jq <<< ${{ needs.coverage-ats.outputs.ATS_TESTS_TO_RUN }} 'join("\u0000")' --raw-output | tr -d '\n' | xargs -r0 echo
             else
               echo "No tests to run"
@@ -161,6 +162,7 @@ jobs:
             # The 1st value doesn't count, it's '--cov-context=test'
             if [ $length_of_tests -gt 1 ]; then
               echo "Running $length_of_tests tests"
+              # --raw-output0 doesn't work.
               jq <<< ${{ needs.coverage-ats.outputs.ATS_TESTS_TO_SKIP }} 'join("\u0000")' --raw-output | tr -d '\n' | xargs -r0 echo
             else
               echo "No tests to run"
