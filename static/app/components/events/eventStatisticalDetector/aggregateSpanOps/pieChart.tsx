@@ -5,6 +5,7 @@ import type {PieSeriesOption} from 'echarts';
 import BaseChart, {BaseChartProps} from 'sentry/components/charts/baseChart';
 import Legend from 'sentry/components/charts/components/legend';
 import PieSeries from 'sentry/components/charts/series/pieSeries';
+import {t} from 'sentry/locale';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
 
@@ -128,25 +129,108 @@ class PieChart extends Component<Props> {
         {...props}
         legend={Legend({
           theme,
+          data: [
+            ...Object.keys(this.props.data).sort((a, b) => {
+              const changeA =
+                this.props.data[a].oldBaseline / this.props.data[a].newBaseline - 1;
+              const changeB =
+                this.props.data[b].oldBaseline / this.props.data[b].newBaseline - 1;
+              return changeA - changeB;
+            }),
+          ],
           orient: 'vertical',
-          align: 'left',
           show: true,
-          right: 0,
-          top: 10,
+          left: 185,
+          top: '35%',
+          textStyle: {
+            fontSize: 14,
+            fontWeight: 600,
+            rich: {
+              redText: {
+                color: theme.red300,
+                fontWeight: 600,
+                fontSize: 14,
+                backgroundColor: {
+                  image: new Image(),
+                },
+              },
+              greenText: {
+                color: theme.green300,
+                fontWeight: 600,
+                fontSize: 14,
+              },
+              smalltext: {
+                color: theme.textColor,
+                fontSize: 10,
+                verticalAlign: 'bottom',
+              },
+            },
+          },
+          itemWidth: 12,
           formatter: name => {
-            return `${name} ${
-              this.props.data
-                ? getDuration(this.props.data[name].newBaseline / 1000, 2, true)
-                : ''
-            } ${
-              this.props.data
-                ? formatPercentage(
-                    this.props.data[name].oldBaseline /
-                      this.props.data[name].newBaseline -
-                      1
-                  )
-                : ''
-            }`;
+            const change =
+              this.props.data[name].oldBaseline / this.props.data[name].newBaseline - 1;
+            const oldValue = getDuration(
+              this.props.data[name].oldBaseline / 1000,
+              2,
+              true
+            );
+            const newValue = getDuration(
+              this.props.data[name].newBaseline / 1000,
+              2,
+              true
+            );
+            const percentage = this.props.data ? formatPercentage(Math.abs(change)) : '';
+            const percentageText = change < 0 ? t('Up') : t('Down');
+            const textclass = change < 0 ? t('redText') : t('greenText');
+
+            return `${name}   {${textclass}|${percentageText} ${percentage}} {smalltext|(${oldValue} to ${newValue})}`;
+          },
+          tooltip: {
+            formatter: data => {
+              const change =
+                this.props.data[data.name].oldBaseline /
+                  this.props.data[data.name].newBaseline -
+                1;
+              const changeText = change < 0 ? t('up') : t('down');
+              const oldValue = getDuration(
+                this.props.data[data.name].oldBaseline / 1000,
+                2,
+                true
+              );
+              const newValue = getDuration(
+                this.props.data[data.name].newBaseline / 1000,
+                2,
+                true
+              );
+
+              const text = t(
+                `Total time for %s  went %s from %s to %s`,
+                data.name,
+                changeText,
+                oldValue,
+                newValue
+              );
+
+              return [
+                '<div class="tooltip-series">',
+                `<div>
+                  <span
+                    class="tooltip-label"
+                    style="
+                      width: 200px !important;
+                      text-wrap: balance;
+                      text-align: center;
+                    "
+                  >
+                    <strong>${text}</strong>
+                  </span>
+                </div>`,
+                '</div>',
+                '<div class="tooltip-arrow"></div>',
+              ].join('');
+            },
+            show: true,
           },
         })}
         tooltip={{
@@ -175,10 +259,14 @@ class PieChart extends Component<Props> {
             data: firstSeries.data,
             avoidLabelOverlap: false,
             label: {
-              position: 'inner',
-              // TODO show labels after they're styled
-              formatter: () => '',
-              show: false,
+              position: 'inside',
+              formatter: params => {
+                return `${Math.round(Number(params.percent))}%`;
+              },
+              show: true,
+              color: theme.background,
+              fontSize: 12,
+              fontWeight: 600,
             },
             emphasis: {
               label: {
@@ -187,6 +275,12 @@ class PieChart extends Component<Props> {
             },
             labelLine: {
               show: false,
+            },
+            center: ['90', '100'],
+            radius: ['45%', '85%'],
+            itemStyle: {
+              borderColor: theme.background,
+              borderWidth: 2,
             },
           }),
         ]}

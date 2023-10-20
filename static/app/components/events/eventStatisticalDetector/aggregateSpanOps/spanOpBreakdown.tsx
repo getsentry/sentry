@@ -6,6 +6,7 @@ import moment from 'moment';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {DataSection} from 'sentry/components/events/styles';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event} from 'sentry/types';
@@ -167,7 +168,15 @@ function EventSpanOpBreakdown({event}: {event: Event}) {
   return (
     <Wrapper>
       <DataSection>
-        <strong>{t('Operation Breakdown:')}</strong>
+        <strong>
+          {t('Operation Breakdown')}{' '}
+          <QuestionTooltip
+            title={t(
+              'Percentage of total transaction duration spent on each span operation along with, changes in the total duration of each span operation.'
+            )}
+            size="sm"
+          />
+        </strong>
         <PieChart data={spanOpDiffs} series={series} />
       </DataSection>
     </Wrapper>
