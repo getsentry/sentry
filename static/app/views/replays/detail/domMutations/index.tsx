@@ -5,15 +5,13 @@ import {
   List as ReactVirtualizedList,
   ListRowProps,
 } from 'react-virtualized';
-import {useQuery} from '@tanstack/react-query';
 
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
-import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import type ReplayReader from 'sentry/utils/replays/replayReader';
+import useExtractedDomNodes from 'sentry/utils/replays/hooks/useExtractedDomNodes';
 import DomFilters from 'sentry/views/replays/detail/domMutations/domFilters';
 import DomMutationRow from 'sentry/views/replays/detail/domMutations/domMutationRow';
 import useDomFilters from 'sentry/views/replays/detail/domMutations/useDomFilters';
@@ -29,19 +27,6 @@ const cellMeasurer = {
   fixedWidth: true,
   minHeight: 82,
 };
-
-function useExtractedDomNodes({replay}: {replay: null | ReplayReader}) {
-  return useQuery(
-    ['getDomNodes', replay],
-    () =>
-      extractDomNodes({
-        frames: replay?.getDOMFrames(),
-        rrwebEvents: replay?.getRRWebFrames(),
-        startTimestampMs: replay?.getReplay().started_at.getTime() ?? 0,
-      }),
-    {enabled: Boolean(replay), cacheTime: Infinity}
-  );
-}
 
 function DomMutations() {
   const {currentTime, currentHoverTime, replay} = useReplayContext();

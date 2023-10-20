@@ -1,4 +1,4 @@
-import {useMemo, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -12,16 +12,17 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import useExtractedDomNodes from 'sentry/utils/replays/hooks/useExtractedDomNodes';
+import useVirtualizedInspector from 'sentry/views/replays/detail//useVirtualizedInspector';
 import BreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/breadcrumbFilters';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
 import useBreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/useBreadcrumbFilters';
 import useScrollToCurrentItem from 'sentry/views/replays/detail/breadcrumbs/useScrollToCurrentItem';
+import FilterLoadingIndicator from 'sentry/views/replays/detail/filterLoadingIndicator';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
-
-import useVirtualizedInspector from '../useVirtualizedInspector';
 
 // Ensure this object is created once as it is an input to
 // `useVirtualizedList`'s memoization
@@ -33,6 +34,9 @@ const cellMeasurer = {
 function Breadcrumbs() {
   const {currentTime, replay} = useReplayContext();
   const {onClickTimestamp} = useCrumbHandlers();
+  const {data: frameToExtraction, isLoading: isLoadingExtractions} = useExtractedDomNodes(
+    {replay}
+  );
 
   const startTimestampMs = replay?.getReplay()?.started_at?.getTime() ?? 0;
   const frames = replay?.getChapterFrames();
@@ -75,6 +79,13 @@ function Breadcrumbs() {
     ref: listRef,
   });
 
+  // Need to refresh the item dimensions when DOM info is loaded
+  useEffect(() => {
+    if (!isLoadingExtractions) {
+      updateList();
+    }
+  }, [isLoadingExtractions, updateList]);
+
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
     const item = (items || [])[index];
 
@@ -89,6 +100,7 @@ function Breadcrumbs() {
         <BreadcrumbRow
           index={index}
           frame={item}
+          extraction={frameToExtraction?.get(item)}
           startTimestampMs={startTimestampMs}
           style={style}
           expandPaths={Array.from(expandPathsRef.current?.get(index) || [])}
@@ -103,7 +115,9 @@ function Breadcrumbs() {
 
   return (
     <FluidHeight>
-      <BreadcrumbFilters frames={frames} {...filterProps} />
+      <FilterLoadingIndicator isLoading={isLoadingExtractions}>
+        <BreadcrumbFilters frames={frames} {...filterProps} />
+      </FilterLoadingIndicator>
       <TabItemContainer data-test-id="replay-details-breadcrumbs-tab">
         {frames ? (
           <AutoSizer onResize={updateList}>
