@@ -764,7 +764,7 @@ INTSTALLATION_REPOSITORIES_API_RESPONSE = """{
 }"""
 
 INSTALLATION_API_RESPONSE = """{
-  "id": 1,
+  "id": 2,
   "account": {
     "login": "octocat",
     "id": 2,

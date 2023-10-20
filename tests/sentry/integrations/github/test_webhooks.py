@@ -18,11 +18,12 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouplink import GroupLink
+from sentry.models.integrations.integration import Integration
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
 
 
 @region_silo_test(stable=True)
@@ -64,7 +65,7 @@ class WebhookTest(APITestCase):
         assert response.status_code == 401
 
 
-@region_silo_test(stable=True)
+@control_silo_test(stable=True)
 class InstallationEventWebhook(APITestCase):
     base_url = "https://api.github.com"
 
@@ -73,6 +74,9 @@ class InstallationEventWebhook(APITestCase):
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
         options.set("github-app.webhook-secret", self.secret)
 
+    @responses.activate
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    def test_installation_created(self, get_jwt):
         responses.add(
             method=responses.GET,
             url="https://api.github.com/app/installations/2",
@@ -81,8 +85,6 @@ class InstallationEventWebhook(APITestCase):
             content_type="application/json",
         )
 
-    @responses.activate
-    def test_installation_created(self):
         response = self.client.post(
             path=self.url,
             data=INSTALLATION_EVENT_EXAMPLE,
@@ -91,7 +93,13 @@ class InstallationEventWebhook(APITestCase):
             HTTP_X_HUB_SIGNATURE="sha1=348e46312df2901e8cb945616ee84ce30d9987c9",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
-        assert response.status_code == 200
+        assert response.status_code == 204
+
+        integration = Integration.objects.get(external_id=2)
+        assert integration.external_id == "2"
+        assert integration.name == "octocat"
+        assert integration.metadata["sender_login"] == "octocat"
+        assert integration.status == 0
 
 
 @region_silo_test(stable=True)

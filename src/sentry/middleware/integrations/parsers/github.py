@@ -41,10 +41,16 @@ class GithubRequestParser(BaseRequestParser):
         return Integration.objects.filter(external_id=external_id, provider=self.provider).first()
 
     def get_response(self):
-        if self.view_class == self.webhook_endpoint:
-            regions = self.get_regions_from_organizations()
-            if len(regions) == 0:
-                logger.error("no_regions", extra={"path": self.request.path})
-                return self.get_response_from_control_silo()
-            return self.get_response_from_outbox_creation(regions=regions)
-        return self.get_response_from_control_silo()
+        if self.view_class != self.webhook_endpoint:
+            return self.get_response_from_control_silo()
+
+        body = bytes(self.request.body)
+        event = json.loads(body.decode("utf-8"))
+        if event.get("installation") and event.get("action") == "created":
+            return self.get_response_from_control_silo()
+
+        regions = self.get_regions_from_organizations()
+        if len(regions) == 0:
+            logger.error("no_regions", extra={"path": self.request.path})
+            return self.get_response_from_control_silo()
+        return self.get_response_from_outbox_creation(regions=regions)
