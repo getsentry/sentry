@@ -129,8 +129,6 @@ def fetch_sample_event_ids(span_analysis_results, params, transaction):
             use_aggregate_conditions=True,
             functions_acl=[
                 "array_join",
-                "sumArray",
-                "percentileArray",
             ],
         ),
     )
