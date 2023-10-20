@@ -146,24 +146,27 @@ class PieChart extends Component<Props> {
                   onMouseEnter={() => this.highlight(operationToColorMap[op].index)}
                   onMouseLeave={() => this.downplay(operationToColorMap[op].index)}
                 >
-                  <CircleIndicator color={operationToColorMap[op].color} size={10} />
                   <span>
-                    {op}{' '}
-                    <Tooltip
-                      skipWrapper
-                      title={t(
-                        `Total time for %s went %s from %s to %s`,
-                        op,
-                        percentageText,
-                        oldValue,
-                        newValue
-                      )}
-                    >
-                      <SpanOpChange regressed>
-                        {percentageText} {percentage}
-                      </SpanOpChange>
-                    </Tooltip>
+                    <StyledColorIndicator
+                      color={operationToColorMap[op].color}
+                      size={10}
+                    />
+                    {op}
                   </span>
+                  <Tooltip
+                    skipWrapper
+                    title={t(
+                      `Total time for %s went %s from %s to %s`,
+                      op,
+                      percentageText,
+                      oldValue,
+                      newValue
+                    )}
+                  >
+                    <SpanOpChange regressed>
+                      {percentageText} {percentage}
+                    </SpanOpChange>
+                  </Tooltip>
                 </StyledLegendWrapper>
               );
             })}
@@ -271,8 +274,9 @@ const LegendWrapper = styled('div')`
 
 const StyledLegendWrapper = styled('div')`
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: ${space(0.75)};
+  gap: ${space(1.5)};
 `;
 
 const SpanOpChange = styled('span')<{regressed: boolean}>`
@@ -280,6 +284,10 @@ const SpanOpChange = styled('span')<{regressed: boolean}>`
   text-decoration-line: underline;
   text-decoration-style: dotted;
   text-transform: capitalize;
+`;
+
+const StyledColorIndicator = styled(CircleIndicator)`
+  margin-right: ${space(0.5)};
 `;
 
 export default withTheme(PieChart);
