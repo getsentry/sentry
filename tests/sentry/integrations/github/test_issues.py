@@ -99,11 +99,16 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             ("enhancement", "enhancement"),
         )
 
-        request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer jwt_token_1"
+        if self.should_call_api_without_proxying():
+            assert len(responses.calls) == 2
 
-        request = responses.calls[1].request
-        assert request.headers["Authorization"] == "Bearer token_1"
+            request = responses.calls[0].request
+            assert request.headers["Authorization"] == "Bearer jwt_token_1"
+
+            request = responses.calls[1].request
+            assert request.headers["Authorization"] == "Bearer token_1"
+        else:
+            self._check_proxying()
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
