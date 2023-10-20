@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import type {Location} from 'history';
+import {ReplayClickFrame} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
@@ -34,7 +35,7 @@ const ACTION_1_DEBUG = {
 
 const ACTION_2_CLICK = {
   frame: hydrateBreadcrumbs(ReplayRecordFixture(), [
-    TestStubs.Replay.ClickFrame({
+    ReplayClickFrame({
       timestamp: new Date(1663691570812),
       data: {
         nodeId: 424,
@@ -47,7 +48,7 @@ const ACTION_2_CLICK = {
 
 const ACTION_3_CLICK = {
   frame: hydrateBreadcrumbs(ReplayRecordFixture(), [
-    TestStubs.Replay.ClickFrame({
+    ReplayClickFrame({
       timestamp: new Date(1663691634529),
       data: {
         nodeId: 9304,

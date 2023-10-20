@@ -1,4 +1,8 @@
-import * as BreadcrumbFrameData from 'sentry-fixture/replay/replayBreadcrumbFrameData';
+import {
+  ReplayClickFrame,
+  ReplayConsoleFrame,
+  ReplaySlowClickFrame,
+} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
 import * as ReplayFrameEvents from 'sentry-fixture/replay/replayFrameEvents';
 import * as ReplaySpanFrameData from 'sentry-fixture/replay/replaySpanFrameData';
 
@@ -14,7 +18,7 @@ export function ReplayConsoleEvent({
   return ReplayFrameEvents.BreadcrumbFrameEvent({
     timestamp,
     data: {
-      payload: BreadcrumbFrameData.ConsoleFrame({
+      payload: ReplayConsoleFrame({
         timestamp,
         message: message ?? 'Hello World',
       }),
@@ -26,7 +30,7 @@ export function ReplayClickEvent({timestamp}: {timestamp: Date}) {
   return ReplayFrameEvents.BreadcrumbFrameEvent({
     timestamp,
     data: {
-      payload: BreadcrumbFrameData.ClickFrame({
+      payload: ReplayClickFrame({
         timestamp,
         message: 'nav[aria-label="Primary Navigation"] > div > a#sidebar-item-projects',
         data: {
@@ -41,7 +45,7 @@ export function ReplayDeadClickEvent({timestamp}: {timestamp: Date}) {
   return ReplayFrameEvents.BreadcrumbFrameEvent({
     timestamp,
     data: {
-      payload: BreadcrumbFrameData.SlowClickFrame({
+      payload: ReplaySlowClickFrame({
         timestamp,
         message: 'nav[aria-label="Primary Navigation"] > div > a#sidebar-item-projects',
         data: {

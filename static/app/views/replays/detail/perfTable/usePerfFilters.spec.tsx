@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import type {Location} from 'history';
+import {ReplayClickFrame} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
@@ -52,7 +53,7 @@ const CRUMB_2_CLICK: ReplayTraceRow = {
   offsetMs: 100,
   paintFrames: [],
   replayFrame: hydrateBreadcrumbs(replayRecord, [
-    TestStubs.Replay.ClickFrame({
+    ReplayClickFrame({
       timestamp: new Date(1663691559961),
     }),
   ])[0],

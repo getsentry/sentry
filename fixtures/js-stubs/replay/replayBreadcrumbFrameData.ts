@@ -13,7 +13,9 @@ type MockFrame<Cat extends TBreadcrumbFrame['category']> = Extract<
   {category: Cat}
 >;
 
-export function ConsoleFrame(fields: TestableFrame<'console'>): MockFrame<'console'> {
+export function ReplayConsoleFrame(
+  fields: TestableFrame<'console'>
+): MockFrame<'console'> {
   return {
     category: 'console',
     data: fields.data ?? {
@@ -26,7 +28,9 @@ export function ConsoleFrame(fields: TestableFrame<'console'>): MockFrame<'conso
   };
 }
 
-export function ClickFrame(fields: TestableFrame<'ui.click'>): MockFrame<'ui.click'> {
+export function ReplayClickFrame(
+  fields: TestableFrame<'ui.click'>
+): MockFrame<'ui.click'> {
   return {
     category: 'ui.click',
     data: fields.data ?? {},
@@ -36,7 +40,9 @@ export function ClickFrame(fields: TestableFrame<'ui.click'>): MockFrame<'ui.cli
   };
 }
 
-export function InputFrame(fields: TestableFrame<'ui.input'>): MockFrame<'ui.input'> {
+export function ReplayInputFrame(
+  fields: TestableFrame<'ui.input'>
+): MockFrame<'ui.input'> {
   return {
     category: 'ui.input',
     message: fields.message ?? '',
@@ -45,7 +51,7 @@ export function InputFrame(fields: TestableFrame<'ui.input'>): MockFrame<'ui.inp
   };
 }
 
-export function KeyboardEventFrame(
+export function ReplayKeyboardEventFrame(
   fields: TestableFrame<'ui.keyDown'>
 ): MockFrame<'ui.keyDown'> {
   return {
@@ -63,7 +69,7 @@ export function KeyboardEventFrame(
   };
 }
 
-export function BlurFrame(fields: TestableFrame<'ui.blur'>): MockFrame<'ui.blur'> {
+export function ReplayBlurFrame(fields: TestableFrame<'ui.blur'>): MockFrame<'ui.blur'> {
   return {
     category: 'ui.blur',
     message: fields.message,
@@ -72,7 +78,9 @@ export function BlurFrame(fields: TestableFrame<'ui.blur'>): MockFrame<'ui.blur'
   };
 }
 
-export function FocusFrame(fields: TestableFrame<'ui.focus'>): MockFrame<'ui.focus'> {
+export function ReplayFocusFrame(
+  fields: TestableFrame<'ui.focus'>
+): MockFrame<'ui.focus'> {
   return {
     category: 'ui.focus',
     message: fields.message,
@@ -81,7 +89,7 @@ export function FocusFrame(fields: TestableFrame<'ui.focus'>): MockFrame<'ui.foc
   };
 }
 
-export function SlowClickFrame(
+export function ReplaySlowClickFrame(
   fields: TestableFrame<'ui.slowClickDetected'>
 ): MockFrame<'ui.slowClickDetected'> {
   return {
@@ -98,7 +106,7 @@ export function SlowClickFrame(
   };
 }
 
-export function MutationFrame(
+export function ReplayMutationFrame(
   fields: TestableFrame<'replay.mutations'>
 ): MockFrame<'replay.mutations'> {
   return {
@@ -113,7 +121,9 @@ export function MutationFrame(
   };
 }
 
-export function NavFrame(fields: TestableFrame<'navigation'>): MockFrame<'navigation'> {
+export function ReplayNavFrame(
+  fields: TestableFrame<'navigation'>
+): MockFrame<'navigation'> {
   return {
     category: 'navigation',
     data: fields.data ?? {

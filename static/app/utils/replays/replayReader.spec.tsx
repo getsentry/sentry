@@ -6,6 +6,7 @@ import {
   ReplayMemoryEvent,
   ReplayNavigateEvent,
 } from 'sentry-fixture/replay/helpers';
+import {ReplayNavFrame} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
@@ -102,7 +103,7 @@ describe('ReplayReader', () => {
     const navCrumb = TestStubs.Replay.BreadcrumbFrameEvent({
       timestamp: new Date('2023-12-25T00:03:00'),
       data: {
-        payload: TestStubs.Replay.NavFrame({
+        payload: ReplayNavFrame({
           timestamp: new Date('2023-12-25T00:03:00'),
         }),
       },
