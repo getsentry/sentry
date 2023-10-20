@@ -87,7 +87,7 @@ def write_findings(
 @click.argument("left", type=click.File("rb"))
 @click.argument("right", type=click.File("rb"))
 @click.option(
-    "--findings_file",
+    "--findings-file",
     type=click.File("w"),
     required=False,
     help=FINDINGS_FILE_HELP,
@@ -126,25 +126,28 @@ def import_():
 @import_.command(name="users")
 @click.argument("src", type=click.File("rb"))
 @click.option(
-    "--decrypt_with",
+    "--decrypt-with",
+    "--decrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=DECRYPT_WITH_HELP,
 )
 @click.option(
-    "--filter_usernames",
+    "--filter-usernames",
+    "--filter_usernames",  # For backwards compatibility with self-hosted@23.10.0
     default="",
     type=str,
     help="An optional comma-separated list of users to include. "
     "If this option is not set, all encountered users are imported.",
 )
 @click.option(
-    "--findings_file",
+    "--findings-file",
     type=click.File("w"),
     required=False,
     help=FINDINGS_FILE_HELP,
 )
 @click.option(
-    "--merge_users",
+    "--merge-users",
+    "--merge_users",  # For backwards compatibility with self-hosted@23.10.0
     default=False,
     is_flag=True,
     help=MERGE_USERS_HELP,
@@ -176,12 +179,14 @@ def import_users(src, decrypt_with, filter_usernames, findings_file, merge_users
 @import_.command(name="organizations")
 @click.argument("src", type=click.File("rb"))
 @click.option(
-    "--decrypt_with",
+    "--decrypt-with",
+    "--decrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=DECRYPT_WITH_HELP,
 )
 @click.option(
-    "--filter_org_slugs",
+    "--filter-org-slugs",
+    "--filter_org_slugs",  # For backwards compatibility with self-hosted@23.10.0
     default="",
     type=str,
     help="An optional comma-separated list of organization slugs to include. "
@@ -189,13 +194,14 @@ def import_users(src, decrypt_with, filter_usernames, findings_file, merge_users
     "Users not members of at least one organization in this set will not be imported.",
 )
 @click.option(
-    "--findings_file",
+    "--findings-file",
     type=click.File("w"),
     required=False,
     help=FINDINGS_FILE_HELP,
 )
 @click.option(
-    "--merge_users",
+    "--merge-users",
+    "--merge_users",  # For backwards compatibility with self-hosted@23.10.0
     default=False,
     is_flag=True,
     help=MERGE_USERS_HELP,
@@ -227,24 +233,27 @@ def import_organizations(src, decrypt_with, filter_org_slugs, findings_file, mer
 @import_.command(name="config")
 @click.argument("src", type=click.File("rb"))
 @click.option(
-    "--decrypt_with",
+    "--decrypt-with",
+    "--decrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=DECRYPT_WITH_HELP,
 )
 @click.option(
-    "--findings_file",
+    "--findings-file",
     type=click.File("w"),
     required=False,
     help=FINDINGS_FILE_HELP,
 )
 @click.option(
-    "--merge_users",
+    "--merge-users",
+    "--merge_users",  # For backwards compatibility with self-hosted@23.10.0
     default=False,
     is_flag=True,
     help=MERGE_USERS_HELP,
 )
 @click.option(
-    "--overwrite_configs",
+    "--overwrite-configs",
+    "--overwrite_configs",  # For backwards compatibility with self-hosted@23.10.0
     default=False,
     is_flag=True,
     help=OVERWRITE_CONFIGS_HELP,
@@ -275,18 +284,20 @@ def import_config(src, decrypt_with, findings_file, merge_users, overwrite_confi
 @import_.command(name="global")
 @click.argument("src", type=click.File("rb"))
 @click.option(
-    "--decrypt_with",
+    "--decrypt-with",
+    "--decrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=DECRYPT_WITH_HELP,
 )
 @click.option(
-    "--findings_file",
+    "--findings-file",
     type=click.File("w"),
     required=False,
     help=FINDINGS_FILE_HELP,
 )
 @click.option(
-    "--overwrite_configs",
+    "--overwrite-configs",
+    "--overwrite_configs",  # For backwards compatibility with self-hosted@23.10.0
     default=False,
     is_flag=True,
     help=OVERWRITE_CONFIGS_HELP,
@@ -322,19 +333,21 @@ def export():
 @export.command(name="users")
 @click.argument("dest", default="-", type=click.File("wb"))
 @click.option(
-    "--encrypt_with",
+    "--encrypt-with",
+    "--encrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=ENCRYPT_WITH_HELP,
 )
 @click.option(
-    "--filter_usernames",
+    "--filter-usernames",
+    "--filter_usernames",  # For backwards compatibility with self-hosted@23.10.0
     default="",
     type=str,
     help="An optional comma-separated list of users to include. "
     "If this option is not set, all encountered users are imported.",
 )
 @click.option(
-    "--findings_file",
+    "--findings-file",
     type=click.File("w"),
     required=False,
     help=FINDINGS_FILE_HELP,
@@ -372,12 +385,14 @@ def export_users(dest, encrypt_with, filter_usernames, findings_file, indent, si
 @export.command(name="organizations")
 @click.argument("dest", default="-", type=click.File("wb"))
 @click.option(
-    "--encrypt_with",
+    "--encrypt-with",
+    "--encrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=ENCRYPT_WITH_HELP,
 )
 @click.option(
-    "--filter_org_slugs",
+    "--filter-org-slugs",
+    "--filter_org_slugs",  # For backwards compatibility with self-hosted@23.10.0
     default="",
     type=str,
     help="An optional comma-separated list of organization slugs to include. "
@@ -385,7 +400,7 @@ def export_users(dest, encrypt_with, filter_usernames, findings_file, indent, si
     "Users not members of at least one organization in this set will not be exported.",
 )
 @click.option(
-    "--findings_file",
+    "--findings-file",
     type=click.File("w"),
     required=False,
     help=FINDINGS_FILE_HELP,
@@ -423,12 +438,13 @@ def export_organizations(dest, encrypt_with, filter_org_slugs, findings_file, in
 @export.command(name="config")
 @click.argument("dest", default="-", type=click.File("wb"))
 @click.option(
-    "--encrypt_with",
+    "--encrypt-with",
+    "--encrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=ENCRYPT_WITH_HELP,
 )
 @click.option(
-    "--findings_file",
+    "--findings-file",
     type=click.File("w"),
     required=False,
     help=FINDINGS_FILE_HELP,
@@ -465,12 +481,13 @@ def export_config(dest, encrypt_with, findings_file, indent, silent):
 @export.command(name="global")
 @click.argument("dest", default="-", type=click.File("wb"))
 @click.option(
-    "--encrypt_with",
+    "--encrypt-with",
+    "--encrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=ENCRYPT_WITH_HELP,
 )
 @click.option(
-    "--findings_file",
+    "--findings-file",
     type=click.File("w"),
     required=False,
     help=FINDINGS_FILE_HELP,

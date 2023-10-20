@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from enum import auto, unique
+from typing import Any, Dict
 
 from sentry.backup.dependencies import get_model_name
 from sentry.backup.findings import (
@@ -55,6 +56,9 @@ class TestFinding(Finding):
         if self.reason:
             out += f",\n    reason: {self.reason}"
         return out + "\n)"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
 
 
 class FindingsTests(TestCase):

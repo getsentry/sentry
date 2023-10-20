@@ -5,7 +5,7 @@
 
 from collections import defaultdict
 from enum import Enum, unique
-from typing import Dict, Literal, Optional, Set, Tuple, Union
+from typing import Any, Dict, Literal, Optional, Set, Tuple, Union
 
 from pydantic import Field, StrictInt, StrictStr
 from typing_extensions import Annotated
@@ -145,6 +145,9 @@ class RpcImportError(RpcModel, Finding):
     def pretty(self) -> str:
         return f"RpcImportError(\n    kind: {self.get_kind()},{self._pretty_inner()}\n)"
 
+    def to_dict(self) -> Dict[str, Any]:
+        return dict(self)
+
 
 class RpcImportOk(RpcModel):
     """
@@ -222,6 +225,9 @@ class RpcExportError(RpcModel, Finding):
 
     def pretty(self) -> str:
         return f"RpcExportError(\n    kind: {self.get_kind()},{self._pretty_inner()}\n)"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return dict(self)
 
 
 RpcExportResult = Annotated[Union[RpcExportOk, RpcExportError], Field(discriminator="is_err")]

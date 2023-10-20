@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from enum import IntEnum, auto, unique
-from typing import List, NamedTuple, Optional
+from typing import Any, Dict, List, NamedTuple, Optional
 
 from sentry.utils import json
 
@@ -161,6 +161,10 @@ class Finding(ABC):
     def pretty(self) -> str:
         pass
 
+    @abstractmethod
+    def to_dict(self) -> dict[str, Any]:
+        pass
+
 
 @dataclass(frozen=True)
 class ComparatorFinding(Finding):
@@ -172,6 +176,9 @@ class ComparatorFinding(Finding):
 
     def pretty(self) -> str:
         return f"ComparatorFinding(\n    kind: {self.kind.name},{self._pretty_inner()}\n)"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
 
 
 class ComparatorFindings:
@@ -198,10 +205,8 @@ class FindingJSONEncoder(json.JSONEncoder):
 
     def default(self, obj):
         if isinstance(obj, Finding):
-            keys = set(Finding.__annotations__.keys())
             kind = getattr(obj, "kind", None)
-            d = {k: obj.__dict__[k] for k in keys if k in obj.__dict__}
-
+            d = obj.to_dict()
             d["finding"] = obj.get_finding_name()
             if isinstance(kind, FindingKind):
                 d["kind"] = kind.name
