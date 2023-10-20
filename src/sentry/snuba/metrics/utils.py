@@ -278,6 +278,7 @@ OPERATIONS_PERCENTILES = (
     "p90",
     "p95",
     "p99",
+    "p100",
 )
 DERIVED_OPERATIONS = (
     "histogram",
