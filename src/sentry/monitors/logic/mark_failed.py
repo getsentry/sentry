@@ -15,6 +15,7 @@ from sentry.issues.grouptype import (
     MonitorCheckInMissed,
     MonitorCheckInTimeout,
 )
+from sentry.issues.producer import PayloadType
 from sentry.models.organization import Organization
 from sentry.monitors.constants import SUBTITLE_DATETIME_FORMAT, TIMEOUT
 from sentry.monitors.models import (
@@ -297,8 +298,9 @@ def create_issue_platform_occurrence(
         trace_id = None
 
     produce_occurrence_to_kafka(
-        occurrence,
-        {
+        payload_type=PayloadType.OCCURRENCE,
+        occurrence=occurrence,
+        event_data={
             "contexts": {"monitor": get_monitor_environment_context(monitor_env)},
             "environment": monitor_env.environment.name,
             "event_id": occurrence.event_id,

@@ -136,7 +136,7 @@ function Console() {
         ) : (
           <Placeholder height="100%" />
         )}
-        {frames?.length ? (
+        {items?.length ? (
           <JumpButtons
             jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
             onClick={onClickToJump}

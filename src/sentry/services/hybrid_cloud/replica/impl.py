@@ -7,11 +7,12 @@ from sentry.db.models import BaseModel, FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
 from sentry.db.postgres.transactions import enforce_constraints
-from sentry.hybridcloud.models import ApiKeyReplica
+from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica
 from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
 from sentry.models.apikey import ApiKey
+from sentry.models.apitoken import ApiToken
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authidentityreplica import AuthIdentityReplica
 from sentry.models.authprovider import AuthProvider
@@ -24,7 +25,12 @@ from sentry.models.outbox import OutboxCategory
 from sentry.models.team import Team
 from sentry.models.teamreplica import TeamReplica
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.auth import RpcApiKey, RpcAuthIdentity, RpcAuthProvider
+from sentry.services.hybrid_cloud.auth import (
+    RpcApiKey,
+    RpcApiToken,
+    RpcAuthIdentity,
+    RpcAuthProvider,
+)
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberTeam, RpcTeam
 from sentry.services.hybrid_cloud.replica.service import ControlReplicaService, RegionReplicaService
 
@@ -77,10 +83,8 @@ def get_conflicting_unique_columns(
     scope_controlled_columns: List[str]
     if scope == scope.USER_SCOPE:
         scope_controlled_columns = [get_foreign_key_column(destination, User)]
+
         if isinstance(destination, AuthIdentityReplica):
-            # TODO: Unique columns along the auth identity shard are safe but not provably safe with this
-            # logic at the moment.  This scope_controlled_column override is an adhoc statement of the safety
-            # of this particular unique indexed column.
             scope_controlled_columns.append("ident")
     elif scope == scope.ORGANIZATION_SCOPE:
         scope_controlled_columns = list(
@@ -128,6 +132,29 @@ def handle_replication(
 
 
 class DatabaseBackedRegionReplicaService(RegionReplicaService):
+    def upsert_replicated_api_token(self, *, api_token: RpcApiToken, region_name: str) -> None:
+        organization: Optional[Organization] = None
+        if api_token.organization_id is not None:
+            try:
+                organization = Organization.objects.get(id=api_token.organization_id)
+            except Organization.DoesNotExist:
+                return
+
+        destination = ApiTokenReplica(
+            application_id=api_token.application_id,  # type: ignore
+            organization=organization,
+            application_is_active=api_token.application_is_active,
+            token=api_token.token,
+            expires_at=api_token.expires_at,
+            apitoken_id=api_token.id,
+            scope_list=api_token.scope_list,
+            allowed_origins="\n".join(api_token.allowed_origins)
+            if api_token.allowed_origins
+            else None,
+            user_id=api_token.user_id,
+        )
+        handle_replication(ApiToken, destination)
+
     def upsert_replicated_auth_provider(
         self, *, auth_provider: RpcAuthProvider, region_name: str
     ) -> None:

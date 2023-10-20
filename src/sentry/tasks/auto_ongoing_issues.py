@@ -22,7 +22,7 @@ from sentry.utils.query import RangeQuerySetWrapper
 logger = logging.getLogger(__name__)
 
 TRANSITION_AFTER_DAYS = 7
-ITERATOR_CHUNK = 500
+ITERATOR_CHUNK = 100
 CHILD_TASK_COUNT = 250
 
 
