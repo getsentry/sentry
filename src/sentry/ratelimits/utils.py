@@ -125,8 +125,10 @@ def get_organization_id_from_token(token_id: int) -> Any:
     from sentry.services.hybrid_cloud.app import app_service
 
     installations = app_service.get_many(
-        status=SentryAppInstallationStatus.INSTALLED,
-        api_token_id=token_id,
+        filter={
+            "status": SentryAppInstallationStatus.INSTALLED,
+            "api_token_id": token_id,
+        }
     )
     installation = installations[0] if len(installations) > 0 else None
 
