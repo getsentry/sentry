@@ -65,28 +65,30 @@ function FilterBar({
           />
         )}
         {onChangeDataset && (
-          <StyledSegmentedControl
-            aria-label={t('Alert type')}
-            value={selectedDataset}
-            onChange={onChangeDataset}
-          >
-            <SegmentedControl.Item key={DatasetOption.ALL}>
-              {t('All')}
-            </SegmentedControl.Item>
-            <SegmentedControl.Item key={DatasetOption.ERRORS}>
-              {t('Errors')}
-            </SegmentedControl.Item>
-            <SegmentedControl.Item key={DatasetOption.SESSIONS}>
-              {t('Sessions')}
-            </SegmentedControl.Item>
-            <SegmentedControl.Item
-              textValue={t('Performance')}
-              key={DatasetOption.PERFORMANCE}
+          <SegmentedControlWrapper>
+            <SegmentedControl<DatasetOption>
+              aria-label={t('Alert type')}
+              value={selectedDataset}
+              onChange={onChangeDataset}
             >
-              {t('Performance')}
-              {showMigrationWarning ? <StyledIconWarning /> : null}
-            </SegmentedControl.Item>
-          </StyledSegmentedControl>
+              <SegmentedControl.Item key={DatasetOption.ALL}>
+                {t('All')}
+              </SegmentedControl.Item>
+              <SegmentedControl.Item key={DatasetOption.ERRORS}>
+                {t('Errors')}
+              </SegmentedControl.Item>
+              <SegmentedControl.Item key={DatasetOption.SESSIONS}>
+                {t('Sessions')}
+              </SegmentedControl.Item>
+              <SegmentedControl.Item
+                textValue={t('Performance')}
+                key={DatasetOption.PERFORMANCE}
+              >
+                {t('Performance')}
+                {showMigrationWarning ? <StyledIconWarning /> : null}
+              </SegmentedControl.Item>
+            </SegmentedControl>
+          </SegmentedControlWrapper>
         )}
       </FilterButtons>
       <SearchBar
@@ -123,8 +125,9 @@ const FilterButtons = styled(ButtonBar)`
   }
 `;
 
-const StyledSegmentedControl = styled(SegmentedControl<DatasetOption>)`
+const SegmentedControlWrapper = styled('div')`
   width: max-content;
+  min-width: 345px;
 `;
 
 const StyledIconWarning = styled(IconWarning)`
