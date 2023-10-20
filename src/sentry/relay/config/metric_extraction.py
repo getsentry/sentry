@@ -149,7 +149,10 @@ def _get_alert_metric_specs(
 def _get_widget_metric_specs(
     project: Project, enabled_features: Set[str], prefilling: bool
 ) -> List[HashedMetricSpec]:
-    if not ("organizations:on-demand-metrics-extraction-widgets" in enabled_features):
+    if not (
+        "organizations:on-demand-metrics-extraction" in enabled_features
+        and "organizations:on-demand-metrics-extraction-widgets" in enabled_features
+    ):
         return []
 
     metrics.incr(
