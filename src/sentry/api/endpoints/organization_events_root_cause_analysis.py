@@ -114,14 +114,14 @@ def query_spans(transaction, regression_breakpoint, params):
     return span_results
 
 
-def fetch_span_analysis_results(transaction_name, regression_breakpoint, params, project_id):
+def fetch_span_analysis_results(transaction_name, regression_breakpoint, params, project_id, limit):
     span_data = query_spans(
         transaction=transaction_name,
         regression_breakpoint=regression_breakpoint,
         params=params,
     )
 
-    span_analysis_results = span_analysis(span_data)
+    span_analysis_results = span_analysis(span_data)[:limit]
 
     for result in span_analysis_results:
         result["span_description"] = get_span_description(
@@ -133,7 +133,7 @@ def fetch_span_analysis_results(transaction_name, regression_breakpoint, params,
     return span_analysis_results
 
 
-def fetch_geo_analysis_results(transaction_name, regression_breakpoint, params, project_id):
+def fetch_geo_analysis_results(transaction_name, regression_breakpoint, params, limit):
     def get_geo_data(period):
         # Copy the params so we aren't modifying the base params each time
         adjusted_params = {**params}
@@ -153,7 +153,7 @@ def fetch_geo_analysis_results(transaction_name, regression_breakpoint, params, 
             orderby=["-tpm()"],
         )
 
-        return geo_code_durations
+        return geo_code_durations[:limit]
 
     # For each country code in the second half, compare it to the first half
     geo_results = [get_geo_data("before"), get_geo_data("after")]
@@ -214,6 +214,7 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
         project_id = request.GET.get("project")
         regression_breakpoint = request.GET.get("breakpoint")
         analysis_type = request.GET.get("type", SPAN_ANALYSIS)
+        limit = int(request.GET.get("per_page", DEFAULT_LIMIT))
         if not transaction_name or not project_id or not regression_breakpoint:
             # Project ID is required to ensure the events we query for are
             # the same transaction
@@ -238,12 +239,11 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
         results = []
         if analysis_type == SPAN_ANALYSIS:
             results = fetch_span_analysis_results(
-                transaction_name, regression_breakpoint, params, project_id
+                transaction_name, regression_breakpoint, params, project_id, limit
             )
         elif analysis_type == GEO_ANALYSIS:
             results = fetch_geo_analysis_results(
-                transaction_name, regression_breakpoint, params, project_id
+                transaction_name, regression_breakpoint, params, limit
             )
 
-        limit = int(request.GET.get("per_page", DEFAULT_LIMIT))
-        return Response(results[:limit], status=200)
+        return Response(results, status=200)
