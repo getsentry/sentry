@@ -7,8 +7,14 @@ from django.db.models.expressions import CombinedExpression
 from django.utils.text import slugify
 from typing_extensions import TypedDict
 
+from sentry import roles
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import outbox_context
+from sentry.services.hybrid_cloud.organization_actions.model import (
+    OrganizationAndMemberCreationResult,
+)
 
 
 class OrganizationCreateAndUpdateOptions(TypedDict, total=False):
@@ -24,6 +30,27 @@ def create_organization_with_outbox_message(
 ) -> Organization:
     org: Organization = Organization.objects.create(**create_options)
     return org
+
+
+def create_organization_and_member_for_monolith(
+    organization_name: str,
+    user_id: int,
+    slug: str,
+    create_default_team: bool,
+    is_test: bool = False,
+) -> OrganizationAndMemberCreationResult:
+    org = Organization.objects.create(name=organization_name, slug=slug, is_test=is_test)
+
+    om = OrganizationMember.objects.create(
+        user_id=user_id, organization=org, role=roles.get_top_dog().id
+    )
+
+    team = None
+    if create_default_team:
+        team = org.team_set.create(name=org.name)
+        OrganizationMemberTeam.objects.create(team=team, organizationmember=om, is_active=True)
+
+    return OrganizationAndMemberCreationResult(organization=org, org_member=om, team=team)
 
 
 def update_organization_with_outbox_message(
