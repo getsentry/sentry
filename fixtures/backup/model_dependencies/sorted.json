@@ -111,6 +111,7 @@
   "sentry.actor",
   "sentry.activity",
   "replays.replayrecordingsegment",
+  "hybridcloud.orgauthtokenreplica",
   "hybridcloud.organizationslugreservationreplica",
   "hybridcloud.apikeyreplica",
   "feedback.feedback",

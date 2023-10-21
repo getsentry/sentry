@@ -181,14 +181,12 @@ class DigestNotification(ProjectNotification):
         )
 
         # Get every actor ID for every provider as a set.
-        actor_ids = set()
         team_ids = set()
         user_ids = set()
         combined_participants_by_provider = defaultdict(set)
         for participants_by_provider in participants_by_provider_by_event.values():
             for provider, participants in participants_by_provider.items():
                 for participant in participants:
-                    actor_ids.add(participant.actor_id)
                     if participant.actor_type == ActorType.TEAM:
                         team_ids.add(participant.id)
                     elif participant.actor_type == ActorType.USER:
@@ -204,7 +202,6 @@ class DigestNotification(ProjectNotification):
                 "project_id": self.project.id,
                 "target_type": self.target_type.value,
                 "target_identifier": self.target_identifier,
-                "actor_ids": actor_ids,
                 "team_ids": team_ids,
                 "user_ids": user_ids,
             },

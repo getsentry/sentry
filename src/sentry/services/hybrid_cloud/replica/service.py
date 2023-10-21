@@ -10,6 +10,7 @@ from sentry.services.hybrid_cloud.auth import (
     RpcAuthProvider,
 )
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberTeam, RpcTeam
+from sentry.services.hybrid_cloud.orgauthtoken.model import RpcOrgAuthToken
 from sentry.services.hybrid_cloud.region import ByRegionName
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method, rpc_method
 from sentry.silo import SiloMode
@@ -69,6 +70,11 @@ class RegionReplicaService(RpcService):
     @regional_rpc_method(resolve=ByRegionName())
     @abc.abstractmethod
     def upsert_replicated_api_token(self, *, api_token: RpcApiToken, region_name: str) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByRegionName())
+    @abc.abstractmethod
+    def upsert_replicated_org_auth_token(self, *, token: RpcOrgAuthToken, region_name: str) -> None:
         pass
 
     @regional_rpc_method(resolve=ByRegionName())

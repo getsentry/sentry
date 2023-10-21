@@ -31,7 +31,6 @@ function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
     ),
     [TabKey.TRACE]: hasTraceTable ? null : t('Trace'),
     [TabKey.PERF]: null,
-    [TabKey.DOM]: null,
     [TabKey.A11Y]: hasA11yTab ? (
       <Fragment>
         <Tooltip
