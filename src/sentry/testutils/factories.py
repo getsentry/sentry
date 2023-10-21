@@ -83,7 +83,7 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
-from sentry.models.outbox import outbox_context
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
@@ -301,6 +301,13 @@ class Factories:
 
             # Manually replicate org data after adding an org slug reservation
             org.handle_async_replication(org.id)
+
+            # Flush remaining organization update outboxes accumulated by org create
+            RegionOutbox(
+                shard_identifier=org.id,
+                shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+                category=OutboxCategory.ORGANIZATION_UPDATE,
+            ).drain_shard()
 
         if owner:
             Factories.create_member(organization=org, user_id=owner.id, role="owner")
