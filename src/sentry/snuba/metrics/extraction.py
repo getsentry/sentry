@@ -312,6 +312,11 @@ def _get_aggregate_supported_by(aggregate: str) -> SupportedBy:
             # TODO(Ogi): Implement support for equations
             return SupportedBy.neither()
 
+        # TODO: Fix this logic with actual check if the spec has support for arbitrary columns
+        if aggregate == "lcp.element":
+            return SupportedBy(standard_metrics=True, on_demand_metrics=True)
+
+
         match = fields.is_function(aggregate)
 
         if not match:
@@ -895,9 +900,18 @@ class OnDemandMetricSpec:
 
     def _tag_for_column(self, column: str) -> TagSpec:
         """Returns a TagSpec for a dynamic column"""
+
+        # TODO: Need to ensure this mapping works for all dashboard widget query columns
+        # eg. id does not work
+
+        if column == "id":
+            field = column
+        else:
+            field = _map_field_name(column)
+
         return {
-            "key": column,
-            "field": column, 
+            "key": field,
+            "field": field, 
         }
 
     def tags_columns(self, columns: Sequence[str]) -> List[TagSpec]:

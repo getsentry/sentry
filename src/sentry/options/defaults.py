@@ -1612,7 +1612,7 @@ register(
 )
 register(
     "on_demand.max_widget_cardinality.count",
-    default=10000,
+    default=1000000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(

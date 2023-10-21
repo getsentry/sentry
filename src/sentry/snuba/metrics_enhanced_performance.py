@@ -192,6 +192,7 @@ def top_events_timeseries(
     zerofill_results=True,
     include_other=False,
     functions_acl=None,
+    on_demand_metrics_enabled: bool = False,
 ):
     metrics_compatible = False
     equations, columns = categorize_columns(selected_columns)
@@ -199,6 +200,7 @@ def top_events_timeseries(
         metrics_compatible = True
 
     if metrics_compatible:
+        print("Trying metrics top_events_timeseries", selected_columns, timeseries_columns)
         try:
             return metrics_top_events_timeseries(
                 timeseries_columns,
@@ -216,12 +218,14 @@ def top_events_timeseries(
                 zerofill_results,
                 include_other,
                 functions_acl,
+                on_demand_metrics_enabled,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
             raise error
         # any remaining errors mean we should try again with discover
         except IncompatibleMetricsQuery as error:
+            print("Incompatible MEP", str(error))
             sentry_sdk.set_tag("performance.mep_incompatible", str(error))
             metrics_compatible = False
         except Exception as error:
@@ -246,6 +250,7 @@ def top_events_timeseries(
             zerofill_results,
             include_other,
             functions_acl,
+            on_demand_metrics_enabled,
         )
     return SnubaTSResult(
         {

@@ -119,20 +119,28 @@ class MetricsQueryBuilder(QueryBuilder):
 
     @cached_property
     def _on_demand_metric_spec(self) -> Optional[OnDemandMetricSpec]:
+        print("Checking if using on_demand_spec")
+        print(self.selected_columns)
+
         if not self.builder_config.on_demand_metrics_enabled:
+            print("On demand metrics not enabled")
             return None
 
         field = self.selected_columns[0] if self.selected_columns else None
         if not field:
+            print("No field")
             return None
 
         if self.query is None:
+            print("No query")
             return None
 
         if not should_use_on_demand_metrics(self.dataset, field, self.query):
+            print("should_use_on_demand_metrics failed")
             return None
 
         try:
+            print("using on_demand_spec")
             return OnDemandMetricSpec(field, self.query)
         except Exception as e:
             sentry_sdk.capture_exception(e)
@@ -282,6 +290,13 @@ class MetricsQueryBuilder(QueryBuilder):
                 self.has_transaction = True
             return f"tags[{col}]"
 
+        #TODO: This shouldn't be propgated, this is what's causing errors
+        if col == "transaction.duration":
+            return "transaction.duration"
+        if col == "lcp.element":
+            return "tags[lcp.element]"
+
+
         if col in DATASETS[self.dataset]:
             return str(DATASETS[self.dataset][col])
         tag_id = self.resolve_metric_index(col)
@@ -301,6 +316,8 @@ class MetricsQueryBuilder(QueryBuilder):
         try:
             return super().column(name)
         except InvalidSearchQuery:
+            import traceback
+            print(traceback.format_exc())
             raise missing_column
 
     def aliased_column(self, name: str) -> SelectType:
@@ -810,6 +827,7 @@ class MetricsQueryBuilder(QueryBuilder):
         return metric_layer_result
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        print("Using run_query from MQB")
         groupby_aliases = [
             groupby.alias
             if isinstance(groupby, (AliasedExpression, CurriedFunction))
@@ -830,8 +848,10 @@ class MetricsQueryBuilder(QueryBuilder):
 
         # Check if we need to make multiple queries
         if not self._on_demand_metric_spec:
+            print("Query ondemandspec failed")
             primary, query_framework = self._create_query_framework()
         else:
+            print("Using metric layer for query framework")
             primary = "metrics_layer"
             query_framework = {
                 primary: QueryFramework(
@@ -846,6 +866,7 @@ class MetricsQueryBuilder(QueryBuilder):
         self.tenant_ids["use_case_id"] = self.use_case_id.value
 
         if self.builder_config.use_metrics_layer or self._on_demand_metric_spec:
+            print("metrics / run_query / on_demand_metric_spec true")
             from sentry.snuba.metrics.datasource import get_series
             from sentry.snuba.metrics.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,
@@ -1055,6 +1076,7 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
         we are going to import the purposfully hidden SnubaQueryBuilder which is a component that takes a MetricsQuery
         and returns one or more equivalent snql query(ies).
         """
+        print("metrics dataset  /get_snql_query")
         if self.builder_config.use_metrics_layer or self._on_demand_metric_spec:
             from sentry.snuba.metrics import SnubaQueryBuilder
             from sentry.snuba.metrics.mqb_query_transformer import (
@@ -1251,6 +1273,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         This is because different functions will use different entities
         """
 
+        print("get_snql_query / metrics")
         # No need for primary from the query framework since there's no orderby to worry about
         if self.builder_config.use_metrics_layer:
             prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
@@ -1305,6 +1328,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         return queries
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        print("run_query")
         if self.builder_config.use_metrics_layer or self._on_demand_metric_spec:
             from sentry.snuba.metrics.datasource import get_series
             from sentry.snuba.metrics.mqb_query_transformer import (
@@ -1313,16 +1337,20 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
             try:
                 with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
+                    print("Running query with one of metric spec or layer")
                     if self._on_demand_metric_spec:
+                        print("Querying with on_demand_spec")
                         metrics_query = self._get_metrics_query_from_on_demand_spec(
                             spec=self._on_demand_metric_spec, require_time_range=True
                         )
                     elif self.builder_config.use_metrics_layer:
+                        print("using metrics layer")
                         snuba_query = self.get_snql_query()[0].query
                         metrics_query = transform_mqb_query_to_metrics_query(
                             snuba_query, self.is_alerts_query
                         )
                 with sentry_sdk.start_span(op="metric_layer", description="run_query"):
+                    print("using perf metrics")
                     metrics_data = get_series(
                         projects=self.params.projects,
                         metrics_query=metrics_query,
