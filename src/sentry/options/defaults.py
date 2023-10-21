@@ -1492,9 +1492,8 @@ register(
 )
 
 register("hybrid_cloud.outbox_rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# TODO(Gabe): Flip this to false before deploying
 register(
-    "hybrid_cloud.control-organization-provisioning", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "hybrid_cloud.control-organization-provisioning", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
