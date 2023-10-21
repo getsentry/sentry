@@ -108,7 +108,7 @@ def get_integrations_by_channel_by_recipient(
             channels_to_integrations = _get_channel_and_integration_by_user(
                 recipient.id, organization, provider
             )
-        elif recipient.actor_type == ActorType.TEAM and recipient.actor_id is not None:
+        elif recipient.actor_type == ActorType.TEAM:
             channels_to_integrations = _get_channel_and_integration_by_team(
                 recipient.id, organization, provider
             )

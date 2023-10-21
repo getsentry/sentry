@@ -201,7 +201,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             project_id=self.project.id,
             organization_id=self.organization.id,
             group_id=event.group_id,
-            actor_id=ANY,
             user_id=ANY,
             id=ANY,
             actor_type="User",
