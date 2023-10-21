@@ -16,7 +16,7 @@ from sentry.search.events.filter import (
     to_list,
 )
 from sentry.search.events.types import WhereType
-from sentry.search.utils import parse_release
+from sentry.search.utils import DEVICE_CLASS, parse_release
 from sentry.utils.strings import oxfordize_list
 
 
@@ -270,3 +270,12 @@ def semver_build_filter_converter(
         versions = [constants.SEMVER_EMPTY_RELEASE]
 
     return Condition(builder.column("release"), Op.IN, versions)
+
+
+def device_class_converter(
+    builder: builder.QueryBuilder, search_filter: SearchFilter
+) -> Optional[WhereType]:
+    value = search_filter.value.value
+    if value not in DEVICE_CLASS:
+        raise InvalidSearchQuery(f"{value} is not a supported device.class")
+    return Condition(builder.column("device.class"), Op.IN, list(DEVICE_CLASS[value]))

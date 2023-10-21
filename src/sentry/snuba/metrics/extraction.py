@@ -31,6 +31,7 @@ from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.search.events import fields
 from sentry.search.events.builder import UnresolvedQuery
+from sentry.search.events.constants import VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
@@ -59,8 +60,8 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     # Top-level structures ("interfaces")
     "user.email": "user.email",
     "user.id": "user.id",
-    "user.ip_address": "user.ip_address",
-    "user.name": "user.name",
+    "user.ip": "user.ip_address",
+    "user.username": "user.name",
     "user.segment": "user.segment",
     "geo.city": "user.geo.city",
     "geo.country_code": "user.geo.country_code",
@@ -117,6 +118,8 @@ _SEARCH_TO_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
     "p75": "p75",
     "p95": "p95",
     "p99": "p99",
+    # p100 is not supported in the metrics layer, so we convert to max which is equivalent.
+    "p100": "max"
     # generic percentile is not supported by metrics layer.
 }
 
@@ -125,6 +128,7 @@ _SEARCH_TO_DERIVED_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
     "failure_count": "on_demand_failure_count",
     "failure_rate": "on_demand_failure_rate",
     "apdex": "on_demand_apdex",
+    "count_web_vitals": "on_demand_count_web_vitals",
     "epm": "on_demand_epm",
     "eps": "on_demand_eps",
     "user_misery": "on_demand_user_misery",
@@ -140,15 +144,17 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "p75": "d",
     "p95": "d",
     "p99": "d",
+    "p100": "d",
+    "percentile": "d",
     # With on demand metrics, evaluated metrics are actually stored, thus we have to choose a concrete metric type.
     "failure_count": "c",
     "failure_rate": "c",
+    "count_web_vitals": "c",
     "apdex": "c",
     "epm": "c",
     "eps": "c",
     "user_misery": "s",
 }
-
 
 _NO_ARG_METRICS = [
     "on_demand_epm",
@@ -156,7 +162,7 @@ _NO_ARG_METRICS = [
     "on_demand_failure_count",
     "on_demand_failure_rate",
 ]
-_MULTIPLE_ARGS_METRICS = ["on_demand_apdex", "on_demand_user_misery"]
+_MULTIPLE_ARGS_METRICS = ["on_demand_apdex", "on_demand_count_web_vitals", "on_demand_user_misery"]
 
 # Query fields that on their own do not require on-demand metric extraction but if present in an on-demand query
 # will be converted to metric extraction conditions.
@@ -306,23 +312,24 @@ def _get_aggregate_supported_by(aggregate: str) -> SupportedBy:
             return SupportedBy.neither()
 
         match = fields.is_function(aggregate)
-
         if not match:
             raise InvalidSearchQuery(f"Invalid characters in field {aggregate}")
 
         function, _, args, _ = query_builder.parse_function(match)
-        function_support = _get_function_support(function)
+        function_support = _get_function_support(function, args)
         args_support = _get_args_support(function, args)
 
         return SupportedBy.combine(function_support, args_support)
-
     except InvalidSearchQuery:
         logger.error(f"Failed to parse aggregate: {aggregate}", exc_info=True)
 
     return SupportedBy.neither()
 
 
-def _get_function_support(function: str) -> SupportedBy:
+def _get_function_support(function: str, args: Sequence[str]) -> SupportedBy:
+    if function == "percentile":
+        return _get_percentile_support(args)
+
     return SupportedBy(
         standard_metrics=True,
         on_demand_metrics=(
@@ -331,6 +338,36 @@ def _get_function_support(function: str) -> SupportedBy:
         )
         and function in _AGGREGATE_TO_METRIC_TYPE,
     )
+
+
+def _get_percentile_support(args: Sequence[str]) -> SupportedBy:
+    if len(args) != 2:
+        return SupportedBy.neither()
+
+    if not _get_percentile_op(args):
+        return SupportedBy.neither()
+
+    return SupportedBy.both()
+
+
+def _get_percentile_op(args: Sequence[str]) -> Optional[MetricOperationType]:
+    if len(args) != 2:
+        raise ValueError("Percentile function should have 2 arguments")
+
+    percentile = args[1]
+
+    if percentile in ["0.5", "0.50"]:
+        return "p50"
+    if percentile == "0.75":
+        return "p75"
+    if percentile == "0.95":
+        return "p95"
+    if percentile == "0.99":
+        return "p99"
+    if percentile in ["1", "1.0"]:
+        return "p100"
+
+    return None
 
 
 def _get_args_support(function: str, args: Sequence[str]) -> SupportedBy:
@@ -647,6 +684,60 @@ def apdex_tag_spec(project: Project, arguments: Optional[Sequence[str]]) -> list
     ]
 
 
+def count_web_vitals_spec(project: Project, arguments: Optional[Sequence[str]]) -> list[TagSpec]:
+    if not arguments:
+        raise Exception("count_web_vitals requires arguments")
+
+    if len(arguments) != 2:
+        raise Exception("count web vitals requires a vital name and vital rating")
+
+    measurement, measurement_rating = arguments
+
+    field = _map_field_name(measurement)
+    _, vital = measurement.split(".")
+
+    thresholds = VITAL_THRESHOLDS[vital]
+
+    if measurement_rating == "good":
+        return [
+            {
+                "key": "measurement_rating",
+                "value": "matches_hash",
+                "condition": {"name": field, "op": "lt", "value": thresholds["meh"]},
+            }
+        ]
+    elif measurement_rating == "meh":
+        return [
+            {
+                "key": "measurement_rating",
+                "value": "matches_hash",
+                "condition": {
+                    "inner": [
+                        {"name": field, "op": "gte", "value": thresholds["meh"]},
+                        {"name": field, "op": "lt", "value": thresholds["poor"]},
+                    ],
+                    "op": "and",
+                },
+            }
+        ]
+    elif measurement_rating == "poor":
+        return [
+            {
+                "key": "measurement_rating",
+                "value": "matches_hash",
+                "condition": {"name": field, "op": "gte", "value": thresholds["poor"]},
+            }
+        ]
+    return [
+        # 'any' measurement_rating
+        {
+            "key": "measurement_rating",
+            "value": "matches_hash",
+            "condition": {"name": field, "op": "gte", "value": 0},
+        }
+    ]
+
+
 def user_misery_tag_spec(project: Project, arguments: Optional[Sequence[str]]) -> List[TagSpec]:
     """A metric that counts the number of unique users who were frustrated; "frustration" is
     measured as a response time four times the satisfactory response time threshold (in milliseconds).
@@ -670,6 +761,7 @@ _DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator | None] = {
     "on_demand_apdex": apdex_tag_spec,
     "on_demand_epm": None,
     "on_demand_eps": None,
+    "on_demand_count_web_vitals": count_web_vitals_spec,
     "on_demand_user_misery": user_misery_tag_spec,
 }
 
@@ -718,7 +810,7 @@ class OnDemandMetricSpec:
 
     @property
     def field_to_extract(self):
-        if self.op in ("on_demand_apdex"):
+        if self.op in ("on_demand_apdex", "on_demand_count_web_vitals"):
             return None
 
         if self.op in ("on_demand_user_misery"):
@@ -810,7 +902,7 @@ class OnDemandMetricSpec:
         if parsed_field is None:
             raise Exception(f"Unable to parse the field {self.field}")
 
-        op = self._get_op(parsed_field.function)
+        op = self._get_op(parsed_field.function, parsed_field.arguments)
         metric_type = self._get_metric_type(parsed_field.function)
 
         return op, metric_type, self._parse_arguments(op, metric_type, parsed_field)
@@ -829,8 +921,9 @@ class OnDemandMetricSpec:
         if parsed_query is None or len(parsed_query.conditions) == 0:
             if aggregate_conditions is None:
                 # derived metrics have their conditions injected in the tags
-                if self._get_op(parsed_field.function) in _DERIVED_METRICS:
+                if self._get_op(parsed_field.function, parsed_field.arguments) in _DERIVED_METRICS:
                     return None
+
                 raise Exception("This query should not use on demand metrics")
 
             return aggregate_conditions
@@ -870,13 +963,15 @@ class OnDemandMetricSpec:
             raise Exception(f"The operation {op} supports one or more parameters")
 
         arguments = parsed_field.arguments
-        map_argument = op not in _MULTIPLE_ARGS_METRICS
-
-        first_argument = arguments[0]
-        return [_map_field_name(first_argument)] if map_argument else arguments
+        return [_map_field_name(arguments[0])] if op not in _MULTIPLE_ARGS_METRICS else arguments
 
     @staticmethod
-    def _get_op(function: str) -> MetricOperationType:
+    def _get_op(function: str, args: Sequence[str]) -> MetricOperationType:
+        if function == "percentile":
+            percentile_op = _get_percentile_op(args)
+            if percentile_op is not None:
+                function = cast(str, percentile_op)
+
         op = _SEARCH_TO_METRIC_AGGREGATES.get(function) or _SEARCH_TO_DERIVED_METRIC_AGGREGATES.get(
             function
         )
@@ -893,21 +988,10 @@ class OnDemandMetricSpec:
 
         raise Exception(f"Unsupported aggregate function {function}")
 
-    # @staticmethod
-    # def _cleanup_query(query: str) -> str:
-    #     regexes = [r"event\.type:transaction\s*", r"project:[\w\d\"\-_]+\s*"]
-    #
-    #     new_query = query
-    #     for regex in regexes:
-    #         new_query = re.sub(regex, "", new_query)
-    #
-    #     return new_query
-
     @staticmethod
     def _parse_field(value: str) -> Optional[FieldParsingResult]:
         try:
             match = fields.is_function(value)
-
             if not match:
                 raise InvalidSearchQuery(f"Invalid characters in field {value}")
 

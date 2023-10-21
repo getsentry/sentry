@@ -63,10 +63,19 @@ class TestCreatesOndemandMetricSpec:
         [
             # transaction duration not supported by standard metrics
             ("count()", "transaction.duration:>0"),
+            ("count()", "user.ip:192.168.0.1"),
+            ("count()", "user.username:foobar"),
             ("count()", "transaction.duration:>0 event.type:transaction project:abc"),
             ("count()", "(transaction.duration:>0) AND (event.type:transaction)"),
             ("p75(measurements.fp)", "transaction.duration:>0"),
             ("p75(transaction.duration)", "transaction.duration:>0"),
+            ("p100(transaction.duration)", "transaction.duration:>0"),
+            # we dont support custom percentiles that can be mapped to one of standard percentiles
+            ("percentile(transaction.duration, 0.5)", "transaction.duration>0"),
+            ("percentile(transaction.duration, 0.50)", "transaction.duration>0"),
+            ("percentile(transaction.duration, 0.95)", "transaction.duration>0"),
+            ("percentile(transaction.duration, 0.99)", "transaction.duration>0"),
+            ("percentile(transaction.duration, 1)", "transaction.duration>0"),
             ("count_if(transaction.duration,equals,0)", "transaction.duration:>0"),
             ("count_if(transaction.duration,notEquals,0)", "transaction.duration:>0"),
             (
@@ -79,6 +88,10 @@ class TestCreatesOndemandMetricSpec:
             ("failure_count()", "transaction.duration:>100"),
             ("failure_rate()", "transaction.duration:>100"),
             ("apdex(10)", "transaction.duration:>100"),
+            (
+                "count_web_vitals(measurements.fcp,any)",
+                "transaction.duration:>0",
+            ),  # count_web_vitals supported by on demand
             (
                 "apdex(10)",
                 "",
@@ -100,6 +113,8 @@ class TestCreatesOndemandMetricSpec:
             ("last_seen()", "transaction.duration:>0"),  # last_seen not supported by on demand
             ("any(user)", "transaction.duration:>0"),  # any not supported by on demand
             ("p95(transaction.duration)", ""),  # p95 without query is supported by standard metrics
+            # we do not support custom percentiles that can not be mapped to one of standard percentiles
+            ("percentile(transaction.duration, 0.123)", "transaction.duration>0"),
             (
                 "count()",
                 "p75(transaction.duration):>0",
@@ -110,10 +125,6 @@ class TestCreatesOndemandMetricSpec:
                 "transaction.duration:>0",
             ),  # equation not supported by on demand
             ("p75(measurements.lcp)", "!event.type:transaction"),  # supported by standard metrics
-            (
-                "count_web_vitals(measurements.fcp,any)",
-                "transaction.duration:>0",
-            ),  # count_web_vitals not supported by on demand
             # supported by standard metrics
             ("p95(measurements.lcp)", ""),
             ("avg(spans.http)", ""),

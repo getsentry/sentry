@@ -600,7 +600,6 @@ module = [
     "sentry.sentry_metrics.configuration",
     "sentry.sentry_metrics.consumers.indexer.slicing_router",
     "sentry.sentry_metrics.indexer.postgres.postgres_v2",
-    "sentry.services.smtp",
     "sentry.shared_integrations.client.base",
     "sentry.shared_integrations.client.proxy",
     "sentry.similarity.backends.dummy",

@@ -128,11 +128,11 @@ test-js-ci: node-version-check
 test-python-ci: create-db
 	@echo "--> Running CI Python tests"
 	pytest \
-		tests/integration \
-		tests/relay_integration \
-		tests/sentry \
-		tests/sentry_plugins \
-		tests/symbolicator \
+		tests \
+		--ignore tests/acceptance \
+		--ignore tests/apidocs \
+		--ignore tests/js \
+		--ignore tests/tools \
 		--cov . --cov-report="xml:.artifacts/python.coverage.xml"
 	@echo ""
 
