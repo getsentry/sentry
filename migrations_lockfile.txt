@@ -6,7 +6,7 @@ To resolve this, rebase against latest master and regenerate your migration. Thi
 will then be regenerated, and you should be able to merge without conflicts.
 
 feedback: 0003_feedback_add_env
-hybridcloud: 0006_add_apitokenreplica
+hybridcloud: 0007_add_orgauthtokenreplica
 nodestore: 0002_nodestore_no_dictfield
 replays: 0003_add_size_to_recording_segment
 sentry: 0580_threhsold_window_positive_integer
