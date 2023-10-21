@@ -18,15 +18,13 @@ from sentry.sentry_metrics.configuration import (
 )
 from sentry.sentry_metrics.consumers.indexer.common import (
     BatchMessages,
+    IndexerOutputMessage,
     IndexerOutputMessageBatch,
     get_config,
 )
 from sentry.sentry_metrics.consumers.indexer.multiprocess import SimpleProduceStep
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
-from sentry.sentry_metrics.consumers.indexer.routing_producer import (
-    RoutingPayload,
-    RoutingProducerStep,
-)
+from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingProducerStep
 from sentry.sentry_metrics.consumers.indexer.slicing_router import SlicingRouter
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
 
@@ -39,7 +37,7 @@ logger = logging.getLogger(__name__)
 class Unbatcher(ProcessingStep[Union[FilteredPayload, IndexerOutputMessageBatch]]):
     def __init__(
         self,
-        next_step: ProcessingStep[Union[KafkaPayload, RoutingPayload]],
+        next_step: ProcessingStep[IndexerOutputMessage],
     ) -> None:
         self.__next_step = next_step
         self.__closed = False

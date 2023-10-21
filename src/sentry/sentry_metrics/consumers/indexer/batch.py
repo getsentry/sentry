@@ -30,7 +30,11 @@ from sentry_kafka_schemas.schema_types.snuba_metrics_v1 import Metric
 from sentry import options
 from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_option
 from sentry.sentry_metrics.configuration import MAX_INDEXED_COLUMN_LENGTH
-from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch, MessageBatch
+from sentry.sentry_metrics.consumers.indexer.common import (
+    IndexerOutputMessage,
+    IndexerOutputMessageBatch,
+    MessageBatch,
+)
 from sentry.sentry_metrics.consumers.indexer.parsed_message import ParsedMessage
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.indexer.base import Metadata
@@ -283,8 +287,7 @@ class IndexerBatch:
         mapping: Mapping[UseCaseID, Mapping[OrgId, Mapping[str, Optional[int]]]],
         bulk_record_meta: Mapping[UseCaseID, Mapping[OrgId, Mapping[str, Metadata]]],
     ) -> IndexerOutputMessageBatch:
-        new_messages: MutableSequence[Message[Union[RoutingPayload, KafkaPayload]]] = []
-        cogs_usage: MutableMapping[UseCaseID, int] = defaultdict(int)
+        new_messages: MutableSequence[Message[IndexerOutputMessage]] = []
 
         for message in self.outer_message.payload:
             used_tags: Set[str] = set()
@@ -300,7 +303,6 @@ class IndexerBatch:
             metric_name = old_payload_value["name"]
             org_id = old_payload_value["org_id"]
             use_case_id = old_payload_value["use_case_id"]
-            cogs_usage[use_case_id] += 1
             sentry_sdk.set_tag("sentry_metrics.organization_id", org_id)
             tags = old_payload_value.get("tags", {})
             used_tags.add(metric_name)
@@ -470,9 +472,15 @@ class IndexerBatch:
                     routing_header={"org_id": org_id},
                     routing_message=kafka_payload,
                 )
-                new_messages.append(Message(message.value.replace(routing_payload)))
+                new_messages.append(
+                    Message(
+                        message.value.replace(IndexerOutputMessage(routing_payload, use_case_id))
+                    )
+                )
             else:
-                new_messages.append(Message(message.value.replace(kafka_payload)))
+                new_messages.append(
+                    Message(message.value.replace(IndexerOutputMessage(kafka_payload, use_case_id)))
+                )
 
         for use_case_id in self.__message_count:
             metrics.incr(
@@ -490,4 +498,4 @@ class IndexerBatch:
                 self.__message_size_max[use_case_id],
                 tags={"use_case_id": use_case_id.value},
             )
-        return IndexerOutputMessageBatch(new_messages, cogs_usage)
+        return IndexerOutputMessageBatch(new_messages)

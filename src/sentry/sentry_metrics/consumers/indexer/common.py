@@ -1,7 +1,7 @@
 import logging
 import time
 from dataclasses import dataclass
-from typing import Any, List, Mapping, MutableMapping, MutableSequence, Optional, Union
+from typing import Any, List, MutableMapping, MutableSequence, NamedTuple, Optional, Union
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
@@ -22,10 +22,14 @@ DEFAULT_QUEUED_MAX_MESSAGE_KBYTES = 50000
 DEFAULT_QUEUED_MIN_MESSAGES = 100000
 
 
+class IndexerOutputMessage(NamedTuple):
+    message: Union[RoutingPayload, KafkaPayload]
+    use_case_id: UseCaseID  # for cogs
+
+
 @dataclass(frozen=True)
 class IndexerOutputMessageBatch:
-    data: MutableSequence[Message[Union[RoutingPayload, KafkaPayload]]]
-    cogs_data: Mapping[UseCaseID, int]
+    data: MutableSequence[Message[IndexerOutputMessage]]
 
 
 def get_config(
