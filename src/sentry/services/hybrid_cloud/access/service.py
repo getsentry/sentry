@@ -13,6 +13,7 @@ from sentry.services.hybrid_cloud.auth import (
 )
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberSummary
 from sentry.silo import SiloMode
+from sentry.tasks.check_auth import find_providers_requiring_refresh
 
 _SSO_BYPASS = RpcMemberSsoState(is_required=False, is_valid=True)
 _SSO_NONMEMBER = RpcMemberSsoState(is_required=False, is_valid=False)
@@ -47,7 +48,10 @@ class AccessService(abc.ABC):
         pass
 
     def auth_identity_is_valid(
-        self, auth_identity: RpcAuthIdentity, member: RpcOrganizationMemberSummary
+        self,
+        auth_provider: RpcAuthProvider,
+        auth_identity: RpcAuthIdentity,
+        member: RpcOrganizationMemberSummary,
     ) -> bool:
         if member.flags.sso__invalid:
             return False
@@ -56,7 +60,9 @@ class AccessService(abc.ABC):
 
         if not auth_identity.last_verified:
             return False
-        if auth_identity.last_verified < timezone.now() - timedelta(hours=24 * 7):
+        if (
+            auth_provider.provider in find_providers_requiring_refresh()
+        ) and auth_identity.last_verified < timezone.now() - timedelta(hours=24 * 7):
             return False
         return True
 
@@ -94,7 +100,7 @@ class AccessService(abc.ABC):
                 requires_sso = not self.can_override_sso_as_owner(auth_provider, member)
             else:
                 sso_is_valid = self.auth_identity_is_valid(
-                    auth_identity=auth_identity, member=member
+                    auth_provider=auth_provider, auth_identity=auth_identity, member=member
                 )
 
         return RpcMemberSsoState(is_required=requires_sso, is_valid=sso_is_valid)
