@@ -19,6 +19,11 @@
     "sentry.organizationslugreservation",
     "sentry.user"
   ],
+  "hybridcloud.orgauthtokenreplica": [
+    "sentry.organization",
+    "sentry.orgauthtoken",
+    "sentry.user"
+  ],
   "hybridcloud.regioncacheversion": [],
   "nodestore.node": [],
   "replays.replayrecordingsegment": [

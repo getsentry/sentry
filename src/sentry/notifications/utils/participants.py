@@ -392,9 +392,7 @@ def determine_eligible_recipients(
         ).first()
         if group_assignee:
             outcome = "match"
-            assignee_actor = RpcActor.from_orm_actor(
-                group_assignee.assigned_actor().resolve_to_actor()
-            )
+            assignee_actor = group_assignee.assigned_actor()
             suggested_assignees.append(assignee_actor)
 
         suspect_commit_users = None

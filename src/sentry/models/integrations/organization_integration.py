@@ -27,7 +27,7 @@ class OrganizationIntegration(ReplicatedControlModel):
     date_updated = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
-    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade")
+    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
     integration = FlexibleForeignKey("sentry.Integration")
     config = JSONField(default=dict)
 

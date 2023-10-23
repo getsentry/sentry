@@ -263,14 +263,13 @@ const platforms: PlatformIntegration[] = [
     language: 'javascript',
     link: 'https://docs.sentry.io/platforms/javascript/guides/angular/',
   },
-  // TODO: comment back in when we have a getting-started page for Astro
-  // {
-  //   id: 'javascript-astro',
-  //   name: 'Astro',
-  //   type: 'framework',
-  //   language: 'javascript',
-  //   link: 'https://docs.sentry.io/platforms/javascript/guides/astro/',
-  // },
+  {
+    id: 'javascript-astro',
+    name: 'Astro',
+    type: 'framework',
+    language: 'javascript',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/astro/',
+  },
   {
     id: 'javascript-ember',
     name: 'Ember',
