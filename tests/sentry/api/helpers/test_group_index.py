@@ -581,8 +581,7 @@ class TestHandleAssignedTo(TestCase):
         )
 
     @patch("sentry.analytics.record")
-    @with_feature("organizations:participants-purge")
-    def test_unassign_user_with_feature_flag(self, mock_record: Mock) -> None:
+    def test_unassign_with_feature_flag(self, mock_record: Mock) -> None:
         # first assign the issue
         assigned_to = handle_assigned_to(
             ActorTuple.from_actor_identifier(self.user.id),
@@ -602,132 +601,16 @@ class TestHandleAssignedTo(TestCase):
         ).exists()
 
         # then unassign it
-        assigned_to = handle_assigned_to(
-            None, None, None, self.group_list, self.project_lookup, self.user
-        )
+        with self.feature("organizations:participants-purge"):
+            assigned_to = handle_assigned_to(
+                None, None, None, self.group_list, self.project_lookup, self.user
+            )
 
         assert not GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
         assert not GroupSubscription.objects.filter(
             group=self.group,
             project=self.group.project,
             user_id=self.user.id,
-            reason=GroupSubscriptionReason.assigned,
-        ).exists()
-
-        assert assigned_to is None
-        mock_record.assert_called_with(
-            "manual.issue_assignment",
-            group_id=self.group.id,
-            organization_id=self.group.project.organization_id,
-            project_id=self.group.project_id,
-            assigned_by=None,
-            had_to_deassign=True,
-        )
-
-    @patch("sentry.analytics.record")
-    @with_feature("organizations:participants-purge")
-    def test_unassign_team_with_feature_flag(self, mock_record: Mock) -> None:
-        user1 = self.create_user("foo@example.com")
-        user2 = self.create_user("bar@example.com")
-        team1 = self.create_team()
-        member1 = self.create_member(user=user1, organization=self.organization, role="member")
-        member2 = self.create_member(user=user2, organization=self.organization, role="member")
-        self.create_team_membership(team1, member1, role="admin")
-        self.create_team_membership(team1, member2, role="admin")
-
-        # first assign the issue to team1
-        assigned_to = handle_assigned_to(
-            (ActorTuple.from_actor_identifier(f"team:{team1.id}")),
-            None,
-            None,
-            self.group_list,
-            self.project_lookup,
-            self.user,
-        )
-
-        assert GroupAssignee.objects.filter(group=self.group, team_id=team1.id).exists()
-        assert GroupSubscription.objects.filter(
-            group=self.group,
-            project=self.group.project,
-            user_id=user1.id,
-            reason=GroupSubscriptionReason.assigned,
-        ).exists()
-        assert GroupSubscription.objects.filter(
-            group=self.group,
-            project=self.group.project,
-            user_id=user2.id,
-            reason=GroupSubscriptionReason.assigned,
-        ).exists()
-
-        # then unassign it
-        assigned_to = handle_assigned_to(
-            None, None, None, self.group_list, self.project_lookup, self.user
-        )
-
-        assert not GroupAssignee.objects.filter(group=self.group, team_id=team1.id).exists()
-        assert not GroupSubscription.objects.filter(
-            group=self.group,
-            project=self.group.project,
-            user_id=user1.id,
-            reason=GroupSubscriptionReason.assigned,
-        ).exists()
-        assert not GroupSubscription.objects.filter(
-            group=self.group,
-            project=self.group.project,
-            user_id=user2.id,
-            reason=GroupSubscriptionReason.assigned,
-        ).exists()
-
-        assert assigned_to is None
-        mock_record.assert_called_with(
-            "manual.issue_assignment",
-            group_id=self.group.id,
-            organization_id=self.group.project.organization_id,
-            project_id=self.group.project_id,
-            assigned_by=None,
-            had_to_deassign=True,
-        )
-
-    @patch("sentry.analytics.record")
-    @with_feature("organizations:participants-purge")
-    @with_feature("organizations:team-workflow-notifications")
-    def test_unassign_team_with_both_feature_flags(self, mock_record: Mock) -> None:
-        user1 = self.create_user("foo@example.com")
-        user2 = self.create_user("bar@example.com")
-        team1 = self.create_team()
-        member1 = self.create_member(user=user1, organization=self.organization, role="member")
-        member2 = self.create_member(user=user2, organization=self.organization, role="member")
-        self.create_team_membership(team1, member1, role="admin")
-        self.create_team_membership(team1, member2, role="admin")
-
-        # first assign the issue to team1
-        assigned_to = handle_assigned_to(
-            (ActorTuple.from_actor_identifier(f"team:{team1.id}")),
-            None,
-            None,
-            self.group_list,
-            self.project_lookup,
-            self.user,
-        )
-
-        assert GroupAssignee.objects.filter(group=self.group, team_id=team1.id).exists()
-        assert GroupSubscription.objects.filter(
-            group=self.group,
-            project=self.group.project,
-            team_id=team1.id,
-            reason=GroupSubscriptionReason.assigned,
-        ).exists()
-
-        # then unassign it
-        assigned_to = handle_assigned_to(
-            None, None, None, self.group_list, self.project_lookup, self.user
-        )
-
-        assert not GroupAssignee.objects.filter(group=self.group, team_id=team1.id).exists()
-        assert not GroupSubscription.objects.filter(
-            group=self.group,
-            project=self.group.project,
-            user_id=team1.id,
             reason=GroupSubscriptionReason.assigned,
         ).exists()
 
@@ -801,11 +684,10 @@ class TestHandleAssignedTo(TestCase):
             organization_id=self.group.project.organization_id,
             project_id=self.group.project_id,
             assigned_by=None,
-            had_to_deassign=True,
+            had_to_deassign=False,
         )
 
     @patch("sentry.analytics.record")
-    @with_feature("organizations:participants-purge")
     def test_reassign_team(self, mock_record: Mock) -> None:
         user1 = self.create_user("foo@example.com")
         user2 = self.create_user("bar@example.com")
@@ -848,14 +730,15 @@ class TestHandleAssignedTo(TestCase):
         ).exists()
 
         # then assign it to team2
-        assigned_to = handle_assigned_to(
-            ActorTuple.from_actor_identifier(f"team:{team2.id}"),
-            None,
-            None,
-            self.group_list,
-            self.project_lookup,
-            self.user,
-        )
+        with self.feature("organizations:participants-purge"):
+            assigned_to = handle_assigned_to(
+                ActorTuple.from_actor_identifier(f"team:{team2.id}"),
+                None,
+                None,
+                self.group_list,
+                self.project_lookup,
+                self.user,
+            )
 
         assert not GroupAssignee.objects.filter(group=self.group, team=team1.id).exists()
         assert not GroupSubscription.objects.filter(
@@ -896,12 +779,10 @@ class TestHandleAssignedTo(TestCase):
             organization_id=self.group.project.organization_id,
             project_id=self.group.project_id,
             assigned_by=None,
-            had_to_deassign=True,
+            had_to_deassign=False,
         )
 
     @patch("sentry.analytics.record")
-    @with_feature("organizations:participants-purge")
-    @with_feature("organizations:team-workflow-notifications")
     def test_reassign_team_with_both_flags(self, mock_record: Mock) -> None:
         user1 = self.create_user("foo@example.com")
         user2 = self.create_user("bar@example.com")
@@ -920,14 +801,15 @@ class TestHandleAssignedTo(TestCase):
         self.create_team_membership(team2, member4, role="admin")
 
         # first assign the issue to team1
-        assigned_to = handle_assigned_to(
-            (ActorTuple.from_actor_identifier(f"team:{team1.id}")),
-            None,
-            None,
-            self.group_list,
-            self.project_lookup,
-            self.user,
-        )
+        with self.feature("organizations:team-workflow-notifications"):
+            assigned_to = handle_assigned_to(
+                (ActorTuple.from_actor_identifier(f"team:{team1.id}")),
+                None,
+                None,
+                self.group_list,
+                self.project_lookup,
+                self.user,
+            )
 
         assert GroupAssignee.objects.filter(group=self.group, team=team1.id).exists()
         assert GroupSubscription.objects.filter(
@@ -938,14 +820,17 @@ class TestHandleAssignedTo(TestCase):
         ).exists()
 
         # then assign it to team2
-        assigned_to = handle_assigned_to(
-            ActorTuple.from_actor_identifier(f"team:{team2.id}"),
-            None,
-            None,
-            self.group_list,
-            self.project_lookup,
-            self.user,
-        )
+        with self.feature("organizations:participants-purge"), self.feature(
+            "organizations:team-workflow-notifications"
+        ):
+            assigned_to = handle_assigned_to(
+                ActorTuple.from_actor_identifier(f"team:{team2.id}"),
+                None,
+                None,
+                self.group_list,
+                self.project_lookup,
+                self.user,
+            )
 
         assert not GroupAssignee.objects.filter(group=self.group, team=team1.id).exists()
         assert not GroupSubscription.objects.filter(
@@ -974,5 +859,5 @@ class TestHandleAssignedTo(TestCase):
             organization_id=self.group.project.organization_id,
             project_id=self.group.project_id,
             assigned_by=None,
-            had_to_deassign=True,
+            had_to_deassign=False,
         )
