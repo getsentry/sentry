@@ -110,7 +110,6 @@ class OutboxCategory(IntEnum):
     ACTOR_UPDATE = 31
     API_TOKEN_UPDATE = 32
     ORG_AUTH_TOKEN_UPDATE = 33
-    ISSUE_COMMENT_UPDATE = 34
 
     @classmethod
     def as_choices(cls):
@@ -306,7 +305,6 @@ class OutboxScope(IntEnum):
             OutboxCategory.ORG_AUTH_TOKEN_UPDATE,
             OutboxCategory.PARTNER_ACCOUNT_UPDATE,
             OutboxCategory.ACTOR_UPDATE,
-            OutboxCategory.ISSUE_COMMENT_UPDATE,
         },
     )
     USER_SCOPE = scope_categories(

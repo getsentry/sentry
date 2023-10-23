@@ -38,12 +38,3 @@ class DatabaseBackedIssueService(IssueService):
             return None
 
         return RpcGroupShareMetadata(title=group.title, message=group.message)
-
-    def upsert_issue_email_reply(
-        self, *, organization_id: int, group_id: int, from_email: str, text: str
-    ) -> None:
-        from sentry.tasks.email import process_inbound_email
-
-        # Call the task syncrhonously so that the outbox retry works
-        # correctly should this fail.
-        process_inbound_email(from_email, group_id, text)
