@@ -149,8 +149,8 @@ function ReleaseThresholdList({}: Props) {
                 t('Project Name'),
                 t('Environment'),
                 t('Window'),
-                t('Conditions'),
-                t('Actions'),
+                t('Condition'),
+                t(' '),
               ]}
             >
               {thresholdGroups &&

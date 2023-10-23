@@ -1,10 +1,12 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import capitalize from 'lodash/capitalize';
 
 import {APIRequestMethod} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import Input from 'sentry/components/input';
 import {IconAdd, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -130,8 +132,8 @@ export function ThresholdGroupRows({
           refetch();
           closeEditForm(id);
         })
-        .catch(err => {
-          setError(err.detail || 'Issue saving threshold');
+        .catch(_err => {
+          setError('Issue saving threshold');
           const errorThreshold = {
             ...submitData,
             hasError: true,
@@ -157,8 +159,8 @@ export function ThresholdGroupRows({
         .then(() => {
           refetch();
         })
-        .catch(err => {
-          setError(err.detail || 'Issue deleting threshold');
+        .catch(_err => {
+          setError('Issue deleting threshold');
           const errorThreshold = {
             ...thresholdData,
             hasError: true,
@@ -214,7 +216,7 @@ export function ThresholdGroupRows({
             {editingThresholds[threshold.id] ? (
               <Fragment>
                 <FlexCenter>
-                  <input
+                  <Input
                     style={{width: '50%'}}
                     value={threshold.windowValue}
                     type="number"
@@ -292,7 +294,7 @@ export function ThresholdGroupRows({
                       &lt;
                     </Button>
                   )}
-                  <input
+                  <Input
                     value={threshold.value}
                     type="number"
                     min={0}
@@ -308,8 +310,13 @@ export function ThresholdGroupRows({
                   {getExactDuration(threshold.window_in_seconds || 0, false, 'seconds')}
                 </FlexCenter>
                 <FlexCenter>
-                  <div>{threshold.threshold_type}</div>
-                  <div>{threshold.trigger_type === 'over' ? '>' : '<'}</div>
+                  <div>
+                    {threshold.threshold_type
+                      .split('_')
+                      .map(word => capitalize(word))
+                      .join(' ')}
+                  </div>
+                  <div>&nbsp;{threshold.trigger_type === 'over' ? '>' : '<'}&nbsp;</div>
                   <div>{threshold.value}</div>
                 </FlexCenter>
               </Fragment>
@@ -378,7 +385,8 @@ const StyledRow = styled('div')<StyledThresholdRowProps>`
   > * {
     padding: ${space(2)};
     border-bottom: ${p => (p.lastRow ? 0 : '1px solid ' + p.theme.border)};
-    background-color: ${p => (p.hasError ? 'rgba(255, 0, 0, 0.1)' : 'none')};
+    background-color: ${p =>
+      p.hasError ? 'rgba(255, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0)'};
   }
 `;
 
@@ -395,6 +403,9 @@ const NewRowBtn = styled(Button)`
 const FlexCenter = styled('div')`
   display: flex;
   align-items: center;
+  > * {
+    margin: 0 ${space(1)};
+  }
 `;
 
 const ActionsColumn = styled('div')`
