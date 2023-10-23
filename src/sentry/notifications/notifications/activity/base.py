@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Mapping, MutableMapping
 from urllib.parse import urlparse, urlunparse
 
 from django.utils.html import format_html
-from django.utils.safestring import SafeString, mark_safe
+from django.utils.safestring import SafeString
 
 from sentry.db.models import Model
 from sentry.notifications.helpers import get_reason_context
@@ -186,7 +186,7 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
 
         fmt = '<span class="avatar-container">{}</span> <strong>{}</strong>'
 
-        author = format_html(fmt, mark_safe(avatar_as_html(self.user)), name)
+        author = format_html(fmt, avatar_as_html(self.user), name)
 
         issue_name = self.group.qualified_short_id or "an issue"
         an_issue = format_html('<a href="{}">{}</a>', self.get_group_link(), issue_name)
