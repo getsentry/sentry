@@ -742,6 +742,7 @@ class TestHandleAssignedTo(TestCase):
         )
 
     @patch("sentry.analytics.record")
+    @with_feature("organizations:participants-purge")
     def test_reassign_user(self, mock_record: Mock) -> None:
         user2 = self.create_user(email="meow@meow.meow")
 
@@ -764,15 +765,14 @@ class TestHandleAssignedTo(TestCase):
         ).exists()
 
         # then assign it to someone else
-        with self.feature("organizations:participants-purge"):
-            assigned_to = handle_assigned_to(
-                ActorTuple.from_actor_identifier(user2.id),
-                None,
-                None,
-                self.group_list,
-                self.project_lookup,
-                self.user,
-            )
+        assigned_to = handle_assigned_to(
+            ActorTuple.from_actor_identifier(user2.id),
+            None,
+            None,
+            self.group_list,
+            self.project_lookup,
+            self.user,
+        )
 
         assert not GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
         assert not GroupSubscription.objects.filter(
@@ -802,6 +802,45 @@ class TestHandleAssignedTo(TestCase):
             project_id=self.group.project_id,
             assigned_by=None,
             had_to_deassign=True,
+        )
+        # pass assignedTo but it's the same as the existing assignee
+        assigned_to = handle_assigned_to(
+            ActorTuple.from_actor_identifier(user2.id),
+            None,
+            None,
+            self.group_list,
+            self.project_lookup,
+            self.user,
+        )
+        # assert nothing has changed
+        assert not GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
+        assert not GroupSubscription.objects.filter(
+            group=self.group,
+            project=self.group.project,
+            user_id=self.user.id,
+            reason=GroupSubscriptionReason.assigned,
+        ).exists()
+        assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
+        assert GroupSubscription.objects.filter(
+            group=self.group,
+            project=self.group.project,
+            user_id=user2.id,
+            reason=GroupSubscriptionReason.assigned,
+        ).exists()
+
+        assert assigned_to == {
+            "email": user2.email,
+            "id": str(user2.id),
+            "name": user2.username,
+            "type": "user",
+        }
+        mock_record.assert_called_with(
+            "manual.issue_assignment",
+            group_id=self.group.id,
+            organization_id=self.group.project.organization_id,
+            project_id=self.group.project_id,
+            assigned_by=None,
+            had_to_deassign=False,
         )
 
     @patch("sentry.analytics.record")

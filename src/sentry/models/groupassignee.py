@@ -92,17 +92,16 @@ class GroupAssigneeManager(BaseManager):
             )
         elif previous_assignee.team:
             team_members = list(previous_assignee.team.member_set.values_list("user_id", flat=True))
-            for member in team_members:
-                GroupSubscription.objects.filter(
-                    group=group,
-                    project=group.project,
-                    user_id=member,
-                    reason=GroupSubscriptionReason.assigned,
-                ).delete()
-                logger.info(
-                    "groupassignee.remove",
-                    extra={"group_id": group.id, "team_id": previous_assignee.team.id},
-                )
+            GroupSubscription.objects.filter(
+                group=group,
+                project=group.project,
+                user_id__in=team_members,
+                reason=GroupSubscriptionReason.assigned,
+            ).delete()
+            logger.info(
+                "groupassignee.remove",
+                extra={"group_id": group.id, "team_id": previous_assignee.team.id},
+            )
         else:
             GroupSubscription.objects.filter(
                 group=group,
@@ -144,7 +143,6 @@ class GroupAssigneeManager(BaseManager):
                 "date_added": now,
             },
         )
-
         if not created:
             affected = not create_only and (
                 self.filter(group=group)
@@ -179,8 +177,8 @@ class GroupAssigneeManager(BaseManager):
             ):
                 sync_group_assignee_outbound(group, assigned_to.id, assign=True)
 
-        if not created:  # aka re-assignment
-            self.remove_old_assignees(group, assignee)
+            if not created:  # aka re-assignment
+                self.remove_old_assignees(group, assignee)
 
         return {"new_assignment": created, "updated_assignment": bool(not created and affected)}
 
