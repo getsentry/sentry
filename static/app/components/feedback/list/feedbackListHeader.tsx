@@ -118,7 +118,7 @@ function MailboxPicker({
 
 const HeaderPanelItem = styled(PanelItem)`
   display: flex;
-  padding: ${space(1)} ${space(0.5)} ${space(1)} ${space(1.5)};
+  padding: ${space(1)} ${space(2)} ${space(1)} ${space(2)};
   gap: ${space(1)};
   align-items: center;
 `;
