@@ -36,6 +36,10 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.organizationslugreservation import (
+    OrganizationSlugReservation,
+    OrganizationSlugReservationType,
+)
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
@@ -50,6 +54,7 @@ from sentry.services.hybrid_cloud.import_export.model import RpcImportErrorKind
 from sentry.silo.base import SiloMode
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.backups import (
     NOOP_PRINTER,
     BackupTestCase,
@@ -253,22 +258,47 @@ class SanitizationTests(ImportTestCase):
 
             # Note that we have created an organization with the same name as one we are about to
             # import.
-            self.create_organization(owner=self.user, name="some-org")
+            existing_org = self.create_organization(owner=self.user, name="some-org")
             with open(tmp_path, "rb") as tmp_file:
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
         assert Organization.objects.count() == 2
         assert Organization.objects.filter(slug__icontains="some-org").count() == 2
         assert Organization.objects.filter(slug__iexact="some-org").count() == 1
-        assert Organization.objects.filter(slug__icontains="some-org-").count() == 1
-        # TODO(GabeVillalobos): Add `OrganizationSlugReservationReplica` checks.
+        imported_organization = Organization.objects.get(slug__icontains="some-org-")
+        assert imported_organization.id != existing_org.id
 
         with assume_test_silo_mode(SiloMode.CONTROL):
+            assert (
+                OrganizationSlugReservation.objects.filter(
+                    slug__icontains="some-org",
+                    reservation_type=OrganizationSlugReservationType.PRIMARY,
+                ).count()
+                == 2
+            )
+
+            assert OrganizationSlugReservation.objects.filter(slug__iexact="some-org").count() == 1
+            # Assert that the slug update RPC has completed and generated a valid matching primary
+            # slug reservation.
+            slug_reservation = OrganizationSlugReservation.objects.filter(
+                slug__icontains="some-org-",
+                reservation_type=OrganizationSlugReservationType.PRIMARY,
+            ).get()
+
             assert OrganizationMapping.objects.count() == 2
             assert OrganizationMapping.objects.filter(slug__icontains="some-org").count() == 2
             assert OrganizationMapping.objects.filter(slug__iexact="some-org").count() == 1
-            assert OrganizationMapping.objects.filter(slug__icontains="some-org-").count() == 1
-            # TODO(GabeVillalobos): Add `OrganizationSlugReservation` checks here.
+            org_mapping = OrganizationMapping.objects.get(slug__icontains="some-org-")
+            assert org_mapping.slug == slug_reservation.slug == imported_organization.slug
+            assert (
+                org_mapping.organization_id
+                == slug_reservation.organization_id
+                == imported_organization.id
+            )
+
+    def test_generate_suffix_for_already_taken_organization_with_control_option(self):
+        with override_options({"hybrid_cloud.control-organization-provisioning": True}):
+            self.test_generate_suffix_for_already_taken_organization()
 
     def test_generate_suffix_for_already_taken_username(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -453,9 +483,9 @@ class SignalingTests(ImportTestCase):
             with open(tmp_path, "rb") as tmp_file:
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
-        assert Organization.objects.count() == 1
-        assert Organization.objects.filter(slug="some-org").exists()
-        # TODO(GabeVillalobos): Add `OrganizationSlugReservationReplica` checks here.
+        # There should only be 1 organization at this point
+        imported_organization = Organization.objects.get()
+        assert imported_organization.slug == "some-org"
 
         assert OrganizationMember.objects.count() == 3
 
@@ -471,11 +501,22 @@ class SignalingTests(ImportTestCase):
         assert ProjectOption.objects.filter(key="sentry:option-epoch").exists()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
+            # An organization slug reservation with a valid primary reservation type
+            # signals that we've synchronously resolved the slug update RPC correctly.
+            assert OrganizationSlugReservation.objects.filter(
+                organization_id=imported_organization.id,
+                slug="some-org",
+                reservation_type=OrganizationSlugReservationType.PRIMARY,
+            ).exists()
             assert OrganizationMapping.objects.count() == 1
-            assert OrganizationMapping.objects.filter(slug="some-org").exists()
-            # TODO(GabeVillalobos): Add `OrganizationSlugReservation` checks here.
-
+            assert OrganizationMapping.objects.filter(
+                organization_id=imported_organization.id, slug="some-org"
+            ).exists()
             assert OrganizationMemberMapping.objects.count() == 3
+
+    def test_import_signaling_organization_with_control_provisioning_option(self):
+        with override_options({"hybrid_cloud.control-organization-provisioning": True}):
+            self.test_import_signaling_organization()
 
 
 @region_silo_test(stable=True)

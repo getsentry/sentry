@@ -140,6 +140,7 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
                 organization_name=provision_options.name,
                 create_default_team=provision_options.create_default_team,
                 organization_id=organization_id,
+                is_test=provision_options.is_test,
             )
 
             create_post_provision_outbox(
@@ -162,9 +163,7 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
         try:
             with enforce_constraints(transaction.atomic(using=router.db_for_write(Organization))):
                 org = Organization.objects.get(id=org_slug_temporary_alias_res.organization_id)
-
-                if org.slug != org_slug_temporary_alias_res.slug:
-                    org.update(slug=org_slug_temporary_alias_res.slug)
+                org.update(slug=org_slug_temporary_alias_res.slug)
 
             return True
         except (IntegrityError, Organization.DoesNotExist) as e:

@@ -47,19 +47,21 @@ class CaseMixin:
 
     def test_bad_transaction_boundaries(self):
 
-        Factories.create_organization()
+        org = Factories.create_organization()
+        Factories.create_project(organization=org)
         Factories.create_user()
 
         with pytest.raises(AssertionError):
             with transaction.atomic(using=router.db_for_write(User)):
-                Factories.create_organization()
+                Factories.create_project(organization=org)
 
     def test_safe_transaction_boundaries(self):
-        Factories.create_organization()
+        org = Factories.create_organization()
+        Factories.create_project(organization=org)
         Factories.create_user()
 
         with transaction.atomic(using=router.db_for_write(Organization)):
-            Factories.create_organization()
+            Factories.create_project(organization=org)
 
             with django_test_transaction_water_mark():
                 Factories.create_user()
@@ -70,15 +72,15 @@ class CaseMixin:
                 Factories.create_user()
 
                 with django_test_transaction_water_mark():
-                    Factories.create_organization()
+                    Factories.create_project(organization=org)
 
                 Factories.create_user()
 
                 with django_test_transaction_water_mark():
-                    Factories.create_organization()
+                    Factories.create_project(organization=org)
                     Factories.create_user()
 
-            Factories.create_organization()
+            Factories.create_project(organization=org)
             with django_test_transaction_water_mark():
                 Factories.create_user()
 

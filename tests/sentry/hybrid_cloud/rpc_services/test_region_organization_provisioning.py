@@ -1,3 +1,6 @@
+import pytest
+from django.db import router, transaction
+
 from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
@@ -7,7 +10,11 @@ from sentry.hybridcloud.rpc_services.region_organization_provisioning import (
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.models.organizationslugreservation import OrganizationSlugReservationType
+from sentry.models.organizationslugreservation import (
+    OrganizationSlugReservation,
+    OrganizationSlugReservationType,
+)
+from sentry.models.outbox import outbox_context
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.services.organization import (
@@ -17,6 +24,7 @@ from sentry.services.organization import (
 )
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -191,11 +199,28 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
 
 @control_silo_test(stable=True)
 class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
+    @pytest.fixture(autouse=True)
+    def _enable_control_provisioning_option(self):
+        with override_options({"hybrid_cloud.control-organization-provisioning": True}):
+            yield
+
     def setUp(self):
         self.provisioning_user = self.create_user()
         self.provisioned_org = self.create_organization(
             name="Santry", slug="santry", owner=self.provisioning_user
         )
+
+    def create_temporary_slug_res(self, organization: Organization, slug: str, region: str):
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_context(
+            transaction.atomic(router.db_for_write(OrganizationSlugReservation))
+        ):
+            OrganizationSlugReservation(
+                reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS,
+                slug=slug,
+                organization_id=organization.id,
+                region_name=region,
+                user_id=-1,
+            ).save(unsafe_write=True)
 
     def create_rpc_organization_slug_reservation(self, slug: str) -> RpcOrganizationSlugReservation:
         return RpcOrganizationSlugReservation(
@@ -209,6 +234,10 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
 
     def test_updates_org_slug_when_no_conflicts(self):
         desired_slug = "new-santry"
+        # We have to create a temporary slug reservation in order for org mapping drains to proceed
+        self.create_temporary_slug_res(
+            organization=self.provisioned_org, region="us", slug=desired_slug
+        )
         result = (
             region_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
                 region_name="us",
