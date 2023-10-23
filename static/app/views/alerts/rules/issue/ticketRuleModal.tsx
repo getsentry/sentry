@@ -200,17 +200,26 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   renderBodyText = () => {
     // `ticketType` already includes indefinite article.
     const {ticketType, link} = this.props;
-    return (
-      <BodyText>
-        {tct(
-          'When this alert is triggered [ticketType] will be created with the following fields. It will also [linkToDocs] with the new Sentry Issue.',
-          {
-            linkToDocs: <ExternalLink href={link}>{t('stay in sync')}</ExternalLink>,
-            ticketType,
-          }
-        )}
-      </BodyText>
-    );
+
+    let body: React.ReactNode;
+    if (link) {
+      body = tct(
+        'When this alert is triggered [ticketType] will be created with the following fields. It will also [linkToDocs] with the new Sentry Issue.',
+        {
+          linkToDocs: <ExternalLink href={link}>{t('stay in sync')}</ExternalLink>,
+          ticketType,
+        }
+      );
+    } else {
+      body = tct(
+        'When this alert is triggered [ticketType] will be created with the following fields.',
+        {
+          ticketType,
+        }
+      );
+    }
+
+    return <BodyText>{body}</BodyText>;
   };
 
   render() {
