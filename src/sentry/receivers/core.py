@@ -112,7 +112,7 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
 
     if should_use_control_provisioning():
         # We need to provision an organization slug in control silo, so we do
-        # this by "changing" the slug, then re-replicating the org data
+        # this by "changing" the slug, then re-replicating the org data.
         organization_provisioning_service.change_organization_slug(
             organization_id=org.id, slug="sentry"
         )

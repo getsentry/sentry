@@ -126,6 +126,8 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
             )
 
             if not use_control_provisioning:
+                # If control provisioning is disabled, we have to manually write a slug
+                # reservation for the organization.
                 self._upsert_organization_slug_reservation_for_monolith(
                     organization_id=organization_id, mapping_update=update
                 )
