@@ -370,7 +370,7 @@ export function ReplayCell({
   const subText = (
     <Cols>
       <Row gap={1}>
-        <Row gap={0.5}>
+        <Row gap={0.75}>
           {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
           {project ? <Avatar size={12} project={project} /> : null}
           {project ? project.slug : null}
