@@ -229,7 +229,6 @@ def _detect_transaction_change_points(
         request = {
             "data": data,
             "sort": "-trend_percentage()",
-            "min_change()": 100_000_000,  # require a minimum 100ms increase (in ns)
             # Disable the fall back to use the midpoint as the breakpoint
             # which was originally intended to detect a gradual regression
             # for the trends use case. That does not apply here.
@@ -704,7 +703,7 @@ def _detect_function_change_points(
         request = {
             "data": data,
             "sort": "-trend_percentage()",
-            "trendFunction": trend_function,
+            "min_change()": 100_000_000,  # require a minimum 100ms increase (in ns)
             # Disable the fall back to use the midpoint as the breakpoint
             # which was originally intended to detect a gradual regression
             # for the trends use case. That does not apply here.
