@@ -54,8 +54,6 @@ class PluginClassification(BaseClassification):
 class IntegrationClassification(BaseClassification):
     integration_prefix = "/extensions/"
     """Prefix for all integration requests. See `src/sentry/web/urls.py`"""
-    setup_suffix = "/setup/"
-    """Suffix for PipelineAdvancerView on installation. See `src/sentry/web/urls.py`"""
     logger = logging.getLogger(f"{__name__}.integration")
 
     @property
@@ -98,8 +96,14 @@ class IntegrationClassification(BaseClassification):
         return result[1] if result else None
 
     def should_operate(self, request: HttpRequest) -> bool:
-        return request.path.startswith(self.integration_prefix) and not request.path.endswith(
-            self.setup_suffix
+        return (
+            # Must start with the integration request prefix...
+            request.path.startswith(self.integration_prefix)
+            # Not have the suffix for PipelineAdvancerView (See urls.py)
+            and not request.path.endswith("/setup/")
+            # or match the routes for integrationOrganizationLink page (See routes.tsx)
+            and not request.path.endswith("/link/")
+            and not request.path.startswith("/extensions/external-install/")
         )
 
     def get_response(self, request: HttpRequest) -> HttpResponseBase:
