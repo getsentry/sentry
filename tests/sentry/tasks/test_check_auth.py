@@ -37,7 +37,7 @@ class CheckAuthTest(TestCase):
         assert updated_ai.last_verified == ai.last_verified
 
         mock_check_auth_identity.apply_async.assert_called_once_with(
-            kwargs={"auth_identity_ids": [ai.id]}, expires=AUTH_CHECK_INTERVAL
+            kwargs={"auth_identity_ids": [ai.id], "chunk_size": 100}, expires=AUTH_CHECK_INTERVAL
         )
 
     def test_processes_recursively(self):
