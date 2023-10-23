@@ -1,5 +1,12 @@
+import {Fragment, useRef} from 'react';
+import styled from '@emotion/styled';
+
+import {LinkButton} from 'sentry/components/button';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconOpen} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {Event, EventsStatsData} from 'sentry/types';
 import EventView, {MetaType} from 'sentry/utils/discover/eventView';
 import {
@@ -10,6 +17,10 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {
+  DisplayModes,
+  transactionSummaryRouteWithQuery,
+} from 'sentry/views/performance/transactionSummary/utils';
 import {
   NormalizedTrendsTransaction,
   TrendFunctionField,
@@ -29,6 +40,7 @@ type EventBreakpointChartProps = {
 };
 
 function EventBreakpointChart({event}: EventBreakpointChartProps) {
+  const now = useRef(new Date());
   const organization = useOrganization();
   const location = useLocation();
 
@@ -75,23 +87,57 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
     }),
   });
 
+  const transactionSummaryLink = transactionSummaryRouteWithQuery({
+    orgSlug: organization.slug,
+    transaction,
+    query: {},
+    trendFunction: TrendFunctionField.P95,
+    projectID: event.projectID,
+    display: DisplayModes.TREND,
+  });
+
   return (
     <DataSection>
       <TransitionChart loading={isLoading} reloading>
         <TransparentLoadingMask visible={isLoading} />
-        <Chart
-          statsData={data?.data ?? []}
-          evidenceData={normalizedOccurrenceEvent}
-          start={eventView.start}
-          end={eventView.end}
-          chartLabel={generateTrendFunctionAsString(
-            TrendFunctionField.P95,
-            'transaction.duration'
+        <Fragment>
+          {afterDateTime && now.current > afterDateTime && (
+            <SummaryButtonWrapper>
+              <Tooltip
+                title={t(
+                  'The current date is over 14 days from the breakpoint. Open the Transaction Summary to see the most up to date transaction behaviour.'
+                )}
+              >
+                <LinkButton
+                  to={transactionSummaryLink}
+                  size="xs"
+                  icon={<IconOpen size="xs" />}
+                >
+                  {t('Go to Transaction Summary')}
+                </LinkButton>
+              </Tooltip>
+            </SummaryButtonWrapper>
           )}
-        />
+          <Chart
+            statsData={data?.data ?? []}
+            evidenceData={normalizedOccurrenceEvent}
+            start={eventView.start}
+            end={eventView.end}
+            chartLabel={generateTrendFunctionAsString(
+              TrendFunctionField.P95,
+              'transaction.duration'
+            )}
+          />
+        </Fragment>
       </TransitionChart>
     </DataSection>
   );
 }
 
 export default EventBreakpointChart;
+
+const SummaryButtonWrapper = styled('div')`
+  display: flex;
+  flex-direction: row-reverse;
+  margin-right: 10px;
+`;
