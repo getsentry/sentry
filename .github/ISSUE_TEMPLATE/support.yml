@@ -4,7 +4,7 @@ body:
   - type: markdown
     attributes:
       value: |-
-        ## Private info?
+        ## Private Info?
         Use our [private support channel](https://sentry.zendesk.com/hc/en-us/requests/new).
     validations:
       required: false
@@ -33,7 +33,7 @@ body:
   - type: textarea
     id: frustration
     attributes:
-      label: Where are you getting stuck?
+      label: How are you getting stuck?
     validations:
       required: true
   - type: dropdown
