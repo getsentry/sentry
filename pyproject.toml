@@ -296,7 +296,6 @@ module = [
     "sentry.api.helpers.group_index.update",
     "sentry.api.helpers.group_index.validators.in_commit",
     "sentry.api.helpers.group_index.validators.status_details",
-    "sentry.api.helpers.mobile",
     "sentry.api.invite_helper",
     "sentry.api.issue_search",
     "sentry.api.paginator",
