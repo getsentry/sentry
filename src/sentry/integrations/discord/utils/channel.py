@@ -80,6 +80,18 @@ def validate_channel_id(
     if not isinstance(result, dict):
         raise IntegrationError("Bad response from Discord channel lookup.")
 
+    if result["type"] not in DiscordClient.SUPPORTED_CHANNEL_TYPES:
+        # Forums are not supported
+        logger.info(
+            "rule.discord.wrong_channel_type",
+            extra={
+                "channel_id": channel_id,
+                "guild_name": guild_name,
+                "channel_type": result["type"],
+            },
+        )
+        raise ValidationError("Discord channel is not a text channel or thread")
+
     if result["guild_id"] != guild_id:
         # The channel exists and we have access to it, but it does not belong
         # to the specified guild! We'll use the same message as generic 404,

@@ -14,6 +14,13 @@ from sentry.utils.json import JSONData
 logger = logging.getLogger("sentry.integrations.discord")
 
 
+class DiscordChannelTypes:
+    GUILD_TEXT = 0
+    DM = 1
+    PUBLIC_THREAD = 11
+    PRIVATE_THREAD = 12
+
+
 class DiscordClient(IntegrationProxyClient):
     integration_name: str = "discord"
     base_url: str = "https://discord.com/api/v10"
@@ -32,6 +39,13 @@ class DiscordClient(IntegrationProxyClient):
 
     # https://discord.com/developers/docs/resources/channel#create-message
     MESSAGE_URL = "/channels/{channel_id}/messages"
+
+    # https://discord.com/developers/docs/resources/channel#channel-object-channel-types
+    SUPPORTED_CHANNEL_TYPES = {
+        DiscordChannelTypes.GUILD_TEXT,
+        DiscordChannelTypes.PUBLIC_THREAD,
+        DiscordChannelTypes.PRIVATE_THREAD,
+    }
 
     def __init__(
         self,

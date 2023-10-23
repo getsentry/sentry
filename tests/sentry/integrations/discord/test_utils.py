@@ -38,12 +38,13 @@ class AuthTest(TestCase):
 class ValidateChannelTest(TestCase):
     guild_id = "guild-id"
     channel_id = "channel-id"
+    channel_type = 0  # text
     integration_id = 1234
     guild_name = "server name"
 
     @mock.patch("sentry.integrations.discord.utils.channel.DiscordClient.get_channel")
     def test_happy_path(self, mock_get_channel):
-        mock_get_channel.return_value = {"guild_id": self.guild_id}
+        mock_get_channel.return_value = {"guild_id": self.guild_id, "type": self.channel_type}
         validate_channel_id(self.channel_id, self.guild_id, self.integration_id, self.guild_name)
 
     @mock.patch("sentry.integrations.discord.utils.channel.DiscordClient.get_channel")
@@ -88,7 +89,7 @@ class ValidateChannelTest(TestCase):
 
     @mock.patch("sentry.integrations.discord.utils.channel.DiscordClient.get_channel")
     def test_not_guild_member(self, mock_get_channel):
-        mock_get_channel.return_value = {"guild_id": "not-my-guild"}
+        mock_get_channel.return_value = {"guild_id": "not-my-guild", "type": self.channel_type}
         with raises(ValidationError):
             validate_channel_id(
                 self.channel_id, self.guild_id, self.integration_id, self.guild_name
@@ -98,6 +99,14 @@ class ValidateChannelTest(TestCase):
     def test_timeout(self, mock_get_channel):
         mock_get_channel.side_effect = Timeout("foo")
         with raises(ApiTimeoutError):
+            validate_channel_id(
+                self.channel_id, self.guild_id, self.integration_id, self.guild_name
+            )
+
+    @mock.patch("sentry.integrations.discord.utils.channel.DiscordClient.get_channel")
+    def test_not_supported_type(self, mock_get_channel):
+        mock_get_channel.return_value = {"guild_id": self.guild_id, "type": 123}
+        with raises(ValidationError):
             validate_channel_id(
                 self.channel_id, self.guild_id, self.integration_id, self.guild_name
             )
