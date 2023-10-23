@@ -22,7 +22,7 @@ export function NoDataMessage({Wrapper = DivWrapper}: Props) {
 
   const selectedProjectIds = selection.projects.map(projectId => projectId.toString());
 
-  const {data: projectSpanMetricsCounts, isLoading} = useProjectSpanMetricCounts({
+  const {data: projectSpanMetricsCounts} = useProjectSpanMetricCounts({
     query: 'span.module:db',
     statsPeriod: SAMPLE_STATS_PERIOD,
     enabled: pageFilterIsReady,
@@ -42,7 +42,7 @@ export function NoDataMessage({Wrapper = DivWrapper}: Props) {
   const hasMoreIneligibleProjectsThanVisible =
     ineligibleProjects.length > MAX_LISTED_PROJECTS;
 
-  if (isLoading) {
+  if (!projectSpanMetricsCounts) {
     return null;
   }
 
