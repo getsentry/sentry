@@ -237,8 +237,7 @@ def try_checkin_lookup(monitor: Monitor, checkin_id: str):
     # which is unfinished (thus still mutable)
     if checkin_id == "latest":
         checkin = (
-            MonitorCheckIn.objects.filter(monitor=monitor)
-            .exclude(status__in=CheckInStatus.FINISHED_VALUES)
+            MonitorCheckIn.objects.filter(monitor=monitor, status=CheckInStatus.IN_PROGRESS)
             .order_by("-date_added")
             .first()
         )
