@@ -74,7 +74,7 @@ def schedule_auto_resolution():
 @log_error_if_queue_has_items
 def auto_resolve_project_issues(
     project_id,
-    enabled_issue_types: list[Type[grouptype.GroupType]],
+    enabled_issue_types: list[Type[grouptype.GroupType]] = None,
     cutoff=None,
     chunk_size=1000,
     **kwargs,
@@ -139,5 +139,8 @@ def auto_resolve_project_issues(
 
     if might_have_more:
         auto_resolve_project_issues.delay(
-            project_id=project_id, cutoff=int(cutoff.strftime("%s")), chunk_size=chunk_size
+            project_id=project_id,
+            enabled_issue_types=enabled_issue_types,
+            cutoff=int(cutoff.strftime("%s")),
+            chunk_size=chunk_size,
         )
