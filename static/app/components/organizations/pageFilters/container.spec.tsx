@@ -26,8 +26,8 @@ const changeQuery = (routerContext, query) => ({
   },
 });
 
-function renderComponent(component, routerContext) {
-  return render(component, {context: routerContext});
+function renderComponent(component, routerContext, organization) {
+  return render(component, {context: routerContext, organization});
 }
 
 describe('PageFiltersContainer', function () {
@@ -80,18 +80,22 @@ describe('PageFiltersContainer', function () {
   });
 
   it('does not update router if org in URL params is different than org in context/props', function () {
-    renderComponent(<PageFiltersContainer />, {
-      ...routerContext,
-      context: {
-        ...routerContext.context,
-        router: {...routerContext.context.router, params: {orgId: 'diff-org'}},
+    renderComponent(
+      <PageFiltersContainer />,
+      {
+        ...routerContext,
+        context: {
+          ...routerContext.context,
+          router: {...routerContext.context.router, params: {orgId: 'diff-org'}},
+        },
       },
-    });
+      organization
+    );
     expect(router.push).not.toHaveBeenCalled();
   });
 
   it('does not replace URL with values from store when mounted with no query params', function () {
-    renderComponent(<PageFiltersContainer />, routerContext);
+    renderComponent(<PageFiltersContainer />, routerContext, organization);
 
     expect(router.replace).not.toHaveBeenCalled();
   });
@@ -99,7 +103,8 @@ describe('PageFiltersContainer', function () {
   it('only updates GlobalSelection store when mounted with query params', async function () {
     renderComponent(
       <PageFiltersContainer />,
-      changeQuery(routerContext, {statsPeriod: '7d'})
+      changeQuery(routerContext, {statsPeriod: '7d'}),
+      organization
     );
 
     expect(router.push).not.toHaveBeenCalled();
@@ -123,7 +128,8 @@ describe('PageFiltersContainer', function () {
       <PageFiltersContainer />,
       changeQuery(routerContext, {
         environment: 'prod',
-      })
+      }),
+      organization
     );
 
     await waitFor(() =>
@@ -154,7 +160,8 @@ describe('PageFiltersContainer', function () {
       <PageFiltersContainer />,
       changeQuery(routerContext, {
         statsPeriod: null,
-      })
+      }),
+      organization
     );
 
     await waitFor(() =>
@@ -183,7 +190,8 @@ describe('PageFiltersContainer', function () {
       changeQuery(routerContext, {
         start: '2020-05-05T07:26:53.000',
         end: '2020-05-05T09:19:12.000',
-      })
+      }),
+      organization
     );
 
     await waitFor(() =>
@@ -212,7 +220,8 @@ describe('PageFiltersContainer', function () {
   it('does not update store if url params have not changed', async function () {
     const {rerender} = renderComponent(
       <PageFiltersContainer />,
-      changeQuery(routerContext, {statsPeriod: '7d'})
+      changeQuery(routerContext, {statsPeriod: '7d'}),
+      organization
     );
 
     (globalActions.updateDateTime as jest.Mock).mockClear();
@@ -264,7 +273,11 @@ describe('PageFiltersContainer', function () {
       },
     });
 
-    renderComponent(<PageFiltersContainer />, initializationObj.routerContext);
+    renderComponent(
+      <PageFiltersContainer />,
+      initializationObj.routerContext,
+      initializationObj.organization
+    );
 
     expect(PageFiltersStore.getState().selection.projects).toEqual([3]);
 
@@ -299,7 +312,11 @@ describe('PageFiltersContainer', function () {
       },
     });
 
-    renderComponent(<PageFiltersContainer />, initializationObj.routerContext);
+    renderComponent(
+      <PageFiltersContainer />,
+      initializationObj.routerContext,
+      initializationObj.organization
+    );
 
     expect(PageFiltersStore.getState().selection.projects).toEqual([1, 2]);
 
@@ -321,7 +338,11 @@ describe('PageFiltersContainer', function () {
       },
     });
 
-    renderComponent(<PageFiltersContainer />, initializationObj.routerContext);
+    renderComponent(
+      <PageFiltersContainer />,
+      initializationObj.routerContext,
+      initializationObj.organization
+    );
 
     expect(PageFiltersStore.getState().selection.projects).toEqual([1, 2]);
 
@@ -344,7 +365,11 @@ describe('PageFiltersContainer', function () {
       },
     });
 
-    renderComponent(<PageFiltersContainer />, initializationObj.routerContext);
+    renderComponent(
+      <PageFiltersContainer />,
+      initializationObj.routerContext,
+      initializationObj.organization
+    );
 
     // Router does not update because params have not changed
     expect(initializationObj.router.replace).not.toHaveBeenCalled();
@@ -374,7 +399,11 @@ describe('PageFiltersContainer', function () {
 
     OrganizationStore.onUpdate(initializationObj.organization);
 
-    renderComponent(<PageFiltersContainer />, initializationObj.routerContext);
+    renderComponent(
+      <PageFiltersContainer />,
+      initializationObj.routerContext,
+      initializationObj.organization
+    );
 
     // reflux tick
     expect(PageFiltersStore.getState().selection.projects).toEqual([2]);
@@ -404,7 +433,8 @@ describe('PageFiltersContainer', function () {
 
     renderComponent(
       <PageFiltersContainer disablePersistence />,
-      initializationObj.routerContext
+      initializationObj.routerContext,
+      initializationObj.organization
     );
 
     await act(async () => {
@@ -474,7 +504,8 @@ describe('PageFiltersContainer', function () {
       // current org in context In this case params.orgId = 'org-slug'
       const {rerender} = renderComponent(
         <PageFiltersContainer />,
-        initialData.routerContext
+        initialData.routerContext,
+        initialData.organization
       );
 
       expect(globalActions.updateProjects).not.toHaveBeenCalled();
@@ -496,7 +527,7 @@ describe('PageFiltersContainer', function () {
       act(() => OrganizationStore.onUpdate(updatedOrganization));
 
       initialData.router.location.query = {};
-      rerender(<PageFiltersContainer />);
+      rerender(<PageFiltersContainer organization={updatedOrganization} />);
 
       act(() => ProjectsStore.loadInitialData(updatedOrganization.projects));
 
@@ -517,7 +548,11 @@ describe('PageFiltersContainer', function () {
         },
       });
 
-      renderComponent(<PageFiltersContainer />, initializationObj.routerContext);
+      renderComponent(
+        <PageFiltersContainer />,
+        initializationObj.routerContext,
+        initializationObj.organization
+      );
 
       expect(initializationObj.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -546,7 +581,11 @@ describe('PageFiltersContainer', function () {
         },
       });
 
-      renderComponent(<PageFiltersContainer />, initializationObj.routerContext);
+      renderComponent(
+        <PageFiltersContainer />,
+        initializationObj.routerContext,
+        initializationObj.organization
+      );
 
       expect(initializationObj.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -569,7 +608,11 @@ describe('PageFiltersContainer', function () {
         },
       });
 
-      renderComponent(<PageFiltersContainer />, initializationObj.routerContext);
+      renderComponent(
+        <PageFiltersContainer />,
+        initializationObj.routerContext,
+        initializationObj.organization
+      );
 
       expect(initializationObj.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -606,7 +649,8 @@ describe('PageFiltersContainer', function () {
           shouldForceProject
           forceProject={initialData.projects[0]}
         />,
-        initialData.routerContext
+        initialData.routerContext,
+        initialData.organization
       );
 
       expect(initialData.router.replace).toHaveBeenCalledWith(
@@ -641,7 +685,8 @@ describe('PageFiltersContainer', function () {
           shouldForceProject
           forceProject={initialData.projects[0]}
         />,
-        initialData.routerContext
+        initialData.routerContext,
+        initialData.organization
       );
 
       // Needed to make sure things update
@@ -677,7 +722,8 @@ describe('PageFiltersContainer', function () {
       function renderForNonGlobalView(props = {}) {
         const result = renderComponent(
           getComponentForNonGlobalView(props),
-          initialData.routerContext
+          initialData.routerContext,
+          initialData.organization
         );
 
         const rerender = newProps =>
@@ -774,7 +820,8 @@ describe('PageFiltersContainer', function () {
             shouldForceProject
             forceProject={initialData.projects[1]}
           />,
-          initialData.routerContext
+          initialData.routerContext,
+          initialData.organization
         );
 
         expect(initialData.router.replace).toHaveBeenLastCalledWith({
@@ -810,10 +857,14 @@ describe('PageFiltersContainer', function () {
       }
 
       function renderForGlobalView(props = {}, ctx = {}) {
-        const result = renderComponent(getComponentForGlobalView(props), {
-          ...initialData.routerContext,
-          ...ctx,
-        });
+        const result = renderComponent(
+          getComponentForGlobalView(props),
+          {
+            ...initialData.routerContext,
+            ...ctx,
+          },
+          initialData.organization
+        );
 
         const rerender = newProps =>
           result.rerender(getComponentForGlobalView({...props, ...newProps}));
