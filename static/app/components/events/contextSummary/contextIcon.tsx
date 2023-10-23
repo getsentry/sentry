@@ -100,6 +100,8 @@ const LOGO_MAPPING = {
   windows: logoWindows,
 };
 
+export const NAMES = Object.keys(LOGO_MAPPING);
+
 // The icons in this list will be inverted when the theme is set to dark mode
 const INVERT_IN_DARKMODE = [
   'darwin',
