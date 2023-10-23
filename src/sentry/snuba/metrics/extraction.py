@@ -71,6 +71,9 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     # Subset of context fields
     "device.name": "contexts.device.name",
     "device.family": "contexts.device.family",
+    "device.locale": "contexts.device.locale",
+    "device.screen_height_pixels": "contexts.device.screen_height_pixels",
+    "device.screen_width_pixels": "contexts.device.screen_width_pixels",
     "os.name": "contexts.os.name",
     "os.version": "contexts.os.version",
     "browser.name": "contexts.browser.name",
