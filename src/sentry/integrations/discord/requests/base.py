@@ -126,7 +126,10 @@ class DiscordRequest:
         else:
             self._info("discord.authorize.unauthorized")
 
-        raise DiscordRequestError(status=status.HTTP_401_UNAUTHORIZED)
+        raise DiscordRequestError(
+            error="Unauthorized access; invalid auth credentials",
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
 
     def _validate_identity(self) -> None:
         self.user = self.get_identity_user()
