@@ -5,7 +5,10 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {Permissions, Scope, WebhookEvent} from 'sentry/types';
-import {toResourcePermissions} from 'sentry/utils/consolidatedScopes';
+import {
+  comparePermissionLevels,
+  toResourcePermissions,
+} from 'sentry/utils/consolidatedScopes';
 import PermissionSelection from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 import Subscriptions from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
 
@@ -55,6 +58,24 @@ export default class PermissionsObserver extends Component<Props, State> {
 
   onPermissionChange = (permissions: Permissions) => {
     this.setState({permissions});
+    const new_permissions = toResourcePermissions(this.props.scopes);
+
+    let elevating = false;
+    Object.keys(permissions).some((resource_name: string) => {
+      if (
+        comparePermissionLevels(
+          permissions[resource_name],
+          new_permissions[resource_name]
+        ) > 0
+      ) {
+        elevating = true;
+        return true;
+      }
+      return false;
+    });
+
+    console.log('Elevating:', elevating);
+    // TODO: if elevating === true, then add a confirmation dialog handler to the "Save Changes" button
   };
 
   onEventChange = (events: WebhookEvent[]) => {
