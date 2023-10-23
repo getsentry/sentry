@@ -379,7 +379,7 @@ def query_transactions_timeseries(
         project_objects = Project.objects.filter(id__in=project_ids)
         org_ids = list({project.organization_id for project in project_objects})
         duration_metric_id = indexer.resolve(
-            use_case_id, org_ids[0], str(TransactionMRI.DURATION_LIGHT.value)
+            use_case_id, org_ids[0], str(TransactionMRI.DURATION.value)
         )
         transaction_name_metric_id = indexer.resolve(
             use_case_id,
@@ -864,7 +864,7 @@ def query_transactions(
     # both the metric and tag that we are using are hardcoded values in sentry_metrics.indexer.strings
     # so the org_id that we are using does not actually matter here, we only need to pass in an org_id
     duration_metric_id = indexer.resolve(
-        use_case_id, org_ids[0], str(TransactionMRI.DURATION_LIGHT.value)
+        use_case_id, org_ids[0], str(TransactionMRI.DURATION.value)
     )
     transaction_name_metric_id = indexer.resolve(
         use_case_id,
