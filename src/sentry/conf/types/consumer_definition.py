@@ -23,3 +23,17 @@ class ConsumerDefinition(TypedDict, total=False):
     require_synchronization: bool
     synchronize_commit_group_default: str
     synchronize_commit_log_topic_default: str
+
+    dlq_topic: str
+    dlq_max_invalid_ratio: float | None
+    dlq_max_consecutive_count: int | None
+
+
+def validate_consumer_definition(consumer_definition: ConsumerDefinition) -> None:
+    if "dlq_topic" not in consumer_definition and (
+        "dlq_max_invalid_ratio" in consumer_definition
+        or "dlq_max_consecutive_count" in consumer_definition
+    ):
+        raise ValueError(
+            "Invalid consumer definition, dlq_max_invalid_ratio/dlq_max_consecutive_count is configured, but dlq_topic is not"
+        )
