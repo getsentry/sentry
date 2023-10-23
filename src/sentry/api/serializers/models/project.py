@@ -229,6 +229,7 @@ def format_options(attrs: dict[str, Any]) -> dict[str, Any]:
             options.get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
         ),
         "feedback:branding": options.get("feedback:branding", "1") == "1",
+        "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
     }
 
 
