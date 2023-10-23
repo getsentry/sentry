@@ -458,8 +458,10 @@ def _process_checkin(
                 if use_latest_checkin:
                     check_in = (
                         MonitorCheckIn.objects.select_for_update()
-                        .filter(monitor_environment=monitor_environment)
-                        .exclude(status__in=CheckInStatus.FINISHED_VALUES)
+                        .filter(
+                            monitor_environment=monitor_environment,
+                            status=CheckInStatus.IN_PROGRESS,
+                        )
                         .order_by("-date_added")[:1]
                         .get()
                     )
