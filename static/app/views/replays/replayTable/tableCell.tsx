@@ -370,15 +370,17 @@ export function ReplayCell({
   const subText = (
     <Cols>
       <Row gap={1}>
-        <Row gap={0.75}>
+        <Row gap={0.5}>
           {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
           {project ? <Avatar size={12} project={project} /> : null}
           {project ? project.slug : null}
           <Link to={detailsTab} onClick={trackNavigationEvent}>
             {getShortEventId(replay.id)}
           </Link>
-          <IconCalendar color="gray300" size="xs" />
-          <TimeSince date={replay.started_at} />
+          <Row gap={0.5}>
+            <IconCalendar color="gray300" size="xs" />
+            <TimeSince date={replay.started_at} />
+          </Row>
         </Row>
       </Row>
     </Cols>
