@@ -12,8 +12,9 @@ import GridEditable, {
 import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {eventDetailsRoute, generateEventSlug} from 'sentry/utils/discover/urls';
+import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getDuration} from 'sentry/utils/formatters';
+import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -196,10 +197,7 @@ export function PageSamplePerformanceTable({transaction}: Props) {
     }
     if (key === 'view') {
       const eventSlug = generateEventSlug({...row, project: project?.slug});
-      const eventTarget = eventDetailsRoute({
-        orgSlug: organization.slug,
-        eventSlug,
-      });
+      const eventTarget = getTransactionDetailsUrl(organization.slug, eventSlug);
       const replayTarget =
         row['transaction.duration'] !== null &&
         replayLinkGenerator(

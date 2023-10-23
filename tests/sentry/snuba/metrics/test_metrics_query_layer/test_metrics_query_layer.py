@@ -18,7 +18,7 @@ from snuba_sdk import (
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import TransactionMRI
-from sentry.snuba.metrics_layer.query import resolve_metrics_query
+from sentry.snuba.metrics_layer.query import _resolve_metrics_query
 from sentry.testutils.cases import BaseMetricsLayerTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -47,13 +47,15 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
             ),
         )
 
-        resolved_metrics_query = resolve_metrics_query(metrics_query)
+        resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query)
         assert resolved_metrics_query.query.metric.public_name == "transaction.duration"
-        assert resolved_metrics_query.query.metric.id == indexer.resolve(
+        expected_metric_id = indexer.resolve(
             UseCaseID.TRANSACTIONS,
             self.project.organization_id,
             TransactionMRI.DURATION.value,
         )
+        assert resolved_metrics_query.query.metric.id == expected_metric_id
+        assert mappings[TransactionMRI.DURATION.value] == expected_metric_id
 
     def test_resolve_metrics_query_with_groupby(self):
         self.store_performance_metric(
@@ -82,12 +84,14 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
             "transaction",
         )
 
-        resolved_metrics_query = resolve_metrics_query(metrics_query)
+        resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query)
         assert resolved_metrics_query.query.metric.public_name == "transaction.duration"
         assert resolved_metrics_query.query.metric.id == expected_metric_id
         assert resolved_metrics_query.groupby == [
             AliasedExpression(Column(f"tags_raw[{expected_transaction_id}]"), "transaction")
         ]
+        assert mappings[TransactionMRI.DURATION.value] == expected_metric_id
+        assert mappings["transaction"] == expected_transaction_id
 
     def test_resolve_metrics_query_with_filters(self):
         self.store_performance_metric(
@@ -133,7 +137,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
             "device",
         )
 
-        resolved_metrics_query = resolve_metrics_query(metrics_query)
+        resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query)
         assert resolved_metrics_query.query.metric.public_name == "transaction.duration"
         assert resolved_metrics_query.query.metric.id == expected_metric_id
         assert resolved_metrics_query.query.filters == [
@@ -147,3 +151,6 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
                 ]
             )
         ]
+        assert mappings[TransactionMRI.DURATION.value] == expected_metric_id
+        assert mappings["transaction"] == expected_transaction_id
+        assert mappings["device"] == expected_device_id

@@ -994,6 +994,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# An option to enable writing from the new schema for the caching indexer
+register(
+    "sentry-metrics.indexer.write-new-cache-namespace",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {
@@ -1584,6 +1591,12 @@ register(
     "statistical_detectors.query.batch_size",
     type=Int,
     default=100,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "statistical_detectors.query.transactions.timeseries_days",
+    type=Int,
+    default=14,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 

@@ -24,7 +24,7 @@ export type HydratedA11yFrame = Overwrite<
   RawA11yFrame,
   {
     /**
-     * Alias of the id field
+     * Alias of `id`
      */
     description: string;
     /**

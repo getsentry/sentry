@@ -72,7 +72,7 @@ class ImportTestCase(BackupTestCase):
         return tmp_path
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SanitizationTests(ImportTestCase):
     """
     Ensure that potentially damaging data is properly scrubbed at import time.
@@ -261,12 +261,14 @@ class SanitizationTests(ImportTestCase):
         assert Organization.objects.filter(slug__icontains="some-org").count() == 2
         assert Organization.objects.filter(slug__iexact="some-org").count() == 1
         assert Organization.objects.filter(slug__icontains="some-org-").count() == 1
+        # TODO(GabeVillalobos): Add `OrganizationSlugReservationReplica` checks.
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert OrganizationMapping.objects.count() == 2
             assert OrganizationMapping.objects.filter(slug__icontains="some-org").count() == 2
             assert OrganizationMapping.objects.filter(slug__iexact="some-org").count() == 1
             assert OrganizationMapping.objects.filter(slug__icontains="some-org-").count() == 1
+            # TODO(GabeVillalobos): Add `OrganizationSlugReservation` checks here.
 
     def test_generate_suffix_for_already_taken_username(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -453,6 +455,7 @@ class SignalingTests(ImportTestCase):
 
         assert Organization.objects.count() == 1
         assert Organization.objects.filter(slug="some-org").exists()
+        # TODO(GabeVillalobos): Add `OrganizationSlugReservationReplica` checks here.
 
         assert OrganizationMember.objects.count() == 3
 
@@ -470,6 +473,7 @@ class SignalingTests(ImportTestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert OrganizationMapping.objects.count() == 1
             assert OrganizationMapping.objects.filter(slug="some-org").exists()
+            # TODO(GabeVillalobos): Add `OrganizationSlugReservation` checks here.
 
             assert OrganizationMemberMapping.objects.count() == 3
 
@@ -544,7 +548,9 @@ class ScopingTests(ImportTestCase):
                 self.verify_model_inclusion(ImportScope.Global)
 
 
-@region_silo_test(stable=True)
+# Filters should work identically in both silo and monolith modes, so no need to repeat the tests
+# here.
+@region_silo_test
 class DecryptionTests(ImportTestCase):
     """
     Ensures that decryption actually works. We only test one model for each scope, because it's
@@ -665,7 +671,9 @@ class DecryptionTests(ImportTestCase):
                 assert UserRole.objects.count() > 0
 
 
-@region_silo_test(stable=True)
+# Filters should work identically in both silo and monolith modes, so no need to repeat the tests
+# here.
+@region_silo_test
 class FilterTests(ImportTestCase):
     """
     Ensures that filtering operations include the correct models.
