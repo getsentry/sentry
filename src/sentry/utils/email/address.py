@@ -35,9 +35,7 @@ def email_to_group_id(address: str) -> tuple[int | None, int | None]:
         {group_id}.{org_id}+{signature}@example.com
 
     The form with org_id and group_id is newer
-    and required for multi-region sentry.
-
-    :return: Tuple of group_id, org_id
+    and required for multi-region sentry
     """
     address = address.split("@", 1)[0]
     signed_data = address.replace("+", ":")
