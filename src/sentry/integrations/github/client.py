@@ -52,7 +52,7 @@ class GithubRateLimitInfo:
         return datetime.utcfromtimestamp(self.reset).strftime("%H:%M:%S")
 
     def __repr__(self) -> str:
-        return f"GithubRateLimit(limit={self.limit},rem={self.remaining},reset={self.reset})"
+        return f"GithubRateLimitInfo(limit={self.limit},rem={self.remaining},reset={self.reset})"
 
 
 class GithubProxyClient(IntegrationProxyClient):
