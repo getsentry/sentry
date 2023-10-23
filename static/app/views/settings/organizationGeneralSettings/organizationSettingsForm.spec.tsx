@@ -40,7 +40,6 @@ describe('OrganizationSettingsForm', function () {
     render(
       <OrganizationSettingsForm
         {...routerProps}
-        access={new Set(['org:write'])}
         initialData={Organization()}
         onSave={onSave}
       />
@@ -107,7 +106,6 @@ describe('OrganizationSettingsForm', function () {
     render(
       <OrganizationSettingsForm
         {...routerProps}
-        access={new Set(['org:write'])}
         initialData={Organization()}
         onSave={onSave}
       />
@@ -143,7 +141,6 @@ describe('OrganizationSettingsForm', function () {
     render(
       <OrganizationSettingsForm
         {...routerProps}
-        access={new Set(['org:write'])}
         initialData={Organization({codecovAccess: false})}
         onSave={onSave}
       />,

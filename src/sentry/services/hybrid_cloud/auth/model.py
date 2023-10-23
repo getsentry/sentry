@@ -44,6 +44,18 @@ class RpcApiKey(RpcModel):
     scope_list: List[str] = Field(default_factory=list)
 
 
+class RpcApiToken(RpcModel):
+    id: int = -1
+    user_id: int = -1
+    organization_id: Optional[int] = None
+    application_id: Optional[int] = None
+    application_is_active: bool = False
+    token: str = ""
+    expires_at: Optional[datetime.datetime] = None
+    allowed_origins: List[str] = Field(default_factory=list)
+    scope_list: List[str] = Field(default_factory=list)
+
+
 class RpcAuthenticatorType(IntEnum):
     UNUSUED_ONE = 0
     USER_AUTH_TOKEN_AUTHENTICATION = 1

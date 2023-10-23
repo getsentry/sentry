@@ -126,9 +126,6 @@ class MetricsQueryBuilder(QueryBuilder):
         if not field:
             return None
 
-        if self.query is None:
-            return None
-
         if not should_use_on_demand_metrics(self.dataset, field, self.query):
             return None
 
@@ -1444,8 +1441,11 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                     continue
 
                 value = event.get(field)
+                # Ensure the project id fields stay as numbers, clickhouse 20 can't handle it, but 21 can
+                if field in {"project_id", "project.id"}:
+                    value = int(value)
                 # TODO: Handle potential None case
-                if value is not None:
+                elif value is not None:
                     value = self.resolve_tag_value(str(value))
                 values.add(value)
 
