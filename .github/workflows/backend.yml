@@ -298,9 +298,10 @@ jobs:
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
       # only if `mypy` succeeds should we try and trim the blocklist
-      - run: |
-          python3 -m tools.mypy_helpers.make_module_ignores
-          git diff --exit-code
+      - run: python3 -m tools.mypy_helpers.make_module_ignores
+        id: regen-blocklist
+
+      - run: git diff --exit-code
 
       - run: |
           # mypy does not have granular codes so don't allow specific messages to regress
@@ -310,7 +311,12 @@ jobs:
           ! grep 'does not explicitly export attribute' .artifacts/mypy-all
 
       - name: apply blocklist changes
-        if: steps.token.outcome == 'success' && steps.run.outcome == 'success' && github.ref != 'refs/heads/master' && always()
+        if: |
+          steps.token.outcome == 'success' &&
+          steps.run.outcome == 'success' &&
+          steps.regen-blocklist.outcome == 'success' &&
+          github.ref != 'refs/heads/master' &&
+          always()
         uses: getsentry/action-github-commit@748c31dd78cffe76f51bef49a0be856b6effeda7 # v1.1.0
         with:
           github-token: ${{ steps.token.outputs.token }}
