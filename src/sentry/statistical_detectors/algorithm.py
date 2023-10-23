@@ -196,6 +196,9 @@ class MovingAverageRelativeChangeDetector(MovingAverageDetector):
             relative_change_new = (self.moving_avg_short.value - self.moving_avg_long.value) / abs(
                 self.moving_avg_long.value
             )
+
+            if self.change_metric is not None:
+                metrics.timing(self.change_metric, relative_change_new)
         except ZeroDivisionError:
             relative_change_old = 0
             relative_change_new = 0
@@ -205,8 +208,6 @@ class MovingAverageRelativeChangeDetector(MovingAverageDetector):
             and relative_change_old < self.threshold
             and relative_change_new > self.threshold
         ):
-            if self.change_metric is not None:
-                metrics.timing(self.change_metric, relative_change_new, tags={"type": "regression"})
             return TrendType.Regressed
 
         elif (
@@ -214,10 +215,6 @@ class MovingAverageRelativeChangeDetector(MovingAverageDetector):
             and relative_change_old > -self.threshold
             and relative_change_new < -self.threshold
         ):
-            if self.change_metric is not None:
-                metrics.timing(
-                    self.change_metric, relative_change_new, tags={"type": "improvement"}
-                )
             return TrendType.Improved
 
         return TrendType.Unchanged
