@@ -117,6 +117,7 @@ class SpanMetricKey(Enum):
     DURATION = "span.duration"
     SELF_TIME = "span.exclusive_time"
     SELF_TIME_LIGHT = "span.exclusive_time_light"
+    RESPONSE_CONTENT_LENGTH = "http.response_content_length"
 
     HTTP_ERROR_COUNT = "span.http_error_count"
     HTTP_ERROR_RATE = "span.http_error_rate"
