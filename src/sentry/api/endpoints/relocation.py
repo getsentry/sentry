@@ -14,6 +14,7 @@ from sentry.models.files.file import File
 from sentry.models.relocation import Relocation, RelocationFile
 from sentry.models.user import MAX_USERNAME_LENGTH
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.tasks.relocation import uploading_complete
 from sentry.utils.db import atomic_transaction
 
 # Relocation input files are uploaded as tarballs, and chunked and stored using the normal
@@ -88,7 +89,7 @@ class RelocationMixin:
         with atomic_transaction(
             using=(router.db_for_write(Relocation), router.db_for_write(RelocationFile))
         ):
-            relocation = Relocation.objects.create(
+            relocation: Relocation = Relocation.objects.create(
                 creator=request.user.id,
                 owner=owner.id,
                 want_org_slugs=org_slugs,
@@ -97,8 +98,10 @@ class RelocationMixin:
             RelocationFile.objects.create(
                 relocation=relocation,
                 file=file,
+                kind=RelocationFile.Kind.RAW_USER_DATA.value,
             )
 
+        uploading_complete.delay(relocation.uuid)
         return Response(status=201)
 
 

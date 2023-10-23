@@ -3,13 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from click.testing import CliRunner
 from google_crc32c import value as crc32c
 
 from sentry.backup.helpers import (
-    KeyManagementServiceClient,
     KMSDecryptionError,
     create_encrypted_export_tarball,
     decrypt_data_encryption_key_local,
@@ -21,7 +20,11 @@ from sentry.services.hybrid_cloud.import_export.model import RpcImportErrorKind
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
-from sentry.testutils.helpers.backups import clear_database, generate_rsa_key_pair
+from sentry.testutils.helpers.backups import (
+    FakeKeyManagementServiceClient,
+    clear_database,
+    generate_rsa_key_pair,
+)
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
@@ -150,20 +153,6 @@ def create_encryption_test_files(tmp_dir: str) -> tuple[Path, Path, Path]:
     return (tmp_priv_key_path, tmp_pub_key_path, tmp_tar_path)
 
 
-class FakeKeyManagementServiceClient:
-    """
-    Fake version of `KeyManagementServiceClient` that removes the two network calls we rely on: the
-    `Transport` setup on class construction, and the call to the hosted `asymmetric_decrypt`
-    endpoint.
-    """
-
-    asymmetric_decrypt = MagicMock()
-
-    @staticmethod
-    def crypto_key_version_path(**kwargs) -> str:
-        return KeyManagementServiceClient.crypto_key_version_path(**kwargs)
-
-
 class GoodImportExportCommandEncryptionTests(TransactionTestCase):
     """
     Ensure that encryption using an `--encrypt-with` file works as expected.
@@ -188,7 +177,7 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
 
     @staticmethod
     def cli_encrypted_import_then_export_use_gcp_kms(
-        scope: str, fake_client: FakeKeyManagementServiceClient
+        scope: str, fake_kms_client: FakeKeyManagementServiceClient
     ):
         with TemporaryDirectory() as tmp_dir:
             (tmp_priv_key_path, tmp_pub_key_path, tmp_tar_path) = create_encryption_test_files(
@@ -200,7 +189,7 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
                 unwrapped_tarball = unwrap_encrypted_export_tarball(f)
             with open(tmp_priv_key_path, "rb") as f:
                 plaintext_dek = decrypt_data_encryption_key_local(unwrapped_tarball, f.read())
-                fake_client.asymmetric_decrypt.return_value = SimpleNamespace(
+                fake_kms_client.asymmetric_decrypt.return_value = SimpleNamespace(
                     plaintext=plaintext_dek,
                     plaintext_crc32c=crc32c(plaintext_dek),
                 )
@@ -246,11 +235,14 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
         "sentry.backup.helpers.KeyManagementServiceClient",
         new_callable=lambda: FakeKeyManagementServiceClient,
     )
-    def test_encryption_with_gcp_kms_decryption(self, fake_client: FakeKeyManagementServiceClient):
-        self.cli_encrypted_import_then_export_use_gcp_kms("global", fake_client)
-        self.cli_encrypted_import_then_export_use_gcp_kms("config", fake_client)
-        self.cli_encrypted_import_then_export_use_gcp_kms("organizations", fake_client)
-        self.cli_encrypted_import_then_export_use_gcp_kms("users", fake_client)
+    def test_encryption_with_gcp_kms_decryption(
+        self, fake_kms_client: FakeKeyManagementServiceClient
+    ):
+        self.cli_encrypted_import_then_export_use_gcp_kms("global", fake_kms_client)
+        self.cli_encrypted_import_then_export_use_gcp_kms("config", fake_kms_client)
+        self.cli_encrypted_import_then_export_use_gcp_kms("organizations", fake_kms_client)
+        self.cli_encrypted_import_then_export_use_gcp_kms("users", fake_kms_client)
+        assert fake_kms_client.asymmetric_decrypt.call_count == 4
 
 
 class BadImportExportDomainErrorTests(TransactionTestCase):

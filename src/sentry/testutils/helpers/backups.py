@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from functools import cached_property, lru_cache
 from pathlib import Path
 from typing import Tuple
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 from cryptography.hazmat.backends import default_backend
@@ -26,7 +27,7 @@ from sentry.backup.exports import (
     export_in_user_scope,
 )
 from sentry.backup.findings import ComparatorFindings
-from sentry.backup.helpers import decrypt_encrypted_tarball
+from sentry.backup.helpers import KeyManagementServiceClient, decrypt_encrypted_tarball
 from sentry.backup.imports import import_in_global_scope
 from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
@@ -96,6 +97,20 @@ __all__ = [
 ]
 
 NOOP_PRINTER = lambda *args, **kwargs: None
+
+
+class FakeKeyManagementServiceClient:
+    """
+    Fake version of `KeyManagementServiceClient` that removes the two network calls we rely on: the
+    `Transport` setup on class construction, and the call to the hosted `asymmetric_decrypt`
+    endpoint.
+    """
+
+    asymmetric_decrypt = MagicMock()
+
+    @staticmethod
+    def crypto_key_version_path(**kwargs) -> str:
+        return KeyManagementServiceClient.crypto_key_version_path(**kwargs)
 
 
 class ValidationError(Exception):
@@ -595,7 +610,9 @@ class BackupTestCase(TransactionTestCase):
 
     def create_exhaustive_instance(self, *, is_superadmin: bool = False):
         """
-        Takes an empty Sentry instance's database, and populates it with an "exhaustive" version of every model. The end result is two users, in one organization, with one full set of extensions, and all global flags set.
+        Takes an empty Sentry instance's database, and populates it with an "exhaustive" version of
+        every model. The end result is two users, in one organization, with one full set of
+        extensions, and all global flags set.
         """
 
         owner = self.create_exhaustive_user(
