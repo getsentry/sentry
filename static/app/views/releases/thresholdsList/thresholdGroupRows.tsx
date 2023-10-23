@@ -37,6 +37,8 @@ type EditingThreshold = {
   windowSuffix: string;
   windowValue: number;
   date_added?: string;
+  hasError?: boolean;
+  window_in_seconds?: number;
 };
 
 export function ThresholdGroupRows({thresholds, columns, orgSlug, refetch}: Props) {
@@ -49,7 +51,7 @@ export function ThresholdGroupRows({thresholds, columns, orgSlug, refetch}: Prop
   const environment = thresholds[0].environment;
   const defaultWindow = thresholds[0].window_in_seconds;
 
-  const thresholdsById = useMemo(() => {
+  const thresholdsById: {[id: string]: Threshold} = useMemo(() => {
     const byId = {};
     thresholds.forEach(threshold => {
       byId[threshold.id] = threshold;
@@ -76,6 +78,7 @@ export function ThresholdGroupRows({thresholds, columns, orgSlug, refetch}: Prop
       threshold_type: 'total_error_count',
       trigger_type: 'over',
       value: 0,
+      hasError: false,
     };
     const updatedEditingThresholds = {...editingThresholds};
     updatedEditingThresholds[thresholdId] = newThreshold;
@@ -91,6 +94,7 @@ export function ThresholdGroupRows({thresholds, columns, orgSlug, refetch}: Prop
       ...threshold,
       windowValue,
       windowSuffix,
+      hasError: false,
     };
     setEditingThresholds(updatedEditingThresholds);
   };
@@ -99,50 +103,62 @@ export function ThresholdGroupRows({thresholds, columns, orgSlug, refetch}: Prop
     thresholdIds.forEach(id => {
       const thresholdData = editingThresholds[id];
       const submitData: {[key: string]: any} = {...thresholdData};
-      let path = `/projects/${orgSlug}/${thresholdData.project.slug}/release-thresholds/`;
-      let method: APIRequestMethod = 'POST';
-      if (thresholdsById[id]) {
-        path = `/projects/${orgSlug}/${thresholdData.project.slug}/release-thresholds/${id}/`;
-        method = 'PUT';
+      let path = `/projects/${orgSlug}/${thresholdData.project.slug}/release-thresholds/${id}/`;
+      let method: APIRequestMethod = 'PUT';
+      if (id.includes(NEW_THRESHOLD_PREFIX)) {
+        path = `/projects/${orgSlug}/${thresholdData.project.slug}/release-thresholds/`;
+        method = 'POST';
       }
       submitData.window_in_seconds = deriveSeconds(
         thresholdData.windowValue,
         thresholdData.windowSuffix
       );
-      submitData.environment = thresholdData.environment.name;
+      submitData.environment = thresholdData.environment.name; // api expects environment as a string
       const request = api.requestPromise(path, {
         method,
         data: submitData,
       });
       request
-        .then(data => {
-          console.log('DATA: ', data);
+        .then(() => {
           refetch();
           closeEditForm(id);
         })
-        .catch(err => {
-          console.log(err);
+        .catch(_err => {
+          // TODO: highlight form if error on submit
+          const errorThreshold = {
+            ...submitData,
+            hasError: true,
+            environment: thresholdData.environment, // convert local state environment back to object
+          };
+          const updatedEditingThresholds = {...editingThresholds};
+          updatedEditingThresholds[id] = errorThreshold as EditingThreshold;
+          setEditingThresholds(updatedEditingThresholds);
         });
     });
-    // TODO: we need to identify which threshold is being saved
-    // refetch thresholds
-    // If we refetch thresholds - then this fragment will likely unmount...
-    // meaning any unsaved states will be reset
-    // But - maybe not due to the proj-env key?
-    // IF NOT
-    //  on success - remove saved threshold from the new thresholds list (_should_ be auto-populated into the passed thresholds)
-    //  OR remove threshold id from editing list
   };
 
   const deleteThreshold = thresholdId => {
     const updatedEditingThresholds = {...editingThresholds};
+    const thresholdData = editingThresholds[thresholdId];
+    const path = `/projects/${orgSlug}/${thresholdData.project.slug}/release-thresholds/${thresholdId}/`;
+    const method = 'DELETE';
     if (!thresholdId.includes(NEW_THRESHOLD_PREFIX)) {
-      // Set loading state
-      console.log('need to send a request to delete threshold');
-      // Send request
-      // On success - remove threshold from thresholds list
-      // OR - on success refetch?
-      // Set loading state to false
+      const request = api.requestPromise(path, {
+        method,
+      });
+      request
+        .then(() => {
+          refetch();
+        })
+        .catch(_err => {
+          // TODO: highlight form if error on submit
+          const errorThreshold = {
+            ...thresholdData,
+            hasError: true,
+          };
+          updatedEditingThresholds[thresholdId] = errorThreshold as EditingThreshold;
+          setEditingThresholds(updatedEditingThresholds);
+        });
     }
     delete updatedEditingThresholds[thresholdId];
     setEditingThresholds(updatedEditingThresholds);
@@ -154,7 +170,7 @@ export function ThresholdGroupRows({thresholds, columns, orgSlug, refetch}: Prop
     setEditingThresholds(updatedEditingThresholds);
   };
 
-  const editThreshold = (thresholdId, key, value) => {
+  const editThresholdState = (thresholdId, key, value) => {
     if (editingThresholds[thresholdId]) {
       const updateEditing = JSON.parse(JSON.stringify(editingThresholds));
       updateEditing[thresholdId][key] = value;
@@ -193,14 +209,18 @@ export function ThresholdGroupRows({thresholds, columns, orgSlug, refetch}: Prop
                     type="number"
                     min={0}
                     onChange={e =>
-                      editThreshold(threshold.id, 'windowValue', e.target.value)
+                      editThresholdState(threshold.id, 'windowValue', e.target.value)
                     }
                   />
                   <CompactSelect
                     style={{width: '50%'}}
                     value={threshold.windowSuffix}
                     onChange={selectedOption =>
-                      editThreshold(threshold.id, 'windowSuffix', selectedOption.value)
+                      editThresholdState(
+                        threshold.id,
+                        'windowSuffix',
+                        selectedOption.value
+                      )
                     }
                     options={[
                       {
@@ -230,7 +250,11 @@ export function ThresholdGroupRows({thresholds, columns, orgSlug, refetch}: Prop
                   <CompactSelect
                     value={threshold.threshold_type}
                     onChange={selectedOption =>
-                      editThreshold(threshold.id, 'threshold_type', selectedOption.value)
+                      editThresholdState(
+                        threshold.id,
+                        'threshold_type',
+                        selectedOption.value
+                      )
                     }
                     options={[
                       {
@@ -242,13 +266,17 @@ export function ThresholdGroupRows({thresholds, columns, orgSlug, refetch}: Prop
                   />
                   {threshold.trigger_type === 'over' ? (
                     <Button
-                      onClick={() => editThreshold(threshold.id, 'trigger_type', 'under')}
+                      onClick={() =>
+                        editThresholdState(threshold.id, 'trigger_type', 'under')
+                      }
                     >
                       &gt;
                     </Button>
                   ) : (
                     <Button
-                      onClick={() => editThreshold(threshold.id, 'trigger_type', 'over')}
+                      onClick={() =>
+                        editThresholdState(threshold.id, 'trigger_type', 'over')
+                      }
                     >
                       &lt;
                     </Button>
@@ -257,14 +285,16 @@ export function ThresholdGroupRows({thresholds, columns, orgSlug, refetch}: Prop
                     value={threshold.value}
                     type="number"
                     min={0}
-                    onChange={e => editThreshold(threshold.id, 'value', e.target.value)}
+                    onChange={e =>
+                      editThresholdState(threshold.id, 'value', e.target.value)
+                    }
                   />
                 </FlexCenter>
               </Fragment>
             ) : (
               <Fragment>
                 <FlexCenter>
-                  {getExactDuration(threshold.window_in_seconds, false, 'seconds')}
+                  {getExactDuration(threshold.window_in_seconds || 0, false, 'seconds')}
                 </FlexCenter>
                 <FlexCenter>
                   <div>{threshold.threshold_type}</div>
