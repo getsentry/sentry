@@ -246,9 +246,11 @@ def timeseries_query(
         # We could run these two queries in a batch but this would require a big refactor in the `get_snql_query` method
         # of the TimeseriesMetricQueryBuilder. In case this becomes a performance bottleneck, we should invest more
         # time into properly performing batching.
+        #
+        # In case we want to support multiple aggregate comparisons, we can just remove the condition below and rework
+        # the implementation of the `comparisonCount` field.
         result = run_metrics_query(inner_params=params)
         if comparison_delta:
-            # We run the second query shifted by the `comparison_delta`, in order to check the differences.
             result_to_compare = run_metrics_query(
                 inner_params={
                     **params,
@@ -257,26 +259,18 @@ def timeseries_query(
                 }
             )
 
-            # We need to convert all the columns to their alias equivalent, since this is how we will recognize
-            # the column in the output.
             aliased_columns = [
                 get_function_alias(selected_column) for selected_column in selected_columns
             ]
-            # In case we want to support multiple aggregate comparisons, we can just remove this condition and rework
-            # the implementation of the `comparisonCount` field.
             if len(aliased_columns) != 1:
                 raise IncompatibleMetricsQuery(
                     "The comparison query for metrics supports only one aggregate."
                 )
 
             merged_data = []
-            # We perform zipping, assuming that the timeseries data has the same length and order.
             for data, data_to_compare in zip(result["data"], result_to_compare["data"]):
-                # We default the new merged item with the time of the main timeseries.
                 merged_item = {"time": data["time"]}
 
-                # We support for now one single aliased column, but we can extend this in the future to
-                # support multiple, if there is the need.
                 for aliased_column in aliased_columns:
                     # We only add data in the dictionary in case it's not `None`, since the serializer,
                     # will convert all missing dictionary values to 0.
@@ -286,10 +280,9 @@ def timeseries_query(
 
                     # It can be that we have the data in the comparison, in that case want to show it.
                     if (column := data_to_compare.get(aliased_column)) is not None:
-                        # We get from the comparison timeseries the result, and we store it always at the same key.
-                        #
-                        # This implementation is very bad, since we are already serializing as camelcase which should
-                        # happen in the serializer but the implementation was taken from discover.
+                        # TODO: this implementation was copied over from discover to reduce the refactor size but it
+                        #  would be better to prefix the comparisons with like `comparison_[alias]` and convert them
+                        #  in the serializer.
                         merged_item["comparisonCount"] = column
 
                 merged_data.append(merged_item)
