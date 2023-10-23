@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 from django.contrib.auth.models import AnonymousUser
 
 from sentry import features
+from sentry.models.integrations.external_actor import ExternalActor
 from sentry.notifications.defaults import (
     NOTIFICATION_SETTING_DEFAULTS,
     NOTIFICATION_SETTINGS_ALL_SOMETIMES,
@@ -47,6 +48,7 @@ if TYPE_CHECKING:
     from sentry.models.user import User
 
 logger = logging.getLogger(__name__)
+VALID_TEAM_PROVIDERS = [ExternalProviderEnum.SLACK]
 
 
 def _get_notification_setting_default(
@@ -713,6 +715,18 @@ def get_recipient_from_team_or_user(user_id: int | None, team_id: int | None) ->
     if not recipient:
         raise Exception("Unable to find user or team")
     return recipient
+
+
+def team_is_valid_recipient(team: Team, provider: ExternalProviderEnum) -> bool:
+    # providers = get_providers_for_recipient(team)
+    if provider not in VALID_TEAM_PROVIDERS:
+        return False
+    linked_slack = ExternalActor.objects.filter(
+        team_id=team.id, organization=team.organization, provider=ExternalProviders.SLACK.value
+    )
+    if provider == ExternalProviderEnum.Slack and not linked_slack:
+        return False
+    return True
 
 
 PROVIDER_DEFAULTS: list[ExternalProviderEnum] = get_provider_defaults()

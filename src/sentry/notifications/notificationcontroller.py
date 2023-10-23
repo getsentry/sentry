@@ -5,14 +5,17 @@ from typing import Iterable, Mapping, MutableMapping, Union
 
 from django.db.models import Q
 
+from sentry import features
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.notifications.helpers import (
     get_default_for_provider,
     get_type_defaults,
     recipient_is_team,
     recipient_is_user,
+    team_is_valid_recipient,
 )
 from sentry.notifications.types import (
     GroupSubscriptionStatus,
@@ -59,6 +62,17 @@ class NotificationController:
         type: NotificationSettingEnum | None = None,
         provider: ExternalProviderEnum | None = None,
     ) -> None:
+        org = Organization.objects.filter(id=organization_id).first()
+        if features.has("organizations:team-workflow-notifications", org) and isinstance(
+            recipients, Iterable[Team]
+        ):
+            idx = 0
+            while idx < len(recipients):
+                if team_is_valid_recipient(recipients[idx], provider):
+                    idx += 1
+                else:
+                    del recipients[idx]
+
         self.recipients = recipients
         self.project_ids = project_ids
         self.organization_id = organization_id
