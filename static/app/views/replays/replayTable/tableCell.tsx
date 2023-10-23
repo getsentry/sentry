@@ -638,7 +638,7 @@ const Item = styled('div')<{
       ? `padding: ${space(0.75)} ${space(1.5)} ${space(1.5)} ${space(1.5)};`
       : `padding: ${space(1.5)};`};
   ${p => (p.isArchived ? 'opacity: 0.5;' : '')};
-  ${p => (p.isReplayCell ? 'overflow: scroll;' : '')};
+  ${p => (p.isReplayCell ? 'overflow: auto;' : '')};
 `;
 
 const Count = styled('span')`
