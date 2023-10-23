@@ -165,22 +165,29 @@ const StyledIconClose = styled(IconClose)`
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
-  min-height: 300px;
   justify-content: center;
   display: flex;
   align-items: center;
   flex-direction: column;
+  flex: 1;
+  padding: ${space(1)} ${space(2)} ${space(4)} ${space(2)};
+
+  svg {
+    margin-bottom: ${space(1)};
+    height: 30px;
+    width: 30px;
+  }
 `;
 
 const PrimaryMessage = styled('span')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.gray300};
   font-weight: 600;
   margin: 0 auto ${space(1)};
 `;
 
 const SecondaryMessage = styled('p')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
   max-width: 300px;
 `;
