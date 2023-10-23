@@ -16,7 +16,7 @@ from rest_framework.request import Request
 
 from sentry import analytics, options
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.utils.scope import clear_tags_and_context
@@ -598,6 +598,7 @@ class GitHubWebhookBase(Endpoint):
         return HttpResponse(status=204)
 
 
+@all_silo_endpoint
 class GitHubIntegrationsWebhookEndpoint(GitHubWebhookBase):
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
