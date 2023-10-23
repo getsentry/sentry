@@ -267,7 +267,7 @@
   color: 'ffa0df'
   description: ''
 
-# Hacktoberfest
+# Bug bash-y Things
 - name: 'Hacktoberfest :jack_o_lantern:'
   color: 'ffa500'
   description: ''
@@ -275,8 +275,11 @@
   color: 'e99695'
   description: Accept for Hacktoberfest - will merge later
 
-# Hackweek
 - name: 'Hackweek :zap:'
+  color: 'F91A8A'
+  description: ''
+
+- name: 'Papercut'
   color: 'F91A8A'
   description: ''
 

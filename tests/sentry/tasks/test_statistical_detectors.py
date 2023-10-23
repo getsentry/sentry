@@ -272,7 +272,12 @@ def test_detect_transaction_trends(
         for i, ts in enumerate(timestamps)
     ]
 
-    with override_options({"statistical_detectors.enable": True}), TaskRunner():
+    with override_options(
+        {
+            "statistical_detectors.enable": True,
+            "statistical_detectors.enable.projects.performance": [project.id],
+        }
+    ), TaskRunner():
         for ts in timestamps:
             detect_transaction_trends([organization.id], [project.id], ts)
     assert detect_transaction_change_points.apply_async.called
@@ -484,7 +489,7 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
                     self.org.id,
                     project.id,
                     "distribution",
-                    TransactionMRI.DURATION.value,
+                    TransactionMRI.DURATION_LIGHT.value,
                     {"transaction": f"transaction_{i}", "transaction.op": "http.server"},
                     self.hour_ago_seconds,
                     1.0,
@@ -494,7 +499,7 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
                     self.org.id,
                     project.id,
                     "distribution",
-                    TransactionMRI.DURATION.value,
+                    TransactionMRI.DURATION_LIGHT.value,
                     {"transaction": f"transaction_{i}", "transaction.op": "http.server"},
                     self.hour_ago_seconds,
                     9.5,
@@ -507,7 +512,7 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
                     self.org.id,
                     project.id,
                     "distribution",
-                    TransactionMRI.DURATION.value,
+                    TransactionMRI.DURATION_LIGHT.value,
                     {"transaction": f"fe_transaction_{i}", "transaction.op": "navigation"},
                     self.hour_ago_seconds,
                     1.0,
@@ -517,7 +522,7 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
                     self.org.id,
                     project.id,
                     "distribution",
-                    TransactionMRI.DURATION.value,
+                    TransactionMRI.DURATION_LIGHT.value,
                     {"transaction": f"fe_transaction_{i}", "transaction.op": "navigation"},
                     self.hour_ago_seconds,
                     9.5,
@@ -575,7 +580,7 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
                 self.org.id,
                 project_id,
                 "distribution",
-                TransactionMRI.DURATION.value,
+                TransactionMRI.DURATION_LIGHT.value,
                 {"transaction": transaction},
                 int((self.now - timedelta(minutes=minutes_ago)).timestamp()),
                 value,
