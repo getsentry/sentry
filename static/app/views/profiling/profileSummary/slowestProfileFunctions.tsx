@@ -138,7 +138,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
           </SlowestFunctionsQueryState>
         ) : !functions.length ? (
           <SlowestFunctionsQueryState>
-            {t('Yikes, you have no slow functions? This should not happen.')}
+            {t('The fastest code is one that never runs.')}
           </SlowestFunctionsQueryState>
         ) : (
           functions.map((fn, i) => {
