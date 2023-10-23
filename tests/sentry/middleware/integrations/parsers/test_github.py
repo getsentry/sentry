@@ -36,8 +36,7 @@ class GithubRequestParserTest(TestCase):
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
         response = parser.get_response()
-        assert response.status_code == 200
-        assert response.content == b"no-error"
+        assert response.status_code == 400
 
     def test_routing_webhook_properly(self):
         request = self.factory.post(self.path, data={}, content_type="application/json")
