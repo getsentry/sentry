@@ -33,7 +33,7 @@ class GitLabRateLimitInfo:
         return datetime.utcfromtimestamp(self.reset).strftime("%H:%M:%S")
 
     def __repr__(self) -> str:
-        return f"GitLabRateLimit(limit={self.limit},rem={self.remaining},reset={self.reset}),used={self.used})"
+        return f"GitLabRateLimitInfo(limit={self.limit},rem={self.remaining},reset={self.reset}),used={self.used})"
 
 
 class GitLabApiClientPath:
