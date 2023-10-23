@@ -32,6 +32,7 @@ from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS,
+    EXTERNAL_PROVIDERS_REVERSE,
     TEAM_NOTIFICATION_PROVIDERS,
     ExternalProviderEnum,
     ExternalProviders,
@@ -721,12 +722,13 @@ def team_is_valid_recipient(team: Team | RpcActor, provider: ExternalProviderEnu
 
     if provider.value not in TEAM_NOTIFICATION_PROVIDERS:
         return False
-    if provider == ExternalProviderEnum.SLACK:
-        linked_slack = ExternalActor.objects.filter(
-            team_id=team.id, organization=team.organization, provider=ExternalProviders.SLACK.value
-        )
-        if linked_slack:
-            return True
+    linked_integration = ExternalActor.objects.filter(
+        team_id=team.id,
+        organization=team.organization,
+        provider=EXTERNAL_PROVIDERS_REVERSE[provider].value,
+    )
+    if linked_integration:
+        return True
     return False
 
 
