@@ -9,7 +9,7 @@ import {Flex} from 'sentry/components/profiling/flex';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface Props {
@@ -37,9 +37,7 @@ function HasSelection({checked}) {
   return (
     <Flex gap={space(1)} align="center" justify="space-between" style={{flexGrow: 1}}>
       <span>
-        <strong>
-          {checked.length} {t('Selected')}
-        </strong>
+        <strong>{tct('[count] Selected', {count: checked.length})}</strong>
       </span>
       <Flex gap={space(1)} justify="flex-end">
         <ErrorBoundary mini>
@@ -83,11 +81,6 @@ function HasSelection({checked}) {
               {
                 key: 'mark unread',
                 label: t('Mark as unread'),
-                onAction: () => {},
-              },
-              {
-                key: 'delete',
-                label: t('Delete'),
                 onAction: () => {},
               },
             ]}

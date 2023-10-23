@@ -2,6 +2,7 @@ import {useRef, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,6 +17,7 @@ import {
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 
 type Props = {
+  isProjectScoreLoading?: boolean;
   projectScore?: ProjectScore;
   transaction?: string;
   webVital?: WebVitals | null;
@@ -31,7 +33,12 @@ const {
 
 const ORDER = ['lcp', 'fcp', 'fid', 'cls', 'ttfb'];
 
-export function PerformanceScoreChart({projectScore, webVital, transaction}: Props) {
+export function PerformanceScoreChart({
+  projectScore,
+  webVital,
+  transaction,
+  isProjectScoreLoading,
+}: Props) {
   const theme = useTheme();
   const pageFilters = usePageFilters();
 
@@ -75,7 +82,7 @@ export function PerformanceScoreChart({projectScore, webVital, transaction}: Pro
       <PerformanceScoreLabelContainer>
         <PerformanceScoreLabel>{t('Performance Score')}</PerformanceScoreLabel>
         <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
-        {projectScore && (
+        {!isProjectScoreLoading && projectScore && (
           <ProgressRingContainer ref={elem} {...mouseTrackingProps}>
             {webVitalTooltip && (
               <PerformanceScoreRingTooltip x={mousePosition.x} y={mousePosition.y}>
@@ -146,6 +153,11 @@ export function PerformanceScoreChart({projectScore, webVital, transaction}: Pro
               />
             </svg>
           </ProgressRingContainer>
+        )}
+        {!isProjectScoreLoading && !projectScore && (
+          <EmptyStateWarning>
+            <p>{t('No Web Vitals found')}</p>
+          </EmptyStateWarning>
         )}
       </PerformanceScoreLabelContainer>
       <PerformanceScoreBreakdownChart transaction={transaction} />
