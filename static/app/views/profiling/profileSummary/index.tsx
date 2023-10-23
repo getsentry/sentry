@@ -12,6 +12,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import SearchBar from 'sentry/components/events/searchBar';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -328,7 +329,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     return search.formatString();
   }, [rawQuery, transaction]);
 
-  const {data} = useAggregateFlamegraphQuery({transaction});
+  const {data, isLoading, isError} = useAggregateFlamegraphQuery({transaction});
 
   const [visualization, setVisualization] = useLocalStorageState<
     'flamegraph' | 'call tree'
@@ -448,6 +449,15 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                             hideSystemFrames={false}
                             setHideSystemFrames={() => void 0}
                           />
+                          {isLoading ? (
+                            <RequestStateMessageContainer>
+                              <LoadingIndicator />
+                            </RequestStateMessageContainer>
+                          ) : isError ? (
+                            <RequestStateMessageContainer>
+                              {t('There was an error loading the flamegraph.')}
+                            </RequestStateMessageContainer>
+                          ) : null}
                           {visualization === 'flamegraph' ? (
                             <AggregateFlamegraph
                               canvasPoolManager={canvasPoolManager}
@@ -482,6 +492,18 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     </SentryDocumentTitle>
   );
 }
+
+const RequestStateMessageContainer = styled('div')`
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: ${p => p.theme.subText};
+`;
 
 const AggregateFlamegraphContainer = styled('div')`
   display: flex;
