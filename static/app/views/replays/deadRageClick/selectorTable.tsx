@@ -27,11 +27,12 @@ export interface UrlState {
 }
 
 export function getAriaLabel(str: string) {
-  const pre = str.split('aria="')[1];
-  if (!pre) {
+  const matches = str.match(/\[aria=(.*?)\]/g);
+  if (!matches) {
     return '';
   }
-  return pre.substring(0, pre.lastIndexOf('"]'));
+  const pre = matches[0];
+  return matches[0].substring(pre.indexOf('aria="') + 6, pre.lastIndexOf('"]'));
 }
 
 function trimAttribute(elementAttribute, fullAlltribute) {
