@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime, timedelta
 from time import time
-from typing import Mapping, Type
+from typing import Mapping, Optional, Type
 
 from django.utils import timezone
 
@@ -74,7 +74,7 @@ def schedule_auto_resolution():
 @log_error_if_queue_has_items
 def auto_resolve_project_issues(
     project_id,
-    enabled_issue_types: list[Type[grouptype.GroupType]] = None,
+    enabled_issue_types: Optional[list[Type[grouptype.GroupType]]] = None,
     cutoff=None,
     chunk_size=1000,
     **kwargs,
@@ -101,7 +101,7 @@ def auto_resolve_project_issues(
     }
 
     if flag_enabled:
-        filter_conditions["type__in"] = enabled_issue_types
+        filter_conditions["type__in"] = enabled_issue_types or []
 
     queryset = list(Group.objects.filter(**filter_conditions)[:chunk_size])
 
