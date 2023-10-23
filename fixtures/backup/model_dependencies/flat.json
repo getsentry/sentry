@@ -42,7 +42,9 @@
   "sentry.alertrule": [
     "sentry.actor",
     "sentry.organization",
-    "sentry.snubaquery"
+    "sentry.snubaquery",
+    "sentry.team",
+    "sentry.user"
   ],
   "sentry.alertruleactivity": [
     "sentry.alertrule",

@@ -1,9 +1,12 @@
 from uuid import uuid4
 
+import pytest
+
 from sentry.models.outbox import outbox_context
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip("Migration 581 makes alert rule selects fail here.")
 class RemoveCronMissedMarginsZeroMigrationTest(TestMigrations):
     migrate_from = "0565_fix_diff_env_dupe_alerts"
     migrate_to = "0566_remove_cron_missed_margins_zero"

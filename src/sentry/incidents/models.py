@@ -430,6 +430,8 @@ class AlertRule(Model):
         null=True,
         on_delete=models.SET_NULL,
     )
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
     excluded_projects = models.ManyToManyField(
         "sentry.Project", related_name="alert_rule_exclusions", through=AlertRuleExcludedProjects
     )
