@@ -8,7 +8,7 @@ from abc import abstractmethod
 from typing import Optional
 
 from sentry.services.hybrid_cloud.issue.model import RpcGroupShareMetadata
-from sentry.services.hybrid_cloud.region import ByOrganizationId, ByOrganizationSlug, ByRegionName
+from sentry.services.hybrid_cloud.region import ByOrganizationSlug, ByRegionName
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
 from sentry.silo.base import SiloMode
 
@@ -19,12 +19,9 @@ class IssueService(RpcService):
 
     We want as little access to issues and events in control as possible.
 
-    Unfortunately we have a handful of workflows that require
-    access to issues from control:
-
-    - The issue public share link view requires issue data to render the initial HTML so that open-graph
-      data can be included
-    - Replying to issue workflow notifications by email sends webhooks to control via mailgun.
+    Unfortunately the issue public share link view requires it as
+    we need issue data to render the initial HTML so that open-graph
+    data can be included.
     """
 
     key = "issue"
@@ -46,13 +43,6 @@ class IssueService(RpcService):
     def get_shared_for_region(
         self, *, region_name: str, share_id: str
     ) -> Optional[RpcGroupShareMetadata]:
-        pass
-
-    @regional_rpc_method(resolve=ByOrganizationId(), return_none_if_mapping_not_found=True)
-    @abstractmethod
-    def upsert_issue_email_reply(
-        self, *, organization_id: int, group_id: int, from_email: str, text: str
-    ) -> None:
         pass
 
 

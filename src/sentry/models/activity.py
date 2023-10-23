@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.user import RpcUser
 
 
-class ActivityManager(BaseManager["Activity"]):
+class ActivityManager(BaseManager):
     def get_activities_for_group(self, group: Group, num: int) -> Sequence[Group]:
         activities = []
         activity_qs = self.filter(group=group).order_by("-datetime")
@@ -100,7 +100,7 @@ class Activity(Model):
     datetime = models.DateTimeField(default=timezone.now)
     data: models.Field[dict[str, Any], dict[str, Any]] = GzippedDictField(null=True)
 
-    objects: ActivityManager = ActivityManager()
+    objects = ActivityManager()
 
     class Meta:
         app_label = "sentry"
