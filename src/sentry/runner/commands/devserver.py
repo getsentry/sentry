@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import shutil
 import threading
 import types
@@ -413,6 +414,18 @@ Alternatively, run without --workers.
         uwsgi_overrides["log-format"] = "%(method) %(status) %(uri) %(proto) %(size)"
     else:
         uwsgi_overrides["log-format"] = "[%(ltime)] %(method) %(status) %(uri) %(proto) %(size)"
+
+    # Prevent logging of requests to specified endpoints.
+    #
+    # TODO: According to the docs, the final `log-drain` value is evaluated as a regex (and indeed,
+    # joining the options with `|` works), but no amount of escaping, not escaping, escaping the
+    # escaping, using raw strings, or any combo thereof seems to actually work if you include a
+    # regex pattern string in the list. Docs are here:
+    # https://uwsgi-docs.readthedocs.io/en/latest/Options.html?highlight=log-format#log-drain
+    if settings.DEVSERVER_REQUEST_LOG_EXCLUDES:
+        filters = settings.DEVSERVER_REQUEST_LOG_EXCLUDES
+        filter_pattern = "|".join(map(lambda s: re.escape(s), filters))
+        uwsgi_overrides["log-drain"] = filter_pattern
 
     server_port = os.environ["SENTRY_BACKEND_PORT"]
     if settings.USE_SILOS:
