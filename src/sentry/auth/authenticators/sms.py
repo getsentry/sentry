@@ -53,14 +53,13 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
     def make_otp(self):
         return TOTP(self.config["secret"], digits=6, interval=self.code_ttl, default_window=1)
 
-    def _get_phone_number(self):
+    @property
+    def phone_number(self):
         return self.config["phone_number"]
 
-    def _set_phone_number(self, value):
+    @phone_number.setter
+    def phone_number(self, value):
         self.config["phone_number"] = value
-
-    phone_number = property(_get_phone_number, _set_phone_number)
-    del _get_phone_number, _set_phone_number
 
     def activate(self, request):
         phone_number = self.config["phone_number"]

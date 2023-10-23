@@ -1358,7 +1358,7 @@ if os.environ.get("OPENAPIGENERATE", False):
 CRISPY_TEMPLATE_PACK = "bootstrap3"
 # Sentry and internal client configuration
 
-SENTRY_FEATURES = {
+SENTRY_FEATURES: dict[str, bool | None] = {
     # Enables user registration.
     "auth:register": True,
     # Enables alert creation on indexed events in UI (use for PoC/testing only)

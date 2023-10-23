@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import namedtuple
 from datetime import datetime
 from typing import Any, Dict, Generator, List, Optional, Sequence, Union
 
@@ -25,6 +24,7 @@ from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
 from sentry.models.organization import Organization
 from sentry.replays.lib.query import all_values_for_tag_key
 from sentry.replays.usecases.query import (
+    Paginators,
     execute_query,
     make_full_aggregation_query,
     query_using_optimized_search,
@@ -36,7 +36,6 @@ DEFAULT_PAGE_SIZE = 10
 DEFAULT_OFFSET = 0
 MAX_REPLAY_LENGTH_HOURS = 1
 ELIGIBLE_SUBQUERY_SORTS = {"started_at", "browser.name", "os.name"}
-Paginators = namedtuple("Paginators", ("limit", "offset"))
 
 
 def query_replays_collection(
@@ -765,7 +764,7 @@ def select_from_fields(fields: List[str]) -> List[Union[Column, Function]]:
     return [QUERY_ALIAS_COLUMN_MAP[alias] for alias in collect_aliases(fields)]
 
 
-def _extract_children(expression: ParenExpression) -> Generator[str, None, None]:
+def _extract_children(expression: ParenExpression) -> Generator[SearchFilter, None, None]:
     for child in expression.children:
         if isinstance(child, SearchFilter):
             yield child

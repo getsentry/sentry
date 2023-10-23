@@ -1,4 +1,4 @@
-__all__ = ["OAuth2Provider", "OAuth2CallbackView", "OAuth2LoginView"]
+from __future__ import annotations
 
 import logging
 import secrets
@@ -18,6 +18,8 @@ from sentry.utils.http import absolute_uri
 
 from .base import Provider
 
+__all__ = ["OAuth2Provider", "OAuth2CallbackView", "OAuth2LoginView"]
+
 logger = logging.getLogger(__name__)
 ERR_INVALID_STATE = "An error occurred while validating your request."
 
@@ -35,7 +37,7 @@ class OAuth2Provider(Provider):
     oauth_authorize_url = ""
     refresh_token_url = ""
 
-    oauth_scopes = ()
+    oauth_scopes: tuple[str, ...] = ()
 
     def _get_oauth_parameter(self, parameter_name):
         """

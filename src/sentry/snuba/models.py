@@ -9,7 +9,6 @@ from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import BaseManager, FlexibleForeignKey, Model, region_silo_only_model
-from sentry.db.models.base import DefaultFieldsModel
 
 
 class QueryAggregations(Enum):
@@ -92,7 +91,7 @@ class SnubaQueryEventType(Model):
 
 
 @region_silo_only_model
-class QuerySubscription(DefaultFieldsModel):
+class QuerySubscription(Model):
     __relocation_scope__ = RelocationScope.Organization
 
     class Status(Enum):

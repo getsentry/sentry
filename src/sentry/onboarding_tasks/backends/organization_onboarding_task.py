@@ -11,7 +11,7 @@ from sentry.onboarding_tasks.base import OnboardingTaskBackend
 from sentry.utils import json
 
 
-class OrganizationOnboardingTaskBackend(OnboardingTaskBackend):
+class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboardingTask]):
     Model = OrganizationOnboardingTask
 
     def fetch_onboarding_tasks(self, organization, user):
