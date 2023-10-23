@@ -117,7 +117,7 @@ GENERIC_ENTITIES = {
 }
 
 
-def _resolve_use_case_id(metrics_query: MetricsQuery) -> str:
+def _resolve_use_case_id_str(metrics_query: MetricsQuery) -> str:
     # Automatically resolve the use_case_id if it is not provided
     # TODO: At the moment only a single Timeseries is allowed. In the future this will need to find
     # all the Timeseries and ensure they all have the same use case.
@@ -199,11 +199,13 @@ def _resolve_metrics_query(
         mappings[metric.public_name] = mri
 
     org_id = metrics_query.scope.org_ids[0]
-    use_case_id = _resolve_use_case_id(metrics_query)
+    use_case_id_str = _resolve_use_case_id_str(metrics_query)
     if metrics_query.scope.use_case_id is None:
-        metrics_query = metrics_query.set_scope(metrics_query.scope.set_use_case_id(use_case_id))
+        metrics_query = metrics_query.set_scope(
+            metrics_query.scope.set_use_case_id(use_case_id_str)
+        )
 
-    use_case_id = string_to_use_case_id(use_case_id)
+    use_case_id = string_to_use_case_id(use_case_id_str)
     metric_id = resolve_weak(
         use_case_id, org_id, metrics_query.query.metric.mri
     )  # only support raw metrics for now
