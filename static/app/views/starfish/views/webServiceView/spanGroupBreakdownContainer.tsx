@@ -24,7 +24,6 @@ import {SpanGroupBreakdown} from 'sentry/views/starfish/views/webServiceView/spa
 
 const {SPAN_SELF_TIME} = SpanMetricsField;
 
-const OTHER_SPAN_GROUP_MODULE = 'Other';
 export const NULL_SPAN_CATEGORY = t('custom');
 
 type Props = {
@@ -68,9 +67,9 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
   const {data: segments, isLoading: isSegmentsLoading} = useDiscoverQuery({
     eventView: getCumulativeTimeEventView(
       selection,
-      `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
-        transactionMethod ? `http.method:${transactionMethod}` : ''
-      }`,
+      `!span.module:other transaction.op:http.server ${
+        transaction ? `transaction:${transaction}` : ''
+      } ${transactionMethod ? `http.method:${transactionMethod}` : ''}`,
       ['span.module']
     ),
     orgSlug: organization.slug,
@@ -99,9 +98,9 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
   } = useEventsStatsQuery({
     eventView: getEventView(
       selection,
-      `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
-        transactionMethod ? `http.method:${transactionMethod}` : ''
-      }`,
+      `!span.module:other transaction.op:http.server ${
+        transaction ? `transaction:${transaction}` : ''
+      } ${transactionMethod ? `http.method:${transactionMethod}` : ''}`,
       ['span.module'],
       dataDisplayType,
       true
@@ -114,13 +113,6 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
   const totalValues = cumulativeTime?.data[0]?.[`sum(${SPAN_SELF_TIME})`]
     ? parseInt(cumulativeTime?.data[0][`sum(${SPAN_SELF_TIME})`] as string, 10)
     : 0;
-  const totalSegments =
-    segments?.data.reduce(
-      (acc, segment) => acc + parseInt(segment[`sum(${SPAN_SELF_TIME})`] as string, 10),
-      0
-    ) ?? 0;
-
-  const otherValue = totalValues ? totalValues - totalSegments : 0;
 
   const transformedData: DataRow[] = [];
 
@@ -132,15 +124,6 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
         cumulativeTime: parseInt(element[`sum(${SPAN_SELF_TIME})`] as string, 10),
         group: {
           'span.module': spanModule === '' ? NULL_SPAN_CATEGORY : spanModule,
-        },
-      });
-    }
-
-    if (otherValue > 0 && topData && OTHER_SPAN_GROUP_MODULE in topData) {
-      transformedData.push({
-        cumulativeTime: otherValue,
-        group: {
-          'span.module': OTHER_SPAN_GROUP_MODULE,
         },
       });
     }
