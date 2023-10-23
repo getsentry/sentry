@@ -6,7 +6,6 @@ import responses
 
 from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.integrations.gitlab.client import GitLabProxyApiClient
 from sentry.models.identity import Identity
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.silo import control_silo_test
@@ -25,7 +24,7 @@ class GitlabRefreshAuthTest(GitLabTestCase):
 
     def setUp(self):
         super().setUp()
-        self.gitlab_client: GitLabProxyApiClient = self.installation.get_client()
+        self.gitlab_client = self.installation.get_client()
         self.gitlab_client.base_url = "https://example.gitlab.com/"
         self.request_data = {"id": "user_id"}
         self.request_url = "https://example.gitlab.com/api/v4/user"
