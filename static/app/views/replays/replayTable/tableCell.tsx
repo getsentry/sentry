@@ -29,6 +29,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -314,7 +315,7 @@ export function ReplayCell({
     query: {
       referrer,
       ...eventView.generateQueryStringObject(),
-      t_main: 'errors',
+      t_main: TabKey.ERRORS,
     },
   };
 
@@ -633,6 +634,7 @@ const Item = styled('div')<{isArchived?: boolean; isWidget?: boolean}>`
       ? `padding: ${space(0.75)} ${space(1.5)} ${space(1.5)} ${space(1.5)};`
       : `padding: ${space(1.5)};`};
   ${p => (p.isArchived ? 'opacity: 0.5;' : '')};
+  overflow: scroll;
 `;
 
 const Count = styled('span')`

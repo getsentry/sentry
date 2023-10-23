@@ -8,9 +8,20 @@
     "sentry.apikey",
     "sentry.organization"
   ],
+  "hybridcloud.apitokenreplica": [
+    "sentry.apiapplication",
+    "sentry.apitoken",
+    "sentry.organization",
+    "sentry.user"
+  ],
   "hybridcloud.organizationslugreservationreplica": [
     "sentry.organization",
     "sentry.organizationslugreservation",
+    "sentry.user"
+  ],
+  "hybridcloud.orgauthtokenreplica": [
+    "sentry.organization",
+    "sentry.orgauthtoken",
     "sentry.user"
   ],
   "hybridcloud.regioncacheversion": [],
@@ -150,7 +161,8 @@
     "sentry.project"
   ],
   "sentry.customdynamicsamplingrule": [
-    "sentry.organization"
+    "sentry.organization",
+    "sentry.user"
   ],
   "sentry.customdynamicsamplingruleproject": [
     "sentry.customdynamicsamplingrule",
@@ -807,8 +819,6 @@
     "sentry.user",
     "sentry.userrole"
   ],
-  "sessions.session": [],
-  "sites.site": [],
   "social_auth.usersocialauth": [
     "sentry.user"
   ]

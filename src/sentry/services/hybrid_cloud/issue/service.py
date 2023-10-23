@@ -5,7 +5,7 @@
 
 
 from abc import abstractmethod
-from typing import Optional, cast
+from typing import Optional
 
 from sentry.services.hybrid_cloud.issue.model import RpcGroupShareMetadata
 from sentry.services.hybrid_cloud.region import ByOrganizationSlug, ByRegionName
@@ -46,4 +46,4 @@ class IssueService(RpcService):
         pass
 
 
-issue_service = cast(IssueService, IssueService.create_delegation())
+issue_service = IssueService.create_delegation()

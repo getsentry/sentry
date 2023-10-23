@@ -47,18 +47,21 @@ export default function WebVitalsLandingPage() {
 
   const {data: projectData, isLoading} = useProjectWebVitalsQuery({transaction});
 
-  const projectScore = isLoading
-    ? undefined
-    : calculatePerformanceScore({
-        lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
-        fcp: projectData?.data[0]['p75(measurements.fcp)'] as number,
-        cls: projectData?.data[0]['p75(measurements.cls)'] as number,
-        ttfb: projectData?.data[0]['p75(measurements.ttfb)'] as number,
-        fid: projectData?.data[0]['p75(measurements.fid)'] as number,
-      });
+  const noTransactions = !isLoading && projectData?.data[0]['count()'] === 0;
+
+  const projectScore =
+    isLoading || noTransactions
+      ? undefined
+      : calculatePerformanceScore({
+          lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
+          fcp: projectData?.data[0]['p75(measurements.fcp)'] as number,
+          cls: projectData?.data[0]['p75(measurements.cls)'] as number,
+          ttfb: projectData?.data[0]['p75(measurements.ttfb)'] as number,
+          fid: projectData?.data[0]['p75(measurements.fid)'] as number,
+        });
 
   return (
-    <ModulePageProviders title={[t('Performance'), t('Page Loads')].join(' — ')}>
+    <ModulePageProviders title={[t('Performance'), t('Web Vitals')].join(' — ')}>
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
@@ -69,7 +72,7 @@ export default function WebVitalsLandingPage() {
                 preservePageFilters: true,
               },
               {
-                label: 'Page Loads',
+                label: 'Web Vitals',
               },
               ...(transaction ? [{label: 'Page Overview'}] : []),
             ]}
@@ -77,7 +80,7 @@ export default function WebVitalsLandingPage() {
 
           <Layout.Title>
             {transaction && project && <ProjectAvatar project={project} size={24} />}
-            {transaction ?? t('Page Loads')}
+            {transaction ?? t('Web Vitals')}
             <FeatureBadge type="alpha" />
           </Layout.Title>
         </Layout.HeaderContent>
@@ -98,7 +101,14 @@ export default function WebVitalsLandingPage() {
               <DatePageFilter />
             </PageFilterBar>
           </TopMenuContainer>
-          <PerformanceScoreChart projectScore={projectScore} transaction={transaction} />
+          <PerformanceScoreChartContainer>
+            <PerformanceScoreChart
+              projectScore={projectScore}
+              transaction={transaction}
+              isProjectScoreLoading={isLoading}
+              webVital={state.webVital}
+            />
+          </PerformanceScoreChartContainer>
           <WebVitalMeters
             projectData={projectData}
             projectScore={projectScore}
@@ -125,4 +135,8 @@ const ViewAllPagesButton = styled(LinkButton)`
 
 const TopMenuContainer = styled('div')`
   display: flex;
+`;
+
+const PerformanceScoreChartContainer = styled('div')`
+  margin-bottom: ${space(1)};
 `;

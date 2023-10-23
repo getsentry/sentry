@@ -55,6 +55,7 @@ export const topJavascriptFrameworks = [
   'javascript-svelte',
   'javascript-sveltekit',
   'javascript-remix',
+  'javascript-astro',
 ];
 
 const topPythonFrameworks = [
