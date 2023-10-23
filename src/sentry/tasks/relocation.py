@@ -1,22 +1,31 @@
 from __future__ import annotations
 
 import logging
+from io import BytesIO
 from typing import Optional
 
 from cryptography.fernet import Fernet
 
 from sentry.backup.dependencies import NormalizedModelName, get_model
+from sentry.backup.exports import export_in_config_scope, export_in_user_scope
 from sentry.backup.helpers import (
     decrypt_data_encryption_key_using_gcp_kms,
     unwrap_encrypted_export_tarball,
 )
+from sentry.models.files.file import File
 from sentry.models.organization import Organization
 from sentry.models.relocation import Relocation, RelocationFile
 from sentry.models.user import User
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
-from sentry.utils.relocation import fail_relocation, retry_task_or_fail_relocation, start_task
+from sentry.utils.relocation import (
+    RELOCATION_BLOB_SIZE,
+    RELOCATION_FILE_TYPE,
+    fail_relocation,
+    retry_task_or_fail_relocation,
+    start_task,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +41,11 @@ MAX_FAST_TASK_ATTEMPTS = MAX_FAST_TASK_RETRIES + 1
 # Some reasonable limits on the amount of data we import - we can adjust these as needed.
 MAX_ORGS_PER_RELOCATION = 20
 MAX_USERS_PER_RELOCATION = 200
+
+# Common file names.
+# TODO(getsentry/team-ospo#203): Rename to `.tar` when we enable encryption here.
+BASELINE_CONFIG_FILENAME = "baseline-config.json"
+COLLIDING_USERS_FILENAME = "colliding-users.json"
 
 
 # TODO(getsentry/team-ospo#203): We should split this task in two, one for "small" imports of say
@@ -234,11 +248,11 @@ def preprocessing_scan(uuid: str) -> None:
             # TODO(getsentry/team-ospo#203): The user's import data looks basically okay - we should
             # use this opportunity to send a "your relocation request has been accepted and is in
             # flight, please give it a couple hours" email.
-            preprocessing_globals.delay(uuid)
+            preprocessing_baseline_config.delay(uuid)
 
 
 @instrumented_task(
-    name="sentry.relocation.preprocessing_globals",
+    name="sentry.relocation.preprocessing_baseline_config",
     queue="relocation",
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
@@ -246,16 +260,93 @@ def preprocessing_scan(uuid: str) -> None:
     soft_time_limit=PREPROCESSING_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
 )
-def preprocessing_globals(uuid: str) -> None:
+def preprocessing_baseline_config(uuid: str) -> None:
     """
-    Pulls down the global instance data we'll need to check for collisions and global data
-    integrity.
+    Pulls down the global config data we'll need to check for collisions and global data integrity.
 
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    # TODO(getsentry/team-ospo#203): Implement this.
-    pass
+    relocation: Optional[Relocation]
+    attempts_left: int
+    (relocation, attempts_left) = start_task(
+        uuid=uuid,
+        step=Relocation.Step.PREPROCESSING,
+        task="preprocessing_baseline_config",
+        allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
+        logger=logger,
+    )
+    if relocation is None:
+        return
+
+    with retry_task_or_fail_relocation(
+        relocation, attempts_left, "Internal error during preprocessing"
+    ):
+        # TODO(getsentry/team-ospo#203): A very nice optimization here is to only pull this down
+        # once a day - if we've already done a relocation today, we should just copy that file
+        # instead of doing this (expensive!) global export again.
+        fp = BytesIO()
+        with retry_task_or_fail_relocation(relocation, attempts_left):
+            # TODO(getsentry/team-ospo#203): Encrypt this!
+            export_in_config_scope(fp)
+            fp.seek(0)
+            file = File.objects.create(name=BASELINE_CONFIG_FILENAME, type=RELOCATION_FILE_TYPE)
+            file.putfile(fp, blob_size=RELOCATION_BLOB_SIZE, logger=logger)
+            RelocationFile.objects.create(
+                relocation=relocation,
+                file=file,
+                kind=RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA.value,
+            )
+
+            preprocessing_colliding_users.delay(uuid)
+
+
+@instrumented_task(
+    name="sentry.relocation.preprocessing_colliding_users",
+    queue="relocation",
+    max_retries=MAX_FAST_TASK_RETRIES,
+    retry_backoff=RETRY_BACKOFF,
+    retry_backoff_jitter=True,
+    soft_time_limit=PREPROCESSING_TIME_LIMIT,
+    silo_mode=SiloMode.REGION,
+)
+def preprocessing_colliding_users(uuid: str) -> None:
+    """
+    Pulls down any already existing users whose usernames match those found in the import - we'll
+    need to validate that none of these are mutated during import.
+
+    This function is meant to be idempotent, and should be retried with an exponential backoff.
+    """
+
+    relocation: Optional[Relocation]
+    attempts_left: int
+    (relocation, attempts_left) = start_task(
+        uuid=uuid,
+        step=Relocation.Step.PREPROCESSING,
+        task="preprocessing_colliding_users",
+        allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
+        logger=logger,
+    )
+    if relocation is None:
+        return
+
+    with retry_task_or_fail_relocation(
+        relocation, attempts_left, "Internal error during preprocessing"
+    ):
+        fp = BytesIO()
+        with retry_task_or_fail_relocation(relocation, attempts_left):
+            # TODO(getsentry/team-ospo#203): Encrypt this!
+            export_in_user_scope(fp, user_filter=set(relocation.want_usernames))
+            fp.seek(0)
+            file = File.objects.create(name=COLLIDING_USERS_FILENAME, type=RELOCATION_FILE_TYPE)
+            file.putfile(fp, blob_size=RELOCATION_BLOB_SIZE, logger=logger)
+            RelocationFile.objects.create(
+                relocation=relocation,
+                file=file,
+                kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA.value,
+            )
+
+            preprocessing_compose.delay(uuid)
 
 
 @instrumented_task(

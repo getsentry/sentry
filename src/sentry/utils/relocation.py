@@ -11,10 +11,23 @@ from sentry.models.relocation import Relocation
 ORDERED_TASKS = [
     "uploading_complete",
     "preprocessing_scan",
-    "preprocessing_globals",
-    "preprocessing_filestore",
+    "preprocessing_baseline_config",
+    "preprocessing_colliding_users",
+    "preprocessing_compose",
     "preprocessing_ready",
 ]
+
+# The file type for a relocation export tarball of any kind.
+RELOCATION_FILE_TYPE = "relocation.file"
+
+# Relocation input files are uploaded as tarballs, and chunked and stored using the normal
+# `File`/`AbstractFile` mechanism, which has a hard limit of 2GiB, because we need to represent the
+# offset into it as a 32-bit int. This means that the largest tarball we are able to import at this
+# time is 2GiB. When validating this tarball, we will need to make a "composite object" from the
+# uploaded blobs in Google Cloud Storage, which has a limit of 32 components. Thus, we get our blob
+# size of the maximum overall file size (2GiB) divided by the maximum number of blobs (32): 65536MiB
+# per blob.
+RELOCATION_BLOB_SIZE = int((2**31) / 32)
 
 
 def start_task(

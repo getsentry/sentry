@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 
 from google_crc32c import value as crc32c
 
+from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.helpers import (
     create_encrypted_export_tarball,
     decrypt_data_encryption_key_local,
@@ -14,7 +15,13 @@ from sentry.backup.helpers import (
 )
 from sentry.models.files.file import File
 from sentry.models.relocation import Relocation, RelocationFile
-from sentry.tasks.relocation import preprocessing_scan, uploading_complete
+from sentry.models.user import User
+from sentry.tasks.relocation import (
+    preprocessing_baseline_config,
+    preprocessing_colliding_users,
+    preprocessing_scan,
+    uploading_complete,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import FakeKeyManagementServiceClient, generate_rsa_key_pair
@@ -26,7 +33,7 @@ class RelocationTaskTestCase(TestCase):
     def setUp(self):
         super().setUp()
         self.owner = self.create_user(
-            email="owner", is_superuser=False, is_staff=True, is_active=True
+            email="owner", is_superuser=False, is_staff=False, is_active=True
         )
         self.superuser = self.create_user(
             "superuser", is_superuser=True, is_staff=True, is_active=True
@@ -82,7 +89,7 @@ class UploadingCompleteTest(RelocationTaskTestCase):
     "sentry.backup.helpers.KeyManagementServiceClient",
     new_callable=lambda: FakeKeyManagementServiceClient,
 )
-@patch("sentry.tasks.relocation.preprocessing_globals.delay")
+@patch("sentry.tasks.relocation.preprocessing_baseline_config.delay")
 @region_silo_test
 class PreprocessingScanTest(RelocationTaskTestCase):
     def setUp(self):
@@ -100,11 +107,110 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         )
 
     def test_success(
-        self, preprocessing_globals_mock: Mock, fake_kms_client: FakeKeyManagementServiceClient
+        self,
+        preprocessing_baseline_config_mock: Mock,
+        fake_kms_client: FakeKeyManagementServiceClient,
     ):
         self.fake_asymmetric_decrypt_method(fake_kms_client)
         preprocessing_scan(self.relocation.uuid)
         assert fake_kms_client.asymmetric_decrypt.call_count == 1
-        assert preprocessing_globals_mock.call_count == 1
+        assert preprocessing_baseline_config_mock.call_count == 1
+
+    # TODO(getsentry/team-ospo#203): Add unhappy path tests.
+
+
+@patch("sentry.tasks.relocation.preprocessing_colliding_users.delay")
+@region_silo_test
+class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
+    def setUp(self):
+        super().setUp()
+        self.relocation.step = Relocation.Step.PREPROCESSING.value
+        self.relocation.latest_task = "preprocessing_scan"
+        self.relocation.save()
+
+    def test_success(self, preprocessing_colliding_users_mock: Mock):
+        assert (
+            RelocationFile.objects.filter(
+                kind=RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA.value
+            ).count()
+            == 0
+        )
+
+        preprocessing_baseline_config(self.relocation.uuid)
+        assert preprocessing_colliding_users_mock.call_count == 1
+        assert (
+            RelocationFile.objects.filter(
+                kind=RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA.value
+            ).count()
+            == 1
+        )
+
+        baseline_config_relocation_file = (
+            RelocationFile.objects.filter(
+                relocation=self.relocation,
+                kind=RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA.value,
+            )
+            .select_related("file")
+            .first()
+        )
+        fp = baseline_config_relocation_file.file.getfile()
+        json_models = json.load(fp)
+        assert len(json_models) > 0
+
+        # Only user `superuser` is an admin, so only they should be exported.
+        for json_model in json_models:
+            if NormalizedModelName(json_model["model"]) == get_model_name(User):
+                assert json_model["fields"]["username"] in "superuser"
+
+    # TODO(getsentry/team-ospo#203): Add unhappy path tests.
+
+
+@patch("sentry.tasks.relocation.preprocessing_compose.delay")
+@region_silo_test
+class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
+    def setUp(self):
+        super().setUp()
+        self.relocation.step = Relocation.Step.PREPROCESSING.value
+        self.relocation.latest_task = "preprocessing_baseline_config"
+        self.relocation.want_usernames = ["a", "b", "c"]
+        self.relocation.save()
+
+        self.create_user("c")
+        self.create_user("d")
+        self.create_user("e")
+
+    def test_success(self, preprocessing_compose_mock: Mock):
+        assert (
+            RelocationFile.objects.filter(
+                kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA.value
+            ).count()
+            == 0
+        )
+
+        preprocessing_colliding_users(self.relocation.uuid)
+        assert preprocessing_compose_mock.call_count == 1
+        assert (
+            RelocationFile.objects.filter(
+                kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA.value
+            ).count()
+            == 1
+        )
+
+        colliding_users_relocation_file = (
+            RelocationFile.objects.filter(
+                relocation=self.relocation,
+                kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA.value,
+            )
+            .select_related("file")
+            .first()
+        )
+        fp = colliding_users_relocation_file.file.getfile()
+        json_models = json.load(fp)
+        assert len(json_models) > 0
+
+        # Only user `c` was colliding, so only they should be exported.
+        for json_model in json_models:
+            if NormalizedModelName(json_model["model"]) == get_model_name(User):
+                assert json_model["fields"]["username"] == "c"
 
     # TODO(getsentry/team-ospo#203): Add unhappy path tests.
