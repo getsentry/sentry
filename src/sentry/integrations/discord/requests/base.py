@@ -127,7 +127,7 @@ class DiscordRequest:
             self._info("discord.authorize.unauthorized")
 
         raise DiscordRequestError(
-            error="Unauthorized access; invalid auth credentials",
+            "Unauthorized access; invalid auth credentials",
             status=status.HTTP_401_UNAUTHORIZED,
         )
 
