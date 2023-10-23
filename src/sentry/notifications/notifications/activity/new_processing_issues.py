@@ -7,11 +7,7 @@ from sentry.models.activity import Activity
 from sentry.models.notificationsetting import NotificationSetting
 from sentry.notifications.helpers import should_use_notifications_v2
 from sentry.notifications.notificationcontroller import NotificationController
-from sentry.notifications.types import (
-    GroupSubscriptionReason,
-    NotificationSettingEnum,
-    NotificationSettingTypes,
-)
+from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingEnum
 from sentry.notifications.utils import summarize_issues
 from sentry.notifications.utils.participants import ParticipantMap
 from sentry.services.hybrid_cloud.actor import RpcActor
@@ -24,7 +20,6 @@ from .base import ActivityNotification
 class NewProcessingIssuesActivityNotification(ActivityNotification):
     metrics_key = "new_processing_issues_activity"
     template_path = "sentry/emails/activity/new_processing_issues"
-    notification_setting_type = NotificationSettingTypes.ISSUE_ALERTS
 
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
@@ -41,7 +36,7 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
                 organization_id=self.project.organization_id,
             )
             participants_by_provider = notification_controller.get_notification_recipients(
-                type=NotificationSettingEnum.ISSUE_ALERTS,
+                type=NotificationSettingEnum.WORKFLOW,
             )
         else:
             participants_by_provider = NotificationSetting.objects.get_notification_recipients(
