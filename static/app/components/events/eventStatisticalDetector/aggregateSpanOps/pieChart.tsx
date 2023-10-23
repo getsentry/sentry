@@ -163,7 +163,7 @@ class PieChart extends Component<Props> {
                       newValue
                     )}
                   >
-                    <SpanOpChange regressed>
+                    <SpanOpChange regressed={change < 0}>
                       {percentageText} {percentage}
                     </SpanOpChange>
                   </Tooltip>
@@ -229,12 +229,12 @@ class PieChart extends Component<Props> {
               label: {
                 position: 'inside',
                 formatter: params => {
-                  return `${Math.round(Number(params.percent))}%`;
+                  return `${params.name} ${Math.round(Number(params.percent))}%`;
                 },
                 show: true,
                 color: theme.background,
-                fontSize: 12,
-                fontWeight: 600,
+                width: 40,
+                overflow: 'break',
               },
               emphasis: {
                 label: {
