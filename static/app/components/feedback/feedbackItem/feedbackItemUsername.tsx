@@ -17,5 +17,5 @@ export default function FeedbackItemUsername({feedbackItem, detailDisplay}: Prop
     return <strong>{email ?? t('No Email')}</strong>;
   }
 
-  return <strong>{email ?? name}</strong>;
+  return <strong>{email}</strong>;
 }
