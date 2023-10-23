@@ -33,8 +33,8 @@ from sentry.models.organization import Organization
 from sentry.replays.lib.new_query.conditions import IntegerScalar
 from sentry.replays.lib.new_query.fields import FieldProtocol, IntegerColumnField
 from sentry.replays.lib.new_query.parsers import parse_int
-from sentry.replays.query import Paginators, make_pagination_values
-from sentry.replays.usecases.query import handle_ordering, handle_search_filters
+from sentry.replays.query import make_pagination_values
+from sentry.replays.usecases.query import Paginators, handle_ordering, handle_search_filters
 from sentry.replays.validators import ReplaySelectorValidator
 from sentry.utils.snuba import raw_snql_query
 
