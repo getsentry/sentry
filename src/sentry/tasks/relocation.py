@@ -12,7 +12,9 @@ from sentry.backup.helpers import (
     decrypt_data_encryption_key_using_gcp_kms,
     unwrap_encrypted_export_tarball,
 )
+from sentry.filestore.gcs import GoogleCloudStorage
 from sentry.models.files.file import File
+from sentry.models.files.utils import get_storage
 from sentry.models.organization import Organization
 from sentry.models.relocation import Relocation, RelocationFile
 from sentry.models.user import User
@@ -43,9 +45,22 @@ MAX_ORGS_PER_RELOCATION = 20
 MAX_USERS_PER_RELOCATION = 200
 
 # Common file names.
+RAW_FILENAME = "relocation-data.tar"
+NORMALIZED_FILENAME = "relocation-data.tar"
 # TODO(getsentry/team-ospo#203): Rename to `.tar` when we enable encryption here.
 BASELINE_CONFIG_FILENAME = "baseline-config.json"
 COLLIDING_USERS_FILENAME = "colliding-users.json"
+FILENAMES = {
+    RelocationFile.Kind.RAW_USER_DATA: RAW_FILENAME,
+    RelocationFile.Kind.NORMALIZED_USER_DATA: NORMALIZED_FILENAME,
+    RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA: BASELINE_CONFIG_FILENAME,
+    RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA: COLLIDING_USERS_FILENAME,
+}
+COMPOSABLE_KINDS = [
+    RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA,
+    RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA,
+    RelocationFile.Kind.RAW_USER_DATA,
+]
 
 
 # TODO(getsentry/team-ospo#203): We should split this task in two, one for "small" imports of say
@@ -346,27 +361,7 @@ def preprocessing_colliding_users(uuid: str) -> None:
                 kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA.value,
             )
 
-            preprocessing_compose.delay(uuid)
-
-
-@instrumented_task(
-    name="sentry.relocation.preprocessing_compose",
-    queue="relocation",
-    max_retries=MAX_FAST_TASK_RETRIES,
-    retry_backoff=RETRY_BACKOFF,
-    retry_backoff_jitter=True,
-    soft_time_limit=PREPROCESSING_TIME_LIMIT,
-    silo_mode=SiloMode.REGION,
-)
-def preprocessing_compose(uuid: str) -> None:
-    """
-    Creates a "composite object" from the uploaded tarball, which could have many pieces.
-
-    This function is meant to be idempotent, and should be retried with an exponential backoff.
-    """
-
-    # TODO(getsentry/team-ospo#203): Implement this.
-    pass
+            preprocessing_complete.delay(uuid)
 
 
 @instrumented_task(
@@ -380,7 +375,71 @@ def preprocessing_compose(uuid: str) -> None:
 )
 def preprocessing_complete(uuid: str) -> None:
     """
-    Checks to ensure that all of the files we'll need for the validation step are available in our filestore.
+    Creates a "composite object" from the uploaded tarball, which could have many pieces. Because creating a composite object in this manner is a synchronous operation, we don't need a follow-up step confirming success.
+
+    This function is meant to be idempotent, and should be retried with an exponential backoff.
+    """
+
+    relocation: Optional[Relocation]
+    attempts_left: int
+    (relocation, attempts_left) = start_task(
+        uuid=uuid,
+        step=Relocation.Step.PREPROCESSING,
+        task="preprocessing_complete",
+        allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
+        logger=logger,
+    )
+    if relocation is None:
+        return
+
+    with retry_task_or_fail_relocation(
+        relocation, attempts_left, "Internal error during preprocessing"
+    ):
+        storage = get_storage()
+        for kind in COMPOSABLE_KINDS:
+            raw_relocation_file = (
+                RelocationFile.objects.filter(
+                    relocation=relocation,
+                    kind=kind.value,
+                )
+                .select_related("file")
+                .prefetch_related("file__blobs")
+                .first()
+            )
+
+            file = raw_relocation_file.file
+            bucket_path = f"relocations/{uuid}/in"
+            if isinstance(storage, GoogleCloudStorage):
+                # If we're using GCS, rather than performing an expensive copy of the file, just
+                # create a composite object.
+                file_blob_paths = [blob.path for blob in file.blobs]
+                bucket = storage.client.bucket(bucket_path)
+                composite_blob = bucket.blob(FILENAMES[kind])
+                composite_blob.compose(file_blob_paths)
+            else:
+                # In S3 or the local filesystem, no "composite object" API exists, so we do a manual
+                # copy + concatenation instead.
+                fp = file.getfile()
+                fp.seek(0)
+                storage.save(f"{bucket_path}/{FILENAMES[kind]}", fp)
+
+        relocation.step = Relocation.Step.VALIDATING.value
+        relocation.save()
+        validating_start.delay(uuid)
+
+
+@instrumented_task(
+    name="sentry.relocation.validating_start",
+    queue="relocation",
+    max_retries=MAX_FAST_TASK_RETRIES,
+    retry_backoff=RETRY_BACKOFF,
+    retry_backoff_jitter=True,
+    soft_time_limit=PREPROCESSING_TIME_LIMIT,
+    silo_mode=SiloMode.REGION,
+)
+def validating_start(uuid: str) -> None:
+    """
+    Calls into Google CloudBuild and kicks off a validation run.
 
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """

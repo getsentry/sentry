@@ -13,8 +13,8 @@ ORDERED_TASKS = [
     "preprocessing_scan",
     "preprocessing_baseline_config",
     "preprocessing_colliding_users",
-    "preprocessing_compose",
-    "preprocessing_ready",
+    "preprocessing_complete",
+    "validating_start",
 ]
 
 # The file type for a relocation export tarball of any kind.
@@ -34,7 +34,8 @@ def start_task(
     uuid: str, step: Relocation.Step, task: str, allowed_task_attempts: int, logger: Logger
 ) -> Tuple[Optional[Relocation], int]:
     """
-    All tasks for relocation are done sequentially, and take only the UUID of the `Relocation` model as the input. We can leverage this information to do some common pre-task setup.
+    All tasks for relocation are done sequentially, and take only the UUID of the `Relocation` model
+    as the input. We can leverage this information to do some common pre-task setup.
 
     Returns a tuple of relocation model and the number of attempts remaining for this task.
     """
@@ -62,7 +63,7 @@ def start_task(
 
     if relocation.latest_task == task:
         relocation.latest_task_attempts += 1
-    elif relocation.latest_task != prev_task:
+    elif relocation.latest_task not in {prev_task, task}:
         logger.error(
             f"[{uuid}] Task {task} attempted to follow {relocation.latest_task}, which is incorrect order"
         )
@@ -103,11 +104,12 @@ def retry_task_or_fail_relocation(
     relocation: Relocation, attempts_left: int, reason: str = ""
 ) -> None:
     """
-    Catches all exceptions, and does one of two things: calls into `fail_relocation` if there are no retry
-    attempts forthcoming, or simply bubbles them up if there are.
+    Catches all exceptions, and does one of two things: calls into `fail_relocation` if there are no
+    retry attempts forthcoming, or simply bubbles them up if there are.
 
     This function is ideal for transient failures, like networked service lag, where retrying at a
-    later time might yield a different result. For non-transient failures, use `fail_relocation` instead.
+    later time might yield a different result. For non-transient failures, use `fail_relocation`
+    instead.
     """
 
     try:

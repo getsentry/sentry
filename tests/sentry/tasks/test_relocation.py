@@ -14,11 +14,13 @@ from sentry.backup.helpers import (
     unwrap_encrypted_export_tarball,
 )
 from sentry.models.files.file import File
+from sentry.models.files.utils import get_storage
 from sentry.models.relocation import Relocation, RelocationFile
 from sentry.models.user import User
 from sentry.tasks.relocation import (
     preprocessing_baseline_config,
     preprocessing_colliding_users,
+    preprocessing_complete,
     preprocessing_scan,
     uploading_complete,
 )
@@ -27,6 +29,7 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import FakeKeyManagementServiceClient, generate_rsa_key_pair
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
+from sentry.utils.relocation import RELOCATION_FILE_TYPE
 
 
 class RelocationTaskTestCase(TestCase):
@@ -68,7 +71,7 @@ class RelocationTaskTestCase(TestCase):
             with open(get_fixture_path("backup", "fresh-install.json")) as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
-                    file = File.objects.create(name="export.tar", type="relocation.file")
+                    file = File.objects.create(name="export.tar", type=RELOCATION_FILE_TYPE)
                     self.tarball = create_encrypted_export_tarball(data, p).getvalue()
                     file.putfile(BytesIO(self.tarball))
 
@@ -165,7 +168,7 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
     # TODO(getsentry/team-ospo#203): Add unhappy path tests.
 
 
-@patch("sentry.tasks.relocation.preprocessing_compose.delay")
+@patch("sentry.tasks.relocation.preprocessing_complete.delay")
 @region_silo_test
 class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
     def setUp(self):
@@ -179,7 +182,7 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
         self.create_user("d")
         self.create_user("e")
 
-    def test_success(self, preprocessing_compose_mock: Mock):
+    def test_success(self, preprocessing_complete_mock: Mock):
         assert (
             RelocationFile.objects.filter(
                 kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA.value
@@ -188,7 +191,7 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
         )
 
         preprocessing_colliding_users(self.relocation.uuid)
-        assert preprocessing_compose_mock.call_count == 1
+        assert preprocessing_complete_mock.call_count == 1
         assert (
             RelocationFile.objects.filter(
                 kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA.value
@@ -212,5 +215,55 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
         for json_model in json_models:
             if NormalizedModelName(json_model["model"]) == get_model_name(User):
                 assert json_model["fields"]["username"] == "c"
+
+    # TODO(getsentry/team-ospo#203): Add unhappy path tests.
+
+
+@patch("sentry.tasks.relocation.validating_start.delay")
+@region_silo_test
+class PreprocessingCompleteUsersTest(RelocationTaskTestCase):
+    def setUp(self):
+        super().setUp()
+        self.relocation.step = Relocation.Step.PREPROCESSING.value
+        self.relocation.latest_task = "preprocessing_colliding_users"
+        self.relocation.save()
+
+        # Use a very small blob size to simulate chunking.
+        test_blob_size = 1024
+
+        # TODO(getsentry/team-ospo#203): Use encrypted files instead.
+        with open(get_fixture_path("backup", "single-option.json"), "rb") as fp:
+            file = File.objects.create(name="baseline-config.json", type=RELOCATION_FILE_TYPE)
+            file.putfile(fp, blob_size=test_blob_size)
+            RelocationFile.objects.create(
+                relocation=self.relocation,
+                file=file,
+                kind=RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA.value,
+            )
+            assert file.blobs.count() == 1  # So small that chunking is unnecessary.
+
+        with open(get_fixture_path("backup", "user-with-maximum-privileges.json"), "rb") as fp:
+            file = File.objects.create(name="colliding-users.json", type=RELOCATION_FILE_TYPE)
+            file.putfile(fp, blob_size=test_blob_size)
+            RelocationFile.objects.create(
+                relocation=self.relocation,
+                file=file,
+                kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA.value,
+            )
+            assert file.blobs.count() > 1  # A bit bigger, so we get chunks.
+
+        self.storage = get_storage()
+
+    def test_success(self, validating_start_mock: Mock):
+        assert not self.storage.exists(f"relocations/{self.relocation.uuid}")
+
+        preprocessing_complete(self.relocation.uuid)
+        assert validating_start_mock.call_count == 1
+
+        (_, files) = self.storage.listdir(f"relocations/{self.relocation.uuid}/in")
+        assert len(files) == 3
+        assert "relocation-data.tar" in files
+        assert "baseline-config.json" in files
+        assert "colliding-users.json" in files
 
     # TODO(getsentry/team-ospo#203): Add unhappy path tests.
