@@ -56,7 +56,7 @@ class NotificationController:
 
     def __init__(
         self,
-        recipients: Iterable[RpcActor] | Iterable[Team] | Iterable[RpcUser],
+        recipients: list[Recipient],
         project_ids: Iterable[int] | None = None,
         organization_id: int | None = None,
         type: NotificationSettingEnum | None = None,
@@ -67,7 +67,7 @@ class NotificationController:
             self.recipients = []
             for recipient in recipients:
                 if recipient_is_team(recipient):
-                    if team_is_valid_recipient(recipient, provider):
+                    if provider and team_is_valid_recipient(recipient, provider):  # type: ignore  # recipient_is_team assures recipient type is okay
                         self.recipients.append(recipient)
                 else:
                     self.recipients.append(recipient)
