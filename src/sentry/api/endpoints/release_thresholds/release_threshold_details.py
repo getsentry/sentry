@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import ProjectAlertRulePermission, ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models.project import Project
@@ -28,7 +28,7 @@ class ReleaseThresholdPUTSerializer(serializers.Serializer):
     threshold_type = serializers.ChoiceField(choices=ReleaseThresholdType.as_str_choices())
     trigger_type = serializers.ChoiceField(choices=ReleaseThresholdTriggerType.as_str_choices())
     value = serializers.IntegerField(required=True, min_value=0)
-    serializers.IntegerField(required=True, min_value=0)
+    window_in_seconds = serializers.IntegerField(required=True, min_value=0)
 
     def validate_threshold_type(self, threshold_type: str):
         if threshold_type not in THRESHOLD_TYPE_STR_TO_INT:
@@ -43,7 +43,7 @@ class ReleaseThresholdPUTSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class ReleaseThresholdDetailsEndpoint(ProjectEndpoint):
-    permission_classes = (ProjectAlertRulePermission,)
+    permission_classes = (ProjectReleasePermission,)
     owner: ApiOwner = ApiOwner.ENTERPRISE
     publish_status = {
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
