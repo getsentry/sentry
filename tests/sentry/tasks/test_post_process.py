@@ -1655,8 +1655,9 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection")
 class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
     @with_feature("organizations:sdk-crash-detection")
-    @override_settings(SDK_CRASH_DETECTION_PROJECT_ID=1234)
-    @override_settings(SDK_CRASH_DETECTION_SAMPLE_RATE=0.1234)
+    @override_settings(
+        SDK_CRASH_DETECTION=[{"sdk_name": "cocoa", "project_id": 1234, "sample_rate": 0.1234}]
+    )
     def test_sdk_crash_monitoring_is_called(self, mock_sdk_crash_detection):
         event = self.create_event(
             data={"message": "testing"},
@@ -1674,8 +1675,7 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
 
         args = mock_sdk_crash_detection.detect_sdk_crash.call_args[-1]
         assert args["event"].project.id == event.project.id
-        assert args["event_project_id"] == 1234
-        assert args["sample_rate"] == 0.1234
+        assert args["config"] == [{"sdk_name": "cocoa", "project_id": 1234, "sample_rate": 0.1234}]
 
     def test_sdk_crash_monitoring_is_not_called_with_disabled_feature(
         self, mock_sdk_crash_detection

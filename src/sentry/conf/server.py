@@ -21,6 +21,7 @@ from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.topic_definition import TopicDefinition
 from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import crontab_with_minute_jitter
+from sentry.utils.sdk_crashes.config import SDKCrashDetectionConfig
 from sentry.utils.types import Type, type_from_value
 
 
@@ -3763,13 +3764,8 @@ MAX_ENVIRONMENTS_PER_MONITOR = 1000
 # tests)
 SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
 
-# The project ID for SDK Crash Detection to save the detected SDK crashed to.
-# Currently, this is a single value, as the SDK Crash Detection feature only detects crashes for the Cocoa SDK.
-# Once we start detecting crashes for other SDKs, this will be a mapping of SDK name to project ID or something similar.
-SDK_CRASH_DETECTION_PROJECT_ID: Optional[int] = None
-
-# The percentage of events to sample for SDK Crash Detection. 0.0 = 0%, 0.5 = 50% 1.0 = 100%.
-SDK_CRASH_DETECTION_SAMPLE_RATE = 0.0
+# The configuration for SDK Crash Detection. Add one entry per SDK.
+SDK_CRASH_DETECTION: list[SDKCrashDetectionConfig] = []
 
 # The Redis cluster to use for monitoring the service / consumer health.
 SENTRY_SERVICE_MONITORING_REDIS_CLUSTER = "default"
