@@ -150,8 +150,8 @@ class MovingAverageCrossOverDetector(MovingAverageDetector):
 
 @dataclass(frozen=True)
 class MovingAverageRelativeChangeDetectorConfig(MovingAverageDetectorConfig):
-    change_metric: str
     threshold: float
+    change_metric: Optional[str] = None
 
 
 class MovingAverageRelativeChangeDetector(MovingAverageDetector):
@@ -205,7 +205,8 @@ class MovingAverageRelativeChangeDetector(MovingAverageDetector):
             and relative_change_old < self.threshold
             and relative_change_new > self.threshold
         ):
-            metrics.timing(self.change_metric, relative_change_new, tags={"type": "regression"})
+            if self.change_metric is not None:
+                metrics.timing(self.change_metric, relative_change_new, tags={"type": "regression"})
             return TrendType.Regressed
 
         elif (
@@ -213,7 +214,10 @@ class MovingAverageRelativeChangeDetector(MovingAverageDetector):
             and relative_change_old > -self.threshold
             and relative_change_new < -self.threshold
         ):
-            metrics.timing(self.change_metric, relative_change_new, tags={"type": "improvement"})
+            if self.change_metric is not None:
+                metrics.timing(
+                    self.change_metric, relative_change_new, tags={"type": "improvement"}
+                )
             return TrendType.Improved
 
         return TrendType.Unchanged
