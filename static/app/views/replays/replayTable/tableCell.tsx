@@ -359,7 +359,7 @@ export function ReplayCell({
             <Row gap={0.5}>{t('Deleted Replay')}</Row>
             <Row gap={0.5}>
               {project ? <Avatar size={12} project={project} /> : null}
-              {getShortEventId(replay.id)}
+              <ArchivedId>{getShortEventId(replay.id)}</ArchivedId>
             </Row>
           </div>
         </Row>
@@ -406,6 +406,10 @@ export function ReplayCell({
     </Item>
   );
 }
+
+const ArchivedId = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
 
 const StyledIconDelete = styled(IconDelete)`
   margin: ${space(0.25)};
