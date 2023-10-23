@@ -187,7 +187,10 @@ class InstallationEventWebhook(Webhook):
         if event["action"] == "created":
             state = {
                 "installation_id": event["installation"]["id"],
-                "sender_login": event["sender"]["login"],
+                "sender": {
+                    "id": event["sender"]["id"],
+                    "login": event["sender"]["login"],
+                },
             }
             data = GitHubIntegrationProvider().build_integration(state)
             ensure_integration("github", data)

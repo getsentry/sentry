@@ -384,8 +384,8 @@ class GitHubIntegrationProvider(IntegrationProvider):
             },
         }
 
-        if state.get("sender_login"):
-            integration["metadata"]["sender_login"] = state["sender_login"]
+        if state.get("sender"):
+            integration["metadata"]["sender"] = state["sender"]
 
         if state.get("reinstall_id"):
             integration["reinstall_id"] = state["reinstall_id"]

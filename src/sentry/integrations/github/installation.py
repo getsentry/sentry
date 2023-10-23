@@ -30,16 +30,19 @@ class GitHubIntegrationsInstallationEndpoint(View):
         except OrganizationIntegration.DoesNotExist:
             pass
 
+        if "sender" not in integration.metadata:
+            return HttpResponse(status=404)
+
         time_elapsed_since_added = time.time() - integration.date_added.timestamp()
         if time_elapsed_since_added > INSTALLATION_EXPOSURE_MAX_TIME:
             return HttpResponse(status=404)
 
         result = {
-            "account_login": integration.name,
-            "account_type": integration.metadata["account_type"],
+            "account": {
+                "login": integration.name,
+                "type": integration.metadata["account_type"],
+            },
+            "sender": integration.metadata["sender"],
         }
 
-        if "sender_login" in integration.metadata:
-            result["sender_login"] = integration.metadata["sender_login"]
-
-        return HttpResponse(json.dumps(result), status=200)
+        return HttpResponse(json.dumps(result), status=200, content_type="application/json")

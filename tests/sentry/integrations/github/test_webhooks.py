@@ -3,6 +3,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import responses
+from django.urls import reverse
 
 from fixtures.github import (
     INSTALLATION_API_RESPONSE,
@@ -98,8 +99,21 @@ class InstallationEventWebhook(APITestCase):
         integration = Integration.objects.get(external_id=2)
         assert integration.external_id == "2"
         assert integration.name == "octocat"
-        assert integration.metadata["sender_login"] == "octocat"
+        assert integration.metadata["sender"]["id"] == 1
+        assert integration.metadata["sender"]["login"] == "octocat"
         assert integration.status == 0
+
+        installation_url = reverse(
+            "sentry-integration-github-installation", args=[integration.external_id]
+        )
+        response = self.client.get(installation_url)
+        assert response.status_code == 200
+
+        body = response.json()
+        assert body["account"]["login"] == "octocat"
+        assert body["account"]["type"] == "User"
+        assert body["sender"]["id"] == 1
+        assert body["sender"]["login"] == "octocat"
 
 
 @region_silo_test(stable=True)
