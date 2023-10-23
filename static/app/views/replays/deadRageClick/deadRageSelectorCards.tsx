@@ -49,7 +49,7 @@ function DeadRageSelectorCards() {
                   isHoverable
                 />
               </TitleTooltipContainer>
-              <FeatureBadge type="beta" />
+              <FeatureBadge type="new" />
             </StyledWidgetHeader>
             <Subtitle>{t('Suggested replays to watch')}</Subtitle>
           </div>
@@ -72,7 +72,7 @@ function DeadRageSelectorCards() {
                   isHoverable
                 />
               </TitleTooltipContainer>
-              <FeatureBadge type="beta" />
+              <FeatureBadge type="new" />
             </StyledWidgetHeader>
             <Subtitle>{t('Suggested replays to watch')}</Subtitle>
           </div>
