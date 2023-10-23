@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from django import forms
 from django.db import IntegrityError, router
 from django.http import HttpRequest, HttpResponse
@@ -8,7 +6,6 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
-from django_stubs_ext import StrOrPromise
 
 from sentry import eventstore
 from sentry.models.options.project_option import ProjectOption
@@ -16,12 +13,10 @@ from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.userreport import UserReport
 from sentry.signals import user_feedback_received
-from sentry.types.region import get_local_region
 from sentry.utils import json
 from sentry.utils.db import atomic_transaction
-from sentry.utils.http import is_valid_origin, origin_from_request
+from sentry.utils.http import absolute_uri, is_valid_origin, origin_from_request
 from sentry.utils.validators import normalize_event_id
-from sentry.web.frontend.base import region_silo_view
 from sentry.web.helpers import render_to_response, render_to_string
 
 GENERIC_ERROR = _("An unknown error occurred while submitting your report. Please try again.")
@@ -39,7 +34,7 @@ DEFAULT_COMMENTS_LABEL = _("What happened?")
 DEFAULT_CLOSE_LABEL = _("Close")
 DEFAULT_SUBMIT_LABEL = _("Submit Crash Report")
 
-DEFAULT_OPTIONS: dict[str, StrOrPromise] = {
+DEFAULT_OPTIONS = {
     "title": DEFAULT_TITLE,
     "subtitle": DEFAULT_SUBTITLE,
     "subtitle2": DEFAULT_SUBTITLE2,
@@ -71,7 +66,6 @@ class UserReportForm(forms.ModelForm):
         fields = ("name", "email", "comments")
 
 
-@region_silo_view
 class ErrorPageEmbedView(View):
     def _get_project_key(self, request: HttpRequest):
         try:
@@ -193,8 +187,6 @@ class ErrorPageEmbedView(View):
         elif request.method == "POST":
             return self._smart_response(request, {"errors": dict(form.errors)}, status=400)
 
-        region = get_local_region()
-        endpoint = region.to_url(request.get_full_path())
         show_branding = (
             ProjectOption.objects.get_value(
                 project=key.project, key="feedback:branding", default="1"
@@ -219,7 +211,7 @@ class ErrorPageEmbedView(View):
         )
 
         context = {
-            "endpoint": mark_safe("*/" + json.dumps(endpoint) + ";/*"),
+            "endpoint": mark_safe("*/" + json.dumps(absolute_uri(request.get_full_path())) + ";/*"),
             "template": mark_safe("*/" + json.dumps(template) + ";/*"),
             "strings": mark_safe(
                 "*/"

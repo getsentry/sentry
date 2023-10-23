@@ -154,7 +154,7 @@ class ProjectOption(Model):
     key = models.CharField(max_length=64)
     value = PickledObjectField()
 
-    objects: ProjectOptionManager = ProjectOptionManager()
+    objects = ProjectOptionManager()
 
     class Meta:
         app_label = "sentry"
