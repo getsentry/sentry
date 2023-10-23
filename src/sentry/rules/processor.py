@@ -284,7 +284,7 @@ class RuleProcessor:
                 continue
 
             action_inst = action_cls(self.project, data=action, rule=rule)
-            if not isinstance(action_inst, EventAction) and not hasattr(action_inst, "after"):
+            if not isinstance(action_inst, EventAction):
                 self.logger.warning("Unregistered action %r", action["id"])
                 continue
 
