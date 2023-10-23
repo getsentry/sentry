@@ -798,34 +798,6 @@ def test_sampling_rate(mock_sdk_crash_reporter, mock_random, store_event):
 @django_db_all
 @pytest.mark.snuba
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
-def test_no_sample_rate(mock_sdk_crash_reporter, store_event):
-    event = store_event(data=get_crash_event())
-
-    configs = copy.deepcopy(sdk_configs)
-    configs[0]["sample_rate"] = None
-
-    sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
-
-    assert mock_sdk_crash_reporter.report.call_count == 0
-
-
-@django_db_all
-@pytest.mark.snuba
-@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
-def test_no_project_id(mock_sdk_crash_reporter, store_event):
-    event = store_event(data=get_crash_event())
-
-    configs = copy.deepcopy(sdk_configs)
-    configs[0]["project_id"] = None
-
-    sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
-
-    assert mock_sdk_crash_reporter.report.call_count == 0
-
-
-@django_db_all
-@pytest.mark.snuba
-@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
 def test_multiple_configs_first_one_picked(mock_sdk_crash_reporter, store_event):
     event = store_event(data=get_crash_event())
 

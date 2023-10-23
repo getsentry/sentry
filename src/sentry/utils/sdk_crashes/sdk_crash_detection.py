@@ -86,14 +86,8 @@ class SDKCrashDetection:
                 "Multiple configs found for sdk_name=%s. Taking first one.", sdk_name
             )
 
-        sample_rate = config[0].get("sample_rate", None)
-        project_id = config[0].get("project_id", None)
-
-        if sample_rate is None or project_id is None:
-            sentry_sdk.capture_message(
-                "No sample_rate or project_id found for sdk_name=%s", sdk_name
-            )
-            return None
+        sample_rate = config[0]["sample_rate"]
+        project_id = config[0]["project_id"]
 
         context = get_path(event.data, "contexts", "sdk_crash_detection")
         if context is not None:
