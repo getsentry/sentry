@@ -68,6 +68,7 @@ def get_entity_of_metric_mocked(_, metric_mri, use_case_id):
         TransactionMRI.MEASUREMENTS_LCP.value: EntityKey.MetricsDistributions,
         SpanMRI.SELF_TIME.value: EntityKey.MetricsDistributions,
         SpanMRI.SELF_TIME_LIGHT.value: EntityKey.MetricsDistributions,
+        SpanMRI.RESPONSE_CONTENT_LENGTH.value: EntityKey.MetricsDistributions,
     }[metric_mri]
 
 

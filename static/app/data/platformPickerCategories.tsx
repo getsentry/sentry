@@ -33,6 +33,7 @@ const browser: Set<PlatformKey> = new Set([
   'dart',
   'javascript',
   'javascript-angular',
+  'javascript-astro',
   'javascript-ember',
   'javascript-gatsby',
   'javascript-nextjs',
