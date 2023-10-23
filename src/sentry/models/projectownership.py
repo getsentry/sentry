@@ -244,6 +244,8 @@ class ProjectOwnership(Model):
         We combine the schemas from IssueOwners and CodeOwners.
 
         """
+        from django.db.models import Q
+
         from sentry import analytics
         from sentry.models.activity import ActivityIntegration
         from sentry.models.groupassignee import GroupAssignee
@@ -313,36 +315,39 @@ class ProjectOwnership(Model):
                     )
                     return
 
-            assignment = GroupAssignee.objects.assign(
-                group,
-                owner,
-                create_only=not force_autoassign,
-                extra=details,
-                force_autoassign=force_autoassign,
-            )
+            if not GroupAssignee.objects.filter(
+                Q(user_id=owner.id) | Q(team=owner.id), group=group
+            ).exists():
+                assignment = GroupAssignee.objects.assign(
+                    group,
+                    owner,
+                    create_only=not force_autoassign,
+                    extra=details,
+                    force_autoassign=force_autoassign,
+                )
 
-            if assignment["new_assignment"] or assignment["updated_assignment"]:
-                analytics.record(
-                    "codeowners.assignment"
-                    if details.get("integration") == ActivityIntegration.CODEOWNERS.value
-                    else "issueowners.assignment",
-                    organization_id=ownership.project.organization_id,
-                    project_id=project_id,
-                    group_id=group.id,
-                )
-                logger.info(
-                    "handle_auto_assignment.success",
-                    extra={
-                        "event": event.event_id if event else None,
-                        "group": group.id,
-                        "project": group.project.id,
-                        "organization": group.project.organization_id,
-                        # owner_id returns a string including the owner type (user or team) and id
-                        "assignee": issue_owner.owner_id(),
-                        "reason": "created" if assignment["new_assignment"] else "updated",
-                        **details,
-                    },
-                )
+                if assignment["new_assignment"] or assignment["updated_assignment"]:
+                    analytics.record(
+                        "codeowners.assignment"
+                        if details.get("integration") == ActivityIntegration.CODEOWNERS.value
+                        else "issueowners.assignment",
+                        organization_id=ownership.project.organization_id,
+                        project_id=project_id,
+                        group_id=group.id,
+                    )
+                    logger.info(
+                        "handle_auto_assignment.success",
+                        extra={
+                            "event": event.event_id if event else None,
+                            "group": group.id,
+                            "project": group.project.id,
+                            "organization": group.project.organization_id,
+                            # owner_id returns a string including the owner type (user or team) and id
+                            "assignee": issue_owner.owner_id(),
+                            "reason": "created" if assignment["new_assignment"] else "updated",
+                            **details,
+                        },
+                    )
 
     @classmethod
     def _matching_ownership_rules(
