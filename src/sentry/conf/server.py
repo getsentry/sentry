@@ -3606,6 +3606,15 @@ SENTRY_SSO_EXPIRY_SECONDS = os.environ.get("SENTRY_SSO_EXPIRY_SECONDS", None)
 # eg. DEVSERVER_LOGS_ALLOWLIST = {"server", "webpack", "worker"}
 DEVSERVER_LOGS_ALLOWLIST = None
 
+# Filter for logs of incoming requests, which matches on substrings. For example, to prevent the
+# server from logging
+#
+#   `POST 200 /api/0/relays/projectconfigs/?version=3 HTTP/1.1 1915`,
+#
+# add "/api/0/relays/projectconfigs/" to the list, or to suppress logging of all requests to
+# `relays/xxx` endpoints, add "/api/0/relays/".
+DEVSERVER_REQUEST_LOG_EXCLUDES: list[str] = []
+
 LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
 
 VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
