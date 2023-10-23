@@ -12,6 +12,7 @@ from sentry.statistical_detectors.detector import (
     DetectorState,
     TrendType,
 )
+from sentry.utils import metrics
 from sentry.utils.math import MovingAverage
 
 logger = logging.getLogger("sentry.tasks.statistical_detectors.algorithm")
@@ -149,6 +150,7 @@ class MovingAverageCrossOverDetector(MovingAverageDetector):
 
 @dataclass(frozen=True)
 class MovingAverageRelativeChangeDetectorConfig(MovingAverageDetectorConfig):
+    change_metric: str
     threshold: float
 
 
@@ -159,6 +161,7 @@ class MovingAverageRelativeChangeDetector(MovingAverageDetector):
         config: MovingAverageRelativeChangeDetectorConfig,
     ):
         super().__init__(state, config)
+        self.change_metric = config.change_metric
         self.threshold = abs(config.threshold)
 
     def update(self, payload: DetectorPayload) -> Optional[TrendType]:
@@ -202,6 +205,7 @@ class MovingAverageRelativeChangeDetector(MovingAverageDetector):
             and relative_change_old < self.threshold
             and relative_change_new > self.threshold
         ):
+            metrics.timing(self.change_metric, relative_change_new, tags={"type": "regression"})
             return TrendType.Regressed
 
         elif (
@@ -209,6 +213,7 @@ class MovingAverageRelativeChangeDetector(MovingAverageDetector):
             and relative_change_old > -self.threshold
             and relative_change_new < -self.threshold
         ):
+            metrics.timing(self.change_metric, relative_change_new, tags={"type": "improvement"})
             return TrendType.Improved
 
         return TrendType.Unchanged
