@@ -12,7 +12,7 @@ from requests import Request
 from responses import matchers
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.github.client import GitHubAppsClient
+from sentry.integrations.github.client import GitHubApproachingRateLimit, GitHubAppsClient
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.integrations.notify_disable import notify_disable
@@ -751,11 +751,7 @@ class GithubProxyClientTest(TestCase):
         assert Integration.objects.get(id=self.integration.id).status == ObjectStatus.DISABLED
 
 
-class GitHubClientFileBlameQueryBuilderTest(TestCase):
-    """
-    Tests that get_blame_for_files builds the correct GraphQL query
-    """
-
+class GitHubClientFileBlameBase(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     def setUp(self, get_jwt):
         integration = self.create_integration(
@@ -781,6 +777,14 @@ class GitHubClientFileBlameQueryBuilderTest(TestCase):
             external_id=456,
             integration_id=integration.id,
         )
+        self.repo_3 = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Test-Organization/other",
+            url="https://github.com/Test-Organization/other",
+            provider="integrations:github",
+            external_id=789,
+            integration_id=integration.id,
+        )
         install = integration.get_installation(organization_id=self.organization.id)
         assert isinstance(install, GitHubIntegration)
         self.install = install
@@ -792,6 +796,33 @@ class GitHubClientFileBlameQueryBuilderTest(TestCase):
             status=200,
             content_type="application/json",
         )
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/rate_limit",
+            body=json.dumps(
+                {
+                    "resources": {
+                        "graphql": {
+                            "limit": 5000,
+                            "used": 1,
+                            "remaining": 4999,
+                            "reset": 1613064000,
+                        }
+                    }
+                }
+            ),
+            status=200,
+            content_type="application/json",
+        )
+
+
+class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
+    """
+    Tests that get_blame_for_files builds the correct GraphQL query
+    """
+
+    def setUp(self):
+        super().setUp()
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
@@ -874,7 +905,7 @@ class GitHubClientFileBlameQueryBuilderTest(TestCase):
         )
 
         self.github_client.get_blame_for_files([file1, file2, file3])
-        assert json.loads(responses.calls[1].request.body)["query"] == query
+        assert json.loads(responses.calls[2].request.body)["query"] == query
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
@@ -981,7 +1012,7 @@ class GitHubClientFileBlameQueryBuilderTest(TestCase):
         )
 
         self.github_client.get_blame_for_files([file1, file2, file3])
-        assert json.loads(responses.calls[1].request.body)["query"] == query
+        assert json.loads(responses.calls[2].request.body)["query"] == query
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
@@ -1070,58 +1101,16 @@ class GitHubClientFileBlameQueryBuilderTest(TestCase):
         )
 
         self.github_client.get_blame_for_files([file1, file2, file3])
-        assert json.loads(responses.calls[1].request.body)["query"] == query
+        assert json.loads(responses.calls[2].request.body)["query"] == query
 
 
-class GitHubClientFileBlameResponseTest(TestCase):
+class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
     """
     Tests that get_blame_for_files handles the GraphQL response correctly
     """
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    def setUp(self, get_jwt):
-        integration = self.create_integration(
-            organization=self.organization,
-            provider="github",
-            name="Github Test Org",
-            external_id="1",
-            metadata={"access_token": None, "expires_at": None},
-        )
-        self.repo_1 = Repository.objects.create(
-            organization_id=self.organization.id,
-            name="Test-Organization/foo",
-            url="https://github.com/Test-Organization/foo",
-            provider="integrations:github",
-            external_id=123,
-            integration_id=integration.id,
-        )
-        self.repo_2 = Repository.objects.create(
-            organization_id=self.organization.id,
-            name="Test-Organization/bar",
-            url="https://github.com/Test-Organization/bar",
-            provider="integrations:github",
-            external_id=456,
-            integration_id=integration.id,
-        )
-        self.repo_3 = Repository.objects.create(
-            organization_id=self.organization.id,
-            name="Test-Organization/other",
-            url="https://github.com/Test-Organization/other",
-            provider="integrations:github",
-            external_id=789,
-            integration_id=integration.id,
-        )
-        install = integration.get_installation(organization_id=self.organization.id)
-        assert isinstance(install, GitHubIntegration)
-        self.install = install
-        self.github_client = self.install.get_client()
-        responses.add(
-            method=responses.POST,
-            url="https://api.github.com/app/installations/1/access_tokens",
-            body='{"token": "12345token", "expires_at": "2030-01-01T00:00:00Z"}',
-            status=200,
-            content_type="application/json",
-        )
+    def setUp(self):
+        super().setUp()
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
@@ -1324,4 +1313,63 @@ class GitHubClientFileBlameResponseTest(TestCase):
                     ),
                 ),
             ],
+        )
+
+
+class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
+    """
+    Tests that rate limits are handled correctly
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.file = SourceLineInfo(
+            path="src/sentry/integrations/github/client_1.py",
+            lineno=10,
+            ref="master",
+            repo=self.repo_1,
+            code_mapping=None,  # type: ignore
+        )
+        responses.reset()
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/app/installations/1/access_tokens",
+            body='{"token": "12345token", "expires_at": "2030-01-01T00:00:00Z"}',
+            status=200,
+            content_type="application/json",
+        )
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/rate_limit",
+            body=json.dumps(
+                {
+                    "resources": {
+                        "graphql": {
+                            "limit": 5000,
+                            "used": 4900,
+                            "remaining": 100,
+                            "reset": 1613064000,
+                        }
+                    }
+                }
+            ),
+            status=200,
+            content_type="application/json",
+        )
+
+    @mock.patch("sentry.integrations.github.client.logger.error")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_rate_limit_exceeded(self, get_jwt, mock_logger_error):
+        with pytest.raises(GitHubApproachingRateLimit):
+            self.github_client.get_blame_for_files([self.file])
+        mock_logger_error.assert_called_with(
+            "sentry.integrations.github.get_blame_for_files.rate_limit",
+            extra={
+                "provider": "github",
+                "specific_resource": "graphql",
+                "remaining": 100,
+                "next_window": "17:20:00",
+                "organization_integration_id": self.github_client.org_integration_id,
+            },
         )
