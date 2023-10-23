@@ -6,6 +6,7 @@ import responses
 
 from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.integrations.gitlab.client import GitLabProxyApiClient
 from sentry.models.identity import Identity
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.silo import control_silo_test
@@ -24,7 +25,7 @@ class GitlabRefreshAuthTest(GitLabTestCase):
 
     def setUp(self):
         super().setUp()
-        self.gitlab_client = self.installation.get_client()
+        self.gitlab_client: GitLabProxyApiClient = self.installation.get_client()
         self.gitlab_client.base_url = "https://example.gitlab.com/"
         self.request_data = {"id": "user_id"}
         self.request_url = "https://example.gitlab.com/api/v4/user"
@@ -212,3 +213,29 @@ class GitlabRefreshAuthTest(GitLabTestCase):
 
         resp = self.gitlab_client.get_commit(self.gitlab_id, commit)
         assert resp == json.loads(GET_COMMIT_RESPONSE)
+
+    @responses.activate
+    def test_get_rate_limit_info_from_response(self):
+        responses.add(
+            responses.GET,
+            self.request_url,
+            json={},
+            status=200,
+            adding_headers={
+                "RateLimit-Limit": "1000",
+                "RateLimit-Remaining": "999",
+                "RateLimit-Reset": "1372700873",
+                "RateLimit-Observed": "1",
+            },
+        )
+        resp = self.gitlab_client.get_user()
+
+        rate_limit_info = self.gitlab_client.get_rate_limit_info_from_response(resp)
+
+        assert rate_limit_info
+
+        assert rate_limit_info.limit == 1000
+        assert rate_limit_info.remaining == 999
+        assert rate_limit_info.used == 1
+        assert rate_limit_info.reset == 1372700873
+        assert rate_limit_info.next_window() == "17:47:53"
