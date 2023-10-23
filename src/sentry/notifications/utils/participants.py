@@ -36,7 +36,6 @@ from sentry.models.user import User
 from sentry.notifications.helpers import (
     get_values_by_provider_by_type,
     should_use_notifications_v2,
-    team_is_valid_recipient,
     transform_to_notification_settings_by_recipient,
 )
 from sentry.notifications.notificationcontroller import NotificationController
@@ -378,14 +377,6 @@ def determine_eligible_recipients(
     elif target_type == ActionTargetType.TEAM:
         team = get_team_from_identifier(project, target_identifier)
         if team:
-            if features.has("organizations:team-workflow-notifications", project.organization):
-                provider = (
-                    NotificationSetting.objects.filter(team_id=team.id, target_id=target_identifier)
-                    .first()
-                    .provider
-                )
-                if not team_is_valid_recipient(team, provider):
-                    return []
             return [RpcActor.from_orm_team(team)]
 
     elif target_type == ActionTargetType.ISSUE_OWNERS:

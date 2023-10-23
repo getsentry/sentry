@@ -63,15 +63,14 @@ class NotificationController:
         provider: ExternalProviderEnum | None = None,
     ) -> None:
         org = Organization.objects.filter(id=organization_id).first()
-        if features.has("organizations:team-workflow-notifications", org) and isinstance(
-            recipients, Iterable[Team]
-        ):
+        if features.has("organizations:team-workflow-notifications", org):
             idx = 0
             while idx < len(recipients):
-                if team_is_valid_recipient(recipients[idx], provider):
-                    idx += 1
-                else:
-                    del recipients[idx]
+                if recipient_is_team(recipients[idx]):
+                    if team_is_valid_recipient(recipients[idx], provider):
+                        idx += 1
+                    else:
+                        del recipients[idx]
 
         self.recipients = recipients
         self.project_ids = project_ids

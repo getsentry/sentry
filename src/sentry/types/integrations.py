@@ -72,6 +72,10 @@ PERSONAL_NOTIFICATION_PROVIDERS = [
     ExternalProviderEnum.MSTEAMS.value,
 ]
 
+TEAM_NOTIFICATION_PROVIDERS = [
+    ExternalProviderEnum.SLACK.value,
+]
+
 
 def get_provider_name(value: int) -> Optional[str]:
     return EXTERNAL_PROVIDERS.get(ExternalProviders(value))
