@@ -1,11 +1,12 @@
 import logging
 from datetime import timedelta
-from typing import Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence
 
 import sentry_sdk
 from snuba_sdk import Column
 
 from sentry.discover.arithmetic import categorize_columns
+from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.search.events.builder import (
     HistogramMetricQueryBuilder,
     MetricsQueryBuilder,
@@ -182,7 +183,7 @@ def bulk_timeseries_query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: Dict[str, str],
+    params: Dict[str, Any],
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
@@ -198,15 +199,13 @@ def timeseries_query(
     High-level API for doing arbitrary user timeseries queries against events.
     this API should match that of sentry.snuba.discover.timeseries_query
     """
-    metrics_compatible = False
     equations, columns = categorize_columns(selected_columns)
-    if comparison_delta is None and not equations:
-        metrics_compatible = True
+    metrics_compatible = not equations
 
-    if metrics_compatible:
+    def run_metrics_query(inner_params: Dict[str, Any]):
         with sentry_sdk.start_span(op="mep", description="TimeseriesMetricQueryBuilder"):
             metrics_query = TimeseriesMetricQueryBuilder(
-                params,
+                inner_params,
                 rollup,
                 dataset=Dataset.PerformanceMetrics,
                 query=query,
@@ -226,8 +225,8 @@ def timeseries_query(
             result["data"] = (
                 discover.zerofill(
                     result["data"],
-                    params["start"],
-                    params["end"],
+                    inner_params["start"],
+                    inner_params["end"],
                     rollup,
                     "time",
                 )
@@ -237,16 +236,79 @@ def timeseries_query(
             sentry_sdk.set_tag("performance.dataset", "metrics")
             result["meta"]["isMetricsData"] = True
 
-            return SnubaTSResult(
-                {
-                    "data": result["data"],
-                    "isMetricsData": True,
-                    "meta": result["meta"],
-                },
-                params["start"],
-                params["end"],
-                rollup,
+            return {
+                "data": result["data"],
+                "isMetricsData": True,
+                "meta": result["meta"],
+            }
+
+    if metrics_compatible:
+        # We could run these two queries in a batch but this would require a big refactor in the `get_snql_query` method
+        # of the TimeseriesMetricQueryBuilder. In case this becomes a performance bottleneck, we should invest more
+        # time into properly performing batching.
+        result = run_metrics_query(inner_params=params)
+        if comparison_delta:
+            # We run the second query shifted by the `comparison_delta`, in order to check the differences.
+            result_to_compare = run_metrics_query(
+                inner_params={
+                    **params,
+                    "start": params["start"] - comparison_delta,
+                    "end": params["end"] - comparison_delta,
+                }
             )
+
+            # We need to convert all the columns to their alias equivalent, since this is how we will recognize
+            # the column in the output.
+            aliased_columns = [
+                get_function_alias(selected_column) for selected_column in selected_columns
+            ]
+            # In case we want to support multiple aggregate comparisons, we can just remove this condition and rework
+            # the implementation of the `comparisonCount` field.
+            if len(aliased_columns) != 1:
+                raise IncompatibleMetricsQuery(
+                    "The comparison query for metrics supports only one aggregate."
+                )
+
+            merged_data = []
+            # We perform zipping, assuming that the timeseries data has the same length and order.
+            for data, data_to_compare in zip(result["data"], result_to_compare["data"]):
+                # We default the new merged item with the time of the main timeseries.
+                merged_item = {"time": data["time"]}
+
+                # We support for now one single aliased column, but we can extend this in the future to
+                # support multiple, if there is the need.
+                for aliased_column in aliased_columns:
+                    # We only add data in the dictionary in case it's not `None`, since the serializer,
+                    # will convert all missing dictionary values to 0.
+                    if (column := data.get(aliased_column)) is not None:
+                        # We get from the main timeseries the actual result.
+                        merged_item[aliased_column] = column
+
+                    # It can be that we have the data in the comparison, in that case want to show it.
+                    if (column := data_to_compare.get(aliased_column)) is not None:
+                        # We get from the comparison timeseries the result, and we store it always at the same key.
+                        #
+                        # This implementation is very bad, since we are already serializing as camelcase which should
+                        # happen in the serializer but the implementation was taken from discover.
+                        merged_item["comparisonCount"] = column
+
+                merged_data.append(merged_item)
+
+            result["data"] = merged_data
+
+        return SnubaTSResult(
+            {
+                "data": result["data"],
+                "isMetricsData": True,
+                "meta": result["meta"],
+            },
+            # We keep the params passed in the function as the time interval.
+            params["start"],
+            params["end"],
+            rollup,
+        )
+
+    # In case the query was not compatible with metrics we return empty data.
     return SnubaTSResult(
         {
             "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
