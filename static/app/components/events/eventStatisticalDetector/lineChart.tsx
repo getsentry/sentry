@@ -80,7 +80,7 @@ function LineChart({statsData, evidenceData, start, end, chartLabel}: ChartProps
             grid={{
               left: '10px',
               right: '10px',
-              top: '40px',
+              top: '20px',
               bottom: '0px',
             }}
             options={{

@@ -30,6 +30,7 @@ from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.shared_integrations.response.mapping import MappingApiResponse
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 
@@ -39,6 +40,10 @@ logger = logging.getLogger("sentry.integrations.github")
 # as the lower ceiling before hitting Github anymore, thus, leaving at least these
 # many requests left for other features that need to reach Github
 MINIMUM_REQUESTS = 200
+
+
+class GitHubApproachingRateLimit(Exception):
+    pass
 
 
 class GithubRateLimitInfo:
@@ -52,7 +57,7 @@ class GithubRateLimitInfo:
         return datetime.utcfromtimestamp(self.reset).strftime("%H:%M:%S")
 
     def __repr__(self) -> str:
-        return f"GithubRateLimit(limit={self.limit},rem={self.remaining},reset={self.reset})"
+        return f"GithubRateLimitInfo(limit={self.limit},rem={self.remaining},reset={self.reset})"
 
 
 class GithubProxyClient(IntegrationProxyClient):
@@ -667,6 +672,21 @@ class GitHubClientMixin(GithubProxyClient):
         return ref.get("target", {}).get("blame", {}).get("ranges", [])
 
     def get_blame_for_files(self, files: Sequence[SourceLineInfo]) -> Sequence[FileBlameInfo]:
+        rate_limit = self.get_rate_limit(specific_resource="graphql")
+        if rate_limit.remaining < MINIMUM_REQUESTS:
+            metrics.incr("sentry.integrations.github.get_blame_for_files.rate_limit")
+            logger.error(
+                "sentry.integrations.github.get_blame_for_files.rate_limit",
+                extra={
+                    "provider": "github",
+                    "specific_resource": "graphql",
+                    "remaining": rate_limit.remaining,
+                    "next_window": rate_limit.next_window(),
+                    "organization_integration_id": self.org_integration_id,
+                },
+            )
+            raise GitHubApproachingRateLimit()
+
         file_path_mapping = generate_file_path_mapping(files)
 
         try:
