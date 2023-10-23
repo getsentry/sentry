@@ -57,4 +57,24 @@ def test_get_org_auth_config():
     ]
 
 
-# def test_enable_sso():
+@django_db_all(transaction=True)
+def test_enable_sso():
+    org = Factories.create_organization()
+    provider_key = "fly"
+    provider_config = {"id": "x123x"}
+    auth_service.enable_partner_sso(
+        organization_id=org.id, provider_key=provider_key, provider_config=provider_config
+    )
+    auth_provider_query = AuthProvider.objects.filter(
+        organization_id=org.id, provider=provider_key, config=provider_config
+    )
+    assert auth_provider_query.count() == 1
+
+    # Re-enabling SSO should not create a new auth provider
+    auth_service.enable_partner_sso(
+        organization_id=org.id, provider_key=provider_key, provider_config=provider_config
+    )
+    auth_provider_query = AuthProvider.objects.filter(
+        organization_id=org.id, provider=provider_key, config=provider_config
+    )
+    assert auth_provider_query.count() == 1
