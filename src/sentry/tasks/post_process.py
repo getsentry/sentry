@@ -1180,7 +1180,7 @@ def sdk_crash_monitoring(job: PostProcessJob):
         with sentry_sdk.start_span(op="tasks.post_process_group.sdk_crash_monitoring"):
             sdk_crash_detection.detect_sdk_crash(
                 event=event,
-                config=settings.SDK_CRASH_DETECTION,
+                configs=settings.SDK_CRASH_DETECTION,
             )
 
 
