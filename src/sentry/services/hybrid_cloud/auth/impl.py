@@ -80,9 +80,9 @@ class DatabaseBackedAuthService(AuthService):
 
                 if user_id:
                     sso_enabled.send_robust(
-                        organization_id=self.org.id,
-                        user_id=self.user.id,
-                        provider=self.channel_name.value,
+                        organization_id=organization_id,
+                        user_id=user_id,
+                        provider=provider_key,
                         sender=type(self) if sender is None else sender,
                     )
 
