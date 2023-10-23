@@ -1003,7 +1003,7 @@ register(
 
 # Option to disable performing schema validation on the indexer
 register(
-    "sentry-metrics.indexer.disable-schema-validation",
+    "sentry-metrics.indexer.validate-schema",
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
