@@ -20,13 +20,13 @@ type Props = {
   index: number;
   // The AlertRuleAction from DB.
   instance: IssueAlertRuleAction;
+  link: string | null;
   onSubmitAction: (
     data: {[key: string]: string},
     fetchedFieldOptionsCache: Record<string, Choices>
   ) => void;
   organization: Organization;
-  link?: string;
-  ticketType?: string;
+  ticketType: string;
 } & AbstractExternalIssueForm['props'];
 
 type State = {
