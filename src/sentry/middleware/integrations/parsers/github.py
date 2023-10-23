@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Mapping
 
+from django.http import HttpResponse
+
 from sentry.integrations.github.webhook import (
     GitHubIntegrationsWebhookEndpoint,
     get_github_external_id,
@@ -44,8 +46,11 @@ class GithubRequestParser(BaseRequestParser):
         if self.view_class != self.webhook_endpoint:
             return self.get_response_from_control_silo()
 
-        body = bytes(self.request.body)
-        event = json.loads(body.decode("utf-8"))
+        try:
+            event = json.loads(self.request.body.decode(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return HttpResponse(status=400)
+
         if event.get("installation") and event.get("action") == "created":
             return self.get_response_from_control_silo()
 
