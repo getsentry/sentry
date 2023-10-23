@@ -3,6 +3,7 @@ from datetime import timezone
 
 import pytest
 
+from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics_performance import timeseries_query
@@ -123,3 +124,17 @@ class TimeseriesQueryTest(MetricsEnhancedPerformanceTestCase):
             {"avg_transaction_duration": 1.5, "comparisonCount": 3.0, "time": 1698051600},
             {"time": 1698055200},
         ]
+
+    def test_timeseries_query_with_comparison_and_multiple_aggregates(self):
+        with pytest.raises(
+            IncompatibleMetricsQuery,
+            match="The comparison query for metrics supports only one aggregate.",
+        ):
+            timeseries_query(
+                selected_columns=["avg(transaction.duration)", "sum(transaction.duration)"],
+                query="",
+                params=self.params,
+                rollup=self.default_interval,
+                comparison_delta=datetime.timedelta(weeks=1),
+                referrer="test_query",
+            )
