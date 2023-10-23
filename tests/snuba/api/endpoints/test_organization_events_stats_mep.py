@@ -370,7 +370,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert response.status_code == 200, response.content
         assert response.data["isMetricsData"]
         assert [attrs for time, attrs in response.data["data"]] == [
-            [{"comparisonCount": 6, "count": 1368}],
+            [{"comparisonCount": 6.0, "count": 1368.0}],
             [{"comparisonCount": 0, "count": 0}],
         ]
         meta = response.data["meta"]
