@@ -116,10 +116,10 @@ _SEARCH_TO_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
     "max": "max",
     "p50": "p50",
     "p75": "p75",
-    "p90": "p90",
     "p95": "p95",
     "p99": "p99",
-    "p100": "p100"
+    # p100 is not supported in the metrics layer, so we convert to max which is equivalent.
+    "p100": "max"
     # generic percentile is not supported by metrics layer.
 }
 
@@ -142,7 +142,6 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "max": "d",
     "p50": "d",
     "p75": "d",
-    "p90": "d",
     "p95": "d",
     "p99": "d",
     "p100": "d",
@@ -313,7 +312,6 @@ def _get_aggregate_supported_by(aggregate: str) -> SupportedBy:
             return SupportedBy.neither()
 
         match = fields.is_function(aggregate)
-
         if not match:
             raise InvalidSearchQuery(f"Invalid characters in field {aggregate}")
 
@@ -322,7 +320,6 @@ def _get_aggregate_supported_by(aggregate: str) -> SupportedBy:
         args_support = _get_args_support(function, args)
 
         return SupportedBy.combine(function_support, args_support)
-
     except InvalidSearchQuery:
         logger.error(f"Failed to parse aggregate: {aggregate}", exc_info=True)
 
@@ -350,7 +347,7 @@ def _get_percentile_support(args: Sequence[str]) -> SupportedBy:
     if not _get_percentile_op(args):
         return SupportedBy.neither()
 
-    return SupportedBy(standard_metrics=False, on_demand_metrics=True)
+    return SupportedBy.both()
 
 
 def _get_percentile_op(args: Sequence[str]) -> Optional[MetricOperationType]:
@@ -363,8 +360,6 @@ def _get_percentile_op(args: Sequence[str]) -> Optional[MetricOperationType]:
         return "p50"
     if percentile == "0.75":
         return "p75"
-    if percentile in ["0.9", "0.90"]:
-        return "p90"
     if percentile == "0.95":
         return "p95"
     if percentile == "0.99":
@@ -928,6 +923,7 @@ class OnDemandMetricSpec:
                 # derived metrics have their conditions injected in the tags
                 if self._get_op(parsed_field.function, parsed_field.arguments) in _DERIVED_METRICS:
                     return None
+
                 raise Exception("This query should not use on demand metrics")
 
             return aggregate_conditions
@@ -967,10 +963,7 @@ class OnDemandMetricSpec:
             raise Exception(f"The operation {op} supports one or more parameters")
 
         arguments = parsed_field.arguments
-        map_argument = op not in _MULTIPLE_ARGS_METRICS
-
-        first_argument = arguments[0]
-        return [_map_field_name(first_argument)] if map_argument else arguments
+        return [_map_field_name(arguments[0])] if op not in _MULTIPLE_ARGS_METRICS else arguments
 
     @staticmethod
     def _get_op(function: str, args: Sequence[str]) -> MetricOperationType:
@@ -999,7 +992,6 @@ class OnDemandMetricSpec:
     def _parse_field(value: str) -> Optional[FieldParsingResult]:
         try:
             match = fields.is_function(value)
-
             if not match:
                 raise InvalidSearchQuery(f"Invalid characters in field {value}")
 

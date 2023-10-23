@@ -50,6 +50,13 @@ import {
   isExpandable,
 } from './utils';
 
+const VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS = [
+  '.js',
+  '.mjs',
+  '.cjs',
+  '.jsbundle', // React Native file ending
+];
+
 export interface DeprecatedLineProps {
   data: Frame;
   event: Event;
@@ -313,9 +320,15 @@ export class DeprecatedLine extends Component<Props, State> {
         lockAddress
       );
 
-    const shouldShowSourceMapDebuggerToggle =
+    const frameHasValidFileEndingForSourceMapDebugger =
+      VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS.some(ending =>
+        (data.absPath || data.filename || '').endsWith(ending)
+      );
+
+    const shouldShowSourceMapDebuggerButton =
       !this.props.hideSourceMapDebugger &&
       data.inApp &&
+      frameHasValidFileEndingForSourceMapDebugger &&
       this.props.frameSourceResolutionResults &&
       (!this.props.frameSourceResolutionResults.frameIsResolved ||
         !hasContextSource(data));
@@ -358,7 +371,7 @@ export class DeprecatedLine extends Component<Props, State> {
               </Tag>
             ) : null}
             {this.renderShowHideToggle()}
-            {shouldShowSourceMapDebuggerToggle ? (
+            {shouldShowSourceMapDebuggerButton ? (
               <Fragment>
                 <SourceMapDebuggerModalButton
                   size="zero"
