@@ -342,6 +342,42 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert meta["fields"] == {"time": "date", "sum_transaction_duration": "duration"}
         assert meta["units"] == {"time": None, "sum_transaction_duration": "millisecond"}
 
+    def test_sum_transaction_duration_with_comparison(self):
+        # We store the data for the previous day (in order to have values for the comparison).
+        self.store_transaction_metric(
+            1, timestamp=self.day_ago - timedelta(days=1) + timedelta(minutes=30)
+        )
+        self.store_transaction_metric(
+            2, timestamp=self.day_ago - timedelta(days=1) + timedelta(hours=1, minutes=30)
+        )
+        self.store_transaction_metric(
+            3, timestamp=self.day_ago - timedelta(days=1) + timedelta(hours=1, minutes=30)
+        )
+        # We store the data for today.
+        self.store_transaction_metric(123, timestamp=self.day_ago + timedelta(minutes=30))
+        self.store_transaction_metric(456, timestamp=self.day_ago + timedelta(hours=1, minutes=30))
+        self.store_transaction_metric(789, timestamp=self.day_ago + timedelta(hours=1, minutes=30))
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(days=1)),
+                "interval": "1d",
+                "yAxis": "sum(transaction.duration)",
+                "comparisonDelta": 86400,
+                "dataset": "metricsEnhanced",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["isMetricsData"]
+        assert [attrs for time, attrs in response.data["data"]] == [
+            [{"comparisonCount": 6, "count": 1368}],
+            [{"comparisonCount": 0, "count": 0}],
+        ]
+        meta = response.data["meta"]
+        assert meta["isMetricsData"] == response.data["isMetricsData"]
+        assert meta["fields"] == {"time": "date", "sum_transaction_duration": "duration"}
+        assert meta["units"] == {"time": None, "sum_transaction_duration": "millisecond"}
+
     def test_custom_measurement(self):
         self.store_transaction_metric(
             123,
