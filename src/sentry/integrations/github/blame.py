@@ -150,7 +150,7 @@ def extract_commits_from_blame_response(
                         "get_blame_for_files.extract_commits_from_blame.missing_line_blame",
                         extra={
                             **extra,
-                            "lineno": matching_file.lineno,
+                            "file_lineno": matching_file.lineno,
                             "file_path": matching_file.path,
                             "branch_name": matching_file.ref,
                             "repo_name": full_repo_name,
