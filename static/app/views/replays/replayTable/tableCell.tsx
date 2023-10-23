@@ -377,8 +377,6 @@ export function ReplayCell({
           <Link to={detailsTab} onClick={trackNavigationEvent}>
             {getShortEventId(replay.id)}
           </Link>
-        </Row>
-        <Row gap={0.5}>
           <IconCalendar color="gray300" size="xs" />
           <TimeSince date={replay.started_at} />
         </Row>
