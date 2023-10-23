@@ -183,7 +183,7 @@ SPAN_METRICS_NAMES = {
     "d:spans/frames_frozen@none": PREFIX + 407,
     "d:spans/frames_slow@none": PREFIX + 408,
     "d:spans/http.response_content_length@byte": PREFIX + 409,
-    "d:spans/http.decoded_response_body_length@byte": PREFIX + 410,
+    "d:spans/http.decoded_response_content_length@byte": PREFIX + 410,
     "d:spans/http.response_transfer_size@byte": PREFIX + 411,
 }
 

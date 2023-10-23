@@ -229,7 +229,6 @@ def _detect_transaction_change_points(
         request = {
             "data": data,
             "sort": "-trend_percentage()",
-            "min_change()": 100_000_000,  # require a minimum 100ms increase (in ns)
             # Disable the fall back to use the midpoint as the breakpoint
             # which was originally intended to detect a gradual regression
             # for the trends use case. That does not apply here.
@@ -238,6 +237,22 @@ def _detect_transaction_change_points(
 
         try:
             yield from detect_breakpoints(request)["data"]
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            continue
+
+
+def get_all_transaction_payloads(
+    org_ids: List[int], project_ids: List[int], start: datetime, end: datetime
+) -> Generator[DetectorPayload, None, None]:
+    projects_per_query = options.get("statistical_detectors.query.batch_size")
+    assert projects_per_query > 0
+
+    for chunked_project_ids in chunked(project_ids, projects_per_query):
+        try:
+            yield from query_transactions(
+                org_ids, chunked_project_ids, start, end, TRANSACTIONS_PER_PROJECT
+            )
         except Exception as e:
             sentry_sdk.capture_exception(e)
             continue
@@ -257,6 +272,7 @@ def _detect_transaction_trends(
     improved_count = 0
 
     detector_config = MovingAverageRelativeChangeDetectorConfig(
+        change_metric="statistical_detectors.rel_change.transactions",
         min_data_points=6,
         short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
         long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
@@ -268,9 +284,7 @@ def _detect_transaction_trends(
     start = start - timedelta(hours=1)
     start = start.replace(minute=0, second=0, microsecond=0)
     end = start + timedelta(hours=1)
-    all_transaction_payloads = query_transactions(
-        org_ids, project_ids, start, end, TRANSACTIONS_PER_PROJECT
-    )
+    all_transaction_payloads = get_all_transaction_payloads(org_ids, project_ids, start, end)
 
     projects = Project.objects.filter(id__in=project_ids).select_related("organization")
     project_by_id = {project.id: project for project in projects}
@@ -365,7 +379,7 @@ def query_transactions_timeseries(
         project_objects = Project.objects.filter(id__in=project_ids)
         org_ids = list({project.organization_id for project in project_objects})
         duration_metric_id = indexer.resolve(
-            use_case_id, org_ids[0], str(TransactionMRI.DURATION.value)
+            use_case_id, org_ids[0], str(TransactionMRI.DURATION_LIGHT.value)
         )
         transaction_name_metric_id = indexer.resolve(
             use_case_id,
@@ -581,6 +595,7 @@ def _detect_function_trends(
     improved_count = 0
 
     detector_config = MovingAverageRelativeChangeDetectorConfig(
+        change_metric="statistical_detectors.rel_change.functions",
         min_data_points=6,
         short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
         long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
@@ -688,7 +703,7 @@ def _detect_function_change_points(
         request = {
             "data": data,
             "sort": "-trend_percentage()",
-            "trendFunction": trend_function,
+            "min_change()": 100_000_000,  # require a minimum 100ms increase (in ns)
             # Disable the fall back to use the midpoint as the breakpoint
             # which was originally intended to detect a gradual regression
             # for the trends use case. That does not apply here.
@@ -849,7 +864,7 @@ def query_transactions(
     # both the metric and tag that we are using are hardcoded values in sentry_metrics.indexer.strings
     # so the org_id that we are using does not actually matter here, we only need to pass in an org_id
     duration_metric_id = indexer.resolve(
-        use_case_id, org_ids[0], str(TransactionMRI.DURATION.value)
+        use_case_id, org_ids[0], str(TransactionMRI.DURATION_LIGHT.value)
     )
     transaction_name_metric_id = indexer.resolve(
         use_case_id,
@@ -933,11 +948,7 @@ def query_transactions(
         query=query,
         tenant_ids={
             "referrer": Referrer.STATISTICAL_DETECTORS_FETCH_TOP_TRANSACTION_NAMES.value,
-            # HACK: the allocation policy is going to reject this query unless there is an org_id
-            # passed in. The allocation policy will be updated to handle cross-org queries better
-            # As it is now (09-13-2023), this query will likely be throttled (i.e be slower) by the allocation
-            # policy as soon as we start scanning more than just the sentry org
-            "organization_id": -42069,
+            "cross_org_query": 1,
             "use_case_id": use_case_id.value,
         },
     )
