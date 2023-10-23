@@ -8,10 +8,8 @@ class GitHubCreateTicketAction(TicketEventAction):
     id = "sentry.integrations.github.notify_action.GitHubCreateTicketAction"
     label = "Create a Github issue in {integration} with these "
     ticket_type = "a Github issue"
-    # link appears to go to syncing issues docs for existing
-    # Jira + Azure DevOps actions. We don't sync for GitHub, so need to
-    # figure out what to put here
-    link = "https://docs.sentry.io/product/integrations/source-code-mgmt/azure-devops/#issue-sync"
+    # TODO(schew2381): Add link to docs once GitHub issue sync is available
+    link = None
     provider = "github"
 
     def generate_footer(self, rule_url: str) -> str:
