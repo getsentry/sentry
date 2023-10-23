@@ -189,14 +189,32 @@ function ReplayControls({
     <ButtonGrid ref={barRef} isCompact={isCompact}>
       <ReplayPlayPauseBar />
       <Container>
-        {hasNewTimeline ? <ReplayTimeline /> : null}
-        <TimeAndScrubber isCompact={isCompact}>
-          <Time>{formatTime(currentTime)}</Time>
-          <StyledScrubber ref={elem} {...mouseTrackingProps}>
-            <PlayerScrubber />
-          </StyledScrubber>
-          <Time>{durationMs ? formatTime(durationMs) : '--:--'}</Time>
-        </TimeAndScrubber>
+        {hasNewTimeline ? (
+          <TimeAndScrubberGrid isCompact={isCompact}>
+            <Time style={{gridArea: 'currentTime'}}>{formatTime(currentTime)}</Time>
+            <div style={{gridArea: 'timeline'}}>
+              <ReplayTimeline />
+            </div>
+            <StyledScrubber
+              style={{gridArea: 'scrubber'}}
+              ref={elem}
+              {...mouseTrackingProps}
+            >
+              <PlayerScrubber />
+            </StyledScrubber>
+            <Time style={{gridArea: 'duration'}}>
+              {durationMs ? formatTime(durationMs) : '--:--'}
+            </Time>
+          </TimeAndScrubberGrid>
+        ) : (
+          <TimeAndScrubber isCompact={isCompact}>
+            <Time>{formatTime(currentTime)}</Time>
+            <StyledScrubber ref={elem} {...mouseTrackingProps}>
+              <PlayerScrubber />
+            </StyledScrubber>
+            <Time>{durationMs ? formatTime(durationMs) : '--:--'}</Time>
+          </TimeAndScrubber>
+        )}
       </Container>
       <ButtonBar gap={1}>
         <ReplayOptionsMenu speedOptions={speedOptions} />
@@ -231,6 +249,25 @@ const Container = styled('div')`
 const TimeAndScrubber = styled('div')<{isCompact: boolean}>`
   width: 100%;
   display: grid;
+  grid-column-gap: ${space(1.5)};
+  grid-template-columns: max-content auto max-content;
+  align-items: center;
+  ${p =>
+    p.isCompact
+      ? `
+        order: -1;
+        min-width: 100%;
+        margin-top: -8px;
+      `
+      : ''}
+`;
+
+const TimeAndScrubberGrid = styled('div')<{isCompact: boolean}>`
+  width: 100%;
+  display: grid;
+  grid-template-areas:
+    '. timeline .'
+    'currentTime scrubber duration';
   grid-column-gap: ${space(1.5)};
   grid-template-columns: max-content auto max-content;
   align-items: center;
