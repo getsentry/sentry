@@ -112,7 +112,7 @@ class GroupAssigneeManager(BaseManager):
             ).delete()
             logger.info(
                 "groupassignee.remove",
-                extra={"group_id": group.id, "team_id": previous_assignee.user_id},
+                extra={"group_id": group.id, "user_id": previous_assignee.user_id},
             )
 
     def assign(
