@@ -212,3 +212,49 @@ class GitlabRefreshAuthTest(GitLabTestCase):
 
         resp = self.gitlab_client.get_commit(self.gitlab_id, commit)
         assert resp == json.loads(GET_COMMIT_RESPONSE)
+
+    @responses.activate
+    def test_get_rate_limit_info_from_response(self):
+        """
+        When rate limit headers present, parse them and return a GitLabRateLimitInfo object
+        """
+        responses.add(
+            responses.GET,
+            self.request_url,
+            json={},
+            status=200,
+            adding_headers={
+                "RateLimit-Limit": "1000",
+                "RateLimit-Remaining": "999",
+                "RateLimit-Reset": "1372700873",
+                "RateLimit-Observed": "1",
+            },
+        )
+        resp = self.gitlab_client.get_user()
+
+        rate_limit_info = self.gitlab_client.get_rate_limit_info_from_response(resp)
+
+        assert rate_limit_info
+
+        assert rate_limit_info.limit == 1000
+        assert rate_limit_info.remaining == 999
+        assert rate_limit_info.used == 1
+        assert rate_limit_info.reset == 1372700873
+        assert rate_limit_info.next_window() == "17:47:53"
+
+    @responses.activate
+    def test_get_rate_limit_info_from_response_invalid(self):
+        """
+        When rate limit headers are not present, handle gracefully and return None
+        """
+        responses.add(
+            responses.GET,
+            self.request_url,
+            json={},
+            status=200,
+        )
+        resp = self.gitlab_client.get_user()
+
+        rate_limit_info = self.gitlab_client.get_rate_limit_info_from_response(resp)
+
+        assert not rate_limit_info
