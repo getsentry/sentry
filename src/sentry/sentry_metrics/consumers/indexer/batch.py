@@ -127,7 +127,7 @@ class IndexerBatch:
                 )
                 continue
             try:
-                if self.__input_codec:
+                if self.__input_codec and options.get("sentry-metrics.indexer.validate-schema"):
                     self.__input_codec.validate(parsed_payload)
             except ValidationError:
                 if settings.SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS:
