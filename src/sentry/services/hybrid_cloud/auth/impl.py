@@ -35,6 +35,7 @@ from sentry.services.hybrid_cloud.auth import (
 )
 from sentry.services.hybrid_cloud.auth.serial import serialize_api_key, serialize_auth_provider
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.signals import sso_enabled
 from sentry.silo import unguarded_write
 from sentry.utils.auth import AuthUserPasswordExpired
 
@@ -52,20 +53,38 @@ class DatabaseBackedAuthService(AuthService):
             return None
 
     def enable_partner_sso(
-        self, *, organization_id: int, provider_key: str, provider_config: Mapping[str, Any]
+        self,
+        *,
+        organization_id: int,
+        provider_key: str,
+        provider_config: Mapping[str, Any],
+        user_id: Optional[int] = None,
+        sender: Optional[str] = None,
     ) -> None:
         with enforce_constraints(transaction.atomic(router.db_for_write(AuthProvider))):
-            auth_provider = AuthProvider.objects.create(
+            auth_provider_query = AuthProvider.objects.filter(
                 organization_id=organization_id, provider=provider_key, config=provider_config
             )
+            if not auth_provider_query.exists():
+                auth_provider = AuthProvider.objects.create(
+                    organization_id=organization_id, provider=provider_key, config=provider_config
+                )
 
-            AuditLogEntry.objects.create(
-                organization_id=organization_id,
-                actor_label=f"partner_provisioning_api:{provider_key}",
-                target_object=auth_provider.id,
-                event=audit_log.get_event_id("SSO_ENABLE"),
-                data=auth_provider.get_audit_log_data(),
-            )
+                AuditLogEntry.objects.create(
+                    organization_id=organization_id,
+                    actor_label=f"partner_provisioning_api:{provider_key}",
+                    target_object=auth_provider.id,
+                    event=audit_log.get_event_id("SSO_ENABLE"),
+                    data=auth_provider.get_audit_log_data(),
+                )
+
+                if user_id:
+                    sso_enabled.send_robust(
+                        organization_id=organization_id,
+                        user_id=user_id,
+                        provider=provider_key,
+                        sender=type(self) if sender is None else sender,
+                    )
 
     def create_auth_identity(
         self, *, provider: str, config: Mapping[str, Any], user_id: int, ident: str
