@@ -105,8 +105,13 @@ class DiscordIntegrationProvider(IntegrationProvider):
     oauth_scopes = frozenset(["applications.commands", "bot", "identify"])
 
     # https://discord.com/developers/docs/topics/permissions#permissions
-    # Permissions value that can Send Messages (0x800), View Channel (0x400), and Embed Links (0x4000):
-    bot_permissions = 0x800 | 0x400 | 0x4000
+    # View Channel + read messages in text channels (1 << 10)
+    # Send Messages + create threads in forum (1 << 11)
+    # Embed Links (1 << 14)
+    # Create public threads (1 << 35)
+    # Create private threads (1 << 36)
+    # Send messages in threads (1 << 38)
+    bot_permissions = 1 << 10 | 1 << 11 | 1 << 14 | 1 << 35 | 1 << 36 | 1 << 38
 
     setup_dialog_config = {"width": 600, "height": 900}
 
