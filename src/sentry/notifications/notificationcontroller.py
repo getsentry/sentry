@@ -64,21 +64,21 @@ class NotificationController:
     ) -> None:
         org = Organization.objects.filter(id=organization_id).first()
         if features.has("organizations:team-workflow-notifications", org):
-            idx = 0
-            while idx < len(recipients):
-                if recipient_is_team(recipients[idx]):
-                    if team_is_valid_recipient(recipients[idx], provider):
-                        idx += 1
-                    else:
-                        del recipients[idx]
-
-        self.recipients = recipients
+            self.recipients = []
+            for recipient in recipients:
+                if recipient_is_team(recipient):
+                    if team_is_valid_recipient(recipient, provider):
+                        self.recipients.append(recipient)
+                else:
+                    self.recipients.append(recipient)
+        else:
+            self.recipients = recipients
         self.project_ids = project_ids
         self.organization_id = organization_id
         self.type = type
         self.provider = provider
 
-        if recipients:
+        if self.recipients:
             query = self._get_query()
             type_filter = Q(type=self.type.value) if self.type else Q()
             provider_filter = Q(provider=self.provider.value) if self.provider else Q()

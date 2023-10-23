@@ -721,12 +721,13 @@ def team_is_valid_recipient(team: Team | RpcActor, provider: ExternalProviderEnu
 
     if provider.value not in TEAM_NOTIFICATION_PROVIDERS:
         return False
-    linked_slack = ExternalActor.objects.filter(
-        team_id=team.id, organization=team.organization, provider=ExternalProviders.SLACK.value
-    )
-    if provider == ExternalProviderEnum.SLACK and not linked_slack:
-        return False
-    return True
+    if provider == ExternalProviderEnum.SLACK:
+        linked_slack = ExternalActor.objects.filter(
+            team_id=team.id, organization=team.organization, provider=ExternalProviders.SLACK.value
+        )
+        if linked_slack:
+            return True
+    return False
 
 
 PROVIDER_DEFAULTS: list[ExternalProviderEnum] = get_provider_defaults()
