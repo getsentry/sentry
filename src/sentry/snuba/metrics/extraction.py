@@ -315,7 +315,6 @@ def _get_aggregate_supported_by(aggregate: str) -> SupportedBy:
         if aggregate == "lcp.element":
             return SupportedBy(standard_metrics=True, on_demand_metrics=True)
 
-
         match = fields.is_function(aggregate)
         if not match:
             raise InvalidSearchQuery(f"Invalid characters in field {aggregate}")
@@ -840,7 +839,7 @@ class OnDemandMetricSpec:
         if len(self.columns):
             # For compatibility with existing deployed metrics, leave existing hash untouched unless conditions are now
             # included in the spec.
-            str_to_hash = f"{str_to_hash}:{self._columns_for_hash()}" 
+            str_to_hash = f"{str_to_hash}:{self._columns_for_hash()}"
         return hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
 
     def _field_for_hash(self) -> Optional[str]:
@@ -906,13 +905,12 @@ class OnDemandMetricSpec:
 
         return {
             "key": field,
-            "field": field, 
+            "field": field,
         }
 
     def tags_columns(self, columns: Sequence[str]) -> List[TagSpec]:
         """Returns a list of tag specs generate for added columns, as they need to be stored separately for group-bys to work."""
-        return [self._tag_for_column(column) for column in columns] 
-
+        return [self._tag_for_column(column) for column in columns]
 
     def to_metric_spec(self, project: Project) -> MetricSpec:
         """Converts the OndemandMetricSpec into a MetricSpec that Relay can understand."""

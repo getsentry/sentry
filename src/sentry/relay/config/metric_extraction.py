@@ -1,17 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import (
-    Any,
-    Dict,
-    List,
-    Literal,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    TypedDict,
-    Union,
-)
+from typing import Any, Dict, List, Literal, Optional, Sequence, Set, Tuple, TypedDict, Union
 
 from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
@@ -27,7 +16,6 @@ from sentry.models.transaction_threshold import (
 )
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
-
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     MetricSpec,
@@ -265,7 +253,7 @@ def _convert_widget_query_to_metric(
             aggregate,
             widget_query.conditions,
             prefilling,
-            columns=widget_query.columns
+            columns=widget_query.columns,
         ):
             _log_on_demand_metric_spec(
                 project_id=project.id,
@@ -294,9 +282,9 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
     """
     params: dict[str, Any] = {
         "statsPeriod": "1d",
-         "project_id": project.id,
+        "project_id": project.id,
         "project_objects": [project],
-        "organization_id": project.organization_id, # Organization id has to be specified to not violate allocation policy. 
+        "organization_id": project.organization_id,  # Organization id has to be specified to not violate allocation policy.
     }
     params["statsPeriod"] = "1d"
     start, end = get_date_range_from_params(params)
@@ -321,9 +309,12 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
     unique_columns = [f"count_unique({column})" for column in widget_query.columns]
 
     query_builder = QueryBuilder(
-        dataset=Dataset.Discover, params=params, selected_columns=unique_columns, config=QueryBuilderConfig(
+        dataset=Dataset.Discover,
+        params=params,
+        selected_columns=unique_columns,
+        config=QueryBuilderConfig(
             transform_alias_to_input_format=True,
-        )
+        ),
     )
 
     results = query_builder.run_query(Referrer.METRIC_EXTRACTION_CARDINALITY_CHECK.value)
