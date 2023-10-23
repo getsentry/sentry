@@ -68,14 +68,16 @@ class ApiGatewayTest(ApiGatewayTestCase):
             assert not resp.data["proxy"]
 
     @responses.activate
-    def test_proxy_check_region_url(self):
+    def test_proxy_check_region_pinned_url(self):
         responses.add(
             responses.GET,
-            "http://us.internal.sentry.io/api/0/builtin-symbol-sources/",
+            "http://us.internal.sentry.io/builtin-symbol-sources/",
             json={"proxy": True},
         )
 
-        region_url = reverse("no-org-region-endpoint")
+        # No /api/0 as we only include sentry.api.urls.urlpatterns
+        # and not sentry.web.urls which includes the version prefix
+        region_pinned = "/builtin-symbol-sources/"
         control_url = reverse(
             "control-endpoint", kwargs={"organization_slug": self.organization.slug}
         )
@@ -85,7 +87,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
             MIDDLEWARE=tuple(self.middleware),
             SENTRY_MONOLITH_REGION="us",
         ):
-            resp = self.client.get(region_url)
+            resp = self.client.get(region_pinned)
             assert resp.status_code == 200
             resp_json = json.loads(close_streaming_response(resp))
             assert resp_json["proxy"]
@@ -94,11 +96,31 @@ class ApiGatewayTest(ApiGatewayTestCase):
             assert resp.status_code == 200
             assert not resp.data["proxy"]
 
+    @responses.activate
+    def test_proxy_check_region_pinned_url_with_params(self):
+        responses.add(
+            responses.GET,
+            "http://us.internal.sentry.io/relays/register/",
+            json={"proxy": True},
+        )
+        responses.add(
+            responses.GET,
+            "http://us.internal.sentry.io/relays/abc123/",
+            json={"proxy": True, "details": True},
+        )
+
         with override_settings(
-            SILO_MODE=SiloMode.REGION,
+            SILO_MODE=SiloMode.CONTROL,
             MIDDLEWARE=tuple(self.middleware),
             SENTRY_MONOLITH_REGION="us",
         ):
-            resp = self.client.get(region_url)
+            resp = self.client.get("/relays/register/")
             assert resp.status_code == 200
-            assert not resp.data["proxy"]
+            resp_json = json.loads(close_streaming_response(resp))
+            assert resp_json["proxy"]
+
+            resp = self.client.get("/relays/abc123/")
+            assert resp.status_code == 200
+            resp_json = json.loads(close_streaming_response(resp))
+            assert resp_json["proxy"]
+            assert resp_json["details"]
