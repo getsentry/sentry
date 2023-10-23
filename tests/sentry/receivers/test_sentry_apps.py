@@ -512,7 +512,7 @@ class TestComments(APITestCase):
         note = Activity.objects.get(
             group=self.issue, project=self.project, type=ActivityType.NOTE.value
         )
-        data = {
+        comment_data = {
             "comment_id": note.id,
             "timestamp": note.datetime,
             "comment": "hello world",
@@ -523,7 +523,7 @@ class TestComments(APITestCase):
             issue_id=self.issue.id,
             type="comment.created",
             user_id=self.user.id,
-            data=data,
+            data=comment_data,
         )
 
     def test_comment_updated(self, delay):
@@ -589,19 +589,19 @@ class TestCommentsSentryFunctions(APITestCase):
             note = Activity.objects.get(
                 group=self.issue, project=self.project, type=ActivityType.NOTE.value
             )
-            data = {
+            comment_data = {
                 "comment_id": note.id,
                 "timestamp": note.datetime,
                 "comment": "hello world",
                 "project_slug": self.project.slug,
             }
             with assume_test_silo_mode(SiloMode.CONTROL):
-                data["user"] = serialize(self.user)
+                comment_data["user"] = serialize(self.user)
             delay.assert_called_once_with(
                 self.sentryFunction.external_id,
                 "comment.created",
                 self.issue.id,
-                _as_serialized(data),
+                _as_serialized(comment_data),
             )
 
     def test_comment_updated(self, delay):
