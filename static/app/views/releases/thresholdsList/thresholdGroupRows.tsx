@@ -24,6 +24,7 @@ type Props = {
   columns: number;
   orgSlug: string;
   refetch: () => void;
+  setError: (msg: string) => void;
   thresholds: Threshold[];
 };
 
@@ -41,7 +42,13 @@ type EditingThreshold = {
   window_in_seconds?: number;
 };
 
-export function ThresholdGroupRows({thresholds, columns, orgSlug, refetch}: Props) {
+export function ThresholdGroupRows({
+  thresholds,
+  columns,
+  orgSlug,
+  refetch,
+  setError,
+}: Props) {
   const [editingThresholds, setEditingThresholds] = useState<{
     [key: string]: EditingThreshold;
   }>({});
@@ -123,8 +130,8 @@ export function ThresholdGroupRows({thresholds, columns, orgSlug, refetch}: Prop
           refetch();
           closeEditForm(id);
         })
-        .catch(_err => {
-          // TODO: highlight form if error on submit
+        .catch(err => {
+          setError(err.detail || 'Issue saving threshold');
           const errorThreshold = {
             ...submitData,
             hasError: true,
@@ -150,8 +157,8 @@ export function ThresholdGroupRows({thresholds, columns, orgSlug, refetch}: Prop
         .then(() => {
           refetch();
         })
-        .catch(_err => {
-          // TODO: highlight form if error on submit
+        .catch(err => {
+          setError(err.detail || 'Issue deleting threshold');
           const errorThreshold = {
             ...thresholdData,
             hasError: true,
@@ -183,7 +190,11 @@ export function ThresholdGroupRows({thresholds, columns, orgSlug, refetch}: Prop
       {Array.from(thresholdIdSet).map((tId: string, idx: number) => {
         const threshold = editingThresholds[tId] || thresholdsById[tId];
         return (
-          <StyledRow key={threshold.id} lastRow={idx === thresholdIdSet.size - 1}>
+          <StyledRow
+            key={threshold.id}
+            lastRow={idx === thresholdIdSet.size - 1}
+            hasError={threshold.hasError}
+          >
             <FlexCenter style={{borderBottom: 0}}>
               {idx === 0 ? (
                 <ProjectBadge
@@ -360,12 +371,14 @@ const StyledThresholdGroup = styled('div')<StyledThresholdGroupProps>`
 
 type StyledThresholdRowProps = {
   lastRow: boolean;
+  hasError?: boolean;
 };
 const StyledRow = styled('div')<StyledThresholdRowProps>`
   display: contents;
   > * {
     padding: ${space(2)};
     border-bottom: ${p => (p.lastRow ? 0 : '1px solid ' + p.theme.border)};
+    background-color: ${p => (p.hasError ? 'rgba(255, 0, 0, 0.1)' : 'none')};
   }
 `;
 
