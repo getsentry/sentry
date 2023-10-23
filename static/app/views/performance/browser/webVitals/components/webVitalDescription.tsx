@@ -44,30 +44,36 @@ const VITAL_DESCRIPTIONS: Partial<Record<WebVital, string>> = {
   ),
 };
 
-export function WebVitalDescription({score, value, webVital}: Props) {
+export function WebVitalDetailHeader({score, value, webVital}: Props) {
   const theme = useTheme();
+  return (
+    <Header>
+      <span>
+        <WebVitalName>{`${WEB_VITAL_FULL_NAME_MAP[webVital]} (P75)`}</WebVitalName>
+        <Value>{value}</Value>
+      </span>
+      <ProgressRing
+        value={score}
+        size={100}
+        barWidth={16}
+        text={
+          <ProgressRingTextContainer>
+            <ProgressRingText>{score}</ProgressRingText>
+            <ProgressRingSubText>{webVital.toUpperCase()}</ProgressRingSubText>
+          </ProgressRingTextContainer>
+        }
+        progressColor={getScoreColor(score, theme)}
+        backgroundColor={`${getScoreColor(score, theme)}33`}
+      />
+    </Header>
+  );
+}
+
+export function WebVitalDescription({score, value, webVital}: Props) {
   const description: string = VITAL_DESCRIPTIONS[WebVital[webVital.toUpperCase()]];
   return (
     <div>
-      <Header>
-        <span>
-          <WebVitalName>{`${WEB_VITAL_FULL_NAME_MAP[webVital]} (P75)`}</WebVitalName>
-          <Value>{value}</Value>
-        </span>
-        <ProgressRing
-          value={score}
-          size={100}
-          barWidth={16}
-          text={
-            <ProgressRingTextContainer>
-              <ProgressRingText>{score}</ProgressRingText>
-              <ProgressRingSubText>{webVital.toUpperCase()}</ProgressRingSubText>
-            </ProgressRingTextContainer>
-          }
-          progressColor={getScoreColor(score, theme)}
-          backgroundColor={`${getScoreColor(score, theme)}33`}
-        />
-      </Header>
+      <WebVitalDetailHeader score={score} value={value} webVital={webVital} />
       <p>{description}</p>
       <p>
         <b>
