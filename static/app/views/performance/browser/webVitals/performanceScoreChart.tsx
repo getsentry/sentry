@@ -202,7 +202,7 @@ const ProgressRingContainer = styled('div')``;
 
 const ProgressRingText = styled('text')`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.textColor};
+  fill: ${p => p.theme.textColor};
   font-weight: bold;
 `;
 
