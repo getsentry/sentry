@@ -58,8 +58,8 @@ function ReplayMetaData({replayErrors, replayRecord}: Props) {
       <KeyMetricData>
         {replayRecord?.count_dead_clicks ? (
           <Link to={breadcrumbTab}>
-            <ClickCount color="yellow300">
-              <IconCursorArrow size="sm" />
+            <ClickCount color="gray300">
+              <IconCursorArrow size="sm" color="yellow300" />
               {replayRecord.count_dead_clicks}
             </ClickCount>
           </Link>
@@ -71,9 +71,9 @@ function ReplayMetaData({replayErrors, replayRecord}: Props) {
       <KeyMetricLabel>{t('Rage Clicks')}</KeyMetricLabel>
       <KeyMetricData>
         {replayRecord?.count_rage_clicks ? (
-          <Link to={breadcrumbTab} color="red300">
-            <ClickCount color="red300">
-              <IconCursorArrow size="sm" />
+          <Link to={breadcrumbTab}>
+            <ClickCount color="gray300">
+              <IconCursorArrow size="sm" color="red300" />
               {replayRecord.count_rage_clicks}
             </ClickCount>
           </Link>
