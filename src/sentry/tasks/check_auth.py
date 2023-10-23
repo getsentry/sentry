@@ -1,5 +1,6 @@
 import logging
 from datetime import timedelta
+from random import randrange
 
 from django.db import router
 from django.utils import timezone
@@ -26,9 +27,10 @@ def check_auth(**kwargs):
     """
     # TODO(dcramer): we should remove identities if they've been inactivate
     # for a reasonable interval
+    auth_check_interval = AUTH_CHECK_INTERVAL - randrange(3600)
     now = timezone.now()
     chunk_size = 100
-    cutoff = now - timedelta(seconds=AUTH_CHECK_INTERVAL)
+    cutoff = now - timedelta(seconds=auth_check_interval)
     identity_ids_list = list(
         AuthIdentity.objects.using_replica()
         .filter(last_synced__lte=cutoff)
@@ -41,7 +43,7 @@ def check_auth(**kwargs):
 
         for identity_id in identity_ids_chunk:
             check_auth_identity.apply_async(
-                kwargs={"auth_identity_id": identity_id}, expires=AUTH_CHECK_INTERVAL
+                kwargs={"auth_identity_id": identity_id}, expires=auth_check_interval
             )
 
 
