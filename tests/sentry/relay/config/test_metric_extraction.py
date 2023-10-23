@@ -21,7 +21,7 @@ from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 
 ON_DEMAND_METRICS = "organizations:on-demand-metrics-extraction"
-ON_DEMAND_METRICS_WIDGETS = "organizations:on-demand-metrics-extraction-experimental"
+ON_DEMAND_METRICS_WIDGETS = "organizations:on-demand-metrics-extraction-widgets"
 ON_DEMAND_METRICS_PREFILL = "organizations:on-demand-metrics-prefill"
 
 
