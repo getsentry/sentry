@@ -352,7 +352,7 @@ export function ReplayCell({
 
   if (replay.is_archived) {
     return (
-      <Item isArchived={replay.is_archived}>
+      <Item isArchived={replay.is_archived} isReplayCell>
         <Row gap={1}>
           <StyledIconDelete color="gray500" size="md" />
           <div>
@@ -377,17 +377,17 @@ export function ReplayCell({
           <Link to={detailsTab} onClick={trackNavigationEvent}>
             {getShortEventId(replay.id)}
           </Link>
-        </Row>
-        <Row gap={0.5}>
-          <IconCalendar color="gray300" size="xs" />
-          <TimeSince date={replay.started_at} />
+          <Row gap={0.5}>
+            <IconCalendar color="gray300" size="xs" />
+            <TimeSince date={replay.started_at} />
+          </Row>
         </Row>
       </Row>
     </Cols>
   );
 
   return (
-    <Item isWidget={isWidget}>
+    <Item isWidget={isWidget} isReplayCell>
       <UserBadge
         avatarSize={24}
         displayName={
@@ -625,7 +625,11 @@ export function ActivityCell({replay, showDropdownFilters}: Props) {
   );
 }
 
-const Item = styled('div')<{isArchived?: boolean; isWidget?: boolean}>`
+const Item = styled('div')<{
+  isArchived?: boolean;
+  isReplayCell?: boolean;
+  isWidget?: boolean;
+}>`
   display: flex;
   align-items: center;
   gap: ${space(1)};
@@ -634,7 +638,7 @@ const Item = styled('div')<{isArchived?: boolean; isWidget?: boolean}>`
       ? `padding: ${space(0.75)} ${space(1.5)} ${space(1.5)} ${space(1.5)};`
       : `padding: ${space(1.5)};`};
   ${p => (p.isArchived ? 'opacity: 0.5;' : '')};
-  overflow: scroll;
+  ${p => (p.isReplayCell ? 'overflow: auto;' : '')};
 `;
 
 const Count = styled('span')`
