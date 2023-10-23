@@ -3,6 +3,7 @@ from functools import cached_property
 from unittest import mock
 
 import pytest
+from django.contrib.auth.models import AnonymousUser
 from django.contrib.sessions.backends.base import SessionBase
 from django.db.models import F
 from django.test import RequestFactory
@@ -52,6 +53,7 @@ class OrganizationPermissionBase(TestCase):
             organization_context = organization_service.get_organization_by_id(
                 id=obj.id, user_id=user.id if user else None
             )
+            assert organization_context is not None
             result_with_org_context_rpc = self.has_object_perm(
                 method, organization_context, auth, user, is_superuser
             )
@@ -68,7 +70,7 @@ class OrganizationPermissionBase(TestCase):
             request=request, view=None
         ) and perm.has_object_permission(request=request, view=None, organization=obj)
         if result_with_org_rpc is not None:
-            return result_with_obj and result_with_org_rpc and result_with_org_context_rpc
+            return bool(result_with_obj and result_with_org_rpc and result_with_org_context_rpc)
         return result_with_obj
 
 
@@ -339,7 +341,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         result = self.endpoint.get_projects(request, self.org)
         assert [] == result
 
-        request.user = None
+        request.user = AnonymousUser()
         result = self.endpoint.get_projects(request, self.org)
         assert [] == result
 
@@ -366,8 +368,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
     ):
         project_slugs = [""]
         request = self.build_request(projectSlug=project_slugs)
-        mock_project_ids = set()
-        mock_get_project_ids_unchecked.return_value = mock_project_ids
+        mock_get_project_ids_unchecked.return_value = set()
 
         self.endpoint.get_projects(
             request,
@@ -376,7 +377,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
 
         mock_get_project_ids_unchecked.assert_called_with(request)
         mock__get_projects_by_id.assert_called_with(
-            mock_project_ids,
+            set(),
             request,
             self.org,
             False,

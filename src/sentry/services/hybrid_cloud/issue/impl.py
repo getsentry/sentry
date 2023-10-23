@@ -44,6 +44,6 @@ class DatabaseBackedIssueService(IssueService):
     ) -> None:
         from sentry.tasks.email import process_inbound_email
 
-        # Call the task syncrhonously so that the outbox retry works
+        # Call the task synchronously so that the outbox retry works
         # correctly should this fail.
         process_inbound_email(from_email, group_id, text)
