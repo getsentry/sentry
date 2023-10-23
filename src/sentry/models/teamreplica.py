@@ -12,8 +12,8 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 class TeamReplica(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    team_id = HybridCloudForeignKey("sentry.Team", on_delete="cascade")
-    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade")
+    team_id = HybridCloudForeignKey("sentry.Team", on_delete="CASCADE")
+    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
     slug = models.SlugField()
     name = models.CharField(max_length=64)
     status = BoundedPositiveIntegerField()

@@ -18,7 +18,7 @@ from sentry.models.apiscopes import HasApiScopes
 class ApiKeyReplica(Model, HasApiScopes):
     __relocation_scope__ = RelocationScope.Excluded
 
-    apikey_id = HybridCloudForeignKey("sentry.ApiKey", on_delete="cascade")
+    apikey_id = HybridCloudForeignKey("sentry.ApiKey", on_delete="CASCADE")
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
     label = models.CharField(max_length=64, blank=True)
     # Not unique to simplify replication -- use last()
