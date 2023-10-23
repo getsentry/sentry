@@ -9,6 +9,8 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.slack import link_team
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
@@ -795,3 +797,35 @@ class NotificationControllerTest(TestCase):
             type=NotificationSettingEnum.REPORTS,
         )
         assert controller.get_users_for_weekly_reports() == []
+
+    @with_feature("organizations:team-workflow-notifications")
+    def test_removes_teams_without_slack_as_provider(self):
+        self.team1 = self.create_team(organization=self.organization, name="Mariachi Band 1")
+        self.team2 = self.create_team(organization=self.organization, name="Mariachi Band 2")
+
+        link_team(self.team1, self.integration, "#mariachi-band-1", "mariachi-band-1_id")
+
+        controller = NotificationController(
+            recipients=[self.team1, self.team2],
+            organization_id=self.organization.id,
+            type=NotificationSettingEnum.WORKFLOW,
+            provider=ExternalProviderEnum.EMAIL,
+        )
+
+        assert len(controller.recipients) == 0
+
+    @with_feature("organizations:team-workflow-notifications")
+    def test_removes_teams_without_slack_channel(self):
+        self.team1 = self.create_team(organization=self.organization, name="Mariachi Band 1")
+        self.team2 = self.create_team(organization=self.organization, name="Mariachi Band 2")
+
+        link_team(self.team1, self.integration, "#mariachi-band-1", "mariachi-band-1_id")
+
+        controller = NotificationController(
+            recipients=[self.team1, self.team2],
+            organization_id=self.organization.id,
+            type=NotificationSettingEnum.WORKFLOW,
+            provider=ExternalProviderEnum.SLACK,
+        )
+
+        assert len(controller.recipients) == 1
