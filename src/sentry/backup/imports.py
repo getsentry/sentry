@@ -247,7 +247,7 @@ def _import(
             org_id, _, org_slug = org_pk_mapping[old_primary_key]
             org_ids_and_slugs.add((org_id, org_slug or ""))
 
-        if should_use_control_provisioning() and len(org_ids_and_slugs) > 0:
+        if len(org_ids_and_slugs) > 0:
             organization_provisioning_service.bulk_create_organization_slugs(
                 org_ids_and_slugs=org_ids_and_slugs
             )
@@ -259,7 +259,8 @@ def _import(
     else:
         do_writes(pk_map)
 
-    resolve_org_slugs_from_pk_map(pk_map)
+    if should_use_control_provisioning():
+        resolve_org_slugs_from_pk_map(pk_map)
 
     if deferred_org_auth_tokens:
         do_write(pk_map, org_auth_token_model_name, deferred_org_auth_tokens)

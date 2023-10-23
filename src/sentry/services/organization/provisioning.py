@@ -172,6 +172,25 @@ class OrganizationProvisioningService:
     def bulk_create_organization_slugs(
         self, org_ids_and_slugs: Set[Tuple[int, str]], region_name: Optional[str] = None
     ):
+        """
+        CAUTION: DO NOT USE THIS OUTSIDE OF THE IMPORT/RELOCATION CONTEXT
+
+        Organizations are meant to be provisioned via the
+         `provision_organization_in_region` method, which handles both slug
+         reservation and organization creation.
+
+        Bulk creates slug reservations for imported organizations that already
+        exist on the region. Each target organization is provided as a tuple of
+        Organization ID (int) and base slug (str).
+
+        :param org_ids_and_slugs: A set of tuples containing an organization ID
+        and base slug.
+        :param region_name: The region where the imported organizations exist
+        :return:
+        """
+        if not should_use_control_provisioning():
+            raise Exception("Cannot bulk create slugs with control provisioning disabled")
+
         destination_region_name = self._validate_or_default_region(region_name=region_name)
 
         from sentry.hybridcloud.rpc_services.control_organization_provisioning import (

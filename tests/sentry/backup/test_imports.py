@@ -54,6 +54,7 @@ from sentry.services.hybrid_cloud.import_export.model import RpcImportErrorKind
 from sentry.silo.base import SiloMode
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.backups import (
     NOOP_PRINTER,
     BackupTestCase,
@@ -295,6 +296,10 @@ class SanitizationTests(ImportTestCase):
                 == imported_organization.id
             )
 
+    def test_generate_suffix_for_already_taken_organization_with_control_option(self):
+        with override_options({"hybrid_cloud.control-organization-provisioning": True}):
+            self.test_generate_suffix_for_already_taken_organization()
+
     def test_generate_suffix_for_already_taken_username(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             self.create_user("testing@example.com")
@@ -508,6 +513,10 @@ class SignalingTests(ImportTestCase):
                 organization_id=imported_organization.id, slug="some-org"
             ).exists()
             assert OrganizationMemberMapping.objects.count() == 3
+
+    def test_import_signaling_organization_with_control_provisioning_option(self):
+        with override_options({"hybrid_cloud.control-organization-provisioning": True}):
+            self.test_import_signaling_organization()
 
 
 @region_silo_test(stable=True)
