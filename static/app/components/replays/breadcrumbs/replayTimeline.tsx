@@ -11,7 +11,7 @@ import ReplayTimelineEvents from 'sentry/components/replays/breadcrumbs/replayTi
 import ReplayTimelineSpans from 'sentry/components/replays/breadcrumbs/replayTimelineSpans';
 import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
 import {
-  NewTimelineScrubber,
+  CompactTimelineScrubber,
   TimelineScrubber,
 } from 'sentry/components/replays/player/scrubber';
 import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
@@ -45,7 +45,7 @@ function ReplayTimeline({}: Props) {
   return hasNewTimeline ? (
     <PanelNoMarginBorder ref={panelRef} {...mouseTrackingProps}>
       <Stacked ref={stackedRef}>
-        <NewTimelineScrubber />
+        <CompactTimelineScrubber />
         <TimelineEventsContainer>
           <ReplayTimelineEvents
             durationMs={durationMs}

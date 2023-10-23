@@ -126,7 +126,7 @@ export const TimelineScrubber = styled(Scrubber)`
   }
 `;
 
-export const NewTimelineScrubber = styled(Scrubber)`
+export const CompactTimelineScrubber = styled(Scrubber)`
   height: 100%;
 
   ${Meter} {
