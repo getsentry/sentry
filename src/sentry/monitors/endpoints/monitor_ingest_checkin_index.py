@@ -15,7 +15,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
-from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.monitors.logic.mark_failed import mark_failed
@@ -28,6 +27,7 @@ from sentry.monitors.models import (
     MonitorEnvironmentLimitsExceeded,
     MonitorEnvironmentValidationFailed,
     MonitorLimitsExceeded,
+    MonitorObjectStatus,
 )
 from sentry.monitors.serializers import MonitorCheckInSerializer
 from sentry.monitors.utils import get_timeout_at, signal_first_checkin, signal_monitor_created
@@ -98,8 +98,8 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
         Note: If a DSN is utilized for authentication, the response will be limited in details.
         """
         if monitor and monitor.status in [
-            ObjectStatus.PENDING_DELETION,
-            ObjectStatus.DELETION_IN_PROGRESS,
+            MonitorObjectStatus.PENDING_DELETION,
+            MonitorObjectStatus.DELETION_IN_PROGRESS,
         ]:
             return self.respond(status=404)
 

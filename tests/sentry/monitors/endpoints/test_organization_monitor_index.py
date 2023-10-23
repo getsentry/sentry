@@ -7,9 +7,14 @@ from django.conf import settings
 from django.test.utils import override_settings
 
 from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
-from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
-from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
+from sentry.monitors.models import (
+    Monitor,
+    MonitorObjectStatus,
+    MonitorStatus,
+    MonitorType,
+    ScheduleType,
+)
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
@@ -49,7 +54,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             monitor_status = getattr(MonitorStatus, status_key)
             # TODO(rjo100): this is precursor to removing the MonitorStatus values from Monitors
             monitor = self._create_monitor(
-                status=ObjectStatus.ACTIVE,
+                status=MonitorObjectStatus.ACTIVE,
                 name=status_key,
             )
             self._create_monitor_environment(
@@ -178,7 +183,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert monitor.organization_id == self.organization.id
         assert monitor.project_id == self.project.id
         assert monitor.name == "My Monitor"
-        assert monitor.status == ObjectStatus.ACTIVE
+        assert monitor.status == MonitorObjectStatus.ACTIVE
         assert monitor.type == MonitorType.CRON_JOB
         assert monitor.config == {
             "schedule_type": ScheduleType.CRONTAB,
