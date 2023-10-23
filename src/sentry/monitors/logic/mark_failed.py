@@ -8,7 +8,6 @@ from django.db.models import Q
 from django.utils import timezone
 
 from sentry import features
-from sentry.constants import ObjectStatus
 from sentry.grouping.utils import hash_from_values
 from sentry.issues.grouptype import (
     MonitorCheckInFailure,
@@ -22,6 +21,7 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorIncident,
+    MonitorObjectStatus,
     MonitorStatus,
 )
 
@@ -106,7 +106,7 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
 
     monitor_env = failed_checkin.monitor_environment
 
-    monitor_disabled = monitor_env.monitor.status == ObjectStatus.DISABLED
+    monitor_disabled = monitor_env.monitor.status == MonitorObjectStatus.DISABLED
 
     fingerprint = None
 
@@ -188,7 +188,7 @@ def mark_failed_no_threshold(failed_checkin: MonitorCheckIn):
     monitor_env = failed_checkin.monitor_environment
 
     # Do not create event if monitor is disabled
-    if monitor_env.monitor.status == ObjectStatus.DISABLED:
+    if monitor_env.monitor.status == MonitorObjectStatus.DISABLED:
         return True
 
     use_issue_platform = False
