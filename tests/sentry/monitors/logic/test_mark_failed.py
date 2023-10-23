@@ -5,7 +5,6 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
-from sentry.constants import ObjectStatus
 from sentry.grouping.utils import hash_from_values
 from sentry.issues.grouptype import (
     MonitorCheckInFailure,
@@ -20,6 +19,7 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorIncident,
+    MonitorObjectStatus,
     MonitorStatus,
     MonitorType,
     ScheduleType,
@@ -553,7 +553,7 @@ class MarkFailedTestCase(TestCase):
                 "max_runtime": None,
                 "checkin_margin": None,
             },
-            status=ObjectStatus.DISABLED,
+            status=MonitorObjectStatus.DISABLED,
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -570,7 +570,7 @@ class MarkFailedTestCase(TestCase):
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
-        assert monitor.status == ObjectStatus.DISABLED
+        assert monitor.status == MonitorObjectStatus.DISABLED
         assert monitor_environment.status == MonitorStatus.ERROR
 
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
@@ -710,7 +710,7 @@ class MarkFailedTestCase(TestCase):
                 "max_runtime": None,
                 "checkin_margin": None,
             },
-            status=ObjectStatus.DISABLED,
+            status=MonitorObjectStatus.DISABLED,
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -728,7 +728,7 @@ class MarkFailedTestCase(TestCase):
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
-        assert monitor.status == ObjectStatus.DISABLED
+        assert monitor.status == MonitorObjectStatus.DISABLED
         assert monitor_environment.status == MonitorStatus.ERROR
 
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
