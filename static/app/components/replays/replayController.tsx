@@ -189,14 +189,26 @@ function ReplayControls({
     <ButtonGrid ref={barRef} isCompact={isCompact}>
       <ReplayPlayPauseBar />
       <Container>
-        {hasNewTimeline ? <ReplayTimeline /> : null}
-        <TimeAndScrubber isCompact={isCompact}>
-          <Time>{formatTime(currentTime)}</Time>
-          <StyledScrubber ref={elem} {...mouseTrackingProps}>
-            <PlayerScrubber />
-          </StyledScrubber>
-          <Time>{durationMs ? formatTime(durationMs) : '--:--'}</Time>
-        </TimeAndScrubber>
+        {hasNewTimeline ? (
+          <NewTimeAndScrubber isCompact={isCompact}>
+            <NewTime>{formatTime(currentTime)}</NewTime>
+            <TimeAndTimelineContainer>
+              <ReplayTimeline />
+              <StyledScrubber ref={elem} {...mouseTrackingProps}>
+                <PlayerScrubber />
+              </StyledScrubber>
+            </TimeAndTimelineContainer>
+            <NewTime>{durationMs ? formatTime(durationMs) : '--:--'}</NewTime>
+          </NewTimeAndScrubber>
+        ) : (
+          <TimeAndScrubber isCompact={isCompact}>
+            <Time>{formatTime(currentTime)}</Time>
+            <StyledScrubber ref={elem} {...mouseTrackingProps}>
+              <PlayerScrubber />
+            </StyledScrubber>
+            <Time>{durationMs ? formatTime(durationMs) : '--:--'}</Time>
+          </TimeAndScrubber>
+        )}
       </Container>
       <ButtonBar gap={1}>
         <ReplayOptionsMenu speedOptions={speedOptions} />
@@ -244,14 +256,40 @@ const TimeAndScrubber = styled('div')<{isCompact: boolean}>`
       : ''}
 `;
 
+const NewTimeAndScrubber = styled('div')<{isCompact: boolean}>`
+  width: 100%;
+  display: grid;
+  grid-column-gap: ${space(1.5)};
+  grid-template-columns: max-content auto max-content;
+  ${p =>
+    p.isCompact
+      ? `
+        order: -1;
+        min-width: 100%;
+        margin-top: -8px;
+      `
+      : ''}
+`;
+
 const Time = styled('span')`
   font-variant-numeric: tabular-nums;
+`;
+
+const NewTime = styled('span')`
+  font-variant-numeric: tabular-nums;
+  align-self: flex-end;
+  padding-bottom: 7px;
 `;
 
 const StyledScrubber = styled('div')`
   height: 32px;
   display: flex;
   align-items: center;
+`;
+
+const TimeAndTimelineContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
 `;
 
 export default ReplayControls;
