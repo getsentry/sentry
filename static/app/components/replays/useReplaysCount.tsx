@@ -5,7 +5,7 @@ import {DateString, IssueCategory, Organization} from 'sentry/types';
 import toArray from 'sentry/utils/toArray';
 import useApi from 'sentry/utils/useApi';
 
-type Options = {
+export type UseReplaysCountOptions = {
   organization: Organization;
   datetime?: {
     end: DateString;
@@ -28,7 +28,7 @@ function useReplaysCount({
   transactionNames,
   extraConditions,
   datetime,
-}: Options) {
+}: UseReplaysCountOptions) {
   const api = useApi();
 
   const [replayCounts, setReplayCounts] = useState<CountState>({});

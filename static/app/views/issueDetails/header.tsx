@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
@@ -9,6 +9,7 @@ import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventMessage from 'sentry/components/events/eventMessage';
+import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
@@ -16,12 +17,21 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
-import useReplaysCount from 'sentry/components/replays/useReplaysCount';
+import useReplaysCount, {
+  UseReplaysCountOptions,
+} from 'sentry/components/replays/useReplaysCount';
 import {TabList} from 'sentry/components/tabs';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, IssueCategory, Organization, Project} from 'sentry/types';
+import {
+  Event,
+  Group,
+  IssueCategory,
+  IssueType,
+  Organization,
+  Project,
+} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
@@ -44,7 +54,8 @@ type Props = {
   event?: Event;
 };
 
-interface GroupHeaderTabsProps extends Pick<Props, 'baseUrl' | 'group' | 'project'> {
+interface GroupHeaderTabsProps
+  extends Pick<Props, 'baseUrl' | 'group' | 'project' | 'event'> {
   disabledTabs: Tab[];
   eventRoute: LocationDescriptor;
 }
@@ -55,14 +66,46 @@ function GroupHeaderTabs({
   eventRoute,
   group,
   project,
+  event,
 }: GroupHeaderTabsProps) {
-  const organization = useOrganization();
+  const issueTypeConfig = getConfigForIssueType(group);
 
-  const replaysCount = useReplaysCount({
+  const organization = useOrganization();
+  const now = useRef(new Date().toISOString());
+
+  let replayCountProps: UseReplaysCountOptions = {
+    organization,
     issueCategory: group.issueCategory,
     groupIds: group.id,
-    organization,
-  })[group.id];
+  };
+  let replayCountKey = group.id;
+
+  if (
+    group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION &&
+    event?.occurrence
+  ) {
+    const {transaction, aggregateRange2, breakpoint} =
+      event?.occurrence?.evidenceData ?? {};
+    replayCountProps = {
+      organization,
+      issueCategory: group.issueCategory,
+      transactionNames: transaction,
+      extraConditions: getSampleEventQuery({
+        transaction,
+        durationBaseline: aggregateRange2,
+        addUpperBound: false,
+      })
+        .split(' ')
+        .filter(condition => !condition.startsWith('transaction:'))
+        .join(' '),
+      datetime: {
+        start: new Date(breakpoint * 1000).toISOString(),
+        end: now.current,
+      },
+    };
+    replayCountKey = transaction;
+  }
+  const replaysCount = useReplaysCount(replayCountProps)[replayCountKey];
   const projectFeatures = new Set(project ? project.features : []);
   const organizationFeatures = new Set(organization ? organization.features : []);
 
@@ -70,8 +113,6 @@ function GroupHeaderTabs({
   const hasEventAttachments = organizationFeatures.has('event-attachments');
   const hasReplaySupport =
     organizationFeatures.has('session-replay') && projectCanLinkToReplay(project);
-
-  const issueTypeConfig = getConfigForIssueType(group);
 
   useRouteAnalyticsParams({
     group_has_replay: (replaysCount ?? 0) > 0,
@@ -309,7 +350,9 @@ function GroupHeader({
         <HeaderRow className="hidden-sm hidden-md hidden-lg">
           <EnvironmentPageFilter position="bottom-end" />
         </HeaderRow>
-        <GroupHeaderTabs {...{baseUrl, disabledTabs, eventRoute, group, project}} />
+        <GroupHeaderTabs
+          {...{baseUrl, disabledTabs, eventRoute, group, project, event}}
+        />
       </div>
     </Layout.Header>
   );
