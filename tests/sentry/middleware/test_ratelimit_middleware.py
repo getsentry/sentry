@@ -14,20 +14,20 @@ from sentry.api.base import Endpoint
 from sentry.api.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from sentry.middleware.ratelimit import RatelimitMiddleware
 from sentry.models.apikey import ApiKey
-from sentry.models.apitoken import ApiToken
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.user import User
 from sentry.ratelimits.config import RateLimitConfig, get_default_rate_limits_for_group
 from sentry.ratelimits.utils import get_rate_limit_config, get_rate_limit_key, get_rate_limit_value
-from sentry.testutils.cases import APITestCase, TestCase
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import APITestCase, BaseTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
-@control_silo_test(stable=True)
+@all_silo_test(stable=True)
 @override_settings(SENTRY_SELF_HOSTED=False)
-class RatelimitMiddlewareTest(TestCase):
+class RatelimitMiddlewareTest(TestCase, BaseTestCase):
     middleware = RatelimitMiddleware(lambda request: sentinel.response)
 
     @cached_property
@@ -41,13 +41,15 @@ class RatelimitMiddlewareTest(TestCase):
     _test_endpoint = TestEndpoint.as_view()
 
     def populate_sentry_app_request(self, request):
-        sentry_app = self.create_sentry_app(
-            name="Bubbly Webhook",
-            organization=self.organization,
-            webhook_url="https://example.com",
-            scopes=["event:write"],
-        )
+        install = self.create_sentry_app_installation(organization=self.organization)
 
+        token = install.api_token
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            request.user = User.objects.get(id=install.sentry_app.proxy_user_id)
+        request.auth = token
+
+    def populate_internal_integration_request(self, request):
         internal_integration = self.create_internal_integration(
             name="my_app",
             organization=self.organization,
@@ -55,12 +57,17 @@ class RatelimitMiddlewareTest(TestCase):
             webhook_url="http://example.com",
         )
         # there should only be one record created so just grab the first one
-        install = SentryAppInstallation.objects.get(
-            sentry_app=internal_integration.id, organization_id=self.organization.id
-        )
-        token = install.api_token
+        token = None
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            install = SentryAppInstallation.objects.get(
+                sentry_app=internal_integration.id, organization_id=self.organization.id
+            )
+            token = install.api_token
 
-        request.user = User.objects.get(id=sentry_app.proxy_user_id)
+        assert token is not None
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            request.user = User.objects.get(id=internal_integration.proxy_user_id)
         request.auth = token
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value", side_effect=Exception)
@@ -154,6 +161,10 @@ class RatelimitMiddlewareTest(TestCase):
         self.middleware.process_view(request, self._test_endpoint, [], {})
         assert request.rate_limit_category == RateLimitCategory.ORGANIZATION
 
+        self.populate_internal_integration_request(request)
+        self.middleware.process_view(request, self._test_endpoint, [], {})
+        assert request.rate_limit_category == RateLimitCategory.ORGANIZATION
+
     def test_get_rate_limit_key(self):
         # Import an endpoint
 
@@ -187,7 +198,7 @@ class RatelimitMiddlewareTest(TestCase):
         )
 
         # Test for user auth tokens
-        token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
+        token = self.create_user_auth_token(user=self.user, scope_list=["event:read", "org:read"])
         request.auth = token
         request.user = self.user
         assert (
@@ -202,11 +213,19 @@ class RatelimitMiddlewareTest(TestCase):
             == f"org:default:OrganizationGroupIndexEndpoint:GET:{self.organization.id}"
         )
 
-        # Test for apikey
-        api_key = ApiKey.objects.create(
-            organization_id=self.organization.id, scope_list=["project:write"]
+        self.populate_internal_integration_request(request)
+        assert (
+            get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
+            == f"org:default:OrganizationGroupIndexEndpoint:GET:{self.organization.id}"
         )
+
+        # Test for
         request.user = AnonymousUser()
+        api_key = None
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            api_key = ApiKey.objects.create(
+                organization_id=self.organization.id, scope_list=["project:write"]
+            )
         request.auth = api_key
         assert (
             get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
