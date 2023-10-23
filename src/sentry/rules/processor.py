@@ -153,9 +153,7 @@ class RuleProcessor:
             return None
 
         condition_inst = condition_cls(self.project, data=condition, rule=rule)
-        if not isinstance(condition_inst, EventCondition) and not isinstance(
-            condition_inst, EventFilter
-        ):
+        if not isinstance(condition_inst, (EventCondition, EventFilter)):
             self.logger.warning("Unregistered condition %r", condition["id"])
             return None
         passes: bool = safe_execute(
