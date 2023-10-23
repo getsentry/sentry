@@ -10,6 +10,7 @@ from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.user import DetailedSelfUserSerializer
 from sentry.models.organization import Organization
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import auth, metrics
 from sentry.utils.hashlib import md5_text
 from sentry.web.forms.accounts import AuthenticationForm
@@ -24,6 +25,12 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
     owner = ApiOwner.ENTERPRISE
     # Disable authentication and permission requirements.
     permission_classes = []
+    enforce_rate_limit = True
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(20, 1),  # 20 GET requests per second per IP
+        }
+    }
 
     def dispatch(self, request: Request, *args, **kwargs) -> Response:
         self.determine_active_organization(request)
