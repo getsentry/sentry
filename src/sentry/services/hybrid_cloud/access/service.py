@@ -4,6 +4,7 @@ from typing import FrozenSet, List, Optional
 
 from django.utils import timezone
 
+from sentry.auth import find_providers_requiring_refresh
 from sentry.services.hybrid_cloud import silo_mode_delegation
 from sentry.services.hybrid_cloud.auth import (
     RpcAuthIdentity,
@@ -13,7 +14,6 @@ from sentry.services.hybrid_cloud.auth import (
 )
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberSummary
 from sentry.silo import SiloMode
-from sentry.tasks.check_auth import find_providers_requiring_refresh
 
 _SSO_BYPASS = RpcMemberSsoState(is_required=False, is_valid=True)
 _SSO_NONMEMBER = RpcMemberSsoState(is_required=False, is_valid=False)

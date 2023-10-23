@@ -16,8 +16,8 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 @control_silo_test(stable=True)
 class CheckAuthTest(TestCase):
-    @patch("sentry.tasks.check_auth.check_auth_identity")
-    def test_simple(self, mock_check_auth_identity):
+    @patch("sentry.tasks.check_auth.check_auth_identities")
+    def test_simple(self, mock_check_auth_identities):
         organization = self.create_organization(name="Test")
         user = self.create_user(email="bar@example.com")
         auth_provider = AuthProvider.objects.create(
@@ -36,7 +36,7 @@ class CheckAuthTest(TestCase):
         assert updated_ai.last_synced != ai.last_synced
         assert updated_ai.last_verified == ai.last_verified
 
-        mock_check_auth_identity.apply_async.assert_called_once_with(
+        mock_check_auth_identities.apply_async.assert_called_once_with(
             kwargs={"auth_identity_ids": [ai.id], "chunk_size": 100}, expires=AUTH_CHECK_INTERVAL
         )
 

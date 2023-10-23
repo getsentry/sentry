@@ -8,6 +8,7 @@ from django.db import router
 from django.utils import timezone
 from sentry_sdk import capture_exception
 
+from sentry.auth import find_providers_requiring_refresh
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -21,12 +22,6 @@ from sentry.utils.env import in_test_environment
 logger = logging.getLogger("sentry.auth")
 
 AUTH_CHECK_INTERVAL = 3600 * 24
-
-
-def find_providers_requiring_refresh() -> List[str]:
-    from sentry.auth import manager
-
-    return [name for name, provider in manager if provider.requires_refresh]
 
 
 @instrumented_task(name="sentry.tasks.check_auth", queue="auth.control", silo_mode=SiloMode.CONTROL)
@@ -49,16 +44,24 @@ def check_auth(chunk_size=100, **kwargs):
     if identity_ids_list:
         with unguarded_write(router.db_for_write(AuthIdentity)):
             AuthIdentity.objects.filter(id__in=identity_ids_list).update(last_synced=now)
-        check_auth_identity.apply_async(
+        check_auth_identities.apply_async(
             kwargs={"auth_identity_ids": identity_ids_list, "chunk_size": chunk_size},
             expires=AUTH_CHECK_INTERVAL,
         )
 
 
+# Deprecate after roll out
 @instrumented_task(
     name="sentry.tasks.check_auth_identity", queue="auth.control", silo_mode=SiloMode.CONTROL
 )
-def check_auth_identity(
+def check_auth_identity(auth_identity_id: int, **kwargs):
+    check_single_auth_identity(auth_identity_id)
+
+
+@instrumented_task(
+    name="sentry.tasks.check_auth_identities", queue="auth.control", silo_mode=SiloMode.CONTROL
+)
+def check_auth_identities(
     auth_identity_id: int | None = None,
     auth_identity_ids: List[int] | None = None,
     chunk_size=100,
