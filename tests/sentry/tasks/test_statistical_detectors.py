@@ -164,12 +164,12 @@ def test_run_detection_options_multiple_batches(
     detect_transaction_trends.delay.assert_has_calls(
         [
             mock.call(
-                [project.organization_id for project in projects[:5]],
+                [organization.id],
                 [project.id for project in projects[:5]],
                 timestamp,
             ),
             mock.call(
-                [project.organization_id for project in projects[5:]],
+                [organization.id],
                 [project.id for project in projects[5:]],
                 timestamp,
             ),
