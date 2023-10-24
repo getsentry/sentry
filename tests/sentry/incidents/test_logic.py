@@ -66,6 +66,7 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
 )
+from sentry.integrations.discord.client import DiscordClient
 from sentry.models.actor import ActorTuple, get_actor_id_for_user
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -1431,10 +1432,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
     @responses.activate
     def test_discord(self):
         guild_id = "example-discord-server"
-        metadata = {
-            "guild_id": guild_id,
-            "name": "Server Name",
-        }
+        metadata = {"guild_id": guild_id, "name": "Server Name", "type": DiscordClient.GUILD_TEXT}
         integration = Integration.objects.create(
             provider="discord",
             name="Example Discord",
@@ -1467,10 +1465,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
 
     def test_discord_flag_off(self):
         guild_id = "example-discord-server"
-        metadata = {
-            "guild_id": guild_id,
-            "name": "Server Name",
-        }
+        metadata = {"guild_id": guild_id, "name": "Server Name", "type": DiscordClient.GUILD_TEXT}
         integration = Integration.objects.create(
             provider="discord",
             external_id=guild_id,
@@ -1803,6 +1798,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             metadata={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
+                "type": DiscordClient.GUILD_TEXT,
             },
         )
 
@@ -1815,6 +1811,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             json={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
+                "type": DiscordClient.GUILD_TEXT,
             },
         )
 
@@ -1847,6 +1844,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             metadata={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
+                "type": DiscordClient.GUILD_TEXT,
             },
         )
 
@@ -1879,6 +1877,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             metadata={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
+                "type": DiscordClient.GUILD_TEXT,
             },
         )
 
@@ -1931,6 +1930,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             metadata={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
+                "type": DiscordClient.GUILD_TEXT,
             },
         )
 
@@ -1948,6 +1948,88 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
 
         with self.feature("organizations:integrations-discord-metric-alerts"):
             with pytest.raises(ChannelLookupTimeoutError):
+                update_alert_rule_trigger_action(
+                    self.action,
+                    type,
+                    target_type,
+                    target_identifier=channel_id,
+                    integration_id=integration.id,
+                )
+
+    @responses.activate
+    def test_discord_channel_not_in_guild(self):
+        base_url: str = "https://discord.com/api/v10"
+        channel_id = "channel-id"
+        guild_id = "example-discord-server"
+        guild_name = "Server Name"
+
+        integration = Integration.objects.create(
+            provider="discord",
+            name="Example Discord",
+            external_id=f"{guild_id}",
+            metadata={
+                "guild_id": f"{guild_id}",
+                "name": f"{guild_name}",
+                "type": DiscordClient.DM,
+            },
+        )
+
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.DISCORD
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        responses.add(
+            method=responses.GET,
+            url=f"{base_url}/channels/{channel_id}",
+            json={
+                "guild_id": "other-guild",
+                "name": f"{guild_name}",
+                "type": DiscordClient.DM,
+            },
+        )
+
+        with self.feature("organizations:integrations-discord-metric-alerts"):
+            with pytest.raises(InvalidTriggerActionError):
+                update_alert_rule_trigger_action(
+                    self.action,
+                    type,
+                    target_type,
+                    target_identifier=channel_id,
+                    integration_id=integration.id,
+                )
+
+    @responses.activate
+    def test_discord_unsupported_type(self):
+        base_url: str = "https://discord.com/api/v10"
+        channel_id = "channel-id"
+        guild_id = "example-discord-server"
+        guild_name = "Server Name"
+
+        integration = Integration.objects.create(
+            provider="discord",
+            name="Example Discord",
+            external_id=f"{guild_id}",
+            metadata={
+                "guild_id": f"{guild_id}",
+                "name": f"{guild_name}",
+                "type": DiscordClient.DM,
+            },
+        )
+
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.DISCORD
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        responses.add(
+            method=responses.GET,
+            url=f"{base_url}/channels/{channel_id}",
+            json={
+                "guild_id": f"{guild_id}",
+                "name": f"{guild_name}",
+                "type": DiscordClient.DM,
+            },
+        )
+
+        with self.feature("organizations:integrations-discord-metric-alerts"):
+            with pytest.raises(InvalidTriggerActionError):
                 update_alert_rule_trigger_action(
                     self.action,
                     type,

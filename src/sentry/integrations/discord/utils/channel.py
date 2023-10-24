@@ -90,7 +90,7 @@ def validate_channel_id(
                 "channel_type": result["type"],
             },
         )
-        raise ValidationError("Discord channel is not a text channel or thread")
+        raise ValidationError("Discord channel type is not supported")
 
     if result["guild_id"] != guild_id:
         # The channel exists and we have access to it, but it does not belong
