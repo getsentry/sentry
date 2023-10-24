@@ -42,7 +42,7 @@ class SerializableFunctionSignature:
             segments = itertools.chain(segments, (suffix,))
         return joiner.join(segments)
 
-    def _validate_type_token(self, token: Any) -> None:
+    def _validate_type_token(self, value_label: str, token: Any) -> None:
         """Check whether a type token is usable.
 
         Strings as type annotations, which Mypy can use if their types are imported
@@ -55,8 +55,11 @@ class SerializableFunctionSignature:
         object to (de)serialize something.
         """
         if isinstance(token, str):
-            name = self.generate_name(".")
-            raise ValueError(f"Type annotations on {name} must be actual type tokens, not strings")
+            raise SerializableFunctionSignatureSetupException(
+                self,
+                f"Invalid type token on {value_label} "
+                "(serializable functions must use concrete type tokens, not strings)",
+            )
 
     def _create_parameter_model(self) -> Type[pydantic.BaseModel]:
         """Dynamically create a Pydantic model class representing the parameters."""
@@ -66,13 +69,7 @@ class SerializableFunctionSignature:
                 raise SerializableFunctionSignatureSetupException(
                     self, "Type annotations are required to serialize"
                 )
-            try:
-                self._validate_type_token(param.annotation)
-            except ValueError as e:
-                raise SerializableFunctionSignatureSetupException(
-                    self,
-                    f"Type annotations must be actual type tokens, not strings; {param.name=!r}",
-                ) from e
+            self._validate_type_token(f"parameter `{param.name}`", param.annotation)
 
             default_value = ... if param.default is param.empty else param.default
             return param.annotation, default_value
@@ -98,7 +95,7 @@ class SerializableFunctionSignature:
         return_type = inspect.signature(self.base_function).return_annotation
         if return_type is None:
             return None
-        self._validate_type_token(return_type)
+        self._validate_type_token("return type", return_type)
 
         field_definitions = {self._RETURN_MODEL_ATTR: (return_type, ...)}
         return pydantic.create_model(model_name, **field_definitions)  # type: ignore[call-overload]
