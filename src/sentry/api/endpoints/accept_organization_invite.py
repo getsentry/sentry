@@ -35,7 +35,7 @@ def get_invite_state(
     user_id: int,
 ) -> Optional[RpcUserInviteContext]:
     if organization_slug is None:
-        logging.info("organization.member_invite.no_slug", {"member_id": member_id})
+        logger.info("organization.member_invite.no_slug", extra={"member_id": member_id})
 
         member_mapping: OrganizationMemberMapping | None = None
         member_mappings: Mapping[int, OrganizationMemberMapping] = {
