@@ -1,4 +1,6 @@
 import {Organization} from 'sentry-fixture/organization';
+import {ReplayErrorFixture} from 'sentry-fixture/replayError';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -7,8 +9,10 @@ import useProjects from 'sentry/utils/useProjects';
 
 jest.mock('sentry/utils/useProjects');
 
-const replayRecord = TestStubs.ReplayRecord();
+const replayRecord = ReplayRecordFixture();
 const organization = Organization({});
+
+const baseErrorProps = {id: '1', issue: '', timestamp: new Date().toISOString()};
 
 describe('ErrorCounts', () => {
   beforeEach(() => {
@@ -50,7 +54,7 @@ describe('ErrorCounts', () => {
   });
 
   it('should render an icon & count when all errors come from a single project', async () => {
-    const errors = [TestStubs.ReplayError({'project.name': 'my-js-app'})];
+    const errors = [ReplayErrorFixture({...baseErrorProps, 'project.name': 'my-js-app'})];
 
     render(<ErrorCounts replayErrors={errors} replayRecord={replayRecord} />, {
       organization,
@@ -70,9 +74,9 @@ describe('ErrorCounts', () => {
 
   it('should render an icon & count with links when there are errors in two unique projects', async () => {
     const errors = [
-      TestStubs.ReplayError({'project.name': 'my-js-app'}),
-      TestStubs.ReplayError({'project.name': 'my-py-backend'}),
-      TestStubs.ReplayError({'project.name': 'my-py-backend'}),
+      ReplayErrorFixture({...baseErrorProps, 'project.name': 'my-js-app'}),
+      ReplayErrorFixture({...baseErrorProps, 'project.name': 'my-py-backend'}),
+      ReplayErrorFixture({...baseErrorProps, 'project.name': 'my-py-backend'}),
     ];
 
     render(<ErrorCounts replayErrors={errors} replayRecord={replayRecord} />, {
@@ -100,12 +104,12 @@ describe('ErrorCounts', () => {
 
   it('should render multiple icons, but a single count and link, when there are errors in three or more projects', async () => {
     const errors = [
-      TestStubs.ReplayError({'project.name': 'my-js-app'}),
-      TestStubs.ReplayError({'project.name': 'my-py-backend'}),
-      TestStubs.ReplayError({'project.name': 'my-py-backend'}),
-      TestStubs.ReplayError({'project.name': 'my-node-service'}),
-      TestStubs.ReplayError({'project.name': 'my-node-service'}),
-      TestStubs.ReplayError({'project.name': 'my-node-service'}),
+      ReplayErrorFixture({...baseErrorProps, 'project.name': 'my-js-app'}),
+      ReplayErrorFixture({...baseErrorProps, 'project.name': 'my-py-backend'}),
+      ReplayErrorFixture({...baseErrorProps, 'project.name': 'my-py-backend'}),
+      ReplayErrorFixture({...baseErrorProps, 'project.name': 'my-node-service'}),
+      ReplayErrorFixture({...baseErrorProps, 'project.name': 'my-node-service'}),
+      ReplayErrorFixture({...baseErrorProps, 'project.name': 'my-node-service'}),
     ];
 
     render(<ErrorCounts replayErrors={errors} replayRecord={replayRecord} />, {

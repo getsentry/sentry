@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from sentry.integrations.github.client import GitHubApproachingRateLimit
 from sentry.integrations.github.integration import GitHubIntegrationProvider
-from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo
+from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
@@ -41,6 +41,8 @@ class TestCommitContextMixin(TestCase):
         self.code_mapping = self.create_code_mapping(
             repo=self.repo,
             project=self.project,
+            stack_root="sentry/",
+            source_root="sentry/",
         )
         self.commit_author = self.create_commit_author(project=self.project, user=self.user)
         self.commit = self.create_commit(
@@ -669,6 +671,61 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
 
         assert created_group_owner.context == {"commitId": created_commit.id}
 
+    @patch("sentry.analytics.record")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
+    )
+    @with_feature("organizations:suspect-commits-all-frames")
+    def test_maps_correct_files(self, mock_get_commit_context, mock_record):
+        """
+        Tests that the get_commit_context_all_frames function is called with the correct
+        files. Code mappings should be applied properly and non-matching files thrown out.
+        """
+        mock_get_commit_context.return_value = [self.blame_existing_commit]
+
+        other_code_mapping = self.create_code_mapping(
+            repo=self.repo,
+            project=self.project,
+            stack_root="other/",
+            source_root="sentry/",
+        )
+        frames = [
+            {
+                "in_app": True,
+                "lineno": 39,
+                "filename": "other/models/release.py",
+            }
+        ]
+
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+
+        assert GroupOwner.objects.get(
+            group=self.event.group,
+            project=self.event.project,
+            organization=self.event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        )
+
+        mock_get_commit_context.assert_called_once_with(
+            [
+                SourceLineInfo(
+                    lineno=39,
+                    path="sentry/models/release.py",
+                    ref="master",
+                    repo=other_code_mapping.repository,
+                    code_mapping=other_code_mapping,
+                )
+            ]
+        )
+
     @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
     @patch("sentry.analytics.record")
     @patch(
@@ -1018,6 +1075,88 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
                 "integration_id": self.integration.id,
                 "provider": "github",
             },
+        )
+
+    @patch("sentry.analytics.record")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
+    )
+    @with_feature("organizations:suspect-commits-all-frames")
+    def test_filters_invalid_and_dedupes_frames(self, mock_get_commit_context, mock_record):
+        """
+        Tests that invalid frames are filtered out and that duplicate frames are deduped.
+        """
+        mock_get_commit_context.return_value = [self.blame_existing_commit]
+        frames_with_dups = [
+            {
+                "function": "handle_set_commits",
+                "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
+                "module": "sentry.tasks",
+                "in_app": False,  # Not an In-App frame
+                "lineno": 30,
+                "filename": "sentry/tasks.py",
+            },
+            {
+                "function": "something_else",
+                "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
+                "module": "sentry.tasks",
+                "in_app": True,
+                "filename": "sentry/tasks.py",
+                # No lineno
+            },
+            {
+                "function": "set_commits",
+                "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
+                "module": "sentry.models.release",
+                "in_app": True,
+                "lineno": 39,
+                "filename": "sentry/models/release.py",
+            },
+            {
+                "function": "set_commits",
+                "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
+                "module": "sentry.models.release",
+                "in_app": True,
+                "lineno": 39,
+                "filename": "sentry/models/release.py",
+            },
+        ]
+
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=frames_with_dups,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+                sdk_name="sentry.python",
+            )
+
+        mock_get_commit_context.assert_called_with(
+            [
+                SourceLineInfo(
+                    lineno=39,
+                    path="sentry/models/release.py",
+                    ref="master",
+                    repo=self.repo,
+                    code_mapping=self.code_mapping,
+                ),
+            ]
+        )
+        mock_record.assert_any_call(
+            "integrations.successfully_fetched_commit_context_all_frames",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            group_id=self.event.group_id,
+            event_id=self.event.event_id,
+            num_frames=1,  # Filters out the invalid frames and dedupes the 2 valid frames
+            num_unique_commits=1,
+            num_unique_commit_authors=1,
+            num_successfully_mapped_frames=1,
+            selected_frame_index=0,
+            selected_provider="github",
+            selected_code_mapping_id=self.code_mapping.id,
         )
 
 

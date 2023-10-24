@@ -400,9 +400,14 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         if dataset != Dataset.Transactions:
             return dataset
 
-        has_performance_metrics = features.has(
+        has_dynamic_sampling = features.has(
+            "organizations:dynamic-sampling", self.context["organization"]
+        )
+        has_performance_metrics_flag = features.has(
             "organizations:mep-rollout-flag", self.context["organization"]
         )
+        has_performance_metrics = has_dynamic_sampling and has_performance_metrics_flag
+
         has_on_demand_metrics = features.has(
             "organizations:on-demand-metrics-extraction",
             self.context["organization"],
