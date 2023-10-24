@@ -589,7 +589,7 @@ export function ErrorCountCell({replay, showDropdownFilters}: Props) {
       <Container>
         {replay.count_errors ? (
           <ErrorCount>
-            <IconFire />
+            <IconFire color="red300" />
             {replay.count_errors}
           </ErrorCount>
         ) : (
@@ -665,7 +665,6 @@ const ErrorCount = styled(Count)`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  color: ${p => p.theme.red400};
 `;
 
 const Time = styled('span')`
