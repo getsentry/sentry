@@ -1,4 +1,4 @@
-import {constructSelector} from 'sentry/views/replays/deadRageClick/selectorTable';
+import {constructSelector} from 'sentry/views/replays/detail/utils';
 
 describe('constructSelector', () => {
   it.each([
