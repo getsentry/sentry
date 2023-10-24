@@ -263,9 +263,14 @@ def check_missing(current_datetime: datetime):
 def mark_environment_missing(monitor_environment_id: int, ts: datetime):
     logger.info("monitor.missed-checkin", extra={"monitor_environment_id": monitor_environment_id})
 
-    monitor_environment = MonitorEnvironment.objects.select_related("monitor").get(
-        id=monitor_environment_id
-    )
+    try:
+        monitor_environment = MonitorEnvironment.objects.select_related("monitor").get(
+            id=monitor_environment_id
+        )
+    except MonitorEnvironment.DoesNotExist:
+        # safety check in case monitor environment was deleted
+        return
+
     monitor = monitor_environment.monitor
     expected_time = monitor_environment.next_checkin
 
