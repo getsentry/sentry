@@ -1,7 +1,5 @@
 from unittest import mock
 
-import pytest
-
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.base import ReplacementRule
 from sentry.ingest.transaction_clusterer.datasource.redis import (
@@ -85,51 +83,6 @@ def test_distribution():
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
 @django_db_all
-@pytest.mark.parametrize(
-    "description, description_scrubbed, op, feat_flag_enabled, expected",
-    [
-        ("", "", "http.client", True, 0),
-        ("", "GET /a/b/c", "something.else", True, 0),
-        ("", "GET /a/b/c", "http.client", True, 1),
-        ("GET /a/b/c", "", "something.else", True, 0),
-        ("GET /a/b/c", "", "http.client", True, 1),
-        ("GET /a/b/c", "GET /a/*/c", "something.else", True, 0),
-        ("GET /a/b/c", "GET /a/*/c", "http.client", True, 1),
-        ("GET /a/b/c", "GET /a/*/c", "http.client", False, 0),
-    ],
-)
-def test_record_span(
-    mocked_record,
-    default_organization,
-    description,
-    description_scrubbed,
-    op,
-    feat_flag_enabled,
-    expected,
-):
-    with Feature(
-        {
-            "projects:span-metrics-extraction": feat_flag_enabled,
-        }
-    ):
-        project = Project(id=111, name="project", organization_id=default_organization.id)
-        record_span_descriptions(
-            project,
-            {
-                "spans": [
-                    {
-                        "description": description,
-                        "op": op,
-                        "data": {"description.scrubbed": description_scrubbed},
-                    }
-                ]
-            },
-        )
-        assert len(mocked_record.mock_calls) == expected
-
-
-@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
-@django_db_all
 def test_record_span_desc_url(mocked_record, default_organization):
     with Feature(
         {
@@ -142,21 +95,29 @@ def test_record_span_desc_url(mocked_record, default_organization):
             {
                 "spans": [
                     {
-                        "description": "POST http://example.com/remains/to-scrub/remains-too/1234567890",
-                        "op": "http.client",
-                        "data": {
-                            "description.scrubbed": "POST http://example.com/remains/*/remains-too/*"
+                        "op": "resource.css",
+                        "sentry_tags": {
+                            "description": "https://*.domain.com/jane/path/to/something.en-us.js"
                         },
-                    }
-                ]
+                    },
+                    {
+                        "op": "resource.css",
+                        "sentry_tags": {"description": "webroot/my.js"},
+                    },
+                ],
             },
         )
         assert mocked_record.mock_calls == [
             mock.call(
                 ClustererNamespace.SPANS,
                 Project(id=111, name="project", slug=None),
-                "/remains/*/remains-too/*",
-            )
+                "/jane/path/to/something.en-us.js",
+            ),
+            mock.call(
+                ClustererNamespace.SPANS,
+                Project(id=111, name="project", slug=None),
+                "webroot/my.js",
+            ),
         ]
 
 
@@ -411,17 +372,16 @@ def test_span_descs_clusterer_bumps_rules(_, default_organization):
                 {
                     "spans": [
                         {
-                            "description": "GET domain/remains/to-scrub/remains",
-                            "op": "http.client",
-                            "data": {"description.scrubbed": "GET domain/remains/*/remains"},
-                        }
+                            "op": "resource.css",
+                            "sentry_tags": {"description": "webroot/my.js"},
+                        },
                     ],
                     "_meta": {
                         "spans": {
                             "0": {
-                                "data": {
-                                    "description.scrubbed": {
-                                        "": {"rem": [["description.scrubbed:**/remains/*/**", "s"]]}
+                                "sentry_tags": {
+                                    "description": {
+                                        "": {"rem": [["description:**/remains/*/**", "s"]]}
                                     }
                                 }
                             }
@@ -455,20 +415,19 @@ def test_dont_store_inexisting_rules(_, default_organization):
         rogue_span_payload = {
             "spans": [
                 {
-                    "description": "GET domain/remains/to-scrub/remains",
-                    "op": "http.client",
-                    "data": {"description.scrubbed": "GET domain/remains/*/remains"},
-                }
+                    "op": "resource.css",
+                    "sentry_tags": {"description": "webroot/my.js"},
+                },
             ],
             "_meta": {
                 "spans": {
                     "0": {
-                        "data": {
-                            "description.scrubbed": {
+                        "sentry_tags": {
+                            "description": {
                                 "": {
                                     "rem": [
                                         [
-                                            "description.scrubbed:**/i/am/a/rogue/rule/dont/store/me/**",
+                                            "description:**/i/am/a/rogue/rule/dont/store/me/**",
                                             "s",
                                         ]
                                     ]
@@ -507,10 +466,9 @@ def test_record_span_descriptions_no_databag(default_organization):
         payload = {
             "spans": [
                 {
-                    "description": "GET a",
-                    "op": "http.client",
-                    "data": None,
-                }
+                    "op": "resource.css",
+                    "sentry_tags": {"description": "webroot/my.js"},
+                },
             ],
         }
 
