@@ -9,5 +9,5 @@ feedback: 0003_feedback_add_env
 hybridcloud: 0007_add_orgauthtokenreplica
 nodestore: 0002_nodestore_no_dictfield
 replays: 0003_add_size_to_recording_segment
-sentry: 0581_add_user_and_team_to_alert_rules
+sentry: 0582_add_status_indexes_checkins
 social_auth: 0002_default_auto_field
