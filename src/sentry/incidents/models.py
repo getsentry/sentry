@@ -458,10 +458,20 @@ class AlertRule(Model):
 
     __repr__ = sane_repr("id", "name", "date_added")
 
-    def save(self, **kwargs: Any) -> None:
+    def _validate_actor(self):
+        # TODO: Remove once owner is fully removed.
         if self.owner_id is not None and self.team_id is None and self.user_id is None:
             raise ValueError("AlertRule with owner requires either team_id or user_id")
+
+    def save(self, **kwargs: Any) -> None:
+        self._validate_actor()
         return super().save(**kwargs)
+
+    def update(self, **kwargs: Any):
+        with transaction.atomic(router.db_for_write(AlertRule)):
+            result = super().update(**kwargs)
+            self._validate_actor()
+            return result
 
     @property
     def created_by_id(self):

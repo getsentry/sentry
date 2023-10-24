@@ -704,8 +704,8 @@ def update_alert_rule(
         if owner is not None and not isinstance(owner, Actor):
             owner = owner.resolve_to_actor()
         updated_fields["owner"] = owner
-        updated_fields["team_id"] = owner.team_id
-        updated_fields["user_id"] = owner.user_id
+        updated_fields["team_id"] = owner.team_id if owner else None
+        updated_fields["user_id"] = owner.user_id if owner else None
     if comparison_delta is not NOT_SET:
         resolution = DEFAULT_ALERT_RULE_RESOLUTION
         if comparison_delta is not None:
