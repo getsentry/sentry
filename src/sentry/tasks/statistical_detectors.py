@@ -107,7 +107,7 @@ def run_detection() -> None:
 
             if len(performance_projects) >= PROJECTS_PER_BATCH:
                 detect_transaction_trends.delay(
-                    [p.organization_id for p in performance_projects],
+                    list({p.organization_id for p in performance_projects}),
                     [p.id for p in performance_projects],
                     now,
                 )
@@ -127,7 +127,7 @@ def run_detection() -> None:
     # make sure to dispatch a task to handle the remaining projects
     if performance_projects:
         detect_transaction_trends.delay(
-            [p.organization_id for p in performance_projects],
+            list({p.organization_id for p in performance_projects}),
             [p.id for p in performance_projects],
             now,
         )
