@@ -51,7 +51,6 @@ export default function ReplayTabs({selected}: Props) {
             }}
           >
             {tab.label}
-            {tab.badge}
           </TabList.Item>
         ))}
       </TabList>
