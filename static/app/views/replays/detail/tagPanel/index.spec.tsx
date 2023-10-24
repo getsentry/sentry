@@ -1,3 +1,5 @@
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
@@ -5,7 +7,7 @@ import ReplayReader from 'sentry/utils/replays/replayReader';
 import TagPanel from 'sentry/views/replays/detail/tagPanel';
 
 const mockReplay = ReplayReader.factory({
-  replayRecord: TestStubs.ReplayRecord({
+  replayRecord: ReplayRecordFixture({
     browser: {
       name: 'Chrome',
       version: '110.0.0',

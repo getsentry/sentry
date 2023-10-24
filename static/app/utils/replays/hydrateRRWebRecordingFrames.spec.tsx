@@ -1,3 +1,5 @@
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+
 import {
   recordingEndFrame,
   recordingStartFrame,
@@ -5,7 +7,7 @@ import {
 import {RecordingFrame} from 'sentry/utils/replays/types';
 
 describe('hydrateRRWebRecordingFrames', () => {
-  const replayRecord = TestStubs.ReplayRecord();
+  const replayRecord = ReplayRecordFixture();
 
   describe('recordingStartFrame', () => {
     it('should return a RecordingFrame', () => {

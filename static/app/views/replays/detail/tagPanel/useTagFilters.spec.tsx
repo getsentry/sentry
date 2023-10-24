@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import type {Location} from 'history';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -13,7 +14,7 @@ jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
 
-const tags = TestStubs.ReplayRecord().tags;
+const tags = ReplayRecordFixture().tags;
 
 describe('useTagsFilters', () => {
   beforeEach(() => {

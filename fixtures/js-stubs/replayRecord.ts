@@ -1,8 +1,10 @@
 import {duration} from 'moment';
 
-import type {ReplayRecord as TReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
-export function ReplayRecord(replayRecord: Partial<TReplayRecord> = {}): TReplayRecord {
+export function ReplayRecordFixture(
+  replayRecord: Partial<ReplayRecord> = {}
+): ReplayRecord {
   return {
     activity: 0,
     browser: {
