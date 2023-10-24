@@ -114,15 +114,16 @@ def init_query_builder(params, transaction, regression_breakpoint, limit, span_s
         )
     )
 
-    score_column = Function(
-        "minus",
-        [
-            Function("multiply", [Column("spm_after"), Column("p95_after")]),
-            Function("multiply", [Column("spm_before"), Column("p95_before")]),
-        ],
-        "score",
+    builder.columns.append(
+        Function(
+            "minus",
+            [
+                Function("multiply", [Column("spm_after"), Column("p95_after")]),
+                Function("multiply", [Column("spm_before"), Column("p95_before")]),
+            ],
+            "score",
+        )
     )
-    builder.columns.append(score_column)
 
     builder.where.append(
         Or(
