@@ -10,7 +10,7 @@ import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedba
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
-import onUpdateFeedback from 'sentry/components/feedback/feedbackItem/useUpdateFeedback';
+import useUpdateFeedback from 'sentry/components/feedback/feedbackItem/useUpdateFeedback';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
@@ -30,7 +30,7 @@ interface Props {
 
 export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const organization = useOrganization();
-  const {onUpdate} = onUpdateFeedback({feedbackItem});
+  const {onSetStatus} = useUpdateFeedback({feedbackItem});
   const url = eventData?.tags.find(tag => tag.key === 'url');
 
   return (
@@ -86,7 +86,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
                         ? t('Unresolve')
                         : t('Resolve'),
                     onAction: () =>
-                      onUpdate(
+                      onSetStatus(
                         feedbackItem.status === GroupStatus.RESOLVED
                           ? GroupStatus.UNRESOLVED
                           : GroupStatus.RESOLVED
@@ -99,7 +99,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
                         ? t('Unarchive')
                         : t('Archive'),
                     onAction: () =>
-                      onUpdate(
+                      onSetStatus(
                         feedbackItem.status === GroupStatus.IGNORED
                           ? GroupStatus.UNRESOLVED
                           : GroupStatus.IGNORED

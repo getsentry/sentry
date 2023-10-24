@@ -44,6 +44,6 @@ export default function useUpdateFeedback({feedbackItem}: Props) {
   );
 
   return {
-    onUpdate: (newStatus: GroupStatus) => handleUpdate(newStatus),
+    onSetStatus: (newStatus: GroupStatus) => handleUpdate(newStatus),
   };
 }
