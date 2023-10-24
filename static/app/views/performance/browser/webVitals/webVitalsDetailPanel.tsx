@@ -24,6 +24,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
+import {WebVitalDescription} from 'sentry/views/performance/browser/webVitals/components/webVitalDescription';
 import {calculateOpportunity} from 'sentry/views/performance/browser/webVitals/utils/calculateOpportunity';
 import {
   calculatePerformanceScore,
@@ -38,7 +39,6 @@ import {
 import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
 import {useProjectWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsValuesTimeseriesQuery';
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionWebVitalsQuery';
-import {WebVitalDescription} from 'sentry/views/performance/browser/webVitals/webVitalsDescriptions/webVitalDescription';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
 type Column = GridColumnHeader;
