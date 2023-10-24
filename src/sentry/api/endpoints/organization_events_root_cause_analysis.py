@@ -36,7 +36,7 @@ RESPONSE_KEYS = [
 ]
 
 
-def init_query_builder(params, transaction, regression_breakpoint, limit):
+def init_query_builder(params, transaction, regression_breakpoint, limit, span_score_threshold):
     before_minutes = int((regression_breakpoint - params["start"]).total_seconds() // 60)
     after_minutes = int((params["end"] - regression_breakpoint).total_seconds() // 60)
 
@@ -133,29 +133,34 @@ def init_query_builder(params, transaction, regression_breakpoint, limit):
         )
     )
 
-    builder.having.append(Condition(Column("score"), Op.GTE, SPAN_ANALYSIS_SCORE_THRESHOLD))
+    builder.having.append(Condition(Column("score"), Op.GTE, span_score_threshold))
 
     builder.orderby = [OrderBy(Column("score"), Direction.DESC)]
 
     return builder
 
 
-def query_spans(transaction, regression_breakpoint, params, limit):
+def query_spans(transaction, regression_breakpoint, params, limit, span_score_threshold):
     referrer = f"{BASE_REFERRER}-{SPAN_ANALYSIS}"
 
     snuba_results = raw_snql_query(
-        init_query_builder(params, transaction, regression_breakpoint, limit).get_snql_query(),
+        init_query_builder(
+            params, transaction, regression_breakpoint, limit, span_score_threshold
+        ).get_snql_query(),
         referrer,
     )
     return snuba_results.get("data")
 
 
-def fetch_span_analysis_results(transaction_name, regression_breakpoint, params, project_id, limit):
+def fetch_span_analysis_results(
+    transaction_name, regression_breakpoint, params, project_id, limit, span_score_threshold
+):
     span_data = query_spans(
         transaction=transaction_name,
         regression_breakpoint=regression_breakpoint,
         params=params,
         limit=limit,
+        span_score_threshold=span_score_threshold,
     )
 
     span_analysis_results = [{key: row[key] for key in RESPONSE_KEYS} for row in span_data]
@@ -252,6 +257,9 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
         regression_breakpoint = request.GET.get("breakpoint")
         analysis_type = request.GET.get("type", SPAN_ANALYSIS)
         limit = int(request.GET.get("per_page", DEFAULT_LIMIT))
+        span_score_threshold = int(
+            request.GET.get("span_score_threshold", SPAN_ANALYSIS_SCORE_THRESHOLD)
+        )
         if not transaction_name or not project_id or not regression_breakpoint:
             # Project ID is required to ensure the events we query for are
             # the same transaction
@@ -276,7 +284,12 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
         results = []
         if analysis_type == SPAN_ANALYSIS:
             results = fetch_span_analysis_results(
-                transaction_name, regression_breakpoint, params, project_id, limit
+                transaction_name,
+                regression_breakpoint,
+                params,
+                project_id,
+                limit,
+                span_score_threshold,
             )
         elif analysis_type == GEO_ANALYSIS:
             results = fetch_geo_analysis_results(
