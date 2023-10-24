@@ -157,5 +157,12 @@ class NotificationsService(RpcService):
     ) -> MutableMapping[int, MutableMapping[int, str]]:
         pass
 
+    @rpc_method
+    @abstractmethod
+    def get_users_for_weekly_reports(
+        self, *, organization_id: int, user_ids: List[int]
+    ) -> List[int]:
+        pass
+
 
 notifications_service = NotificationsService.create_delegation()
