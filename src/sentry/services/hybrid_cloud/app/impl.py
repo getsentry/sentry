@@ -233,7 +233,7 @@ class DatabaseBackedAppService(AppService):
         *,
         organization_id: int,
         # TODO @athena: deprecate after landing integration_creator_id changes
-        integration_creator: str,
+        integration_creator: Optional[str] = None,
         integration_name: str,
         integration_scopes: List[str],
         # TODO @athena: make required after getsenry changes
