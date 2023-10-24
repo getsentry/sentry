@@ -4,6 +4,7 @@ from sentry.api.serializers import serialize
 from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
+from sentry.integrations.discord.client import DiscordClient
 from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import TestCase
 
@@ -45,10 +46,7 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         responses.add(
             method=responses.GET,
             url=f"{base_url}/channels/channel-id",
-            json={
-                "guild_id": "guild_id",
-                "name": "guild_id",
-            },
+            json={"guild_id": "guild_id", "name": "guild_id", "type": DiscordClient.GUILD_TEXT},
         )
 
         alert_rule = self.create_alert_rule()
@@ -84,6 +82,7 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
             json={
                 "guild_id": "guild_id",
                 "name": "guild_id",
+                "type": DiscordClient.GUILD_TEXT,
             },
         )
 
