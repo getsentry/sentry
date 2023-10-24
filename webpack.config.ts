@@ -469,10 +469,24 @@ const appConfig: Configuration = {
       // Which means the app will not load because we'd need these additional chunks to be loaded in our
       // django template.
       chunks: 'async',
-      maxInitialRequests: 10, // (default: 30)
+      maxInitialRequests: 25, // (default: 30)
       maxAsyncRequests: 10, // (default: 30)
       cacheGroups: {
         ...localeChunkGroups,
+        // Pull these modules out of the main bundle and into their own vendor bundle
+        platformicons: {
+          test: /[\\/]node_modules[\\/]platformicons/,
+          name: 'platformicons',
+        },
+        echarts: {
+          test: /[\\/]node_modules[\\/](echarts|zrender)/,
+          name: 'echarts',
+        },
+        'moment-timezone-packed': {
+          // looking for node_modules/moment-timezone/data/packed/latest.json
+          test: /[\\/]node_modules[\\/]moment-timezone.*latest.json/,
+          name: 'moment-timezone-packed',
+        },
       },
     },
 
