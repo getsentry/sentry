@@ -19,9 +19,8 @@ from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloMode
 from sentry.utils import metrics
-from sentry.utils.env import in_test_environment
+from sentry.utils.env import AuthComponent, should_use_rpc_user
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.auth")
@@ -427,11 +426,7 @@ class EmailAuthBackend(ModelBackend):
         return True
 
     def get_user(self, user_id: int) -> AbstractBaseUser | None:
-        if (
-            SiloMode.get_current_mode() != SiloMode.MONOLITH
-            or options.get("hybrid_cloud.authentication.use_rpc_user") >= 5
-            or in_test_environment()
-        ):
+        if should_use_rpc_user(AuthComponent.EMAIL_BACKED_AUTH):
             user = user_service.get_user(user_id=user_id)
             if user:
                 return user

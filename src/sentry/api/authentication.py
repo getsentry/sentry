@@ -33,7 +33,7 @@ from sentry.services.hybrid_cloud.rpc import compare_signature
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloLimit, SiloMode
-from sentry.utils.env import in_test_environment
+from sentry.utils.env import AuthComponent, should_use_authenticated_token, should_use_rpc_user
 from sentry.utils.sdk import configure_scope
 from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
 
@@ -132,26 +132,16 @@ def relay_from_id(request, relay_id) -> Tuple[Optional[Relay], bool]:
 
 
 class QuietBasicAuthentication(BasicAuthentication):
-    _hybrid_cloud_rollout_level = -1
+    _hybrid_cloud_rollout_auth_component: AuthComponent
 
     def authenticate_header(self, request: Request) -> str:
         return 'xBasic realm="%s"' % self.www_authenticate_realm
 
     def _use_authenticated_token(self) -> bool:
-        return (
-            SiloMode.get_current_mode() != SiloMode.MONOLITH
-            or options.get("hybrid_cloud.authentication.use_authenticated_token")
-            >= self._hybrid_cloud_rollout_level
-            or in_test_environment()
-        )
+        return should_use_authenticated_token(self._hybrid_cloud_rollout_auth_component)
 
     def _use_rpc_user(self) -> bool:
-        return (
-            SiloMode.get_current_mode() != SiloMode.MONOLITH
-            or options.get("hybrid_cloud.authentication.use_rpc_user")
-            >= self._hybrid_cloud_rollout_level
-            or in_test_environment()
-        )
+        return should_use_rpc_user(self._hybrid_cloud_rollout_auth_component)
 
     def transform_auth(
         self,
@@ -246,7 +236,7 @@ class RelayAuthentication(BasicAuthentication):
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
 class ApiKeyAuthentication(QuietBasicAuthentication):
     token_name = b"basic"
-    _hybrid_cloud_rollout_level = 1
+    _hybrid_cloud_rollout_auth_component = AuthComponent.API_KEY_BACKED_AUTH
 
     def accepts_auth(self, auth: list[bytes]) -> bool:
         return bool(auth) and auth[0].lower() == self.token_name
@@ -292,7 +282,7 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
     For example, the request to exchange a Grant Code for an Api Token.
     """
 
-    _hybrid_cloud_rollout_level = 2
+    _hybrid_cloud_rollout_auth_component = AuthComponent.SENTRY_APP_BACKED_AUTH
 
     def authenticate(self, request: Request):
         if not request.json_body:
@@ -326,7 +316,7 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
 @AuthenticationSiloLimit(SiloMode.REGION, SiloMode.CONTROL)
 class UserAuthTokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
-    _hybrid_cloud_rollout_level = 3
+    _hybrid_cloud_rollout_auth_component = AuthComponent.API_TOKEN_BACKED_AUTH
 
     def accepts_auth(self, auth: list[bytes]) -> bool:
         if not super().accepts_auth(auth):
@@ -396,7 +386,7 @@ class UserAuthTokenAuthentication(StandardAuthentication):
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
 class OrgAuthTokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
-    _hybrid_cloud_rollout_level = 4
+    _hybrid_cloud_rollout_auth_component = AuthComponent.ORG_AUTH_TOKEN_BACKED_AUTH
 
     def accepts_auth(self, auth: list[bytes]) -> bool:
         if not super().accepts_auth(auth) or len(auth) != 2:
