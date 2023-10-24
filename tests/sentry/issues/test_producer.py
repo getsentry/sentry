@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.issues.occurrence_status_change import OccurrenceStatusChange
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.models.grouphash import GroupHash
@@ -84,23 +84,24 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
         self.initial_substatus = self.group.substatus
 
     def test_with_invalid_payloads(self) -> None:
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="occurrence must be provided"):
             # Should raise an error because the occurrence is not provided for the OCCURRENCE payload type.
             produce_occurrence_to_kafka(
                 payload_type=PayloadType.OCCURRENCE,
             )
 
+        with pytest.raises(ValueError, match="status_change must be provided"):
             # Should raise an error because the status_change object is not provided for the STATUS_CHANGE payload type.
             produce_occurrence_to_kafka(
                 payload_type=PayloadType.STATUS_CHANGE,
             )
 
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(NotImplementedError, match="Unknown payload type: invalid"):
             # Should raise an error because the payload type is not supported.
             produce_occurrence_to_kafka(payload_type="invalid")  # type: ignore
 
     def test_with_no_status_change(self) -> None:
-        status_change = OccurrenceStatusChange(
+        status_change = StatusChangeMessage(
             fingerprint=[self.group_hash.hash],
             project_id=self.group.project_id,
             new_status=self.initial_status,
@@ -118,7 +119,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
         assert not GroupHistory.objects.filter(group=self.group).exists()
 
     def test_with_status_change_resolved(self) -> None:
-        status_change = OccurrenceStatusChange(
+        status_change = StatusChangeMessage(
             fingerprint=[self.group_hash.hash],
             project_id=self.group.project_id,
             new_status=GroupStatus.RESOLVED,
@@ -145,7 +146,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             GroupSubStatus.UNTIL_CONDITION_MET,
             GroupSubStatus.FOREVER,
         ]:
-            status_change = OccurrenceStatusChange(
+            status_change = StatusChangeMessage(
                 fingerprint=[self.group_hash.hash],
                 project_id=self.group.project_id,
                 new_status=GroupStatus.IGNORED,
@@ -169,9 +170,9 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
                 status=STRING_TO_STATUS_LOOKUP[gh_status],
             ).exists()
 
-    @patch("sentry.issues.occurrence_status_change.logger.error")
+    @patch("sentry.issues.status_change_consumer.logger.error")
     def test_with_invalid_status_change(self, mock_logger_error: MagicMock) -> None:
-        bad_status_change = OccurrenceStatusChange(
+        bad_status_change = StatusChangeMessage(
             fingerprint=[self.group_hash.hash],
             project_id=self.group.project_id,
             new_status=GroupStatus.RESOLVED,
@@ -194,7 +195,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
         assert self.group.status == self.initial_status
         assert self.group.substatus == self.initial_substatus
 
-        bad_status_change = OccurrenceStatusChange(
+        bad_status_change = StatusChangeMessage(
             fingerprint=[self.group_hash.hash],
             project_id=self.group.project_id,
             new_status=GroupStatus.IGNORED,
@@ -217,7 +218,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
         assert self.group.status == self.initial_status
         assert self.group.substatus == self.initial_substatus
 
-        bad_status_change = OccurrenceStatusChange(
+        bad_status_change = StatusChangeMessage(
             fingerprint=[self.group_hash.hash],
             project_id=self.group.project_id,
             new_status=GroupStatus.IGNORED,
@@ -240,7 +241,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
         assert self.group.status == self.initial_status
         assert self.group.substatus == self.initial_substatus
 
-    @patch("sentry.issues.producer.logger.error")
+    @patch("sentry.issues.status_change_consumer.logger.error")
     def test_invalid_hashes(self, mock_logger_error) -> None:
         event = self.store_event(
             data={
@@ -256,7 +257,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
         initial_status = group.status
         initial_substatus = group.substatus
 
-        bad_status_change_resolve = OccurrenceStatusChange(
+        bad_status_change_resolve = StatusChangeMessage(
             fingerprint=["wronghash"],
             project_id=group.project_id,
             new_status=GroupStatus.RESOLVED,

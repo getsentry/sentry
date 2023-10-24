@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {CSSProperties, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
@@ -19,7 +19,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
 import useErrorSamples from 'sentry/views/starfish/components/samplesTable/useErrorSamples';
-import useSlowMedianFastSamplesQuery from 'sentry/views/starfish/components/samplesTable/useSlowMedianFastSamplesQuery';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {
   OverflowEllipsisTextContainer,
@@ -41,11 +40,16 @@ type Keys =
 type TableColumnHeader = GridColumnHeader<Keys>;
 
 type Props = {
+  data: DataRow[];
+  isLoading: boolean;
   queryConditions: string[];
   sampleFilter: SampleFilter;
+  setHighlightedId: (string) => void;
+  averageDuration?: number;
+  highlightedId?: string;
 };
 
-type DataRow = {
+export type DataRow = {
   'http.status_code': number;
   id: string;
   profile_id: string;
@@ -59,7 +63,15 @@ type DataRow = {
   'transaction.status': string;
 };
 
-export function TransactionSamplesTable({queryConditions, sampleFilter}: Props) {
+export function TransactionSamplesTable({
+  queryConditions,
+  sampleFilter,
+  data,
+  isLoading,
+  averageDuration,
+  setHighlightedId,
+  highlightedId,
+}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const query = new MutableSearch(queryConditions);
@@ -127,7 +139,6 @@ export function TransactionSamplesTable({queryConditions, sampleFilter}: Props) 
   ];
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
-  const {isLoading, data, aggregatesData} = useSlowMedianFastSamplesQuery(eventView);
   const {isLoading: isErrorSamplesLoading, data: errorSamples} =
     useErrorSamples(eventView);
 
@@ -159,9 +170,16 @@ export function TransactionSamplesTable({queryConditions, sampleFilter}: Props) 
   }
 
   function renderBodyCell(column: TableColumnHeader, row: DataRow): React.ReactNode {
+    const commonProps = {
+      style: (row.id === highlightedId
+        ? {fontWeight: 'bold'}
+        : {}) satisfies CSSProperties,
+      onMouseEnter: () => setHighlightedId(row.id),
+    };
+
     if (column.key === 'id') {
       return (
-        <Link to={`/performance/${row['project.name']}:${row.id}`}>
+        <Link {...commonProps} to={`/performance/${row['project.name']}:${row.id}`}>
           {row.id.slice(0, 8)}
         </Link>
       );
@@ -170,12 +188,13 @@ export function TransactionSamplesTable({queryConditions, sampleFilter}: Props) 
     if (column.key === 'profile_id') {
       return row.profile_id ? (
         <Link
+          {...commonProps}
           to={`/profiling/profile/${row['project.name']}/${row.profile_id}/flamechart/`}
         >
           {row.profile_id.slice(0, 8)}
         </Link>
       ) : (
-        '(no value)'
+        <div {...commonProps}>(no value)</div>
       );
     }
 
@@ -184,17 +203,17 @@ export function TransactionSamplesTable({queryConditions, sampleFilter}: Props) 
     }
 
     if (column.key === 'timestamp') {
-      return <DateTime date={row[column.key]} year timeZone seconds />;
+      return <DateTime {...commonProps} date={row[column.key]} year timeZone seconds />;
     }
 
     if (column.key === 'avg_comparison') {
       return (
-        <DurationComparisonCell
-          duration={row['transaction.duration']}
-          compareToDuration={
-            (aggregatesData?.['avg(transaction.duration)'] as number) ?? 0
-          }
-        />
+        <DurationComparisonContainer {...commonProps}>
+          <DurationComparisonCell
+            duration={row['transaction.duration']}
+            compareToDuration={averageDuration ?? 0}
+          />
+        </DurationComparisonContainer>
       );
     }
 
@@ -206,23 +225,31 @@ export function TransactionSamplesTable({queryConditions, sampleFilter}: Props) 
       });
     }
 
-    return <TextAlignLeft>{row[column.key]}</TextAlignLeft>;
+    return <TextAlignLeft {...commonProps}>{row[column.key]}</TextAlignLeft>;
   }
 
   return (
-    <GridEditable
-      isLoading={sampleFilter === 'ALL' ? isLoading : isErrorSamplesLoading}
-      data={sampleFilter === 'ALL' ? (data as DataRow[]) : (errorSamples as DataRow[])}
-      columnOrder={columnOrder}
-      columnSortBy={[]}
-      location={location}
-      grid={{
-        renderHeadCell,
-        renderBodyCell,
-      }}
-    />
+    <div onMouseLeave={() => setHighlightedId(undefined)}>
+      <GridEditable
+        isLoading={sampleFilter === 'ALL' ? isLoading : isErrorSamplesLoading}
+        data={sampleFilter === 'ALL' ? (data as DataRow[]) : (errorSamples as DataRow[])}
+        columnOrder={columnOrder}
+        columnSortBy={[]}
+        location={location}
+        grid={{
+          renderHeadCell,
+          renderBodyCell,
+        }}
+      />
+    </div>
   );
 }
+
+const DurationComparisonContainer = styled('div')`
+  text-align: right;
+  width: 100%;
+  display: inline-block;
+`;
 
 const StyledIconQuestion = styled(QuestionTooltip)`
   position: relative;

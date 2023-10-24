@@ -66,9 +66,17 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('can enable "codecov access"', async function () {
-    defaultProps.organization.features.push('codecov-integration');
-    organization.codecovAccess = false;
-    render(<OrganizationGeneralSettings {...defaultProps} />);
+    const organizationWithCodecovFeature = Organization({
+      features: ['codecov-integration'],
+      codecovAccess: false,
+    });
+    render(
+      <OrganizationGeneralSettings
+        {...defaultProps}
+        organization={organizationWithCodecovFeature}
+      />,
+      {organization: organizationWithCodecovFeature}
+    );
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
