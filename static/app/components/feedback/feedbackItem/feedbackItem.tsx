@@ -30,6 +30,7 @@ interface Props {
 
 export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const organization = useOrganization();
+  const url = eventData?.tags.find(tag => tag.key === 'url');
 
   return (
     <Fragment>
@@ -123,7 +124,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
 
         <Section icon={<IconLink size="xs" />} title={t('Url')}>
           <ErrorBoundary mini>
-            <TextCopyInput size="sm">{'TODO'}</TextCopyInput>
+            <TextCopyInput size="sm">{url?.value ?? t('URL not found')}</TextCopyInput>
           </ErrorBoundary>
         </Section>
 
