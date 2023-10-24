@@ -307,24 +307,6 @@ export function parseLargestSuffix(
   }
   return [val, suffix];
 }
-/**
- * Returns the number of seconds, given a value and suffix
- *
- * @param value
- * @param suffix
- */
-export function deriveSeconds(value: number, suffix: string = 'seconds'): number {
-  switch (suffix) {
-    case 'minutes':
-      return value * SEC_IN_MIN;
-    case 'hours':
-      return value * SEC_IN_HR;
-    case 'days':
-      return value * SEC_IN_DAY;
-    default:
-      return value;
-  }
-}
 
 export function formatSecondsToClock(
   seconds: number,

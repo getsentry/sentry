@@ -1,6 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
+import moment from 'moment';
 
 import {APIRequestMethod} from 'sentry/api';
 import {Button} from 'sentry/components/button';
@@ -11,11 +12,7 @@ import {IconAdd, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Environment, Project} from 'sentry/types';
-import {
-  deriveSeconds,
-  getExactDuration,
-  parseLargestSuffix,
-} from 'sentry/utils/formatters';
+import {getExactDuration, parseLargestSuffix} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
 
 import {Threshold} from '../utils/types';
@@ -118,10 +115,11 @@ export function ThresholdGroupRows({
         path = `/projects/${orgSlug}/${thresholdData.project.slug}/release-thresholds/`;
         method = 'POST';
       }
-      submitData.window_in_seconds = deriveSeconds(
-        thresholdData.windowValue,
-        thresholdData.windowSuffix
-      );
+      const seconds = moment
+        // @ts-ignore: ts is unhappy with moment string duration format
+        .duration(thresholdData.windowValue, thresholdData.windowSuffix)
+        .as('seconds');
+      submitData.window_in_seconds = seconds;
       submitData.environment = thresholdData.environment.name; // api expects environment as a string
       const request = api.requestPromise(path, {
         method,
