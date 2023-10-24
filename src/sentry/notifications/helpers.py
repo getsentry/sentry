@@ -724,7 +724,6 @@ def team_is_valid_recipient(team: Team | RpcActor, provider: ExternalProviderEnu
         return False
     linked_integration = ExternalActor.objects.filter(
         team_id=team.id,
-        organization=team.organization,
         provider=EXTERNAL_PROVIDERS_REVERSE[provider].value,
     )
     if linked_integration:

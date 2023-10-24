@@ -810,6 +810,7 @@ class NotificationControllerTest(TestCase):
             organization_id=self.organization.id,
             type=NotificationSettingEnum.WORKFLOW,
             provider=ExternalProviderEnum.EMAIL,
+            organization=self.organization,
         )
 
         assert len(controller.recipients) == 0
@@ -826,6 +827,7 @@ class NotificationControllerTest(TestCase):
             organization_id=self.organization.id,
             type=NotificationSettingEnum.WORKFLOW,
             provider=ExternalProviderEnum.SLACK,
+            organization=self.organization,
         )
 
         assert len(controller.recipients) == 1

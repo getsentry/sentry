@@ -56,14 +56,14 @@ class NotificationController:
 
     def __init__(
         self,
-        recipients: list[Recipient],
+        recipients: Iterable[RpcActor] | Iterable[Team] | Iterable[RpcUser],
         project_ids: Iterable[int] | None = None,
         organization_id: int | None = None,
         type: NotificationSettingEnum | None = None,
         provider: ExternalProviderEnum | None = None,
+        organization: Organization | None = None,
     ) -> None:
-        org = Organization.objects.filter(id=organization_id).first()
-        if features.has("organizations:team-workflow-notifications", org):
+        if features.has("organizations:team-workflow-notifications", organization):
             self.recipients = []
             for recipient in recipients:
                 if recipient_is_team(recipient):
