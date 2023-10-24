@@ -278,11 +278,9 @@ class IssueBasicMixin:
         else:
             repo_choices = [(repo["identifier"], repo["name"]) for repo in repos]
 
-        repo = kwargs.get("repo")
-        if not repo:
-            params = kwargs.get("params", {})
-            defaults = self.get_project_defaults(group.project_id)
-            repo = params.get("repo", defaults.get("repo"))
+        params = kwargs.get("params", {})
+        defaults = self.get_project_defaults(group.project_id)
+        repo = params.get("repo", defaults.get("repo"))
 
         try:
             default_repo = repo or repo_choices[0][0]
