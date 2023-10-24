@@ -78,6 +78,7 @@ function Event({
   const buttons = frames.map((frame, i) => (
     <BreadcrumbItem
       frame={frame}
+      extraction={undefined}
       key={i}
       onClick={() => {
         onClickTimestamp(frame);
@@ -86,6 +87,9 @@ function Event({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       startTimestampMs={startTimestampMs}
+      traces={undefined}
+      onDimensionChange={() => {}}
+      onInspectorExpanded={() => {}}
     />
   ));
   const title = <TooltipWrapper>{buttons}</TooltipWrapper>;

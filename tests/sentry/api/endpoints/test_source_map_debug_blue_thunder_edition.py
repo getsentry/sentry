@@ -4,6 +4,9 @@ from io import BytesIO
 from django.core.files.base import ContentFile
 from rest_framework import status
 
+from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
+    MIN_JS_SDK_VERSION_FOR_DEBUG_IDS,
+)
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     ArtifactBundleIndex,
@@ -198,7 +201,9 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
                 self.project.slug,
                 event.event_id,
             )
-            assert resp.data["sdk_debug_id_support"] == "needs-upgrade"
+            assert (
+                resp.data["sdk_debug_id_support"] == "needs-upgrade"
+            ), MIN_JS_SDK_VERSION_FOR_DEBUG_IDS
 
     def test_sdk_debug_id_support_unsupported(self):
         with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
@@ -919,7 +924,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
                                     "type": "minified_source",
                                     "headers": {
                                         "content-type": "application/json",
-                                        "sourcemap": "data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoibWFpbi5qcy",
+                                        "Sourcemap": "data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoibWFpbi5qcy",
                                     },
                                 },
                             },

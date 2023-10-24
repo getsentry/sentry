@@ -43,11 +43,13 @@ function DeadRageSelectorCards() {
                 <QuestionTooltip
                   size="xs"
                   position="top"
-                  title={t('The top selectors your users have dead clicked on.')}
+                  title={t(
+                    'The top selectors your users have dead clicked on (i.e., a user click that does not result in any page activity after 7 seconds).'
+                  )}
                   isHoverable
                 />
               </TitleTooltipContainer>
-              <FeatureBadge type="beta" />
+              <FeatureBadge type="new" />
             </StyledWidgetHeader>
             <Subtitle>{t('Suggested replays to watch')}</Subtitle>
           </div>
@@ -64,11 +66,13 @@ function DeadRageSelectorCards() {
                 <QuestionTooltip
                   size="xs"
                   position="top"
-                  title={t('The top selectors your users have rage clicked on.')}
+                  title={t(
+                    'The top selectors your users have rage clicked on (i.e., 5 or more clicks on a dead element, which exhibits no page activity after 7 seconds).'
+                  )}
                   isHoverable
                 />
               </TitleTooltipContainer>
-              <FeatureBadge type="beta" />
+              <FeatureBadge type="new" />
             </StyledWidgetHeader>
             <Subtitle>{t('Suggested replays to watch')}</Subtitle>
           </div>
@@ -103,9 +107,7 @@ function AccordionWidget({
   return (
     <StyledWidgetContainer>
       <StyledHeaderContainer>
-        <ClickColor color={clickColor}>
-          <IconCursorArrow />
-        </ClickColor>
+        <IconCursorArrow color={clickColor} />
         {header}
       </StyledHeaderContainer>
       {isLoading ? (
@@ -183,10 +185,10 @@ function AccordionItemHeader({
   selectorQuery: string;
 }) {
   const clickCount = (
-    <ClickColor color={clickColor}>
-      <IconCursorArrow size="xs" />
+    <ClickCount>
+      <IconCursorArrow size="xs" color={clickColor} />
       {count}
-    </ClickColor>
+    </ClickCount>
   );
   return (
     <StyledAccordionHeader>
@@ -244,8 +246,8 @@ const SplitCardContainer = styled('div')`
   align-items: stretch;
 `;
 
-const ClickColor = styled(TextOverflow)<{color: ColorOrAlias}>`
-  color: ${p => p.theme[p.color]};
+const ClickCount = styled(TextOverflow)`
+  color: ${p => p.theme.gray400};
   display: grid;
   grid-template-columns: auto auto;
   gap: ${space(0.75)};

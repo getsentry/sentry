@@ -214,11 +214,11 @@ def get_participants_for_release(
 
     actors = RpcActor.many_from_object(RpcUser(id=user_id) for user_id in user_ids)
     if should_use_notifications_v2(organization):
+        # don't pass in projects since the settings are scoped to the organization only for now
         providers_by_recipient = notifications_service.get_participants(
-            recipients=actors,
-            project_ids=[project.id for project in projects],
-            organization_id=organization.id,
             type=NotificationSettingEnum.DEPLOY,
+            recipients=actors,
+            organization_id=organization.id,
         )
 
         users_to_reasons_by_provider = ParticipantMap()
@@ -392,9 +392,7 @@ def determine_eligible_recipients(
         ).first()
         if group_assignee:
             outcome = "match"
-            assignee_actor = RpcActor.from_orm_actor(
-                group_assignee.assigned_actor().resolve_to_actor()
-            )
+            assignee_actor = group_assignee.assigned_actor()
             suggested_assignees.append(assignee_actor)
 
         suspect_commit_users = None

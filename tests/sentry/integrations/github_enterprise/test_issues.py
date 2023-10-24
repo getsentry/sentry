@@ -8,16 +8,19 @@ from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIn
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration import Integration
 from sentry.silo import SiloMode
-from sentry.testutils.cases import TestCase
+from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
+from sentry.testutils.cases import IntegratedApiTestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test
-class GitHubEnterpriseIssueBasicTest(TestCase):
+@region_silo_test(stable=True)
+class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
     @cached_property
     def request(self):
         return RequestFactory()
+
+    _IP_ADDRESS = "35.232.149.196"
 
     def setUp(self):
         self.user = self.create_user()
@@ -28,7 +31,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
                 external_id="github_external_id",
                 name="getsentry",
                 metadata={
-                    "domain_name": "35.232.149.196/getsentry",
+                    "domain_name": f"{self._IP_ADDRESS}/getsentry",
                     "installation_id": "installation_id",
                     "installation": {"id": 2, "private_key": "private_key", "verify_ssl": True},
                 },
@@ -36,18 +39,25 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
             self.model.add_organization(self.organization, self.user)
         self.integration = GitHubEnterpriseIntegration(self.model, self.organization.id)
 
+    def _check_proxying(self) -> None:
+        assert len(responses.calls) == 1
+        request = responses.calls[0].request
+        assert request.headers[PROXY_OI_HEADER] == str(None)
+        assert request.headers[PROXY_BASE_URL_HEADER] == f"https://{self._IP_ADDRESS}"
+        assert PROXY_SIGNATURE_HEADER in request.headers
+
     @responses.activate
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     def test_get_allowed_assignees(self, mock_get_jwt):
         responses.add(
             responses.POST,
-            "https://35.232.149.196/api/v3/app/installations/installation_id/access_tokens",
+            f"https://{self._IP_ADDRESS}/api/v3/app/installations/installation_id/access_tokens",
             json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
         )
 
         responses.add(
             responses.GET,
-            "https://35.232.149.196/api/v3/repos/getsentry/sentry/assignees",
+            f"https://{self._IP_ADDRESS}/api/v3/repos/getsentry/sentry/assignees",
             json=[{"login": "MeredithAnya"}],
         )
 
@@ -57,29 +67,68 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
             ("MeredithAnya", "MeredithAnya"),
         )
 
-        request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer jwt_token_1"
+        if self.should_call_api_without_proxying():
+            assert len(responses.calls) == 2
 
-        request = responses.calls[1].request
-        assert request.headers["Authorization"] == "Bearer token_1"
+            request = responses.calls[0].request
+            assert request.headers["Authorization"] == "Bearer jwt_token_1"
+
+            request = responses.calls[1].request
+            assert request.headers["Authorization"] == "Bearer token_1"
+        else:
+            self._check_proxying()
+
+    @responses.activate
+    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
+    def test_get_repo_labels(self, mock_get_jwt):
+        responses.add(
+            responses.POST,
+            f"https://{self._IP_ADDRESS}/api/v3/app/installations/installation_id/access_tokens",
+            json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
+        )
+
+        responses.add(
+            responses.GET,
+            f"https://{self._IP_ADDRESS}/api/v3/repos/getsentry/sentry/labels",
+            json=[{"name": "bug"}, {"name": "enhancement"}, {"name": "duplicate"}],
+        )
+
+        repo = "getsentry/sentry"
+        # results should be sorted alphabetically
+        assert self.integration.get_repo_labels(repo) == (
+            ("bug", "bug"),
+            ("duplicate", "duplicate"),
+            ("enhancement", "enhancement"),
+        )
+
+        if self.should_call_api_without_proxying():
+            assert len(responses.calls) == 2
+
+            request = responses.calls[0].request
+            assert request.headers["Authorization"] == "Bearer jwt_token_1"
+
+            request = responses.calls[1].request
+            assert request.headers["Authorization"] == "Bearer token_1"
+        else:
+            self._check_proxying()
 
     @responses.activate
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     def test_create_issue(self, mock_get_jwt):
         responses.add(
             responses.POST,
-            "https://35.232.149.196/api/v3/app/installations/installation_id/access_tokens",
+            f"https://{self._IP_ADDRESS}/api/v3/app/installations/installation_id/access_tokens",
             json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
         )
 
         responses.add(
             responses.POST,
-            "https://35.232.149.196/api/v3/repos/getsentry/sentry/issues",
+            f"https://{self._IP_ADDRESS}/api/v3/repos/getsentry/sentry/issues",
             json={
                 "number": 321,
                 "title": "hello",
                 "body": "This is the description",
-                "html_url": "https://35.232.149.196/getsentry/sentry/issues/231",
+                "html_url": f"https://{self._IP_ADDRESS}/getsentry/sentry/issues/231",
             },
         )
 
@@ -93,39 +142,55 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
             "key": 321,
             "description": "This is the description",
             "title": "hello",
-            "url": "https://35.232.149.196/getsentry/sentry/issues/231",
+            "url": f"https://{self._IP_ADDRESS}/getsentry/sentry/issues/231",
             "repo": "getsentry/sentry",
         }
-        request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer jwt_token_1"
 
-        request = responses.calls[1].request
-        assert request.headers["Authorization"] == "Bearer token_1"
-        payload = json.loads(request.body)
-        assert payload == {"body": "This is the description", "assignee": None, "title": "hello"}
+        if self.should_call_api_without_proxying():
+            assert len(responses.calls) == 2
+
+            request = responses.calls[0].request
+            assert request.headers["Authorization"] == "Bearer jwt_token_1"
+
+            request = responses.calls[1].request
+            assert request.headers["Authorization"] == "Bearer token_1"
+            payload = json.loads(request.body)
+            assert payload == {
+                "body": "This is the description",
+                "assignee": None,
+                "title": "hello",
+                "labels": None,
+            }
+        else:
+            self._check_proxying()
 
     @responses.activate
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     def test_get_repo_issues(self, mock_get_jwt):
         responses.add(
             responses.POST,
-            "https://35.232.149.196/api/v3/app/installations/installation_id/access_tokens",
+            f"https://{self._IP_ADDRESS}/api/v3/app/installations/installation_id/access_tokens",
             json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
         )
 
         responses.add(
             responses.GET,
-            "https://35.232.149.196/api/v3/repos/getsentry/sentry/issues",
+            f"https://{self._IP_ADDRESS}/api/v3/repos/getsentry/sentry/issues",
             json=[{"number": 321, "title": "hello", "body": "This is the description"}],
         )
         repo = "getsentry/sentry"
         assert self.integration.get_repo_issues(repo) == ((321, "#321 hello"),)
 
-        request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer jwt_token_1"
+        if self.should_call_api_without_proxying():
+            assert len(responses.calls) == 2
 
-        request = responses.calls[1].request
-        assert request.headers["Authorization"] == "Bearer token_1"
+            request = responses.calls[0].request
+            assert request.headers["Authorization"] == "Bearer jwt_token_1"
+
+            request = responses.calls[1].request
+            assert request.headers["Authorization"] == "Bearer token_1"
+        else:
+            self._check_proxying()
 
     @responses.activate
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
@@ -133,18 +198,18 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
         issue_id = 321
         responses.add(
             responses.POST,
-            "https://35.232.149.196/api/v3/app/installations/installation_id/access_tokens",
+            f"https://{self._IP_ADDRESS}/api/v3/app/installations/installation_id/access_tokens",
             json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
         )
 
         responses.add(
             responses.GET,
-            "https://35.232.149.196/api/v3/repos/getsentry/sentry/issues/321",
+            f"https://{self._IP_ADDRESS}/api/v3/repos/getsentry/sentry/issues/321",
             json={
                 "number": issue_id,
                 "title": "hello",
                 "body": "This is the description",
-                "html_url": "https://35.232.149.196/getsentry/sentry/issues/231",
+                "html_url": f"https://{self._IP_ADDRESS}/getsentry/sentry/issues/231",
             },
         )
 
@@ -154,27 +219,33 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
             "key": issue_id,
             "description": "This is the description",
             "title": "hello",
-            "url": "https://35.232.149.196/getsentry/sentry/issues/231",
+            "url": f"https://{self._IP_ADDRESS}/getsentry/sentry/issues/231",
             "repo": "getsentry/sentry",
         }
-        request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer jwt_token_1"
 
-        request = responses.calls[1].request
-        assert request.headers["Authorization"] == "Bearer token_1"
+        if self.should_call_api_without_proxying():
+            assert len(responses.calls) == 2
+
+            request = responses.calls[0].request
+            assert request.headers["Authorization"] == "Bearer jwt_token_1"
+
+            request = responses.calls[1].request
+            assert request.headers["Authorization"] == "Bearer token_1"
+        else:
+            self._check_proxying()
 
     @responses.activate
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     def after_link_issue(self, mock_get_jwt):
         responses.add(
             responses.POST,
-            "https://35.232.149.196/api/v3/installations/installation_id/access_tokens",
+            f"https://{self._IP_ADDRESS}/api/v3/installations/installation_id/access_tokens",
             json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
         )
 
         responses.add(
             responses.POST,
-            "https://35.232.149.196/api/v3/repos/getsentry/sentry/issues/321/comments",
+            f"https://{self._IP_ADDRESS}/api/v3/repos/getsentry/sentry/issues/321/comments",
             json={"body": "hello"},
         )
 
@@ -185,10 +256,15 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
 
         self.integration.after_link_issue(external_issue, data=data)
 
-        request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer jwt_token_1"
+        if self.should_call_api_without_proxying():
+            assert len(responses.calls) == 2
 
-        request = responses.calls[1].request
-        assert request.headers["Authorization"] == "Bearer token_1"
-        payload = json.loads(request.body)
-        assert payload == {"body": "hello"}
+            request = responses.calls[0].request
+            assert request.headers["Authorization"] == "Bearer jwt_token_1"
+
+            request = responses.calls[1].request
+            assert request.headers["Authorization"] == "Bearer token_1"
+            payload = json.loads(request.body)
+            assert payload == {"body": "hello"}
+        else:
+            self._check_proxying()

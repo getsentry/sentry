@@ -112,3 +112,31 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register(
+    "outbox_replication.sentry_apitoken.replication_version",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "outbox_replication.sentry_sentryappinstallationtoken.replication_version",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "outbox_replication.sentry_sentryappinstallation.replication_version",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "outbox_replication.sentry_orgauthtoken.replication_version",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

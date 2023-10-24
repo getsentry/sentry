@@ -114,14 +114,14 @@ def query_spans(transaction, regression_breakpoint, params):
     return span_results
 
 
-def fetch_span_analysis_results(transaction_name, regression_breakpoint, params, project_id):
+def fetch_span_analysis_results(transaction_name, regression_breakpoint, params, project_id, limit):
     span_data = query_spans(
         transaction=transaction_name,
         regression_breakpoint=regression_breakpoint,
         params=params,
     )
 
-    span_analysis_results = span_analysis(span_data)
+    span_analysis_results = span_analysis(span_data)[:limit]
 
     for result in span_analysis_results:
         result["span_description"] = get_span_description(
@@ -133,7 +133,7 @@ def fetch_span_analysis_results(transaction_name, regression_breakpoint, params,
     return span_analysis_results
 
 
-def fetch_geo_analysis_results(transaction_name, regression_breakpoint, params, project_id):
+def fetch_geo_analysis_results(transaction_name, regression_breakpoint, params, limit):
     def get_geo_data(period):
         # Copy the params so we aren't modifying the base params each time
         adjusted_params = {**params}
@@ -144,13 +144,13 @@ def fetch_geo_analysis_results(transaction_name, regression_breakpoint, params, 
             adjusted_params["start"] = regression_breakpoint + BUFFER
 
         geo_code_durations = metrics_query(
-            ["p95(transaction.duration)", "geo.country_code", "count()"],
+            ["p95(transaction.duration)", "geo.country_code", "tpm()"],
             f"event.type:transaction transaction:{transaction_name}",
             adjusted_params,
             referrer=f"{BASE_REFERRER}-{GEO_ANALYSIS}",
             limit=METRICS_MAX_LIMIT,
-            # Order by descending count to ensure more active countries are prioritized
-            orderby=["-count()"],
+            # Order by descending TPM to ensure more active countries are prioritized
+            orderby=["-tpm()"],
         )
 
         return geo_code_durations
@@ -170,22 +170,29 @@ def fetch_geo_analysis_results(transaction_name, regression_breakpoint, params, 
 
     analysis_results = []
     for key in changed_keys | new_keys:
+        if key == "":
+            continue
+
         duration_before = (
             before_results[key]["p95_transaction_duration"] if before_results.get(key) else 0.0
         )
         duration_after = after_results[key]["p95_transaction_duration"]
         if duration_after > duration_before:
+            duration_delta = duration_after - duration_before
             analysis_results.append(
                 {
                     "geo.country_code": key,
                     "duration_before": duration_before,
                     "duration_after": duration_after,
-                    "duration_delta": duration_after - duration_before,
+                    "duration_delta": duration_delta,
+                    # Multiply duration delta by current TPM to prioritize largest changes
+                    # by most active countries
+                    "score": duration_delta * after_results[key]["tpm"],
                 }
             )
 
-    analysis_results.sort(key=lambda x: x["duration_delta"], reverse=True)
-    return analysis_results
+    analysis_results.sort(key=lambda x: x["score"], reverse=True)
+    return analysis_results[:limit]
 
 
 @region_silo_endpoint
@@ -207,6 +214,7 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
         project_id = request.GET.get("project")
         regression_breakpoint = request.GET.get("breakpoint")
         analysis_type = request.GET.get("type", SPAN_ANALYSIS)
+        limit = int(request.GET.get("per_page", DEFAULT_LIMIT))
         if not transaction_name or not project_id or not regression_breakpoint:
             # Project ID is required to ensure the events we query for are
             # the same transaction
@@ -231,12 +239,11 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
         results = []
         if analysis_type == SPAN_ANALYSIS:
             results = fetch_span_analysis_results(
-                transaction_name, regression_breakpoint, params, project_id
+                transaction_name, regression_breakpoint, params, project_id, limit
             )
         elif analysis_type == GEO_ANALYSIS:
             results = fetch_geo_analysis_results(
-                transaction_name, regression_breakpoint, params, project_id
+                transaction_name, regression_breakpoint, params, limit
             )
 
-        limit = int(request.GET.get("per_page", DEFAULT_LIMIT))
-        return Response(results[:limit], status=200)
+        return Response(results, status=200)

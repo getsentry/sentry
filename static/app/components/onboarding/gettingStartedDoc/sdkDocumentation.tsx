@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {OnboardingLayout} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -85,18 +86,15 @@ export function SdkDocumentation({
       : `${platform?.language}/${platform?.id}`;
 
   const {
-    data: projectKeys = [],
+    data: projectKeys,
     isError: projectKeysIsError,
     isLoading: projectKeysIsLoading,
+    refetch: refetchProjectKeys,
   } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectSlug}/keys/`], {
     staleTime: Infinity,
   });
 
   useEffect(() => {
-    if (projectKeysIsError || projectKeysIsLoading) {
-      return;
-    }
-    setModule(null);
     async function getGettingStartedDoc() {
       const mod = await import(
         /* webpackExclude: /.spec/ */
@@ -105,10 +103,17 @@ export function SdkDocumentation({
       setModule(mod);
     }
     getGettingStartedDoc();
-  }, [platformPath, projectKeysIsError, projectKeysIsLoading, projectKeys]);
+    return () => {
+      setModule(null);
+    };
+  }, [platformPath]);
 
-  if (!module) {
+  if (!module || projectKeysIsLoading) {
     return <LoadingIndicator />;
+  }
+
+  if (projectKeysIsError) {
+    return <LoadingError onRetry={refetchProjectKeys} />;
   }
 
   const {default: docs} = module;

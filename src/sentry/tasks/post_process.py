@@ -656,6 +656,7 @@ def post_process_group(
 def run_post_process_job(job: PostProcessJob):
     group_event = job["event"]
     issue_category = group_event.group.issue_category
+    issue_category_metric = issue_category.name.lower() if issue_category else None
 
     if not group_event.group.issue_type.allow_post_process_group(group_event.group.organization):
         return
@@ -672,14 +673,24 @@ def run_post_process_job(job: PostProcessJob):
             with sentry_sdk.start_span(op=f"tasks.post_process_group.{pipeline_step.__name__}"):
                 pipeline_step(job)
         except Exception:
-            issue_category_metric = issue_category.name.lower() if issue_category else None
             metrics.incr(
                 "sentry.tasks.post_process.post_process_group.exception",
-                tags={"issue_category": issue_category_metric},
+                tags={
+                    "issue_category": issue_category_metric,
+                    "pipeline": pipeline_step.__name__,
+                },
             )
             logger.exception(
                 f"Failed to process pipeline step {pipeline_step.__name__}",
                 extra={"event": group_event, "group": group_event.group},
+            )
+        else:
+            metrics.incr(
+                "sentry.tasks.post_process.post_process_group.completed",
+                tags={
+                    "issue_category": issue_category_metric,
+                    "pipeline": pipeline_step.__name__,
+                },
             )
 
 
@@ -1033,6 +1044,14 @@ def process_commits(job: PostProcessJob) -> None:
                     features.has("organizations:commit-context", event.project.organization)
                     and has_integrations
                 ):
+                    if (
+                        features.has(
+                            "organizations:suspect-commits-all-frames", event.project.organization
+                        )
+                        and not job["group_state"]["is_new"]
+                    ):
+                        return
+
                     cache_key = DEBOUNCE_CACHE_KEY(event.group_id)
                     if cache.get(cache_key):
                         metrics.incr("sentry.tasks.process_commit_context.debounce")

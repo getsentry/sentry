@@ -16,6 +16,7 @@ export type TransactionSampleRow = {
   'measurements.fid': number | null;
   'measurements.lcp': number | null;
   'measurements.ttfb': number | null;
+  'profile.id': string;
   replayId: string;
   timestamp: string;
   transaction: string;

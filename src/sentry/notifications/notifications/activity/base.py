@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import abc
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional
 from urllib.parse import urlparse, urlunparse
 
-from django.utils.html import escape
-from django.utils.safestring import SafeString, mark_safe
+from django.utils.html import format_html
+from django.utils.safestring import SafeString
 
 from sentry.db.models import Model
 from sentry.notifications.helpers import get_reason_context
@@ -81,7 +81,7 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         super().__init__(activity)
         self.group = activity.group
 
-    def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
+    def get_description(self) -> tuple[str, Optional[str], Mapping[str, Any]]:
         raise NotImplementedError
 
     def get_group_link(self) -> str:
@@ -121,11 +121,13 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         expensive computation so it should only be called once. Override this
         method if the notification does not need HTML/text descriptions.
         """
-        description, params, html_params = self.get_description()
+        text_template, html_template, params = self.get_description()
+        text_description = self.description_as_text(text_template, params)
+        html_description = self.description_as_html(html_template or text_template, params)
         return {
             **self.get_base_context(),
-            "text_description": self.description_as_text(description, params),
-            "html_description": self.description_as_html(description, html_params or params),
+            "text_description": text_description,
+            "html_description": html_description,
         }
 
     def get_group_context(self) -> MutableMapping[str, Any]:
@@ -145,7 +147,7 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
     def get_notification_title(
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
     ) -> str:
-        description, params, _ = self.get_description()
+        description, _, params = self.get_description()
         return self.description_as_text(description, params, True, provider)
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
@@ -186,15 +188,15 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
 
         fmt = '<span class="avatar-container">{}</span> <strong>{}</strong>'
 
-        author = mark_safe(fmt.format(avatar_as_html(self.user), escape(name)))
+        author = format_html(fmt, avatar_as_html(self.user), name)
 
-        issue_name = escape(self.group.qualified_short_id or "an issue")
-        an_issue = f'<a href="{escape(self.get_group_link())}">{issue_name}</a>'
+        issue_name = self.group.qualified_short_id or "an issue"
+        an_issue = format_html('<a href="{}">{}</a>', self.get_group_link(), issue_name)
 
         context = {"author": author, "an issue": an_issue}
         context.update(params)
 
-        return mark_safe(description.format(**context))
+        return format_html(description, **context)
 
     def get_title_link(self, recipient: RpcActor, provider: ExternalProviders) -> str | None:
         from sentry.integrations.message_builder import get_title_link

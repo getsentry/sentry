@@ -119,6 +119,7 @@ class SourceMapDebugResponse(TypedDict):
     release: Optional[str]
     exceptions: List[SourceMapDebugException]
     has_debug_ids: bool
+    min_debug_id_sdk_version: Optional[str]
     sdk_version: Optional[str]
     project_has_some_artifact_bundle: bool
     release_has_some_artifact: bool
@@ -274,6 +275,8 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
                         )
                 processed_exceptions.append({"frames": processed_frames})
 
+        sdk_debug_id_support, min_debug_id_sdk_version = get_sdk_debug_id_support(event_data)
+
         return Response(
             {
                 "dist": event.dist,
@@ -285,7 +288,8 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
                 "release_has_some_artifact": has_uploaded_release_bundle_with_release
                 or has_uploaded_artifact_bundle_with_release,
                 "has_uploaded_some_artifact_with_a_debug_id": has_uploaded_some_artifact_with_a_debug_id,
-                "sdk_debug_id_support": get_sdk_debug_id_support(event_data),
+                "sdk_debug_id_support": sdk_debug_id_support,
+                "min_debug_id_sdk_version": min_debug_id_sdk_version,
                 "has_scraping_data": event_data.get("scraping_attempts") is not None,
             }
         )
@@ -494,6 +498,7 @@ class ReleaseLookupData:
                             matching_file, headers = archive.get_file_by_url(
                                 potential_source_file_name
                             )
+                            headers = ArtifactBundleArchive.normalize_headers(headers)
                             self.source_file_lookup_result = "found"
                             self.found_source_file_name = potential_source_file_name
                             sourcemap_header = headers.get("sourcemap", headers.get("x-sourcemap"))
@@ -641,6 +646,7 @@ def get_sdk_debug_id_support(event_data):
         official_sdks = [
             "sentry.javascript.angular",
             "sentry.javascript.angular-ivy",
+            "sentry.javascript.astro",
             "sentry.javascript.browser",
             "sentry.javascript.capacitor",
             "sentry.javascript.cordova",
@@ -658,33 +664,36 @@ def get_sdk_debug_id_support(event_data):
         ]
 
     if sdk_name not in official_sdks or sdk_name is None:
-        return "unofficial-sdk"
+        return "unofficial-sdk", None
 
     if sdk_name in NO_DEBUG_ID_SDKS:
-        return "not-supported"
+        return "not-supported", None
 
     sdk_version = get_path(event_data, "sdk", "version")
     if sdk_version is None:
-        return "unofficial-sdk"
+        return "unofficial-sdk", None
 
     if sdk_name == "sentry.javascript.react-native":
         return (
             "full"
             if Version(sdk_version) >= Version(MIN_REACT_NATIVE_SDK_VERSION_FOR_DEBUG_IDS)
-            else "needs-upgrade"
+            else "needs-upgrade",
+            MIN_REACT_NATIVE_SDK_VERSION_FOR_DEBUG_IDS,
         )
 
     if sdk_name == "sentry.javascript.electron":
         return (
             "full"
             if Version(sdk_version) >= Version(MIN_ELECTRON_SDK_VERSION_FOR_DEBUG_IDS)
-            else "needs-upgrade"
+            else "needs-upgrade",
+            MIN_ELECTRON_SDK_VERSION_FOR_DEBUG_IDS,
         )
 
     return (
         "full"
         if Version(sdk_version) >= Version(MIN_JS_SDK_VERSION_FOR_DEBUG_IDS)
-        else "needs-upgrade"
+        else "needs-upgrade",
+        MIN_JS_SDK_VERSION_FOR_DEBUG_IDS,
     )
 
 

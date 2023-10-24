@@ -1,4 +1,6 @@
 import {Organization} from 'sentry-fixture/organization';
+import {RRWebInitFrameEvents} from 'sentry-fixture/replay/rrweb';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -17,9 +19,9 @@ jest.mock('sentry/utils/useProjects');
 
 const now = new Date();
 const mockReplay = ReplayReader.factory({
-  replayRecord: TestStubs.ReplayRecord({started_at: now}),
+  replayRecord: ReplayRecordFixture({started_at: now}),
   errors: [],
-  attachments: TestStubs.Replay.RRWebInitFrameEvents({timestamp: now}),
+  attachments: RRWebInitFrameEvents({timestamp: now}),
 });
 
 jest.mocked(useReplayReader).mockImplementation(() => {
@@ -31,8 +33,8 @@ jest.mocked(useReplayReader).mockImplementation(() => {
     onRetry: jest.fn(),
     projectSlug: TestStubs.Project().slug,
     replay: mockReplay,
-    replayId: TestStubs.ReplayRecord({}).id,
-    replayRecord: TestStubs.ReplayRecord(),
+    replayId: ReplayRecordFixture({}).id,
+    replayRecord: ReplayRecordFixture(),
   };
 });
 

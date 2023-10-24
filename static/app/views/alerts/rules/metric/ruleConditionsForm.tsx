@@ -25,11 +25,8 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Environment, Organization, Project, SelectValue} from 'sentry/types';
 import {getDisplayName} from 'sentry/utils/environment';
-import {
-  getOnDemandKeys,
-  hasOnDemandMetricAlertFeature,
-  isOnDemandQueryString,
-} from 'sentry/utils/onDemandMetrics';
+import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
+import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
