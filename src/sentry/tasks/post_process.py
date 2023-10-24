@@ -344,7 +344,6 @@ def handle_group_owners(
                 type__in=[GroupOwnerType.OWNERSHIP_RULE.value, GroupOwnerType.CODEOWNERS.value],
             )
             new_owners: dict = {}
-            owners: Union[List[RpcUser], List[Team]]
             for rule, owners, source in issue_owners:
                 for owner in owners:
                     # Can potentially have multiple rules pointing to the same owner
@@ -355,25 +354,29 @@ def handle_group_owners(
 
             # Owners already in the database that we'll keep
             keeping_owners = set()
-            for owner in current_group_owners:
+            for group_owner in current_group_owners:
                 owner_type = (
                     OwnerRuleType.CODEOWNERS.value
-                    if owner.type == GroupOwnerType.CODEOWNERS.value
+                    if group_owner.type == GroupOwnerType.CODEOWNERS.value
                     else OwnerRuleType.OWNERSHIP_RULE.value
                 )
                 lookup_key = (
-                    (Team, owner.team_id, owner_type)
-                    if owner.team_id is not None
-                    else (User, owner.user_id, owner_type)
+                    (Team, group_owner.team_id, owner_type)
+                    if group_owner.team_id is not None
+                    else (User, group_owner.user_id, owner_type)
                 )
                 # Old groupowner assignments get deleted
+                lookup_key_value = None
                 if lookup_key not in new_owners:
-                    owner.delete()
+                    group_owner.delete()
+                else:
+                    lookup_key_value = new_owners.get(lookup_key)
                 # Old groupowner assignment from outdated rules get deleted
-                if new_owners.get(lookup_key) and (owner.context or {}).get(
-                    "rule"
-                ) not in new_owners.get(lookup_key):
-                    owner.delete()
+                if (
+                    lookup_key_value
+                    and (group_owner.context or {}).get("rule") not in lookup_key_value
+                ):
+                    group_owner.delete()
                 else:
                     keeping_owners.add(lookup_key)
 
@@ -388,7 +391,7 @@ def handle_group_owners(
                         if owner_source == OwnerRuleType.OWNERSHIP_RULE.value
                         else GroupOwnerType.CODEOWNERS.value
                     )
-                    user_id = None
+                    user_id: float | int | str | None = None
                     team_id = None
                     if owner_type is RpcUser:
                         user_id = owner_id
@@ -538,7 +541,9 @@ def post_process_group(
                 # occurrence
                 return
 
-            occurrence = IssueOccurrence.fetch(occurrence_id, project_id=project_id)
+            occurrence = (
+                IssueOccurrence.fetch(occurrence_id, project_id=project_id) if project_id else None
+            )
             if not occurrence:
                 logger.error(
                     "Failed to fetch occurrence",
@@ -655,10 +660,12 @@ def post_process_group(
 
 def run_post_process_job(job: PostProcessJob):
     group_event = job["event"]
-    issue_category = group_event.group.issue_category
+    issue_category = group_event.group.issue_category if group_event.group else None
     issue_category_metric = issue_category.name.lower() if issue_category else None
 
-    if not group_event.group.issue_type.allow_post_process_group(group_event.group.organization):
+    if group_event.group and not group_event.group.issue_type.allow_post_process_group(
+        group_event.group.organization
+    ):
         return
 
     if issue_category not in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
@@ -716,7 +723,7 @@ def update_event_groups(event: Event, group_states: Optional[GroupStates] = None
     from sentry.models.group import get_group_with_redirect
 
     # event.group_id can be None in the case of transaction events
-    if event.group_id is not None:
+    if event.group_id is not None and event.group:
         # deprecated event.group and event.group_id usage, kept here for backwards compatibility
         event.group, _ = get_group_with_redirect(event.group_id)
         event.group_id = event.group.id
@@ -761,6 +768,9 @@ def process_inbox_adds(job: PostProcessJob) -> None:
 
             from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 
+            if not event.group:
+                raise Exception("Unable to find Group on Event")
+
             if is_reprocessed and is_new:
                 # keep Group.status=UNRESOLVED and Group.substatus=ONGOING if its reprocessed
                 add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
@@ -803,6 +813,8 @@ def process_snoozes(job: PostProcessJob) -> None:
 
     event = job["event"]
     group = event.group
+    if not group:
+        raise Exception("Unable to find Group on Event")
 
     # Check is group is escalating
     if (

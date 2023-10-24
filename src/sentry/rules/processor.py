@@ -21,7 +21,7 @@ from django.core.cache import cache
 from django.utils import timezone
 
 from sentry import analytics
-from sentry.eventstore.models import GroupEvent
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.environment import Environment
 from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.rule import Rule
@@ -59,7 +59,7 @@ class RuleProcessor:
 
     def __init__(
         self,
-        event: GroupEvent,
+        event: Event | GroupEvent,
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,

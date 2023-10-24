@@ -23,7 +23,7 @@ from django.db.models import Q
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
 from sentry.api.serializers.models.release import Author
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.group import Group
@@ -58,7 +58,7 @@ def score_path_match_length(path_a: str, path_b: str) -> int:
     return score
 
 
-def get_frame_paths(event: Event) -> Union[Any, Sequence[Any]]:
+def get_frame_paths(event: Event | GroupEvent) -> Union[Any, Sequence[Any]]:
     return find_stack_frames(event.data)
 
 

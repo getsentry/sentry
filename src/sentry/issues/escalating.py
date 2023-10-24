@@ -27,7 +27,7 @@ from snuba_sdk import (
 from snuba_sdk.expressions import Granularity
 
 from sentry import features
-from sentry.eventstore.models import GroupEvent
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import GroupCount
 from sentry.issues.grouptype import GroupCategory
@@ -480,7 +480,7 @@ def _issue_category_entity(category: GroupCategory | None = None) -> EntityKey |
 def manage_issue_states(
     group: Group,
     group_inbox_reason: GroupInboxReason,
-    event: GroupEvent | None = None,
+    event: Event | GroupEvent | None = None,
     snooze_details: Mapping[str, Any] | None = None,
     activity_data: Mapping[str, Any] | None = None,
 ) -> None:

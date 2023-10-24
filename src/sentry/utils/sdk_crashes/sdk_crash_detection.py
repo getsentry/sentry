@@ -3,7 +3,7 @@ from __future__ import annotations
 import random
 from typing import Any, Mapping, Optional
 
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.grouptype import GroupCategory
 from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.cocoa_sdk_crash_detector import CocoaSDKCrashDetector
@@ -40,7 +40,7 @@ class SDKCrashDetection:
         self.cocoa_sdk_crash_detector = sdk_crash_detector
 
     def detect_sdk_crash(
-        self, event: Event, event_project_id: int, sample_rate: float
+        self, event: Event | GroupEvent, event_project_id: int, sample_rate: float
     ) -> Optional[Event]:
         """
         Checks if the passed-in event is an SDK crash and stores the stripped event to a Sentry
