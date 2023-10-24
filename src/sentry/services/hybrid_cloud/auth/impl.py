@@ -22,7 +22,6 @@ from sentry.services.hybrid_cloud.auth import (
     RpcOrganizationAuthConfig,
 )
 from sentry.services.hybrid_cloud.auth.serial import serialize_api_key, serialize_auth_provider
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import sso_enabled
 from sentry.silo import unguarded_write
 
