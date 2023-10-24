@@ -1,9 +1,8 @@
-from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
 import sentry_sdk
 from rest_framework.response import Response
-from snuba_sdk import Column, Condition, Function, LimitBy, Op
+from snuba_sdk import Column, Condition, Function, LimitBy, Op, Or
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -26,10 +25,8 @@ BASE_REFERRER = "api.organization-events-root-cause-analysis"
 SPAN_ANALYSIS = "span"
 GEO_ANALYSIS = "geo"
 
-_query_thread_pool = ThreadPoolExecutor()
 
-
-def init_query_builder(params, transaction, regression_breakpoint, type):
+def init_query_builder(params, transaction, regression_breakpoint):
     selected_columns = [
         "count(span_id) as span_count",
         "percentileArray(spans_exclusive_time, 0.95) as p95_self_time",
@@ -69,49 +66,30 @@ def init_query_builder(params, transaction, regression_breakpoint, type):
             "period",
         )
     )
+    # Drop this and just do a second query
     builder.columns.append(Function("countDistinct", [Column("event_id")], "transaction_count"))
+
     builder.groupby.append(Column("period"))
     builder.limitby = LimitBy([Column("period")], QUERY_LIMIT)
-
-    # Filter out timestamp because we want to control the timerange for parallelization
-    builder.where = [
-        condition for condition in builder.where if condition.lhs != Column("timestamp")
-    ]
-    if type == "before":
-        builder.where += [
-            Condition(Column("timestamp"), Op.GTE, params.get("start")),
-            Condition(Column("timestamp"), Op.LT, regression_breakpoint - BUFFER),
-        ]
-    else:
-        builder.where += [
-            Condition(Column("timestamp"), Op.GTE, regression_breakpoint + BUFFER),
-            Condition(Column("timestamp"), Op.LT, params.get("end")),
-        ]
+    builder.where.append(
+        Or(
+            [
+                Condition(Column("timestamp"), Op.LT, regression_breakpoint - BUFFER),
+                Condition(Column("timestamp"), Op.GT, regression_breakpoint + BUFFER),
+            ]
+        )
+    )
 
     return builder
 
 
-def get_parallelized_snql_queries(transaction, regression_breakpoint, params):
-    return [
-        init_query_builder(params, transaction, regression_breakpoint, "before").get_snql_query(),
-        init_query_builder(params, transaction, regression_breakpoint, "after").get_snql_query(),
-    ]
-
-
 def query_spans(transaction, regression_breakpoint, params):
     referrer = f"{BASE_REFERRER}-{SPAN_ANALYSIS}"
-    snql_queries = get_parallelized_snql_queries(transaction, regression_breakpoint, params)
 
-    # Parallelize the request for span data
-    snuba_results = list(_query_thread_pool.map(raw_snql_query, snql_queries, [referrer, referrer]))
-    span_results = []
-
-    # append all the results
-    for result in snuba_results:
-        output_dict = result["data"]
-        span_results += output_dict
-
-    return span_results
+    snuba_results = raw_snql_query(
+        init_query_builder(params, transaction, regression_breakpoint).get_snql_query(), referrer
+    )
+    return snuba_results.get("data")
 
 
 def fetch_span_analysis_results(transaction_name, regression_breakpoint, params, project_id, limit):
