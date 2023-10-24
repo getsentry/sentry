@@ -17,6 +17,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {PageOverviewFeaturedTagsList} from 'sentry/views/performance/browser/webVitals/components/pageOverviewFeaturedTagsList';
 import {PageOverviewSidebar} from 'sentry/views/performance/browser/webVitals/components/pageOverviewSidebar';
 import {PerformanceScoreBreakdownChart} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
 import WebVitalsRingMeters from 'sentry/views/performance/browser/webVitals/components/webVitalsRingMeters';
@@ -56,6 +57,9 @@ export default function PageOverview() {
     [projects, location.query.project]
   );
 
+  // TODO: When visiting page overview from a specific webvital detail panel in the landing page,
+  // we should automatically default this webvital state to the respective webvital so the detail
+  // panel in this page opens automatically.
   const [state, setState] = useState<{webVital: WebVitals | null}>({
     webVital: null,
   });
@@ -142,6 +146,19 @@ export default function PageOverview() {
               onClick={webVital => setState({...state, webVital})}
               transaction={transaction}
             />
+            {/* TODO: Need to pass in a handler function to each tag list here to handle opening detail panel for tags */}
+            <Flex>
+              <PageOverviewFeaturedTagsList
+                tag="browser.name"
+                transaction={transaction}
+              />
+              <PageOverviewFeaturedTagsList tag="release" transaction={transaction} />
+              {/* TODO: need a way to map country code to actual country name */}
+              <PageOverviewFeaturedTagsList
+                tag="geo.country_code"
+                transaction={transaction}
+              />
+            </Flex>
           </Layout.Main>
           <Layout.Side>
             <PageOverviewSidebar projectScore={projectScore} transaction={transaction} />
@@ -153,6 +170,7 @@ export default function PageOverview() {
             setState({...state, webVital: null});
           }}
         />
+        {/* TODO: Add the detail panel for tags here. Can copy foundation from PageOverviewWebVitalsDetailPanel above. */}
       </Tabs>
     </ModulePageProviders>
   );

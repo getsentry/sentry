@@ -126,6 +126,7 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
       <SidebarSpacer />
       <SectionHeading>
         {t('Throughput')}
+        {/* TODO: Add a proper tooltip */}
         <QuestionTooltip size="sm" title={undefined} />
       </SectionHeading>
       <ChartValue>{currentEps}</ChartValue>
@@ -153,6 +154,7 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
       <SidebarSpacer />
       <SectionHeading>
         {t('Duration (P75)')}
+        {/* TODO: Add a proper tooltip */}
         <QuestionTooltip size="sm" title={undefined} />
       </SectionHeading>
       <ChartValue>{currentDuration}</ChartValue>
@@ -180,6 +182,7 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
       <SidebarSpacer />
       <SectionHeading>
         {t('5XX Responses')}
+        {/* TODO: Add a proper tooltip */}
         <QuestionTooltip size="sm" title={undefined} />
       </SectionHeading>
       <ChartValue>{pageData?.data[0]['failure_count()']}</ChartValue>
@@ -202,6 +205,7 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
       <SidebarSpacer />
       <SectionHeading>
         {t('Aggregate Spans')}
+        {/* TODO: Add a proper tooltip */}
         <QuestionTooltip size="sm" title={undefined} />
       </SectionHeading>
       <MiniAggregateWaterfallContainer>
