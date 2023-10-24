@@ -212,6 +212,9 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "static_args": {
             "ingest_profile": "release-health",
         },
+        "dlq_topic": settings.KAFKA_INGEST_METRICS_DLQ,
+        "dlq_max_invalid_ratio": 0.01,
+        "dlq_max_consecutive_count": 1000,
     },
     "ingest-generic-metrics": {
         "topic": settings.KAFKA_INGEST_PERFORMANCE_METRICS,
@@ -220,6 +223,9 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "static_args": {
             "ingest_profile": "performance",
         },
+        "dlq_topic": settings.KAFKA_INGEST_GENERIC_METRICS_DLQ,
+        "dlq_max_invalid_ratio": 0.01,
+        "dlq_max_consecutive_count": 1000,
     },
     "generic-metrics-last-seen-updater": {
         "topic": settings.KAFKA_SNUBA_GENERIC_METRICS,
