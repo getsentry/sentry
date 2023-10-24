@@ -64,7 +64,9 @@ def run_query(request: Request) -> Mapping[str, Any]:
         granularity = _resolve_granularity(
             metrics_query.start, metrics_query.end, metrics_query.rollup.interval
         )
-        metrics_query = metrics_query.set_rollup(metrics_query.rollup.set_granularity(granularity))
+        metrics_query = metrics_query.set_rollup(
+            replace(metrics_query.rollup, granularity=granularity)
+        )
 
     # Resolves MRI or public name in metrics_query
     try:
