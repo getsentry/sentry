@@ -78,6 +78,7 @@ class GitHubIssueBasic(IssueBasicMixin):
         default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
 
         assignees = self.get_allowed_assignees(default_repo) if default_repo else []
+        labels = self.get_repo_labels(default_repo) if default_repo else []
 
         org = group.organization
         autocomplete_url = reverse(
@@ -104,6 +105,15 @@ class GitHubIssueBasic(IssueBasicMixin):
                 "required": False,
                 "choices": assignees,
             },
+            {
+                "name": "labels",
+                "label": "Labels",
+                "default": "",
+                "type": "select",
+                "multiple": True,
+                "required": False,
+                "choices": labels,
+            },
         ]
 
     def create_issue(self, data: Mapping[str, Any], **kwargs: Any) -> Mapping[str, Any]:
@@ -121,6 +131,7 @@ class GitHubIssueBasic(IssueBasicMixin):
                     "title": data["title"],
                     "body": data["description"],
                     "assignee": data.get("assignee"),
+                    "labels": data.get("labels"),
                 },
             )
         except ApiError as e:
@@ -224,3 +235,17 @@ class GitHubIssueBasic(IssueBasicMixin):
         issues = tuple((i["number"], "#{} {}".format(i["number"], i["title"])) for i in response)
 
         return issues
+
+    def get_repo_labels(self, repo: str) -> Sequence[tuple[str, str]]:
+        client = self.get_client()
+        try:
+            response = client.get_labels(repo)
+        except Exception as e:
+            self.raise_error(e)
+
+        # sort alphabetically
+        labels = tuple(
+            sorted([(label["name"], label["name"]) for label in response], key=lambda pair: pair[0])
+        )
+
+        return labels
