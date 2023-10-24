@@ -34,7 +34,7 @@ describe('AwsLambdaCloudformation', () => {
 
     // Fill out fields
     await userEvent.type(
-      screen.getByRole('textbox', {name: 'AWS Account Number'}),
+      screen.getByRole('textbox', {name: 'AWS Account ID'}),
       '599817902985'
     );
 

@@ -19,6 +19,11 @@
     "sentry.organizationslugreservation",
     "sentry.user"
   ],
+  "hybridcloud.orgauthtokenreplica": [
+    "sentry.organization",
+    "sentry.orgauthtoken",
+    "sentry.user"
+  ],
   "hybridcloud.regioncacheversion": [],
   "nodestore.node": [],
   "replays.replayrecordingsegment": [
@@ -37,7 +42,9 @@
   "sentry.alertrule": [
     "sentry.actor",
     "sentry.organization",
-    "sentry.snubaquery"
+    "sentry.snubaquery",
+    "sentry.team",
+    "sentry.user"
   ],
   "sentry.alertruleactivity": [
     "sentry.alertrule",

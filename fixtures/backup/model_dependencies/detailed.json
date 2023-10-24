@@ -126,6 +126,34 @@
       ]
     ]
   },
+  "hybridcloud.orgauthtokenreplica": {
+    "dangling": false,
+    "foreign_keys": {
+      "created_by_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      },
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.organization",
+        "nullable": false
+      },
+      "orgauthtoken_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.orgauthtoken",
+        "nullable": false
+      }
+    },
+    "model": "hybridcloud.orgauthtokenreplica",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "hybridcloud_orgauthtokenreplica",
+    "uniques": []
+  },
   "hybridcloud.regioncacheversion": {
     "dangling": false,
     "foreign_keys": {},
@@ -262,6 +290,16 @@
       "snuba_query": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.snubaquery",
+        "nullable": true
+      },
+      "team": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.team",
+        "nullable": true
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
         "nullable": true
       }
     },

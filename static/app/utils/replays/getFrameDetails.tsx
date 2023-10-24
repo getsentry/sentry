@@ -79,7 +79,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
         ),
         icon: <IconCursorArrow size="xs" />,
         title: isDeadRageClick(frame) ? 'Rage Click' : 'Dead Click',
-        tabKey: TabKey.DOM,
+        tabKey: TabKey.BREADCRUMBS,
       };
     }
     return {
@@ -93,7 +93,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
       ),
       icon: <IconWarning size="xs" />,
       title: 'Slow Click',
-      tabKey: TabKey.DOM,
+      tabKey: TabKey.BREADCRUMBS,
     };
   },
   'ui.multiClick': (frame: MultiClickFrame) => {
@@ -104,7 +104,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
           clickCount: frame.data.clickCount,
           selector: stringifyNodeAttributes(frame.data.node),
         }),
-        tabKey: TabKey.DOM,
+        tabKey: TabKey.BREADCRUMBS,
         title: 'Rage Click',
         icon: <IconFire size="xs" />,
       };
@@ -116,7 +116,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
         clickCount: frame.data.clickCount,
         selector: stringifyNodeAttributes(frame.data.node),
       }),
-      tabKey: TabKey.DOM,
+      tabKey: TabKey.BREADCRUMBS,
       title: 'Multi Click',
       icon: <IconWarning size="xs" />,
     };
@@ -132,42 +132,42 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
           'A large number of mutations was detected (%s). This can slow down the Replay SDK and impact your customers.',
           frame.data.count
         ),
-    tabKey: TabKey.DOM,
+    tabKey: TabKey.BREADCRUMBS,
     title: 'Replay',
     icon: <IconWarning size="xs" />,
   }),
   'ui.click': frame => ({
     color: 'purple300',
     description: frame.message ?? '',
-    tabKey: TabKey.DOM,
+    tabKey: TabKey.BREADCRUMBS,
     title: 'User Click',
     icon: <IconCursorArrow size="xs" />,
   }),
   'ui.input': () => ({
     color: 'purple300',
     description: 'User Action',
-    tabKey: TabKey.DOM,
+    tabKey: TabKey.BREADCRUMBS,
     title: 'User Input',
     icon: <IconInput size="xs" />,
   }),
   'ui.keyDown': () => ({
     color: 'purple300',
     description: 'User Action',
-    tabKey: TabKey.DOM,
+    tabKey: TabKey.BREADCRUMBS,
     title: 'User KeyDown',
     icon: <IconKeyDown size="xs" />,
   }),
   'ui.blur': () => ({
     color: 'purple300',
     description: 'User Action',
-    tabKey: TabKey.DOM,
+    tabKey: TabKey.BREADCRUMBS,
     title: 'User Blur',
     icon: <IconUser size="xs" />,
   }),
   'ui.focus': () => ({
     color: 'purple300',
     description: 'User Action',
-    tabKey: TabKey.DOM,
+    tabKey: TabKey.BREADCRUMBS,
     title: 'User Focus',
     icon: <IconUser size="xs" />,
   }),

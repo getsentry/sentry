@@ -9,6 +9,7 @@ import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
+import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
@@ -16,15 +17,18 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconChevron, IconEllipsis, IconJson, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {Event} from 'sentry/types';
 import {getShortEventId} from 'sentry/utils/events';
 import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
+  eventData: Event | undefined;
   feedbackItem: HydratedFeedbackItem;
+  tags: Record<string, string>;
 }
 
-export default function FeedbackItem({feedbackItem}: Props) {
+export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const organization = useOrganization();
 
   return (
@@ -127,11 +131,21 @@ export default function FeedbackItem({feedbackItem}: Props) {
           <ReplaySection organization={organization} replayId={feedbackItem.replay_id} />
         ) : null}
 
-        {/* <TagsSection tags={feedbackItem.tags} /> */}
+        <TagsSection tags={tags} />
 
-        <Section icon={<IconJson size="xs" />} title={t('Raw')}>
+        <Section icon={<IconJson size="xs" />} title={t('Raw Issue Data')}>
           <ObjectInspector
             data={feedbackItem}
+            expandLevel={3}
+            theme={{
+              TREENODE_FONT_SIZE: '0.7rem',
+              ARROW_FONT_SIZE: '0.5rem',
+            }}
+          />
+        </Section>
+        <Section icon={<IconJson size="xs" />} title={t('Raw Event Data')}>
+          <ObjectInspector
+            data={eventData}
             expandLevel={3}
             theme={{
               TREENODE_FONT_SIZE: '0.7rem',

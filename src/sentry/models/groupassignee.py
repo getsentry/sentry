@@ -20,12 +20,12 @@ from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupowner import GroupOwner
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.signals import issue_assigned, issue_unassigned
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
-    from sentry.models.actor import ActorTuple
     from sentry.models.group import Group
     from sentry.models.team import Team
     from sentry.models.user import User
@@ -256,17 +256,13 @@ class GroupAssignee(Model):
         ), "Must have Team or User, not both"
         super().save(*args, **kwargs)
 
-    def assigned_actor_id(self) -> str:
-        # TODO(mgaeta): Create migration for GroupAssignee to use the Actor model.
-        if self.user_id:
-            return f"user:{self.user_id}"
-
-        if self.team:
-            return f"team:{self.team_id}"
+    def assigned_actor(self) -> RpcActor:
+        if self.user_id is not None:
+            return RpcActor(
+                id=self.user_id,
+                actor_type=ActorType.USER,
+            )
+        if self.team_id is not None:
+            return RpcActor(id=self.team_id, actor_type=ActorType.TEAM)
 
         raise NotImplementedError("Unknown Assignee")
-
-    def assigned_actor(self) -> ActorTuple:
-        from sentry.models.actor import ActorTuple
-
-        return ActorTuple.from_actor_identifier(self.assigned_actor_id())

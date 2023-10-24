@@ -5,7 +5,6 @@ import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveRe
 import A11y from 'sentry/views/replays/detail/accessibility/index';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import Console from 'sentry/views/replays/detail/console';
-import DomMutations from 'sentry/views/replays/detail/domMutations';
 import DomNodesChart from 'sentry/views/replays/detail/domNodesChart';
 import ErrorList from 'sentry/views/replays/detail/errorList/index';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
@@ -31,8 +30,6 @@ function FocusArea({}: Props) {
       return <PerfTable />;
     case TabKey.ERRORS:
       return <ErrorList />;
-    case TabKey.DOM:
-      return <DomMutations />;
     case TabKey.MEMORY:
       return (
         <MemoryTabWrapper>
