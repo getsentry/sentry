@@ -51,7 +51,7 @@ export default function FeedbackListPage({}: Props) {
   });
 
   return (
-    <SentryDocumentTitle title={t('User Feedback`')} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
       <FullViewport>
         <Layout.Header>
           <Layout.HeaderContent>
