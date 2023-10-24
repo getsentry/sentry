@@ -121,7 +121,7 @@ class GroupType:
     released: bool = False
 
     # Allow automatic resolution of an issue type, using the project-level option.
-    enable_auto_resolve: bool = False
+    enable_auto_resolve: bool = True
     creation_quota: Quota = Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
 
     def __init_subclass__(cls: Type[GroupType], **kwargs: Any) -> None:
@@ -207,7 +207,6 @@ class ErrorGroupType(GroupType):
     description = "Error"
     category = GroupCategory.ERROR.value
     released = True
-    enable_auto_resolve = True
 
 
 # used as an additional superclass for Performance GroupType defaults
@@ -223,7 +222,6 @@ class PerformanceSlowDBQueryGroupType(PerformanceGroupTypeDefaults, GroupType):
     category = GroupCategory.PERFORMANCE.value
     noise_config = NoiseConfig(ignore_limit=100)
     released = True
-    enable_auto_resolve = True
 
 
 @dataclass(frozen=True)
@@ -233,7 +231,6 @@ class PerformanceRenderBlockingAssetSpanGroupType(PerformanceGroupTypeDefaults, 
     description = "Large Render Blocking Asset"
     category = GroupCategory.PERFORMANCE.value
     released = True
-    enable_auto_resolve = True
 
 
 @dataclass(frozen=True)
@@ -243,7 +240,6 @@ class PerformanceNPlusOneGroupType(PerformanceGroupTypeDefaults, GroupType):
     description = "N+1 Query"
     category = GroupCategory.PERFORMANCE.value
     released = True
-    enable_auto_resolve = True
 
 
 @dataclass(frozen=True)
@@ -254,7 +250,6 @@ class PerformanceConsecutiveDBQueriesGroupType(PerformanceGroupTypeDefaults, Gro
     category = GroupCategory.PERFORMANCE.value
     noise_config = NoiseConfig(ignore_limit=15)
     released = True
-    enable_auto_resolve = True
 
 
 @dataclass(frozen=True)
@@ -264,7 +259,6 @@ class PerformanceFileIOMainThreadGroupType(PerformanceGroupTypeDefaults, GroupTy
     description = "File IO on Main Thread"
     category = GroupCategory.PERFORMANCE.value
     released = True
-    enable_auto_resolve = True
 
 
 @dataclass(frozen=True)
@@ -275,7 +269,6 @@ class PerformanceConsecutiveHTTPQueriesGroupType(PerformanceGroupTypeDefaults, G
     category = GroupCategory.PERFORMANCE.value
     noise_config = NoiseConfig(ignore_limit=5)
     released = True
-    enable_auto_resolve = True
 
 
 @dataclass(frozen=True)
@@ -285,7 +278,6 @@ class PerformanceNPlusOneAPICallsGroupType(GroupType):
     description = "N+1 API Call"
     category = GroupCategory.PERFORMANCE.value
     released = True
-    enable_auto_resolve = True
 
 
 @dataclass(frozen=True)
@@ -295,7 +287,6 @@ class PerformanceMNPlusOneDBQueriesGroupType(PerformanceGroupTypeDefaults, Group
     description = "MN+1 Query"
     category = GroupCategory.PERFORMANCE.value
     released = True
-    enable_auto_resolve = True
 
 
 @dataclass(frozen=True)
@@ -306,7 +297,6 @@ class PerformanceUncompressedAssetsGroupType(PerformanceGroupTypeDefaults, Group
     category = GroupCategory.PERFORMANCE.value
     noise_config = NoiseConfig(ignore_limit=100)
     released = True
-    enable_auto_resolve = True
 
 
 @dataclass(frozen=True)
@@ -316,7 +306,6 @@ class PerformanceDBMainThreadGroupType(PerformanceGroupTypeDefaults, GroupType):
     description = "DB on Main Thread"
     category = GroupCategory.PERFORMANCE.value
     released = True
-    enable_auto_resolve = True
 
 
 @dataclass(frozen=True)
@@ -326,7 +315,6 @@ class PerformanceLargeHTTPPayloadGroupType(PerformanceGroupTypeDefaults, GroupTy
     description = "Large HTTP payload"
     category = GroupCategory.PERFORMANCE.value
     released = True
-    enable_auto_resolve = True
 
 
 @dataclass(frozen=True)
@@ -336,7 +324,6 @@ class PerformanceHTTPOverheadGroupType(PerformanceGroupTypeDefaults, GroupType):
     description = "HTTP/1.1 Overhead"
     noise_config = NoiseConfig(ignore_limit=20)
     category = GroupCategory.PERFORMANCE.value
-    enable_auto_resolve = True
 
 
 # experimental
@@ -347,6 +334,7 @@ class PerformanceDurationRegressionGroupType(PerformanceGroupTypeDefaults, Group
     description = "Transaction Duration Regression (Experimental)"
     noise_config = NoiseConfig(ignore_limit=0)
     category = GroupCategory.PERFORMANCE.value
+    enable_auto_resolve = False
 
 
 @dataclass(frozen=True)
@@ -356,6 +344,7 @@ class PerformanceP95DurationRegressionGroupType(PerformanceGroupTypeDefaults, Gr
     description = "Transaction Duration Regression"
     noise_config = NoiseConfig(ignore_limit=0)
     category = GroupCategory.PERFORMANCE.value
+    enable_auto_resolve = False
 
 
 # 2000 was ProfileBlockingFunctionMainThreadType
