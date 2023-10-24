@@ -11,6 +11,11 @@ from sentry.silo import SiloMode
 from sentry.silo.base import SiloLimit
 from sentry.types.region import get_region_by_name
 
+# Backwards compatibility for URLs that don't
+# have enough context to route via organization.
+# New usage of these endpoints uses region domains,
+# but existing customers have been using these routes
+# on the main domain for a long time.
 REGION_PINNED_URL_NAMES = (
     "sentry-api-0-builtin-symbol-sources",
     "sentry-api-0-grouping-configs",
@@ -23,6 +28,7 @@ REGION_PINNED_URL_NAMES = (
     "sentry-api-0-relays-healthcheck",
     "sentry-api-0-relays-details",
     "sentry-error-page-embed",
+    "sentry-release-hook",
 )
 
 
