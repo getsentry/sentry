@@ -17,6 +17,7 @@ from sentry.utils import metrics
 logger = logging.getLogger("sentry.auth")
 
 AUTH_CHECK_INTERVAL = 3600 * 24
+AUTH_CHECK_SKEW = 3600 * 2
 
 
 @instrumented_task(name="sentry.tasks.check_auth", queue="auth.control", silo_mode=SiloMode.CONTROL)
@@ -27,10 +28,9 @@ def check_auth(**kwargs):
     """
     # TODO(dcramer): we should remove identities if they've been inactivate
     # for a reasonable interval
-    auth_check_interval = AUTH_CHECK_INTERVAL - randrange(3600)
     now = timezone.now()
     chunk_size = 100
-    cutoff = now - timedelta(seconds=auth_check_interval)
+    cutoff = now - timedelta(seconds=AUTH_CHECK_INTERVAL - randrange(AUTH_CHECK_SKEW))
     identity_ids_list = list(
         AuthIdentity.objects.using_replica()
         .filter(last_synced__lte=cutoff)
@@ -43,7 +43,8 @@ def check_auth(**kwargs):
 
         for identity_id in identity_ids_chunk:
             check_auth_identity.apply_async(
-                kwargs={"auth_identity_id": identity_id}, expires=auth_check_interval
+                kwargs={"auth_identity_id": identity_id},
+                expires=AUTH_CHECK_INTERVAL - AUTH_CHECK_SKEW,
             )
 
 
