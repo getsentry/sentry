@@ -15,11 +15,10 @@ import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {IconChevron, IconEllipsis, IconJson, IconLink} from 'sentry/icons';
+import {IconEllipsis, IconJson, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event} from 'sentry/types';
-import {getShortEventId} from 'sentry/utils/events';
 import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -58,10 +57,6 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
                   title={feedbackItem.project.slug}
                 />
                 {feedbackItem.project.slug}
-              </Flex>
-              <Flex align="center" gap={space(1)}>
-                <IconChevron direction="right" size="xs" />
-                <Flex>{getShortEventId(feedbackItem.feedback_id)}</Flex>
               </Flex>
             </Flex>
           </Flex>
