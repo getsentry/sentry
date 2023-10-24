@@ -978,15 +978,6 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             cleaned_data["issuetype"] = {"id": issue_type}
 
         try:
-            logger.info(
-                "jira_server.create_issue",
-                extra={
-                    "organization_id": self.organization_id,
-                    "integration_id": self.model.id,
-                    "jira_project": jira_project,
-                    "cleaned_data": cleaned_data,
-                },
-            )
             response = client.create_issue(cleaned_data)
         except Exception as e:
             self.raise_error(e)
