@@ -6,8 +6,8 @@ from sentry.utils.http import absolute_uri
 
 class GitHubCreateTicketAction(TicketEventAction):
     id = "sentry.integrations.github.notify_action.GitHubCreateTicketAction"
-    label = "Create a Github issue in {integration} with these "
-    ticket_type = "a Github issue"
+    label = "Create a GitHub issue in {integration} with these "
+    ticket_type = "a GitHub issue"
     # TODO(schew2381): Add link to docs once GitHub issue sync is available
     link = None
     provider = "github"
