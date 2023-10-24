@@ -231,6 +231,7 @@ def test_composite_backend_does_not_recurse(hub):
     assert len(hub.client.metrics_aggregator.buckets) == 0
 
 
+@pytest.mark.skipif(not have_minimetrics, reason="no minimetrics")
 @override_options(
     {
         "delightful_metrics.minimetrics_sample_rate": 1.0,
@@ -251,6 +252,7 @@ def test_unit_is_correctly_propagated_for_incr(sentry_sdk, unit, expected_unit):
     assert sentry_sdk.metrics.incr.call_args.kwargs == {**params, "unit": expected_unit}
 
 
+@pytest.mark.skipif(not have_minimetrics, reason="no minimetrics")
 @override_options(
     {
         "delightful_metrics.minimetrics_sample_rate": 1.0,
@@ -267,6 +269,7 @@ def test_unit_is_correctly_propagated_for_timing(sentry_sdk, unit, expected_unit
     assert sentry_sdk.metrics.distribution.call_args.kwargs == {**params, "unit": expected_unit}
 
 
+@pytest.mark.skipif(not have_minimetrics, reason="no minimetrics")
 @override_options(
     {
         "delightful_metrics.minimetrics_sample_rate": 1.0,

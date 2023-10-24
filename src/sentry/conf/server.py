@@ -1366,7 +1366,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enables transaction to metric dataset migration UI for alert rules
     "organizations:alert-migration-ui": False,
     # Enables the migration of alerts (checked in a migration script).
-    "organizations:alerts-migration-enabled": False,
+    "organizations:alerts-migration-enabled": True,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
     # Enables the cron job to auto-enable codecov integrations.
