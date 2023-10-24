@@ -347,11 +347,15 @@ def check_timeout(current_datetime: datetime):
 def mark_checkin_timeout(checkin_id: int, ts: datetime):
     logger.info("checkin.timeout", extra={"checkin_id": checkin_id})
 
-    checkin = (
-        MonitorCheckIn.objects.select_related("monitor_environment")
-        .select_related("monitor_environment__monitor")
-        .get(id=checkin_id)
-    )
+    try:
+        checkin = (
+            MonitorCheckIn.objects.select_related("monitor_environment")
+            .select_related("monitor_environment__monitor")
+            .get(id=checkin_id)
+        )
+    except MonitorCheckIn.DoesNotExist:
+        # safety check in case check-in was deleted
+        return
 
     monitor_environment = checkin.monitor_environment
     monitor = monitor_environment.monitor
