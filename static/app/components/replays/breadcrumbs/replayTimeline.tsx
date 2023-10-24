@@ -16,13 +16,14 @@ import {
 } from 'sentry/components/replays/player/scrubber';
 import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {divide} from 'sentry/components/replays/utils';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {};
 
 function ReplayTimeline({}: Props) {
-  const {replay} = useReplayContext();
+  const {replay, currentTime} = useReplayContext();
 
   const panelRef = useRef<HTMLDivElement>(null);
   const mouseTrackingProps = useScrubberMouseTracking({elem: panelRef});
@@ -42,9 +43,26 @@ function ReplayTimeline({}: Props) {
   const chapterFrames = replay.getChapterFrames();
   const networkFrames = replay.getNetworkFrames();
 
+  // timeline size is 300% larger
+  const timelineWidthPercentage = 300;
+
+  // start of the timeline is in the middle
+  const timelineTranslatePercentage = 50 / timelineWidthPercentage;
+
+  const translatePercentage =
+    (timelineTranslatePercentage -
+      (currentTime > durationMs ? 1 : divide(currentTime, durationMs))) *
+    100;
+
   return hasNewTimeline ? (
-    <PanelNoMarginBorder ref={panelRef} {...mouseTrackingProps}>
-      <Stacked ref={stackedRef}>
+    <VisiblePanel ref={panelRef} {...mouseTrackingProps}>
+      <Stacked
+        style={{
+          width: `${timelineWidthPercentage}%`,
+          transform: `translate(${translatePercentage}%, 0%)`,
+        }}
+        ref={stackedRef}
+      >
         <CompactTimelineScrubber />
         <TimelineEventsContainer>
           <ReplayTimelineEvents
@@ -55,7 +73,7 @@ function ReplayTimeline({}: Props) {
           />
         </TimelineEventsContainer>
       </Stacked>
-    </PanelNoMarginBorder>
+    </VisiblePanel>
   ) : (
     <PanelNoMargin ref={panelRef} {...mouseTrackingProps}>
       <Stacked ref={stackedRef}>
@@ -86,9 +104,11 @@ const PanelNoMargin = styled(Panel)`
   margin: 0;
 `;
 
-const PanelNoMarginBorder = styled(Panel)`
+const VisiblePanel = styled(Panel)`
   margin: 0;
   border: 0;
+  overflow: hidden;
+  background: ${p => p.theme.translucentInnerBorder};
 `;
 
 const TimelineEventsContainer = styled('div')`
