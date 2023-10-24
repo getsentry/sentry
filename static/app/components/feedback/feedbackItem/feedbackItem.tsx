@@ -9,6 +9,7 @@ import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
+import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
@@ -24,9 +25,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 interface Props {
   eventData: Event | undefined;
   feedbackItem: HydratedFeedbackItem;
+  tags: Record<string, string>;
 }
 
-export default function FeedbackItem({feedbackItem, eventData}: Props) {
+export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const organization = useOrganization();
 
   return (
@@ -129,7 +131,7 @@ export default function FeedbackItem({feedbackItem, eventData}: Props) {
           <ReplaySection organization={organization} replayId={feedbackItem.replay_id} />
         ) : null}
 
-        {/* <TagsSection tags={feedbackItem.tags} /> */}
+        <TagsSection tags={tags} />
 
         <Section icon={<IconJson size="xs" />} title={t('Raw Issue Data')}>
           <ObjectInspector
