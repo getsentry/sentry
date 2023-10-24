@@ -11,9 +11,18 @@ from sentry.silo import SiloMode
 from sentry.silo.base import SiloLimit
 from sentry.types.region import get_region_by_name
 
-REGION_PINNED_URLS = (
-    "/api/0/builtin-symbol-sources/",
-    "/api/0/grouping-configs/",
+REGION_PINNED_URL_NAMES = (
+    "sentry-api-0-builtin-symbol-sources",
+    "sentry-api-0-grouping-configs",
+    "sentry-api-0-relays-index",
+    "sentry-api-0-relay-register-challenge",
+    "sentry-api-0-relay-register-response",
+    "sentry-api-0-relay-projectconfigs",
+    "sentry-api-0-relay-projectids",
+    "sentry-api-0-relay-publickeys",
+    "sentry-api-0-relays-healthcheck",
+    "sentry-api-0-relays-details",
+    "sentry-error-page-embed",
 )
 
 
@@ -46,9 +55,8 @@ def proxy_request_if_needed(
         org_slug = view_kwargs["organization_slug"]
         return proxy_request(request, org_slug)
 
-    if request.path in REGION_PINNED_URLS:
+    if request.resolver_match and request.resolver_match.url_name in REGION_PINNED_URL_NAMES:
         region = get_region_by_name(settings.SENTRY_MONOLITH_REGION)
 
         return proxy_region_request(request, region)
-
     return None

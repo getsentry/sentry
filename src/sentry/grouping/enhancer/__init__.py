@@ -159,7 +159,7 @@ class Enhancements:
         if use_cache:
             frames_changed = _update_frames_from_cached_values(frames, cache_key, platform)
             if frames_changed:
-                logger.info("The frames have been loaded from the cache. Skipping some work.")
+                logger.debug("The frames have been loaded from the cache. Skipping some work.")
                 return
 
         with sentry_sdk.start_span(op="stacktrace_processing", description="apply_rules_to_frames"):
@@ -522,7 +522,7 @@ def _update_frames_from_cached_values(
                     frames_changed = True
 
             if frames_changed:
-                logger.info("We have merged the cached stacktrace to the incoming one.")
+                logger.debug("We have merged the cached stacktrace to the incoming one.")
         except Exception as error:
             logger.exception(
                 "We have failed to update the stacktrace from the cache. Not aborting execution.",

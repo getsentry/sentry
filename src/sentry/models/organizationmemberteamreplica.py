@@ -21,8 +21,8 @@ class OrganizationMemberTeamReplica(BaseModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     id = BoundedAutoField(primary_key=True)
-    team_id = HybridCloudForeignKey("sentry.Team", on_delete="cascade")
-    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade")
+    team_id = HybridCloudForeignKey("sentry.Team", on_delete="CASCADE")
+    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
     organizationmember_id = BoundedBigIntegerField(db_index=True)
     organizationmemberteam_id = BoundedBigIntegerField(db_index=True)
     is_active = models.BooleanField()

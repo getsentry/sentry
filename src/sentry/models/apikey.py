@@ -30,7 +30,7 @@ class ApiKey(ReplicatedControlModel, HasApiScopes):
     category = OutboxCategory.API_KEY_UPDATE
     replication_version = 3
 
-    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade")
+    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
     label = models.CharField(max_length=64, blank=True, default="Default")
     key = models.CharField(max_length=32, unique=True)
     status = BoundedPositiveIntegerField(

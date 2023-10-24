@@ -79,7 +79,13 @@ class AuthService(RpcService):
     @rpc_method
     @abc.abstractmethod
     def enable_partner_sso(
-        self, *, organization_id: int, provider_key: str, provider_config: Mapping[str, Any]
+        self,
+        *,
+        organization_id: int,
+        provider_key: str,
+        provider_config: Mapping[str, Any],
+        user_id: Optional[int] = None,
+        sender: Optional[str] = None,
     ) -> None:
         pass
 
