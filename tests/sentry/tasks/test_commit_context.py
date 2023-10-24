@@ -17,7 +17,6 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import PullRequest, PullRequestComment, PullRequestCommit
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions.base import ApiError
-from sentry.snuba.sessions_v2 import isoformat_z
 from sentry.tasks.commit_context import PR_COMMENT_WINDOW, process_commit_context
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -1060,18 +1059,8 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             updated_at=iso_format(before_now(days=1)),
             group_ids=[],
         )
-        self.installation_id = "github:1"
-        self.user_id = "user_1"
-        self.app_id = "app_1"
-        self.access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-        self.expires_at = isoformat_z(timezone.now() + timedelta(days=365))
 
     def add_responses(self):
-        responses.add(
-            responses.POST,
-            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
-            json={"token": self.access_token, "expires_at": self.expires_at},
-        )
         responses.add(
             responses.GET,
             self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
@@ -1118,11 +1107,6 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
         self.pull_request.delete()
 
         responses.add(
-            responses.POST,
-            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
-            json={"token": self.access_token, "expires_at": self.expires_at},
-        )
-        responses.add(
             responses.GET,
             self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
             status=200,
@@ -1147,11 +1131,6 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
         """Captures exception if Github API call errors"""
 
         responses.add(
-            responses.POST,
-            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
-            json={"token": self.access_token, "expires_at": self.expires_at},
-        )
-        responses.add(
             responses.GET,
             self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
             status=400,
@@ -1175,11 +1154,6 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
     def test_gh_comment_commit_not_in_default_branch(self, get_jwt, mock_comment_workflow):
         """No comments on commit not in default branch"""
 
-        responses.add(
-            responses.POST,
-            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
-            json={"token": self.access_token, "expires_at": self.expires_at},
-        )
         responses.add(
             responses.GET,
             self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
