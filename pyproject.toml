@@ -675,7 +675,6 @@ module = [
     "sentry.utils.performance_issues.performance_detection",
     "sentry.utils.query",
     "sentry.utils.redis",
-    "sentry.utils.sdk_crashes.sdk_crash_detection",
     "sentry.utils.sentry_apps.webhooks",
     "sentry.utils.services",
     "sentry.utils.snowflake",
