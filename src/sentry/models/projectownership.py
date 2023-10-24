@@ -250,6 +250,7 @@ class ProjectOwnership(Model):
         from sentry.models.groupowner import GroupOwner, GroupOwnerType
         from sentry.models.team import Team
         from sentry.models.user import User
+        from sentry.services.hybrid_cloud.user import RpcUser
 
         # If event is passed in, then this is not called from the force auto-assign API, else it is
         force_autoassign = True
@@ -316,7 +317,7 @@ class ProjectOwnership(Model):
                 isinstance(owner, Team)
                 and not GroupAssignee.objects.filter(group=group, team=owner.id).exists()
             ) or (
-                isinstance(owner, User)
+                isinstance(owner, RpcUser)
                 and not GroupAssignee.objects.filter(group=group, user_id=owner.id).exists()
             ):
                 assignment = GroupAssignee.objects.assign(
