@@ -1675,7 +1675,7 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
 
         args = mock_sdk_crash_detection.detect_sdk_crash.call_args[-1]
         assert args["event"].project.id == event.project.id
-        assert args["config"] == [{"sdk_name": "cocoa", "project_id": 1234, "sample_rate": 0.1234}]
+        assert args["configs"] == [{"sdk_name": "cocoa", "project_id": 1234, "sample_rate": 0.1234}]
 
     def test_sdk_crash_monitoring_is_not_called_with_disabled_feature(
         self, mock_sdk_crash_detection
