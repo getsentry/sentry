@@ -174,9 +174,9 @@ class BaseModel(models.Model):
         `write_relocation_import`, is that it is often useful to adjust just the normalization logic
         by itself without affecting the writing logic.
 
-        Overrides of this method should take care NOT to mutate the `pk_map`. Overrides should also
-        take care NOT to push the updated changes to the database (ie, no calls to `.save()` or
-        `.update()`), as this functionality is delegated to the `write_relocation_import()` method.
+        Overrides should take care NOT to push the updated changes to the database (ie, no calls to
+        `.save()` or `.update()`), as this functionality is delegated to the
+        `write_relocation_import()` method.
 
         The default normalization logic merely replaces foreign keys with their new values from the
         provided `pk_map`.
