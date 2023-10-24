@@ -10,21 +10,19 @@ import {
 import ReplayTimelineEvents from 'sentry/components/replays/breadcrumbs/replayTimelineEvents';
 import ReplayTimelineSpans from 'sentry/components/replays/breadcrumbs/replayTimelineSpans';
 import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
-import {TimelineScrubber} from 'sentry/components/replays/player/scrubber';
+import {
+  CompactTimelineScrubber,
+  TimelineScrubber,
+} from 'sentry/components/replays/player/scrubber';
 import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {};
 
 function ReplayTimeline({}: Props) {
   const {replay} = useReplayContext();
-  const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
-
-  const {setActiveTab} = useActiveReplayTab();
 
   const panelRef = useRef<HTMLDivElement>(null);
   const mouseTrackingProps = useScrubberMouseTracking({elem: panelRef});
@@ -32,8 +30,11 @@ function ReplayTimeline({}: Props) {
   const stackedRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions<HTMLDivElement>({elementRef: stackedRef});
 
+  const organization = useOrganization();
+  const hasNewTimeline = organization.features.includes('session-replay-new-timeline');
+
   if (!replay) {
-    return <Placeholder height="54px" />;
+    return <Placeholder height={hasNewTimeline ? '20px' : '54px'} />;
   }
 
   const durationMs = replay.getDurationMs();
@@ -41,7 +42,21 @@ function ReplayTimeline({}: Props) {
   const chapterFrames = replay.getChapterFrames();
   const networkFrames = replay.getNetworkFrames();
 
-  return (
+  return hasNewTimeline ? (
+    <PanelNoMarginBorder ref={panelRef} {...mouseTrackingProps}>
+      <Stacked ref={stackedRef}>
+        <CompactTimelineScrubber />
+        <TimelineEventsContainer>
+          <ReplayTimelineEvents
+            durationMs={durationMs}
+            frames={chapterFrames}
+            startTimestampMs={startTimestampMs}
+            width={width}
+          />
+        </TimelineEventsContainer>
+      </Stacked>
+    </PanelNoMarginBorder>
+  ) : (
     <PanelNoMargin ref={panelRef} {...mouseTrackingProps}>
       <Stacked ref={stackedRef}>
         <MinorGridlines durationMs={durationMs} width={width} />
@@ -58,12 +73,6 @@ function ReplayTimeline({}: Props) {
           <ReplayTimelineEvents
             durationMs={durationMs}
             frames={chapterFrames}
-            onMouseEnter={onMouseEnter}
-            onMouseLeave={onMouseLeave}
-            onClickTimestamp={frame => {
-              onClickTimestamp(frame);
-              setActiveTab(getFrameDetails(frame).tabKey);
-            }}
             startTimestampMs={startTimestampMs}
             width={width}
           />
@@ -75,6 +84,16 @@ function ReplayTimeline({}: Props) {
 
 const PanelNoMargin = styled(Panel)`
   margin: 0;
+`;
+
+const PanelNoMarginBorder = styled(Panel)`
+  margin: 0;
+  border: 0;
+`;
+
+const TimelineEventsContainer = styled('div')`
+  padding-top: 10px;
+  padding-bottom: 10px;
 `;
 
 export default ReplayTimeline;

@@ -1,13 +1,11 @@
 import {Fragment} from 'react';
 import * as qs from 'query-string';
 
-import {getInterval} from 'sentry/components/charts/utils';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import {NewQuery} from 'sentry/types';
 import {
   TableData,
   TableDataRow,
@@ -16,67 +14,29 @@ import {
 import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
-import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
+import {TOP_SCREENS} from 'sentry/views/starfish/views/screens';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
-export function ScreensTable() {
-  const {selection} = usePageFilters();
+type Props = {
+  data: TableData | undefined;
+  eventView: EventView;
+  isLoading: boolean;
+  pageLinks: string | undefined;
+};
+
+export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const routingContext = useRoutingContext();
-  const {query} = location;
-  const {
-    primaryRelease,
-    secondaryRelease,
-    isLoading: isReleasesLoading,
-  } = useReleaseSelection();
+  const {primaryRelease, secondaryRelease} = useReleaseSelection();
 
-  const searchQuery = new MutableSearch([
-    'event.type:transaction',
-    'transaction.op:ui.load',
-  ]);
-  const queryStringPrimary = appendReleaseFilters(
-    searchQuery,
-    primaryRelease,
-    secondaryRelease
-  );
-
-  const orderby = decodeScalar(query.sort, `-count`);
-  const newQuery: NewQuery = {
-    name: '',
-    fields: [
-      'transaction',
-      SpanMetricsField.PROJECT_ID,
-      'avg(measurements.time_to_initial_display)', // TODO: Update these to avgIf with primary release when available
-      `avg_compare(measurements.time_to_initial_display,release,${primaryRelease},${secondaryRelease})`,
-      'avg(measurements.time_to_full_display)',
-      `avg_compare(measurements.time_to_full_display,release,${primaryRelease},${secondaryRelease})`,
-      'count()',
-    ],
-    query: queryStringPrimary,
-    dataset: DiscoverDatasets.METRICS,
-    version: 2,
-    projects: selection.projects,
-    interval: getInterval(selection.datetime, STARFISH_CHART_INTERVAL_FIDELITY),
-  };
-  newQuery.orderby = orderby;
-  const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
-
-  const {data, isLoading, pageLinks} = useTableQuery({
-    eventView,
-    enabled: !isReleasesLoading,
-  });
   const eventViewColumns = eventView.getColumns();
 
   const columnNameMap = {
@@ -95,22 +55,27 @@ export function ScreensTable() {
       return row[column.key];
     }
 
+    const index = data.data.indexOf(row);
+
     const field = String(column.key);
 
     if (field === 'transaction') {
       return (
-        <Link
-          to={`${routingContext.baseURL}/pageload/spans/?${qs.stringify({
-            ...location.query,
-            project: row['project.id'],
-            transaction: row.transaction,
-            primaryRelease,
-            secondaryRelease,
-          })}`}
-          style={{display: `block`, width: `100%`}}
-        >
-          {row.transaction}
-        </Link>
+        <Fragment>
+          <TopResultsIndicator count={TOP_SCREENS} index={index} />
+          <Link
+            to={`${routingContext.baseURL}/pageload/spans/?${qs.stringify({
+              ...location.query,
+              project: row['project.id'],
+              transaction: row.transaction,
+              primaryRelease,
+              secondaryRelease,
+            })}`}
+            style={{display: `block`, width: `100%`}}
+          >
+            {row.transaction}
+          </Link>
+        </Fragment>
       );
     }
 
@@ -199,11 +164,13 @@ export function useTableQuery({
   enabled,
   referrer,
   initialData,
+  limit,
 }: {
   eventView: EventView;
   enabled?: boolean;
   excludeOther?: boolean;
   initialData?: TableData;
+  limit?: number;
   referrer?: string;
 }) {
   const location = useLocation();
@@ -213,7 +180,7 @@ export function useTableQuery({
     eventView,
     location,
     orgSlug: organization.slug,
-    limit: 10,
+    limit: limit ?? 25,
     referrer,
     options: {
       refetchOnWindowFocus: false,

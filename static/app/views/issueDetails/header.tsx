@@ -6,7 +6,6 @@ import omit from 'lodash/omit';
 import Badge from 'sentry/components/badge';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Count from 'sentry/components/count';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventMessage from 'sentry/components/events/eventMessage';
@@ -15,20 +14,14 @@ import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge'
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import {TabList} from 'sentry/components/tabs';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  Event,
-  Group,
-  IssueCategory,
-  IssueType,
-  Organization,
-  Project,
-} from 'sentry/types';
+import {Event, Group, IssueCategory, Organization, Project} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
@@ -124,6 +117,7 @@ function GroupHeaderTabs({
       </TabList.Item>
       <TabList.Item
         key={Tab.TAGS}
+        hidden={!issueTypeConfig.tags.enabled}
         disabled={disabledTabs.includes(Tab.TAGS)}
         to={`${baseUrl}tags/${location.search}`}
       >
@@ -131,6 +125,7 @@ function GroupHeaderTabs({
       </TabList.Item>
       <TabList.Item
         key={Tab.EVENTS}
+        hidden={!issueTypeConfig.events.enabled}
         disabled={disabledTabs.includes(Tab.EVENTS)}
         to={eventRoute}
       >
@@ -240,6 +235,8 @@ function GroupHeader({
     <ShortIdBreadrcumb organization={organization} project={project} group={group} />
   );
 
+  const issueTypeConfig = getConfigForIssueType(group);
+
   return (
     <Layout.Header>
       <div className={className}>
@@ -284,16 +281,14 @@ function GroupHeader({
               <EventMessage message={message} />
             </StyledTagAndMessageWrapper>
           </TitleWrapper>
-          <StatsWrapper
-            hasGrid={group.issueType !== IssueType.PERFORMANCE_DURATION_REGRESSION}
-          >
-            <div className="count">
-              <h6 className="nav-header">{t('Events')}</h6>
-              <Link disabled={disableActions} to={eventRoute}>
-                <Count className="count" value={group.count} />
-              </Link>
-            </div>
-            {group.issueType !== IssueType.PERFORMANCE_DURATION_REGRESSION && (
+          {issueTypeConfig.stats.enabled && (
+            <StatsWrapper>
+              <div className="count">
+                <h6 className="nav-header">{t('Events')}</h6>
+                <Link disabled={disableActions} to={eventRoute}>
+                  <Count className="count" value={group.count} />
+                </Link>
+              </div>
               <div className="count">
                 <h6 className="nav-header">{t('Users')}</h6>
                 {userCount !== 0 ? (
@@ -307,12 +302,12 @@ function GroupHeader({
                   <span>0</span>
                 )}
               </div>
-            )}
-          </StatsWrapper>
+            </StatsWrapper>
+          )}
         </HeaderRow>
         {/* Environment picker for mobile */}
         <HeaderRow className="hidden-sm hidden-md hidden-lg">
-          <EnvironmentPageFilter alignDropdown="right" />
+          <EnvironmentPageFilter position="bottom-end" />
         </HeaderRow>
         <GroupHeaderTabs {...{baseUrl, disabledTabs, eventRoute, group, project}} />
       </div>
@@ -357,14 +352,10 @@ const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
   font-size: inherit;
 `;
 
-const StatsWrapper = styled('div')<{hasGrid?: boolean}>`
-  ${p =>
-    p.hasGrid &&
-    `
-    display: grid;
-    grid-template-columns: repeat(2, min-content);
-    gap: calc(${space(3)} + ${space(3)});
-    `}
+const StatsWrapper = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(2, min-content);
+  gap: calc(${space(3)} + ${space(3)});
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     justify-content: flex-end;

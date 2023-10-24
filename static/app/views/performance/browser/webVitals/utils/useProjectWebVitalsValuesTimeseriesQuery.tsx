@@ -5,11 +5,16 @@ import {
   DiscoverQueryProps,
   useGenericDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-export const useProjectWebVitalsValuesTimeseriesQuery = () => {
+type Props = {
+  transaction?: string | null;
+};
+
+export const useProjectWebVitalsValuesTimeseriesQuery = ({transaction}: Props) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
@@ -21,12 +26,18 @@ export const useProjectWebVitalsValuesTimeseriesQuery = () => {
         'p75(measurements.cls)',
         'p75(measurements.ttfb)',
         'p75(measurements.fid)',
+        'count()',
+        'p75(transaction.duration)',
+        'failure_count()',
+        'eps()',
       ],
       name: 'Web Vitals',
-      query: 'transaction.op:pageload',
+      query:
+        'transaction.op:pageload' + (transaction ? ` transaction:"${transaction}"` : ''),
       version: 2,
       fields: [],
       interval: getInterval(pageFilters.selection.datetime, 'low'),
+      dataset: DiscoverDatasets.METRICS,
     },
     pageFilters.selection
   );
@@ -59,10 +70,13 @@ export const useProjectWebVitalsValuesTimeseriesQuery = () => {
 
   const data: {
     cls: SeriesDataUnit[];
+    count: SeriesDataUnit[];
+    duration: SeriesDataUnit[];
+    eps: SeriesDataUnit[];
+    errors: SeriesDataUnit[];
     fcp: SeriesDataUnit[];
     fid: SeriesDataUnit[];
     lcp: SeriesDataUnit[];
-    total: SeriesDataUnit[];
     ttfb: SeriesDataUnit[];
   } = {
     lcp: [],
@@ -70,29 +84,31 @@ export const useProjectWebVitalsValuesTimeseriesQuery = () => {
     cls: [],
     ttfb: [],
     fid: [],
-    total: [],
+    count: [],
+    duration: [],
+    errors: [],
+    eps: [],
   };
 
   result?.data?.['p75(measurements.lcp)'].data.forEach((interval, index) => {
-    data.cls.push({
-      value: result?.data?.['p75(measurements.cls)'].data[index][1][0].count,
-      name: interval[0] * 1000,
-    });
-    data.lcp.push({
-      value: result?.data?.['p75(measurements.lcp)'].data[index][1][0].count,
-      name: interval[0] * 1000,
-    });
-    data.fcp.push({
-      value: result?.data?.['p75(measurements.fcp)'].data[index][1][0].count,
-      name: interval[0] * 1000,
-    });
-    data.ttfb.push({
-      value: result?.data?.['p75(measurements.ttfb)'].data[index][1][0].count,
-      name: interval[0] * 1000,
-    });
-    data.fid.push({
-      value: result?.data?.['p75(measurements.fid)'].data[index][1][0].count,
-      name: interval[0] * 1000,
+    const map: {key: string; series: SeriesDataUnit[]}[] = [
+      {key: 'p75(measurements.cls)', series: data.cls},
+      {key: 'p75(measurements.lcp)', series: data.lcp},
+      {key: 'p75(measurements.fcp)', series: data.fcp},
+      {key: 'p75(measurements.ttfb)', series: data.ttfb},
+      {key: 'p75(measurements.fid)', series: data.fid},
+      {key: 'count()', series: data.count},
+      {key: 'p75(transaction.duration)', series: data.duration},
+      {key: 'failure_count()', series: data.errors},
+      {key: 'eps()', series: data.eps},
+    ];
+    map.forEach(({key, series}) => {
+      if (result?.data?.[key].data[index][1][0].count !== null) {
+        series.push({
+          value: result?.data?.[key].data[index][1][0].count,
+          name: interval[0] * 1000,
+        });
+      }
     });
   });
 

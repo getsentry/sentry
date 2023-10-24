@@ -1,3 +1,79 @@
+23.10.1
+-------
+
+### Various fixes & improvements
+
+- fix(hybridcloud) Fix a queue silo assignment (#58386) by @markstory
+- feat(migrations): Add new index to `IncidentTrigger` model (#58467) by @isabellaenriquez
+- feat(suspect-commits): Remove suspect commit recalculation period (when all-frames is enabled) (#58415) by @malwilley
+- fix(starfish): Pass webvital to charts in Webvitals module (#58517) by @edwardgou-sentry
+- feat(hc): Add __str__ implementation for RpcUser (#58485) by @mrduncan
+- Revert "feat(replays): Replay layout move start time (#58488)" (80e576dd) by @getsentry-bot
+- Revert "feat(replays): Replay layout add breadcrumbs to fullscreen mode (#58466)" (7f6fe452) by @getsentry-bot
+- feat(replays): Replay layout move start time (#58488) by @c298lee
+- feat(replays): Replay layout add breadcrumbs to fullscreen mode (#58466) by @c298lee
+- fix(alerts): use generic metrics dataset for on demand (#58510) by @obostjancic
+- fix(on-demand): Fix p100 and percentiles (#58511) by @iambriccardo
+- feat(dynamic-sampling):Add raw_query and user relation to custom_rules model (second try) (#58447) by @RaduW
+- fix(alerts): on demand migration ui (#58508) by @obostjancic
+- Revert "fix(alerts): Fix dataset selector width (#58499)" (#58501) by @ArthurKnaus
+- fix(on-demand): p100 support (#58500) by @obostjancic
+- fix(alerts): Fix dataset selector width (#58499) by @ArthurKnaus
+- fix(on-demand): remove p90 (#58496) by @obostjancic
+- feat(on-demand): conditionally show on-demand UI (#58330) by @obostjancic
+- ref(escalating-issues): Change batch size to 100 (#58489) by @NisanthanNanthakumar
+- Add Papercut label (ff80fbb5) by @chadwhitacre
+- chore(replay): Cleanup DOM Tab test, before we remove the tab itself (#58486) by @ryan953
+- feat(replay): Add Jump up|down buttons to all the Replay Details tables & lists (#58359) by @ryan953
+- chore(agg-spans): Update language on span frequency (#58484) by @shruthilayaj
+- fix(statistical-detectors): Feature flags in wrong place (#58483) by @Zylphrex
+
+_Plus 209 more_
+
+23.10.0
+-------
+
+### Discord Integration (ongoing)
+
+By: @17hogeju (#57522)
+
+### Notification Analytics Milestone 2 (ongoing)
+
+By: @scttcper (#56700)
+
+### Notification Settings 2.0 (ongoing)
+
+By: @snigdhas (#57053, #56717, #56621)
+
+### Various fixes & improvements
+
+- feat(crons): Add cron monitor created metric (#58017) by @davidenwang
+- ref(participants): Check for group list (#58204) by @ceorourke
+- feat(hybridcloud) Fix silo issues in shared issue HTML view (#57978) by @markstory
+- feat(sdk): Upgrade `@sentry` SDKs to v7.74.0 (#58198) by @billyvg
+- test(backup): Create backup version snapshot tests (#58173) by @azaslavsky
+- fix(hc): Silo fixes for alert rule actions (#58185) by @RyanSkonnord
+- meta(crons): Update API help text (#58048) by @rjo100
+- fix(ci): fix rate limit test (#58184) by @volokluev
+- feat(ui): Throw error on non-json api responses (#58129) by @scttcper
+- ref(bug reports): display name and email in list and details (#58087) by @michellewzhang
+- chore(actionable-items): remove feature flag backend (#57934) by @roggenkemper
+- update release threshold api routes (#58177) by @nhsiehgit
+- feat(backup): Support import decryption (#58128) by @azaslavsky
+- chore(alert-rule): Add jira server action to frontend enum (#58186) by @schew2381
+- feat(metrics): Add new option to toggle reading from new cache schema for indexer (#58170) by @john-z-yang
+- fix(hybridcloud) Assign control silo tasks to correct queues (#58112) by @markstory
+- fix(feedback): Improve spacing between feedback list items (#58182) by @ryan953
+- ref(bug reports): modify blueprint name and contact_email to reflect BE (#58083) by @michellewzhang
+- fix(hc): Fix silo availability error in send_alert_event (#58044) by @RyanSkonnord
+- ref(replay): Improve accessibility type names, and compat with replay frames (#58179) by @ryan953
+- feat(notifications): adds backfill for weekly report settings (#58168) by @scefali
+- feat(notifications): remove notification double write feature flag (#57863) by @scefali
+- feat(discord): adds logging of discord errors (#58176) by @scefali
+- fix(stat-detectors): Use 7 days for span analysis (#58096) by @narsaynorath
+
+_Plus 1060 more_
+
 23.9.1
 ------
 

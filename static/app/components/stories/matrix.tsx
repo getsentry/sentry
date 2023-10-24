@@ -1,4 +1,4 @@
-import {type ElementType} from 'react';
+import {type ElementType, isValidElement} from 'react';
 import styled from '@emotion/styled';
 import first from 'lodash/first';
 
@@ -78,15 +78,28 @@ export default function Matrix<P extends RenderProps>({
   );
 }
 
+// ((this: any, key: string, value: any) => any)
+function replacer(this: any, _key: string, value: any) {
+  if (isValidElement(value)) {
+    return 'react'; // value.name ?? value;
+  }
+  return value;
+}
+
 function item(Component, props, sizingWindowProps) {
   const hasChildren = 'children' in props;
 
-  return hasChildren ? (
-    <SizingWindow key={JSON.stringify(props)} {...sizingWindowProps}>
-      <Component {...props}>{props.children}</Component>
-    </SizingWindow>
-  ) : (
-    <SizingWindow key={JSON.stringify(props)} {...sizingWindowProps}>
+  if (hasChildren) {
+    const {children, ...otherProps} = props;
+    return (
+      <SizingWindow key={JSON.stringify(otherProps, replacer)} {...sizingWindowProps}>
+        <Component {...otherProps}>{children}</Component>
+      </SizingWindow>
+    );
+  }
+
+  return (
+    <SizingWindow key={JSON.stringify(props, replacer)} {...sizingWindowProps}>
       <Component {...props} />
     </SizingWindow>
   );

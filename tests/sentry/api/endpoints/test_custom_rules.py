@@ -8,6 +8,9 @@ from sentry.api.endpoints.custom_rules import (
     DEFAULT_PERIOD_STRING,
     MAX_RULE_PERIOD_STRING,
     CustomRulesInputSerializer,
+    UnsupportedSearchQuery,
+    UnsupportedSearchQueryReason,
+    get_condition,
 )
 from sentry.models.dynamicsampling import CUSTOM_RULE_DATE_FORMAT, CustomDynamicSamplingRule
 from sentry.testutils.cases import APITestCase, TestCase
@@ -34,7 +37,13 @@ class CustomRulesGetEndpoint(APITestCase):
 
         # create a project rule for second and third project
         now = timezone.now()
-        self.proj_condition = {"op": "eq", "name": "event.environment", "value": "prod"}
+        self.proj_condition = {
+            "op": "and",
+            "inner": [
+                {"op": "eq", "name": "event.environment", "value": "prod"},
+                {"op": "eq", "name": "event.tags.event.type", "value": "transaction"},
+            ],
+        }
         start = now - timedelta(hours=2)
         end = now + timedelta(hours=2)
         projects = self.known_projects[1:3]
@@ -46,11 +55,18 @@ class CustomRulesGetEndpoint(APITestCase):
             organization_id=self.organization.id,
             num_samples=100,
             sample_rate=1.0,
+            query="event.type:transaction, environment:prod",
         )
 
         # create an org rule
         now = timezone.now()
-        self.org_condition = {"op": "eq", "name": "event.environment", "value": "dev"}
+        self.org_condition = {
+            "op": "and",
+            "inner": [
+                {"op": "eq", "name": "event.tags.event.type", "value": "transaction"},
+                {"op": "eq", "name": "event.environment", "value": "dev"},
+            ],
+        }
         start = now - timedelta(hours=2)
         end = now + timedelta(hours=2)
         CustomDynamicSamplingRule.update_or_create(
@@ -61,22 +77,7 @@ class CustomRulesGetEndpoint(APITestCase):
             organization_id=self.organization.id,
             num_samples=100,
             sample_rate=1.0,
-        )
-
-        # create a condition with empty query
-        now = timezone.now()
-        self.empty_condition = {"op": "and", "inner": []}
-        start = now - timedelta(hours=2)
-        end = now + timedelta(hours=2)
-
-        CustomDynamicSamplingRule.update_or_create(
-            condition=self.empty_condition,
-            start=start,
-            end=end,
-            project_ids=[self.known_projects[0].id],
-            organization_id=self.organization.id,
-            num_samples=100,
-            sample_rate=1.0,
+            query="event.type:transaction, environment:dev",
         )
 
     def test_finds_project_rule(self):
@@ -92,7 +93,7 @@ class CustomRulesGetEndpoint(APITestCase):
             resp = self.get_response(
                 self.organization.slug,
                 qs_params={
-                    "query": "environment:prod",
+                    "query": "environment:prod event.type:transaction",
                     "project": [proj.id for proj in self.known_projects[1:3]],
                 },
             )
@@ -104,28 +105,6 @@ class CustomRulesGetEndpoint(APITestCase):
         assert self.known_projects[1].id in data["projects"]
         assert self.known_projects[2].id in data["projects"]
 
-    def test_finds_rule_with_empty_query(self):
-        """
-        Tests that the endpoint finds the rule when the query
-        is empty
-        """
-
-        # call the endpoint
-        with Feature({"organizations:investigation-bias": True}):
-            resp = self.get_response(
-                self.organization.slug,
-                qs_params={
-                    "query": "",
-                    "project": [self.known_projects[0].id],
-                },
-            )
-
-        assert resp.status_code == 200
-        data = resp.data
-        assert data["condition"] == self.empty_condition
-        assert len(data["projects"]) == 1
-        assert self.known_projects[0].id in data["projects"]
-
     def test_finds_org_condition(self):
         """
         A request for org will find an org rule ( if condition matches)
@@ -136,7 +115,7 @@ class CustomRulesGetEndpoint(APITestCase):
             resp = self.get_response(
                 self.organization.slug,
                 qs_params={
-                    "query": "environment:dev",
+                    "query": "environment:dev event.type:transaction",
                     "project": [],
                 },
             )
@@ -147,7 +126,7 @@ class CustomRulesGetEndpoint(APITestCase):
             resp = self.get_response(
                 self.organization.slug,
                 qs_params={
-                    "query": "environment:dev",
+                    "query": "environment:dev event.type:transaction",
                     "project": [],
                 },
             )
@@ -161,7 +140,7 @@ class CustomRulesGetEndpoint(APITestCase):
             resp = self.get_response(
                 self.organization.slug,
                 qs_params={
-                    "query": "environment:integration",
+                    "query": "environment:integration event.type:transaction",
                     "project": [self.known_projects[1].id],
                 },
             )
@@ -177,7 +156,7 @@ class CustomRulesGetEndpoint(APITestCase):
             resp = self.get_response(
                 self.organization.slug,
                 qs_params={
-                    "query": "environment:prod",
+                    "query": "environment:prod event.type:transaction",
                     "project": [project.id for project in self.known_projects[1:3]],
                 },
             )
@@ -187,7 +166,7 @@ class CustomRulesGetEndpoint(APITestCase):
             resp = self.get_response(
                 self.organization.slug,
                 qs_params={
-                    "query": "environment:prod",
+                    "query": "environment:prod event.type:transaction",
                     "project": [self.known_projects[0].id],
                 },
             )
@@ -223,35 +202,7 @@ class CustomRulesEndpoint(APITestCase):
 
         start_date = datetime.strptime(data["startDate"], CUSTOM_RULE_DATE_FORMAT)
         end_date = datetime.strptime(data["endDate"], CUSTOM_RULE_DATE_FORMAT)
-        assert end_date - start_date == timedelta(hours=1)
-        projects = data["projects"]
-        assert projects == [self.project.id]
-        org_id = data["orgId"]
-        assert org_id == self.organization.id
-
-        # check the database
-        rule_id = data["ruleId"]
-        rules = list(self.organization.customdynamicsamplingrule_set.all())
-        assert len(rules) == 1
-        rule = rules[0]
-        assert rule.external_rule_id == rule_id
-
-    def test_empty_query(self):
-        request_data = {
-            "query": "",
-            "projects": [self.project.id],
-            "period": "1h",
-        }
-        with Feature({"organizations:investigation-bias": True}):
-            resp = self.get_response(self.organization.slug, raw_data=request_data)
-
-        assert resp.status_code == 200
-
-        data = resp.data
-
-        start_date = datetime.strptime(data["startDate"], CUSTOM_RULE_DATE_FORMAT)
-        end_date = datetime.strptime(data["endDate"], CUSTOM_RULE_DATE_FORMAT)
-        assert end_date - start_date == timedelta(hours=1)
+        assert end_date - start_date == timedelta(days=2)
         projects = data["projects"]
         assert projects == [self.project.id]
         org_id = data["orgId"]
@@ -288,7 +239,7 @@ class CustomRulesEndpoint(APITestCase):
         rule_id = data["ruleId"]
         start_date = datetime.strptime(data["startDate"], CUSTOM_RULE_DATE_FORMAT)
         end_date = datetime.strptime(data["endDate"], CUSTOM_RULE_DATE_FORMAT)
-        assert end_date - start_date == timedelta(hours=1)
+        assert end_date - start_date == timedelta(days=2)
 
         request_data = {
             "query": "event.type:transaction",
@@ -305,7 +256,7 @@ class CustomRulesEndpoint(APITestCase):
 
         start_date = datetime.strptime(data["startDate"], CUSTOM_RULE_DATE_FORMAT)
         end_date = datetime.strptime(data["endDate"], CUSTOM_RULE_DATE_FORMAT)
-        assert end_date - start_date >= timedelta(hours=2)
+        assert end_date - start_date >= timedelta(days=2)
 
         projects = data["projects"]
         assert projects == [self.project.id]
@@ -471,3 +422,80 @@ class TestCustomRuleSerializerWithProjects(TestCase):
         assert not serializer.is_valid()
         # the two invalid projects should be in the error message
         assert len(serializer.errors["projects"]) == 2
+
+
+@pytest.mark.parametrize(
+    "query,condition",
+    [
+        (
+            "event.type:transaction",
+            {"name": "event.tags.event.type", "op": "eq", "value": "transaction"},
+        ),
+        (
+            "environment:prod event.type:transaction",
+            {
+                "op": "and",
+                "inner": [
+                    {"op": "eq", "name": "event.environment", "value": "prod"},
+                    {"op": "eq", "name": "event.tags.event.type", "value": "transaction"},
+                ],
+            },
+        ),
+        (
+            "hello world event.type:transaction",
+            {
+                "op": "and",
+                "inner": [
+                    {"op": "eq", "name": "event.transaction", "value": "hello world"},
+                    {"op": "eq", "name": "event.tags.event.type", "value": "transaction"},
+                ],
+            },
+        ),
+        (
+            "environment:prod hello world event.type:transaction",
+            {
+                "op": "and",
+                "inner": [
+                    {"op": "eq", "name": "event.environment", "value": "prod"},
+                    {"op": "eq", "name": "event.transaction", "value": "hello world"},
+                    {"op": "eq", "name": "event.tags.event.type", "value": "transaction"},
+                ],
+            },
+        ),
+    ],
+)
+def test_get_condition(query, condition):
+    """
+    Test that the get_condition function works as expected
+    """
+    actual_condition = get_condition(query)
+    assert actual_condition == condition
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "event.type:error",
+        "environment:production",
+        "event.type:error environment:production",
+        "",
+        "hello world",
+    ],
+)
+def test_get_condition_not_supported(query):
+    with pytest.raises(UnsupportedSearchQuery) as excinfo:
+        get_condition(query)
+    assert excinfo.value.error_code == UnsupportedSearchQueryReason.NOT_TRANSACTION_QUERY.value
+
+
+@pytest.mark.parametrize(
+    "query",
+    ["", "event.type:error", "environment:production"],
+)
+def test_get_condition_non_transaction_rule(query):
+    """
+    Test that the get_condition function raises UnsupportedSearchQuery when event.type is not transaction
+    """
+    with pytest.raises(UnsupportedSearchQuery) as excinfo:
+        get_condition(query)
+    assert excinfo.value.error_code == UnsupportedSearchQueryReason.NOT_TRANSACTION_QUERY.value

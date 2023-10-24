@@ -9,10 +9,13 @@ import {
 import styled from '@emotion/styled';
 
 import {useInfiniteFeedbackListData} from 'sentry/components/feedback/feedbackDataContext';
+import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
 import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
+import useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelItem from 'sentry/components/panels/panelItem';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
@@ -25,16 +28,31 @@ const cellMeasurer = {
 };
 
 export default function FeedbackList() {
-  const {getRow, isRowLoaded, loadMoreRows, totalHits, countLoadedRows, queryView} =
-    useInfiniteFeedbackListData();
+  const {
+    // error,
+    // hasNextPage,
+    // isError,
+    isFetching, // If the network is active
+    isFetchingNextPage,
+    isFetchingPreviousPage,
+    isLoading, // If anything is loaded yet
+    // Below are fields that are shims for react-virtualized
+    getRow,
+    isRowLoaded,
+    issues,
+    loadMoreRows,
+    // setFeedback,
+  } = useInfiniteFeedbackListData();
 
   const {setParamValue} = useUrlParams('query');
   const clearSearchTerm = () => setParamValue('');
 
+  const {checked, toggleChecked} = useListItemCheckboxState();
+
   const listRef = useRef<ReactVirtualizedList>(null);
 
-  const hasRows = totalHits === undefined ? true : totalHits > 0;
-  const deps = useMemo(() => [queryView, hasRows], [queryView, hasRows]);
+  const hasRows = !isLoading;
+  const deps = useMemo(() => [hasRows], [hasRows]);
   const {cache, updateList} = useVirtualizedList({
     cellMeasurer,
     ref: listRef,
@@ -43,7 +61,7 @@ export default function FeedbackList() {
 
   useEffect(() => {
     updateList();
-  }, [updateList, countLoadedRows]);
+  }, [updateList, issues.length]);
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
     const item = getRow({index});
@@ -59,19 +77,26 @@ export default function FeedbackList() {
         parent={parent}
         rowIndex={index}
       >
-        <FeedbackListItem feedbackItem={item} style={style} />
+        <FeedbackListItem
+          feedbackItem={item}
+          style={style}
+          isChecked={checked.includes(item.feedback_id)}
+          onChecked={() => {
+            toggleChecked(item.feedback_id);
+          }}
+        />
       </CellMeasurer>
     );
   };
 
   return (
     <Fragment>
-      <HeaderPanelItem> </HeaderPanelItem>
+      <FeedbackListHeader checked={checked} />
       <OverflowPanelItem noPadding>
         <InfiniteLoader
           isRowLoaded={isRowLoaded}
           loadMoreRows={loadMoreRows}
-          rowCount={totalHits}
+          rowCount={issues.length}
         >
           {({onRowsRendered, registerChild}) => (
             <AutoSizer onResize={updateList}>
@@ -79,20 +104,24 @@ export default function FeedbackList() {
                 <ReactVirtualizedList
                   deferredMeasurementCache={cache}
                   height={height}
-                  noRowsRenderer={() => (
-                    <NoRowRenderer
-                      unfilteredItems={totalHits === undefined ? [undefined] : []}
-                      clearSearchTerm={clearSearchTerm}
-                    >
-                      {t('No feedback received')}
-                    </NoRowRenderer>
-                  )}
+                  noRowsRenderer={() =>
+                    isFetching ? (
+                      <LoadingIndicator />
+                    ) : (
+                      <NoRowRenderer
+                        unfilteredItems={issues}
+                        clearSearchTerm={clearSearchTerm}
+                      >
+                        {t('No feedback received')}
+                      </NoRowRenderer>
+                    )
+                  }
                   onRowsRendered={onRowsRendered}
                   overscanRowCount={5}
                   ref={e => {
                     registerChild(e);
                   }}
-                  rowCount={totalHits === undefined ? 1 : totalHits}
+                  rowCount={issues.length}
                   rowHeight={cache.rowHeight}
                   rowRenderer={renderRow}
                   width={width}
@@ -101,21 +130,32 @@ export default function FeedbackList() {
             </AutoSizer>
           )}
         </InfiniteLoader>
+        <FloatingContainer style={{top: '2px'}}>
+          {isFetchingPreviousPage ? (
+            <Tooltip title={t('Loading more feedback...')}>
+              <LoadingIndicator mini />
+            </Tooltip>
+          ) : null}
+        </FloatingContainer>
+        <FloatingContainer style={{bottom: '2px'}}>
+          {isFetchingNextPage ? (
+            <Tooltip title={t('Loading more feedback...')}>
+              <LoadingIndicator mini />
+            </Tooltip>
+          ) : null}
+        </FloatingContainer>
       </OverflowPanelItem>
     </Fragment>
   );
 }
 
-const HeaderPanelItem = styled(PanelItem)`
+const OverflowPanelItem = styled(PanelItem)`
   display: grid;
-  padding: ${space(1)} ${space(2)};
+  overflow: scroll;
+  flex-grow: 1;
 `;
 
-const OverflowPanelItem = styled(PanelItem)`
-  overflow: scroll;
-  padding: ${space(0.5)};
-
-  flex-direction: column;
-  flex-grow: 1;
-  gap: ${space(1)};
+const FloatingContainer = styled('div')`
+  position: absolute;
+  justify-self: center;
 `;

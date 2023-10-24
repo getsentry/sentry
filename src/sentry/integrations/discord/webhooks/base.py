@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,6 +15,8 @@ from sentry.integrations.discord.webhooks.message_component import DiscordMessag
 from sentry.web.decorators import transaction_start
 
 from .types import DiscordResponseTypes
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
@@ -60,7 +64,23 @@ class DiscordInteractionsEndpoint(Endpoint):
                 return DiscordMessageComponentHandler(discord_request).handle()
 
         except DiscordRequestError as e:
+            logger.error(
+                "discord.request.error",
+                extra={
+                    "error": str(e),
+                    "status": e.status,
+                },
+            )
             return self.respond(status=e.status)
+        except Exception as e:
+            logger.error(
+                "discord.request.unexpected_error",
+                extra={
+                    "error": str(e),
+                },
+                exc_info=True,
+            )
+            return self.respond(status=500)
 
         # This isn't an interaction type that we need to worry about, so we'll
         # just return 200.

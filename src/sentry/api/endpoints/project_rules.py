@@ -24,7 +24,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils import RedisRuleStatus
-from sentry.mediators import project_rules
+from sentry.mediators.project_rules.creator import Creator
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.team import Team
 from sentry.models.user import User
@@ -313,6 +313,20 @@ A list of actions that take place when all required conditions and filters for t
 ```json
 {
     "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+    "integration": 321424,
+    "project": "349719"
+    "issueType": "1"
+}
+```
+
+**Create a Jira Server Ticket**
+- `integration` - The integration ID associated with Jira Server.
+- `project` - The ID of the Jira Server project.
+- `issuetype` - The ID of the type of issue that the ticket should be created as.
+- `dynamic_form_fields` (optional) - A list of any custom fields you want to include in the ticket as objects.
+```json
+{
+    "id": "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
     "integration": 321424,
     "project": "349719"
     "issueType": "1"
@@ -618,7 +632,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         created_alert_rule_ui_component = trigger_sentry_app_action_creators_for_issues(
             kwargs.get("actions")
         )
-        rule = project_rules.Creator.run(request=request, **kwargs)
+        rule = Creator.run(request=request, **kwargs)
 
         RuleActivity.objects.create(
             rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value

@@ -17,6 +17,7 @@ const Item = styled(({title, subtitle, children, className}: Props) => (
     <div>{children}</div>
   </ListItem>
 ))`
+  padding-top: ${space(0.25)};
   display: grid;
   gap: ${space(1.5)};
 `;

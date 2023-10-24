@@ -164,7 +164,7 @@ def get_current_release_version_of_group(
 
 def update_groups(
     request: Request,
-    group_ids: Sequence[int],
+    group_ids: Sequence[int] | None,
     projects: Sequence[Project],
     organization_id: int,
     search_fn: SearchFunction | None,
@@ -711,13 +711,13 @@ def handle_is_subscribed(
 
 def handle_is_bookmarked(
     is_bookmarked: bool,
-    group_list: Sequence[Group],
+    group_list: Sequence[Group] | None,
     group_ids: Sequence[Group],
     project_lookup: Dict[int, Project],
     acting_user: User | None,
 ) -> None:
     """
-    Creates bookmarks and subscriptions for a user, or deletes the exisitng bookmarks.
+    Creates bookmarks and subscriptions for a user, or deletes the existing bookmarks and subscriptions.
     """
     if is_bookmarked:
         for group in group_list:
@@ -734,6 +734,12 @@ def handle_is_bookmarked(
             group__in=group_ids,
             user_id=acting_user.id if acting_user else None,
         ).delete()
+        if group_list:
+            if features.has("organizations:participants-purge", group_list[0].organization):
+                GroupSubscription.objects.filter(
+                    user_id=acting_user.id,
+                    group__in=group_ids,
+                ).delete()
 
 
 def handle_has_seen(
@@ -832,6 +838,9 @@ def handle_assigned_to(
     if assigned_actor:
         for group in group_list:
             resolved_actor: RpcUser | Team = assigned_actor.resolve()
+
+            if features.has("organizations:participants-purge", group.organization):
+                GroupAssignee.objects.deassign(group, acting_user, resolved_actor, extra=extra)
 
             assignment = GroupAssignee.objects.assign(
                 group, resolved_actor, acting_user, extra=extra

@@ -1,5 +1,6 @@
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -22,11 +23,15 @@ export const useProjectWebVitalsQuery = ({transaction}: Props = {}) => {
         'p75(measurements.ttfb)',
         'p75(measurements.fid)',
         'count()',
+        'failure_count()',
+        'p95(transaction.duration)',
+        'eps()',
       ],
       name: 'Web Vitals',
       query:
-        'transaction.op:pageload' + (transaction ? ` transaction:*${transaction}*` : ''),
+        'transaction.op:pageload' + (transaction ? ` transaction:"${transaction}"` : ''),
       version: 2,
+      dataset: DiscoverDatasets.METRICS,
     },
     pageFilters.selection
   );

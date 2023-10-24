@@ -2,7 +2,7 @@ from django.db import models
 from django.db.models.query import QuerySet
 from django.utils import timezone
 
-from sentry.db.models import BaseManager, Model
+from sentry.db.models import BaseManager, BaseModel, sane_repr
 
 
 class ParanoidQuerySet(QuerySet):
@@ -24,7 +24,7 @@ class ParanoidManager(BaseManager):
         return ParanoidQuerySet(self.model, using=self._db).filter(date_deleted__isnull=True)
 
 
-class ParanoidModel(Model):
+class ParanoidModel(BaseModel):
     class Meta:
         abstract = True
 
@@ -34,3 +34,5 @@ class ParanoidModel(Model):
 
     def delete(self) -> None:
         self.update(date_deleted=timezone.now())
+
+    __repr__ = sane_repr("id")

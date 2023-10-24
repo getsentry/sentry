@@ -11,7 +11,7 @@ from django.db import IntegrityError, models, router, transaction
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
-from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.dependencies import PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
@@ -261,6 +261,7 @@ class IncidentSnapshot(Model):
 @region_silo_only_model
 class TimeSeriesSnapshot(Model):
     __relocation_scope__ = RelocationScope.Organization
+    __relocation_dependencies__ = {"sentry.Incident"}
 
     start = models.DateTimeField()
     end = models.DateTimeField()
@@ -271,6 +272,14 @@ class TimeSeriesSnapshot(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_timeseriessnapshot"
+
+    @classmethod
+    def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
+        pks = IncidentSnapshot.objects.filter(
+            incident__in=pk_map.get_pks(get_model_name(Incident))
+        ).values_list("event_stats_snapshot_id", flat=True)
+
+        return q & models.Q(pk__in=pks)
 
 
 class IncidentActivityType(Enum):
@@ -421,6 +430,8 @@ class AlertRule(Model):
         null=True,
         on_delete=models.SET_NULL,
     )
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
     excluded_projects = models.ManyToManyField(
         "sentry.Project", related_name="alert_rule_exclusions", through=AlertRuleExcludedProjects
     )
@@ -514,6 +525,7 @@ class IncidentTrigger(Model):
         app_label = "sentry"
         db_table = "sentry_incidenttrigger"
         unique_together = (("incident", "alert_rule_trigger"),)
+        index_together = (("alert_rule_trigger", "incident_id"),)
 
 
 class AlertRuleTriggerManager(BaseManager):

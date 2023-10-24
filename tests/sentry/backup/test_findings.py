@@ -1,11 +1,25 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from enum import auto, unique
+from typing import Any, Dict
 
 from sentry.backup.dependencies import get_model_name
-from sentry.backup.findings import Finding, FindingJSONEncoder, FindingKind, InstanceID
+from sentry.backup.findings import (
+    ComparatorFinding,
+    ComparatorFindingKind,
+    Finding,
+    FindingJSONEncoder,
+    FindingKind,
+    InstanceID,
+)
 from sentry.models.email import Email
+from sentry.services.hybrid_cloud.import_export.model import (
+    RpcExportError,
+    RpcExportErrorKind,
+    RpcImportError,
+    RpcImportErrorKind,
+)
 from sentry.testutils.cases import TestCase
 
 encoder = FindingJSONEncoder(
@@ -43,17 +57,21 @@ class TestFinding(Finding):
             out += f",\n    reason: {self.reason}"
         return out + "\n)"
 
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
 
 class FindingsTests(TestCase):
     def test_defaults(self):
         finding = TestFinding(
-            on=InstanceID(model=get_model_name(Email)),
+            on=InstanceID(model=str(get_model_name(Email))),
             reason="test reason",
         )
 
         assert (
             encoder.encode(finding)
             == """{
+    "finding": "TestFinding",
     "kind": "Unknown",
     "left_pk": null,
     "on": {
@@ -76,7 +94,7 @@ class FindingsTests(TestCase):
     def test_no_nulls(self):
         finding = TestFinding(
             kind=TestFindingKind.Foo,
-            on=InstanceID(model=get_model_name(Email), ordinal=1),
+            on=InstanceID(model=str(get_model_name(Email)), ordinal=1),
             left_pk=2,
             right_pk=3,
             reason="test reason",
@@ -84,6 +102,7 @@ class FindingsTests(TestCase):
         assert (
             encoder.encode(finding)
             == """{
+    "finding": "TestFinding",
     "kind": "Foo",
     "left_pk": 2,
     "on": {
@@ -93,4 +112,113 @@ class FindingsTests(TestCase):
     "reason": "test reason",
     "right_pk": 3
 }"""
+        )
+        assert (
+            finding.pretty()
+            == """TestFinding(
+    kind: Foo,
+    on: InstanceID(model: 'sentry.email', ordinal: 1),
+    left_pk: 2,
+    right_pk: 3,
+    reason: test reason
+)"""
+        )
+
+    def test_comparator_finding(self):
+        finding = ComparatorFinding(
+            kind=ComparatorFindingKind.Unknown,
+            on=InstanceID(model=str(get_model_name(Email)), ordinal=1),
+            left_pk=2,
+            right_pk=3,
+            reason="test reason",
+        )
+        assert (
+            encoder.encode(finding)
+            == """{
+    "finding": "ComparatorFinding",
+    "kind": "Unknown",
+    "left_pk": 2,
+    "on": {
+        "model": "sentry.email",
+        "ordinal": 1
+    },
+    "reason": "test reason",
+    "right_pk": 3
+}"""
+        )
+        assert (
+            finding.pretty()
+            == """ComparatorFinding(
+    kind: Unknown,
+    on: InstanceID(model: 'sentry.email', ordinal: 1),
+    left_pk: 2,
+    right_pk: 3,
+    reason: test reason
+)"""
+        )
+
+    def test_rpc_export_error(self):
+        finding = RpcExportError(
+            kind=RpcExportErrorKind.Unknown,
+            on=InstanceID(model=str(get_model_name(Email)), ordinal=1),
+            left_pk=2,
+            right_pk=3,
+            reason="test reason",
+        )
+        assert (
+            encoder.encode(finding)
+            == """{
+    "finding": "RpcExportError",
+    "kind": "Unknown",
+    "left_pk": 2,
+    "on": {
+        "model": "sentry.email",
+        "ordinal": 1
+    },
+    "reason": "test reason",
+    "right_pk": 3
+}"""
+        )
+        assert (
+            finding.pretty()
+            == """RpcExportError(
+    kind: Unknown,
+    on: InstanceID(model: 'sentry.email', ordinal: 1),
+    left_pk: 2,
+    right_pk: 3,
+    reason: test reason
+)"""
+        )
+
+    def test_rpc_import_error(self):
+        finding = RpcImportError(
+            kind=RpcImportErrorKind.Unknown,
+            on=InstanceID(model=str(get_model_name(Email)), ordinal=1),
+            left_pk=2,
+            right_pk=3,
+            reason="test reason",
+        )
+        assert (
+            encoder.encode(finding)
+            == """{
+    "finding": "RpcImportError",
+    "kind": "Unknown",
+    "left_pk": 2,
+    "on": {
+        "model": "sentry.email",
+        "ordinal": 1
+    },
+    "reason": "test reason",
+    "right_pk": 3
+}"""
+        )
+        assert (
+            finding.pretty()
+            == """RpcImportError(
+    kind: Unknown,
+    on: InstanceID(model: 'sentry.email', ordinal: 1),
+    left_pk: 2,
+    right_pk: 3,
+    reason: test reason
+)"""
         )

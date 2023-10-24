@@ -336,6 +336,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     "units": units,
                     "isMetricsData": isMetricsData,
                     "tips": meta.get("tips", {}),
+                    "datasetReason": meta.get("datasetReason", discover.DEFAULT_DATASET_REASON),
                 }
                 if dataset is not None:
                     meta["dataset"] = DATASET_LABELS.get(dataset, "unknown")
@@ -365,7 +366,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         # once those APIs are used across the application.
         if "transaction.status" in first_row:
             for row in results:
-                if "transaction.status" in row:
+                if "transaction.status" in row and type(row["transaction.status"]) is int:
                     row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(
                         row["transaction.status"]
                     )

@@ -63,7 +63,6 @@ export interface TimeRangeSelectorProps
     | 'onChange'
     | 'onInteractOutside'
     | 'closeOnSelect'
-    | 'menuFooter'
     | 'onKeyDown'
   > {
   /**
@@ -91,6 +90,10 @@ export interface TimeRangeSelectorProps
    * The maximum number of days in the past you can pick
    */
   maxPickableDays?: number;
+  /**
+   * Message to show in the menu footer
+   */
+  menuFooterMessage?: React.ReactNode;
   onChange?: (data: ChangeData) => void;
   /**
    * Relative date value
@@ -149,6 +152,8 @@ export function TimeRangeSelector({
   trigger,
   menuWidth,
   menuBody,
+  menuFooter,
+  menuFooterMessage,
   ...selectProps
 }: TimeRangeSelectorProps) {
   const router = useRouter();
@@ -337,10 +342,12 @@ export function TimeRangeSelector({
 
               return (
                 <DropdownButton
-                  {...triggerProps}
                   isOpen={isOpen}
                   size={selectProps.size}
                   icon={<IconCalendar />}
+                  data-test-id="page-filter-timerange-selector"
+                  {...triggerProps}
+                  {...selectProps.triggerProps}
                 >
                   <TriggerLabel>{selectProps.triggerLabel ?? defaultLabel}</TriggerLabel>
                 </DropdownButton>
@@ -411,32 +418,43 @@ export function TimeRangeSelector({
             )
           }
           menuFooter={
-            showAbsoluteSelector &&
-            (({closeOverlay}) => (
-              <AbsoluteSelectorFooter>
-                {showRelative && (
-                  <Button
-                    size="xs"
-                    borderless
-                    icon={<IconArrow size="xs" direction="left" />}
-                    onClick={() => setShowAbsoluteSelector(false)}
-                  >
-                    {t('Back')}
-                  </Button>
-                )}
-                <Button
-                  size="xs"
-                  priority="primary"
-                  disabled={!hasChanges || hasDateRangeErrors}
-                  onClick={() => {
-                    commitChanges();
-                    closeOverlay();
-                  }}
-                >
-                  {t('Apply')}
-                </Button>
-              </AbsoluteSelectorFooter>
-            ))
+            menuFooter || menuFooterMessage || showAbsoluteSelector
+              ? ({closeOverlay}) => (
+                  <Fragment>
+                    {menuFooterMessage && (
+                      <FooterMessage>{menuFooterMessage}</FooterMessage>
+                    )}
+                    <FooterWrap>
+                      <FooterInnerWrap>{menuFooter}</FooterInnerWrap>
+                      {showAbsoluteSelector && (
+                        <AbsoluteSelectorFooter>
+                          {showRelative && (
+                            <Button
+                              size="xs"
+                              borderless
+                              icon={<IconArrow size="xs" direction="left" />}
+                              onClick={() => setShowAbsoluteSelector(false)}
+                            >
+                              {t('Back')}
+                            </Button>
+                          )}
+                          <Button
+                            size="xs"
+                            priority="primary"
+                            disabled={!hasChanges || hasDateRangeErrors}
+                            onClick={() => {
+                              commitChanges();
+                              closeOverlay();
+                            }}
+                          >
+                            {t('Apply')}
+                          </Button>
+                        </AbsoluteSelectorFooter>
+                      )}
+                    </FooterWrap>
+                  </Fragment>
+                )
+              : null
           }
         />
       )}
@@ -477,4 +495,46 @@ const AbsoluteSelectorFooter = styled('div')`
   display: flex;
   gap: ${space(1)};
   justify-content: flex-end;
+`;
+
+const FooterMessage = styled('p')`
+  padding: ${space(0.75)} ${space(1)};
+  margin: ${space(0.5)} 0;
+  border-radius: ${p => p.theme.borderRadius};
+  border: solid 1px ${p => p.theme.alert.warning.border};
+  background: ${p => p.theme.alert.warning.backgroundLight};
+  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const FooterWrap = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  gap: ${space(2)};
+
+  /* If there's FooterMessage above */
+  &:not(:first-child) {
+    margin-top: ${space(1)};
+  }
+`;
+
+const FooterInnerWrap = styled('div')`
+  grid-row: -1;
+  display: grid;
+  grid-auto-flow: column;
+  gap: ${space(1)};
+
+  &:empty {
+    display: none;
+  }
+
+  &:last-of-type {
+    justify-self: end;
+    justify-items: end;
+  }
+  &:first-of-type,
+  &:only-child {
+    justify-self: start;
+    justify-items: start;
+  }
 `;

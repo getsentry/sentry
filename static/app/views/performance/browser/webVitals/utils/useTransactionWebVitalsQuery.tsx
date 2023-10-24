@@ -1,9 +1,11 @@
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {mapWebVitalToOrderBy} from 'sentry/views/performance/browser/webVitals/utils/mapWebVitalToOrderBy';
 import {
   RowWithScore,
   WebVitals,
@@ -34,9 +36,10 @@ export const useTransactionWebVitalsQuery = ({orderBy, limit, transaction}: Prop
       ],
       name: 'Web Vitals',
       query:
-        'transaction.op:pageload' + (transaction ? ` transaction:*${transaction}*` : ''),
-      orderby: mapWebVitalToOrderBy(orderBy),
+        'transaction.op:pageload' + (transaction ? ` transaction:"${transaction}"` : ''),
+      orderby: mapWebVitalToOrderBy(orderBy, 'p75') ?? '-count',
       version: 2,
+      dataset: DiscoverDatasets.METRICS,
     },
     pageFilters.selection
   );
@@ -91,21 +94,4 @@ export const useTransactionWebVitalsQuery = ({orderBy, limit, transaction}: Prop
     isLoading,
     ...rest,
   };
-};
-
-const mapWebVitalToOrderBy = (webVital?: WebVitals | null) => {
-  switch (webVital) {
-    case 'lcp':
-      return '-p75_measurements_lcp';
-    case 'fcp':
-      return '-p75_measurements_fcp';
-    case 'cls':
-      return '-p75_measurements_cls';
-    case 'ttfb':
-      return '-p75_measurements_ttfb';
-    case 'fid':
-      return '-p75_measurements_fid';
-    default:
-      return '-count';
-  }
 };

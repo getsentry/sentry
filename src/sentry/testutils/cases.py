@@ -60,7 +60,7 @@ from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.mail import mail_adapter
-from sentry.mediators.project_rules import Creator
+from sentry.mediators.project_rules.creator import Creator
 from sentry.models.apitoken import ApiToken
 from sentry.models.authprovider import AuthProvider as AuthProviderModel
 from sentry.models.commit import Commit
@@ -109,7 +109,7 @@ from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
 from sentry.silo import SiloMode
 from sentry.snuba.metrics.datasource import get_series
-from sentry.tagstore.snuba import SnubaTagStorage
+from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
@@ -127,6 +127,7 @@ from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
 
 from ..services.hybrid_cloud.organization.serial import serialize_rpc_organization
+from ..shared_integrations.client.proxy import IntegrationProxyClient
 from ..snuba.metrics import (
     MetricConditionField,
     MetricField,
@@ -611,10 +612,6 @@ class PerformanceIssueTestCase(BaseTestCase):
             issue_type, "noise_config", new=NoiseConfig(noise_limit, timedelta(minutes=1))
         ), override_options(
             {"performance.issues.all.problem-detection": 1.0, detector_option: 1.0}
-        ), self.feature(
-            [
-                "projects:performance-suspect-spans-ingestion",
-            ]
         ):
             event = perf_event_manager.save(project_id)
             if mock_eventstream.call_args:
@@ -1430,10 +1427,10 @@ class BaseMetricsTestCase(SnubaTestCase):
         name: str,
         tags: Dict[str, str],
         timestamp: int,
-        value,
+        value: Any,
         use_case_id: UseCaseID,
         aggregation_option: Optional[AggregationOption] = None,
-    ):
+    ) -> None:
         mapping_meta = {}
 
         def metric_id(key: str):
@@ -1751,6 +1748,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "transaction.duration": "metrics_distributions",
         "span.duration": "metrics_distributions",
         "span.self_time": "metrics_distributions",
+        "http.response_content_length": "metrics_distributions",
         "measurements.lcp": "metrics_distributions",
         "measurements.fp": "metrics_distributions",
         "measurements.fcp": "metrics_distributions",
@@ -1787,7 +1785,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def store_transaction_metric(
         self,
-        value: List[float] | float,
+        value: list[Any] | Any,
         metric: str = "transaction.duration",
         internal_metric: Optional[str] = None,
         entity: Optional[str] = None,
@@ -2780,3 +2778,8 @@ class MonitorIngestTestCase(MonitorTestCase):
                 self.endpoint_with_org, args=[self.organization.slug, monitor_slug]
             ),
         )
+
+
+class IntegratedApiTestCase(BaseTestCase):
+    def should_call_api_without_proxying(self) -> bool:
+        return not IntegrationProxyClient.determine_whether_should_proxy_to_control()

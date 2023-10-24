@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
 import ButtonBar from 'sentry/components/buttonBar';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
@@ -14,15 +14,15 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
-import {ScratchpadSelector} from 'sentry/views/ddm/metricScratchpad';
-import MetricScratchpad from 'sentry/views/ddm/metricWidget';
+import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
+import {ScratchpadSelector} from 'sentry/views/ddm/scratchpadSelector';
 
 function DDM() {
   const organization = useOrganization();
 
   return (
     <SentryDocumentTitle title={t('DDM')} orgSlug={organization.slug}>
-      <PageFiltersContainer>
+      <PageFiltersContainer disablePersistence>
         <Layout.Page>
           <Layout.Header>
             <Layout.HeaderContent>

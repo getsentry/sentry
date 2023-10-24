@@ -292,6 +292,7 @@ export type EventsStatsSeries<F extends string> = {
   data: {
     axis: F;
     values: number[];
+    label?: string;
   }[];
   meta: {
     dataset: string;

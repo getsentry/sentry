@@ -29,6 +29,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -314,17 +315,16 @@ export function ReplayCell({
     query: {
       referrer,
       ...eventView.generateQueryStringObject(),
-      t_main: 'errors',
+      t_main: TabKey.ERRORS,
     },
   };
 
-  const replayDetailsDOMEventsTab = {
+  const replayDetailsDeadRage = {
     pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
     query: {
       referrer,
       ...eventView.generateQueryStringObject(),
-      t_main: 'dom',
-      f_d_type: 'ui.slowClickDetected',
+      f_b_type: 'rageOrDead',
     },
   };
 
@@ -335,7 +335,7 @@ export function ReplayCell({
       case 'dead-table':
       case 'rage-table':
       case 'selector-widget':
-        return replayDetailsDOMEventsTab;
+        return replayDetailsDeadRage;
       default:
         return replayDetails;
     }
@@ -352,14 +352,14 @@ export function ReplayCell({
 
   if (replay.is_archived) {
     return (
-      <Item isArchived={replay.is_archived}>
+      <Item isArchived={replay.is_archived} isReplayCell>
         <Row gap={1}>
           <StyledIconDelete color="gray500" size="md" />
           <div>
             <Row gap={0.5}>{t('Deleted Replay')}</Row>
             <Row gap={0.5}>
               {project ? <Avatar size={12} project={project} /> : null}
-              {getShortEventId(replay.id)}
+              <ArchivedId>{getShortEventId(replay.id)}</ArchivedId>
             </Row>
           </div>
         </Row>
@@ -377,17 +377,17 @@ export function ReplayCell({
           <Link to={detailsTab} onClick={trackNavigationEvent}>
             {getShortEventId(replay.id)}
           </Link>
-        </Row>
-        <Row gap={0.5}>
-          <IconCalendar color="gray300" size="xs" />
-          <TimeSince date={replay.started_at} />
+          <Row gap={0.5}>
+            <IconCalendar color="gray300" size="xs" />
+            <TimeSince date={replay.started_at} />
+          </Row>
         </Row>
       </Row>
     </Cols>
   );
 
   return (
-    <Item isWidget={isWidget}>
+    <Item isWidget={isWidget} isReplayCell>
       <UserBadge
         avatarSize={24}
         displayName={
@@ -406,6 +406,10 @@ export function ReplayCell({
     </Item>
   );
 }
+
+const ArchivedId = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
 
 const StyledIconDelete = styled(IconDelete)`
   margin: ${space(0.25)};
@@ -465,7 +469,7 @@ export function OSCell({replay, showDropdownFilters}: Props) {
   return (
     <Item>
       <Container>
-        <Tooltip title={`${name} ${version}`}>
+        <Tooltip title={`${name ?? ''} ${version ?? ''}`}>
           <ContextIcon
             name={name ?? ''}
             version={version && hasRoomForColumns ? version : undefined}
@@ -625,7 +629,11 @@ export function ActivityCell({replay, showDropdownFilters}: Props) {
   );
 }
 
-const Item = styled('div')<{isArchived?: boolean; isWidget?: boolean}>`
+const Item = styled('div')<{
+  isArchived?: boolean;
+  isReplayCell?: boolean;
+  isWidget?: boolean;
+}>`
   display: flex;
   align-items: center;
   gap: ${space(1)};
@@ -634,6 +642,7 @@ const Item = styled('div')<{isArchived?: boolean; isWidget?: boolean}>`
       ? `padding: ${space(0.75)} ${space(1.5)} ${space(1.5)} ${space(1.5)};`
       : `padding: ${space(1.5)};`};
   ${p => (p.isArchived ? 'opacity: 0.5;' : '')};
+  ${p => (p.isReplayCell ? 'overflow: auto;' : '')};
 `;
 
 const Count = styled('span')`

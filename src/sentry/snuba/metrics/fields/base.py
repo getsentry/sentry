@@ -61,10 +61,12 @@ from sentry.snuba.metrics.fields.snql import (
     min_timestamp,
     miserable_users,
     on_demand_apdex_snql_factory,
+    on_demand_count_web_vitals_snql_factory,
     on_demand_epm_snql_factory,
     on_demand_eps_snql_factory,
     on_demand_failure_count_snql_factory,
     on_demand_failure_rate_snql_factory,
+    on_demand_user_misery_snql_factory,
     rate_snql_factory,
     satisfaction_count_transaction,
     session_duration_filters,
@@ -216,7 +218,11 @@ def _get_entity_of_metric_mri(
     entity_keys_set: frozenset[EntityKey]
     if use_case_id is UseCaseID.TRANSACTIONS:
         entity_keys_set = frozenset(
-            {EntityKey.GenericMetricsSets, EntityKey.GenericMetricsDistributions}
+            {
+                EntityKey.GenericMetricsCounters,
+                EntityKey.GenericMetricsSets,
+                EntityKey.GenericMetricsDistributions,
+            }
         )
     elif use_case_id is UseCaseID.SESSIONS:
         entity_keys_set = frozenset(
@@ -1818,6 +1824,17 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             op="on_demand_failure_rate",
             can_orderby=True,
             snql_func=on_demand_failure_rate_snql_factory,
+            default_null_value=0,
+        ),
+        DerivedOp(
+            op="on_demand_count_web_vitals",
+            can_orderby=True,
+            snql_func=on_demand_count_web_vitals_snql_factory,
+        ),
+        DerivedOp(
+            op="on_demand_user_misery",
+            can_orderby=True,
+            snql_func=on_demand_user_misery_snql_factory,
             default_null_value=0,
         ),
     ]

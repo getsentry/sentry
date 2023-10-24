@@ -9,7 +9,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-interface UseEventsStatsOptions<F> {
+interface UseProfileEventsStatsOptions<F> {
   dataset: 'discover' | 'profiles' | 'profileFunctions';
   referrer: string;
   yAxes: readonly F[];
@@ -25,7 +25,7 @@ export function useProfileEventsStats<F extends string>({
   query,
   referrer,
   yAxes,
-}: UseEventsStatsOptions<F>) {
+}: UseProfileEventsStatsOptions<F>) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
@@ -61,8 +61,8 @@ export function useProfileEventsStats<F extends string>({
   });
 
   const transformed = useMemo(
-    () => data && transformStatsResponse(yAxes, data),
-    [yAxes, data]
+    () => data && transformStatsResponse(dataset, yAxes, data),
+    [yAxes, data, dataset]
   );
 
   return {
@@ -72,6 +72,7 @@ export function useProfileEventsStats<F extends string>({
 }
 
 export function transformStatsResponse<F extends string>(
+  dataset: 'discover' | 'profiles' | 'profileFunctions',
   yAxes: readonly F[],
   rawData: any
 ): EventsStatsSeries<F> {
@@ -82,7 +83,7 @@ export function transformStatsResponse<F extends string>(
     return {
       data: [],
       meta: {
-        dataset: 'profiles',
+        dataset,
         end: 0,
         start: 0,
       },
@@ -91,7 +92,7 @@ export function transformStatsResponse<F extends string>(
   }
 
   if (yAxes.length === 1) {
-    const {series, meta, timestamps} = transformSingleSeries(yAxes[0], rawData);
+    const {series, meta, timestamps} = transformSingleSeries(dataset, yAxes[0], rawData);
     return {
       data: [series],
       meta,
@@ -101,7 +102,7 @@ export function transformStatsResponse<F extends string>(
 
   const data: EventsStatsSeries<F>['data'] = [];
   let meta: EventsStatsSeries<F>['meta'] = {
-    dataset: 'profiles',
+    dataset,
     end: -1,
     start: -1,
   };
@@ -114,7 +115,7 @@ export function transformStatsResponse<F extends string>(
     if (!defined(dataForYAxis)) {
       continue;
     }
-    const transformed = transformSingleSeries(yAxis, dataForYAxis);
+    const transformed = transformSingleSeries(dataset, yAxis, dataForYAxis);
 
     if (firstAxis) {
       meta = transformed.meta;
@@ -143,7 +144,12 @@ export function transformStatsResponse<F extends string>(
   };
 }
 
-function transformSingleSeries<F extends string>(yAxis: F, rawSeries: any) {
+export function transformSingleSeries<F extends string>(
+  dataset: 'discover' | 'profiles' | 'profileFunctions',
+  yAxis: F,
+  rawSeries: any,
+  label?: string
+) {
   const type =
     rawSeries.meta.fields[yAxis] ?? rawSeries.meta.fields[getAggregateAlias(yAxis)];
   const formatter =
@@ -154,14 +160,17 @@ function transformSingleSeries<F extends string>(yAxis: F, rawSeries: any) {
             'nanoseconds',
           'milliseconds'
         )
+      : type === 'string'
+      ? value => value || ''
       : value => value;
 
   const series: EventsStatsSeries<F>['data'][number] = {
     axis: yAxis,
     values: [],
+    label,
   };
   const meta: EventsStatsSeries<F>['meta'] = {
-    dataset: 'profiles',
+    dataset,
     end: rawSeries.end,
     start: rawSeries.start,
   };

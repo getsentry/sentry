@@ -90,6 +90,7 @@ TRANSACTION_METRICS_NAMES = {
     "g:transactions/alert@none": PREFIX + 135,
     "d:transactions/duration_light@millisecond": PREFIX + 136,
     "c:transactions/usage@none": PREFIX + 137,
+    # Last possible index: 199
 }
 
 # 200 - 399
@@ -157,6 +158,7 @@ SHARED_TAG_STRINGS = {
     "span.category": PREFIX + 254,
     "span.main_thread": PREFIX + 255,
     "device.class": PREFIX + 256,
+    "resource.render_blocking_status": PREFIX + 257,
     # More Transactions
     "has_profile": PREFIX + 260,
     "query_hash": PREFIX + 261,
@@ -180,6 +182,9 @@ SPAN_METRICS_NAMES = {
     "d:spans/exclusive_time_light@millisecond": PREFIX + 406,
     "d:spans/frames_frozen@none": PREFIX + 407,
     "d:spans/frames_slow@none": PREFIX + 408,
+    "d:spans/http.response_content_length@byte": PREFIX + 409,
+    "d:spans/http.decoded_response_content_length@byte": PREFIX + 410,
+    "d:spans/http.response_transfer_size@byte": PREFIX + 411,
 }
 
 # 500-599
