@@ -29,8 +29,11 @@ def _fix_for_issue_platform(event_data):
     event_data["timestamp"] = ensure_aware(
         datetime.datetime.fromtimestamp(event_data["timestamp"])
     ).isoformat()
+    if "contexts" not in event_data:
+        event_data["contexts"] = {}
 
     if event_data.get("feedback"):
+        event_data["contexts"]["feedback"] = event_data["feedback"]
         del event_data["feedback"]
 
     if event_data.get("dist") is not None:
