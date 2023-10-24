@@ -738,19 +738,26 @@ def get_team_members(team: Team | RpcActor) -> list[RpcActor]:
         raise Exception(
             "RpcActor team has ActorType %s, expected ActorType Team", team.actor_type  # type: ignore
         )
+
+    # get organization member IDs of all members in the team
     team_members = OrganizationMemberTeamReplica.objects.filter(team_id=team_id)
-    random_member = team_members.first()
-    if not random_member:
+
+    # use the first member to get the org id + determine if there are any members to begin with
+    first_member = team_members.first()
+    if not first_member:
         return []
-    org_id = random_member.organization_id
+    org_id = first_member.organization_id
+
+    # get user IDs for all members in the team
     members = OrganizationMemberMapping.objects.filter(
         organization_id=org_id,
         organizationmember_id__in=Subquery(team_members.values("organizationmember_id")),
-    )  # team_members.values_list("organizationmember_id"))
+    )
+
     return [
         RpcActor(id=user_id, actor_type=ActorType.USER)
         for user_id in members.values_list("user_id", flat=True)
-    ]  # list(User.objects.filter(id__in=Subquery(members.values("user_id"))))
+    ]
 
 
 PROVIDER_DEFAULTS: list[ExternalProviderEnum] = get_provider_defaults()

@@ -210,12 +210,12 @@ class NotificationHelpersTest(TestCase):
         }
 
     def test_get_team_members(self):
-        user = self.create_user()
+        user1 = self.create_user()
         user2 = self.create_user()
-        team = self.create_team()
+        team1 = self.create_team()
         team2 = self.create_team()
-        self.create_member(organization=self.organization, teams=[team], user=user)
+        self.create_member(organization=self.organization, teams=[team1], user=user1)
         self.create_member(organization=self.organization, teams=[team2], user=user2)
 
-        assert get_team_members(team) == [RpcActor.from_object(user)]
+        assert get_team_members(team1) == [RpcActor.from_object(user1)]
         assert get_team_members(team2) == [RpcActor.from_object(user2)]
