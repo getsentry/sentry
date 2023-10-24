@@ -4,6 +4,7 @@ import abc
 import logging
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Type
 
+from sentry import features
 from sentry.db.models import Model
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.strategies.role_based_recipient_strategy import (
@@ -47,7 +48,8 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
 
     def build_notification_footer(self, recipient: RpcActor, provider: ExternalProviders) -> str:
         if recipient.actor_type == ActorType.TEAM:
-            raise NotImplementedError
+            if not features.has("organizations:team-workflow-notifications", self.organization):
+                raise NotImplementedError
 
         settings_url = self.format_url(
             text="Notification Settings",

@@ -205,7 +205,7 @@ class BaseNotification(abc.ABC):
         return f"?{query}"
 
     def get_settings_url(self, recipient: RpcActor, provider: ExternalProviders) -> str:
-        # Settings url is dependant on the provider so we know which provider is sending them into Sentry.
+        # Settings url is dependent on the provider so we know which provider is sending them into Sentry.
         if recipient.actor_type == ActorType.TEAM:
             url_str = f"/settings/{self.organization.slug}/teams/{recipient.slug}/notifications/"
         else:
