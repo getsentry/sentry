@@ -5,7 +5,6 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {useInfiniteFeedbackListData} from 'sentry/components/feedback/feedbackDataContext';
 import {t} from 'sentry/locale';
 import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
 import useApi from 'sentry/utils/useApi';
@@ -20,7 +19,6 @@ export default function useResolveFeedback({feedbackItem}: Props) {
 
   const api = useApi();
   const organization = useOrganization();
-  const {setFeedback} = useInfiniteFeedbackListData();
 
   const url = useMemo(() => {
     return `/organizations/${organization.slug}/issues/${feedbackId}/`;
@@ -34,11 +32,10 @@ export default function useResolveFeedback({feedbackItem}: Props) {
         data: {status: feedbackItem.status === 'unresolved' ? 'resolved' : 'unresolved'},
       });
       addSuccessMessage(t('Updated feedback'));
-      setFeedback(feedbackId, undefined);
     } catch {
       addErrorMessage(t('An error occurred while resolving the feedback.'));
     }
-  }, [api, feedbackId, setFeedback, url, feedbackItem.status]);
+  }, [api, url, feedbackItem.status]);
 
   return {
     onResolve: () => handleResolve(),
