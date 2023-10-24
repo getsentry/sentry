@@ -5,8 +5,11 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import Subquery
 
 from sentry import features
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
 from sentry.notifications.defaults import (
     NOTIFICATION_SETTING_DEFAULTS,
     NOTIFICATION_SETTINGS_ALL_SOMETIMES,
@@ -32,9 +35,10 @@ from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS,
-    TEAM_NOTIFICATION_PROVIDERS,
+    PERSONAL_NOTIFICATION_PROVIDERS,
     ExternalProviderEnum,
     ExternalProviders,
+    get_provider_enum,
     get_provider_enum_from_string,
     get_provider_name,
 )
@@ -719,31 +723,40 @@ def get_recipient_from_team_or_user(user_id: int | None, team_id: int | None) ->
 def team_is_valid_recipient(team: Team | RpcActor) -> bool:
     from sentry.models.integrations.external_actor import ExternalActor
 
+    providers_as_int = []
+    for provider_name in PERSONAL_NOTIFICATION_PROVIDERS:
+        enum = get_provider_enum(provider_name)
+        if enum:
+            providers_as_int.append(enum.value)
+
     linked_integration = ExternalActor.objects.filter(
-        team_id=team.id, provider__in=TEAM_NOTIFICATION_PROVIDERS
+        team_id=team.id, provider__in=providers_as_int
     )
     if linked_integration:
         return True
     return False
 
 
-def get_team_members(team: Team | RpcActor) -> list[RpcUser]:
-    if isinstance(team, RpcActor):
-        if team.actor_type != ActorType.TEAM:
-            raise Exception(
-                "RpcActor team has ActorType %s, expected ActorType Team", team.actor_type
-            )
-        temp = team.resolve()
-        if not isinstance(temp, Team):
-            raise Exception("Unable to find team")
-        team = temp
-    member_ids = team.member_set.values_list("user_id", flat=True)
-    users = []
-    for member_id in member_ids:
-        result = get_recipient_from_team_or_user(user_id=member_id, team_id=None)
-        if isinstance(result, RpcUser):
-            users.append(result)
-    return users
+def get_team_members(team: Team | RpcActor) -> list[RpcActor]:
+    if recipient_is_team(team):  # handles type error below
+        team_id = team.id
+    else:  # team is either Team or RpcActor, so if recipient_is_team returns false it is because RpcActor has a different type
+        raise Exception(
+            "RpcActor team has ActorType %s, expected ActorType Team", team.actor_type  # type: ignore
+        )
+    team_members = OrganizationMemberTeamReplica.objects.filter(team_id=team_id)
+    random_member = team_members.first()
+    if not random_member:
+        return []
+    org_id = random_member.organization_id
+    members = OrganizationMemberMapping.objects.filter(
+        organization_id=org_id,
+        organizationmember_id__in=Subquery(team_members.values("organizationmember_id")),
+    )  # team_members.values_list("organizationmember_id"))
+    return [
+        RpcActor(id=user_id, actor_type=ActorType.USER)
+        for user_id in members.values_list("user_id", flat=True)
+    ]  # list(User.objects.filter(id__in=Subquery(members.values("user_id"))))
 
 
 PROVIDER_DEFAULTS: list[ExternalProviderEnum] = get_provider_defaults()

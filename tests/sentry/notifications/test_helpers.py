@@ -8,6 +8,7 @@ from sentry.notifications.helpers import (
     get_scope_type,
     get_settings_by_provider,
     get_subscription_from_attributes,
+    get_team_members,
     get_values_by_provider_by_type,
     validate,
 )
@@ -22,6 +23,7 @@ from sentry.notifications.utils import (
     get_group_settings_link,
     get_rules,
 )
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils.cases import TestCase
 from sentry.types.integrations import ExternalProviders
 
@@ -206,3 +208,14 @@ class NotificationHelpersTest(TestCase):
             }
             for rule_detail in rule_details
         }
+
+    def test_get_team_members(self):
+        user = self.create_user()
+        user2 = self.create_user()
+        team = self.create_team()
+        team2 = self.create_team()
+        self.create_member(organization=self.organization, teams=[team], user=user)
+        self.create_member(organization=self.organization, teams=[team2], user=user2)
+
+        assert get_team_members(team) == [RpcActor.from_object(user)]
+        assert get_team_members(team2) == [RpcActor.from_object(user2)]
