@@ -9,6 +9,7 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {getFormattedDate} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   useReleases,
@@ -30,9 +31,22 @@ export function ReleaseSelector({selectorName, selectorKey, selectorValue}: Prop
 
   const options: SelectOption<string>[] = [];
   if (defined(selectorValue)) {
+    const index = data?.findIndex(({version}) => version === selectorValue);
+    const selectedRelease = defined(index) ? data?.[index] : undefined;
+    let selectedReleaseDate: string | undefined = undefined;
+    if (defined(selectedRelease)) {
+      selectedReleaseDate = selectedRelease.dateCreated;
+    }
+
     options.push({
       value: selectorValue,
       label: selectorValue,
+      details: (
+        <LabelDetails
+          sessionCount={releaseStats[selectorValue]?.['sum(session)']}
+          dateCreated={selectedReleaseDate}
+        />
+      ),
     });
   }
   data
@@ -42,7 +56,10 @@ export function ReleaseSelector({selectorName, selectorKey, selectorValue}: Prop
         value: release.version,
         label: release.version,
         details: (
-          <LabelDetails sessionCount={releaseStats[release.version]?.['sum(session)']} />
+          <LabelDetails
+            sessionCount={releaseStats[release.version]?.['sum(session)']}
+            dateCreated={release.dateCreated}
+          />
         ),
       };
 
@@ -85,6 +102,7 @@ export function ReleaseSelector({selectorName, selectorKey, selectorValue}: Prop
 }
 
 type LabelDetailsProps = {
+  dateCreated?: string;
   sessionCount?: number;
 };
 
@@ -95,6 +113,11 @@ function LabelDetails(props: LabelDetailsProps) {
         {defined(props.sessionCount)
           ? tn('%s session', '%s sessions', props.sessionCount)
           : '-'}
+      </div>
+      <div>
+        {defined(props.dateCreated)
+          ? getFormattedDate(props.dateCreated, 'MMM D, YYYY')
+          : null}
       </div>
     </DetailsContainer>
   );
