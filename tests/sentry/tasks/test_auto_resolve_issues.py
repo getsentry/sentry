@@ -83,7 +83,7 @@ class ScheduleAutoResolutionTest(TestCase):
 
     @patch("sentry.tasks.auto_ongoing_issues.backend")
     @patch("sentry.tasks.auto_resolve_issues.kick_off_status_syncs")
-    def test_legacy_performance(self, mock_kick_off_status_syncs, mock_backend):
+    def test_single_event_performance(self, mock_kick_off_status_syncs, mock_backend):
         project = self.create_project()
 
         current_ts = int(time()) - 1
@@ -113,7 +113,7 @@ class ScheduleAutoResolutionTest(TestCase):
     @patch("sentry.tasks.auto_ongoing_issues.backend")
     @patch("sentry.tasks.auto_resolve_issues.kick_off_status_syncs")
     @with_feature("organizations:issue-platform-api-crons-sd")
-    def test_legacy_performance_ff_enabled(self, mock_kick_off_status_syncs, mock_backend):
+    def test_single_event_performance_ff_enabled(self, mock_kick_off_status_syncs, mock_backend):
         project = self.create_project()
 
         current_ts = int(time()) - 1
@@ -142,7 +142,7 @@ class ScheduleAutoResolutionTest(TestCase):
 
     @patch("sentry.tasks.auto_ongoing_issues.backend")
     @patch("sentry.tasks.auto_resolve_issues.kick_off_status_syncs")
-    def test_SD_performance(self, mock_kick_off_status_syncs, mock_backend):
+    def test_aggregate_performance(self, mock_kick_off_status_syncs, mock_backend):
         project = self.create_project()
 
         current_ts = int(time()) - 1
@@ -171,7 +171,7 @@ class ScheduleAutoResolutionTest(TestCase):
 
     @patch("sentry.tasks.auto_ongoing_issues.backend")
     @with_feature("organizations:issue-platform-api-crons-sd")
-    def test_SD_performance_ff_enabled(self, mock_backend):
+    def test_aggregate_performance_ff_enabled(self, mock_backend):
         project = self.create_project()
 
         project.update_option("sentry:resolve_age", 1)
