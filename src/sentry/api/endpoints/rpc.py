@@ -15,6 +15,7 @@ from sentry.services.hybrid_cloud.rpc import (
     RpcResolutionException,
     dispatch_to_local_service,
 )
+from sentry.services.hybrid_cloud.sig import SignatureSerializationException
 from sentry.utils.env import in_test_environment
 
 
@@ -64,7 +65,7 @@ class RpcServiceEndpoint(Endpoint):
                 result = dispatch_to_local_service(service_name, method_name, arguments)
         except RpcResolutionException as e:
             raise NotFound from e
-        except RpcArgumentException as e:
+        except (RpcArgumentException, SignatureSerializationException) as e:
             raise ParseError from e
         except Exception as e:
             # Produce more detailed log
