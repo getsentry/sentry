@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 # ensure that the database can store the data.
 MAX_NAME_LENGTH = MAX_INDEXED_COLUMN_LENGTH
 
-ACCEPTED_METRIC_TYPES = {"s", "c", "d", "g'"}  # set, counter, distribution, gauge
+ACCEPTED_METRIC_TYPES = {"s", "c", "d", "g"}  # set, counter, distribution, gauge
 
 OrgId = int
 Headers = MutableSequence[Tuple[str, bytes]]
