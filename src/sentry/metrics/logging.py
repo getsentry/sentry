@@ -25,7 +25,6 @@ class LoggingBackend(MetricsBackend):
         instance: Optional[str] = None,
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
-        unit: Optional[str] = None,
     ) -> None:
         logger.debug(
             "%r: %g ms", key, value * 1000, extra={"instance": instance, "tags": tags or {}}

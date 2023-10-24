@@ -263,7 +263,7 @@ def test_unit_is_correctly_propagated_for_incr(sentry_sdk, unit, expected_unit):
 def test_unit_is_correctly_propagated_for_timing(sentry_sdk, unit, expected_unit):
     backend = MiniMetricsMetricsBackend(prefix="")
 
-    params = {"key": "sentrytest.unit", "value": 10.0, "tags": {"x": "bar"}, "unit": unit}
+    params = {"key": "sentrytest.unit", "value": 10.0, "tags": {"x": "bar"}}
 
     backend.timing(**params)
     assert sentry_sdk.metrics.distribution.call_args.kwargs == {**params, "unit": expected_unit}
