@@ -1,16 +1,17 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
-import * as Sentry from '@sentry/react';
+import {useMemo} from 'react';
 
 import {DateString, IssueCategory, Organization} from 'sentry/types';
+import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import toArray from 'sentry/utils/toArray';
-import useApi from 'sentry/utils/useApi';
+
+type DateTime = {
+  end: DateString;
+  start: DateString;
+};
 
 type Options = {
   organization: Organization;
-  datetime?: {
-    end: DateString;
-    start: DateString;
-  };
+  datetime?: DateTime;
   extraConditions?: string;
   groupIds?: string | string[];
   issueCategory?: IssueCategory;
@@ -29,17 +30,6 @@ function useReplaysCount({
   extraConditions,
   datetime,
 }: Options) {
-  const api = useApi();
-
-  const [replayCounts, setReplayCounts] = useState<CountState>({});
-
-  const filterUnseen = useCallback(
-    (ids: string | string[]) => {
-      return toArray(ids).filter(id => !(id in replayCounts));
-    },
-    [replayCounts]
-  );
-
   const zeroCounts = useMemo(() => {
     const gIds = toArray(groupIds || []);
     const txnNames = toArray(transactionNames || []);
@@ -50,7 +40,7 @@ function useReplaysCount({
     }, {});
   }, [groupIds, replayIds, transactionNames]);
 
-  const query = useMemo(() => {
+  const queryField = useMemo(() => {
     const fieldsProvided = [
       groupIds !== undefined,
       transactionNames !== undefined,
@@ -68,7 +58,7 @@ function useReplaysCount({
     }
 
     if (groupIds && groupIds.length) {
-      const groupsToFetch = filterUnseen(groupIds);
+      const groupsToFetch = toArray(groupIds);
       if (groupsToFetch.length) {
         return {
           field: 'issue.id' as const,
@@ -79,7 +69,7 @@ function useReplaysCount({
     }
 
     if (replayIds && replayIds.length) {
-      const replaysToFetch = filterUnseen(replayIds);
+      const replaysToFetch = toArray(replayIds);
       if (replaysToFetch.length) {
         return {
           field: 'replay_id' as const,
@@ -90,7 +80,7 @@ function useReplaysCount({
     }
 
     if (transactionNames && transactionNames.length) {
-      const txnsToFetch = filterUnseen(transactionNames);
+      const txnsToFetch = toArray(transactionNames);
       if (txnsToFetch.length) {
         return {
           field: 'transaction' as const,
@@ -100,51 +90,64 @@ function useReplaysCount({
       return null;
     }
     return null;
-  }, [filterUnseen, groupIds, replayIds, transactionNames]);
+  }, [groupIds, replayIds, transactionNames]);
 
-  const fetchReplayCount = useCallback(async () => {
-    let dataSource = 'discover';
-    if (issueCategory && issueCategory === IssueCategory.PERFORMANCE) {
-      dataSource = 'search_issues';
+  const hasSessionReplay = organization.features.includes('session-replay');
+  const {data} = useApiQuery<CountState>(
+    makeReplayCountsQueryKey({
+      organization,
+      conditions: [queryField?.conditions ?? '', extraConditions ?? ''],
+      datetime,
+      issueCategory,
+    }),
+    {
+      staleTime: Infinity,
+      enabled: Boolean(queryField) && hasSessionReplay,
     }
+  );
 
-    try {
-      if (!query) {
-        return;
-      }
-      const response = await api.requestPromise(
-        `/organizations/${organization.slug}/replay-count/`,
-        {
-          query: {
-            query: [query.conditions, extraConditions].join(' ').trim(),
-            data_source: dataSource,
-            project: -1,
-            ...(datetime ? {...datetime, statsPeriod: undefined} : {statsPeriod: '14d'}),
-          },
-        }
-      );
-      setReplayCounts({...zeroCounts, ...response});
-    } catch (err) {
-      Sentry.captureException(err);
-    }
-  }, [
-    issueCategory,
-    query,
-    api,
-    organization.slug,
-    extraConditions,
-    datetime,
-    zeroCounts,
-  ]);
+  return useMemo(
+    () => ({
+      ...zeroCounts,
+      ...data,
+    }),
+    [zeroCounts, data]
+  );
+}
 
-  useEffect(() => {
-    const hasSessionReplay = organization.features.includes('session-replay');
-    if (hasSessionReplay) {
-      fetchReplayCount();
-    }
-  }, [fetchReplayCount, organization]);
+function makeReplayCountsQueryKey({
+  conditions,
+  datetime,
+  issueCategory,
+  organization,
+}: {
+  conditions: string[];
+  datetime: undefined | DateTime;
+  issueCategory: undefined | IssueCategory;
+  organization: Organization;
+}): ApiQueryKey {
+  return [
+    `/organizations/${organization.slug}/replay-count/`,
+    {
+      query: {
+        query: conditions.filter(Boolean).join(' ').trim(),
+        data_source: getDatasource(issueCategory),
+        project: -1,
+        ...(datetime ? {...datetime, statsPeriod: undefined} : {statsPeriod: '14d'}),
+      },
+    },
+  ];
+}
 
-  return replayCounts;
+function getDatasource(issueCategory: undefined | IssueCategory) {
+  switch (issueCategory) {
+    case IssueCategory.PERFORMANCE:
+      return 'search_issues';
+    case IssueCategory.FEEDBACK:
+      return 'search_issues'; // Same as Performance
+    default:
+      return 'discover';
+  }
 }
 
 export default useReplaysCount;
