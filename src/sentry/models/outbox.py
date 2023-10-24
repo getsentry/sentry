@@ -91,7 +91,7 @@ class OutboxCategory(IntEnum):
     UNUSUED_THREE = 13
     SEND_SIGNAL = 14
     ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE = 15
-    ORGAUTHTOKEN_UPDATE = 16
+    ORGAUTHTOKEN_UPDATE_USED = 16
     PROVISION_ORGANIZATION = 17
     POST_ORGANIZATION_PROVISION = 18
     UNUSED_ONE = 19
@@ -108,6 +108,9 @@ class OutboxCategory(IntEnum):
     PARTNER_ACCOUNT_UPDATE = 29
     SENTRY_APP_UPDATE = 30
     ACTOR_UPDATE = 31
+    API_TOKEN_UPDATE = 32
+    ORG_AUTH_TOKEN_UPDATE = 33
+    ISSUE_COMMENT_UPDATE = 34
 
     @classmethod
     def as_choices(cls):
@@ -233,6 +236,7 @@ class OutboxCategory(IntEnum):
         object_identifier: int | None,
         shard_identifier: int | None,
     ) -> Tuple[int, int]:
+        from sentry.models.apiapplication import ApiApplication
         from sentry.models.organization import Organization
         from sentry.models.user import User
 
@@ -249,13 +253,18 @@ class OutboxCategory(IntEnum):
                     shard_identifier = model.id
                 elif hasattr(model, "organization_id"):
                     shard_identifier = model.organization_id
-                elif hasattr(model, "auth_provider_id"):
-                    shard_identifier = model.auth_provider_id
+                elif hasattr(model, "auth_provider"):
+                    shard_identifier = model.auth_provider.organization_id
             if scope == OutboxScope.USER_SCOPE:
                 if isinstance(model, User):
                     shard_identifier = model.id
                 elif hasattr(model, "user_id"):
                     shard_identifier = model.user_id
+            if scope == OutboxScope.APP_SCOPE:
+                if isinstance(model, ApiApplication):
+                    shard_identifier = model.id
+                elif hasattr(model, "api_application_id"):
+                    shard_identifier = model.api_application_id
 
         assert (
             model is not None
@@ -285,7 +294,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.PROJECT_UPDATE,
             OutboxCategory.ORGANIZATION_INTEGRATION_UPDATE,
             OutboxCategory.SEND_SIGNAL,
-            OutboxCategory.ORGAUTHTOKEN_UPDATE,
+            OutboxCategory.ORGAUTHTOKEN_UPDATE_USED,
             OutboxCategory.POST_ORGANIZATION_PROVISION,
             OutboxCategory.DISABLE_AUTH_PROVIDER,
             OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE,
@@ -294,14 +303,17 @@ class OutboxScope(IntEnum):
             OutboxCategory.ORGANIZATION_MEMBER_TEAM_UPDATE,
             OutboxCategory.API_KEY_UPDATE,
             OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE,
+            OutboxCategory.ORG_AUTH_TOKEN_UPDATE,
             OutboxCategory.PARTNER_ACCOUNT_UPDATE,
             OutboxCategory.ACTOR_UPDATE,
+            OutboxCategory.ISSUE_COMMENT_UPDATE,
         },
     )
     USER_SCOPE = scope_categories(
         1,
         {
             OutboxCategory.USER_UPDATE,
+            OutboxCategory.API_TOKEN_UPDATE,
             OutboxCategory.UNUSED_ONE,
             OutboxCategory.UNUSED_TWO,
             OutboxCategory.UNUSUED_THREE,

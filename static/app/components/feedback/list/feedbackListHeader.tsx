@@ -9,7 +9,7 @@ import {Flex} from 'sentry/components/profiling/flex';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface Props {
@@ -37,9 +37,7 @@ function HasSelection({checked}) {
   return (
     <Flex gap={space(1)} align="center" justify="space-between" style={{flexGrow: 1}}>
       <span>
-        <strong>
-          {checked.length} {t('Selected')}
-        </strong>
+        <strong>{tct('[count] Selected', {count: checked.length})}</strong>
       </span>
       <Flex gap={space(1)} justify="flex-end">
         <ErrorBoundary mini>
@@ -120,7 +118,7 @@ function MailboxPicker({
 
 const HeaderPanelItem = styled(PanelItem)`
   display: flex;
-  padding: ${space(1)} ${space(0.5)} ${space(1)} ${space(1.5)};
+  padding: ${space(1)} ${space(2)} ${space(1)} ${space(2)};
   gap: ${space(1)};
   align-items: center;
 `;

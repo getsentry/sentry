@@ -8,6 +8,7 @@ import sentry_sdk
 
 from sentry import analytics
 from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.github.client import GitHubApproachingRateLimit
 from sentry.integrations.mixins.commit_context import (
     CommitContextMixin,
     FileBlameInfo,
@@ -334,16 +335,27 @@ def _get_blames_from_all_integrations(
         try:
             blames = install.get_commit_context_all_frames(files)
             file_blames.extend(blames)
-        except ApiError:
-            logger.exception(
-                "process_commit_context_all_frames.api_error",
-                extra={
-                    **extra,
-                    "project_id": project_id,
-                    "provider": integration.provider,
-                    "integration_id": integration.id,
-                },
-            )
+        except Exception as e:
+            log_info = {
+                **extra,
+                "project_id": project_id,
+                "provider": integration.provider,
+                "integration_id": integration.id,
+            }
+            if isinstance(e, GitHubApproachingRateLimit):
+                logger.exception(
+                    "process_commit_context.get_commit_context_all_frames.rate_limit",
+                    extra=log_info,
+                )
+            elif isinstance(e, ApiError):
+                logger.exception(
+                    "process_commit_context.get_commit_context_all_frames.api_error", extra=log_info
+                )
+            else:
+                logger.exception(
+                    "process_commit_context.get_commit_context_all_frames.unknown_error",
+                    extra=log_info,
+                )
 
     return file_blames, integration_to_install_mapping
 

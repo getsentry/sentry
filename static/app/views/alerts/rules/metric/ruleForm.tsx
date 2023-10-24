@@ -30,10 +30,11 @@ import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
+import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {
   hasOnDemandMetricAlertFeature,
-  isOnDemandQueryString,
-} from 'sentry/utils/onDemandMetrics';
+  shouldShowOnDemandMetricAlertUI,
+} from 'sentry/utils/onDemandMetrics/features';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withProjects from 'sentry/utils/withProjects';
 import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
@@ -798,7 +799,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   handleTimeSeriesDataFetched = (data: EventsStats | MultiSeriesEventsStats | null) => {
     const {isExtrapolatedData} = data ?? {};
 
-    this.setState({isExtrapolatedChartData: Boolean(isExtrapolatedData)});
+    if (shouldShowOnDemandMetricAlertUI(this.props.organization)) {
+      this.setState({isExtrapolatedChartData: Boolean(isExtrapolatedData)});
+    }
 
     const {dataset, aggregate, query} = this.state;
     if (!isOnDemandMetricAlert(dataset, aggregate, query)) {
@@ -823,14 +826,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     // TODO: once all alerts are migrated to MEP, we can set the default to GENERIC_METRICS and remove this as well as
     // logic in handleMEPDataset, handleTimeSeriesDataFetched and checkOnDemandMetricsDataset
     const {dataset} = this.state;
-    const {ruleId, organization} = this.props;
+    const {organization} = this.props;
     const hasMetricsFeatureFlags =
       organization.features.includes('mep-rollout-flag') ||
-      organization.features.includes('on-demand-metrics-extraction');
+      hasOnDemandMetricAlertFeature(organization);
 
-    const isCreatingRule = !ruleId;
-
-    if (isCreatingRule && hasMetricsFeatureFlags && dataset === Dataset.TRANSACTIONS) {
+    if (hasMetricsFeatureFlags && dataset === Dataset.TRANSACTIONS) {
       return Dataset.GENERIC_METRICS;
     }
     return dataset;
@@ -977,7 +978,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const submitDisabled = formDisabled || !this.state.isQueryValid;
 
     const showMigrationWarning =
-      hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
+      !!ruleId && hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
 
     return (
       <Main fullWidth>
