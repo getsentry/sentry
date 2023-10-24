@@ -716,10 +716,11 @@ class GitHubClientMixin(GithubProxyClient):
         file_path_mapping = generate_file_path_mapping(files)
 
         try:
-            response = self.post(
+            response = self.post_cached(
                 path="/graphql",
                 data={"query": create_blame_query(file_path_mapping, extra=log_info)},
                 allow_text=False,
+                cache_time=60,
             )
         except ValueError as e:
             logger.exception(e, log_info)

@@ -339,11 +339,11 @@ class BaseApiClient(TrackResponseMixin):
         if kwargs.get("params", None):
             query = json.dumps(kwargs.get("params"))
         key = self.get_cache_prefix() + md5_text(self.build_url(path), query).hexdigest()
-
         result: BaseApiResponseX | None = cache.get(key)
         if result is None:
+            cache_time = kwargs.pop("cache_time", None) or self.cache_time
             result = self.request(method, path, *args, **kwargs)
-            cache.set(key, result, self.cache_time)
+            cache.set(key, result, cache_time)
         return result
 
     def get_cached(self, path: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:
@@ -357,6 +357,9 @@ class BaseApiClient(TrackResponseMixin):
 
     def post(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         return self.request("POST", *args, **kwargs)
+
+    def post_cached(self, path: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+        return self._get_cached(path, "POST", *args, **kwargs)
 
     def put(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         return self.request("PUT", *args, **kwargs)
