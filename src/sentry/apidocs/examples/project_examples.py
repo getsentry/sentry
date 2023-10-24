@@ -316,7 +316,6 @@ detailed_project = {
             "discover-events-rate-limit",
             "india-promotion",
             "track-button-click-events",
-            "open-ai-suggestion",
             "performance-issues-compressed-assets-detector",
             "device-class-synthesis",
             "profiling-billing",
