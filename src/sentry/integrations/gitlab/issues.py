@@ -25,8 +25,12 @@ class GitlabIssueBasic(IssueBasicMixin):
     def get_projects_and_default(self, group, **kwargs):
         params = kwargs.get("params", {})
         defaults = self.get_project_defaults(group.project_id)
+
         # XXX: In GitLab repositories are called projects but get_repository_choices
         # expects the param to be called 'repo', so we need to rename it here.
+        if not params:
+            # Ensure kwargs has a reference to the params dict so 'repo' is accessible when kwargs is passed
+            kwargs["params"] = params
         params["repo"] = params.get("project", defaults.get("project"))
 
         default_project, project_choices = self.get_repository_choices(group, **kwargs)
