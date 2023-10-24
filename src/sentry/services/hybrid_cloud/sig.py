@@ -9,8 +9,17 @@ import pydantic
 from sentry.services.hybrid_cloud import ArgumentDict
 
 
-class SignatureSerializationException(Exception):
-    pass
+class _SerializableFunctionSignatureException(Exception):
+    def __init__(self, signature: SerializableFunctionSignature, message: str) -> None:
+        super().__init__(f"{signature.generate_name('.')}: {message}")
+
+
+class SerializableFunctionSignatureSetupException(_SerializableFunctionSignatureException):
+    """Indicate that a function signature can't be set up for serialization."""
+
+
+class SerializableFunctionValueException(_SerializableFunctionSignatureException):
+    """Indicate that a serialized function call received an invalid value."""
 
 
 class SerializableFunctionSignature:
@@ -27,15 +36,11 @@ class SerializableFunctionSignature:
     def get_name_segments(self) -> Sequence[str]:
         return (self.base_function.__name__,)
 
-    def _generate_name(self, joiner: str, suffix: str | None = None) -> str:
+    def generate_name(self, joiner: str, suffix: str | None = None) -> str:
         segments: Iterable[str] = self.get_name_segments()
         if suffix is not None:
             segments = itertools.chain(segments, (suffix,))
         return joiner.join(segments)
-
-    def _setup_exception(self, message: str) -> SignatureSerializationException:
-        name = self._generate_name(".")
-        return SignatureSerializationException(f"{name}: {message}")
 
     def _validate_type_token(self, token: Any) -> None:
         """Check whether a type token is usable.
@@ -50,7 +55,7 @@ class SerializableFunctionSignature:
         object to (de)serialize something.
         """
         if isinstance(token, str):
-            name = self._generate_name(".")
+            name = self.generate_name(".")
             raise ValueError(f"Type annotations on {name} must be actual type tokens, not strings")
 
     def _create_parameter_model(self) -> Type[pydantic.BaseModel]:
@@ -58,18 +63,21 @@ class SerializableFunctionSignature:
 
         def create_field(param: inspect.Parameter) -> Tuple[Any, Any]:
             if param.annotation is param.empty:
-                raise self._setup_exception("Type annotations are required to serialize")
+                raise SerializableFunctionSignatureSetupException(
+                    self, "Type annotations are required to serialize"
+                )
             try:
                 self._validate_type_token(param.annotation)
             except ValueError as e:
-                raise self._setup_exception(
-                    f"Type annotations must be actual type tokens, not strings; {param.name=!r}"
+                raise SerializableFunctionSignatureSetupException(
+                    self,
+                    f"Type annotations must be actual type tokens, not strings; {param.name=!r}",
                 ) from e
 
             default_value = ... if param.default is param.empty else param.default
             return param.annotation, default_value
 
-        model_name = self._generate_name("__", "ParameterModel")
+        model_name = self.generate_name("__", "ParameterModel")
         parameters = list(inspect.signature(self.base_function).parameters.values())
         if self.is_instance_method:
             parameters = parameters[1:]  # exclude `self` argument
@@ -86,7 +94,7 @@ class SerializableFunctionSignature:
         return annotations such as `Optional[RpcOrganization]` or `List[RpcUser]`,
         where we can't directly access an RpcModel class on which to call `parse_obj`.
         """
-        model_name = self._generate_name("__", "ReturnModel")
+        model_name = self.generate_name("__", "ReturnModel")
         return_type = inspect.signature(self.base_function).return_annotation
         if return_type is None:
             return None
@@ -99,19 +107,21 @@ class SerializableFunctionSignature:
         try:
             model_instance = self._parameter_model(**raw_arguments)
         except Exception as e:
-            raise self._setup_exception("Could not serialize arguments") from e
+            raise SerializableFunctionValueException(self, "Could not serialize arguments") from e
         return model_instance.dict()
 
     def deserialize_arguments(self, serial_arguments: ArgumentDict) -> pydantic.BaseModel:
         try:
             return self._parameter_model.parse_obj(serial_arguments)
         except Exception as e:
-            raise self._setup_exception("Could not deserialize arguments") from e
+            raise SerializableFunctionValueException(self, "Could not deserialize arguments") from e
 
     def deserialize_return_value(self, value: Any) -> Any:
         if self._return_model is None:
             if value is not None:
-                raise self._setup_exception(f"Expected None but got {type(value)}")
+                raise SerializableFunctionValueException(
+                    self, f"Expected None but got {type(value)}"
+                )
             return None
 
         parsed = self._return_model.parse_obj({self._RETURN_MODEL_ATTR: value})

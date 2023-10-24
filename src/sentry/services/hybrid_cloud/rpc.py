@@ -379,10 +379,6 @@ class RpcResolutionException(Exception):
     """Indicate that an RPC service or method name could not be resolved."""
 
 
-class RpcArgumentException(RpcException):
-    """Indicate that the serial arguments to an RPC service were invalid."""
-
-
 class RpcRemoteException(RpcException):
     """Indicate that an RPC service returned an error status code."""
 

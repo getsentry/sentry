@@ -10,12 +10,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import RpcSignatureAuthentication
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
-from sentry.services.hybrid_cloud.rpc import (
-    RpcArgumentException,
-    RpcResolutionException,
-    dispatch_to_local_service,
-)
-from sentry.services.hybrid_cloud.sig import SignatureSerializationException
+from sentry.services.hybrid_cloud.rpc import RpcResolutionException, dispatch_to_local_service
+from sentry.services.hybrid_cloud.sig import SerializableFunctionValueException
 from sentry.utils.env import in_test_environment
 
 
@@ -65,7 +61,7 @@ class RpcServiceEndpoint(Endpoint):
                 result = dispatch_to_local_service(service_name, method_name, arguments)
         except RpcResolutionException as e:
             raise NotFound from e
-        except (RpcArgumentException, SignatureSerializationException) as e:
+        except SerializableFunctionValueException as e:
             raise ParseError from e
         except Exception as e:
             # Produce more detailed log
