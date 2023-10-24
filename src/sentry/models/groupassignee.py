@@ -70,10 +70,10 @@ class GroupAssigneeManager(BaseManager):
     def remove_old_assignees(
         self, group: Group, previous_assignee: Optional[GroupAssignee]
     ) -> None:
-        if not (
-            features.has("organizations:participants-purge", group.organization)
-            and previous_assignee
-        ):
+        if not features.has("organizations:participants-purge", group.organization):
+            return
+
+        if not previous_assignee:
             return
 
         if (
