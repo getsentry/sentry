@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import inspect
 import itertools
-from typing import Any, Callable, Sequence, Tuple, Type
+from typing import Any, Callable, Iterable, Sequence, Tuple, Type
 
 import pydantic
 
@@ -27,8 +27,14 @@ class SerializableFunctionSignature:
     def get_name_segments(self) -> Sequence[str]:
         return (self.base_function.__name__,)
 
+    def _generate_name(self, joiner: str, suffix: str | None = None) -> str:
+        segments: Iterable[str] = self.get_name_segments()
+        if suffix is not None:
+            segments = itertools.chain(segments, (suffix,))
+        return joiner.join(segments)
+
     def _setup_exception(self, message: str) -> SignatureSerializationException:
-        name = ".".join(self.get_name_segments())
+        name = self._generate_name(".")
         return SignatureSerializationException(f"{name}: {message}")
 
     def _validate_type_token(self, token: Any) -> None:
@@ -44,11 +50,8 @@ class SerializableFunctionSignature:
         object to (de)serialize something.
         """
         if isinstance(token, str):
-            name = ".".join(self.get_name_segments())
+            name = self._generate_name(".")
             raise ValueError(f"Type annotations on {name} must be actual type tokens, not strings")
-
-    def _generate_dynamic_name(self, suffix: str) -> str:
-        return "__".join(itertools.chain(self.get_name_segments(), (suffix,)))
 
     def _create_parameter_model(self) -> Type[pydantic.BaseModel]:
         """Dynamically create a Pydantic model class representing the parameters."""
@@ -66,7 +69,7 @@ class SerializableFunctionSignature:
             default_value = ... if param.default is param.empty else param.default
             return param.annotation, default_value
 
-        model_name = self._generate_dynamic_name("ParameterModel")
+        model_name = self._generate_name("__", "ParameterModel")
         parameters = list(inspect.signature(self.base_function).parameters.values())
         if self.is_instance_method:
             parameters = parameters[1:]  # exclude `self` argument
@@ -83,7 +86,7 @@ class SerializableFunctionSignature:
         return annotations such as `Optional[RpcOrganization]` or `List[RpcUser]`,
         where we can't directly access an RpcModel class on which to call `parse_obj`.
         """
-        model_name = self._generate_dynamic_name("ReturnModel")
+        model_name = self._generate_name("__", "ReturnModel")
         return_type = inspect.signature(self.base_function).return_annotation
         if return_type is None:
             return None
