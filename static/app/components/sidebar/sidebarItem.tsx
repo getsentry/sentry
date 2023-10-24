@@ -76,7 +76,7 @@ export type SidebarItemProps = {
    */
   isBeta?: boolean;
   /**
-   * Additional badge letting users know a tab is new.
+   * Specify the variant for the badge.
    */
   isNew?: boolean;
   /**
@@ -93,6 +93,10 @@ export type SidebarItemProps = {
    * Content to render at the end of the item.
    */
   trailingItems?: React.ReactNode;
+  /**
+   * Content to render at the end of the item.
+   */
+  variant?: 'badge' | 'indicator' | 'short' | undefined;
 };
 
 function SidebarItem({
@@ -115,6 +119,7 @@ function SidebarItem({
   organization,
   onClick,
   trailingItems,
+  variant,
   ...props
 }: SidebarItemProps) {
   const router = useRouter();
@@ -144,9 +149,9 @@ function SidebarItem({
 
   const badges = (
     <Fragment>
-      {showIsNew && <FeatureBadge type="new" />}
-      {isBeta && <FeatureBadge type="beta" />}
-      {isAlpha && <FeatureBadge type="alpha" />}
+      {showIsNew && <FeatureBadge type="new" variant={variant} />}
+      {isBeta && <FeatureBadge type="beta" variant={variant} />}
+      {isAlpha && <FeatureBadge type="alpha" variant={variant} />}
     </Fragment>
   );
 
