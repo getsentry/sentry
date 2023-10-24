@@ -181,6 +181,7 @@ describe('ProjectFilters', function () {
       'opera_pre_15',
       'opera_mini_pre_8',
       'android_pre_4',
+      'edge_pre_79',
     ]);
 
     await userEvent.click(screen.getByRole('button', {name: 'None'}));
