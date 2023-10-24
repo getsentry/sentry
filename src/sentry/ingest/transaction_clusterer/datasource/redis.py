@@ -199,7 +199,7 @@ def record_span_descriptions(
 
 
 def _get_span_description_to_store(span: Mapping[str, Any]) -> Optional[str]:
-    if not span.get("op") in ("resource.css", "resource.js"):
+    if not span.get("op") in ("resource.css", "resource.script"):
         return None
 
     sentry_tags = span.get("sentry_tags") or {}
