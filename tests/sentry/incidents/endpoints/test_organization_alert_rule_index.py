@@ -717,6 +717,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 "organizations:incidents",
                 "organizations:performance-view",
                 "organizations:mep-rollout-flag",
+                "organizations:dynamic-sampling",
             ]
         ):
             test_params = {**self.alert_rule_dict, "dataset": "generic_metrics"}
