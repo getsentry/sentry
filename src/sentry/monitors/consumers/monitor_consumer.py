@@ -440,7 +440,15 @@ def _process_checkin(
 
     # 03
     # Create or update check-in
-    lock = locks.get(f"checkin-creation:{guid.hex}", duration=LOCK_TIMEOUT, name="checkin_creation")
+
+    # Hold a lock on the monitor environment to avoid processing check-ins for
+    # the same monitor out of order
+    lock = locks.get(
+        f"checkin-creation:{monitor_environment.id}",
+        duration=LOCK_TIMEOUT,
+        name="checkin_creation",
+    )
+
     try:
         # use lock.blocking_acquire() as default lock.acquire() fast fails if
         # lock is in use. We absolutely want to wait to acquire this lock
