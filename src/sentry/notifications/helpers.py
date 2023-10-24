@@ -38,7 +38,6 @@ from sentry.types.integrations import (
     PERSONAL_NOTIFICATION_PROVIDERS,
     ExternalProviderEnum,
     ExternalProviders,
-    get_provider_enum,
     get_provider_enum_from_string,
     get_provider_name,
 )
@@ -723,14 +722,12 @@ def get_recipient_from_team_or_user(user_id: int | None, team_id: int | None) ->
 def team_is_valid_recipient(team: Team | RpcActor) -> bool:
     from sentry.models.integrations.external_actor import ExternalActor
 
-    providers_as_int = []
-    for provider_name in PERSONAL_NOTIFICATION_PROVIDERS:
-        enum = get_provider_enum(provider_name)
-        if enum:
-            providers_as_int.append(enum.value)
-
     linked_integration = ExternalActor.objects.filter(
-        team_id=team.id, provider__in=providers_as_int
+        team_id=team.id,
+        provider__in=[
+            get_provider_enum_from_string(provider_name).value
+            for provider_name in PERSONAL_NOTIFICATION_PROVIDERS
+        ],
     )
     if linked_integration:
         return True
