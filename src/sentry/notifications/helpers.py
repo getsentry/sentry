@@ -32,7 +32,6 @@ from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS,
-    EXTERNAL_PROVIDERS_REVERSE,
     TEAM_NOTIFICATION_PROVIDERS,
     ExternalProviderEnum,
     ExternalProviders,
@@ -717,18 +716,28 @@ def get_recipient_from_team_or_user(user_id: int | None, team_id: int | None) ->
     return recipient
 
 
-def team_is_valid_recipient(team: Team | RpcActor, provider: ExternalProviderEnum) -> bool:
+def team_is_valid_recipient(team: Team | RpcActor) -> bool:
     from sentry.models.integrations.external_actor import ExternalActor
 
-    if provider.value not in TEAM_NOTIFICATION_PROVIDERS:
-        return False
     linked_integration = ExternalActor.objects.filter(
-        team_id=team.id,
-        provider=EXTERNAL_PROVIDERS_REVERSE[provider].value,
+        team_id=team.id, provider__in=TEAM_NOTIFICATION_PROVIDERS
     )
     if linked_integration:
         return True
     return False
+
+
+def get_team_members(team: Team | RpcActor) -> list[RpcUser]:
+    if isinstance(team, RpcActor):
+        if team.actor_type != ActorType.TEAM:
+            raise Exception(
+                "RpcActor team has ActorType %s, expected ActorType Team", team.actor_type
+            )
+        team = team.resolve()
+    member_ids = team.member_set.values_list("user_id", flat=True)
+    return [
+        get_recipient_from_team_or_user(user_id=member_id, team_id=None) for member_id in member_ids
+    ]
 
 
 PROVIDER_DEFAULTS: list[ExternalProviderEnum] = get_provider_defaults()
