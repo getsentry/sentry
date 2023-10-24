@@ -11,7 +11,6 @@ from confluent_kafka.admin import AdminClient, PartitionMetadata
 from django.conf import settings
 from django.utils import timezone
 
-from sentry.constants import ObjectStatus
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.schedule import get_prev_schedule
 from sentry.monitors.types import ClockPulseMessage
@@ -25,7 +24,14 @@ from sentry.utils.kafka_config import (
     get_topic_definition,
 )
 
-from .models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, MonitorStatus, MonitorType
+from .models import (
+    CheckInStatus,
+    MonitorCheckIn,
+    MonitorEnvironment,
+    MonitorObjectStatus,
+    MonitorStatus,
+    MonitorType,
+)
 
 logger = logging.getLogger("sentry")
 
@@ -236,9 +242,9 @@ def check_missing(current_datetime: datetime):
         )
         .exclude(
             monitor__status__in=[
-                ObjectStatus.DISABLED,
-                ObjectStatus.PENDING_DELETION,
-                ObjectStatus.DELETION_IN_PROGRESS,
+                MonitorObjectStatus.DISABLED,
+                MonitorObjectStatus.PENDING_DELETION,
+                MonitorObjectStatus.DELETION_IN_PROGRESS,
             ]
         )[:MONITOR_LIMIT]
     )

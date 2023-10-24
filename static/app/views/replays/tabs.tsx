@@ -26,7 +26,7 @@ export default function ReplayTabs({selected}: Props) {
         key: 'selectors',
         label: (
           <Fragment>
-            {t('Selectors')} <FeatureBadge type="beta" />
+            {t('Selectors')} <FeatureBadge type="new" />
           </Fragment>
         ),
         pathname: normalizeUrl(`/organizations/${organization.slug}/replays/selectors/`),
@@ -51,6 +51,7 @@ export default function ReplayTabs({selected}: Props) {
             }}
           >
             {tab.label}
+            {tab.badge}
           </TabList.Item>
         ))}
       </TabList>
