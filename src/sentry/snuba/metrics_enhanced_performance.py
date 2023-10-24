@@ -120,10 +120,8 @@ def timeseries_query(
     High-level API for doing arbitrary user timeseries queries against events.
     this API should match that of sentry.snuba.discover.timeseries_query
     """
-    metrics_compatible = False
     equations, columns = categorize_columns(selected_columns)
-    if comparison_delta is None and not equations:
-        metrics_compatible = True
+    metrics_compatible = not equations
 
     if metrics_compatible:
         try:
