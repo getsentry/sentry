@@ -37,3 +37,14 @@ class DummyMetricsBackend(MetricsBackend):
         unit: Optional[str] = None,
     ) -> None:
         pass
+
+    def distribution(
+        self,
+        key: str,
+        value: float,
+        instance: Optional[str] = None,
+        tags: Optional[Tags] = None,
+        sample_rate: float = 1,
+        unit: Optional[str] = None,
+    ) -> None:
+        pass

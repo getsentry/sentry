@@ -131,7 +131,7 @@ class MiddlewareWrapper(MetricsBackend):
             current_tags.update(tags)
         current_tags = _filter_tags(key, current_tags)
 
-        return self.inner.incr(key, instance, current_tags, amount, sample_rate)
+        return self.inner.incr(key, instance, current_tags, amount, sample_rate, unit)
 
     def timing(
         self,
@@ -162,4 +162,20 @@ class MiddlewareWrapper(MetricsBackend):
             current_tags.update(tags)
         current_tags = _filter_tags(key, current_tags)
 
-        return self.inner.gauge(key, value, instance, current_tags, sample_rate)
+        return self.inner.gauge(key, value, instance, current_tags, sample_rate, unit)
+
+    def distribution(
+        self,
+        key: str,
+        value: float,
+        instance: Optional[str] = None,
+        tags: Optional[Tags] = None,
+        sample_rate: float = 1,
+        unit: Optional[str] = None,
+    ) -> None:
+        current_tags = get_current_global_tags()
+        if tags is not None:
+            current_tags.update(tags)
+        current_tags = _filter_tags(key, current_tags)
+
+        return self.inner.distribution(key, value, instance, current_tags, sample_rate, unit)

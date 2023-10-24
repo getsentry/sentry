@@ -95,3 +95,15 @@ class DatadogMetricsBackend(MetricsBackend):
         self.stats.gauge(
             self._get_key(key), value, sample_rate=sample_rate, tags=tags_list, host=self.host
         )
+
+    def distribution(
+        self,
+        key: str,
+        value: float,
+        instance: Optional[str] = None,
+        tags: Optional[Tags] = None,
+        sample_rate: float = 1,
+        unit: Optional[str] = None,
+    ) -> None:
+        # We keep the same implementation for Datadog.
+        self.timing(key, value, instance, tags, sample_rate)

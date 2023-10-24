@@ -40,3 +40,14 @@ class LoggingBackend(MetricsBackend):
         unit: Optional[str] = None,
     ) -> None:
         logger.debug("%r: %+g", key, value, extra={"instance": instance, "tags": tags or {}})
+
+    def distribution(
+        self,
+        key: str,
+        value: float,
+        instance: Optional[str] = None,
+        tags: Optional[Tags] = None,
+        sample_rate: float = 1,
+        unit: Optional[str] = None,
+    ) -> None:
+        logger.debug("%r: %+g", key, value, extra={"instance": instance, "tags": tags or {}})

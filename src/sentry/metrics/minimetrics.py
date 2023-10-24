@@ -148,6 +148,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
                 key=self._get_key(key),
                 value=value,
                 tags=tags,
+                # Timing is defaulted to seconds.
                 unit="second",
             )
 
@@ -163,6 +164,23 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         if self._keep_metric(sample_rate):
             # XXX: make this into a gauge later
             sentry_sdk.metrics.incr(
+                key=self._get_key(key),
+                value=value,
+                tags=tags,
+                unit=self._to_minimetrics_unit(unit=unit),
+            )
+
+    def distribution(
+        self,
+        key: str,
+        value: float,
+        instance: Optional[str] = None,
+        tags: Optional[Tags] = None,
+        sample_rate: float = 1,
+        unit: Optional[str] = None,
+    ) -> None:
+        if self._keep_metric(sample_rate):
+            sentry_sdk.metrics.distribution(
                 key=self._get_key(key),
                 value=value,
                 tags=tags,
