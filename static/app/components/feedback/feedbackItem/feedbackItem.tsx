@@ -122,7 +122,7 @@ export default function FeedbackItem({feedbackItem, eventData}: Props) {
 
         <Section icon={<IconLink size="xs" />} title={t('Url')}>
           <ErrorBoundary mini>
-            <TextCopyInput size="sm">{url?.value ?? 'URL not found'}</TextCopyInput>
+            <TextCopyInput size="sm">{url?.value ?? t('URL not found')}</TextCopyInput>
           </ErrorBoundary>
         </Section>
 
