@@ -2,14 +2,13 @@ from datetime import timedelta
 
 import sentry_sdk
 from rest_framework.response import Response
-from snuba_sdk import Column, Condition, Function, LimitBy, Op, Or
+from snuba_sdk import Column, Condition, Direction, Function, Op, Or, OrderBy
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_events_spans_performance import EventID, get_span_description
-from sentry.api.helpers.span_analysis import span_analysis
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.constants import METRICS_MAX_LIMIT
 from sentry.search.events.types import QueryBuilderConfig
@@ -24,11 +23,24 @@ BUFFER = timedelta(hours=6)
 BASE_REFERRER = "api.organization-events-root-cause-analysis"
 SPAN_ANALYSIS = "span"
 GEO_ANALYSIS = "geo"
+SPAN_ANALYSIS_SCORE_THRESHOLD = 1
+RESPONSE_KEYS = [
+    "span_op",
+    "span_group",
+    "sample_event_id",
+    "spm_before",
+    "spm_after",
+    "p95_before",
+    "p95_after",
+    "score",
+]
 
 
-def init_query_builder(params, transaction, regression_breakpoint):
+def init_query_builder(params, transaction, regression_breakpoint, limit):
+    before_minutes = int((regression_breakpoint - params["start"]).total_seconds() // 60)
+    after_minutes = int((params["end"] - regression_breakpoint).total_seconds() // 60)
+
     selected_columns = [
-        "count(span_id) as span_count",
         "percentileArray(spans_exclusive_time, 0.95) as p95_self_time",
         "array_join(spans_op) as span_op",
         "array_join(spans_group) as span_group",
@@ -41,36 +53,77 @@ def init_query_builder(params, transaction, regression_breakpoint):
         params=params,
         selected_columns=selected_columns,
         equations=[],
-        query=f"transaction:{transaction}",
-        orderby=["span_op", "span_group", "p95_self_time"],
-        limit=QUERY_LIMIT,
+        query=f"event.type:transaction transaction:{transaction}",
+        limit=limit,
         config=QueryBuilderConfig(
             auto_aggregations=True,
             use_aggregate_conditions=True,
             functions_acl=[
                 "array_join",
-                "sumArray",
                 "percentileArray",
             ],
         ),
     )
 
+    p95_before_function = Function(
+        "quantileIf(0.95)",
+        [
+            Function("tupleElement", [Column("snuba_all_spans"), 3]),
+            Function("less", [Column("timestamp"), regression_breakpoint]),
+        ],
+    )
     builder.columns.append(
         Function(
-            "if",
-            [
-                Function("greaterOrEquals", [Column("timestamp"), regression_breakpoint]),
-                "after",
-                "before",
-            ],
-            "period",
+            "if", [Function("isNaN", [p95_before_function]), 0, p95_before_function], "p95_before"
         )
     )
-    # Drop this and just do a second query
-    builder.columns.append(Function("countDistinct", [Column("event_id")], "transaction_count"))
+    p95_after_function = Function(
+        "quantileIf(0.95)",
+        [
+            Function("tupleElement", [Column("snuba_all_spans"), 3]),
+            Function("greater", [Column("timestamp"), regression_breakpoint]),
+        ],
+    )
+    builder.columns.append(
+        Function(
+            "if", [Function("isNaN", [p95_after_function]), 0, p95_after_function], "p95_after"
+        )
+    )
+    builder.columns.append(
+        Function(
+            "divide",
+            [
+                Function(
+                    "countIf", [Function("less", [Column("timestamp"), regression_breakpoint])]
+                ),
+                before_minutes,
+            ],
+            "spm_before",
+        )
+    )
+    builder.columns.append(
+        Function(
+            "divide",
+            [
+                Function(
+                    "countIf", [Function("greater", [Column("timestamp"), regression_breakpoint])]
+                ),
+                after_minutes,
+            ],
+            "spm_after",
+        )
+    )
 
-    builder.groupby.append(Column("period"))
-    builder.limitby = LimitBy([Column("period")], QUERY_LIMIT)
+    score_column = Function(
+        "minus",
+        [
+            Function("multiply", [Column("spm_after"), Column("p95_after")]),
+            Function("multiply", [Column("spm_before"), Column("p95_before")]),
+        ],
+        "score",
+    )
+    builder.columns.append(score_column)
+
     builder.where.append(
         Or(
             [
@@ -80,14 +133,19 @@ def init_query_builder(params, transaction, regression_breakpoint):
         )
     )
 
+    builder.having.append(Condition(Column("score"), Op.GTE, SPAN_ANALYSIS_SCORE_THRESHOLD))
+
+    builder.orderby = [OrderBy(Column("score"), Direction.DESC)]
+
     return builder
 
 
-def query_spans(transaction, regression_breakpoint, params):
+def query_spans(transaction, regression_breakpoint, params, limit):
     referrer = f"{BASE_REFERRER}-{SPAN_ANALYSIS}"
 
     snuba_results = raw_snql_query(
-        init_query_builder(params, transaction, regression_breakpoint).get_snql_query(), referrer
+        init_query_builder(params, transaction, regression_breakpoint, limit).get_snql_query(),
+        referrer,
     )
     return snuba_results.get("data")
 
@@ -97,9 +155,10 @@ def fetch_span_analysis_results(transaction_name, regression_breakpoint, params,
         transaction=transaction_name,
         regression_breakpoint=regression_breakpoint,
         params=params,
+        limit=limit,
     )
 
-    span_analysis_results = span_analysis(span_data)[:limit]
+    span_analysis_results = [{key: row[key] for key in RESPONSE_KEYS} for row in span_data]
 
     for result in span_analysis_results:
         result["span_description"] = get_span_description(

@@ -254,15 +254,12 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 "span_op": "django.middleware",
                 "span_group": "2b9cbb96dbf59baa",
                 "span_description": "middleware span",
-                "score_delta": 1578.0,
-                "freq_before": 1.0,
-                "freq_after": 3.0,
-                "freq_delta": 2.0,
-                "duration_delta": 486.0,
-                "duration_before": 60.0,
-                "duration_after": 546.0,
-                "is_new_span": False,
-            }
+                "score": 1.1166666666666667,
+                "spm_before": 0.00034722222222222224,
+                "spm_after": 0.0020833333333333333,
+                "p95_before": 60.0,
+                "p95_after": 546.0,
+            },
         ]
 
     def test_results_are_limited(self):
@@ -311,12 +308,12 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                     "timestamp": iso_format(self.now - timedelta(hours=1)),
                     "op": "db",
                     "description": "db",
-                    "exclusive_time": 100.0,
+                    "exclusive_time": 10000.0,
                 },
             ],
             project_id=self.project.id,
             start_timestamp=self.now - timedelta(hours=1),
-            duration=200,
+            duration=10100,
         )
 
         with self.feature(FEATURES):
@@ -343,15 +340,12 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
             {
                 "span_op": "db",
                 "span_group": "d77d5e503ad1439f",
-                "score_delta": 100.0,
-                "freq_before": 0,
-                "freq_after": 1.0,
-                "freq_delta": 1.0,
-                "duration_delta": 100.0,
-                "duration_before": 0,
-                "duration_after": 100.0,
+                "score": 6.944444444444445,
+                "spm_before": 0.0,
+                "spm_after": 0.0006944444444444445,
+                "p95_before": 0.0,
+                "p95_after": 10000.0,
                 "span_description": "db",
-                "is_new_span": True,
             }
         ]
 
