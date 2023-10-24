@@ -194,7 +194,7 @@ const SUFFIX_ABBR = {
 export function getExactDuration(
   seconds: number,
   abbreviation: boolean = false,
-  precision: string = 'milliseconds'
+  precision: keyof typeof SUFFIX_ABBR = 'milliseconds'
 ) {
   const minSuffix = ` ${precision}`;
 
