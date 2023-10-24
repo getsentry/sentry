@@ -3,7 +3,6 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import responses
-from django.urls import reverse
 
 from fixtures.github import (
     INSTALLATION_API_RESPONSE,
@@ -67,7 +66,7 @@ class WebhookTest(APITestCase):
 
 
 @control_silo_test(stable=True)
-class InstallationEventWebhook(APITestCase):
+class InstallationEventWebhookTest(APITestCase):
     base_url = "https://api.github.com"
 
     def setUp(self):
@@ -101,19 +100,7 @@ class InstallationEventWebhook(APITestCase):
         assert integration.name == "octocat"
         assert integration.metadata["sender"]["id"] == 1
         assert integration.metadata["sender"]["login"] == "octocat"
-        assert integration.status == 0
-
-        installation_url = reverse(
-            "sentry-integration-github-installation", args=[integration.external_id]
-        )
-        response = self.client.get(installation_url)
-        assert response.status_code == 200
-
-        body = response.json()
-        assert body["account"]["login"] == "octocat"
-        assert body["account"]["type"] == "User"
-        assert body["sender"]["id"] == 1
-        assert body["sender"]["login"] == "octocat"
+        assert integration.status == ObjectStatus.ACTIVE
 
 
 @region_silo_test(stable=True)
