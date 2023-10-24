@@ -48,6 +48,7 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         amount: Union[float, int] = 1,
         sample_rate: float = 1,
+        unit: Optional[str] = None,
     ) -> None:
         self._primary_backend.incr(key, instance, tags, amount, sample_rate)
         if self._is_allowed(key) or options.get("delightful_metrics.allow_all_incr"):
@@ -60,6 +61,7 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         instance: Optional[str] = None,
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
+        unit: Optional[str] = None,
     ) -> None:
         self._primary_backend.timing(key, value, instance, tags, sample_rate)
         if self._is_allowed(key) or options.get("delightful_metrics.allow_all_timing"):
@@ -72,6 +74,7 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         instance: Optional[str] = None,
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
+        unit: Optional[str] = None,
     ) -> None:
         self._primary_backend.gauge(key, value, instance, tags, sample_rate)
         if self._is_allowed(key) or options.get("delightful_metrics.allow_all_gauge"):

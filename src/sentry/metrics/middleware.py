@@ -124,6 +124,7 @@ class MiddlewareWrapper(MetricsBackend):
         tags: Optional[Tags] = None,
         amount: Union[float, int] = 1,
         sample_rate: float = 1,
+        unit: Optional[str] = None,
     ) -> None:
         current_tags = get_current_global_tags()
         if tags is not None:
@@ -139,6 +140,7 @@ class MiddlewareWrapper(MetricsBackend):
         instance: Optional[str] = None,
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
+        unit: Optional[str] = None,
     ) -> None:
         current_tags = get_current_global_tags()
         if tags is not None:
@@ -154,6 +156,7 @@ class MiddlewareWrapper(MetricsBackend):
         instance: Optional[str] = None,
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
+        unit: Optional[str] = None,
     ) -> None:
         current_tags = get_current_global_tags()
         if tags is not None:

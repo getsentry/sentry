@@ -21,6 +21,7 @@ class DogStatsdMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         amount: Union[float, int] = 1,
         sample_rate: float = 1,
+        unit: Optional[str] = None,
     ) -> None:
         tags = dict(tags or ())
 
@@ -39,6 +40,7 @@ class DogStatsdMetricsBackend(MetricsBackend):
         instance: Optional[str] = None,
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
+        unit: Optional[str] = None,
     ) -> None:
         tags = dict(tags or ())
 
@@ -57,6 +59,7 @@ class DogStatsdMetricsBackend(MetricsBackend):
         instance: Optional[str] = None,
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
+        unit: Optional[str] = None,
     ) -> None:
         tags = dict(tags or ())
 

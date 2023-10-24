@@ -116,6 +116,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         amount: Union[float, int] = 1,
         sample_rate: float = 1,
+        unit: str = "none",
     ) -> None:
         if self._keep_metric(sample_rate):
             sentry_sdk.metrics.incr(
