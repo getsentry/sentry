@@ -268,14 +268,14 @@ function renderClickCount<T>(column: GridColumnOrder<string>, dataRow: T) {
   const color = column.key === 'count_dead_clicks' ? 'yellow300' : 'red300';
 
   return (
-    <ClickColor>
+    <ClickCount>
       <IconCursorArrow size="xs" color={color} />
       {dataRow[column.key]}
-    </ClickColor>
+    </ClickCount>
   );
 }
 
-const ClickColor = styled(TextOverflow)`
+const ClickCount = styled(TextOverflow)`
   color: ${p => p.theme.gray400};
   display: grid;
   grid-template-columns: auto auto;

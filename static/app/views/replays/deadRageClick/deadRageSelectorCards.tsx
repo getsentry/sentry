@@ -185,10 +185,10 @@ function AccordionItemHeader({
   selectorQuery: string;
 }) {
   const clickCount = (
-    <ClickColor>
+    <ClickCount>
       <IconCursorArrow size="xs" color={clickColor} />
       {count}
-    </ClickColor>
+    </ClickCount>
   );
   return (
     <StyledAccordionHeader>
@@ -246,7 +246,7 @@ const SplitCardContainer = styled('div')`
   align-items: stretch;
 `;
 
-const ClickColor = styled(TextOverflow)`
+const ClickCount = styled(TextOverflow)`
   color: ${p => p.theme.gray400};
   display: grid;
   grid-template-columns: auto auto;

@@ -10,7 +10,6 @@ import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import {ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
@@ -58,7 +57,7 @@ function ReplayMetaData({replayErrors, replayRecord}: Props) {
       <KeyMetricData>
         {replayRecord?.count_dead_clicks ? (
           <Link to={breadcrumbTab}>
-            <ClickCount color="gray300">
+            <ClickCount>
               <IconCursorArrow size="sm" color="yellow300" />
               {replayRecord.count_dead_clicks}
             </ClickCount>
@@ -72,7 +71,7 @@ function ReplayMetaData({replayErrors, replayRecord}: Props) {
       <KeyMetricData>
         {replayRecord?.count_rage_clicks ? (
           <Link to={breadcrumbTab}>
-            <ClickCount color="gray300">
+            <ClickCount>
               <IconCursorArrow size="sm" color="red300" />
               {replayRecord.count_rage_clicks}
             </ClickCount>
@@ -127,8 +126,8 @@ const Count = styled('span')`
   font-variant-numeric: tabular-nums;
 `;
 
-const ClickCount = styled(Count)<{color: ColorOrAlias}>`
-  color: ${p => p.theme[p.color]};
+const ClickCount = styled(Count)`
+  color: ${p => p.theme.gray300};
   display: flex;
   gap: ${space(0.75)};
   align-items: center;
