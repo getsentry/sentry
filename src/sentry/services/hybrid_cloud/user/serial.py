@@ -16,6 +16,9 @@ def serialize_generic_user(user: Any) -> RpcUser | None:
     if user is None or user.id is None:
         return None
     if isinstance(user, RpcUser):
+        # SimpleLazyObject from auth middleware
+        if hasattr(user, "_wrapped"):
+            return user._wrapped
         return user
     if isinstance(user, User):
         return serialize_rpc_user(user)

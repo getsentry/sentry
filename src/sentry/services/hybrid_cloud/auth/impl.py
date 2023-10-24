@@ -3,41 +3,27 @@ from __future__ import annotations
 import base64
 from typing import Any, List, Mapping, Optional
 
-from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 from django.db.models import Count, F
 
 from sentry import audit_log
-from sentry.auth.system import SystemToken
 from sentry.db.postgres.transactions import enforce_constraints
-from sentry.hybridcloud.models import ApiKeyReplica
-from sentry.middleware.auth import RequestAuthenticationMiddleware
-from sentry.middleware.placeholder import placeholder_get_response
 from sentry.models.apikey import ApiKey
-from sentry.models.apitoken import ApiToken
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.outbox import outbox_context
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import (
-    AuthenticatedToken,
-    AuthenticationContext,
-    AuthenticationRequest,
     AuthService,
-    MiddlewareAuthenticationResponse,
     RpcApiKey,
-    RpcAuthenticatorType,
     RpcAuthProvider,
     RpcOrganizationAuthConfig,
 )
 from sentry.services.hybrid_cloud.auth.serial import serialize_api_key, serialize_auth_provider
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import sso_enabled
 from sentry.silo import unguarded_write
-from sentry.utils.auth import AuthUserPasswordExpired
 
 
 class DatabaseBackedAuthService(AuthService):
@@ -137,54 +123,6 @@ class DatabaseBackedAuthService(AuthService):
             for oid in organization_ids
         ]
 
-    def authenticate_with(
-        self, *, request: AuthenticationRequest, authenticator_types: List[RpcAuthenticatorType]
-    ) -> AuthenticationContext:
-        fake_request = FakeAuthenticationRequest(request)
-
-        for authenticator_type in authenticator_types:
-            t = authenticator_type.as_authenticator().authenticate(fake_request)  # type: ignore[arg-type]
-            if t is not None:
-                user, token = t
-                return AuthenticationContext(
-                    auth=AuthenticatedToken.from_token(token),
-                    user=user_service.get_user(user_id=user.id),
-                )
-
-        return AuthenticationContext(auth=None, user=None)
-
-    def authenticate(self, *, request: AuthenticationRequest) -> MiddlewareAuthenticationResponse:
-        fake_request = FakeAuthenticationRequest(request)
-        handler = RequestAuthenticationMiddleware(placeholder_get_response)
-        expired_user = None
-        try:
-            # Hahaha.  Yes.  You're reading this right.  I'm calling, the middleware, from the service method, that is
-            # called, from slightly different, middleware.
-            handler.process_request(fake_request)  # type: ignore[arg-type]
-        except AuthUserPasswordExpired as e:
-            expired_user = e.user
-        except Exception as e:
-            raise Exception("Unexpected error processing handler") from e
-
-        auth = None
-        if fake_request.auth is not None:
-            auth = AuthenticatedToken.from_token(fake_request.auth)
-
-        result = MiddlewareAuthenticationResponse(
-            auth=auth,
-            accessed=fake_request.session._accessed,
-        )
-
-        if expired_user is not None:
-            result.user = user_service.get_user(user_id=expired_user.id)
-            result.expired = True
-        elif fake_request.user is not None and not fake_request.user.is_anonymous:
-            with transaction.atomic(using=router.db_for_read(User)):
-                result.user = user_service.get_user(user_id=fake_request.user.id)
-                transaction.set_rollback(True, using=router.db_for_read(User))
-
-        return result
-
     def get_org_ids_with_scim(
         self,
     ) -> List[int]:
@@ -278,60 +216,11 @@ class FakeRequestDict:
             return default
 
 
-class FakeAuthenticationRequest:
-    """
-    Our authentication framework all speaks request objects -- it is not easily possible to replace all of the django
-    authentication helpers, backends, and other logic that is part of authentication, to speak some other sort of object,
-    or to be pure and simply return results.  They mutate "request" objects, and thus, we have to capture results by
-    "receiving" these mutations on a fake, generated context that is isolated for the purpose of calculating
-    authentication.  In some future, we may need or want to vendor our own custom authentication system so that, you
-    know, it returns pure results instead of expecting constantly to mutate full request objects, but hey! :shrug:.
-    """
-
-    session: FakeRequestDict
-    req: AuthenticationRequest
-
-    # These attributes are expected to be mutated when we call into the authentication middleware.  The result of those
-    # mutations becomes, the result of authentication.
-    user: User | AnonymousUser | None
-    auth: Any
-
-    def build_absolute_uri(self, path: str | None = None) -> str:
-        if path is None:
-            return self.req.absolute_url
-        return self.req.absolute_url_root
-
-    def __init__(self, req: AuthenticationRequest) -> None:
-        self.auth = None
-        self.req = req
-        self.session = FakeRequestDict(
-            _auth_user_id=req.user_id,
-            _auth_user_backend=req.backend,
-            _auth_user_hash=req.user_hash,
-            _nonce=req.nonce,
-        )
-
-        self.META = FakeRequestDict(
-            HTTP_AUTHORIZATION=_unwrap_b64(req.authorization_b64), REMOTE_ADDR=req.remote_addr
-        )
-
-    @property
-    def path(self) -> str:
-        return self.req.path
-
-
 def _unwrap_b64(input: str | None) -> bytes | None:
     if input is None:
         return None
 
     return base64.b64decode(input.encode("utf8"))
-
-
-AuthenticatedToken.register_kind("system", SystemToken)
-AuthenticatedToken.register_kind("api_token", ApiToken)
-AuthenticatedToken.register_kind("org_auth_token", OrgAuthToken)
-AuthenticatedToken.register_kind("api_key", ApiKey)
-AuthenticatedToken.register_kind("api_key", ApiKeyReplica)
 
 
 def promote_request_rpc_user(request: Any) -> User:

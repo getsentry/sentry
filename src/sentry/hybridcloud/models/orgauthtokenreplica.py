@@ -49,7 +49,7 @@ class OrgAuthTokenReplica(Model):
         return {"name": self.name, "scopes": self.get_scopes()}
 
     def get_allowed_origins(self):
-        return ()
+        return []
 
     def get_scopes(self):
         return self.scope_list

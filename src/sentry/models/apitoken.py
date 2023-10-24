@@ -139,8 +139,9 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
 def is_api_token_auth(auth: object) -> bool:
     """:returns True when an API token is hitting the API."""
+    from sentry.hybridcloud.models.apitokenreplica import ApiTokenReplica
     from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 
     if isinstance(auth, AuthenticatedToken):
         return auth.kind == "api_token"
-    return isinstance(auth, ApiToken)
+    return isinstance(auth, ApiToken) or isinstance(auth, ApiTokenReplica)
