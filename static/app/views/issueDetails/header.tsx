@@ -88,7 +88,7 @@ function GroupHeaderTabs({
       event?.occurrence?.evidenceData ?? {};
     replayCountProps = {
       organization,
-      issueCategory: group.issueCategory,
+      issueCategory: undefined, // Explicitly setting this to undefined to access discover data
       transactionNames: transaction,
       extraConditions: getSampleEventQuery({
         transaction,

@@ -52,7 +52,7 @@ function useReplaysForRegressionIssue({
               durationBaseline: aggregateRange2,
               addUpperBound: false,
             }),
-            data_source: 'search_issues',
+            data_source: 'discover',
             project: ALL_ACCESS_PROJECTS,
             ...datetime,
           },
