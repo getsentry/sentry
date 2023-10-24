@@ -8,20 +8,22 @@ type Props = {
   children: React.ReactNode;
   button?: JSX.Element;
   subtitle?: string;
-  title?: string;
+  title?: string | JSX.Element;
 };
 
 export default function MiniChartPanel({title, children, button, subtitle}: Props) {
   return (
     <Panel>
       <PanelBody>
-        <HeaderContainer>
-          <Header>
-            {title && <ChartLabel>{title}</ChartLabel>}
-            {button}
-          </Header>
-          {subtitle && <Subtitle>{subtitle}</Subtitle>}
-        </HeaderContainer>
+        {(title || button || subtitle) && (
+          <HeaderContainer>
+            <Header>
+              {title && <ChartLabel>{title}</ChartLabel>}
+              {button}
+            </Header>
+            {subtitle && <Subtitle>{subtitle}</Subtitle>}
+          </HeaderContainer>
+        )}
         {children}
       </PanelBody>
     </Panel>
