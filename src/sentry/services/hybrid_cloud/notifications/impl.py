@@ -265,6 +265,17 @@ class DatabaseBackedNotificationsService(NotificationsService):
             for actor, providers in participants.items()
         }
 
+    def get_users_for_weekly_reports(
+        self, *, organization_id: int, user_ids: List[int]
+    ) -> List[int]:
+        users = User.objects.filter(id__in=user_ids)
+        controller = NotificationController(
+            recipients=users,
+            organization_id=organization_id,
+            type=NotificationSettingEnum.REPORTS,
+        )
+        return controller.get_users_for_weekly_reports()
+
     class _NotificationSettingsQuery(
         FilterQueryDatabaseImpl[
             NotificationSetting, NotificationSettingFilterArgs, RpcNotificationSetting, None
