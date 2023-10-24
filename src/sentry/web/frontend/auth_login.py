@@ -26,6 +26,7 @@ from sentry.models.user import User
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.signals import join_request_link_viewed, user_signup
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import (
     construct_link_with_query,
@@ -76,6 +77,13 @@ additional_context = AdditionalContext()
 @control_silo_view
 class AuthLoginView(BaseView):
     auth_required = False
+
+    enforce_rate_limit = True
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(20, 1),  # 20 GET requests per second per IP
+        }
+    }
 
     @method_decorator(never_cache)
     def handle(self, request: Request, *args, **kwargs) -> HttpResponse:
