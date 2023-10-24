@@ -148,3 +148,19 @@ import sentry.testutils.outbox as outbox_utils
 def test_S008(src):
     expected = ["t.py:1:0: S008 Use stdlib datetime.timezone.utc instead of pytz.utc / pytz.UTC"]
     assert _run(src) == expected
+
+
+@pytest.mark.parametrize(
+    "src",
+    (
+        "from django_stubs_ext import StrOrPromise",
+        "import django_stubs_ext",
+        "import responses",
+        "import time_machine",
+        "import selenium",
+        "import psutil",
+    ),
+)
+def test_S009(src):
+    expected = ["t.py:1:0: S009 Do not import requirements-dev packages into production code."]
+    assert _run(src) == expected

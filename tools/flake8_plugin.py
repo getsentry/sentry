@@ -26,11 +26,19 @@ S007_msg = "S007 Do not import sentry.testutils into production code."
 
 S008_msg = "S008 Use stdlib datetime.timezone.utc instead of pytz.utc / pytz.UTC"
 
+S009_msg = "S009 Do not import requirements-dev packages into production code."
+S009_modules = frozenset(
+    ("django_stubs_ext", "pytest", "responses", "time_machine", "selenium", "psutil")
+)
+
 
 class SentryVisitor(ast.NodeVisitor):
     def __init__(self, filename: str) -> None:
         self.errors: list[tuple[int, int, str]] = []
         self.filename = filename
+
+    def is_test_file(self, path):
+        return "tests/" in path or "fixtures/" in path or "sentry/testutils/" in path
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         if node.module and not node.level:
@@ -44,13 +52,10 @@ class SentryVisitor(ast.NodeVisitor):
                 and any(x.name in {"force_bytes", "force_str"} for x in node.names)
             ):
                 self.errors.append((node.lineno, node.col_offset, S006_msg))
-            elif (
-                "tests/" not in self.filename
-                and "fixtures/" not in self.filename
-                and "sentry/testutils/" not in self.filename
-                and "sentry.testutils" in node.module
-            ):
+            elif not self.is_test_file(self.filename) and "sentry.testutils" in node.module:
                 self.errors.append((node.lineno, node.col_offset, S007_msg))
+            elif not self.is_test_file(self.filename) and node.module in S009_modules:
+                self.errors.append((node.lineno, node.col_offset, S009_msg))
 
             if node.module == "pytz" and any(x.name.lower() == "utc" for x in node.names):
                 self.errors.append((node.lineno, node.col_offset, S008_msg))
@@ -61,13 +66,10 @@ class SentryVisitor(ast.NodeVisitor):
         for alias in node.names:
             if alias.name.split(".")[0] in S003_modules:
                 self.errors.append((node.lineno, node.col_offset, S003_msg))
-            elif (
-                "tests/" not in self.filename
-                and "fixtures/" not in self.filename
-                and "sentry/testutils/" not in self.filename
-                and "sentry.testutils" in alias.name
-            ):
+            elif not self.is_test_file(self.filename) and "sentry.testutils" in alias.name:
                 self.errors.append((node.lineno, node.col_offset, S007_msg))
+            elif not self.is_test_file(self.filename) and alias.name in S009_modules:
+                self.errors.append((node.lineno, node.col_offset, S009_msg))
 
         self.generic_visit(node)
 
