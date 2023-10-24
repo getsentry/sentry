@@ -20,6 +20,9 @@ export function useAggregateFlamegraphQuery({transaction}: {transaction: string}
     return conditions.formatString();
   }, [transaction]);
 
+  const enabled =
+    !!transaction && Array.isArray(selection.projects) && selection.projects.length > 0;
+
   const endpointOptions = {
     query: {
       project: selection.projects,
@@ -32,5 +35,6 @@ export function useAggregateFlamegraphQuery({transaction}: {transaction: string}
   return useApiQuery<Profiling.Schema>([path, endpointOptions], {
     staleTime: 0,
     retry: false,
+    enabled,
   });
 }

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence, Tuple, Union
 from uuid import uuid4
 
 import jsonschema
@@ -74,6 +74,28 @@ class MonitorEnvironmentValidationFailed(Exception):
     pass
 
 
+class MonitorObjectStatus:
+    ACTIVE = 0
+    DISABLED = 1
+    PENDING_DELETION = 2
+    DELETION_IN_PROGRESS = 3
+
+    WAITING = 4
+    """
+    Active but does not have a seat assigned yet
+    """
+
+    @classmethod
+    def as_choices(cls) -> Sequence[Tuple[int, str]]:
+        return (
+            (cls.ACTIVE, "active"),
+            (cls.DISABLED, "disabled"),
+            (cls.PENDING_DELETION, "pending_deletion"),
+            (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
+            (cls.WAITING, "waiting"),
+        )
+
+
 class MonitorStatus:
     """
     The monitor status is an extension of the ObjectStatus constants. In this
@@ -81,7 +103,7 @@ class MonitorStatus:
     represented.
 
     [!!]: This is NOT used for the status of the Monitor model itself. That is
-          simply an ObjectStatus.
+          a MonitorObjectStatus.
     """
 
     ACTIVE = 0
@@ -95,7 +117,7 @@ class MonitorStatus:
     TIMEOUT = 7
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> Sequence[Tuple[int, str]]:
         return (
             # TODO: It is unlikely a MonitorEnvironment should ever be in the
             # 'active' state, since for a monitor environment to be created
@@ -189,7 +211,7 @@ class Monitor(Model):
     project_id = BoundedBigIntegerField(db_index=True)
     name = models.CharField(max_length=128)
     status = BoundedPositiveIntegerField(
-        default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
+        default=MonitorObjectStatus.ACTIVE, choices=MonitorObjectStatus.as_choices()
     )
     type = BoundedPositiveIntegerField(
         default=MonitorType.UNKNOWN,

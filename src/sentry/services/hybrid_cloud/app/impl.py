@@ -174,6 +174,8 @@ class DatabaseBackedAppService(AppService):
                 query = query.filter(uuid__in=filters["uuids"])
             if "status" in filters:
                 query = query.filter(status=filters["status"])
+            if "api_token_id" in filters:
+                query = query.filter(api_token_id=filters["api_token_id"])
 
             return query
 
