@@ -5,19 +5,37 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphash import GroupHash
 from sentry.types.activity import ActivityType
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass(frozen=True)
-class StatusChangeOccurrence:
+class StatusChangeMessageData:
     fingerprint: Sequence[str]
     project_id: int
     new_status: int
     new_substatus: int | None
 
-    def update_status_for_occurrence(self, group):
+
+@dataclass(frozen=True)
+class StatusChangeMessage:
+    fingerprint: Sequence[str]
+    project_id: int
+    new_status: int
+    new_substatus: int | None
+
+    def to_dict(
+        self,
+    ) -> StatusChangeMessageData:
+        return {
+            "fingerprint": self.fingerprint,
+            "project_id": self.project_id,
+            "new_status": self.new_status,
+            "new_substatus": self.new_substatus,
+        }
+
+    def update_status(self, group):
         if group.status == self.new_status and group.substatus == self.new_substatus:
             return
 
@@ -56,3 +74,24 @@ class StatusChangeOccurrence:
             )
         else:
             raise NotImplementedError(f"Unsupported status: {self.new_status} {self.new_substatus}")
+
+    def get_group_from_fingerprint(self):
+        grouphash = (
+            GroupHash.objects.filter(
+                project=self.project_id,
+                hash=self.fingerprint[0],
+            )
+            .select_related("group")
+            .first()
+        )
+        if not grouphash:
+            logger.error(
+                "grouphash.not_found",
+                extra={
+                    "project_id": self.project_id,
+                    "fingerprint": self.fingerprint,
+                },
+            )
+            return
+
+        return grouphash.group

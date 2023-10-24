@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.issues.occurrence_status_change import StatusChangeOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.models.grouphash import GroupHash
@@ -81,7 +81,7 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
         initial_status = group.status
         initial_substatus = group.substatus
 
-        status_change_resolve = StatusChangeOccurrence(
+        status_change_resolve = StatusChangeMessage(
             fingerprint=[group_hash.hash],
             project_id=group.project_id,
             new_status=initial_status,
@@ -98,7 +98,7 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
         assert not Activity.objects.filter(group=group).exists()
         assert not GroupHistory.objects.filter(group=group).exists()
 
-        status_change_resolve = StatusChangeOccurrence(
+        status_change_resolve = StatusChangeMessage(
             fingerprint=[group_hash.hash],
             project_id=group.project_id,
             new_status=GroupStatus.RESOLVED,
@@ -116,7 +116,7 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
         assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.RESOLVED).exists()
 
     @with_feature("organizations:issue-platform-api-crons-sd")
-    @patch("sentry.issues.occurrence_status_change.logger.error")
+    @patch("sentry.issues.status_change_message.logger.error")
     def test_with_invalid_status_change(self, mock_logger_error: MagicMock) -> None:
         event = self.store_event(
             data={
@@ -133,7 +133,7 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
         initial_status = group.status
         initial_substatus = group.substatus
 
-        bad_status_change_resolve = StatusChangeOccurrence(
+        bad_status_change_resolve = StatusChangeMessage(
             fingerprint=[group_hash.hash],
             project_id=group.project_id,
             new_status=GroupStatus.RESOLVED,
@@ -156,7 +156,7 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
         assert group.status == initial_status
         assert group.substatus == initial_substatus
 
-        bad_status_change_ignored = StatusChangeOccurrence(
+        bad_status_change_ignored = StatusChangeMessage(
             fingerprint=[group_hash.hash],
             project_id=group.project_id,
             new_status=GroupStatus.IGNORED,
@@ -191,10 +191,10 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
                 payload_type=PayloadType.STATUS_CHANGE,
             )
 
-        with pytest.raises(NotImplementedError, match="Unknown payload type invalid"):
+        with pytest.raises(NotImplementedError, match="Unknown payload type: invalid"):
             produce_occurrence_to_kafka(payload_type="invalid")  # type: ignore
 
-    @patch("sentry.issues.producer.logger.error")
+    @patch("sentry.issues.status_change_message.logger.error")
     @with_feature("organizations:issue-platform-api-crons-sd")
     def test_invalid_hashes(self, mock_logger_error) -> None:
         event = self.store_event(
@@ -211,7 +211,7 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
         initial_status = group.status
         initial_substatus = group.substatus
 
-        bad_status_change_resolve = StatusChangeOccurrence(
+        bad_status_change_resolve = StatusChangeMessage(
             fingerprint=["wronghash"],
             project_id=group.project_id,
             new_status=GroupStatus.RESOLVED,
