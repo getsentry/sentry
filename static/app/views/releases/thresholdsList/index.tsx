@@ -49,6 +49,7 @@ function ReleaseThresholdList({}: Props) {
     refetch,
   } = useFetchThresholdsListData({
     selectedProjectIds: selection.projects,
+    selectedEnvs: selection.environments,
   });
 
   // const _getAllSelectedProjects = (): Project[] => {
