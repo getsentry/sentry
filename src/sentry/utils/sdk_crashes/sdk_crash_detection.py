@@ -5,11 +5,11 @@ from typing import Any, Mapping, Optional, Sequence
 
 import sentry_sdk
 
+from sentry.conf.types.sdk_crash_detection_config import SDKCrashDetectionConfig
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import GroupCategory
 from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.cocoa_sdk_crash_detector import CocoaSDKCrashDetector
-from sentry.utils.sdk_crashes.config import SDKCrashDetectionConfig
 from sentry.utils.sdk_crashes.event_stripper import strip_event_data
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 

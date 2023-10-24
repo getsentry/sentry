@@ -21,7 +21,6 @@ from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.topic_definition import TopicDefinition
 from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import crontab_with_minute_jitter
-from sentry.utils.sdk_crashes.config import SDKCrashDetectionConfig
 from sentry.utils.types import Type, type_from_value
 
 
@@ -3765,6 +3764,8 @@ MAX_ENVIRONMENTS_PER_MONITOR = 1000
 # Raise schema validation errors and make the indexer crash (only useful in
 # tests)
 SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
+
+from sentry.conf.types.sdk_crash_detection_config import SDKCrashDetectionConfig
 
 # The configuration for SDK Crash Detection. Add one entry per SDK.
 SDK_CRASH_DETECTION: list[SDKCrashDetectionConfig] = []
