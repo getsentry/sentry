@@ -72,9 +72,6 @@ PERSONAL_NOTIFICATION_PROVIDERS = [
     ExternalProviderEnum.MSTEAMS.value,
 ]
 
-# the list of providers allowed for team notifications
-TEAM_NOTIFICATION_PROVIDERS = [ExternalProviders.SLACK.value]
-
 
 def get_provider_name(value: int) -> Optional[str]:
     return EXTERNAL_PROVIDERS.get(ExternalProviders(value))
