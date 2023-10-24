@@ -33,7 +33,7 @@ class ProxyResponseSerializer(serializers.Serializer):
 
 def gen_aws_client(account_number, region, aws_external_id, service_name="lambda"):
     """
-    account_number - account number in AWS
+    account_number - account ID in AWS
     region - region in AWS
     aws_external_id - the external_id used to assume the role
 
