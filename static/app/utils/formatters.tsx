@@ -194,9 +194,9 @@ const SUFFIX_ABBR = {
 export function getExactDuration(
   seconds: number,
   abbreviation: boolean = false,
-  minDuration: string = 'milliseconds'
+  precision: string = 'milliseconds'
 ) {
-  const minSuffix = ` ${minDuration}`;
+  const minSuffix = ` ${precision}`;
 
   const convertDuration = (secs: number, abbr: boolean): string => {
     // value in milliseconds
@@ -266,7 +266,7 @@ export function getExactDuration(
     return result;
   }
 
-  return `0${abbreviation ? SUFFIX_ABBR[minDuration] : minSuffix}`;
+  return `0${abbreviation ? SUFFIX_ABBR[precision] : minSuffix}`;
 }
 
 export function formatSecondsToClock(

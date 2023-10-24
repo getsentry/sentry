@@ -355,7 +355,7 @@ describe('getExactDuration', () => {
     expect(getExactDuration(234235435, true)).toEqual('387wk 2d 1hr 23min 55s');
   });
 
-  it('should pin/truncate to the min suffix if provided', () => {
+  it('should pin/truncate to the min suffix precision if provided', () => {
     expect(getExactDuration(0, false, 'seconds')).toEqual('0 seconds');
     expect(getExactDuration(0.2, false, 'seconds')).toEqual('0 seconds');
     expect(getExactDuration(2.030043848568126, false, 'seconds')).toEqual('2 seconds');
