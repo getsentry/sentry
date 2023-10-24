@@ -142,6 +142,7 @@ class AppService(RpcService):
         integration_creator: str,
         integration_name: str,
         integration_scopes: List[str],
+        integration_creator_id: Optional[int],
     ) -> RpcSentryAppInstallation:
         pass
 
