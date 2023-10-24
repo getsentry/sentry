@@ -314,7 +314,7 @@ from .endpoints.organization_events_histogram import OrganizationEventsHistogram
 from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
     OrganizationEventsRelatedIssuesEndpoint,
-    OrganizationSpansSamplesEndpoint,
+    OrganizationSamplesEndpoint,
 )
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
 from .endpoints.organization_events_spans_histogram import OrganizationEventsSpansHistogramEndpoint
@@ -1292,10 +1292,15 @@ ORGANIZATION_URLS = [
         OrganizationEventsMetaEndpoint.as_view(),
         name="sentry-api-0-organization-events-meta",
     ),
-    re_path(
+    re_path(  # Replaced by events-samples, TODO: remove after frontend updates
         r"^(?P<organization_slug>[^\/]+)/spans-samples/$",
-        OrganizationSpansSamplesEndpoint.as_view(),
+        OrganizationSamplesEndpoint.as_view(),
         name="sentry-api-0-organization-spans-samples",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/events-samples/$",
+        OrganizationSamplesEndpoint.as_view(),
+        name="sentry-api-0-organization-events-samples",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/metrics-compatibility/$",

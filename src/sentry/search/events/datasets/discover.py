@@ -958,6 +958,36 @@ class DiscoverDatasetConfig(DatasetConfig):
                     default_result_type="number",
                     private=True,
                 ),
+                SnQLFunction(
+                    "bounded_sample",
+                    required_args=[
+                        NumericColumn("column", spans=True),
+                        NumberRange("min", None, None),
+                    ],
+                    optional_args=[
+                        with_default(None, NullableNumberRange("max", None, None)),
+                        with_default("", SnQLStringArg("seed")),
+                    ],
+                    snql_aggregate=lambda args, alias: function_aliases.resolve_bounded_sample(
+                        args,
+                        alias,
+                        self.builder.column,
+                        self.builder.column("id"),
+                    ),
+                    default_result_type="string",
+                ),
+                SnQLFunction(
+                    "rounded_time",
+                    optional_args=[with_default(3, NumberRange("intervals", None, None))],
+                    snql_column=lambda args, alias: function_aliases.resolve_rounded_time(
+                        args,
+                        alias,
+                        self.builder.column,
+                        self.builder.start,
+                        self.builder.end,
+                    ),
+                    default_result_type="integer",
+                ),
             ]
         }
 

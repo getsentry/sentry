@@ -96,8 +96,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
         return [team for team in teams]
 
-    def get_dataset(self, request: Request) -> Any:
-        dataset_label = request.GET.get("dataset", "discover")
+    def get_dataset(self, request: Request, default_dataset="discover") -> Any:
+        dataset_label = request.GET.get("dataset", default_dataset)
         if dataset_label not in DATASET_OPTIONS:
             raise ParseError(detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys())}")
         sentry_sdk.set_tag("query.dataset", dataset_label)

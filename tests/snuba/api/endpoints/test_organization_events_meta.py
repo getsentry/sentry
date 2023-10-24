@@ -1,4 +1,4 @@
-from datetime import timezone
+from datetime import timedelta, timezone
 from unittest import mock
 
 import pytest
@@ -9,6 +9,7 @@ from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 pytestmark = pytest.mark.sentry_metrics
@@ -390,3 +391,235 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["shortId"] == event.group.qualified_short_id
         assert int(response.data[0]["id"]) == event.group_id
+
+
+@region_silo_test
+class OrganizationEventsSampleEndpoint(APITestCase, SnubaTestCase):
+    def setUp(self):
+        super().setUp()
+        self.min_ago = before_now(minutes=1)
+        self.fifty_min_ago = before_now(minutes=50)
+        self.login_as(user=self.user)
+        self.url = reverse(
+            "sentry-api-0-organization-events-samples",
+            kwargs={"organization_slug": self.project.organization.slug},
+        )
+
+    def test_simple(self):
+        self.transaction_data = load_data(
+            "transaction",
+            start_timestamp=self.min_ago - timedelta(seconds=0.5),
+            timestamp=self.min_ago,
+        )
+        self.transaction_data["event_id"] = "a" * 32
+        self.store_event(self.transaction_data, project_id=self.project.id)
+        response = self.client.get(
+            self.url,
+            data={"lowerBound": 0, "upperBound": 1000, "dataset": "discover", "seed": "aa"},
+            format="json",
+        )
+
+        assert response.status_code == 200
+
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["id"] == "a" * 32
+
+    def test_only_returns_one(self):
+        self.transaction_data = load_data(
+            "transaction",
+            start_timestamp=self.min_ago - timedelta(seconds=0.5),
+            timestamp=self.min_ago,
+        )
+        self.transaction_data["event_id"] = "a" * 32
+        self.store_event(self.transaction_data, project_id=self.project.id)
+        self.transaction_data["event_id"] = "a" * 31 + "b"
+        self.store_event(self.transaction_data, project_id=self.project.id)
+        response = self.client.get(
+            self.url,
+            data={"lowerBound": 0, "upperBound": 1000, "dataset": "discover", "seed": "aa"},
+            format="json",
+        )
+
+        assert response.status_code == 200
+
+        data = response.data["data"]
+        # There should be only 1 event and should be either id
+        assert len(data) == 1
+        assert data[0]["id"].startswith("aa")
+
+    def test_returns_spread_out_events(self):
+        self.transaction_data = load_data(
+            "transaction",
+            start_timestamp=self.min_ago - timedelta(seconds=0.5),
+            timestamp=self.min_ago,
+        )
+        self.transaction_data["event_id"] = "a" * 32
+        self.store_event(self.transaction_data, project_id=self.project.id)
+
+        self.transaction_data = load_data(
+            "transaction",
+            start_timestamp=self.fifty_min_ago - timedelta(seconds=0.5),
+            timestamp=self.fifty_min_ago,
+        )
+        self.transaction_data["event_id"] = "a" * 31 + "b"
+        self.store_event(self.transaction_data, project_id=self.project.id)
+
+        response = self.client.get(
+            self.url,
+            data={
+                "lowerBound": 0,
+                "upperBound": 1000,
+                "dataset": "discover",
+                "seed": "aa",
+                "statsPeriod": "1h",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200
+
+        data = response.data["data"]
+        # There should be 2 events and should be both ids
+        assert len(data) == 2
+        assert sorted([item["id"] for item in data]) == ["a" * 32, "a" * 31 + "b"]
+
+    def test_upper_bound(self):
+        self.transaction_data = load_data(
+            "transaction",
+            start_timestamp=self.min_ago - timedelta(seconds=0.5),
+            timestamp=self.min_ago,
+        )
+        self.transaction_data["event_id"] = "a" * 32
+        self.store_event(self.transaction_data, project_id=self.project.id)
+
+        # This event shouldn't show up
+        self.transaction_data = load_data(
+            "transaction",
+            start_timestamp=self.fifty_min_ago - timedelta(seconds=10),
+            timestamp=self.fifty_min_ago,
+        )
+        self.transaction_data["event_id"] = "a" * 31 + "b"
+        self.store_event(self.transaction_data, project_id=self.project.id)
+
+        response = self.client.get(
+            self.url,
+            data={
+                "lowerBound": 0,
+                "upperBound": 1000,
+                "dataset": "discover",
+                "seed": "aa",
+                "statsPeriod": "1h",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200
+
+        data = response.data["data"]
+        # There should be 2 events and should be both ids
+        assert len(data) == 1
+        assert data[0]["id"] == "a" * 32
+
+    def test_lower_bound(self):
+        self.transaction_data = load_data(
+            "transaction",
+            start_timestamp=self.min_ago - timedelta(seconds=0.5),
+            timestamp=self.min_ago,
+        )
+        self.transaction_data["event_id"] = "a" * 32
+        self.store_event(self.transaction_data, project_id=self.project.id)
+
+        # This event shouldn't show up
+        self.transaction_data = load_data(
+            "transaction",
+            start_timestamp=self.fifty_min_ago - timedelta(seconds=0.1),
+            timestamp=self.fifty_min_ago,
+        )
+        self.transaction_data["event_id"] = "a" * 31 + "b"
+        self.store_event(self.transaction_data, project_id=self.project.id)
+
+        response = self.client.get(
+            self.url,
+            data={
+                "lowerBound": 250,
+                "upperBound": 1000,
+                "dataset": "discover",
+                "seed": "aa",
+                "statsPeriod": "1h",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200
+
+        data = response.data["data"]
+        # There should be 2 events and should be both ids
+        assert len(data) == 1
+        assert data[0]["id"] == "a" * 32
+
+    def test_no_events_returns_something(self):
+        self.transaction_data = load_data(
+            "transaction",
+            start_timestamp=self.min_ago - timedelta(seconds=10),
+            timestamp=self.min_ago,
+        )
+        self.transaction_data["event_id"] = "a" * 32
+        self.store_event(self.transaction_data, project_id=self.project.id)
+
+        self.transaction_data = load_data(
+            "transaction",
+            start_timestamp=self.fifty_min_ago - timedelta(seconds=10),
+            timestamp=self.fifty_min_ago,
+        )
+        self.transaction_data["event_id"] = "a" * 31 + "b"
+        self.store_event(self.transaction_data, project_id=self.project.id)
+
+        response = self.client.get(
+            self.url,
+            # Nothing within bounds, so we should return something still
+            data={
+                "lowerBound": 0,
+                "upperBound": 10,
+                "dataset": "discover",
+                "seed": "aa",
+                "statsPeriod": "1h",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200
+
+        data = response.data["data"]
+        # There should be 2 events and should be both ids
+        assert len(data) == 2
+        assert sorted([item["id"] for item in data]) == ["a" * 32, "a" * 31 + "b"]
+
+    def test_dataset_defaults_to_spans(self):
+        self.transaction_data = load_data(
+            "transaction",
+            start_timestamp=self.min_ago - timedelta(seconds=10),
+            timestamp=self.min_ago,
+        )
+        self.transaction_data["event_id"] = "a" * 32
+        self.store_event(self.transaction_data, project_id=self.project.id)
+
+        self.transaction_data = load_data(
+            "transaction",
+            start_timestamp=self.fifty_min_ago - timedelta(seconds=10),
+            timestamp=self.fifty_min_ago,
+        )
+        self.transaction_data["event_id"] = "a" * 31 + "b"
+        self.store_event(self.transaction_data, project_id=self.project.id)
+
+        response = self.client.get(
+            self.url,
+            data={"lowerBound": 0, "upperBound": 10, "seed": "aa", "statsPeriod": "1h"},
+            format="json",
+        )
+
+        assert response.status_code == 200
+
+        data = response.data["data"]
+        # Nothing should comeback cause it should've queried spans
+        assert len(data) == 0

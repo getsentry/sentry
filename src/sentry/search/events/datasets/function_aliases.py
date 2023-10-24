@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any, Callable, List, Mapping, Optional, Sequence, Union
 
 from snuba_sdk import Column, Function
@@ -321,6 +322,79 @@ def resolve_division(
                 ],
             ),
             fallback,
+        ],
+        alias,
+    )
+
+
+def resolve_bounded_sample(
+    args: Mapping[str, Union[str, Column, SelectType, int, float]],
+    alias: str,
+    column_resolver: Callable[[str], Column],
+    id_column: Column,
+) -> SelectType:
+    seed = args.get("seed")
+    base_condition = Function(
+        "and",
+        [
+            Function("greaterOrEquals", [args["column"], args["min"]]),
+            Function(
+                "greater",
+                [
+                    Function(
+                        "position",
+                        [
+                            Function("toString", [id_column]),
+                            Function(
+                                "substring",
+                                [
+                                    Function("toString", [Function("rand", [])])
+                                    if len(seed) == 0
+                                    else seed,
+                                    1,
+                                    2,
+                                ],
+                            ),
+                        ],
+                    ),
+                    0,
+                ],
+            ),
+        ],
+    )
+    if args["max"] is not None:
+        condition = Function(
+            "and", [base_condition, Function("less", [args["column"], args["max"]])]
+        )
+    else:
+        condition = base_condition
+
+    return Function("minIf", [column_resolver("id"), condition], alias)
+
+
+def resolve_rounded_time(
+    args: Mapping[str, Union[str, Column, SelectType, int, float]],
+    alias: str,
+    column_resolver: Callable[[str], Column],
+    start: Optional[datetime],
+    end: Optional[datetime],
+) -> SelectType:
+    intervals = args["intervals"]
+    if start is None or end is None:
+        raise InvalidSearchQuery("Need start and end to use rounded_time column")
+    if not isinstance(intervals, (int, float)):
+        raise InvalidSearchQuery("intervals must be a number")
+
+    return Function(
+        "floor",
+        [
+            Function(
+                "divide",
+                [
+                    Function("minus", [end, column_resolver("timestamp")]),
+                    ((end - start) / intervals).total_seconds(),
+                ],
+            )
         ],
         alias,
     )

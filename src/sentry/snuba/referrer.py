@@ -392,9 +392,8 @@ class Referrer(Enum):
     API_STARFISH_SIDEBAR_SPAN_METRICS_CHART = "api.starfish.sidebar-span-metrics-chart"
     API_STARFISH_SPAN_TIME_CHARTS = "api.starfish.span-time-charts"
 
-    API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
-    API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
-    API_SPAN_SAMPLE_GET_SPAN_DATA = "api.spans.sample-get-span-data"
+    API_SAMPLE_GET_IDS = "api.starfish.sample-get-span-ids"
+    API_SAMPLE_GET_DATA = "api.starfish.sample-get-span-data"
     API_SERIALIZER_PROJECTS_GET_STATS = "api.serializer.projects.get_stats"
     API_SERIALIZER_CHECKINS_TRACE_IDS = "api.serializer.checkins.trace-ids"
     API_STARFISH_PROFILE_FLAMEGRAPH = "api.starfish.profile-flamegraph"

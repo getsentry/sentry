@@ -5,9 +5,8 @@ from typing import Callable, Mapping, Optional, Union
 from snuba_sdk import Column, Direction, Function, OrderBy
 
 from sentry.api.event_search import SearchFilter
-from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import builder, constants
-from sentry.search.events.datasets import field_aliases, filter_aliases
+from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
     ColumnTagArg,
@@ -17,6 +16,7 @@ from sentry.search.events.fields import (
     NumberRange,
     NumericColumn,
     SnQLFunction,
+    SnQLStringArg,
     with_default,
 )
 from sentry.search.events.types import SelectType, WhereType
@@ -100,14 +100,28 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                         NumericColumn("column", spans=True),
                         NumberRange("min", None, None),
                     ],
-                    optional_args=[with_default(None, NullableNumberRange("max", None, None))],
-                    snql_aggregate=self._resolve_bounded_sample,
+                    optional_args=[
+                        with_default(None, NullableNumberRange("max", None, None)),
+                        with_default("", SnQLStringArg("seed")),
+                    ],
+                    snql_aggregate=lambda args, alias: function_aliases.resolve_bounded_sample(
+                        args,
+                        alias,
+                        self.builder.column,
+                        self.builder.column("span_id"),
+                    ),
                     default_result_type="string",
                 ),
                 SnQLFunction(
                     "rounded_time",
                     optional_args=[with_default(3, NumberRange("intervals", None, None))],
-                    snql_column=self._resolve_rounded_time,
+                    snql_column=lambda args, alias: function_aliases.resolve_rounded_time(
+                        args,
+                        alias,
+                        self.builder.column,
+                        self.builder.start,
+                        self.builder.end,
+                    ),
                     default_result_type="integer",
                 ),
                 SnQLFunction(
@@ -235,32 +249,6 @@ class SpansIndexedDatasetConfig(DatasetConfig):
             condition = base_condition
 
         return Function("minIf", [self.builder.column("id"), condition], alias)
-
-    def _resolve_rounded_time(
-        self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: str,
-    ) -> SelectType:
-        start, end = self.builder.start, self.builder.end
-        intervals = args["intervals"]
-        if start is None or end is None:
-            raise InvalidSearchQuery("Need start and end to use rounded_time column")
-        if not isinstance(intervals, (int, float)):
-            raise InvalidSearchQuery("intervals must be a number")
-
-        return Function(
-            "floor",
-            [
-                Function(
-                    "divide",
-                    [
-                        Function("minus", [end, self.builder.column("timestamp")]),
-                        ((end - start) / intervals).total_seconds(),
-                    ],
-                )
-            ],
-            alias,
-        )
 
     def _resolve_percentile(
         self,
