@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from django.http import HttpResponse
@@ -19,6 +20,8 @@ from sentry.models.release_threshold.constants import (
 )
 from sentry.models.release_threshold.constants import TriggerType as ReleaseThresholdTriggerType
 from sentry.models.release_threshold.release_threshold import ReleaseThreshold
+
+logger = logging.getLogger("sentry.release_thresholds")
 
 
 class ReleaseThresholdPUTSerializer(serializers.Serializer):
@@ -42,6 +45,7 @@ class ReleaseThresholdPUTSerializer(serializers.Serializer):
 class ReleaseThresholdDetailsEndpoint(ProjectEndpoint):
     owner: ApiOwner = ApiOwner.ENTERPRISE
     publish_status = {
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -78,3 +82,9 @@ class ReleaseThresholdDetailsEndpoint(ProjectEndpoint):
         validated_data = serializer.validated_data
         release_threshold.update(**validated_data)
         return Response(serialize(release_threshold, request.user), status=200)
+
+    def delete(
+        self, request: Request, project: Project, release_threshold: ReleaseThreshold
+    ) -> HttpResponse:
+        release_threshold.delete()
+        return Response(status=204)

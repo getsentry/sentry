@@ -47,7 +47,7 @@ function mapTraces(indent: number, traces: TraceFullDetailed[]) {
 }
 
 export default function useReplayPerfData({replay}: Props) {
-  const [data, setData] = useState<ReplayTraceRow[]>([]);
+  const [data, setData] = useState<Map<ReplayFrame, ReplayTraceRow>>(new Map());
 
   const {
     state: {didInit: _didInit, errors: errors, isFetching: isFetching, traces = []},
@@ -61,9 +61,10 @@ export default function useReplayPerfData({replay}: Props) {
       return;
     }
 
-    const frames = replay.getPerfFrames();
+    const collection = new Map<ReplayFrame, ReplayTraceRow>();
+    const frames = replay.getChapterFrames();
 
-    const rows = frames.map((thisFrame, i): ReplayTraceRow => {
+    frames.forEach((thisFrame, i) => {
       const nextFrame = frames[i + 1] as ReplayFrame | undefined;
 
       const isWithinThisAndNextFrame = (frame: ReplayFrame) => {
@@ -85,7 +86,7 @@ export default function useReplayPerfData({replay}: Props) {
         : tracesAfterThis;
       const flattenedTraces = relatedTraces.map(trace => mapTraces(0, [trace]));
 
-      return {
+      collection.set(thisFrame, {
         durationMs: nextFrame ? nextFrame.timestampMs - thisFrame.timestampMs : 0,
         lcpFrames,
         offsetMs: thisFrame.offsetMs,
@@ -94,10 +95,10 @@ export default function useReplayPerfData({replay}: Props) {
         timestampMs: thisFrame.timestampMs,
         traces: relatedTraces,
         flattenedTraces,
-      };
+      });
     });
 
-    setData(rows);
+    setData(collection);
   }, [replay, traces]);
 
   return {

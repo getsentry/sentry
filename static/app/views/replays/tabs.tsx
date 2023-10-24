@@ -1,3 +1,4 @@
+import FeatureBadge from 'sentry/components/featureBadge';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -11,8 +12,13 @@ const SELECTOR_IDX_ROUTE = 'selectors/';
 const REPLAY_IDX_ROUTE = '';
 
 const TABS = [
-  {key: 'replays', label: 'Replays', to: REPLAY_IDX_ROUTE},
-  {key: 'selectors', label: 'Selectors', to: SELECTOR_IDX_ROUTE},
+  {key: 'replays', label: 'Replays', badge: null, to: REPLAY_IDX_ROUTE},
+  {
+    key: 'selectors',
+    label: 'Selectors',
+    badge: <FeatureBadge type="new" />,
+    to: SELECTOR_IDX_ROUTE,
+  },
 ];
 
 export default function ReplayTabs({selected}: Props) {
@@ -37,6 +43,7 @@ export default function ReplayTabs({selected}: Props) {
             }}
           >
             {tab.label}
+            {tab.badge}
           </TabList.Item>
         ))}
       </TabList>

@@ -152,6 +152,7 @@ class SpanMRI(Enum):
     DURATION = "d:spans/duration@millisecond"
     SELF_TIME = "d:spans/exclusive_time@millisecond"
     SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
+    RESPONSE_CONTENT_LENGTH = "d:spans/http.response_content_length@byte"
 
     # Derived
     ALL = "e:spans/all@none"
