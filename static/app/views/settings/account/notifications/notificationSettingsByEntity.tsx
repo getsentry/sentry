@@ -76,6 +76,7 @@ function NotificationSettingsByEntity({
   const {
     data: projects,
     isLoading,
+    isSuccess,
     isError,
     refetch,
   } = useApiQuery<Project[]>(
@@ -270,7 +271,7 @@ function NotificationSettingsByEntity({
             <LoadingError onRetry={refetch} />
           </PanelBody>
         )}
-        <StyledPanelBody>{renderOverrides()}</StyledPanelBody>
+        {isSuccess && <StyledPanelBody>{renderOverrides()}</StyledPanelBody>}
       </Panel>
     </MinHeight>
   );
