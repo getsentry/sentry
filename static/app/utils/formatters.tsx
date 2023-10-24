@@ -187,7 +187,7 @@ const SUFFIX_ABBR = {
 };
 /**
  * Returns a human readable exact duration.
- * 'minDuration' arg will truncate the results to the specified amount
+ * 'precision' arg will truncate the results to the specified suffix
  *
  * e.g. 1 hour 25 minutes 15 seconds
  */
