@@ -3,20 +3,22 @@ import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualiz
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
+import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
 // import useA11yData from 'sentry/utils/replays/hooks/useA11yData';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useMockA11yData from 'sentry/utils/replays/hooks/useMockA11yData';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import useUrlParams from 'sentry/utils/useUrlParams';
-// import AccessibilityFilters from 'sentry/views/replays/detail/accessibility/accessibilityFilters';
+import AccessibilityFilters from 'sentry/views/replays/detail/accessibility/accessibilityFilters';
 import AccessibilityHeaderCell, {
   COLUMN_COUNT,
 } from 'sentry/views/replays/detail/accessibility/accessibilityHeaderCell';
 import AccessibilityTableCell from 'sentry/views/replays/detail/accessibility/accessibilityTableCell';
 // import AccessibilityDetails from 'sentry/views/replays/detail/accessibility/details';
-// import useAccessibilityFilters from 'sentry/views/replays/detail/accessibility/useAccessibilityFilters';
+import useAccessibilityFilters from 'sentry/views/replays/detail/accessibility/useAccessibilityFilters';
 import useSortAccessibility from 'sentry/views/replays/detail/accessibility/useSortAccessibility';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
@@ -42,13 +44,16 @@ function AccessibilityList() {
 
   const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
 
-  const filteredItems = accessibilityData || [];
-  const clearSearchTerm = () => {};
+  const filterProps = useAccessibilityFilters({
+    accessibilityData: accessibilityData || [],
+  });
+  const {items: filteredItems, searchTerm, setSearchTerm} = filterProps;
+  const clearSearchTerm = () => setSearchTerm('');
   const {handleSort, items, sortConfig} = useSortAccessibility({items: filteredItems});
 
   const containerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<MultiGrid>(null);
-  const deps = useMemo(() => [items], [items]);
+  const deps = useMemo(() => [items, searchTerm], [items, searchTerm]);
   const {cache, getColumnWidth, onScrollbarPresenceChange, onWrapperResize} =
     useVirtualizedGrid({
       cellMeasurer,
@@ -69,7 +74,7 @@ function AccessibilityList() {
     onResize: () => {},
   });
   const {getParamValue: getDetailRow, setParamValue: setDetailRow} = useUrlParams(
-    'n_detail_row',
+    'a_detail_row',
     ''
   );
   const detailDataIndex = getDetailRow();
@@ -80,6 +85,18 @@ function AccessibilityList() {
     accessibilityData && detailDataIndex
       ? Math.min(maxContainerHeight, containerSize)
       : undefined;
+
+  const {
+    handleClick: onClickToJump,
+    onSectionRendered,
+    showJumpDownButton,
+    showJumpUpButton,
+  } = useJumpButtons({
+    currentTime,
+    frames: filteredItems,
+    isTable: true,
+    setScrollToRow,
+  });
 
   const onClickCell = useCallback(
     ({}: {dataIndex: number; rowIndex: number}) => {
@@ -145,7 +162,7 @@ function AccessibilityList() {
 
   return (
     <FluidHeight>
-      {/* <AccessibilityFilters accessibilityData={accessibilityData} {...filterProps} /> */}
+      <AccessibilityFilters accessibilityData={accessibilityData} {...filterProps} />
       <AccessibilityTable
         ref={containerRef}
         data-test-id="replay-details-accessibility-tab"
@@ -183,15 +200,23 @@ function AccessibilityList() {
                         setScrollToRow(undefined);
                       }
                     }}
-                    scrollToRow={scrollToRow}
+                    onSectionRendered={onSectionRendered}
                     overscanColumnCount={COLUMN_COUNT}
                     overscanRowCount={5}
                     rowCount={items.length + 1}
                     rowHeight={({index}) => (index === 0 ? HEADER_HEIGHT : BODY_HEIGHT)}
+                    scrollToRow={scrollToRow}
                     width={width}
                   />
                 )}
               </AutoSizer>
+              {sortConfig.by === 'timestamp' && items.length ? (
+                <JumpButtons
+                  jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
+                  onClick={onClickToJump}
+                  tableHeaderHeight={HEADER_HEIGHT}
+                />
+              ) : null}
             </OverflowHidden>
           ) : (
             <Placeholder height="100%" />

@@ -792,7 +792,7 @@ def _resolve_project_threshold_config(project_ids: Sequence[int], org_id: int) -
 
 
 def operation_if_column_snql(
-    operation,
+    operation: str,
     aggregate_filter: Function,
     org_id: int,
     use_case_id: UseCaseID,
@@ -877,8 +877,8 @@ def max_timestamp(
     return timestamp_column_snql("maxIf", aggregate_filter, org_id, use_case_id, alias)
 
 
-def total_count(aggregate_filter: Function) -> Function:
-    return Function("sumIf", [Column("value"), aggregate_filter])
+def total_count(aggregate_filter: Function, alias: Optional[str] = None) -> Function:
+    return Function("sumIf", [Column("value"), aggregate_filter], alias=alias)
 
 
 def on_demand_failure_rate_snql_factory(
@@ -980,6 +980,33 @@ def on_demand_apdex_snql_factory(
     )
 
 
+def on_demand_count_web_vitals_snql_factory(
+    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str] = None
+) -> Function:
+    # This function only queries the tag "measurement_rating: matches_hash" since the extracted metric query hash contains the measurement_rating
+    # and extraction only happens for that specific measurement_rating. The query-hash is already specified in the where clause.
+    return Function(
+        "sumIf",
+        [
+            Column("value"),
+            Function(
+                "and",
+                [
+                    Function(
+                        "equals",
+                        [
+                            Column(resolve_tag_key(use_case_id, org_id, "measurement_rating")),
+                            resolve_tag_value(use_case_id, org_id, "matches_hash"),
+                        ],
+                    ),
+                    aggregate_filter,
+                ],
+            ),
+        ],
+        alias=alias,
+    )
+
+
 def on_demand_epm_snql_factory(
     aggregate_filter: Function,
     interval: float,
@@ -994,3 +1021,22 @@ def on_demand_eps_snql_factory(
     alias: Optional[str],
 ) -> Function:
     return rate_snql_factory(aggregate_filter, interval, 1, alias)
+
+
+def on_demand_user_misery_snql_factory(
+    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str] = None
+) -> Function:
+    miserable_users = uniq_if_column_snql(
+        aggregate_filter, org_id, use_case_id, "satisfaction", "frustrated"
+    )
+    unique_users = Function("uniqIf", [Column("value"), aggregate_filter])
+    # (count_miserable(users, threshold) + 5.8875) / (count_unique(users) + 5.8875 + 111.8625)
+    # https://github.com/getsentry/sentry/blob/b29efaef31605e2e2247128de0922e8dca576a22/src/sentry/search/events/datasets/discover.py#L206-L230
+    return Function(
+        "divide",
+        [
+            Function("plus", [miserable_users, constants.MISERY_ALPHA]),
+            Function("plus", [unique_users, (constants.MISERY_ALPHA + constants.MISERY_BETA)]),
+        ],
+        alias=alias,
+    )

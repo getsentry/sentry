@@ -7,8 +7,11 @@ import responses
 from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone
 
+from sentry.integrations.github.client import GitHubApproachingRateLimit
 from sentry.integrations.github.integration import GitHubIntegrationProvider
+from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo
 from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import PullRequest, PullRequestComment, PullRequestCommit
@@ -18,6 +21,7 @@ from sentry.snuba.sessions_v2 import isoformat_z
 from sentry.tasks.commit_context import PR_COMMENT_WINDOW, process_commit_context
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.committers import get_frame_paths
@@ -32,6 +36,7 @@ class TestCommitContextMixin(TestCase):
             organization_id=self.organization.id,
             name="example",
             integration_id=self.integration.id,
+            provider="github",
         )
         self.code_mapping = self.create_code_mapping(
             repo=self.repo,
@@ -455,6 +460,565 @@ class TestCommitContext(TestCommitContextMixin):
                 )
 
             assert mock_suspect_commits.called
+
+
+@region_silo_test(stable=True)
+class TestCommitContextAllFrames(TestCommitContextMixin):
+    def setUp(self):
+        super().setUp()
+        self.blame_recent = FileBlameInfo(
+            repo=self.repo,
+            path="sentry/recent.py",
+            ref="master",
+            code_mapping=self.code_mapping,
+            lineno=30,
+            commit=CommitInfo(
+                commitId="commit-id-recent",
+                committedDate=datetime.now(tz=datetime_timezone.utc) - timedelta(days=1),
+                commitMessage="recent commit message",
+                commitAuthorName=None,
+                commitAuthorEmail="recent@localhost",
+            ),
+        )
+        self.blame_too_old = FileBlameInfo(
+            repo=self.repo,
+            path="sentry/recent.py",
+            ref="master",
+            code_mapping=self.code_mapping,
+            lineno=30,
+            commit=CommitInfo(
+                commitId="commit-id-old",
+                committedDate=datetime.now(tz=datetime_timezone.utc) - timedelta(days=370),
+                commitMessage="old commit message",
+                commitAuthorName=None,
+                commitAuthorEmail="old@localhost",
+            ),
+        )
+        self.blame_existing_commit = FileBlameInfo(
+            repo=self.repo,
+            path="sentry/models/release.py",
+            ref="master",
+            code_mapping=self.code_mapping,
+            lineno=39,
+            commit=CommitInfo(
+                commitId="existing-commit",
+                committedDate=datetime.now(tz=datetime_timezone.utc) - timedelta(days=7),
+                commitMessage="placeholder commit message",
+                commitAuthorName=None,
+                commitAuthorEmail="admin@localhost",
+            ),
+        )
+        self.blame_no_existing_commit = FileBlameInfo(
+            repo=self.repo,
+            path="sentry/not_existing.py",
+            ref="master",
+            code_mapping=self.code_mapping,
+            lineno=40,
+            commit=CommitInfo(
+                commitId="commit-id",
+                committedDate=datetime.now(tz=datetime_timezone.utc) - timedelta(days=14),
+                commitMessage="no existing commit message",
+                commitAuthorName=None,
+                commitAuthorEmail="admin2@localhost",
+            ),
+        )
+
+    @patch("sentry.analytics.record")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
+    )
+    @with_feature("organizations:suspect-commits-all-frames")
+    def test_success_existing_commit(self, mock_get_commit_context, mock_record):
+        """
+        Tests a simple successful case, where get_commit_context_all_frames returns
+        a single blame item. A GroupOwner should be created, but Commit and CommitAuthor
+        already exist so should not.
+        """
+        mock_get_commit_context.return_value = [self.blame_existing_commit]
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            existing_commit = self.create_commit(
+                project=self.project,
+                repo=self.repo,
+                author=self.commit_author,
+                key="existing-commit",
+            )
+            existing_commit.update(message="")
+            assert Commit.objects.count() == 2
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+
+        created_group_owner = GroupOwner.objects.get(
+            group=self.event.group,
+            project=self.event.project,
+            organization=self.event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        )
+
+        # Number of commit objects should remain the same
+        assert Commit.objects.count() == 2
+        commit = Commit.objects.get(key="existing-commit")
+
+        # Message should be updated
+        assert commit.message == "placeholder commit message"
+
+        assert created_group_owner
+        assert created_group_owner.context == {"commitId": existing_commit.id}
+
+        mock_record.assert_any_call(
+            "integrations.successfully_fetched_commit_context_all_frames",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            group_id=self.event.group_id,
+            event_id=self.event.event_id,
+            num_frames=1,
+            num_unique_commits=1,
+            num_unique_commit_authors=1,
+            num_successfully_mapped_frames=1,
+            selected_frame_index=0,
+            selected_provider="github",
+            selected_code_mapping_id=self.code_mapping.id,
+        )
+
+    @patch("sentry.analytics.record")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
+    )
+    @with_feature("organizations:suspect-commits-all-frames")
+    def test_success_create_commit(self, mock_get_commit_context, mock_record):
+        """
+        A simple success case where a new commit needs to be created.
+        """
+        mock_get_commit_context.return_value = [self.blame_no_existing_commit]
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+
+        created_commit_author = CommitAuthor.objects.get(
+            organization_id=self.organization.id, email="admin2@localhost"
+        )
+        created_commit = Commit.objects.get(key="commit-id")
+        assert created_commit.author.id == created_commit_author.id
+
+        assert created_commit.organization_id == self.organization.id
+        assert created_commit.repository_id == self.repo.id
+        assert created_commit.date_added == self.blame_no_existing_commit.commit.committedDate
+        assert created_commit.message == "no existing commit message"
+
+        assert GroupOwner.objects.get(
+            group=self.event.group,
+            project=self.event.project,
+            organization=self.event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        )
+
+        assert GroupOwner.objects.get(
+            group=self.event.group,
+            project=self.event.project,
+            organization=self.event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        ).context == {"commitId": created_commit.id}
+
+    @patch("sentry.analytics.record")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
+    )
+    @with_feature("organizations:suspect-commits-all-frames")
+    def test_success_multiple_blames(self, mock_get_commit_context, mock_record):
+        """
+        A simple success case where multiple blames are returned.
+        The most recent blame should be selected.
+        """
+        mock_get_commit_context.return_value = [
+            self.blame_existing_commit,
+            self.blame_recent,
+            self.blame_no_existing_commit,
+        ]
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+
+        created_group_owner = GroupOwner.objects.get(
+            group=self.event.group,
+            project=self.event.project,
+            organization=self.event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        )
+
+        created_commit = Commit.objects.get(key="commit-id-recent")
+
+        assert created_group_owner.context == {"commitId": created_commit.id}
+
+    @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
+    @patch("sentry.analytics.record")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
+    )
+    @with_feature("organizations:suspect-commits-all-frames")
+    def test_failure_no_inapp_frames(
+        self, mock_get_commit_context, mock_record, mock_process_suspect_commits
+    ):
+        """
+        A simple failure case where the event has no in app frames, so we bail out
+        and fall back to the release-based suspect commits.
+        """
+        self.event_with_no_inapp_frames = self.store_event(
+            data={
+                "message": "Kaboom!",
+                "platform": "python",
+                "timestamp": iso_format(before_now(seconds=10)),
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "handle_set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
+                            "module": "sentry.tasks",
+                            "in_app": False,
+                            "lineno": 30,
+                            "filename": "sentry/tasks.py",
+                        },
+                        {
+                            "function": "set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
+                            "module": "sentry.models.release",
+                            "in_app": False,
+                            "lineno": 39,
+                            "filename": "sentry/models/release.py",
+                        },
+                    ]
+                },
+                "tags": {"sentry:release": self.release.version},
+                "fingerprint": ["put-me-in-the-control-group"],
+            },
+            project_id=self.project.id,
+        )
+
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            event_frames = get_frame_paths(self.event_with_no_inapp_frames)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+                sdk_name="sentry.python",
+            )
+
+        assert not mock_get_commit_context.called
+        assert not GroupOwner.objects.filter(group=self.event.group).exists()
+        mock_process_suspect_commits.assert_called_once_with(
+            event_id=self.event.event_id,
+            event_platform=self.event.platform,
+            event_frames=event_frames,
+            group_id=self.event.group_id,
+            project_id=self.event.project_id,
+            sdk_name="sentry.python",
+        )
+
+        mock_record.assert_any_call(
+            "integrations.failed_to_fetch_commit_context_all_frames",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            group_id=self.event.group_id,
+            event_id=self.event.event_id,
+            num_frames=0,
+            num_successfully_mapped_frames=0,
+            reason="could_not_find_in_app_stacktrace_frame",
+        )
+
+    @patch("sentry.integrations.utils.commit_context.logger.info")
+    @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
+    @patch("sentry.analytics.record")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
+    )
+    @with_feature("organizations:suspect-commits-all-frames")
+    def test_failure_no_blames(
+        self, mock_get_commit_context, mock_record, mock_process_suspect_commits, mock_logger_info
+    ):
+        """
+        A simple failure case where no blames are returned. We bail out and fall back
+        to the release-based suspect commits.
+        """
+        mock_get_commit_context.return_value = []
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+                sdk_name="sentry.python",
+            )
+
+        assert not GroupOwner.objects.filter(group=self.event.group).exists()
+        mock_process_suspect_commits.assert_called_once_with(
+            event_id=self.event.event_id,
+            event_platform=self.event.platform,
+            event_frames=event_frames,
+            group_id=self.event.group_id,
+            project_id=self.event.project_id,
+            sdk_name="sentry.python",
+        )
+
+        mock_record.assert_any_call(
+            "integrations.failed_to_fetch_commit_context_all_frames",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            group_id=self.event.group_id,
+            event_id=self.event.event_id,
+            num_frames=1,
+            num_successfully_mapped_frames=1,
+            reason="no_commit_found",
+        )
+
+        mock_logger_info.assert_any_call(
+            "process_commit_context_all_frames.find_commit_context_failed",
+            extra={
+                "organization": self.organization.id,
+                "group": self.event.group_id,
+                "event": self.event.event_id,
+                "project_id": self.project.id,
+                "reason": "no_commit_found",
+                "num_frames": 1,
+            },
+        )
+
+    @patch("sentry.integrations.utils.commit_context.logger.info")
+    @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
+    @patch("sentry.analytics.record")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
+    )
+    @with_feature("organizations:suspect-commits-all-frames")
+    def test_failure_old_blame(
+        self, mock_get_commit_context, mock_record, mock_process_suspect_commits, mock_logger_info
+    ):
+        """
+        A simple failure case where no blames are returned. We bail out and fall back
+        to the release-based suspect commits.
+        """
+        mock_get_commit_context.return_value = [self.blame_too_old]
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+                sdk_name="sentry.python",
+            )
+
+        assert not GroupOwner.objects.filter(group=self.event.group).exists()
+        mock_process_suspect_commits.assert_called_once_with(
+            event_id=self.event.event_id,
+            event_platform=self.event.platform,
+            event_frames=event_frames,
+            group_id=self.event.group_id,
+            project_id=self.event.project_id,
+            sdk_name="sentry.python",
+        )
+
+        mock_record.assert_any_call(
+            "integrations.failed_to_fetch_commit_context_all_frames",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            group_id=self.event.group_id,
+            event_id=self.event.event_id,
+            num_frames=1,
+            num_successfully_mapped_frames=1,
+            reason="commit_too_old",
+        )
+
+        mock_logger_info.assert_any_call(
+            "process_commit_context_all_frames.find_commit_context_failed",
+            extra={
+                "organization": self.organization.id,
+                "group": self.event.group_id,
+                "event": self.event.event_id,
+                "project_id": self.project.id,
+                "reason": "commit_too_old",
+                "num_frames": 1,
+            },
+        )
+
+    @patch("sentry.integrations.utils.commit_context.logger.exception")
+    @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
+        side_effect=ApiError(text="failure_message"),
+    )
+    @with_feature("organizations:suspect-commits-all-frames")
+    def test_failure_api_error(
+        self,
+        mock_get_commit_context,
+        mock_process_suspect_commits,
+        mock_logger_exception,
+    ):
+        """
+        A failure case where the integration returned an API error.
+        The error should be recorded and we should fall back to the release-based suspect commits.
+        """
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+                sdk_name="sentry.python",
+            )
+
+        assert not GroupOwner.objects.filter(group=self.event.group).exists()
+        mock_process_suspect_commits.assert_called_once_with(
+            event_id=self.event.event_id,
+            event_platform=self.event.platform,
+            event_frames=event_frames,
+            group_id=self.event.group_id,
+            project_id=self.event.project_id,
+            sdk_name="sentry.python",
+        )
+
+        mock_logger_exception.assert_any_call(
+            "process_commit_context.get_commit_context_all_frames.api_error",
+            extra={
+                "organization": self.organization.id,
+                "group": self.event.group_id,
+                "event": self.event.event_id,
+                "project_id": self.project.id,
+                "integration_id": self.integration.id,
+                "provider": "github",
+            },
+        )
+
+    @patch("sentry.integrations.utils.commit_context.logger.exception")
+    @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
+        side_effect=GitHubApproachingRateLimit(),
+    )
+    @with_feature("organizations:suspect-commits-all-frames")
+    def test_failure_rate_limit(
+        self,
+        mock_get_commit_context,
+        mock_process_suspect_commits,
+        mock_logger_exception,
+    ):
+        """
+        A failure case where the integration returned an API error.
+        The error should be recorded and we should fall back to the release-based suspect commits.
+        """
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+                sdk_name="sentry.python",
+            )
+
+        assert not GroupOwner.objects.filter(group=self.event.group).exists()
+        mock_process_suspect_commits.assert_called_once_with(
+            event_id=self.event.event_id,
+            event_platform=self.event.platform,
+            event_frames=event_frames,
+            group_id=self.event.group_id,
+            project_id=self.event.project_id,
+            sdk_name="sentry.python",
+        )
+
+        mock_logger_exception.assert_any_call(
+            "process_commit_context.get_commit_context_all_frames.rate_limit",
+            extra={
+                "organization": self.organization.id,
+                "group": self.event.group_id,
+                "event": self.event.event_id,
+                "project_id": self.project.id,
+                "integration_id": self.integration.id,
+                "provider": "github",
+            },
+        )
+
+    @patch("sentry.integrations.utils.commit_context.logger.exception")
+    @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
+        side_effect=Exception("some other error"),
+    )
+    @with_feature("organizations:suspect-commits-all-frames")
+    def test_failure_unknown(
+        self,
+        mock_get_commit_context,
+        mock_process_suspect_commits,
+        mock_logger_exception,
+    ):
+        """
+        A failure case where the integration returned an API error.
+        The error should be recorded and we should fall back to the release-based suspect commits.
+        """
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+                sdk_name="sentry.python",
+            )
+
+        assert not GroupOwner.objects.filter(group=self.event.group).exists()
+        mock_process_suspect_commits.assert_called_once_with(
+            event_id=self.event.event_id,
+            event_platform=self.event.platform,
+            event_frames=event_frames,
+            group_id=self.event.group_id,
+            project_id=self.event.project_id,
+            sdk_name="sentry.python",
+        )
+
+        mock_logger_exception.assert_any_call(
+            "process_commit_context.get_commit_context_all_frames.unknown_error",
+            extra={
+                "organization": self.organization.id,
+                "group": self.event.group_id,
+                "event": self.event.event_id,
+                "project_id": self.project.id,
+                "integration_id": self.integration.id,
+                "provider": "github",
+            },
+        )
 
 
 @region_silo_test(stable=True)

@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -7,26 +7,25 @@ import {
 } from 'react-virtualized';
 
 import Placeholder from 'sentry/components/placeholder';
+import JumpButtons from 'sentry/components/replays/jumpButtons';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
-import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import type {ReplayFrame} from 'sentry/utils/replays/types';
+import useExtractedDomNodes from 'sentry/utils/replays/hooks/useExtractedDomNodes';
+import useOrganization from 'sentry/utils/useOrganization';
+import useVirtualizedInspector from 'sentry/views/replays/detail//useVirtualizedInspector';
 import BreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/breadcrumbFilters';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
 import useBreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/useBreadcrumbFilters';
 import useScrollToCurrentItem from 'sentry/views/replays/detail/breadcrumbs/useScrollToCurrentItem';
+import FilterLoadingIndicator from 'sentry/views/replays/detail/filterLoadingIndicator';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
+import useReplayPerfData from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
-
-import useVirtualizedInspector from '../useVirtualizedInspector';
-
-type Props = {
-  frames: undefined | ReplayFrame[];
-  startTimestampMs: number;
-};
+import useVirtualListDimentionChange from 'sentry/views/replays/detail/useVirtualListDimentionChange';
 
 // Ensure this object is created once as it is an input to
 // `useVirtualizedList`'s memoization
@@ -35,24 +34,26 @@ const cellMeasurer = {
   minHeight: 53,
 };
 
-function Breadcrumbs({frames, startTimestampMs}: Props) {
+function Breadcrumbs() {
+  const {currentTime, replay} = useReplayContext();
+  const organization = useOrganization();
+  const hasPerfTab = organization.features.includes('session-replay-trace-table');
+
   const {onClickTimestamp} = useCrumbHandlers();
+  const {data: frameToExtraction, isFetching: isFetchingExtractions} =
+    useExtractedDomNodes({replay});
+  const {data: frameToTrace, isFetching: isFetchingTraces} = useReplayPerfData({replay});
 
-  const {setActiveTab} = useActiveReplayTab();
+  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() ?? 0;
+  const frames = replay?.getChapterFrames();
 
-  const listRef = useRef<ReactVirtualizedList>(null);
-  // Keep a reference of object paths that are expanded (via <ObjectInspector>)
-  // by log row, so they they can be restored as the Console pane is scrolling.
-  // Due to virtualization, components can be unmounted as the user scrolls, so
-  // state needs to be remembered.
-  //
-  // Note that this is intentionally not in state because we do not want to
-  // re-render when items are expanded/collapsed, though it may work in state as well.
-  const expandPathsRef = useRef(new Map<number, Set<string>>());
+  const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
 
   const filterProps = useBreadcrumbFilters({frames: frames || []});
-  const {items, searchTerm, setSearchTerm} = filterProps;
+  const {expandPathsRef, items, searchTerm, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
+
+  const listRef = useRef<ReactVirtualizedList>(null);
 
   const deps = useMemo(() => [items, searchTerm], [items, searchTerm]);
   const {cache, updateList} = useVirtualizedList({
@@ -60,16 +61,36 @@ function Breadcrumbs({frames, startTimestampMs}: Props) {
     ref: listRef,
     deps,
   });
-  const {handleDimensionChange} = useVirtualizedInspector({
+  const {handleDimensionChange} = useVirtualListDimentionChange({cache, listRef});
+  const {handleDimensionChange: handleInspectorExpanded} = useVirtualizedInspector({
     cache,
     listRef,
     expandPathsRef,
+  });
+
+  const {
+    handleClick: onClickToJump,
+    onRowsRendered,
+    showJumpDownButton,
+    showJumpUpButton,
+  } = useJumpButtons({
+    currentTime,
+    frames: items,
+    isTable: false,
+    setScrollToRow,
   });
 
   useScrollToCurrentItem({
     frames,
     ref: listRef,
   });
+
+  // Need to refresh the item dimensions as DOM & Trace data gets loaded
+  useEffect(() => {
+    if (!isFetchingExtractions || !isFetchingTraces) {
+      updateList();
+    }
+  }, [isFetchingExtractions, isFetchingTraces, updateList]);
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
     const item = (items || [])[index];
@@ -85,14 +106,16 @@ function Breadcrumbs({frames, startTimestampMs}: Props) {
         <BreadcrumbRow
           index={index}
           frame={item}
+          extraction={frameToExtraction?.get(item)}
+          traces={hasPerfTab ? frameToTrace?.get(item) : undefined}
           startTimestampMs={startTimestampMs}
           style={style}
           expandPaths={Array.from(expandPathsRef.current?.get(index) || [])}
           onClick={() => {
             onClickTimestamp(item);
-            setActiveTab(getFrameDetails(item).tabKey);
           }}
           onDimensionChange={handleDimensionChange}
+          onInspectorExpanded={handleInspectorExpanded}
         />
       </CellMeasurer>
     );
@@ -100,7 +123,9 @@ function Breadcrumbs({frames, startTimestampMs}: Props) {
 
   return (
     <FluidHeight>
-      <BreadcrumbFilters frames={frames} {...filterProps} />
+      <FilterLoadingIndicator isLoading={isFetchingExtractions || isFetchingTraces}>
+        <BreadcrumbFilters frames={frames} {...filterProps} />
+      </FilterLoadingIndicator>
       <TabItemContainer data-test-id="replay-details-breadcrumbs-tab">
         {frames ? (
           <AutoSizer onResize={updateList}>
@@ -116,11 +141,18 @@ function Breadcrumbs({frames, startTimestampMs}: Props) {
                     {t('No breadcrumbs recorded')}
                   </NoRowRenderer>
                 )}
+                onRowsRendered={onRowsRendered}
+                onScroll={() => {
+                  if (scrollToRow !== undefined) {
+                    setScrollToRow(undefined);
+                  }
+                }}
                 overscanRowCount={5}
                 ref={listRef}
                 rowCount={items.length}
                 rowHeight={cache.rowHeight}
                 rowRenderer={renderRow}
+                scrollToIndex={scrollToRow}
                 width={width}
               />
             )}
@@ -128,6 +160,13 @@ function Breadcrumbs({frames, startTimestampMs}: Props) {
         ) : (
           <Placeholder height="100%" />
         )}
+        {items?.length ? (
+          <JumpButtons
+            jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
+            onClick={onClickToJump}
+            tableHeaderHeight={0}
+          />
+        ) : null}
       </TabItemContainer>
     </FluidHeight>
   );

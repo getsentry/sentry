@@ -252,7 +252,7 @@ class FeatureManager(RegisteredFeatureManager):
         actor: Optional[User] = None,
         projects: Optional[Sequence[Project]] = None,
         organization: Optional[Organization] = None,
-    ) -> Optional[Mapping[str, Mapping[str, bool]]]:
+    ) -> Optional[Mapping[str, Mapping[str, bool | None]]]:
         """
         Determine if multiple features are enabled. Unhandled flags will not be in
         the results if they cannot be handled.

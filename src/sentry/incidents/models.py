@@ -430,6 +430,8 @@ class AlertRule(Model):
         null=True,
         on_delete=models.SET_NULL,
     )
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
     excluded_projects = models.ManyToManyField(
         "sentry.Project", related_name="alert_rule_exclusions", through=AlertRuleExcludedProjects
     )
@@ -523,6 +525,7 @@ class IncidentTrigger(Model):
         app_label = "sentry"
         db_table = "sentry_incidenttrigger"
         unique_together = (("incident", "alert_rule_trigger"),)
+        index_together = (("alert_rule_trigger", "incident_id"),)
 
 
 class AlertRuleTriggerManager(BaseManager):

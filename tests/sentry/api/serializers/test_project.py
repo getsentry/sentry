@@ -28,6 +28,7 @@ from sentry.models.userreport import UserReport
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
@@ -36,6 +37,7 @@ TEAM_ADMIN = settings.SENTRY_TEAM_ROLES[1]
 
 
 @region_silo_test(stable=True)
+@apply_feature_flag_on_cls("organizations:cleanup-project-serializer")
 class ProjectSerializerTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -302,6 +304,7 @@ class ProjectSerializerTest(TestCase):
 
 
 @region_silo_test(stable=True)
+@apply_feature_flag_on_cls("organizations:cleanup-project-serializer")
 class ProjectWithTeamSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user(username="foo")
@@ -322,6 +325,7 @@ class ProjectWithTeamSerializerTest(TestCase):
 
 
 @region_silo_test
+@apply_feature_flag_on_cls("organizations:cleanup-project-serializer")
 class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
     def setUp(self):
         super().setUp()
@@ -657,6 +661,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
 
 
 @region_silo_test(stable=True)
+@apply_feature_flag_on_cls("organizations:cleanup-project-serializer")
 class ProjectWithOrganizationSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user(username="foo")
@@ -673,6 +678,7 @@ class ProjectWithOrganizationSerializerTest(TestCase):
 
 
 @region_silo_test(stable=True)
+@apply_feature_flag_on_cls("organizations:cleanup-project-serializer")
 class DetailedProjectSerializerTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -710,6 +716,7 @@ class DetailedProjectSerializerTest(TestCase):
 
 
 @region_silo_test(stable=True)
+@apply_feature_flag_on_cls("organizations:cleanup-project-serializer")
 class BulkFetchProjectLatestReleases(TestCase):
     @cached_property
     def project(self):

@@ -2,21 +2,22 @@ import {useRef, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useMouseTracking from 'sentry/utils/replays/hooks/useMouseTracking';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {PerformanceScoreBreakdownChart} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
 import PerformanceScoreRing from 'sentry/views/performance/browser/webVitals/components/performanceScoreRing';
 import {
   PERFORMANCE_SCORE_WEIGHTS,
   ProjectScore,
 } from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsTimeseriesQuery';
-import Chart from 'sentry/views/starfish/components/chart';
 
 type Props = {
+  isProjectScoreLoading?: boolean;
   projectScore?: ProjectScore;
   transaction?: string;
   webVital?: WebVitals | null;
@@ -32,25 +33,36 @@ const {
 
 const ORDER = ['lcp', 'fcp', 'fid', 'cls', 'ttfb'];
 
-export function PerformanceScoreChart({projectScore, webVital, transaction}: Props) {
+export function PerformanceScoreChart({
+  projectScore,
+  webVital,
+  transaction,
+  isProjectScoreLoading,
+}: Props) {
   const theme = useTheme();
   const pageFilters = usePageFilters();
 
-  const {data, isLoading} = useProjectWebVitalsTimeseriesQuery({transaction});
   const score = projectScore
     ? webVital
       ? projectScore[`${webVital}Score`]
       : projectScore.totalScore
     : undefined;
 
-  const segmentColors = theme.charts.getColorPalette(3);
-  const backgroundColors = segmentColors.map(color => `${color}33`);
+  let ringSegmentColors = theme.charts.getColorPalette(3);
+  let ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
+
+  if (webVital) {
+    const index = ORDER.indexOf(webVital);
+    ringSegmentColors = ringSegmentColors.map((color, i) => {
+      return i === index ? color : theme.gray200;
+    });
+    ringBackgroundColors = ringBackgroundColors.map((color, i) => {
+      return i === index ? color : `${theme.gray200}33`;
+    });
+  }
 
   const period = pageFilters.selection.datetime.period;
-  const performanceScoreSubtext =
-    period && Object.keys(DEFAULT_RELATIVE_PERIODS).includes(period)
-      ? DEFAULT_RELATIVE_PERIODS[period]
-      : '';
+  const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
 
   const [mousePosition, setMousePosition] = useState({x: 0, y: 0});
   const elem = useRef<HTMLDivElement>(null);
@@ -70,13 +82,13 @@ export function PerformanceScoreChart({projectScore, webVital, transaction}: Pro
       <PerformanceScoreLabelContainer>
         <PerformanceScoreLabel>{t('Performance Score')}</PerformanceScoreLabel>
         <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
-        {projectScore && (
+        {!isProjectScoreLoading && projectScore && (
           <ProgressRingContainer ref={elem} {...mouseTrackingProps}>
             {webVitalTooltip && (
               <PerformanceScoreRingTooltip x={mousePosition.x} y={mousePosition.y}>
                 <TooltipRow>
                   <span>
-                    <Dot color={backgroundColors[ORDER.indexOf(webVitalTooltip)]} />
+                    <Dot color={ringBackgroundColors[ORDER.indexOf(webVitalTooltip)]} />
                     {webVitalTooltip.toUpperCase()} {t('Opportunity')}
                   </span>
                   <TooltipValue>
@@ -85,7 +97,7 @@ export function PerformanceScoreChart({projectScore, webVital, transaction}: Pro
                 </TooltipRow>
                 <TooltipRow>
                   <span>
-                    <Dot color={segmentColors[ORDER.indexOf(webVitalTooltip)]} />
+                    <Dot color={ringSegmentColors[ORDER.indexOf(webVitalTooltip)]} />
                     {webVitalTooltip.toUpperCase()} {t('Score')}
                   </span>
                   <TooltipValue>{projectScore[`${webVitalTooltip}Score`]}</TooltipValue>
@@ -126,8 +138,8 @@ export function PerformanceScoreChart({projectScore, webVital, transaction}: Pro
                   font-weight: bold;
                   color: ${theme.textColor};
                 `}
-                segmentColors={segmentColors}
-                backgroundColors={backgroundColors}
+                segmentColors={ringSegmentColors}
+                backgroundColors={ringBackgroundColors}
                 x={40}
                 y={20}
                 onHoverActions={[
@@ -142,80 +154,13 @@ export function PerformanceScoreChart({projectScore, webVital, transaction}: Pro
             </svg>
           </ProgressRingContainer>
         )}
+        {!isProjectScoreLoading && !projectScore && (
+          <EmptyStateWarning>
+            <p>{t('No Web Vitals found')}</p>
+          </EmptyStateWarning>
+        )}
       </PerformanceScoreLabelContainer>
-      <ChartContainer>
-        <PerformanceScoreLabel>{t('Score Breakdown')}</PerformanceScoreLabel>
-        <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
-        <Chart
-          stacked
-          height={180}
-          data={[
-            {
-              data: data?.lcp.map(({name, value}) => ({
-                name,
-                value: value * LCP_WEIGHT * 0.01,
-              })),
-              seriesName: 'LCP',
-              color: segmentColors[0],
-            },
-            {
-              data: data?.fcp.map(
-                ({name, value}) => ({
-                  name,
-                  value: value * FCP_WEIGHT * 0.01,
-                }),
-                []
-              ),
-              seriesName: 'FCP',
-              color: segmentColors[1],
-            },
-            {
-              data: data?.fid.map(
-                ({name, value}) => ({
-                  name,
-                  value: value * FID_WEIGHT * 0.01,
-                }),
-                []
-              ),
-              seriesName: 'FID',
-              color: segmentColors[2],
-            },
-            {
-              data: data?.cls.map(
-                ({name, value}) => ({
-                  name,
-                  value: value * CLS_WEIGHT * 0.01,
-                }),
-                []
-              ),
-              seriesName: 'CLS',
-              color: segmentColors[3],
-            },
-            {
-              data: data?.ttfb.map(
-                ({name, value}) => ({
-                  name,
-                  value: value * TTFB_WEIGHT * 0.01,
-                }),
-                []
-              ),
-              seriesName: 'TTFB',
-              color: segmentColors[4],
-            },
-          ]}
-          disableXAxis
-          loading={isLoading}
-          utc={false}
-          grid={{
-            left: 5,
-            right: 5,
-            top: 5,
-            bottom: 0,
-          }}
-          dataMax={100}
-          chartColors={segmentColors}
-        />
-      </ChartContainer>
+      <PerformanceScoreBreakdownChart transaction={transaction} />
     </Flex>
   );
 }
@@ -225,15 +170,8 @@ const Flex = styled('div')`
   flex-direction: row;
   justify-content: space-between;
   width: 100%;
-  gap: ${space(2)};
-  margin-top: ${space(2)};
-`;
-
-const ChartContainer = styled('div')`
-  padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  flex: 1;
-  border: 1px solid ${p => p.theme.gray200};
-  border-radius: ${p => p.theme.borderRadius};
+  gap: ${space(1)};
+  margin-top: ${space(1)};
 `;
 
 const PerformanceScoreLabelContainer = styled('div')`
@@ -264,7 +202,7 @@ const ProgressRingContainer = styled('div')``;
 
 const ProgressRingText = styled('text')`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.textColor};
+  fill: ${p => p.theme.textColor};
   font-weight: bold;
 `;
 

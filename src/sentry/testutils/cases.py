@@ -127,6 +127,7 @@ from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
 
 from ..services.hybrid_cloud.organization.serial import serialize_rpc_organization
+from ..shared_integrations.client.proxy import IntegrationProxyClient
 from ..snuba.metrics import (
     MetricConditionField,
     MetricField,
@@ -1426,10 +1427,10 @@ class BaseMetricsTestCase(SnubaTestCase):
         name: str,
         tags: Dict[str, str],
         timestamp: int,
-        value,
+        value: Any,
         use_case_id: UseCaseID,
         aggregation_option: Optional[AggregationOption] = None,
-    ):
+    ) -> None:
         mapping_meta = {}
 
         def metric_id(key: str):
@@ -1747,6 +1748,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "transaction.duration": "metrics_distributions",
         "span.duration": "metrics_distributions",
         "span.self_time": "metrics_distributions",
+        "http.response_content_length": "metrics_distributions",
         "measurements.lcp": "metrics_distributions",
         "measurements.fp": "metrics_distributions",
         "measurements.fcp": "metrics_distributions",
@@ -1783,7 +1785,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def store_transaction_metric(
         self,
-        value: List[float] | float,
+        value: list[Any] | Any,
         metric: str = "transaction.duration",
         internal_metric: Optional[str] = None,
         entity: Optional[str] = None,
@@ -2776,3 +2778,8 @@ class MonitorIngestTestCase(MonitorTestCase):
                 self.endpoint_with_org, args=[self.organization.slug, monitor_slug]
             ),
         )
+
+
+class IntegratedApiTestCase(BaseTestCase):
+    def should_call_api_without_proxying(self) -> bool:
+        return not IntegrationProxyClient.determine_whether_should_proxy_to_control()

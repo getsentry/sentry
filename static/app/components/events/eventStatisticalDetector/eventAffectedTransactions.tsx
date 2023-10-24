@@ -13,13 +13,17 @@ import {space} from 'sentry/styles/space';
 import {Event, Group, Project} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {getDuration} from 'sentry/utils/formatters';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {useProfileTopEventsStats} from 'sentry/utils/profiling/hooks/useProfileTopEventsStats';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
-import {generateProfileSummaryRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {
+  generateProfileFlamechartRouteWithQuery,
+  generateProfileSummaryRouteWithQuery,
+} from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -36,6 +40,8 @@ export function EventAffectedTransactions({
   const evidenceData = event.occurrence?.evidenceData;
   const fingerprint = evidenceData?.fingerprint;
   const breakpoint = evidenceData?.breakpoint;
+  const frameName = evidenceData?.function;
+  const framePackage = evidenceData?.package || evidenceData?.module;
 
   const isValid = defined(fingerprint) && defined(breakpoint);
 
@@ -64,6 +70,8 @@ export function EventAffectedTransactions({
     <EventAffectedTransactionsInner
       breakpoint={breakpoint}
       fingerprint={fingerprint}
+      frameName={frameName}
+      framePackage={framePackage}
       project={project}
     />
   );
@@ -74,12 +82,16 @@ const TRANSACTIONS_LIMIT = 5;
 interface EventAffectedTransactionsInnerProps {
   breakpoint: number;
   fingerprint: number;
+  frameName: string;
+  framePackage: string;
   project: Project;
 }
 
 function EventAffectedTransactionsInner({
   breakpoint,
   fingerprint,
+  frameName,
+  framePackage,
   project,
 }: EventAffectedTransactionsInnerProps) {
   const organization = useOrganization();
@@ -132,10 +144,37 @@ function EventAffectedTransactionsInner({
     query: query ?? '',
     enabled: defined(query),
     others: false,
-    referrer: 'api.profiling.functions.regression.stats', // TODO: update this
+    referrer: 'api.profiling.functions.regression.transaction-stats',
     topEvents: TRANSACTIONS_LIMIT,
     yAxes: ['p95()', 'worst()'],
   });
+
+  const examplesByTransaction = useMemo(() => {
+    const allExamples: Record<string, [string | null, string | null]> = {};
+    if (!defined(functionStats.data)) {
+      return allExamples;
+    }
+
+    const timestamps = functionStats.data.timestamps;
+    const breakpointIndex = timestamps.indexOf(breakpoint);
+    if (breakpointIndex < 0) {
+      return allExamples;
+    }
+
+    transactionsDeltaQuery.data?.data?.forEach(row => {
+      const transaction = row.transaction as string;
+      const data = functionStats.data.data.find(
+        ({axis, label}) => axis === 'worst()' && label === transaction
+      );
+      if (!defined(data)) {
+        return;
+      }
+
+      allExamples[transaction] = findExamplePair(data.values, breakpointIndex);
+    });
+
+    return allExamples;
+  }, [breakpoint, transactionsDeltaQuery, functionStats]);
 
   const timeseriesByTransaction: Record<string, Series> = useMemo(() => {
     const allTimeseries: Record<string, Series> = {};
@@ -161,7 +200,7 @@ function EventAffectedTransactionsInner({
             value: data.values[i],
           };
         }),
-        seriesName: 'p95()',
+        seriesName: 'p95(function.duration)',
       };
     });
 
@@ -192,14 +231,76 @@ function EventAffectedTransactionsInner({
     };
   }, []);
 
+  function handleGoToProfile() {
+    trackAnalytics('profiling_views.go_to_flamegraph', {
+      organization,
+      source: 'profiling.issue.function_regression.transactions',
+    });
+  }
+
   return (
     <EventDataSection type="transactions-impacted" title={t('Transactions Impacted')}>
       <ListContainer>
         {(transactionsDeltaQuery.data?.data ?? []).map(transaction => {
-          const series = timeseriesByTransaction[transaction.transaction as string] ?? {
+          const transactionName = transaction.transaction as string;
+          const series = timeseriesByTransaction[transactionName] ?? {
             seriesName: 'p95()',
             data: [],
           };
+
+          const [beforeExample, afterExample] = examplesByTransaction[
+            transactionName
+          ] ?? [null, null];
+
+          let before = (
+            <PerformanceDuration
+              nanoseconds={transaction[percentileBefore] as number}
+              abbreviation
+            />
+          );
+
+          if (defined(beforeExample)) {
+            const beforeTarget = generateProfileFlamechartRouteWithQuery({
+              orgSlug: organization.slug,
+              projectSlug: project.slug,
+              profileId: beforeExample,
+              query: {
+                frameName,
+                framePackage,
+              },
+            });
+
+            before = (
+              <Link to={beforeTarget} onClick={handleGoToProfile}>
+                {before}
+              </Link>
+            );
+          }
+
+          let after = (
+            <PerformanceDuration
+              nanoseconds={transaction[percentileAfter] as number}
+              abbreviation
+            />
+          );
+
+          if (defined(afterExample)) {
+            const afterTarget = generateProfileFlamechartRouteWithQuery({
+              orgSlug: organization.slug,
+              projectSlug: project.slug,
+              profileId: afterExample,
+              query: {
+                frameName,
+                framePackage,
+              },
+            });
+
+            after = (
+              <Link to={afterTarget} onClick={handleGoToProfile}>
+                {after}
+              </Link>
+            );
+          }
 
           const summaryTarget = generateProfileSummaryRouteWithQuery({
             orgSlug: organization.slug,
@@ -237,15 +338,9 @@ function EventAffectedTransactionsInner({
                   position="top"
                 >
                   <DurationChange>
-                    <PerformanceDuration
-                      nanoseconds={transaction[percentileBefore] as number}
-                      abbreviation
-                    />
+                    {before}
                     <IconArrow direction="right" size="xs" />
-                    <PerformanceDuration
-                      nanoseconds={transaction[percentileAfter] as number}
-                      abbreviation
-                    />
+                    {after}
                   </DurationChange>
                 </Tooltip>
               </NumberContainer>
@@ -255,6 +350,66 @@ function EventAffectedTransactionsInner({
       </ListContainer>
     </EventDataSection>
   );
+}
+
+/**
+ * Find an example pair of profile ids from before and after the breakpoint.
+ *
+ * We prioritize profile ids from outside some window around the breakpoint
+ * because the breakpoint is not 100% accurate and giving a buffer around
+ * the breakpoint to so we can more accurate get a example profile from
+ * before and after ranges.
+ *
+ * @param examples list of example profile ids
+ * @param breakpointIndex the index where the breakpoint is
+ * @param window the window around the breakpoint to deprioritize
+ */
+function findExamplePair(
+  examples: string[],
+  breakpointIndex,
+  window = 3
+): [string | null, string | null] {
+  let before: string | null = null;
+
+  for (let i = breakpointIndex - window; i < examples.length && i >= 0; i--) {
+    if (examples[i]) {
+      before = examples[i];
+      break;
+    }
+  }
+
+  if (!defined(before)) {
+    for (
+      let i = breakpointIndex;
+      i < examples.length && i > breakpointIndex - window;
+      i--
+    ) {
+      if (examples[i]) {
+        before = examples[i];
+        break;
+      }
+    }
+  }
+
+  let after: string | null = null;
+
+  for (let i = breakpointIndex + window; i < examples.length; i++) {
+    if (examples[i]) {
+      after = examples[i];
+      break;
+    }
+  }
+
+  if (!defined(before)) {
+    for (let i = breakpointIndex; i < breakpointIndex + window; i++) {
+      if (examples[i]) {
+        after = examples[i];
+        break;
+      }
+    }
+  }
+
+  return [before, after];
 }
 
 const ListContainer = styled('div')`

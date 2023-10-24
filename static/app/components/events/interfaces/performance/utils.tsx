@@ -5,7 +5,7 @@ import {
   EntrySpans,
   EntryType,
   EventTransaction,
-  getIssueTypeFromOccurenceType,
+  getIssueTypeFromOccurrenceType,
   IssueCategory,
   IssueType,
 } from 'sentry/types';
@@ -76,7 +76,7 @@ export function getProblemSpansForSpanTree(event: EventTransaction): {
 
   const issueType =
     event.perfProblem?.issueType ??
-    getIssueTypeFromOccurenceType(event?.occurrence?.type);
+    getIssueTypeFromOccurrenceType(event?.occurrence?.type);
   const affectedSpanIds: string[] = [];
   const focusedSpanIds: string[] = [];
 

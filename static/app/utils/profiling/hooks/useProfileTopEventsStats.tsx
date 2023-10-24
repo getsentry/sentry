@@ -4,7 +4,6 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {EventsStatsSeries, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {transformSingleSeries} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
-import {makeFormatTo} from 'sentry/utils/profiling/units/units';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -99,10 +98,6 @@ function transformTopEventsStatsResponse<F extends string>(
 
   let firstSeries = true;
 
-  // TODO: the formatter should be inferred but the response does
-  // not contain the meta at this time
-  const formatter = makeFormatTo('nanoseconds', 'milliseconds');
-
   for (const label of Object.keys(rawData)) {
     for (const yAxis of yAxes) {
       let dataForYAxis = rawData[label];
@@ -113,13 +108,7 @@ function transformTopEventsStatsResponse<F extends string>(
         continue;
       }
 
-      const transformed = transformSingleSeries(
-        dataset,
-        yAxis,
-        dataForYAxis,
-        label,
-        formatter
-      );
+      const transformed = transformSingleSeries(dataset, yAxis, dataForYAxis, label);
 
       if (firstSeries) {
         meta = transformed.meta;
