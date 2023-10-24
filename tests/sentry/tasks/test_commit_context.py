@@ -41,6 +41,8 @@ class TestCommitContextMixin(TestCase):
         self.code_mapping = self.create_code_mapping(
             repo=self.repo,
             project=self.project,
+            stack_root="sentry/",
+            source_root="sentry/",
         )
         self.commit_author = self.create_commit_author(project=self.project, user=self.user)
         self.commit = self.create_commit(
@@ -668,6 +670,61 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
         created_commit = Commit.objects.get(key="commit-id-recent")
 
         assert created_group_owner.context == {"commitId": created_commit.id}
+
+    @patch("sentry.analytics.record")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
+    )
+    @with_feature("organizations:suspect-commits-all-frames")
+    def test_maps_correct_files(self, mock_get_commit_context, mock_record):
+        """
+        Tests that the get_commit_context_all_frames function is called with the correct
+        files. Code mappings should be applied properly and non-matching files thrown out.
+        """
+        mock_get_commit_context.return_value = [self.blame_existing_commit]
+
+        other_code_mapping = self.create_code_mapping(
+            repo=self.repo,
+            project=self.project,
+            stack_root="other/",
+            source_root="sentry/",
+        )
+        frames = [
+            {
+                "in_app": True,
+                "lineno": 39,
+                "filename": "other/models/release.py",
+            }
+        ]
+
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+
+        assert GroupOwner.objects.get(
+            group=self.event.group,
+            project=self.event.project,
+            organization=self.event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        )
+
+        mock_get_commit_context.assert_called_once_with(
+            [
+                SourceLineInfo(
+                    lineno=39,
+                    path="sentry/models/release.py",
+                    ref="master",
+                    repo=other_code_mapping.repository,
+                    code_mapping=other_code_mapping,
+                )
+            ]
+        )
 
     @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
     @patch("sentry.analytics.record")

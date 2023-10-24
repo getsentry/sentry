@@ -294,6 +294,18 @@ def _generate_integration_to_files_mapping(
                 )
                 continue
 
+            if not stacktrace_path.startswith(code_mapping.stack_root):
+                logger.info(
+                    "process_commit_context_all_frames.code_mapping_stack_root_mismatch",
+                    extra={
+                        **extra,
+                        "code_mapping_id": code_mapping.id,
+                        "stacktrace_path": stacktrace_path,
+                        "stack_root": code_mapping.stack_root,
+                    },
+                )
+                continue
+
             src_path = get_source_code_path_from_stacktrace_path(stacktrace_path, code_mapping)
 
             # src_path can be none if the stacktrace_path is an invalid filepath
