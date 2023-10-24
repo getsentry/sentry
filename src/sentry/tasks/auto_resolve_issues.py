@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime, timedelta
 from time import time
-from typing import Mapping, Optional, Type
+from typing import Mapping
 
 from django.utils import timezone
 
@@ -40,11 +40,6 @@ def schedule_auto_resolution():
     for opt in options:
         opts_by_project[opt.project_id][opt.key] = opt.value
 
-    auto_resolve_enabled_issue_types = list(
-        group_type.type_id
-        for group_type in grouptype.registry.all()
-        if group_type.enable_auto_resolve
-    )
     cutoff = time() - ONE_HOUR
     for project_id, options in opts_by_project.items():
         if not options.get("sentry:resolve_age"):
@@ -59,7 +54,6 @@ def schedule_auto_resolution():
 
         auto_resolve_project_issues.delay(
             project_id=project_id,
-            enabled_issue_types=auto_resolve_enabled_issue_types,
             expires=ONE_HOUR,
         )
 
@@ -74,7 +68,6 @@ def schedule_auto_resolution():
 @log_error_if_queue_has_items
 def auto_resolve_project_issues(
     project_id,
-    enabled_issue_types: Optional[list[Type[grouptype.GroupType]]] = None,
     cutoff=None,
     chunk_size=1000,
     **kwargs,
@@ -101,7 +94,12 @@ def auto_resolve_project_issues(
     }
 
     if flag_enabled:
-        filter_conditions["type__in"] = enabled_issue_types or []
+        enabled_auto_resolve_types = [
+            group_type.type_id
+            for group_type in grouptype.registry.all()
+            if group_type.enable_auto_resolve
+        ]
+        filter_conditions["type__in"] = enabled_auto_resolve_types or []
 
     queryset = list(Group.objects.filter(**filter_conditions)[:chunk_size])
 
@@ -140,7 +138,6 @@ def auto_resolve_project_issues(
     if might_have_more:
         auto_resolve_project_issues.delay(
             project_id=project_id,
-            enabled_issue_types=enabled_issue_types,
             cutoff=int(cutoff.strftime("%s")),
             chunk_size=chunk_size,
         )
