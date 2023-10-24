@@ -45,7 +45,7 @@ def test_send_regressions_to_plaform(mock_produce_occurrence_to_kafka):
             "evidence_display": [
                 {
                     "name": "Regression",
-                    "value": "Increased from 14.0ms to 28.0ms (P95)",
+                    "value": "foo duration increased from 14.0ms to 28.0ms (P95)",
                     "important": True,
                 },
                 {"name": "Transaction", "value": "foo", "important": True},

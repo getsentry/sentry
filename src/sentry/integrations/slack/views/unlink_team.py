@@ -21,7 +21,7 @@ from . import build_linking_url as base_build_linking_url
 from . import never_cache, render_error_page
 
 INSUFFICIENT_ACCESS = (
-    "You must be a Sentry organization admin/manager/owner or a team admin to unlink team."
+    "You must be a Sentry organization admin/manager/owner or a team admin to unlink a team."
 )
 
 ALLOWED_METHODS = ["GET", "POST"]

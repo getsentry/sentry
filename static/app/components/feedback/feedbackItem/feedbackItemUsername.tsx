@@ -10,8 +10,8 @@ interface Props {
 }
 
 export default function FeedbackItemUsername({feedbackItem, detailDisplay}: Props) {
-  const name = feedbackItem.name;
-  const email = feedbackItem.contact_email;
+  const name = ''; // feedbackItem.name;
+  const email = feedbackItem.metadata.contact_email;
 
   if (!email && !name) {
     return <strong>{t('Anonymous User')}</strong>;
