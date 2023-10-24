@@ -134,7 +134,7 @@ def _is_message(data: Mapping[str, Any]) -> bool:
 @region_silo_endpoint
 class SlackActionEndpoint(Endpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = ()
     permission_classes = ()
