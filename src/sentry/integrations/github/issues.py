@@ -245,7 +245,7 @@ class GitHubIssueBasic(IssueBasicMixin):
 
         # sort alphabetically
         labels = tuple(
-            sorted(((label["name"], label["name"]) for label in response), key=lambda pair: pair[0])
+            sorted([(label["name"], label["name"]) for label in response], key=lambda pair: pair[0])
         )
 
         return labels
