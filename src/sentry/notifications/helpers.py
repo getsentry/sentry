@@ -733,11 +733,17 @@ def get_team_members(team: Team | RpcActor) -> list[RpcUser]:
             raise Exception(
                 "RpcActor team has ActorType %s, expected ActorType Team", team.actor_type
             )
-        team = team.resolve()
+        temp = team.resolve()
+        if not isinstance(temp, Team):
+            raise Exception("Unable to find team")
+        team = temp
     member_ids = team.member_set.values_list("user_id", flat=True)
-    return [
-        get_recipient_from_team_or_user(user_id=member_id, team_id=None) for member_id in member_ids
-    ]
+    users = []
+    for member_id in member_ids:
+        result = get_recipient_from_team_or_user(user_id=member_id, team_id=None)
+        if isinstance(result, RpcUser):
+            users.append(result)
+    return users
 
 
 PROVIDER_DEFAULTS: list[ExternalProviderEnum] = get_provider_defaults()

@@ -71,17 +71,19 @@ class NotificationController:
             )
         )[0]
         if features.has("organizations:team-workflow-notifications", org):
-            self.recipients: Iterable[RpcActor] | Iterable[Team] | Iterable[RpcUser] = []
+            self.recipients: list[Recipient] = []
             for recipient in recipients:
-                if recipient_is_team(recipient):
-                    if team_is_valid_recipient(recipient):  # type: ignore  # recipient_is_team assures recipient type is okay
+                if recipient_is_team(
+                    recipient
+                ):  # this call assures the recipient type is okay (so can safely ignore below type errors)
+                    if team_is_valid_recipient(recipient):  # type: ignore
                         self.recipients.append(recipient)
                     else:
-                        self.recipients += get_team_members(recipient)
+                        self.recipients += get_team_members(recipient)  # type: ignore
                 else:
                     self.recipients.append(recipient)
         else:
-            self.recipients = recipients
+            self.recipients = list(recipients)
         self.project_ids = project_ids
         self.organization_id = organization_id
         self.type = type
