@@ -6,6 +6,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import {GroupStatus} from 'sentry/types';
 import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -14,7 +15,7 @@ interface Props {
   feedbackItem: HydratedFeedbackItem;
 }
 
-export default function useResolveFeedback({feedbackItem}: Props) {
+export default function useUpdateFeedback({feedbackItem}: Props) {
   const feedbackId = feedbackItem.feedback_id;
 
   const api = useApi();
@@ -24,20 +25,25 @@ export default function useResolveFeedback({feedbackItem}: Props) {
     return `/organizations/${organization.slug}/issues/${feedbackId}/`;
   }, [feedbackId, organization]);
 
-  const handleResolve = useCallback(async () => {
-    addLoadingMessage(t('Updating feedback...'));
-    try {
-      await api.requestPromise(url, {
-        method: 'PUT',
-        data: {status: feedbackItem.status === 'unresolved' ? 'resolved' : 'unresolved'},
-      });
-      addSuccessMessage(t('Updated feedback'));
-    } catch {
-      addErrorMessage(t('An error occurred while resolving the feedback.'));
-    }
-  }, [api, url, feedbackItem.status]);
+  const handleUpdate = useCallback(
+    async (newStatus: GroupStatus) => {
+      addLoadingMessage(t('Updating feedback...'));
+      try {
+        await api.requestPromise(url, {
+          method: 'PUT',
+          data: {
+            status: newStatus,
+          },
+        });
+        addSuccessMessage(t('Updated feedback'));
+      } catch {
+        addErrorMessage(t('An error occurred while archiving the feedback.'));
+      }
+    },
+    [api, url]
+  );
 
   return {
-    onResolve: () => handleResolve(),
+    onUpdate: (newStatus: GroupStatus) => handleUpdate(newStatus),
   };
 }

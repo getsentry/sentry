@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -10,7 +10,7 @@ import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedba
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
-import useResolveFeedback from 'sentry/components/feedback/feedbackItem/useResolveFeedback';
+import onUpdateFeedback from 'sentry/components/feedback/feedbackItem/useUpdateFeedback';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
@@ -18,7 +18,7 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconEllipsis, IconJson, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event} from 'sentry/types';
+import {Event, GroupStatus} from 'sentry/types';
 import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -30,8 +30,7 @@ interface Props {
 
 export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const organization = useOrganization();
-  const {onResolve} = useResolveFeedback({feedbackItem});
-  const [isResolved, setIsResolved] = useState(feedbackItem.status === 'resolved');
+  const {onUpdate} = onUpdateFeedback({feedbackItem});
   const url = eventData?.tags.find(tag => tag.key === 'url');
 
   return (
@@ -67,7 +66,13 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
             <ErrorBoundary mini>
               <DropdownMenu
                 position="bottom-end"
-                triggerLabel={isResolved ? t('Resolved') : t('Unresolved')}
+                triggerLabel={
+                  feedbackItem.status === GroupStatus.IGNORED
+                    ? t('Archived')
+                    : feedbackItem.status === GroupStatus.RESOLVED
+                    ? t('Resolved')
+                    : t('Unresolved')
+                }
                 triggerProps={{
                   'aria-label': t('Resolve or Archive Menu'),
                   showChevron: true,
@@ -76,16 +81,29 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
                 items={[
                   {
                     key: 'resolve',
-                    label: isResolved ? t('Unresolve') : t('Resolve'),
-                    onAction: () => {
-                      onResolve();
-                      setIsResolved(!isResolved);
-                    },
+                    label:
+                      feedbackItem.status === GroupStatus.RESOLVED
+                        ? t('Unresolve')
+                        : t('Resolve'),
+                    onAction: () =>
+                      onUpdate(
+                        feedbackItem.status === GroupStatus.RESOLVED
+                          ? GroupStatus.UNRESOLVED
+                          : GroupStatus.RESOLVED
+                      ),
                   },
                   {
                     key: 'archive',
-                    label: t('Archive'),
-                    onAction: () => {},
+                    label:
+                      feedbackItem.status === GroupStatus.IGNORED
+                        ? t('Unarchive')
+                        : t('Archive'),
+                    onAction: () =>
+                      onUpdate(
+                        feedbackItem.status === GroupStatus.IGNORED
+                          ? GroupStatus.UNRESOLVED
+                          : GroupStatus.IGNORED
+                      ),
                   },
                 ]}
               />
