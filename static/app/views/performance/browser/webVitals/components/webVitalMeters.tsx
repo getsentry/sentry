@@ -117,7 +117,6 @@ const MeterBarContainer = styled('div')`
   padding: 0;
   cursor: pointer;
   min-width: 180px;
-  max-width: 280px;
 `;
 
 const MeterBarBody = styled('div')`
