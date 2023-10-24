@@ -8,10 +8,11 @@ from django.db.models import Q
 from sentry import features
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
-from sentry.models.organization import Organization
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.team import Team
 from sentry.notifications.helpers import (
     get_default_for_provider,
+    get_team_members,
     get_type_defaults,
     recipient_is_team,
     recipient_is_user,
@@ -24,6 +25,7 @@ from sentry.notifications.types import (
     NotificationSettingsOptionEnum,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS_REVERSE,
@@ -61,14 +63,21 @@ class NotificationController:
         organization_id: int | None = None,
         type: NotificationSettingEnum | None = None,
         provider: ExternalProviderEnum | None = None,
-        organization: Organization | None = None,
     ) -> None:
-        if features.has("organizations:team-workflow-notifications", organization):
-            self.recipients = []
+        org = list(
+            map(
+                serialize_organization_mapping,
+                OrganizationMapping.objects.filter(organization_id=organization_id),
+            )
+        )[0]
+        if features.has("organizations:team-workflow-notifications", org):
+            self.recipients: Iterable[RpcActor] | Iterable[Team] | Iterable[RpcUser] = []
             for recipient in recipients:
                 if recipient_is_team(recipient):
-                    if provider and team_is_valid_recipient(recipient, provider):  # type: ignore  # recipient_is_team assures recipient type is okay
+                    if team_is_valid_recipient(recipient):  # type: ignore  # recipient_is_team assures recipient type is okay
                         self.recipients.append(recipient)
+                    else:
+                        self.recipients += get_team_members(recipient)
                 else:
                     self.recipients.append(recipient)
         else:
