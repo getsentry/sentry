@@ -25,6 +25,8 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
+from sentry.monitors.constants import MAX_TIMEOUT, TIMEOUT
+from sentry.monitors.endpoints.base import MonitorEndpoint
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -36,9 +38,6 @@ from sentry.monitors.models import (
 from sentry.monitors.serializers import MonitorSerializer
 from sentry.monitors.utils import create_alert_rule, update_alert_rule
 from sentry.monitors.validators import MonitorValidator
-
-from ..constants import MAX_TIMEOUT, TIMEOUT
-from .base import MonitorEndpoint
 
 
 @region_silo_endpoint
