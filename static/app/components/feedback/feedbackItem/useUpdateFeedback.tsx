@@ -37,7 +37,7 @@ export default function useUpdateFeedback({feedbackItem}: Props) {
         });
         addSuccessMessage(t('Updated feedback'));
       } catch {
-        addErrorMessage(t('An error occurred while archiving the feedback.'));
+        addErrorMessage(t('An error occurred while updating the feedback.'));
       }
     },
     [api, url]
