@@ -563,7 +563,6 @@ module = [
     "sentry.rules.history.endpoints.project_rule_group_history",
     "sentry.rules.history.endpoints.project_rule_stats",
     "sentry.rules.history.preview",
-    "sentry.rules.processor",
     "sentry.runner.commands.migrations",
     "sentry.runner.importer",
     "sentry.runner.initializer",

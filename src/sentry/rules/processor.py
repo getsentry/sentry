@@ -27,7 +27,9 @@ from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import EventState, history, rules
+from sentry.rules.actions.base import EventAction
 from sentry.rules.conditions.base import EventCondition
+from sentry.rules.filters.base import EventFilter
 from sentry.types.rules import RuleFuture
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
@@ -143,16 +145,22 @@ class RuleProcessor:
         return rule_statuses
 
     def condition_matches(
-        self, condition: Mapping[str, Any], state: EventState, rule: Rule
+        self, condition: dict[str, Any], state: EventState, rule: Rule
     ) -> bool | None:
         condition_cls = rules.get(condition["id"])
         if condition_cls is None:
             self.logger.warning("Unregistered condition %r", condition["id"])
             return None
 
-        condition_inst: EventCondition = condition_cls(self.project, data=condition, rule=rule)
+        condition_inst = condition_cls(self.project, data=condition, rule=rule)
+        if not isinstance(condition_inst, (EventCondition, EventFilter)):
+            self.logger.warning("Unregistered condition %r", condition["id"])
+            return None
         passes: bool = safe_execute(
-            condition_inst.passes, self.event, state, _with_transaction=False
+            condition_inst.passes,
+            self.event,
+            state,
+            _with_transaction=False,
         )
         return passes
 
@@ -274,6 +282,9 @@ class RuleProcessor:
                 continue
 
             action_inst = action_cls(self.project, data=action, rule=rule)
+            if not isinstance(action_inst, EventAction):
+                self.logger.warning("Unregistered action %r", action["id"])
+                continue
 
             results = safe_execute(
                 action_inst.after,
