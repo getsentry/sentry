@@ -1796,6 +1796,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:user-feedback-ingest": False,
     # Enable User Feedback v2 UI
     "organizations:user-feedback-ui": False,
+    # Enable User Feedback v1
+    "organizations:old-user-feedback": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.

@@ -232,12 +232,19 @@ class DatabaseBackedAppService(AppService):
         self,
         *,
         organization_id: int,
-        integration_creator: str,
+        # TODO @athena: deprecate after landing integration_creator_id changes
+        integration_creator: Optional[str] = None,
         integration_name: str,
         integration_scopes: List[str],
+        # TODO @athena: make required after getsenry changes
+        integration_creator_id: Optional[int] = None,
     ) -> RpcSentryAppInstallation:
         # if the 'integration' already exists, don't recreate it...
-        admin_user = User.objects.get(email=integration_creator)
+        admin_user = (
+            User.objects.get(id=integration_creator_id)
+            if integration_creator_id
+            else User.objects.get(email=integration_creator)
+        )
 
         sentry_app_query = SentryApp.objects.filter(
             owner_id=organization_id,

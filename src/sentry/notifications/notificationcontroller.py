@@ -10,6 +10,7 @@ from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.notifications.helpers import (
     get_default_for_provider,
     get_team_members,
@@ -34,7 +35,7 @@ from sentry.types.integrations import (
     ExternalProviders,
 )
 
-Recipient = Union[RpcActor, Team, RpcUser]
+Recipient = Union[RpcActor, Team, RpcUser, User]
 
 
 def sort_settings_by_scope(setting: NotificationSettingOption | NotificationSettingProvider) -> int:
@@ -58,7 +59,7 @@ class NotificationController:
 
     def __init__(
         self,
-        recipients: Iterable[RpcActor] | Iterable[Team] | Iterable[RpcUser],
+        recipients: Iterable[RpcActor] | Iterable[Team] | Iterable[RpcUser] | Iterable[User],
         project_ids: Iterable[int] | None = None,
         organization_id: int | None = None,
         type: NotificationSettingEnum | None = None,

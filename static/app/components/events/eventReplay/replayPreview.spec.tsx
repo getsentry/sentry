@@ -1,4 +1,6 @@
 import {Organization} from 'sentry-fixture/organization';
+import {RRWebInitFrameEvents} from 'sentry-fixture/replay/rrweb';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render as baseRender, screen} from 'sentry-test/reactTestingLibrary';
@@ -35,14 +37,14 @@ jest.mock('screenfull', () => ({
 
 // Get replay data with the mocked replay reader params
 const mockReplay = ReplayReader.factory({
-  replayRecord: TestStubs.ReplayRecord({
+  replayRecord: ReplayRecordFixture({
     browser: {
       name: 'Chrome',
       version: '110.0.0',
     },
   }),
   errors: [],
-  attachments: TestStubs.Replay.RRWebInitFrameEvents({
+  attachments: RRWebInitFrameEvents({
     timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
   }),
 });
@@ -57,7 +59,7 @@ mockUseReplayReader.mockImplementation(() => {
     projectSlug: TestStubs.Project().slug,
     replay: mockReplay,
     replayId: mockReplayId,
-    replayRecord: TestStubs.ReplayRecord(),
+    replayRecord: ReplayRecordFixture(),
   };
 });
 
@@ -106,7 +108,7 @@ describe('ReplayPreview', () => {
         projectSlug: TestStubs.Project().slug,
         replay: mockReplay,
         replayId: mockReplayId,
-        replayRecord: TestStubs.ReplayRecord(),
+        replayRecord: ReplayRecordFixture(),
       };
     });
 
@@ -133,7 +135,7 @@ describe('ReplayPreview', () => {
         projectSlug: TestStubs.Project().slug,
         replay: null,
         replayId: mockReplayId,
-        replayRecord: TestStubs.ReplayRecord(),
+        replayRecord: ReplayRecordFixture(),
       };
     });
 

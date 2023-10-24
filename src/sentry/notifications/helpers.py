@@ -690,7 +690,7 @@ def should_use_notifications_v2(organization: Organization):
     return features.has("organizations:notification-settings-v2", organization)
 
 
-def recipient_is_user(recipient: RpcActor | Team | RpcUser) -> bool:
+def recipient_is_user(recipient: RpcActor | Team | RpcUser | User) -> bool:
     from sentry.models.user import User
 
     if isinstance(recipient, RpcActor) and recipient.actor_type == ActorType.USER:
@@ -698,7 +698,7 @@ def recipient_is_user(recipient: RpcActor | Team | RpcUser) -> bool:
     return isinstance(recipient, (RpcUser, User))
 
 
-def recipient_is_team(recipient: RpcActor | Team | RpcUser) -> bool:
+def recipient_is_team(recipient: RpcActor | Team | RpcUser | User) -> bool:
     from sentry.models.team import Team
 
     if isinstance(recipient, RpcActor) and recipient.actor_type == ActorType.TEAM:
