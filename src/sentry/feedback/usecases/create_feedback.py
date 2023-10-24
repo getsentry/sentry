@@ -76,7 +76,7 @@ def create_feedback_issue(event, project_id):
         "tags": event.get("tags", {}),
         **event,
     }
-    _fix_for_issue_platform(event_data)
+    # _fix_for_issue_platform(event_data)
 
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_data

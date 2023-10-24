@@ -1,6 +1,11 @@
+import logging
 from typing import Any, Mapping
 
-EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
+from sentry_kafka_schemas import SchemaNotFound, sentry_kafka_schemas
+
+logger = logging.getLogger(__name__)
+
+LEGACY_EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
     "type": "object",
     "properties": {
         # required properties
@@ -154,3 +159,11 @@ EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
     ],
     "additionalProperties": False,
 }
+
+try:
+    EVENT_PAYLOAD_SCHEMA = sentry_kafka_schemas._get_schema("events")["schema"]
+except SchemaNotFound:
+    logger.exception(
+        "Failed to load Events schema from Kafka schemas, using legacy hardcoded schema"
+    )
+    EVENT_PAYLOAD_SCHEMA = LEGACY_EVENT_PAYLOAD_SCHEMA
