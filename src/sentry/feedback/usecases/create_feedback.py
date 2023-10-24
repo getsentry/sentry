@@ -23,30 +23,6 @@ def make_evidence(feedback):
     return evidence_data, evidence_display
 
 
-def _fix_for_issue_platform(event_data):
-    # the issue platform has slightly different requirements than ingest
-    # for event schema, so we need to massage the data a bit
-    event_data["timestamp"] = ensure_aware(
-        datetime.datetime.fromtimestamp(event_data["timestamp"])
-    ).isoformat()
-    if "contexts" not in event_data:
-        event_data["contexts"] = {}
-
-    if event_data.get("feedback"):
-        event_data["contexts"]["feedback"] = event_data["feedback"]
-        del event_data["feedback"]
-
-    if event_data.get("dist") is not None:
-        del event_data["dist"]
-    if event_data.get("user", {}).get("name") is not None:
-        del event_data["user"]["name"]
-    if event_data.get("user", {}).get("isStaff") is not None:
-        del event_data["user"]["isStaff"]
-
-    if event_data.get("user", {}).get("id") is not None:
-        event_data["user"]["id"] = str(event_data["user"]["id"])
-
-
 def create_feedback_issue(event, project_id):
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
@@ -79,7 +55,6 @@ def create_feedback_issue(event, project_id):
         "tags": event.get("tags", {}),
         **event,
     }
-    # _fix_for_issue_platform(event_data)
 
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_data
