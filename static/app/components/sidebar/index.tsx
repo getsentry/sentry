@@ -363,10 +363,11 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconMegaphone />}
-        label={t('Bug Reports')}
+        label={t('User Feedback')}
         to={`/organizations/${organization.slug}/feedback/`}
         id="feedback"
         isAlpha
+        variant="short"
       />
     </Feature>
   );
