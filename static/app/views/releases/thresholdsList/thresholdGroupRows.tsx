@@ -105,22 +105,24 @@ export function ThresholdGroupRows({
     setEditingThresholds(updatedEditingThresholds);
   };
 
-  const saveThreshold = thresholdIds => {
+  const saveThreshold = (thresholdIds: string[]) => {
     thresholdIds.forEach(id => {
       const thresholdData = editingThresholds[id];
-      const submitData: {[key: string]: any} = {...thresholdData};
+      const seconds = moment
+        // @ts-ignore: ts is unhappy with moment string duration format
+        .duration(thresholdData.windowValue, thresholdData.windowSuffix)
+        .as('seconds');
+      const submitData = {
+        ...thresholdData,
+        window_in_seconds: seconds,
+        environment: thresholdData.environment.name, // api expects environment as a string
+      };
       let path = `/projects/${orgSlug}/${thresholdData.project.slug}/release-thresholds/${id}/`;
       let method: APIRequestMethod = 'PUT';
       if (id.includes(NEW_THRESHOLD_PREFIX)) {
         path = `/projects/${orgSlug}/${thresholdData.project.slug}/release-thresholds/`;
         method = 'POST';
       }
-      const seconds = moment
-        // @ts-ignore: ts is unhappy with moment string duration format
-        .duration(thresholdData.windowValue, thresholdData.windowSuffix)
-        .as('seconds');
-      submitData.window_in_seconds = seconds;
-      submitData.environment = thresholdData.environment.name; // api expects environment as a string
       const request = api.requestPromise(path, {
         method,
         data: submitData,
@@ -132,14 +134,16 @@ export function ThresholdGroupRows({
         })
         .catch(_err => {
           setError('Issue saving threshold');
-          const errorThreshold = {
-            ...submitData,
-            hasError: true,
-            environment: thresholdData.environment, // convert local state environment back to object
-          };
-          const updatedEditingThresholds = {...editingThresholds};
-          updatedEditingThresholds[id] = errorThreshold as EditingThreshold;
-          setEditingThresholds(updatedEditingThresholds);
+          setEditingThresholds(prevState => {
+            const errorThreshold = {
+              ...submitData,
+              hasError: true,
+              environment: thresholdData.environment, // convert local state environment back to object
+            };
+            const updatedEditingThresholds = {...prevState};
+            updatedEditingThresholds[id] = errorThreshold;
+            return updatedEditingThresholds;
+          });
         });
     });
   };

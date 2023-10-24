@@ -11,14 +11,10 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import PanelTable from 'sentry/components/panels/panelTable';
-// import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-// import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-// import {Project} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-// import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 
 import Header from '../components/header';
