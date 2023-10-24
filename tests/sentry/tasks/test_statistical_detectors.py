@@ -580,7 +580,7 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
                 self.org.id,
                 project_id,
                 "distribution",
-                TransactionMRI.DURATION.value,
+                TransactionMRI.DURATION_LIGHT.value,
                 {"transaction": transaction},
                 int((self.now - timedelta(minutes=minutes_ago)).timestamp()),
                 value,
