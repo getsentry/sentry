@@ -268,7 +268,10 @@ def mark_environment_missing(monitor_environment_id: int, ts: datetime):
             id=monitor_environment_id
         )
     except MonitorEnvironment.DoesNotExist:
-        # safety check in case monitor environment was deleted
+        logger.info(
+            "monitor.missed-checkin.monitor_environment_deleted",
+            extra={"monitor_environment_id": monitor_environment_id},
+        )
         return
 
     monitor = monitor_environment.monitor
@@ -359,7 +362,7 @@ def mark_checkin_timeout(checkin_id: int, ts: datetime):
             .get(id=checkin_id)
         )
     except MonitorCheckIn.DoesNotExist:
-        # safety check in case check-in was deleted
+        logger.info("checkin.timeout.checkin_deleted", extra={"checkin_id": checkin_id})
         return
 
     monitor_environment = checkin.monitor_environment
