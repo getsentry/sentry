@@ -65,8 +65,12 @@ class NotificationController:
         type: NotificationSettingEnum | None = None,
         provider: ExternalProviderEnum | None = None,
     ) -> None:
-        org = serialize_organization_mapping(
-            OrganizationMapping.objects.filter(organization_id=organization_id).first()
+        org = (
+            serialize_organization_mapping(
+                OrganizationMapping.objects.filter(organization_id=organization_id).first()
+            )
+            if organization_id
+            else None
         )
         if features.has("organizations:team-workflow-notifications", org):
             self.recipients: list[Recipient] = []
