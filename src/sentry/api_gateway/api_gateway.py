@@ -29,6 +29,7 @@ REGION_PINNED_URL_NAMES = (
     "sentry-api-0-relays-details",
     "sentry-error-page-embed",
     "sentry-release-hook",
+    "sentry-api-0-projects",
 )
 
 
