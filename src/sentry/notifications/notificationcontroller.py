@@ -59,7 +59,7 @@ class NotificationController:
 
     def __init__(
         self,
-        recipients: Iterable[RpcActor] | Iterable[Team] | Iterable[RpcUser] | Iterable[User],
+        recipients: Iterable[Recipient],
         project_ids: Iterable[int] | None = None,
         organization_id: int | None = None,
         type: NotificationSettingEnum | None = None,
