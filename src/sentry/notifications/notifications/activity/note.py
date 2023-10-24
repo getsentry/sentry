@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any, Mapping, Optional
 
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
@@ -13,10 +13,10 @@ class NoteActivityNotification(GroupActivityNotification):
     metrics_key = "note_activity"
     template_path = "sentry/emails/activity/note"
 
-    def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
+    def get_description(self) -> tuple[str, Optional[str], Mapping[str, Any]]:
         # Notes may contain {} characters so we should escape them.
         text = str(self.activity.data["text"]).replace("{", "{{").replace("}", "}}")
-        return text, {}, {}
+        return text, None, {}
 
     @property
     def title(self) -> str:
