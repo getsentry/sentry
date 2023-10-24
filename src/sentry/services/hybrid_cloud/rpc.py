@@ -84,6 +84,11 @@ class RpcMethodSignature(SerializableFunctionSignature):
         super().__init__(base_method, is_instance_method=True)
         self._region_resolution = self._extract_region_resolution()
 
+    def _setup_exception(self, message: str) -> RpcServiceSetupException:
+        return RpcServiceSetupException(
+            self.base_service_cls.__name__, self.base_function.__name__, message
+        )
+
     def get_name_segments(self) -> Sequence[str]:
         return (self.base_service_cls.__name__, self.base_function.__name__)
 
