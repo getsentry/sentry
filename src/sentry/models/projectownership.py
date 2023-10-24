@@ -244,8 +244,6 @@ class ProjectOwnership(Model):
         We combine the schemas from IssueOwners and CodeOwners.
 
         """
-        from django.db.models import Q
-
         from sentry import analytics
         from sentry.models.activity import ActivityIntegration
         from sentry.models.groupassignee import GroupAssignee
@@ -314,10 +312,13 @@ class ProjectOwnership(Model):
                         },
                     )
                     return
-
-            if not GroupAssignee.objects.filter(
-                Q(user_id=owner.id) | Q(team=owner.id), group=group
-            ).exists():
+            if (
+                isinstance(owner, Team)
+                and not GroupAssignee.objects.filter(group=group, team=owner.id).exists()
+            ) or (
+                isinstance(owner, User)
+                and not GroupAssignee.objects.filter(group=group, user_id=owner.id).exists()
+            ):
                 assignment = GroupAssignee.objects.assign(
                     group,
                     owner,
