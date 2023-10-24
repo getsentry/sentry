@@ -8,7 +8,7 @@ type Props = {
   children: React.ReactNode;
   button?: JSX.Element;
   subtitle?: string;
-  title?: string | JSX.Element;
+  title?: string;
 };
 
 export default function MiniChartPanel({title, children, button, subtitle}: Props) {
