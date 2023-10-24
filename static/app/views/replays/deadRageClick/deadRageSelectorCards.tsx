@@ -107,9 +107,7 @@ function AccordionWidget({
   return (
     <StyledWidgetContainer>
       <StyledHeaderContainer>
-        <ClickColor color={clickColor}>
-          <IconCursorArrow />
-        </ClickColor>
+        <IconCursorArrow color={clickColor} />
         {header}
       </StyledHeaderContainer>
       {isLoading ? (
@@ -187,10 +185,10 @@ function AccordionItemHeader({
   selectorQuery: string;
 }) {
   const clickCount = (
-    <ClickColor color={clickColor}>
-      <IconCursorArrow size="xs" />
+    <ClickCount>
+      <IconCursorArrow size="xs" color={clickColor} />
       {count}
-    </ClickColor>
+    </ClickCount>
   );
   return (
     <StyledAccordionHeader>
@@ -248,8 +246,8 @@ const SplitCardContainer = styled('div')`
   align-items: stretch;
 `;
 
-const ClickColor = styled(TextOverflow)<{color: ColorOrAlias}>`
-  color: ${p => p.theme[p.color]};
+const ClickCount = styled(TextOverflow)`
+  color: ${p => p.theme.gray400};
   display: grid;
   grid-template-columns: auto auto;
   gap: ${space(0.75)};
