@@ -799,35 +799,44 @@ class NotificationControllerTest(TestCase):
         assert controller.get_users_for_weekly_reports() == []
 
     @with_feature("organizations:team-workflow-notifications")
-    def test_removes_teams_without_slack_as_provider(self):
-        self.team1 = self.create_team(organization=self.organization, name="Mariachi Band 1")
-        self.team2 = self.create_team(organization=self.organization, name="Mariachi Band 2")
-
-        link_team(self.team1, self.integration, "#mariachi-band-1", "mariachi-band-1_id")
+    def test_fallback_if_invalid_team_provider(self):
+        team = self.create_team()
+        user1 = self.create_user()
+        user2 = self.create_user()
+        self.create_member(user=user1, organization=self.organization, role="member", teams=[team])
+        self.create_member(user=user2, organization=self.organization, role="member", teams=[team])
 
         controller = NotificationController(
-            recipients=[self.team1, self.team2],
+            recipients=[team],
             organization_id=self.organization.id,
-            type=NotificationSettingEnum.WORKFLOW,
-            provider=ExternalProviderEnum.EMAIL,
-            organization=self.organization,
         )
 
-        assert len(controller.recipients) == 0
+        assert len(controller.recipients) == 2
 
     @with_feature("organizations:team-workflow-notifications")
-    def test_removes_teams_without_slack_channel(self):
-        self.team1 = self.create_team(organization=self.organization, name="Mariachi Band 1")
-        self.team2 = self.create_team(organization=self.organization, name="Mariachi Band 2")
-
-        link_team(self.team1, self.integration, "#mariachi-band-1", "mariachi-band-1_id")
+    def test_keeps_team_as_recipient_if_valid_provider(self):
+        team = self.create_team()
+        user1 = self.create_user()
+        user2 = self.create_user()
+        self.create_member(user=user1, organization=self.organization, role="member", teams=[team])
+        self.create_member(user=user2, organization=self.organization, role="member", teams=[team])
+        link_team(team, self.integration, "#team-channel", "team_channel_id")
 
         controller = NotificationController(
-            recipients=[self.team1, self.team2],
+            recipients=[team],
             organization_id=self.organization.id,
-            type=NotificationSettingEnum.WORKFLOW,
-            provider=ExternalProviderEnum.SLACK,
-            organization=self.organization,
         )
 
         assert len(controller.recipients) == 1
+
+    @with_feature("organizations:team-workflow-notifications")
+    def test_non_team_recipients_remain(self):
+        user1 = self.create_user()
+        user2 = self.create_user()
+
+        controller = NotificationController(
+            recipients=[user1, user2],
+            organization_id=self.organization.id,
+        )
+
+        assert len(controller.recipients) == 2
