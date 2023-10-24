@@ -116,7 +116,7 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
         assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.RESOLVED).exists()
 
     @with_feature("organizations:issue-platform-api-crons-sd")
-    @patch("sentry.issues.status_change_message.logger.error")
+    @patch("sentry.issues.status_change_consumer.logger.error")
     def test_with_invalid_status_change(self, mock_logger_error: MagicMock) -> None:
         event = self.store_event(
             data={
@@ -182,19 +182,22 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
     @with_feature("organizations:issue-platform-api-crons-sd")
     def test_with_invalid_payloads(self) -> None:
         with pytest.raises(ValueError, match="occurrence must be provided"):
+            # Should raise an error because the occurrence is not provided for the OCCURRENCE payload type.
             produce_occurrence_to_kafka(
                 payload_type=PayloadType.OCCURRENCE,
             )
 
         with pytest.raises(ValueError, match="status_change must be provided"):
+            # Should raise an error because the status_change object is not provided for the STATUS_CHANGE payload type.
             produce_occurrence_to_kafka(
                 payload_type=PayloadType.STATUS_CHANGE,
             )
 
         with pytest.raises(NotImplementedError, match="Unknown payload type: invalid"):
+            # Should raise an error because the payload type is not supported.
             produce_occurrence_to_kafka(payload_type="invalid")  # type: ignore
 
-    @patch("sentry.issues.status_change_message.logger.error")
+    @patch("sentry.issues.status_change_consumer.logger.error")
     @with_feature("organizations:issue-platform-api-crons-sd")
     def test_invalid_hashes(self, mock_logger_error) -> None:
         event = self.store_event(

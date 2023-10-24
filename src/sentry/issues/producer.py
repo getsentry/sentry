@@ -9,6 +9,7 @@ from django.conf import settings
 
 from sentry import features
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.status_change_consumer import get_group_from_fingerprint, update_status
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud import ValueEqualityEnum
@@ -58,7 +59,9 @@ def produce_occurrence_to_kafka(
     _occurrence_producer.produce(Topic(settings.KAFKA_INGEST_OCCURRENCES), payload)
 
 
-def _prepare_occurrence_message(occurrence, event_data):
+def _prepare_occurrence_message(
+    occurrence: IssueOccurrence | None, event_data: Optional[Dict[str, Any]]
+) -> MutableMapping[str, Any] | None:
     if not occurrence:
         raise ValueError("occurrence must be provided")
     if event_data and occurrence.event_id != event_data["event_id"]:
@@ -86,7 +89,7 @@ def _prepare_occurrence_message(occurrence, event_data):
 
 
 def _prepare_status_change_message(
-    status_change: StatusChangeMessage,
+    status_change: StatusChangeMessage | None,
 ) -> MutableMapping[str, Any] | None:
     if not status_change:
         raise ValueError("status_change must be provided")
@@ -99,10 +102,10 @@ def _prepare_status_change_message(
         # Do the change
         # If we're not running Kafka then we're just in dev. Skip producing to Kafka and just
         # write to the issue platform directly
-        group = status_change.get_group_from_fingerprint()
+        group = get_group_from_fingerprint(status_change.to_dict())
         if not group:
             return None
-        status_change.update_status(group)
+        update_status(group, status_change.to_dict())
         return None
 
     payload_data = cast(MutableMapping[str, Any], status_change.to_dict())
