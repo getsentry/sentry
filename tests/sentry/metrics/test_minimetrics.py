@@ -1,5 +1,6 @@
 from typing import Any, Dict
 from unittest import mock
+from unittest.mock import patch
 
 import pytest
 from sentry_sdk import Client, Hub, Transport
@@ -228,6 +229,58 @@ def test_composite_backend_does_not_recurse(hub):
     assert metrics[0][4]["x"] == "bar"
 
     assert len(hub.client.metrics_aggregator.buckets) == 0
+
+
+@override_options(
+    {
+        "delightful_metrics.minimetrics_sample_rate": 1.0,
+    }
+)
+@patch("sentry.metrics.minimetrics.sentry_sdk")
+@pytest.mark.parametrize("unit,expected_unit", [(None, "none"), ("second", "second")])
+def test_unit_is_correctly_propagated_for_incr(sentry_sdk, unit, expected_unit):
+    backend = MiniMetricsMetricsBackend(prefix="")
+
+    params = {"key": "sentrytest.unit", "value": 10.0, "tags": {"x": "bar"}, "unit": unit}
+
+    # We want to mutate the params since `value` is passed as `amount`.
+    incr_params = params.copy()
+    del incr_params["value"]
+    incr_params["amount"] = params["value"]
+    backend.incr(**incr_params)
+    assert sentry_sdk.metrics.incr.call_args.kwargs == {**params, "unit": expected_unit}
+
+
+@override_options(
+    {
+        "delightful_metrics.minimetrics_sample_rate": 1.0,
+    }
+)
+@patch("sentry.metrics.minimetrics.sentry_sdk")
+@pytest.mark.parametrize("unit,expected_unit", [(None, "second"), ("second", "second")])
+def test_unit_is_correctly_propagated_for_timing(sentry_sdk, unit, expected_unit):
+    backend = MiniMetricsMetricsBackend(prefix="")
+
+    params = {"key": "sentrytest.unit", "value": 10.0, "tags": {"x": "bar"}, "unit": unit}
+
+    backend.timing(**params)
+    assert sentry_sdk.metrics.distribution.call_args.kwargs == {**params, "unit": expected_unit}
+
+
+@override_options(
+    {
+        "delightful_metrics.minimetrics_sample_rate": 1.0,
+    }
+)
+@patch("sentry.metrics.minimetrics.sentry_sdk")
+@pytest.mark.parametrize("unit,expected_unit", [(None, "none"), ("second", "second")])
+def test_unit_is_correctly_propagated_for_gauge(sentry_sdk, unit, expected_unit):
+    backend = MiniMetricsMetricsBackend(prefix="")
+
+    params = {"key": "sentrytest.unit", "value": 10.0, "tags": {"x": "bar"}, "unit": unit}
+
+    backend.gauge(**params)
+    assert sentry_sdk.metrics.incr.call_args.kwargs == {**params, "unit": expected_unit}
 
 
 def test_did_you_remove_type_ignore():
