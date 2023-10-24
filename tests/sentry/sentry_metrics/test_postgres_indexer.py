@@ -33,11 +33,11 @@ class PostgresIndexerV2Test(TestCase):
         """
         key = f"{self.use_case_id.value}:123:oop"
 
-        assert indexer_cache.get(key) is None
+        assert indexer_cache.get("br", key) is None
 
         assert isinstance(self.indexer.indexer, PGStringIndexerV2)
         self.indexer.indexer._get_db_records(
             UseCaseKeyCollection({self.use_case_id: {123: {"oop"}}})
         )
 
-        assert indexer_cache.get(key) is None
+        assert indexer_cache.get("br", key) is None
