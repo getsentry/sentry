@@ -439,7 +439,9 @@ class User(BaseModel, AbstractBaseUser):
                 SuperuserUserSerializer,
                 UserSerializer,
             )
-            from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
+            from sentry.services.hybrid_cloud.lost_password_hash.impl import (
+                DatabaseLostPasswordHashService,
+            )
 
             serializer_cls = BaseUserSerializer
             if scope not in {ImportScope.Config, ImportScope.Global}:
@@ -453,9 +455,7 @@ class User(BaseModel, AbstractBaseUser):
             self.save(force_insert=True)
 
             if scope != ImportScope.Global:
-                # TODO(getsentry/team-ospo#190): the following is an RPC call which could fail for
-                # transient reasons (network etc). How do we handle that?
-                lost_password_hash_service.get_or_create(user_id=self.id)
+                DatabaseLostPasswordHashService().get_or_create(user_id=self.id)
 
             # TODO(getsentry/team-ospo#191): we need to send an email informing the user of their
             # new account with a resettable password - we'll need to figure out where in the process
