@@ -87,6 +87,9 @@ function Event({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       startTimestampMs={startTimestampMs}
+      traces={undefined}
+      onDimensionChange={() => {}}
+      onInspectorExpanded={() => {}}
     />
   ));
   const title = <TooltipWrapper>{buttons}</TooltipWrapper>;

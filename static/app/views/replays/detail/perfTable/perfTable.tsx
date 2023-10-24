@@ -33,7 +33,7 @@ export default function PerfTable({perfData}: Props) {
   const {currentTime, currentHoverTime, replay} = useReplayContext();
   const startTimestampMs = replay?.getReplay().started_at.getTime() ?? 0;
 
-  const traceRows = perfData.data;
+  const traceRows = Array.from(perfData.data.values());
 
   const filterProps = usePerfFilters({traceRows: traceRows || []});
   const {items} = filterProps; // setSearchTerm
