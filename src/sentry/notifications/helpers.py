@@ -35,7 +35,7 @@ from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS,
-    PERSONAL_NOTIFICATION_PROVIDERS,
+    PERSONAL_NOTIFICATION_PROVIDERS_AS_INT,
     ExternalProviderEnum,
     ExternalProviders,
     get_provider_enum_from_string,
@@ -724,10 +724,7 @@ def team_is_valid_recipient(team: Team | RpcActor) -> bool:
 
     linked_integration = ExternalActor.objects.filter(
         team_id=team.id,
-        provider__in=[
-            get_provider_enum_from_string(provider_name).value
-            for provider_name in PERSONAL_NOTIFICATION_PROVIDERS
-        ],
+        provider__in=PERSONAL_NOTIFICATION_PROVIDERS_AS_INT,
     )
     if linked_integration:
         return True
