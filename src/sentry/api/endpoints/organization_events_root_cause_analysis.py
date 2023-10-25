@@ -23,7 +23,7 @@ BUFFER = timedelta(hours=6)
 BASE_REFERRER = "api.organization-events-root-cause-analysis"
 SPAN_ANALYSIS = "span"
 GEO_ANALYSIS = "geo"
-SPAN_ANALYSIS_SCORE_THRESHOLD = 1
+SPAN_ANALYSIS_SCORE_THRESHOLD = 0
 RESPONSE_KEYS = [
     "span_op",
     "span_group",

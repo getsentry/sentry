@@ -254,6 +254,16 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 "p95_before": 60.0,
                 "p95_after": 546.0,
             },
+            {
+                "p95_after": 60.0,
+                "p95_before": 60.0,
+                "score": 0.020833333333333336,
+                "span_description": "db span",
+                "span_group": "5ad8c5a1e8d0e5f7",
+                "span_op": "db",
+                "spm_after": 0.0006944444444444445,
+                "spm_before": 0.00034722222222222224,
+            },
         ]
 
     def test_results_are_limited(self):
