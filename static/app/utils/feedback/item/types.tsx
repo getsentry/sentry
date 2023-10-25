@@ -24,5 +24,9 @@ export type RawFeedbackItemResponse = Overwrite<
 
 export type HydratedFeedbackItem = Overwrite<
   RawFeedbackItemResponse,
-  {feedback_id: string; replay_id: undefined; timestamp: Date}
+  {
+    feedback_id: string;
+    replay_id: undefined;
+    timestamp: Date;
+  }
 >;
