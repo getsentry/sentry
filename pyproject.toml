@@ -186,7 +186,6 @@ module = [
     "sentry.api.endpoints.integrations.sentry_apps.stats.index",
     "sentry.api.endpoints.internal.mail",
     "sentry.api.endpoints.internal.stats",
-    "sentry.api.endpoints.issue_occurrence",
     "sentry.api.endpoints.notifications.notification_actions_available",
     "sentry.api.endpoints.notifications.notification_actions_details",
     "sentry.api.endpoints.organization_access_request_details",
