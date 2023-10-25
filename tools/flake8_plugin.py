@@ -32,13 +32,14 @@ S009_modules = frozenset(
 )
 
 
+def is_test_file(path: str) -> bool:
+    return "tests/" in path or "fixtures/" in path or "sentry/testutils/" in path
+
+
 class SentryVisitor(ast.NodeVisitor):
     def __init__(self, filename: str) -> None:
         self.errors: list[tuple[int, int, str]] = []
         self.filename = filename
-
-    def is_test_file(self, path):
-        return "tests/" in path or "fixtures/" in path or "sentry/testutils/" in path
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         if node.module and not node.level:
@@ -52,9 +53,9 @@ class SentryVisitor(ast.NodeVisitor):
                 and any(x.name in {"force_bytes", "force_str"} for x in node.names)
             ):
                 self.errors.append((node.lineno, node.col_offset, S006_msg))
-            elif not self.is_test_file(self.filename) and "sentry.testutils" in node.module:
+            elif not is_test_file(self.filename) and "sentry.testutils" in node.module:
                 self.errors.append((node.lineno, node.col_offset, S007_msg))
-            elif not self.is_test_file(self.filename) and node.module in S009_modules:
+            elif not is_test_file(self.filename) and node.module in S009_modules:
                 self.errors.append((node.lineno, node.col_offset, S009_msg))
 
             if node.module == "pytz" and any(x.name.lower() == "utc" for x in node.names):
@@ -66,9 +67,9 @@ class SentryVisitor(ast.NodeVisitor):
         for alias in node.names:
             if alias.name.split(".")[0] in S003_modules:
                 self.errors.append((node.lineno, node.col_offset, S003_msg))
-            elif not self.is_test_file(self.filename) and "sentry.testutils" in alias.name:
+            elif not is_test_file(self.filename) and "sentry.testutils" in alias.name:
                 self.errors.append((node.lineno, node.col_offset, S007_msg))
-            elif not self.is_test_file(self.filename) and alias.name in S009_modules:
+            elif not is_test_file(self.filename) and alias.name in S009_modules:
                 self.errors.append((node.lineno, node.col_offset, S009_msg))
 
         self.generic_visit(node)
