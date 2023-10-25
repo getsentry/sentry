@@ -415,7 +415,7 @@ class OrganizationEventsSampleEndpoint(APITestCase, SnubaTestCase):
         self.store_event(self.transaction_data, project_id=self.project.id)
         response = self.client.get(
             self.url,
-            data={"lowerBound": 0, "upperBound": 1000, "dataset": "discover", "seed": "aa"},
+            data={"lowerBound": "0", "upperBound": "1000", "dataset": "discover", "seed": "aa"},
             format="json",
         )
 
@@ -437,7 +437,7 @@ class OrganizationEventsSampleEndpoint(APITestCase, SnubaTestCase):
         self.store_event(self.transaction_data, project_id=self.project.id)
         response = self.client.get(
             self.url,
-            data={"lowerBound": 0, "upperBound": 1000, "dataset": "discover", "seed": "aa"},
+            data={"lowerBound": "0", "upperBound": "1000", "dataset": "discover", "seed": "aa"},
             format="json",
         )
 
@@ -468,8 +468,8 @@ class OrganizationEventsSampleEndpoint(APITestCase, SnubaTestCase):
         response = self.client.get(
             self.url,
             data={
-                "lowerBound": 0,
-                "upperBound": 1000,
+                "lowerBound": "0",
+                "upperBound": "1000",
                 "dataset": "discover",
                 "seed": "aa",
                 "statsPeriod": "1h",
@@ -505,8 +505,8 @@ class OrganizationEventsSampleEndpoint(APITestCase, SnubaTestCase):
         response = self.client.get(
             self.url,
             data={
-                "lowerBound": 0,
-                "upperBound": 1000,
+                "lowerBound": "0",
+                "upperBound": "1000",
                 "dataset": "discover",
                 "seed": "aa",
                 "statsPeriod": "1h",
@@ -542,8 +542,8 @@ class OrganizationEventsSampleEndpoint(APITestCase, SnubaTestCase):
         response = self.client.get(
             self.url,
             data={
-                "lowerBound": 250,
-                "upperBound": 1000,
+                "lowerBound": "250",
+                "upperBound": "1000",
                 "dataset": "discover",
                 "seed": "aa",
                 "statsPeriod": "1h",
@@ -579,8 +579,8 @@ class OrganizationEventsSampleEndpoint(APITestCase, SnubaTestCase):
             self.url,
             # Nothing within bounds, so we should return something still
             data={
-                "lowerBound": 0,
-                "upperBound": 10,
+                "lowerBound": "0",
+                "upperBound": "10",
                 "dataset": "discover",
                 "seed": "aa",
                 "statsPeriod": "1h",
@@ -614,7 +614,7 @@ class OrganizationEventsSampleEndpoint(APITestCase, SnubaTestCase):
 
         response = self.client.get(
             self.url,
-            data={"lowerBound": 0, "upperBound": 10, "seed": "aa", "statsPeriod": "1h"},
+            data={"lowerBound": "0", "upperBound": "10", "seed": "aa", "statsPeriod": "1h"},
             format="json",
         )
 
