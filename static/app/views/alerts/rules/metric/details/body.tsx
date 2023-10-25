@@ -213,11 +213,11 @@ export default function MetricDetailsBody({
                   size="xs"
                   icon={<IconEdit size="xs" />}
                 >
-                  {t('Edit')}
+                  {t('Review Thresholds')}
                 </LinkButton>
               }
             >
-              {t('The current thresholds for this alert could use some review')}
+              {t('The current thresholds for this alert could use some review.')}
             </Alert>
           ) : null}
 

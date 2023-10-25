@@ -129,6 +129,8 @@ type State = {
   triggers: Trigger[];
   comparisonDelta?: number;
   isExtrapolatedChartData?: boolean;
+  // TODO(telemetry-experiment): remove this state once the migration is complete
+  triggersHaveChanged?: boolean;
   uuid?: string;
 } & DeprecatedAsyncComponent['state'];
 
@@ -472,6 +474,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleFieldChange = (name: string, value: unknown) => {
     const {projects} = this.props;
+
     const dataset = this.checkOnDemandMetricsDataset(
       this.state.dataset,
       this.state.query
@@ -703,7 +706,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         clearIndicators();
       }
 
-      return {triggers, triggerErrors};
+      return {triggers, triggerErrors, triggersHaveChanged: true};
     });
   };
 
@@ -931,6 +934,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       dataset,
       alertType,
       isExtrapolatedChartData,
+      triggersHaveChanged,
     } = this.state;
 
     const wizardBuilderChart = this.renderTriggerChart();
@@ -982,8 +986,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const submitDisabled = formDisabled || !this.state.isQueryValid;
 
     const showMigrationWarning =
-      true ||
-      (!!ruleId && hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule));
+      !!ruleId && hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
 
     return (
       <Main fullWidth>
@@ -1033,7 +1036,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               </Confirm>
             ) : null
           }
-          submitLabel={isMigration ? t('Looks good to me!') : t('Save Rule')}
+          submitLabel={
+            isMigration && !triggersHaveChanged ? t('Looks good to me!') : t('Save Rule')
+          }
         >
           <List symbol="colored-numeric">
             <RuleConditionsForm
