@@ -112,7 +112,6 @@ function NumericChange({
   afterRawValue: number;
   beforeRawValue: number;
   columnKey: string;
-  isDuration?: boolean;
 }) {
   const organization = useOrganization();
   const location = useLocation();
