@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING, List, Mapping, Type, cast
 from django.http import HttpRequest
 from django.http.response import HttpResponseBase
 
+from sentry.utils import metrics
+
 if TYPE_CHECKING:
     from sentry.middleware.integrations.integration_control import ResponseHandler
     from sentry.middleware.integrations.parsers.base import BaseRequestParser
@@ -114,7 +116,7 @@ class IntegrationClassification(BaseClassification):
         parser_class = self.integration_parsers.get(provider)
         if not parser_class:
             self.logger.error(
-                "unknown_provider",
+                "integration_control.unknown_provider",
                 extra={"path": request.path, "provider": provider},
             )
             return self.response_handler(request)
@@ -123,5 +125,12 @@ class IntegrationClassification(BaseClassification):
             request=request,
             response_handler=self.response_handler,
         )
-        self.logger.info(f"routing_request.{parser.provider}", extra={"path": request.path})
-        return parser.get_response()
+        self.logger.info(
+            f"integration_control.routing_request.{parser.provider}", extra={"path": request.path}
+        )
+        response = parser.get_response()
+        metrics.incr(
+            f"hybrid_cloud.integration_control.integration.{parser.provider}",
+            tags={"url_name": parser.match.url_name, "status_code": response.status_code},
+        )
+        return response
