@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Optional, Sequence
 from unittest.mock import ANY
 
 import pytest
@@ -31,7 +31,7 @@ def create_alert(
     query: str,
     project: Project,
     dataset: Dataset = Dataset.PerformanceMetrics,
-    environment: Environment = None,
+    environment: Optional[Environment] = None,
 ) -> AlertRule:
     snuba_query = SnubaQuery.objects.create(
         aggregate=aggregate,
@@ -173,6 +173,8 @@ def test_get_metric_extraction_config_environment(default_project, default_envir
 
         no_env, default_env = config["metrics"]
 
+        # assert that the conditions are different
+        assert no_env["condition"] != default_env["condition"]
         # assert that environment is part of the hash
         assert no_env["tags"][0]["value"] != default_env["tags"][0]["value"]
 
