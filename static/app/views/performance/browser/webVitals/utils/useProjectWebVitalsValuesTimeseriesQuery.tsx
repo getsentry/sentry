@@ -27,7 +27,7 @@ export const useProjectWebVitalsValuesTimeseriesQuery = ({transaction}: Props) =
         'p75(measurements.ttfb)',
         'p75(measurements.fid)',
         'count()',
-        'p95(transaction.duration)',
+        'p75(transaction.duration)',
         'failure_count()',
         'eps()',
       ],
@@ -98,7 +98,7 @@ export const useProjectWebVitalsValuesTimeseriesQuery = ({transaction}: Props) =
       {key: 'p75(measurements.ttfb)', series: data.ttfb},
       {key: 'p75(measurements.fid)', series: data.fid},
       {key: 'count()', series: data.count},
-      {key: 'p95(transaction.duration)', series: data.duration},
+      {key: 'p75(transaction.duration)', series: data.duration},
       {key: 'failure_count()', series: data.errors},
       {key: 'eps()', series: data.eps},
     ];

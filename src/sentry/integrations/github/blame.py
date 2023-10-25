@@ -147,8 +147,14 @@ def extract_commits_from_blame_response(
                 )
                 if not blame_info:
                     logger.error(
-                        f"No matching commit found for line {matching_file.lineno} in file {matching_file.path} in branch {matching_file.ref} in repository {full_repo_name} in GitHub.",
-                        extra=extra,
+                        "get_blame_for_files.extract_commits_from_blame.missing_line_blame",
+                        extra={
+                            **extra,
+                            "file_lineno": matching_file.lineno,
+                            "file_path": matching_file.path,
+                            "branch_name": matching_file.ref,
+                            "repo_name": full_repo_name,
+                        },
                     )
                     continue
                 file_blames.append(blame_info)

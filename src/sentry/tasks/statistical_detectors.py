@@ -107,7 +107,7 @@ def run_detection() -> None:
 
             if len(performance_projects) >= PROJECTS_PER_BATCH:
                 detect_transaction_trends.delay(
-                    [p.organization_id for p in performance_projects],
+                    list({p.organization_id for p in performance_projects}),
                     [p.id for p in performance_projects],
                     now,
                 )
@@ -127,7 +127,7 @@ def run_detection() -> None:
     # make sure to dispatch a task to handle the remaining projects
     if performance_projects:
         detect_transaction_trends.delay(
-            [p.organization_id for p in performance_projects],
+            list({p.organization_id for p in performance_projects}),
             [p.id for p in performance_projects],
             now,
         )
@@ -229,11 +229,13 @@ def _detect_transaction_change_points(
         request = {
             "data": data,
             "sort": "-trend_percentage()",
-            "min_change()": 100_000_000,  # require a minimum 100ms increase (in ns)
             # Disable the fall back to use the midpoint as the breakpoint
             # which was originally intended to detect a gradual regression
             # for the trends use case. That does not apply here.
             "allow_midpoint": "0",
+            "trend_percentage()": 0.5,
+            "min_change()": 200_000_000,
+            "validate_tail_hours": 12,
         }
 
         try:
@@ -243,9 +245,29 @@ def _detect_transaction_change_points(
             continue
 
 
+def get_all_transaction_payloads(
+    org_ids: List[int], project_ids: List[int], start: datetime, end: datetime
+) -> Generator[DetectorPayload, None, None]:
+    projects_per_query = options.get("statistical_detectors.query.batch_size")
+    assert projects_per_query > 0
+
+    for chunked_project_ids in chunked(project_ids, projects_per_query):
+        try:
+            yield from query_transactions(
+                org_ids, chunked_project_ids, start, end, TRANSACTIONS_PER_PROJECT
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            continue
+
+
 def _detect_transaction_trends(
     org_ids: List[int], project_ids: List[int], start: datetime
 ) -> Generator[Tuple[Optional[TrendType], DetectorPayload], None, None]:
+    enabled_performance_projects: Set[int] = set(
+        options.get("statistical_detectors.enable.projects.performance")
+    )
+
     unique_project_ids: Set[int] = set()
 
     transactions_count = 0
@@ -253,6 +275,7 @@ def _detect_transaction_trends(
     improved_count = 0
 
     detector_config = MovingAverageRelativeChangeDetectorConfig(
+        change_metric="statistical_detectors.rel_change.transactions",
         min_data_points=6,
         short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
         long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
@@ -264,9 +287,10 @@ def _detect_transaction_trends(
     start = start - timedelta(hours=1)
     start = start.replace(minute=0, second=0, microsecond=0)
     end = start + timedelta(hours=1)
-    all_transaction_payloads = query_transactions(
-        org_ids, project_ids, start, end, TRANSACTIONS_PER_PROJECT
-    )
+    all_transaction_payloads = get_all_transaction_payloads(org_ids, project_ids, start, end)
+
+    projects = Project.objects.filter(id__in=project_ids).select_related("organization")
+    project_by_id = {project.id: project for project in projects}
 
     for payloads in chunked(all_transaction_payloads, 100):
         transactions_count += len(payloads)
@@ -297,7 +321,17 @@ def _detect_transaction_trends(
 
             unique_project_ids.add(payload.project_id)
 
-            yield (trend_type, payload)
+            project = project_by_id.get(payload.project_id)
+            if payload.project_id in enabled_performance_projects or (
+                project is not None
+                and features.has(
+                    "organizations:performance-statistical-detectors-breakpoint",
+                    project.organization,
+                )
+            ):
+                # if the feature is not enabled, do not yield the results so it
+                # does not continue on to the breakpoint detection
+                yield (trend_type, payload)
 
         detector_store.bulk_write_states(payloads, states)
 
@@ -347,8 +381,11 @@ def query_transactions_timeseries(
         project_ids = {p for p, _ in transaction_chunk}
         project_objects = Project.objects.filter(id__in=project_ids)
         org_ids = list({project.organization_id for project in project_objects})
+        # The only tag available on DURATION_LIGHT is `transaction`: as long as
+        # we don't filter on any other tags, DURATION_LIGHT's lower cardinality
+        # will be faster to query.
         duration_metric_id = indexer.resolve(
-            use_case_id, org_ids[0], str(TransactionMRI.DURATION.value)
+            use_case_id, org_ids[0], str(TransactionMRI.DURATION_LIGHT.value)
         )
         transaction_name_metric_id = indexer.resolve(
             use_case_id,
@@ -553,6 +590,10 @@ def detect_function_change_points(
 def _detect_function_trends(
     project_ids: List[int], start: datetime
 ) -> Generator[Tuple[Optional[TrendType], DetectorPayload], None, None]:
+    enabled_profiling_projects: Set[int] = set(
+        options.get("statistical_detectors.enable.projects.profiling")
+    )
+
     unique_project_ids: Set[int] = set()
 
     functions_count = 0
@@ -560,15 +601,18 @@ def _detect_function_trends(
     improved_count = 0
 
     detector_config = MovingAverageRelativeChangeDetectorConfig(
+        change_metric="statistical_detectors.rel_change.functions",
         min_data_points=6,
         short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
         long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
-        threshold=0.1,
+        threshold=0.2,
     )
 
     detector_store = redis.RedisDetectorStore()
 
-    for payloads in chunked(all_function_payloads(project_ids, start), 100):
+    projects = Project.objects.filter(id__in=project_ids).select_related("organization")
+    project_by_id = {project.id: project for project in projects}
+    for payloads in chunked(all_function_payloads(projects, start), 100):
         functions_count += len(payloads)
 
         raw_states = detector_store.bulk_read_states(payloads)
@@ -598,7 +642,16 @@ def _detect_function_trends(
 
             unique_project_ids.add(payload.project_id)
 
-            yield (trend_type, payload)
+            project = project_by_id.get(payload.project_id)
+            if payload.project_id in enabled_profiling_projects or (
+                project is not None
+                and features.has(
+                    "organizations:profiling-statistical-detectors-breakpoint", project.organization
+                )
+            ):
+                # if the feature is not enabled, do not yield the results so it
+                # does not continue on to the breakpoint detection
+                yield (trend_type, payload)
 
         detector_store.bulk_write_states(payloads, states)
 
@@ -656,7 +709,7 @@ def _detect_function_change_points(
         request = {
             "data": data,
             "sort": "-trend_percentage()",
-            "trendFunction": trend_function,
+            "min_change()": 100_000_000,  # require a minimum 100ms increase (in ns)
             # Disable the fall back to use the midpoint as the breakpoint
             # which was originally intended to detect a gradual regression
             # for the trends use case. That does not apply here.
@@ -752,27 +805,13 @@ def emit_function_regression_issue(
 
 
 def all_function_payloads(
-    project_ids: List[int],
+    projects: List[Project],
     start: datetime,
 ) -> Generator[DetectorPayload, None, None]:
-    enabled_profiling_projects: Set[int] = set(
-        options.get("statistical_detectors.enable.projects.profiling")
-    )
-
     projects_per_query = options.get("statistical_detectors.query.batch_size")
     assert projects_per_query > 0
 
-    selected_projects = Project.objects.filter(id__in=project_ids).select_related("organization")
-    selected_projects = filter(
-        lambda project: (
-            features.has(
-                "organizations:profiling-statistical-detectors-breakpoint", project.organization
-            )
-            or project.id in enabled_profiling_projects
-        ),
-        selected_projects,
-    )
-    for projects in chunked(selected_projects, projects_per_query):
+    for projects in chunked(projects, projects_per_query):
         try:
             yield from query_functions(projects, start)
         except Exception as e:
@@ -826,30 +865,13 @@ def query_transactions(
     end: datetime,
     transactions_per_project: int,
 ) -> List[DetectorPayload]:
-    enabled_performance_projects: Set[int] = set(
-        options.get("statistical_detectors.enable.projects.performance")
-    )
-
-    projects = [
-        project
-        for project in Project.objects.filter(id__in=project_ids).select_related("organization")
-        if (
-            project.id in enabled_performance_projects
-            or features.has(
-                "organizations:performance-statistical-detectors-breakpoint", project.organization
-            )
-        )
-    ]
-    project_ids = [project.id for project in projects]
-    org_ids = list({project.organization_id for project in projects})
-
-    if not project_ids or not org_ids:
-        return []
-
     use_case_id = UseCaseID.TRANSACTIONS
 
     # both the metric and tag that we are using are hardcoded values in sentry_metrics.indexer.strings
     # so the org_id that we are using does not actually matter here, we only need to pass in an org_id
+    #
+    # Because we filter on more than just `transaction`, we have to use DURATION here instead of
+    # DURATION_LIGHT.
     duration_metric_id = indexer.resolve(
         use_case_id, org_ids[0], str(TransactionMRI.DURATION.value)
     )
@@ -935,11 +957,7 @@ def query_transactions(
         query=query,
         tenant_ids={
             "referrer": Referrer.STATISTICAL_DETECTORS_FETCH_TOP_TRANSACTION_NAMES.value,
-            # HACK: the allocation policy is going to reject this query unless there is an org_id
-            # passed in. The allocation policy will be updated to handle cross-org queries better
-            # As it is now (09-13-2023), this query will likely be throttled (i.e be slower) by the allocation
-            # policy as soon as we start scanning more than just the sentry org
-            "organization_id": -42069,
+            "cross_org_query": 1,
             "use_case_id": use_case_id.value,
         },
     )

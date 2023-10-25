@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from django.conf import settings
 from django.db import models, router, transaction
 from django.utils import timezone
 
+from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
@@ -20,12 +21,12 @@ from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupowner import GroupOwner
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.signals import issue_assigned, issue_unassigned
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
-    from sentry.models.actor import ActorTuple
     from sentry.models.group import Group
     from sentry.models.team import Team
     from sentry.models.user import User
@@ -66,6 +67,53 @@ class GroupAssigneeManager(BaseManager):
 
         return (assignee_type, assignee_type_attr, other_type)
 
+    def remove_old_assignees(
+        self, group: Group, previous_assignee: Optional[GroupAssignee]
+    ) -> None:
+        if not features.has("organizations:participants-purge", group.organization):
+            return
+
+        if not previous_assignee:
+            return
+
+        if (
+            features.has("organizations:team-workflow-notifications", group.organization)
+            and previous_assignee.team
+        ):
+            GroupSubscription.objects.filter(
+                group=group,
+                project=group.project,
+                team=previous_assignee.team,
+                reason=GroupSubscriptionReason.assigned,
+            ).delete()
+            logger.info(
+                "groupassignee.remove",
+                extra={"group_id": group.id, "team_id": previous_assignee.team.id},
+            )
+        elif previous_assignee.team:
+            team_members = list(previous_assignee.team.member_set.values_list("user_id", flat=True))
+            GroupSubscription.objects.filter(
+                group=group,
+                project=group.project,
+                user_id__in=team_members,
+                reason=GroupSubscriptionReason.assigned,
+            ).delete()
+            logger.info(
+                "groupassignee.remove",
+                extra={"group_id": group.id, "team_id": previous_assignee.team.id},
+            )
+        else:
+            GroupSubscription.objects.filter(
+                group=group,
+                project=group.project,
+                user_id=previous_assignee.user_id,
+                reason=GroupSubscriptionReason.assigned,
+            ).delete()
+            logger.info(
+                "groupassignee.remove",
+                extra={"group_id": group.id, "user_id": previous_assignee.user_id},
+            )
+
     def assign(
         self,
         group: Group,
@@ -75,7 +123,6 @@ class GroupAssigneeManager(BaseManager):
         extra: Dict[str, str] | None = None,
         force_autoassign: bool = False,
     ):
-        from sentry import features
         from sentry.integrations.utils import sync_group_assignee_outbound
         from sentry.models.activity import Activity
         from sentry.models.groupsubscription import GroupSubscription
@@ -96,7 +143,6 @@ class GroupAssigneeManager(BaseManager):
                 "date_added": now,
             },
         )
-
         if not created:
             affected = not create_only and (
                 self.filter(group=group)
@@ -131,6 +177,9 @@ class GroupAssigneeManager(BaseManager):
             ):
                 sync_group_assignee_outbound(group, assigned_to.id, assign=True)
 
+            if not created:  # aka re-assignment
+                self.remove_old_assignees(group, assignee)
+
         return {"new_assignment": created, "updated_assignment": bool(not created and affected)}
 
     def deassign(
@@ -140,38 +189,20 @@ class GroupAssigneeManager(BaseManager):
         assigned_to: Team | RpcUser | None = None,
         extra: Dict[str, str] | None = None,
     ) -> None:
-        from sentry import features
         from sentry.integrations.utils import sync_group_assignee_outbound
         from sentry.models.activity import Activity
         from sentry.models.projectownership import ProjectOwnership
-        from sentry.models.team import Team
-        from sentry.services.hybrid_cloud.user.service import user_service
 
-        previous_assignee: User | RpcUser | Team | None = None
         try:
             previous_groupassignee = self.get(group=group)
         except GroupAssignee.DoesNotExist:
             previous_groupassignee = None
-        else:
-            if previous_groupassignee.user_id:
-                previous_assignee = user_service.get_user(previous_groupassignee.user_id)
-            else:
-                previous_assignee = Team.objects.get(id=previous_groupassignee.team.id)
 
         affected = self.filter(group=group)[:1].count()
         self.filter(group=group).delete()
 
         if affected > 0:
-            if features.has("organizations:participants-purge", group.organization) and assigned_to:
-                assignee_type, _, _ = self.get_assignee_data(assigned_to)
-                data = self.get_assigned_to_data(assigned_to, assignee_type, extra)
-                Activity.objects.create_group_activity(
-                    group, ActivityType.ASSIGNED, user=acting_user, data=data
-                )
-            else:
-                Activity.objects.create_group_activity(
-                    group, ActivityType.UNASSIGNED, user=acting_user
-                )
+            Activity.objects.create_group_activity(group, ActivityType.UNASSIGNED, user=acting_user)
 
             record_group_history(group, GroupHistoryStatus.UNASSIGNED, actor=acting_user)
 
@@ -187,33 +218,6 @@ class GroupAssigneeManager(BaseManager):
             GroupOwner.invalidate_assignee_exists_cache(group.project.id, group.id)
             GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(group.project.id, group.id)
 
-            if (
-                features.has("organizations:participants-purge", group.organization)
-                and previous_assignee
-            ):
-                if (
-                    features.has("organizations:team-workflow-notifications", group.organization)
-                    and type(previous_assignee) is Team
-                ):
-                    GroupSubscription.objects.filter(
-                        group=group,
-                        project=group.project,
-                        team=previous_assignee,
-                        reason=GroupSubscriptionReason.assigned,
-                    ).delete()
-                elif type(previous_assignee) is Team:
-                    team_members = list(
-                        previous_assignee.member_set.values_list("user_id", flat=True)
-                    )
-                    for member in team_members:
-                        GroupSubscription.objects.filter(
-                            group=group, project=group.project, user_id=member
-                        ).delete()
-                else:
-                    GroupSubscription.objects.filter(
-                        group=group, project=group.project, user_id=previous_assignee.id
-                    ).delete()
-
             metrics.incr("group.assignee.change", instance="deassigned", skip_internal=True)
             # sync Sentry assignee to external issues
             if features.has(
@@ -224,6 +228,7 @@ class GroupAssigneeManager(BaseManager):
             issue_unassigned.send_robust(
                 project=group.project, group=group, user=acting_user, sender=self.__class__
             )
+            self.remove_old_assignees(group, previous_groupassignee)
 
 
 @region_silo_only_model
@@ -256,17 +261,13 @@ class GroupAssignee(Model):
         ), "Must have Team or User, not both"
         super().save(*args, **kwargs)
 
-    def assigned_actor_id(self) -> str:
-        # TODO(mgaeta): Create migration for GroupAssignee to use the Actor model.
-        if self.user_id:
-            return f"user:{self.user_id}"
-
-        if self.team:
-            return f"team:{self.team_id}"
+    def assigned_actor(self) -> RpcActor:
+        if self.user_id is not None:
+            return RpcActor(
+                id=self.user_id,
+                actor_type=ActorType.USER,
+            )
+        if self.team_id is not None:
+            return RpcActor(id=self.team_id, actor_type=ActorType.TEAM)
 
         raise NotImplementedError("Unknown Assignee")
-
-    def assigned_actor(self) -> ActorTuple:
-        from sentry.models.actor import ActorTuple
-
-        return ActorTuple.from_actor_identifier(self.assigned_actor_id())

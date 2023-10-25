@@ -41,13 +41,15 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
 
   const columnNameMap = {
     transaction: t('Screen'),
-    'avg(measurements.time_to_initial_display)': DataTitles.ttid,
-    'avg(measurements.time_to_full_display)': DataTitles.ttfd,
+    [`avg_if(measurements.time_to_initial_display,release,${primaryRelease})`]:
+      t('TTID (Release 1)'),
+    [`avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`]:
+      t('TTID (Release 2)'),
+    [`avg_if(measurements.time_to_full_display,release,${primaryRelease})`]:
+      t('TTFD (Release 1)'),
+    [`avg_if(measurements.time_to_full_display,release,${secondaryRelease})`]:
+      t('TTFD (Release 2)'),
     'count()': DataTitles.count,
-    [`avg_compare(measurements.time_to_initial_display,release,${primaryRelease},${secondaryRelease})`]:
-      DataTitles.change,
-    [`avg_compare(measurements.time_to_full_display,release,${primaryRelease},${secondaryRelease})`]:
-      DataTitles.change,
   };
 
   function renderBodyCell(column, row): React.ReactNode {
@@ -137,7 +139,8 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
         columnOrder={eventViewColumns
           .filter(
             (col: TableColumn<React.ReactText>) =>
-              col.name !== SpanMetricsField.PROJECT_ID
+              col.name !== SpanMetricsField.PROJECT_ID &&
+              !col.name.startsWith('avg_compare')
           )
           .map((col: TableColumn<React.ReactText>) => {
             return {...col, name: columnNameMap[col.key]};

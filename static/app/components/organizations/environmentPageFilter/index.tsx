@@ -9,9 +9,9 @@ import {
 } from 'sentry/components/organizations/hybridFilter';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -75,7 +75,7 @@ export function EnvironmentPageFilter({
   } = usePageFilters();
 
   const environments = useMemo<string[]>(() => {
-    const {user} = ConfigStore.getState();
+    const isSuperuser = isActiveSuperuser();
 
     const unsortedEnvironments = projects.flatMap(project => {
       const projectId = parseInt(project.id, 10);
@@ -86,7 +86,7 @@ export function EnvironmentPageFilter({
       // - all projects if -1 is the only selected project.
       if (
         (projectPageFilterValue.includes(ALL_ACCESS_PROJECTS) && project.hasAccess) ||
-        (projectPageFilterValue.length === 0 && (project.isMember || user.isSuperuser)) ||
+        (projectPageFilterValue.length === 0 && (project.isMember || isSuperuser)) ||
         projectPageFilterValue.includes(projectId)
       ) {
         return project.environments;

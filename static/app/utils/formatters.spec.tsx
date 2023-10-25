@@ -1,6 +1,6 @@
 import {RateUnits} from 'sentry/utils/discover/fields';
 import {
-  DAY,
+  DAY, // ms in day
   formatAbbreviatedNumber,
   formatFloat,
   formatPercentage,
@@ -8,10 +8,15 @@ import {
   formatSecondsToClock,
   getDuration,
   getExactDuration,
-  MONTH,
+  MONTH, // ms in month
   parseClockToSeconds,
+  parseLargestSuffix,
+  SEC_IN_DAY,
+  SEC_IN_HR,
+  SEC_IN_MIN,
+  SEC_IN_WK,
   userDisplayName,
-  WEEK,
+  WEEK, // ms in week
 } from 'sentry/utils/formatters';
 
 describe('getDuration()', function () {
@@ -329,7 +334,7 @@ describe('getExactDuration', () => {
     expect(getExactDuration(0)).toEqual('0 milliseconds');
   });
 
-  it('should format in the right way', () => {
+  it('should format durations without extra suffixes', () => {
     expect(getExactDuration(2.030043848568126)).toEqual('2 seconds 30 milliseconds');
     expect(getExactDuration(0.2)).toEqual('200 milliseconds');
     expect(getExactDuration(13)).toEqual('13 seconds');
@@ -353,5 +358,42 @@ describe('getExactDuration', () => {
 
   it('should abbreviate label', () => {
     expect(getExactDuration(234235435, true)).toEqual('387wk 2d 1hr 23min 55s');
+  });
+
+  it('should pin/truncate to the min suffix precision if provided', () => {
+    expect(getExactDuration(0, false, 'seconds')).toEqual('0 seconds');
+    expect(getExactDuration(0.2, false, 'seconds')).toEqual('0 seconds');
+    expect(getExactDuration(2.030043848568126, false, 'seconds')).toEqual('2 seconds');
+    expect(getExactDuration(13, false, 'seconds')).toEqual('13 seconds');
+    expect(getExactDuration(60, false, 'seconds')).toEqual('1 minute');
+    expect(getExactDuration(121, false, 'seconds')).toEqual('2 minutes 1 second');
+    expect(getExactDuration(234235435.2, false, 'seconds')).toEqual(
+      '387 weeks 2 days 1 hour 23 minutes 55 seconds'
+    );
+  });
+});
+
+describe('parseLargestSuffix', () => {
+  it('parses exact values', () => {
+    expect(parseLargestSuffix(0)).toEqual([0, 'seconds']);
+    expect(parseLargestSuffix(SEC_IN_MIN)).toEqual([1, 'minutes']);
+    expect(parseLargestSuffix(SEC_IN_MIN * 2)).toEqual([2, 'minutes']);
+    expect(parseLargestSuffix(SEC_IN_HR)).toEqual([1, 'hours']);
+    expect(parseLargestSuffix(SEC_IN_DAY)).toEqual([1, 'days']);
+    expect(parseLargestSuffix(SEC_IN_WK, 'weeks')).toEqual([1, 'weeks']);
+  });
+
+  it('parses non-exact values', () => {
+    expect(parseLargestSuffix(SEC_IN_MIN + 1)).toEqual([61, 'seconds']);
+    expect(parseLargestSuffix(SEC_IN_HR + SEC_IN_MIN)).toEqual([61, 'minutes']);
+    expect(parseLargestSuffix(SEC_IN_DAY + SEC_IN_HR)).toEqual([25, 'hours']);
+    expect(parseLargestSuffix(SEC_IN_DAY + SEC_IN_MIN)).toEqual([1441, 'minutes']);
+  });
+
+  it('pins to max suffix', () => {
+    expect(parseLargestSuffix(10, 'minutes')).toEqual([10, 'seconds']);
+    expect(parseLargestSuffix(SEC_IN_WK, 'minutes')).toEqual([10080, 'minutes']);
+    expect(parseLargestSuffix(SEC_IN_WK, 'hours')).toEqual([168, 'hours']);
+    expect(parseLargestSuffix(SEC_IN_WK, 'days')).toEqual([7, 'days']);
   });
 });

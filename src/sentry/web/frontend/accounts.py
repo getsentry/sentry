@@ -167,7 +167,7 @@ def start_confirm_email(request):
     if "primary-email" in request.POST:
         email = request.POST.get("email")
         try:
-            email_to_send = UserEmail.objects.get(user=request.user, email=email)
+            email_to_send = UserEmail.objects.get(user_id=request.user.id, email=email)
         except UserEmail.DoesNotExist:
             msg = _("There was an error confirming your email.")
             level = messages.ERROR

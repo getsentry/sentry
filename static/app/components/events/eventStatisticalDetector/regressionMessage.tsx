@@ -86,13 +86,15 @@ function EventStatisticalDetectorRegressedFunctionMessage({
   const evidenceData = event?.occurrence?.evidenceData;
   const percentageChange = evidenceData?.trendPercentage;
   const detectionTime = new Date(evidenceData?.breakpoint * 1000);
+  const functionName = evidenceData?.function as string;
 
   return (
     <DataSection>
       <div style={{display: 'inline'}}>
         {tct(
-          'There was [change] in duration (P95) from [before] to [after] around [date] at [time]. The example profiles may indicate what changed in the regression.',
+          '[functionName] had a [change] in duration (P95) from [before] to [after] around [date] at [time]. The example profiles may indicate what changed in the regression.',
           {
+            functionName: <code>{functionName}</code>,
             change: defined(percentageChange)
               ? t('a %s increase', formatPercentage(percentageChange - 1))
               : t('an increase'),

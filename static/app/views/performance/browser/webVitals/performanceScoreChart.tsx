@@ -170,8 +170,8 @@ const Flex = styled('div')`
   flex-direction: row;
   justify-content: space-between;
   width: 100%;
-  gap: ${space(2)};
-  margin-top: ${space(2)};
+  gap: ${space(1)};
+  margin-top: ${space(1)};
 `;
 
 const PerformanceScoreLabelContainer = styled('div')`
@@ -202,7 +202,7 @@ const ProgressRingContainer = styled('div')``;
 
 const ProgressRingText = styled('text')`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.textColor};
+  fill: ${p => p.theme.textColor};
   font-weight: bold;
 `;
 
