@@ -6,12 +6,12 @@ export type ThresholdQuery = {
 };
 
 export type Threshold = {
-  date_added: string;
   environment: Environment;
   id: string;
   project: Project;
   threshold_type: string;
-  trigger_type: string;
+  trigger_type: 'over' | 'under';
   value: number;
   window_in_seconds: number;
+  date_added?: string;
 };
