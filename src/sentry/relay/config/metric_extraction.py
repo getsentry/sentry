@@ -209,14 +209,14 @@ def _convert_snuba_query_to_metric(
     If the passed snuba_query is a valid query for on-demand metric extraction,
     returns a tuple of (hash, MetricSpec) for the query. Otherwise, returns None.
     """
-
-    # TODO: extract into function, add safe access, check for case where name is empty or none
-    query_string = snuba_query.query
-    if snuba_query.environment is not None:
-        query_string = f"environment:{snuba_query.environment} {query_string}"
-
+    environment = snuba_query.environment.name if snuba_query.environment is not None else None
     return _convert_aggregate_and_query_to_metric(
-        project, snuba_query.dataset, snuba_query.aggregate, query_string, prefilling
+        project,
+        snuba_query.dataset,
+        snuba_query.aggregate,
+        snuba_query.query,
+        environment,
+        prefilling,
     )
 
 
@@ -244,6 +244,7 @@ def _convert_widget_query_to_metric(
             Dataset.PerformanceMetrics.value,
             aggregate,
             widget_query.conditions,
+            None,
             prefilling,
         ):
             _log_on_demand_metric_spec(
@@ -269,13 +270,16 @@ def _convert_aggregate_and_query_to_metric(
     dataset: str,
     aggregate: str,
     query: str,
+    environment: Optional[str],
     prefilling: bool,
-    environment: Optional[str] = None,
 ) -> Optional[HashedMetricSpec]:
     """
     Converts an aggregate and a query to a metric spec with its hash value.
     """
     try:
+        # We can avoid injection of the environment in the query, since it's supported by standard, thus it won't change
+        # the supported state of a query, since if it's standard, and we added environment it will still be standard
+        # and if it's on demand, it will always be on demand irrespectively of what we add.
         if not should_use_on_demand_metrics(dataset, aggregate, query, prefilling):
             return None
 

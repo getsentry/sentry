@@ -96,7 +96,7 @@ class TestCreatesOndemandMetricSpec:
                 "apdex(10)",
                 "",
             ),  # apdex with specified threshold is on-demand metric even without query
-            ("count()", "transaction.duration:>0 my-transaction isSideLoaded"),
+            ("count()", "transaction.duration:>0 my-transaction"),
         ],
     )
     def test_creates_on_demand_spec(self, aggregate, query):
@@ -153,6 +153,70 @@ def test_spec_simple_query_distribution():
     assert spec.field_to_extract == "event.measurements.fp.value"
     assert spec.op == "p75"
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
+
+
+def test_spec_simple_query_with_environment():
+    spec = OnDemandMetricSpec("count()", "transaction.duration:>1s", "production")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "sum"
+    assert spec.condition == {
+        "inner": [
+            {"name": "event.environment", "op": "eq", "value": "production"},
+            {"name": "event.duration", "op": "gt", "value": 1000.0},
+        ],
+        "op": "and",
+    }
+
+
+def test_spec_query_with_parentheses_and_environment():
+    spec = OnDemandMetricSpec(
+        "count()", "(transaction.duration:>1s OR http.status_code:200)", "production"
+    )
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "sum"
+    assert spec.condition == {
+        "inner": [
+            {"name": "event.environment", "op": "eq", "value": "production"},
+            {
+                "inner": [
+                    {"name": "event.duration", "op": "gt", "value": 1000.0},
+                    {"name": "event.contexts.response.status_code", "op": "eq", "value": "200"},
+                ],
+                "op": "or",
+            },
+        ],
+        "op": "and",
+    }
+
+
+def test_spec_complex_query_with_environment():
+    spec = OnDemandMetricSpec(
+        "count()",
+        "transaction.duration:>1s AND http.status_code:200 OR os.browser:Chrome",
+        "production",
+    )
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "sum"
+    assert spec.condition == {
+        "inner": [
+            {
+                "inner": [
+                    {"name": "event.environment", "op": "eq", "value": "production"},
+                    {"name": "event.duration", "op": "gt", "value": 1000.0},
+                    {"name": "event.contexts.response.status_code", "op": "eq", "value": "200"},
+                ],
+                "op": "and",
+            },
+            {"name": "event.tags.os.browser", "op": "eq", "value": "Chrome"},
+        ],
+        "op": "or",
+    }
 
 
 def test_spec_or_condition():
