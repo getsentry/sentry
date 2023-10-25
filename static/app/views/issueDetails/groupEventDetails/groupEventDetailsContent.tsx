@@ -19,6 +19,7 @@ import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetec
 import {EventAffectedTransactions} from 'sentry/components/events/eventStatisticalDetector/eventAffectedTransactions';
 import EventComparison from 'sentry/components/events/eventStatisticalDetector/eventComparison';
 import {EventFunctionComparisonList} from 'sentry/components/events/eventStatisticalDetector/eventFunctionComparisonList';
+import {EventFunctionRegressionEvidence} from 'sentry/components/events/eventStatisticalDetector/eventFunctionRegressionEvidence';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
 import RegressionMessage from 'sentry/components/events/eventStatisticalDetector/regressionMessage';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
@@ -226,6 +227,9 @@ function ProfilingDurationRegressionIssueDetailsContent({
         <RegressionMessage event={event} group={group} />
         <ErrorBoundary mini>
           <EventFunctionBreakpointChart event={event} />
+        </ErrorBoundary>
+        <ErrorBoundary mini>
+          <EventFunctionRegressionEvidence event={event} />
         </ErrorBoundary>
         <ErrorBoundary mini>
           <EventAffectedTransactions event={event} group={group} project={project} />
