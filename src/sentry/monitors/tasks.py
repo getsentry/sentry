@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from datetime import datetime
 from functools import lru_cache
@@ -124,7 +126,7 @@ def try_monitor_tasks_trigger(ts: datetime, partition: int):
 
     # Find the slowest partition from our sorted set of partitions, where the
     # clock is the score.
-    slowest_partitions = redis_client.zrange(
+    slowest_partitions: list[tuple[str, float]] = redis_client.zrange(
         name=MONITOR_TASKS_PARTITION_CLOCKS,
         withscores=True,
         start=0,

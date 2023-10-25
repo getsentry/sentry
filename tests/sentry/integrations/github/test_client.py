@@ -19,7 +19,7 @@ from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
@@ -271,7 +271,7 @@ class GitHubAppsClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
-    def test_get_blame_for_file_graphql_errors(self, get_jwt):
+    def test_get_blame_for_file_errors_no_data(self, get_jwt):
         responses.add(
             method=responses.POST,
             url="https://api.github.com/graphql",
@@ -285,7 +285,55 @@ class GitHubAppsClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
-    def test_get_blame_for_file_graphql_no_branch(self, get_jwt):
+    def test_get_blame_for_file_missing_repo(self, get_jwt):
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json={
+                "data": {"repository": None},
+                "errors": [{"message": "something"}, {"message": "went wrong"}],
+            },
+            content_type="application/json",
+        )
+        with pytest.raises(ApiError) as excinfo:
+            self.github_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
+        assert excinfo.value.code == 404
+        assert excinfo.value.text == "Repository does not exist in GitHub."
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_get_blame_for_file_missing_branch(self, get_jwt):
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json={
+                "data": {"repository": {"ref": None}},
+                "errors": [{"message": "something"}, {"message": "went wrong"}],
+            },
+            content_type="application/json",
+        )
+        with pytest.raises(ApiError) as excinfo:
+            self.github_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
+        assert excinfo.value.code == 404
+        assert excinfo.value.text == "Branch does not exist in GitHub."
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_get_blame_for_file_rate_limited(self, get_jwt):
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json={
+                "errors": [{"message": "something", "type": "RATE_LIMITED"}],
+            },
+            content_type="application/json",
+        )
+        with pytest.raises(ApiRateLimitedError):
+            self.github_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_get_blame_for_file_graphql_no_data(self, get_jwt):
         responses.add(
             method=responses.POST,
             url="https://api.github.com/graphql",
@@ -294,8 +342,8 @@ class GitHubAppsClientTest(TestCase):
         )
         with pytest.raises(ApiError) as excinfo:
             self.github_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
-        (msg,) = excinfo.value.args
-        assert msg == "Branch does not exist in GitHub."
+        assert excinfo.value.code == 404
+        assert excinfo.value.text == "GitHub returned no data."
 
     @responses.activate
     def test_get_cached_repo_files_caching_functionality(self):
