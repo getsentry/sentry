@@ -177,7 +177,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                             sample_rate=1.0,
                             tags={"occurrence_type": occurrence_data["type"]},
                         )
-                    raise
+                        raise
 
                 event_data["metadata"] = {
                     # This allows us to show the title consistently in discover
