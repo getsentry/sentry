@@ -695,7 +695,6 @@ module = [
     "sentry.web.frontend.debug.debug_codeowners_auto_sync_failure_email",
     "sentry.web.frontend.debug.debug_incident_activity_email",
     "sentry.web.frontend.debug.debug_incident_trigger_email",
-    "sentry.web.frontend.debug.debug_invalid_identity_email",
     "sentry.web.frontend.debug.debug_mfa_added_email",
     "sentry.web.frontend.debug.debug_mfa_removed_email",
     "sentry.web.frontend.debug.debug_new_processing_issues_email",

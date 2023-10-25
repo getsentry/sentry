@@ -12,12 +12,13 @@ import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseCompariso
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
 
-export function ScreenMetricsRibbon() {
+export function ScreenMetricsRibbon({additionalFilters}: {additionalFilters?: string[]}) {
   const {selection} = usePageFilters();
   const location = useLocation();
   const searchQuery = new MutableSearch([
     'event.type:transaction',
     'transaction.op:ui.load',
+    ...(additionalFilters ?? []),
   ]);
 
   const {primaryRelease, isLoading: isReleasesLoading} = useReleaseSelection();
