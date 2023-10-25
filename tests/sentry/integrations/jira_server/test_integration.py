@@ -1,7 +1,6 @@
 import copy
 from functools import cached_property
 from unittest import mock
-from unittest.mock import patch
 
 import pytest
 import responses
@@ -346,6 +345,99 @@ class JiraServerIntegrationTest(APITestCase):
                 "versions",
             ]
 
+    @responses.activate
+    def test_get_create_issue_config_with_project_having_subset_priorities(self):
+        """Test that a project that is limited to a subset of priorities
+        correctly returns the subset instead of all priorities
+        """
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": self.min_ago,
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+
+        responses.add(
+            responses.GET,
+            f"https://jira.example.org/rest/api/2/project/{DEFAULT_PROJECT_ID}/priorityscheme",
+            json={
+                "expand": "projectKeys",
+                "self": "https://jira.example.org/rest/api/2/priorityschemes/1",
+                "id": 1,
+                "name": "Default Priority Scheme",
+                "description": "The default priority scheme that applies to all projects",
+                # Exclude the "medium" priority (id 2)
+                "optionIds": ["1", "3"],
+                "defaultScheme": False,
+            },
+        )
+
+        responses.add(
+            responses.GET,
+            "https://jira.example.org/rest/api/2/priority",
+            json=[
+                {
+                    "self": "https://jira.example.org/rest/api/2/priority/1",
+                    "statusColor": "#f15C75",
+                    "description": "Serious problem that could block progress.",
+                    "iconUrl": "https://jira-integration.getsentry.net/images/icons/priorities/high.svg",
+                    "name": "High",
+                    "id": "1",
+                },
+                {
+                    "self": "https://jira.example.org/rest/api/2/priority/2",
+                    "statusColor": "#f79232",
+                    "description": "Has the potential to affect progress.",
+                    "iconUrl": "https://jira-integration.getsentry.net/images/icons/priorities/medium.svg",
+                    "name": "Medium",
+                    "id": "2",
+                },
+                {
+                    "self": "https://jira.example.org/rest/api/2/priority/3",
+                    "statusColor": "#707070",
+                    "description": "Minor problem or easily worked around.",
+                    "iconUrl": "https://jira-integration.getsentry.net/images/icons/priorities/low.svg",
+                    "name": "Low",
+                    "id": "3",
+                },
+            ],
+        )
+
+        def get_priorities_callthrough_client(installation: JiraServerIntegration):
+            """
+            This functions returns a lambda that when called upon, returns a
+            StubJiraApiClient. The only difference is we don't mock the function
+            call to get_priorities for the stub client.
+            """
+            mock_client = StubJiraApiClient()
+            # set the mock call to the real function
+            setattr(mock_client, "get_priorities", installation.get_client().get_priorities)
+            return lambda: mock_client
+
+        with mock.patch.object(
+            self.installation,
+            "get_client",
+            get_priorities_callthrough_client(installation=self.installation),
+        ):
+            # Initially all fields are present
+            fields = self.installation.get_create_issue_config(group, self.user)
+            priority_field = [field for field in fields if field["name"] == "priority"][0]
+            assert priority_field == {
+                "default": "",
+                "choices": [
+                    ("1", "High"),
+                    ("3", "Low"),
+                ],
+                "type": "select",
+                "name": "priority",
+                "label": "Priority",
+                "required": False,
+            }
+
     def test_get_create_issue_config_with_default_and_param(self):
         event = self.store_event(
             data={
@@ -449,7 +541,7 @@ class JiraServerIntegrationTest(APITestCase):
         assert fields[1]["name"] == "error"
         assert fields[1]["type"] == "blank"
 
-    @patch("sentry.integrations.jira_server.client.JiraServerClient.get_issue_fields")
+    @mock.patch("sentry.integrations.jira_server.client.JiraServerClient.get_issue_fields")
     def test_get_create_issue_config_with_default_project_deleted(self, mock_get_issue_fields):
         event = self.store_event(
             data={
