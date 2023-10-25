@@ -1,5 +1,6 @@
 import {useCallback, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
@@ -115,6 +116,7 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
   const organization = useOrganization();
   const project = useCurrentProjectFromRouteParam();
   const location = useLocation();
+  const theme = useTheme();
 
   const fnTrendCursor = useMemo(
     () => decodeScalar(location.query[REGRESSED_FUNCTIONS_CURSOR]),
@@ -271,7 +273,16 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
                 </div>
               </RegressedFunctionMetricsRow>
               <RegressedFunctionSparklineContainer>
-                <ProfilingSparklineChart points={trendToPoints(fn)} name="" />
+                <ProfilingSparklineChart
+                  name=""
+                  points={trendToPoints(fn)}
+                  color={trendType === 'improvement' ? theme.green300 : theme.red300}
+                  aggregate_range_1={fn.aggregate_range_1}
+                  aggregate_range_2={fn.aggregate_range_2}
+                  breakpoint={fn.breakpoint}
+                  start={fn.stats.data[0][0]}
+                  end={fn.stats.data[fn.stats.data.length - 1][0]}
+                />
               </RegressedFunctionSparklineContainer>
             </RegressedFunctionRow>
           );
