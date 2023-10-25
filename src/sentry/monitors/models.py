@@ -247,6 +247,13 @@ class Monitor(Model):
     Stores the monitor configuration. See MONITOR_CONFIG for the schema.
     """
 
+    last_upsert = models.DateTimeField(null=True)
+    """
+    Stores the last time the monitor upserted via a check-in. Can be compared
+    to the last_checkin across all MonitorEnvironment to determine if the
+    monitor is activly being upserted.
+    """
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitor"
