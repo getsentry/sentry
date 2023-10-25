@@ -2,6 +2,7 @@ from typing import Optional, Tuple
 
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.services.hybrid_cloud.organization import RpcOrganizationMappingFlags
 from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMapping,
     RpcOrganizationMappingUpdate,
@@ -34,4 +35,7 @@ def serialize_organization_mapping(org_mapping: OrganizationMapping) -> RpcOrgan
         date_created=org_mapping.date_created,
         customer_id=org_mapping.customer_id,
         status=org_mapping.status,
+        flags=RpcOrganizationMappingFlags(
+            early_adopter=org_mapping.early_adopter, require_2fa=org_mapping.require_2fa
+        ),
     )

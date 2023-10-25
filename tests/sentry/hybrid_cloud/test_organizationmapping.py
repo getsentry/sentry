@@ -27,6 +27,8 @@ def assert_matching_organization_mapping(org: Organization, customer_id: Optiona
     assert org_mapping.status == org.status
     assert org_mapping.region_name
     assert org_mapping.customer_id == customer_id
+    assert org_mapping.early_adopter == org.flags.early_adopter
+    assert org_mapping.require_2fa == org.flags.require_2fa
 
 
 @control_silo_test(stable=True)

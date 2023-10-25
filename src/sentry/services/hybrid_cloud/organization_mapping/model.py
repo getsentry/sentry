@@ -10,7 +10,10 @@ from django.utils import timezone
 from pydantic.fields import Field
 
 from sentry.services.hybrid_cloud import RpcModel
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.organization import (
+    RpcOrganizationMappingFlags,
+    RpcOrganizationSummary,
+)
 
 
 class RpcOrganizationMapping(RpcOrganizationSummary):
@@ -19,6 +22,7 @@ class RpcOrganizationMapping(RpcOrganizationSummary):
     verified: bool = False
     customer_id: Optional[str] = None
     status: Optional[int] = None
+    flags: RpcOrganizationMappingFlags = Field(default_factory=RpcOrganizationMappingFlags)
 
 
 class RpcOrganizationMappingUpdate(RpcModel):
