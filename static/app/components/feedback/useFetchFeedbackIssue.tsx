@@ -38,6 +38,7 @@ export default function useFetchFeedbackIssue(
 
   return {
     issueData: issueData ? hydrateFeedbackRecord(issueData) : undefined,
+    replayId: eventData?.contexts?.feedback?.replay_id,
     eventData,
     tags: hydrateEventTags(eventData),
     eventResult,
