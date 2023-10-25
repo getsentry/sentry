@@ -1,3 +1,4 @@
+import {MouseEventHandler} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -10,6 +11,8 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import SwitchButton from 'sentry/components/switchButton';
+import {TabList, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -27,7 +30,13 @@ import {useResourcePagesQuery} from 'sentry/views/performance/browser/resources/
 import {useResourceSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 
-const {RESOURCE_TYPE, SPAN_DOMAIN, TRANSACTION, DESCRIPTION} = BrowserStarfishFields;
+const {
+  RESOURCE_TYPE,
+  SPAN_DOMAIN,
+  TRANSACTION,
+  DESCRIPTION,
+  RESOURCE_RENDER_BLOCKING_STATUS,
+} = BrowserStarfishFields;
 
 type Option = {
   label: string;
@@ -38,6 +47,19 @@ function ResourcesLandingPage() {
   const organization = useOrganization();
   const filters = useResourceModuleFilters();
   const sort = useResourceSort();
+  const location = useLocation();
+
+  const handleBlockingToggle: MouseEventHandler = () => {
+    const hasBlocking = filters[RESOURCE_RENDER_BLOCKING_STATUS] === 'blocking';
+    const newBlocking = hasBlocking ? undefined : 'blocking';
+    browserHistory.push({
+      ...location,
+      query: {
+        ...location.query,
+        [RESOURCE_RENDER_BLOCKING_STATUS]: newBlocking,
+      },
+    });
+  };
 
   return (
     <ModulePageProviders title={[t('Performance'), t('Resources')].join(' — ')}>
@@ -61,6 +83,14 @@ function ResourcesLandingPage() {
             <FeatureBadge type="alpha" />
           </Layout.Title>
         </Layout.HeaderContent>
+        <StyledTabs>
+          <TabList hideBorder>
+            <TabList.Item key="resource.css/script">
+              {t('Javascript/Stylesheets')}
+            </TabList.Item>
+            <TabList.Item key="resource.img">{t('Images')}</TabList.Item>
+          </TabList>
+        </StyledTabs>
       </Layout.Header>
 
       <Layout.Body>
@@ -78,8 +108,14 @@ function ResourcesLandingPage() {
             <DomainSelector value={filters[SPAN_DOMAIN] || ''} />
             <ResourceTypeSelector value={filters[RESOURCE_TYPE] || ''} />
             <PageSelector value={filters[TRANSACTION] || ''} />
+            <SwitchContainer>
+              <SwitchButton
+                isActive={filters[RESOURCE_RENDER_BLOCKING_STATUS] === 'blocking'}
+                toggle={handleBlockingToggle}
+              />
+              {t('Render Blocking')}
+            </SwitchContainer>
           </FilterOptionsContainer>
-
           <ResourceTable sort={sort} />
           <ResourceSidebar groupId={filters[DESCRIPTION]} />
         </Layout.Main>
@@ -124,8 +160,7 @@ function ResourceTypeSelector({value}: {value?: string}) {
   const options: Option[] = [
     {value: '', label: 'All'},
     {value: 'resource.script', label: `${t('JavaScript')} (.js)`},
-    {value: '.css', label: `${t('Stylesheet')} (.css)`},
-    {value: 'resource.img', label: `${t('Images')} (.png, .jpg, .jpeg, .gif, etc)`},
+    {value: 'resource.css', label: `${t('Stylesheet')} (.css)`},
   ];
   return (
     <SelectControlWithProps
@@ -172,6 +207,12 @@ function PageSelector({value}: {value?: string}) {
   );
 }
 
+const SwitchContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  column-gap: ${space(1)};
+`;
+
 function SelectControlWithProps(props: ControlProps & {options: Option[]}) {
   return <SelectControl {...props} />;
 }
@@ -180,9 +221,13 @@ export const PaddedContainer = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
+const StyledTabs = styled(Tabs)`
+  grid-column: 1/-1;
+`;
+
 const FilterOptionsContainer = styled('div')`
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: ${space(2)};
   margin-bottom: ${space(2)};
   max-width: 800px;

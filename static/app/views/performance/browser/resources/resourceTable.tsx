@@ -18,13 +18,8 @@ import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/render
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 
-const {
-  SPAN_DESCRIPTION,
-  RESOURCE_RENDER_BLOCKING_STATUS,
-  SPAN_OP,
-  SPAN_SELF_TIME,
-  HTTP_RESPONSE_CONTENT_LENGTH,
-} = SpanMetricsField;
+const {SPAN_DESCRIPTION, SPAN_OP, SPAN_SELF_TIME, HTTP_RESPONSE_CONTENT_LENGTH} =
+  SpanMetricsField;
 
 const {SPM} = SpanFunction;
 
@@ -48,7 +43,10 @@ type Props = {
 
 function ResourceTable({sort}: Props) {
   const location = useLocation();
-  const {data, isLoading, pageLinks} = useResourcesQuery({sort});
+  const {data, isLoading, pageLinks} = useResourcesQuery({
+    sort,
+    defaultResourceTypes: ['resource.script', 'resource.css'],
+  });
 
   const columnOrder: GridColumnOrder<keyof Row>[] = [
     {key: SPAN_DESCRIPTION, width: COL_WIDTH_UNDEFINED, name: 'Resource name'},
@@ -63,16 +61,6 @@ function ResourceTable({sort}: Props) {
       key: `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
       width: COL_WIDTH_UNDEFINED,
       name: t('Avg Resource size'),
-    },
-    {
-      key: RESOURCE_RENDER_BLOCKING_STATUS,
-      width: COL_WIDTH_UNDEFINED,
-      name: t('Render blocking'),
-    },
-    {
-      key: 'http.decoded_response_content_length',
-      width: COL_WIDTH_UNDEFINED,
-      name: t('Uncompressed'),
     },
   ];
   const tableData: Row[] = data.length
