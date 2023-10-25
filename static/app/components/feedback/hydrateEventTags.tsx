@@ -21,9 +21,6 @@ export default function hydrateEventTags(
     ...(eventTags.find(e => e.key === 'environment')
       ? {environment: eventTags.find(e => e.key === 'environment')?.value}
       : {}),
-    ...(eventTags.find(e => e.key === 'releases')
-      ? {releases: eventTags.find(e => e.key === 'releases')?.value}
-      : {}),
     ...(eventTags.find(e => e.key === 'transaction')
       ? {transaction: eventTags.find(e => e.key === 'transaction')?.value}
       : {}),
