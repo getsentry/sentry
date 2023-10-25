@@ -27,7 +27,6 @@ SPAN_ANALYSIS_SCORE_THRESHOLD = 1
 RESPONSE_KEYS = [
     "span_op",
     "span_group",
-    "sample_event_id",
     "spm_before",
     "spm_after",
     "p95_before",

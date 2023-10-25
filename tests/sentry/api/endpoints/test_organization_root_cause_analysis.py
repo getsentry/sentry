@@ -243,12 +243,6 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
             )
 
         assert response.status_code == 200, response.content
-
-        # Check that sample IDs are gathered, but remove them from the data
-        # for checking since they are randomized
-        assert all("sample_event_id" in row for row in response.data)
-        for row in response.data:
-            del row["sample_event_id"]
         assert response.data == [
             {
                 "span_op": "django.middleware",
@@ -331,10 +325,6 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
             )
 
         assert response.status_code == 200, response.content
-
-        for row in response.data:
-            del row["sample_event_id"]
-
         assert len(response.data) == 1
         assert response.data == [
             {
