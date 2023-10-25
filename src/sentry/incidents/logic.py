@@ -596,6 +596,9 @@ def snapshot_alert_rule(alert_rule, user=None):
         alert_rule_snapshot.id = None
         alert_rule_snapshot.status = AlertRuleStatus.SNAPSHOT.value
         alert_rule_snapshot.snuba_query = snuba_query_snapshot
+        if alert_rule.owner:
+            alert_rule_snapshot.user_id = alert_rule.owner.user_id
+            alert_rule_snapshot.team_id = alert_rule.owner.team_id
         alert_rule_snapshot.save()
         AlertRuleActivity.objects.create(
             alert_rule=alert_rule_snapshot,
