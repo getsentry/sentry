@@ -27,6 +27,7 @@ SPAN_ANALYSIS_SCORE_THRESHOLD = 1
 RESPONSE_KEYS = [
     "span_op",
     "span_group",
+    "span_description",
     "spm_before",
     "spm_after",
     "p95_before",
@@ -163,16 +164,14 @@ def fetch_span_analysis_results(
         span_score_threshold=span_score_threshold,
     )
 
-    span_analysis_results = [{key: row[key] for key in RESPONSE_KEYS} for row in span_data]
-
-    for result in span_analysis_results:
+    for result in span_data:
         result["span_description"] = get_span_description(
             EventID(project_id, result["sample_event_id"]),
             result["span_op"],
             result["span_group"],
         )
 
-    return span_analysis_results
+    return [{key: row[key] for key in RESPONSE_KEYS} for row in span_data]
 
 
 def fetch_geo_analysis_results(transaction_name, regression_breakpoint, params, limit):
