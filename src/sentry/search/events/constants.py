@@ -281,7 +281,7 @@ SPAN_METRICS_MAP = {
     "span.self_time": "d:spans/exclusive_time@millisecond",
     "span.duration": "d:spans/duration@millisecond",
     "http.response_content_length": "d:spans/http.response_content_length@byte",
-    "http.decoded_response_body_length": "d:spans/http.decoded_response_body_length@byte",
+    "http.decoded_response_content_length": "d:spans/http.decoded_response_content_length@byte",
     "http.response_transfer_size": "d:spans/http.response_transfer_size@byte",
 }
 SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"

@@ -222,7 +222,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
     def test_resource_decoded_length(self):
         self.store_span_metric(
             4,
-            metric="http.decoded_response_body_length",
+            metric="http.decoded_response_content_length",
             timestamp=self.day_ago + timedelta(minutes=1),
             tags={"transaction": "foo"},
         )
@@ -232,7 +232,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
                 "start": iso_format(self.day_ago),
                 "end": iso_format(self.day_ago + timedelta(minutes=2)),
                 "interval": "1m",
-                "yAxis": "avg(http.decoded_response_body_length)",
+                "yAxis": "avg(http.decoded_response_content_length)",
                 "project": self.project.id,
                 "dataset": "spansMetrics",
                 "excludeOther": 0,
@@ -242,13 +242,13 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         data = response.data["data"]
         assert response.status_code == 200
         assert len(data) == 2
-        assert data[0][1][0]["count"] == 0.0
+        assert not data[0][1][0]["count"]
         assert data[1][1][0]["count"] == 4.0
 
     def test_resource_transfer_size(self):
         self.store_span_metric(
             4,
-            metric="http_response_transfer_size",
+            metric="http.response_transfer_size",
             timestamp=self.day_ago + timedelta(minutes=1),
             tags={"transaction": "foo"},
         )
@@ -258,7 +258,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
                 "start": iso_format(self.day_ago),
                 "end": iso_format(self.day_ago + timedelta(minutes=2)),
                 "interval": "1m",
-                "yAxis": "avg(http_response_transfer_size)",
+                "yAxis": "avg(http.response_transfer_size)",
                 "project": self.project.id,
                 "dataset": "spansMetrics",
                 "excludeOther": 0,
@@ -268,7 +268,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         data = response.data["data"]
         assert response.status_code == 200
         assert len(data) == 2
-        assert data[0][1][0]["count"] == 0.0
+        assert not data[0][1][0]["count"]
         assert data[1][1][0]["count"] == 4.0
 
 
