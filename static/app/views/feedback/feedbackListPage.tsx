@@ -42,7 +42,7 @@ export default function FeedbackListPage({}: Props) {
       start: decodeScalar,
       statsPeriod: decodeScalar,
       utc: decodeScalar,
-      mailbox: decodeScalar, //
+      mailbox: decodeScalar,
     },
   });
   const {feedbackSlug} = useLocationQuery({

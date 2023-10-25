@@ -46,7 +46,6 @@ export const EMPTY_INFINITE_LIST_DATA: ReturnType<
 
 export default function useFetchFeedbackInfiniteListData({queryView}: Params) {
   const organization = useOrganization();
-  // const [queryStatus, setQueryStatus] = useState('unresolved');
 
   const query = useMemo(
     () => ({

@@ -42,7 +42,6 @@ export default function FeedbackList() {
     issues,
     loadMoreRows,
     // setFeedback,
-    // setQueryStatus,
   } = useInfiniteFeedbackListData();
 
   const {setParamValue} = useUrlParams('query');
