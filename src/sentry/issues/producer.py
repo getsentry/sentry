@@ -52,7 +52,7 @@ def produce_occurrence_to_kafka(
     else:
         raise NotImplementedError(f"Unknown payload type: {payload_type}")
 
-    if not payload_data:
+    if payload_data is None:
         return
 
     payload = KafkaPayload(None, json.dumps(payload_data).encode("utf-8"), [])
