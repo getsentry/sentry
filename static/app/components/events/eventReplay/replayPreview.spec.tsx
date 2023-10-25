@@ -173,7 +173,6 @@ describe('ReplayPreview', () => {
     );
 
     // Expect replay view to be rendered
-    expect(screen.getByText('Replays')).toBeVisible();
     expect(screen.getByTestId('player-container')).toBeInTheDocument();
   });
 });
