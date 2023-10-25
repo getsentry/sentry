@@ -27,10 +27,11 @@ from sentry.utils.security.orgauthtoken_token import (
     hash_token,
 )
 from sentry.utils.urls import add_params_to_url
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
 
+@control_silo_view
 class SetupWizardView(BaseView):
     def handle_auth_required(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         if request.GET.get("signup") == "1" and settings.SENTRY_SIGNUP_URL:
