@@ -23,13 +23,14 @@ class UserTest(TestCase):
 
         assert not User.objects.filter(id=user_id).exists()
 
-        # cascade is asynchronous, ensure there is still related search,
-        assert SavedSearch.objects.filter(owner_id=user_id).exists()
-        with self.tasks():
-            schedule_hybrid_cloud_foreign_key_jobs()
+        with assume_test_silo_mode(SiloMode.REGION):
+            # cascade is asynchronous, ensure there is still related search,
+            assert SavedSearch.objects.filter(owner_id=user_id).exists()
+            with self.tasks():
+                schedule_hybrid_cloud_foreign_key_jobs()
 
-        # Ensure they are all now gone.
-        assert not SavedSearch.objects.filter(owner_id=user_id).exists()
+            # Ensure they are all now gone.
+            assert not SavedSearch.objects.filter(owner_id=user_id).exists()
 
 
 @control_silo_test(stable=True)
