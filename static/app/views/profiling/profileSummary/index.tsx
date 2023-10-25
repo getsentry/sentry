@@ -699,9 +699,9 @@ function ProfileDigest(props: ProfileDigestProps) {
 
   const latestProfile = useProfileEvents<ProfilingFieldType>({
     cursor: profilesCursor,
-    fields: ['profile.id', 'last_seen()'],
+    fields: ['profile.id', 'timestamp'],
     query: '',
-    sort: {key: 'last_seen()', order: 'desc'},
+    sort: {key: 'timestamp', order: 'desc'},
     limit: 1,
     referrer: 'api.profiling.profile-summary-table',
   });
