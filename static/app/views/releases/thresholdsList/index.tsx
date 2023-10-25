@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -11,25 +11,22 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import PanelTable from 'sentry/components/panels/panelTable';
-// import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-// import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-// import {Project} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-// import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 
 import Header from '../components/header';
 import {Threshold} from '../utils/types';
 import useFetchThresholdsListData from '../utils/useFetchThresholdsListData';
 
-import {ThresholdGroupRow} from './thresholdGroupRow';
+import {ThresholdGroupRows} from './thresholdGroupRows';
 
 type Props = {};
 
 function ReleaseThresholdList({}: Props) {
+  const [listError, setListError] = useState<string>('');
   const router = useRouter();
   const organization = useOrganization();
   useEffect(() => {
@@ -42,12 +39,13 @@ function ReleaseThresholdList({}: Props) {
   const {selection} = usePageFilters();
   const {
     data: thresholds = [],
-    error,
+    error: requestError,
     isLoading,
     isError,
     refetch,
   } = useFetchThresholdsListData({
     selectedProjectIds: selection.projects,
+    selectedEnvs: selection.environments,
   });
 
   // const _getAllSelectedProjects = (): Project[] => {
@@ -113,8 +111,13 @@ function ReleaseThresholdList({}: Props) {
     return byProj;
   }, [filteredThresholds]);
 
+  const tempError = msg => {
+    setListError(msg);
+    setTimeout(() => setListError(''), 5000);
+  };
+
   if (isError) {
-    return <LoadingError onRetry={refetch} message={error.message} />;
+    return <LoadingError onRetry={refetch} message={requestError.message} />;
   }
   if (isLoading) {
     return <LoadingIndicator />;
@@ -126,12 +129,15 @@ function ReleaseThresholdList({}: Props) {
         <Header router={router} hasV2ReleaseUIEnabled />
         <Layout.Body>
           <Layout.Main fullWidth>
-            <ReleaseThresholdsPageFilterBar condensed>
-              <GuideAnchor target="release_projects">
-                <ProjectPageFilter />
-              </GuideAnchor>
-              <EnvironmentPageFilter />
-            </ReleaseThresholdsPageFilterBar>
+            <FilterRow>
+              <ReleaseThresholdsPageFilterBar condensed>
+                <GuideAnchor target="release_projects">
+                  <ProjectPageFilter />
+                </GuideAnchor>
+                <EnvironmentPageFilter />
+              </ReleaseThresholdsPageFilterBar>
+              <ListError>{listError}</ListError>
+            </FilterRow>
             <StyledPanelTable
               isLoading={isLoading}
               isEmpty={filteredThresholds.length === 0 && !isError}
@@ -140,16 +146,20 @@ function ReleaseThresholdList({}: Props) {
                 t('Project Name'),
                 t('Environment'),
                 t('Window'),
-                t('Conditions'),
-                t('Actions'),
+                t('Condition'),
+                t(' '),
               ]}
             >
               {thresholdGroups &&
                 Object.entries(thresholdGroups).map(([projId, byEnv]) => {
                   return Object.entries(byEnv).map(([envName, thresholdGroup]) => (
-                    <ThresholdGroupRow
+                    <ThresholdGroupRows
                       key={`${projId}-${envName}`}
                       thresholds={thresholdGroup}
+                      refetch={refetch}
+                      columns={5}
+                      orgSlug={organization.slug}
+                      setError={tempError}
                     />
                   ));
                 })}
@@ -163,16 +173,38 @@ function ReleaseThresholdList({}: Props) {
 
 export default ReleaseThresholdList;
 
+const FilterRow = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const ListError = styled('div')`
+  color: red;
+  margin: 0 ${space(2)};
+  width: 100%;
+  display: flex;
+  justify-content: center;
+`;
+
 const StyledPanelTable = styled(PanelTable)`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     overflow: initial;
   }
 
   grid-template-columns:
-    minmax(150px, 1fr) minmax(150px, 1fr) minmax(150px, 1fr) minmax(250px, 4fr)
-    auto;
+    minmax(100px, 1fr) minmax(100px, 1fr) minmax(250px, 1fr) minmax(200px, 4fr)
+    minmax(150px, auto);
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeMedium};
+  > * {
+    border-bottom: inherit;
+  }
+  > *:last-child {
+    > *:last-child {
+      border-radius: 0 0 ${p => p.theme.borderRadius} 0;
+      border-bottom: 0;
+    }
+  }
 `;
 
 const ReleaseThresholdsPageFilterBar = styled(PageFilterBar)`

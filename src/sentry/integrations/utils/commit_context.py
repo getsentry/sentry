@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import inspect
 import logging
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, List, Mapping, Optional, Sequence, Tuple
 
-import sentry_sdk
+from django.utils.datastructures import OrderedSet
 
 from sentry import analytics
 from sentry.integrations.base import IntegrationInstallation
@@ -26,6 +28,21 @@ from sentry.utils.committers import get_stacktrace_path_from_event_frame
 logger = logging.getLogger("sentry.tasks.process_commit_context")
 
 
+@dataclass(frozen=True)
+class EventFrame:
+    lineno: int
+    in_app: bool
+    abs_path: Optional[str] = None
+    filename: Optional[str] = None
+    function: Optional[str] = None
+    munged_filename: Optional[str] = None
+    module: Optional[str] = None
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> EventFrame:
+        return cls(**{k: v for k, v in data.items() if k in inspect.signature(cls).parameters})
+
+
 def find_commit_context_for_event_all_frames(
     code_mappings: Sequence[RepositoryProjectPathConfig],
     frames: Sequence[Mapping[str, Any]],
@@ -37,11 +54,21 @@ def find_commit_context_for_event_all_frames(
     Given a list of event frames and code mappings, finds the most recent commit.
     Will also emit analytics events for success or failure.
     """
+    valid_frames = list(
+        OrderedSet(
+            [
+                EventFrame.from_dict(frame)
+                for frame in frames
+                if frame.get("lineno") is not None and frame.get("in_app")
+            ]
+        )
+    )
+
     (
         integration_to_files_mapping,
         num_successfully_mapped_frames,
     ) = _generate_integration_to_files_mapping(
-        frames=frames, code_mappings=code_mappings, extra=extra
+        frames=valid_frames, code_mappings=code_mappings, extra=extra
     )
 
     file_blames, integration_to_install_mapping = _get_blames_from_all_integrations(
@@ -65,7 +92,7 @@ def find_commit_context_for_event_all_frames(
         organization_id=organization_id,
         project_id=project_id,
         extra=extra,
-        frames=frames,
+        frames=valid_frames,
         file_blames=file_blames,
         num_successfully_mapped_frames=num_successfully_mapped_frames,
     )
@@ -128,14 +155,15 @@ def find_commit_context_for_event(
             )
             continue
 
+        log_info = {
+            **extra,
+            "code_mapping_id": code_mapping.id,
+            "stacktrace_path": stacktrace_path,
+            "src_path": src_path,
+        }
         logger.info(
             "process_commit_context.found_stacktrace_and_src_paths",
-            extra={
-                **extra,
-                "code_mapping_id": code_mapping.id,
-                "stacktrace_path": stacktrace_path,
-                "src_path": src_path,
-            },
+            extra=log_info,
         )
         integration = integration_service.get_integration(
             organization_integration_id=code_mapping.organization_integration_id
@@ -149,7 +177,21 @@ def find_commit_context_for_event(
             )
         except ApiError as e:
             commit_context = None
-            sentry_sdk.capture_exception(e)
+
+            if e.code == 429:
+                metrics.incr("sentry.integrations.github.get_blame_for_file.rate_limit")
+            if e.code in (401, 403, 404, 429):
+                logger.warning(
+                    "process_commit_context.failed_to_fetch_commit_context.api_error",
+                    extra={**log_info, "code": e.code, "error_message": e.text},
+                )
+            # Only create Sentry errors for status codes that aren't expected
+            else:
+                logger.exception(
+                    "process_commit_context.failed_to_fetch_commit_context.api_error",
+                    extra={**log_info, "code": e.code, "error_message": e.text},
+                )
+
             analytics.record(
                 "integrations.failed_to_fetch_commit_context",
                 organization_id=code_mapping.organization_id,
@@ -158,16 +200,6 @@ def find_commit_context_for_event(
                 code_mapping_id=code_mapping.id,
                 provider=integration.provider,
                 error_message=e.text,
-            )
-            logger.error(
-                "process_commit_context.failed_to_fetch_commit_context",
-                extra={
-                    **extra,
-                    "code_mapping_id": code_mapping.id,
-                    "stacktrace_path": stacktrace_path,
-                    "src_path": src_path,
-                    "error_message": e.text,
-                },
             )
 
         # Only return suspect commits that are less than a year old
@@ -240,7 +272,7 @@ def get_or_create_commit_from_blame(
 
 
 def _generate_integration_to_files_mapping(
-    frames: Sequence[Mapping[str, Any]],
+    frames: Sequence[EventFrame],
     code_mappings: Sequence[RepositoryProjectPathConfig],
     extra: Mapping[str, Any],
 ) -> tuple[dict[str, list[SourceLineInfo]], int]:
@@ -254,7 +286,7 @@ def _generate_integration_to_files_mapping(
 
     for frame in frames:
         for code_mapping in code_mappings:
-            stacktrace_path = get_stacktrace_path_from_event_frame(frame)
+            stacktrace_path = get_stacktrace_path_from_event_frame(asdict(frame))
 
             if not stacktrace_path:
                 logger.info(
@@ -262,6 +294,18 @@ def _generate_integration_to_files_mapping(
                     extra={
                         **extra,
                         "code_mapping_id": code_mapping.id,
+                    },
+                )
+                continue
+
+            if not stacktrace_path.startswith(code_mapping.stack_root):
+                logger.info(
+                    "process_commit_context_all_frames.code_mapping_stack_root_mismatch",
+                    extra={
+                        **extra,
+                        "code_mapping_id": code_mapping.id,
+                        "stacktrace_path": stacktrace_path,
+                        "stack_root": code_mapping.stack_root,
                     },
                 )
                 continue
@@ -296,7 +340,7 @@ def _generate_integration_to_files_mapping(
             )
             files.append(
                 SourceLineInfo(
-                    lineno=frame["lineno"],
+                    lineno=frame.lineno,
                     path=src_path,
                     ref=code_mapping.default_branch or "master",
                     repo=code_mapping.repository,
@@ -366,7 +410,7 @@ def _record_commit_context_all_frames_analytics(
     organization_id: int,
     project_id: int,
     extra: Mapping[str, Any],
-    frames: Sequence[Mapping[str, Any]],
+    frames: Sequence[EventFrame],
     file_blames: Sequence[FileBlameInfo],
     num_successfully_mapped_frames: int,
 ):
@@ -403,9 +447,10 @@ def _record_commit_context_all_frames_analytics(
         (
             i
             for i, frame in enumerate(frames)
-            if frame["lineno"] == selected_blame.lineno
+            if frame.lineno == selected_blame.lineno
             and get_source_code_path_from_stacktrace_path(
-                get_stacktrace_path_from_event_frame(frame) or "", selected_blame.code_mapping
+                get_stacktrace_path_from_event_frame(asdict(frame)) or "",
+                selected_blame.code_mapping,
             )
             == selected_blame.path
         ),

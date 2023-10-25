@@ -451,9 +451,17 @@ class MonitorCheckIn(Model):
         app_label = "sentry"
         db_table = "sentry_monitorcheckin"
         indexes = [
+            # used for endpoints for monitor stats + list check-ins
             models.Index(fields=["monitor", "date_added", "status"]),
+            # used for latest in monitor consumer
+            models.Index(fields=["monitor", "status", "date_added"]),
+            # used for has_newer_result + thresholds
             models.Index(fields=["monitor_environment", "date_added", "status"]),
+            # used for latest on api endpoints
+            models.Index(fields=["monitor_environment", "status", "date_added"]),
+            # used for timeout task
             models.Index(fields=["status", "timeout_at"]),
+            # used for check-in list
             models.Index(fields=["trace_id"]),
         ]
 
