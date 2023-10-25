@@ -253,6 +253,10 @@ class Monitor(Model):
 
         raise NotImplementedError("unknown schedule_type")
 
+    @property
+    def timezone(self):
+        return pytz.timezone(self.config.get("timezone") or "UTC")
+
     def get_schedule_type_display(self):
         return ScheduleType.get_name(self.config["schedule_type"])
 
@@ -265,8 +269,7 @@ class Monitor(Model):
         """
         from sentry.monitors.schedule import get_next_schedule
 
-        tz = pytz.timezone(self.config.get("timezone") or "UTC")
-        return get_next_schedule(last_checkin.astimezone(tz), self.schedule)
+        return get_next_schedule(last_checkin.astimezone(self.timezone), self.schedule)
 
     def get_next_expected_checkin_latest(self, last_checkin: datetime) -> datetime:
         """
@@ -448,9 +451,17 @@ class MonitorCheckIn(Model):
         app_label = "sentry"
         db_table = "sentry_monitorcheckin"
         indexes = [
+            # used for endpoints for monitor stats + list check-ins
             models.Index(fields=["monitor", "date_added", "status"]),
+            # used for latest in monitor consumer
+            models.Index(fields=["monitor", "status", "date_added"]),
+            # used for has_newer_result + thresholds
             models.Index(fields=["monitor_environment", "date_added", "status"]),
+            # used for latest on api endpoints
+            models.Index(fields=["monitor_environment", "status", "date_added"]),
+            # used for timeout task
             models.Index(fields=["status", "timeout_at"]),
+            # used for check-in list
             models.Index(fields=["trace_id"]),
         ]
 

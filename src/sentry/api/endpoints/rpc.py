@@ -4,6 +4,7 @@ import pydantic
 from rest_framework.exceptions import NotFound, ParseError, PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import capture_exception
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -57,14 +58,17 @@ class RpcServiceEndpoint(Endpoint):
                 # from within the privileged RPC channel.
                 auth_context = AuthenticationContext.parse_obj(auth_context_json)
             except pydantic.ValidationError as e:
+                capture_exception()
                 raise ParseError from e
 
         try:
             with auth_context.applied_to_request(request):
                 result = dispatch_to_local_service(service_name, method_name, arguments)
         except RpcResolutionException as e:
+            capture_exception()
             raise NotFound from e
         except RpcArgumentException as e:
+            capture_exception()
             raise ParseError from e
         except Exception as e:
             # Produce more detailed log
@@ -72,5 +76,6 @@ class RpcServiceEndpoint(Endpoint):
                 raise Exception(
                     f"Problem processing rpc service endpoint {service_name}/{method_name}"
                 ) from e
+            capture_exception()
             raise ValidationError from e
         return Response(data=result)

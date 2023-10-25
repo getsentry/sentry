@@ -1,15 +1,15 @@
-import {RawSpanFrame as TSpanFrame} from 'sentry/utils/replays/types';
+import {RawSpanFrame} from 'sentry/utils/replays/types';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
-type TestableFrame<Op extends TSpanFrame['op']> = Overwrite<
-  Partial<Extract<TSpanFrame, {op: Op}>>,
+type TestableFrame<Op extends RawSpanFrame['op']> = Overwrite<
+  Partial<Extract<RawSpanFrame, {op: Op}>>,
   {endTimestamp: Date; startTimestamp: Date}
 >;
 
-type MockFrame<Op extends TSpanFrame['op']> = Extract<TSpanFrame, {op: Op}>;
+type MockFrame<Op extends RawSpanFrame['op']> = Extract<RawSpanFrame, {op: Op}>;
 
-function BaseFrame<T extends TSpanFrame['op']>(
+function BaseFrame<T extends RawSpanFrame['op']>(
   op: T,
   fields: TestableFrame<T>
 ): MockFrame<T> {
@@ -22,7 +22,7 @@ function BaseFrame<T extends TSpanFrame['op']>(
   } as MockFrame<T>;
 }
 
-export function LargestContentfulPaintFrame(
+export function ReplayLargestContentfulPaintFrameFixture(
   fields: TestableFrame<'largest-contentful-paint'>
 ): MockFrame<'largest-contentful-paint'> {
   return BaseFrame('largest-contentful-paint', {
@@ -35,7 +35,9 @@ export function LargestContentfulPaintFrame(
   });
 }
 
-export function MemoryFrame(fields: TestableFrame<'memory'>): MockFrame<'memory'> {
+export function ReplayMemoryFrameFixture(
+  fields: TestableFrame<'memory'>
+): MockFrame<'memory'> {
   return BaseFrame('memory', {
     ...fields,
     data: {
@@ -48,7 +50,7 @@ export function MemoryFrame(fields: TestableFrame<'memory'>): MockFrame<'memory'
   });
 }
 
-export function NavigationFrame(
+export function ReplayNavigationFrameFixture(
   fields: TestableFrame<
     'navigation.navigate' | 'navigation.reload' | 'navigation.back_forward'
   >
@@ -71,7 +73,7 @@ export function NavigationFrame(
   });
 }
 
-export function NavigationPushFrame(
+export function ReplayNavigationPushFrameFixture(
   fields: TestableFrame<'navigation.push'>
 ): MockFrame<'navigation.push'> {
   return BaseFrame('navigation.push', {
@@ -82,11 +84,13 @@ export function NavigationPushFrame(
   });
 }
 
-export function PaintFrame(fields: TestableFrame<'paint'>): MockFrame<'paint'> {
+export function ReplayPaintFrameFixture(
+  fields: TestableFrame<'paint'>
+): MockFrame<'paint'> {
   return BaseFrame('paint', fields);
 }
 
-export function RequestFrame(
+export function ReplayRequestFrameFixture(
   fields: TestableFrame<'resource.fetch' | 'resource.xhr'>
 ): MockFrame<'resource.fetch' | 'resource.xhr'> {
   return BaseFrame(fields.op ?? 'resource.xhr', {
@@ -102,7 +106,7 @@ export function RequestFrame(
   });
 }
 
-export function ResourceFrame(
+export function ReplayResourceFrameFixture(
   fields: TestableFrame<
     | 'resource.css'
     | 'resource.iframe'

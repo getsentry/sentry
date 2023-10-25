@@ -826,22 +826,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     // TODO: once all alerts are migrated to MEP, we can set the default to GENERIC_METRICS and remove this as well as
     // logic in handleMEPDataset, handleTimeSeriesDataFetched and checkOnDemandMetricsDataset
     const {dataset} = this.state;
-    const {ruleId, organization} = this.props;
+    const {organization} = this.props;
     const hasMetricsFeatureFlags =
       organization.features.includes('mep-rollout-flag') ||
       hasOnDemandMetricAlertFeature(organization);
 
-    // this prevents new transaction alerts from being created
-    const isCreatingRule = !ruleId;
-
-    // this forces migration of existing transaction alerts to generic metrics
-    const isMigrating = hasMigrationFeatureFlag(organization);
-
-    if (
-      (isCreatingRule || isMigrating) &&
-      hasMetricsFeatureFlags &&
-      dataset === Dataset.TRANSACTIONS
-    ) {
+    if (hasMetricsFeatureFlags && dataset === Dataset.TRANSACTIONS) {
       return Dataset.GENERIC_METRICS;
     }
     return dataset;
