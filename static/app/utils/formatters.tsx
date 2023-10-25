@@ -1,5 +1,6 @@
 import {Release} from '@sentry/release-parser';
 import round from 'lodash/round';
+import moment from 'moment';
 
 import {t, tn} from 'sentry/locale';
 import {CommitAuthor, User} from 'sentry/types';
@@ -274,9 +275,9 @@ export const SEC_IN_DAY = 86400;
 export const SEC_IN_HR = 3600;
 export const SEC_IN_MIN = 60;
 
-type Level = [lvlSfx: string, denominator: number];
+type Level = [lvlSfx: moment.unitOfTime.DurationConstructor, denominator: number];
 
-type ParsedLargestSuffix = [val: number, suffix: string];
+type ParsedLargestSuffix = [val: number, suffix: moment.unitOfTime.DurationConstructor];
 /**
  * Given a length of time in seconds, provide me the largest divisible suffix and value for that time period.
  * eg. 60 -> [1, 'minutes']
@@ -297,7 +298,7 @@ export function parseLargestSuffix(
     ['weeks', SEC_IN_WK],
   ];
   let val = seconds;
-  let suffix = 'seconds';
+  let suffix: moment.unitOfTime.DurationConstructor = 'seconds';
   if (val === 0) {
     return [val, suffix];
   }

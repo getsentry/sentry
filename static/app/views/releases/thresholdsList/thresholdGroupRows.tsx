@@ -34,7 +34,7 @@ type EditingThreshold = {
   threshold_type: string;
   trigger_type: string;
   value: number;
-  windowSuffix: string;
+  windowSuffix: moment.unitOfTime.DurationConstructor;
   windowValue: number;
   date_added?: string;
   hasError?: boolean;
@@ -109,7 +109,6 @@ export function ThresholdGroupRows({
     thresholdIds.forEach(id => {
       const thresholdData = editingThresholds[id];
       const seconds = moment
-        // @ts-ignore: ts is unhappy with moment string duration format
         .duration(thresholdData.windowValue, thresholdData.windowSuffix)
         .as('seconds');
       const submitData = {
