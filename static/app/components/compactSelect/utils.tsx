@@ -110,7 +110,7 @@ export function getHiddenOptions<Value extends React.Key>(
       .toLowerCase()
       .includes(search.toLowerCase());
 
-  const itemsToHide: Value[] = [];
+  const hiddenOptionsSet = new Set<Value>();
   const remainingItems = items
     .map<SelectOptionOrSection<Value> | null>(item => {
       if ('options' in item) {
@@ -120,7 +120,7 @@ export function getHiddenOptions<Value extends React.Key>(
               return opt;
             }
 
-            itemsToHide.push(opt.value);
+            hiddenOptionsSet.add(opt.value);
             return null;
           })
           .filter((opt): opt is SelectOption<Value> => !!opt);
@@ -132,7 +132,7 @@ export function getHiddenOptions<Value extends React.Key>(
         return item;
       }
 
-      itemsToHide.push(item.value);
+      hiddenOptionsSet.add(item.value);
       return null;
     })
     .flat()
@@ -158,21 +158,20 @@ export function getHiddenOptions<Value extends React.Key>(
     currentIndex += 1;
   }
 
-  // Return the values of options that were removed.
-  return new Set([
-    ...itemsToHide,
-    ...remainingItems.slice(threshold[0]).reduce((acc: Value[], cur, index) => {
-      if ('options' in cur) {
-        return acc.concat(
-          index === 0
-            ? cur.options.slice(threshold[1]).map(o => o.value)
-            : cur.options.map(o => o.value)
-        );
+  for (let i = threshold[0]; i < remainingItems.length; i++) {
+    const item = remainingItems[i];
+    if ('options' in item) {
+      const startingIndex = i === threshold[0] ? threshold[1] : 0;
+      for (let j = startingIndex; j < item.options.length; j++) {
+        hiddenOptionsSet.add(item.options[j].value);
       }
+    } else {
+      hiddenOptionsSet.add(item.value);
+    }
+  }
 
-      return acc.concat(cur.value);
-    }, []),
-  ]);
+  // Return the values of options that were removed.
+  return hiddenOptionsSet;
 }
 
 /**
