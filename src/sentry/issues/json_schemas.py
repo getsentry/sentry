@@ -166,4 +166,4 @@ except SchemaNotFound:
     logger.exception(
         "Failed to load Events schema from Kafka schemas, using legacy hardcoded schema"
     )
-    EVENT_PAYLOAD_SCHEMA = LEGACY_EVENT_PAYLOAD_SCHEMA
+    raise
