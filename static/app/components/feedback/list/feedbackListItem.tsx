@@ -83,8 +83,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
             <span
               style={{
                 gridArea: 'unread',
-                display: 'inline-flex',
-                alignItems: 'center',
+                display: 'flex',
                 justifyContent: 'center',
               }}
             >
