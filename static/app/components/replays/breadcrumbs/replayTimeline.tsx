@@ -28,6 +28,7 @@ function ReplayTimeline({}: Props) {
 
   const panelRef = useRef<HTMLDivElement>(null);
   const mouseTrackingProps = useScrubberMouseTracking({elem: panelRef});
+  const panelWidth = useDimensions<HTMLDivElement>({elementRef: panelRef}).width;
 
   const stackedRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions<HTMLDivElement>({elementRef: stackedRef});
@@ -64,6 +65,7 @@ function ReplayTimeline({}: Props) {
         }}
         ref={stackedRef}
       >
+        <MajorGridlines durationMs={durationMs} width={panelWidth} />
         <CompactTimelineScrubber />
         <TimelineEventsContainer>
           <ReplayTimelineEvents
