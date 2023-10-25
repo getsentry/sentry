@@ -44,7 +44,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
     const isSelected = useIsSelectedFeedback({feedbackItem});
     const counts = useReplaysCount({
       organization,
-      issueCategory: IssueCategory.FEEDBACK,
+      issueCategory: IssueCategory.PERFORMANCE, // Feedbacks are in the same dataSource as performance
       groupIds: [feedbackItem.id],
     });
     const hasReplay = Boolean(counts[feedbackItem.id]);

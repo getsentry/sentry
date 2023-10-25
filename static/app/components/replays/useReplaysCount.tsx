@@ -143,8 +143,6 @@ function getDatasource(issueCategory: undefined | IssueCategory) {
   switch (issueCategory) {
     case IssueCategory.PERFORMANCE:
       return 'search_issues';
-    case IssueCategory.FEEDBACK:
-      return 'search_issues'; // Same as Performance
     default:
       return 'discover';
   }

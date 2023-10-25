@@ -54,7 +54,6 @@ export enum IssueCategory {
   ERROR = 'error',
   CRON = 'cron',
   PROFILE = 'profile',
-  FEEDBACK = 'feedback',
 }
 
 export enum IssueType {
