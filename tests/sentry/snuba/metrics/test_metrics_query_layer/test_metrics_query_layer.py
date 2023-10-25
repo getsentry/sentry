@@ -2,6 +2,8 @@
 Metrics Service Layer Tests for Performance
 """
 
+from datetime import datetime, timedelta
+
 import pytest
 from snuba_sdk import (
     AliasedExpression,
@@ -18,7 +20,7 @@ from snuba_sdk import (
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import TransactionMRI
-from sentry.snuba.metrics_layer.query import _resolve_metrics_query
+from sentry.snuba.metrics_layer.query import _resolve_granularity, _resolve_metrics_query
 from sentry.testutils.cases import BaseMetricsLayerTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -154,3 +156,30 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
         assert mappings[TransactionMRI.DURATION.value] == expected_metric_id
         assert mappings["transaction"] == expected_transaction_id
         assert mappings["device"] == expected_device_id
+
+
+@pytest.mark.parametrize(
+    "day_range, sec_offset, interval, expected",
+    [
+        # Interval tests
+        (7, 0, timedelta(hours=1).total_seconds(), 3600),
+        (7, 0, timedelta(seconds=10).total_seconds(), 10),
+        (7, 0, timedelta(seconds=5).total_seconds(), 10),
+        (7, 0, timedelta(hours=2).total_seconds(), 3600),
+        (7, 0, timedelta(days=2).total_seconds(), 86400),
+        # Totals tests
+        (7, 0, None, 86400),
+        (7, timedelta(hours=1).total_seconds(), None, 3600),
+        (7, timedelta(hours=2).total_seconds(), None, 3600),
+        (7, timedelta(hours=2, minutes=1).total_seconds(), None, 60),
+        (7, timedelta(hours=2, minutes=2).total_seconds(), None, 60),
+        (7, timedelta(hours=2, minutes=2, seconds=30).total_seconds(), None, 10),
+        (7, timedelta(hours=2, minutes=2, seconds=10).total_seconds(), None, 10),
+        (7, timedelta(hours=2, minutes=2, seconds=5).total_seconds(), None, 10),
+    ],
+)
+def test_resolve_granularity(day_range: int, sec_offset: int, interval: int, expected: int) -> None:
+    now = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    start = now - timedelta(days=day_range) - timedelta(seconds=sec_offset)
+    end = now - timedelta(seconds=sec_offset)
+    assert _resolve_granularity(start, end, interval) == expected

@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import {Index, IndexRange} from 'react-virtualized';
 
+import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import hydrateFeedbackRecord from 'sentry/components/feedback/hydrateFeedbackRecord';
 import {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
 import {RawFeedbackListResponse} from 'sentry/utils/feedback/list/types';
@@ -17,6 +18,7 @@ interface Params {
     end?: string;
     environment?: string[];
     field?: string[];
+    mailbox?: ReturnType<typeof decodeMailbox>;
     project?: string[];
     query?: string;
     start?: string;
@@ -49,7 +51,7 @@ export default function useFetchFeedbackInfiniteListData({queryView}: Params) {
   const query = useMemo(
     () => ({
       ...queryView,
-      query: 'issue.category:feedback ' + queryView.query,
+      query: `issue.category:feedback status:${queryView.mailbox} ${queryView.query}`,
     }),
     [queryView]
   );

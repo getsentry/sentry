@@ -17,6 +17,8 @@ export default function FeedbackItemLoader({feedbackSlug}: Props) {
     isLoading: isIssueLoading,
     isError: isIssueError,
     issueData: issue,
+    replayId,
+    tags,
     eventData: event,
   } = useFetchFeedbackIssue({feedbackId, organization});
 
@@ -25,6 +27,11 @@ export default function FeedbackItemLoader({feedbackSlug}: Props) {
   ) : isIssueError ? (
     <FeedbackErrorDetails error={t('Unable to load feedback')} />
   ) : (
-    <FeedbackItem feedbackItem={issue} eventData={event} />
+    <FeedbackItem
+      feedbackItem={issue}
+      eventData={event}
+      tags={tags}
+      replayId={replayId}
+    />
   );
 }

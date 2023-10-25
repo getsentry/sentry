@@ -1,3 +1,4 @@
+import hydrateEventTags from 'sentry/components/feedback/hydrateEventTags';
 import hydrateFeedbackRecord from 'sentry/components/feedback/hydrateFeedbackRecord';
 import {Event, Organization} from 'sentry/types';
 import {RawFeedbackItemResponse} from 'sentry/utils/feedback/item/types';
@@ -37,7 +38,9 @@ export default function useFetchFeedbackIssue(
 
   return {
     issueData: issueData ? hydrateFeedbackRecord(issueData) : undefined,
+    replayId: eventData?.contexts?.feedback?.replay_id,
     eventData,
+    tags: hydrateEventTags(eventData),
     eventResult,
     ...issueResult,
   };

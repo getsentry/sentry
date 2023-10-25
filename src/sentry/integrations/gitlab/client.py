@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping, Sequence
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
 from urllib.parse import quote
 
 from django.urls import reverse
@@ -9,14 +10,30 @@ from requests import PreparedRequest
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.identity.model import RpcIdentity
 from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
+from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import SiloMode
 from sentry.utils.http import absolute_uri
 
 API_VERSION = "/api/v4"
 if TYPE_CHECKING:
     from sentry.integrations.gitlab.integration import GitlabIntegration
+
+
+class GitLabRateLimitInfo:
+    def __init__(self, info: Mapping[str, int]) -> None:
+        self.limit = info["limit"]
+        self.remaining = info["remaining"]
+        self.reset = info["reset"]
+        self.used = info["used"]
+
+    def next_window(self) -> str:
+        return datetime.utcfromtimestamp(self.reset).strftime("%H:%M:%S")
+
+    def __repr__(self) -> str:
+        return f"GitLabRateLimitInfo(limit={self.limit},rem={self.remaining},reset={self.reset}),used={self.used})"
 
 
 class GitLabApiClientPath:
@@ -153,6 +170,31 @@ class GitLabProxyApiClient(IntegrationProxyClient):
             self.refreshed_identity = None
 
             return response
+
+    def get_rate_limit_info_from_response(
+        self, response: BaseApiResponseX
+    ) -> Optional[GitLabRateLimitInfo]:
+        """Extract rate limit info from response headers
+
+        See https://docs.gitlab.com/ee/administration/settings/user_and_ip_rate_limits.html#response-headers
+        """
+        if not isinstance(response, BaseApiResponse):
+            raise ValueError("Invalid response type")
+
+        if not response.headers:
+            return None
+
+        rate_limit_params = {
+            "limit": response.headers.get("RateLimit-Limit"),
+            "remaining": response.headers.get("RateLimit-Remaining"),
+            "reset": response.headers.get("RateLimit-Reset"),
+            "used": response.headers.get("RateLimit-Observed"),
+        }
+
+        if not all(rate_limit_params.values()):
+            return None
+
+        return GitLabRateLimitInfo(dict({(k, int(v)) for k, v in rate_limit_params.items()}))
 
     def get_user(self):
         """Get a user

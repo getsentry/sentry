@@ -45,6 +45,7 @@ from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
 from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import freeze_time, iso_format
 from sentry.utils import json
 from sentry.utils.dates import to_timestamp
@@ -166,6 +167,12 @@ class ProcessUpdateBaseClass(TestCase, SnubaTestCase):
 
     def latest_activity(self, incident):
         return IncidentActivity.objects.filter(incident=incident).order_by("-id").first()
+
+    def assert_incident_is_latest_for_rule(self, incident):
+        last_incident = (
+            Incident.objects.filter(alert_rule=incident.alert_rule).order_by("-date_added").first()
+        )
+        assert last_incident == incident
 
 
 @freeze_time()
@@ -2106,6 +2113,72 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident, [self.action], [(150.0, IncidentStatus.CLOSED, mock.ANY)]
         )
 
+    @override_options({"metric_alerts.rate_limit": True})
+    def test_no_new_incidents_within_ten_minutes(self):
+        # Verify that a new incident is not made for the same rule, trigger, and
+        # subscription if an incident was already made within the last 10 minutes.
+        rule = self.rule
+        trigger = self.trigger
+        processor = self.send_update(
+            rule, trigger.alert_threshold + 1, timedelta(minutes=-2), self.sub
+        )
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        original_incident = self.assert_active_incident(rule)
+        original_incident.update(date_added=original_incident.date_added - timedelta(minutes=10))
+        self.assert_trigger_exists_with_status(original_incident, trigger, TriggerStatus.ACTIVE)
+
+        # resolve the trigger
+        self.send_update(rule, 6, timedelta(minutes=-1), subscription=self.sub)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(original_incident, trigger, TriggerStatus.RESOLVED)
+
+        # fire trigger again within 10 minutes; no new incident should be made
+        processor = self.send_update(rule, trigger.alert_threshold + 1, subscription=self.sub)
+        self.assert_trigger_counts(processor, self.trigger, 1, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(original_incident, trigger, TriggerStatus.RESOLVED)
+        self.assert_incident_is_latest_for_rule(original_incident)
+        self.metrics.incr.assert_has_calls(
+            [
+                call(
+                    "incidents.alert_rules.hit_rate_limit",
+                    tags={
+                        "last_incident_id": original_incident.id,
+                        "project_id": self.sub.project.id,
+                        "trigger_id": trigger.id,
+                    },
+                ),
+            ],
+            any_order=True,
+        )
+
+    @override_options({"metric_alerts.rate_limit": True})
+    def test_incident_made_after_ten_minutes(self):
+        # Verify that a new incident will be made for the same rule, trigger, and
+        # subscription if the last incident made for those was made more tha 10 minutes
+        # ago
+        rule = self.rule
+        trigger = self.trigger
+        processor = self.send_update(
+            rule, trigger.alert_threshold + 1, timedelta(minutes=-2), self.sub
+        )
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        original_incident = self.assert_active_incident(rule)
+        original_incident.update(date_added=original_incident.date_added - timedelta(minutes=11))
+        self.assert_trigger_exists_with_status(original_incident, trigger, TriggerStatus.ACTIVE)
+
+        # resolve the trigger
+        self.send_update(rule, 6, timedelta(minutes=-1), self.sub)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(original_incident, trigger, TriggerStatus.RESOLVED)
+
+        # fire trigger again after more than 10 minutes have passed; a new incident should be made
+        processor = self.send_update(rule, trigger.alert_threshold + 1, subscription=self.sub)
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        new_incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(new_incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_incident_is_latest_for_rule(new_incident)
+
 
 class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):
     @pytest.fixture(autouse=True)
@@ -2800,19 +2873,18 @@ class TestUpdateAlertRuleStats(TestCase):
         date = datetime.utcnow().replace(tzinfo=timezone.utc)
         update_alert_rule_stats(alert_rule, sub, date, {3: 20, 4: 3}, {3: 10, 4: 15})
         client = get_redis_client()
-        results = list(
-            map(
-                int,
-                client.mget(
-                    [
-                        "{alert_rule:1:project:2}:last_update",
-                        "{alert_rule:1:project:2}:trigger:3:alert_triggered",
-                        "{alert_rule:1:project:2}:trigger:3:resolve_triggered",
-                        "{alert_rule:1:project:2}:trigger:4:alert_triggered",
-                        "{alert_rule:1:project:2}:trigger:4:resolve_triggered",
-                    ]
-                ),
+        results = [
+            int(v)
+            for v in client.mget(
+                [
+                    "{alert_rule:1:project:2}:last_update",
+                    "{alert_rule:1:project:2}:trigger:3:alert_triggered",
+                    "{alert_rule:1:project:2}:trigger:3:resolve_triggered",
+                    "{alert_rule:1:project:2}:trigger:4:alert_triggered",
+                    "{alert_rule:1:project:2}:trigger:4:resolve_triggered",
+                ]
             )
-        )
+            if v is not None
+        ]
 
         assert results == [int(to_timestamp(date)), 20, 10, 3, 15]

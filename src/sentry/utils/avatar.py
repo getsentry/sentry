@@ -16,7 +16,7 @@ from django.utils.safestring import SafeString
 from PIL import Image
 
 from sentry.http import safe_urlopen
-from sentry.utils.hashlib import md5_text
+from sentry.utils.hashlib import sha256_text
 
 
 def get_gravatar_url(
@@ -26,7 +26,7 @@ def get_gravatar_url(
         email = ""
     gravatar_url = "{}/avatar/{}".format(
         settings.SENTRY_GRAVATAR_BASE_URL,
-        md5_text(email.lower()).hexdigest(),
+        sha256_text(email.strip().lower()).hexdigest(),
     )
 
     properties: MutableMapping[str, Union[int, str]] = {}

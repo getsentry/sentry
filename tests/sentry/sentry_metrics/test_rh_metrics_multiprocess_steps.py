@@ -16,7 +16,11 @@ from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 from sentry.ratelimits.cardinality import CardinalityLimiter
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.consumers.indexer.batch import valid_metric_name
-from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MetricsBatchBuilder
+from sentry.sentry_metrics.consumers.indexer.common import (
+    BatchMessages,
+    IndexerOutputMessageBatch,
+    MetricsBatchBuilder,
+)
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.sentry_metrics.indexer.limiters.cardinality import (
     TimeseriesCardinalityLimiter,
@@ -64,10 +68,10 @@ def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Messag
 
 
 def compare_message_batches_ignoring_metadata(
-    actual: Sequence[Message], expected: Sequence[Message]
+    actual: IndexerOutputMessageBatch, expected: Sequence[Message]
 ) -> None:
-    assert len(actual) == len(expected)
-    for (a, e) in zip(actual, expected):
+    assert len(actual.data) == len(expected)
+    for (a, e) in zip(actual.data, expected):
         compare_messages_ignoring_mapping_metadata(a, e)
 
 
@@ -315,7 +319,7 @@ def test_process_messages() -> None:
 
     outer_message = Message(Value(message_batch, last.committable))
 
-    new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message).data
+    new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
     expected_new_batch = []
     for i, m in enumerate(message_batch):
         assert isinstance(m.value, BrokerValue)
@@ -427,7 +431,7 @@ def test_process_messages_invalid_messages(
     outer_message = Message(Value(message_batch, last.committable))
 
     with caplog.at_level(logging.ERROR):
-        new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message).data
+        new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
 
     # we expect just the valid counter_payload msg to be left
     expected_msg = message_batch[0]
@@ -490,7 +494,7 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
     raw_simple_string_indexer._strings[UseCaseID.SESSIONS][1]["rate_limited_test"] = None
 
     with caplog.at_level(logging.ERROR):
-        new_batch = message_processor.process_messages(outer_message=outer_message).data
+        new_batch = message_processor.process_messages(outer_message=outer_message)
 
     # we expect just the counter_payload msg to be left, as that one didn't
     # cause/depend on string writes that have been rate limited
@@ -560,7 +564,7 @@ def test_process_messages_cardinality_limited(
         outer_message = Message(Value(message_batch, last.committable))
 
         with caplog.at_level(logging.ERROR):
-            new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message).data
+            new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
 
         compare_message_batches_ignoring_metadata(new_batch, [])
 
