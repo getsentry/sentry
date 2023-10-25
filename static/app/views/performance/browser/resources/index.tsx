@@ -12,6 +12,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SwitchButton from 'sentry/components/switchButton';
+import {TabList} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -81,6 +82,12 @@ function ResourcesLandingPage() {
             <FeatureBadge type="alpha" />
           </Layout.Title>
         </Layout.HeaderContent>
+        <TabList hideBorder>
+          <TabList.Item key="resource.css/script">
+            {t('Javascript/Stylesheets')}
+          </TabList.Item>
+          <TabList.Item key="resource.img">{t('Images')}</TabList.Item>
+        </TabList>
       </Layout.Header>
 
       <Layout.Body>
@@ -96,10 +103,13 @@ function ResourcesLandingPage() {
             <DomainSelector value={filters[SPAN_DOMAIN] || ''} />
             <ResourceTypeSelector value={filters[RESOURCE_TYPE] || ''} />
             <PageSelector value={filters[TRANSACTION] || ''} />
-            <StyledSwitchButton
-              isActive={filters[RESOURCE_RENDER_BLOCKING_STATUS] === 'blocking'}
-              toggle={handleBlockingToggle}
-            />
+            <SwitchContainer>
+              <SwitchButton
+                isActive={filters[RESOURCE_RENDER_BLOCKING_STATUS] === 'blocking'}
+                toggle={handleBlockingToggle}
+              />
+              Render Blocking
+            </SwitchContainer>
           </FilterOptionsContainer>
           <ResourceTable sort={sort} />
           <ResourceSidebar groupId={filters[DESCRIPTION]} />
@@ -145,8 +155,7 @@ function ResourceTypeSelector({value}: {value?: string}) {
   const options: Option[] = [
     {value: '', label: 'All'},
     {value: 'resource.script', label: `${t('JavaScript')} (.js)`},
-    {value: '.css', label: `${t('Stylesheet')} (.css)`},
-    {value: 'resource.img', label: `${t('Images')} (.png, .jpg, .jpeg, .gif, etc)`},
+    {value: 'resource.css', label: `${t('Stylesheet')} (.css)`},
   ];
   return (
     <SelectControlWithProps
@@ -193,16 +202,18 @@ function PageSelector({value}: {value?: string}) {
   );
 }
 
+const SwitchContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  column-gap: ${space(1)};
+`;
+
 function SelectControlWithProps(props: ControlProps & {options: Option[]}) {
   return <SelectControl {...props} />;
 }
 
 export const PaddedContainer = styled('div')`
   margin-bottom: ${space(2)};
-`;
-
-const StyledSwitchButton = styled(SwitchButton)`
-  margin-top: ${space(1)};
 `;
 
 const FilterOptionsContainer = styled('div')`

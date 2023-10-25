@@ -48,7 +48,10 @@ type Props = {
 
 function ResourceTable({sort}: Props) {
   const location = useLocation();
-  const {data, isLoading, pageLinks} = useResourcesQuery({sort});
+  const {data, isLoading, pageLinks} = useResourcesQuery({
+    sort,
+    defaultResourceTypes: ['resource.script', 'resource.css'],
+  });
 
   const columnOrder: GridColumnOrder<keyof Row>[] = [
     {key: SPAN_DESCRIPTION, width: COL_WIDTH_UNDEFINED, name: 'Resource name'},
@@ -68,11 +71,6 @@ function ResourceTable({sort}: Props) {
       key: RESOURCE_RENDER_BLOCKING_STATUS,
       width: COL_WIDTH_UNDEFINED,
       name: t('Render blocking'),
-    },
-    {
-      key: 'http.decoded_response_content_length',
-      width: COL_WIDTH_UNDEFINED,
-      name: t('Uncompressed'),
     },
   ];
   const tableData: Row[] = data.length

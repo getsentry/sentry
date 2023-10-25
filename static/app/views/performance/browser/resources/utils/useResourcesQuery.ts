@@ -18,14 +18,21 @@ const {
   HTTP_RESPONSE_CONTENT_LENGTH,
 } = SpanMetricsField;
 
-export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
+type Props = {
+  sort: ValidSort;
+  defaultResourceTypes?: string[];
+};
+
+export const useResourcesQuery = ({sort, defaultResourceTypes}: Props) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
   const resourceFilters = useResourceModuleFilters();
   const {slug: orgSlug} = useOrganization();
 
   const queryConditions = [
-    `${SPAN_OP}:${resourceFilters.type || 'resource.*'}`,
+    `${SPAN_OP}:${
+      resourceFilters.type || `[${defaultResourceTypes?.join(',')}]` || 'resource.*'
+    }`,
     ...(resourceFilters.transaction
       ? [`transaction:"${resourceFilters.transaction}"`]
       : []),
