@@ -556,11 +556,14 @@ const StyledListTitle = styled('div')`
   }
 `;
 
+// This is a temporary hacky solution to hide list items without changing the numbering of the rest of the list
+// TODO(telemetry-experience): Remove this once the migration is complete
 const HiddenListItem = styled(ListItem)`
   position: absolute;
   width: 0px;
   height: 0px;
   opacity: 0;
+  pointer-events: none;
 `;
 
 const Spacer = styled('div')`
