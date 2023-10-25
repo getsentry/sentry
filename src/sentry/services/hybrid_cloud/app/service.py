@@ -139,9 +139,10 @@ class AppService(RpcService):
         self,
         *,
         organization_id: int,
-        integration_creator: str,
+        integration_creator: Optional[str],
         integration_name: str,
         integration_scopes: List[str],
+        integration_creator_id: Optional[int],
     ) -> RpcSentryAppInstallation:
         pass
 

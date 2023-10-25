@@ -51,11 +51,11 @@ export default function FeedbackListPage({}: Props) {
   });
 
   return (
-    <SentryDocumentTitle title={t(`Bug Reports`)} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
       <FullViewport>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Layout.Title>{t('Bug Reports')}</Layout.Title>
+            <Layout.Title>{t('User Feedback')}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
         <PageFiltersContainer>
