@@ -13,7 +13,7 @@ describe('bun onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 
-    // renders config options
+    // Renders config options
     expect(
       screen.getByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0,/))
     ).toBeInTheDocument();
@@ -24,12 +24,12 @@ describe('bun onboarding docs', function () {
       selectedProducts: [],
     });
 
-    // does not render config option
+    // Does not render config option
     expect(
       screen.queryByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0,/))
     ).not.toBeInTheDocument();
 
-    // Remders next steps
+    // Renders next steps
     expect(
       screen.getByRole('link', {name: 'Performance Monitoring'})
     ).toBeInTheDocument();
