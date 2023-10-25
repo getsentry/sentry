@@ -418,7 +418,8 @@ def _get_project_config(
                         {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600},
                         {"measurement": "lcp", "weight": 0.30, "p10": 1200, "p50": 2400},
                         {"measurement": "fid", "weight": 0.30, "p10": 100, "p50": 300},
-                        {"measurement": "cls", "weight": 0.25, "p10": 0.1, "p50": 0.25},
+                        {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
+                        {"measurement": "ttfb", "weight": 0.10, "p10": 200, "p50": 400},
                     ],
                     "condition": {
                         "op": "eq",

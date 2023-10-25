@@ -49,11 +49,13 @@ BUILTIN_MEASUREMENTS: Sequence[BuiltinMeasurementKey] = [
     {"name": "score.fcp", "unit": "ratio"},
     {"name": "score.fid", "unit": "ratio"},
     {"name": "score.lcp", "unit": "ratio"},
+    {"name": "score.ttfb", "unit": "ratio"},
     {"name": "score.total", "unit": "ratio"},
     {"name": "score.weight.cls", "unit": "ratio"},
     {"name": "score.weight.fcp", "unit": "ratio"},
     {"name": "score.weight.fid", "unit": "ratio"},
     {"name": "score.weight.lcp", "unit": "ratio"},
+    {"name": "score.weight.ttfb", "unit": "ratio"},
 ]
 
 
