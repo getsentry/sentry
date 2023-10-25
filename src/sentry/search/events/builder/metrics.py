@@ -130,7 +130,11 @@ class MetricsQueryBuilder(QueryBuilder):
             return None
 
         try:
-            return OnDemandMetricSpec(field, self.query)
+            environment = None
+            if self.params.environments:
+                environment = self.params.environments[0].name
+
+            return OnDemandMetricSpec(field, self.query, environment)
         except Exception as e:
             sentry_sdk.capture_exception(e)
             return None

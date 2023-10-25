@@ -2605,39 +2605,53 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         assert len(meta) == 1
         assert meta[0]["name"] == "d:transactions/on_demand@none"
 
-    def test_run_query_with_on_demand_count(self):
+    def test_run_query_with_on_demand_count_and_environments(self):
         field = "count(measurements.fp)"
         query_s = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, query=query_s)
 
-        self.store_transaction_metric(
-            value=100,
-            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
-            entity="metrics_counters",
-            tags={"query_hash": spec.query_hash},
-            timestamp=self.start,
-        )
+        env_name = "prod"
+        self.create_environment(project=self.project, name=env_name)
 
-        query = AlertMetricsQueryBuilder(
-            self.params,
-            granularity=3600,
-            query=query_s,
-            dataset=Dataset.PerformanceMetrics,
-            selected_columns=[field],
-            config=QueryBuilderConfig(
-                use_metrics_layer=False,
-                on_demand_metrics_enabled=True,
-                skip_time_conditions=False,
-            ),
-        )
+        # We use different values to distinguish between the two.
+        environments = ((None, 100), (env_name, 200))
+        specs = []
+        for environment, value in environments:
+            spec = OnDemandMetricSpec(field=field, query=query_s, environment=environment)
+            self.store_transaction_metric(
+                value=value,
+                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                entity="metrics_counters",
+                tags={"query_hash": spec.query_hash},
+                timestamp=self.start,
+            )
+            specs.append(spec)
 
-        result = query.run_query("test_query")
+        for (environment, value), spec in zip(environments, specs):
+            params = (
+                self.params
+                if environment is None
+                else {**self.params, "environment": [environment]}
+            )
+            query = AlertMetricsQueryBuilder(
+                params,
+                granularity=3600,
+                query=query_s,
+                dataset=Dataset.PerformanceMetrics,
+                selected_columns=[field],
+                config=QueryBuilderConfig(
+                    use_metrics_layer=False,
+                    on_demand_metrics_enabled=True,
+                    skip_time_conditions=False,
+                ),
+            )
 
-        assert result["data"] == [{"c:transactions/on_demand@none": 100.0}]
-        meta = result["meta"]
-        assert len(meta) == 1
-        assert meta[0]["name"] == "c:transactions/on_demand@none"
+            result = query.run_query("test_query")
+
+            assert result["data"] == [{"c:transactions/on_demand@none": float(value)}]
+            meta = result["meta"]
+            assert len(meta) == 1
+            assert meta[0]["name"] == "c:transactions/on_demand@none"
 
     def test_run_query_with_on_demand_failure_rate(self):
         field = "failure_rate()"
