@@ -22,9 +22,8 @@ import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList
 
 const {
   SPAN_SELF_TIME,
-  SPAN_OP,
   SPAN_DESCRIPTION,
-  HTTP_DECODED_RESPONSE_BODY_LENGTH,
+  HTTP_DECODED_RESPONSE_CONTENT_LENGTH,
   HTTP_RESPONSE_CONTENT_LENGTH,
   HTTP_RESPONSE_TRANSFER_SIZE,
 } = SpanMetricsField;
@@ -38,10 +37,9 @@ function ResourceSummary() {
   const {data: spanMetrics} = useSpanMetrics(groupId, {}, [
     `avg(${SPAN_SELF_TIME})`,
     `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
-    `avg(${HTTP_DECODED_RESPONSE_BODY_LENGTH})`,
+    `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
     `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
     'spm()',
-    SPAN_OP,
     SPAN_DESCRIPTION,
   ]);
 
@@ -88,11 +86,11 @@ function ResourceSummary() {
               </PageFilterBar>
             </PaddedContainer>
             <ResourceInfo
-              avgContentLength={spanMetrics['avg(http.response_content_length)']}
+              avgContentLength={spanMetrics[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`]}
               avgDecodedContentLength={
-                spanMetrics['avg(http.decoded_response_body_length)']
+                spanMetrics[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`]
               }
-              avgTransferSize={spanMetrics['avg(http.response_transfer_size)']}
+              avgTransferSize={spanMetrics[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`]}
               avgDuration={spanMetrics[`avg(${SPAN_SELF_TIME})`]}
               throughput={spanMetrics['spm()']}
             />
