@@ -912,6 +912,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       router,
       disableProjectSelector,
       eventView,
+      location,
     } = this.props;
     const {
       name,
@@ -933,6 +934,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     } = this.state;
 
     const wizardBuilderChart = this.renderTriggerChart();
+    // TODO(telemetry-experience): Remove this and all connected logic once the migration is complete
+    const isMigration = location.query.migration === '1';
 
     const triggerForm = (disabled: boolean) => (
       <Triggers
@@ -941,6 +944,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         errors={this.state.triggerErrors}
         triggers={triggers}
         aggregate={aggregate}
+        isMigration={isMigration}
         resolveThreshold={resolveThreshold}
         thresholdPeriod={thresholdPeriod}
         thresholdType={thresholdType}
@@ -978,7 +982,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const submitDisabled = formDisabled || !this.state.isQueryValid;
 
     const showMigrationWarning =
-      !!ruleId && hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
+      true ||
+      (!!ruleId && hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule));
 
     return (
       <Main fullWidth>
@@ -1028,12 +1033,13 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               </Confirm>
             ) : null
           }
-          submitLabel={t('Save Rule')}
+          submitLabel={isMigration ? t('Looks good to me!') : t('Save Rule')}
         >
           <List symbol="colored-numeric">
             <RuleConditionsForm
               project={project}
               organization={organization}
+              isMigration={isMigration}
               router={router}
               disabled={formDisabled}
               thresholdChart={wizardBuilderChart}
@@ -1054,15 +1060,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             <AlertListItem>{t('Set thresholds')}</AlertListItem>
             {thresholdTypeForm(formDisabled)}
             {showMigrationWarning && (
-              <Alert
-                type="warning"
-                showIcon
-                trailingItems={
-                  <Button size="xs" type="submit">
-                    {t('Looks good to me!')}
-                  </Button>
-                }
-              >
+              <Alert type="warning" showIcon>
                 {tct(
                   'Check the chart above and make sure the current thresholds are still valid, given that this alert is now based on [tooltip:total events].',
                   {
@@ -1088,7 +1086,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               </Alert>
             )}
             {triggerForm(formDisabled)}
-            {ruleNameOwnerForm(formDisabled)}
+            {isMigration ? <Fragment /> : ruleNameOwnerForm(formDisabled)}
           </List>
         </Form>
       </Main>

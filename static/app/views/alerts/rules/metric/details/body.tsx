@@ -159,11 +159,11 @@ export default function MetricDetailsBody({
   const showMigrationWarning =
     hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
 
-  const editThresholdLink =
+  const migrationFormLink =
     rule &&
     `/organizations/${organization.slug}/alerts/metric-rules/${
       project?.slug ?? rule?.projects?.[0]
-    }/${rule.id}/`;
+    }/${rule.id}/?migration=1`;
 
   return (
     <Fragment>
@@ -209,7 +209,7 @@ export default function MetricDetailsBody({
               showIcon
               trailingItems={
                 <LinkButton
-                  to={editThresholdLink}
+                  to={migrationFormLink}
                   size="xs"
                   icon={<IconEdit size="xs" />}
                 >
