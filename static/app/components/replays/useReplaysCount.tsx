@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 
 import {DateString, IssueCategory, Organization} from 'sentry/types';
 import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
@@ -30,6 +30,15 @@ function useReplaysCount({
   extraConditions,
   datetime,
 }: Options) {
+  const [lastData, setLastData] = useState<CountState>({});
+
+  const filterUnseen = useCallback(
+    (ids: string | string[]) => {
+      return toArray(ids).filter(id => !(id in lastData));
+    },
+    [lastData]
+  );
+
   const zeroCounts = useMemo(() => {
     const gIds = toArray(groupIds || []);
     const txnNames = toArray(transactionNames || []);
@@ -58,7 +67,7 @@ function useReplaysCount({
     }
 
     if (groupIds && groupIds.length) {
-      const groupsToFetch = toArray(groupIds);
+      const groupsToFetch = filterUnseen(groupIds);
       if (groupsToFetch.length) {
         return {
           field: 'issue.id' as const,
@@ -69,7 +78,7 @@ function useReplaysCount({
     }
 
     if (replayIds && replayIds.length) {
-      const replaysToFetch = toArray(replayIds);
+      const replaysToFetch = filterUnseen(replayIds);
       if (replaysToFetch.length) {
         return {
           field: 'replay_id' as const,
@@ -80,7 +89,7 @@ function useReplaysCount({
     }
 
     if (transactionNames && transactionNames.length) {
-      const txnsToFetch = toArray(transactionNames);
+      const txnsToFetch = filterUnseen(transactionNames);
       if (txnsToFetch.length) {
         return {
           field: 'transaction' as const,
@@ -90,10 +99,10 @@ function useReplaysCount({
       return null;
     }
     return null;
-  }, [groupIds, replayIds, transactionNames]);
+  }, [filterUnseen, groupIds, replayIds, transactionNames]);
 
   const hasSessionReplay = organization.features.includes('session-replay');
-  const {data} = useApiQuery<CountState>(
+  const {data, isFetched} = useApiQuery<CountState>(
     makeReplayCountsQueryKey({
       organization,
       conditions: [queryField?.conditions ?? '', extraConditions ?? ''],
@@ -106,13 +115,21 @@ function useReplaysCount({
     }
   );
 
-  return useMemo(
-    () => ({
-      ...zeroCounts,
+  return useMemo(() => {
+    if (isFetched) {
+      const merged = {
+        ...zeroCounts,
+        ...lastData,
+        ...data,
+      };
+      setLastData(merged);
+      return merged;
+    }
+    return {
+      ...lastData,
       ...data,
-    }),
-    [zeroCounts, data]
-  );
+    };
+  }, [isFetched, zeroCounts, lastData, data]);
 }
 
 function makeReplayCountsQueryKey({
