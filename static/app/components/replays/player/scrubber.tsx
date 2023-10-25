@@ -131,17 +131,13 @@ export const CompactTimelineScrubber = styled(Scrubber)`
 
   ${Meter} {
     border-radius: ${p => p.theme.borderRadius};
-    background: ${p => p.theme.translucentInnerBorder};
+    background: transparent;
   }
 
   ${RangeWrapper},
   ${Range},
   ${SliderAndInputWrapper} {
     height: 100%;
-  }
-
-  ${PlaybackTimeValue} {
-    background: ${p => p.theme.purple100};
   }
 
   /**
