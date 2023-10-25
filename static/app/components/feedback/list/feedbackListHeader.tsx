@@ -14,20 +14,41 @@ import {space} from 'sentry/styles/space';
 
 interface Props {
   checked: string[];
+  setQueryStatus: (status: string) => void;
+  toggleChecked: (id: string) => void;
 }
 
 type Mailbox = 'inbox' | 'resolved' | 'archived';
 
-export default function FeedbackListHeader({checked}: Props) {
+export default function FeedbackListHeader({
+  checked,
+  toggleChecked,
+  setQueryStatus,
+}: Props) {
   const [mailbox, setMailbox] = useState<Mailbox>('inbox');
 
   return (
     <HeaderPanelItem>
-      <Checkbox checked={checked.length ? 'indeterminate' : false} onChange={() => {}} />
+      <Checkbox
+        checked={checked.length ? 'indeterminate' : false}
+        onChange={() => {
+          checked.length ? checked.forEach(c => toggleChecked(c)) : null;
+        }}
+      />
       {checked.length ? (
         <HasSelection checked={checked} />
       ) : (
-        <MailboxPicker value={mailbox} onChange={setMailbox} />
+        <MailboxPicker
+          value={mailbox}
+          onChange={next => {
+            setMailbox(next);
+            next === 'inbox'
+              ? setQueryStatus('unresolved')
+              : next === 'resolved'
+              ? setQueryStatus('resolved')
+              : setQueryStatus('ignored');
+          }}
+        />
       )}
     </HeaderPanelItem>
   );
