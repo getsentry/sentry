@@ -17,7 +17,6 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import PullRequest, PullRequestComment, PullRequestCommit
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions.base import ApiError
-from sentry.snuba.sessions_v2 import isoformat_z
 from sentry.tasks.commit_context import PR_COMMENT_WINDOW, process_commit_context
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -41,6 +40,8 @@ class TestCommitContextMixin(TestCase):
         self.code_mapping = self.create_code_mapping(
             repo=self.repo,
             project=self.project,
+            stack_root="sentry/",
+            source_root="sentry/",
         )
         self.commit_author = self.create_commit_author(project=self.project, user=self.user)
         self.commit = self.create_commit(
@@ -669,6 +670,61 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
 
         assert created_group_owner.context == {"commitId": created_commit.id}
 
+    @patch("sentry.analytics.record")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
+    )
+    @with_feature("organizations:suspect-commits-all-frames")
+    def test_maps_correct_files(self, mock_get_commit_context, mock_record):
+        """
+        Tests that the get_commit_context_all_frames function is called with the correct
+        files. Code mappings should be applied properly and non-matching files thrown out.
+        """
+        mock_get_commit_context.return_value = [self.blame_existing_commit]
+
+        other_code_mapping = self.create_code_mapping(
+            repo=self.repo,
+            project=self.project,
+            stack_root="other/",
+            source_root="sentry/",
+        )
+        frames = [
+            {
+                "in_app": True,
+                "lineno": 39,
+                "filename": "other/models/release.py",
+            }
+        ]
+
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+
+        assert GroupOwner.objects.get(
+            group=self.event.group,
+            project=self.event.project,
+            organization=self.event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        )
+
+        mock_get_commit_context.assert_called_once_with(
+            [
+                SourceLineInfo(
+                    lineno=39,
+                    path="sentry/models/release.py",
+                    ref="master",
+                    repo=other_code_mapping.repository,
+                    code_mapping=other_code_mapping,
+                )
+            ]
+        )
+
     @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
     @patch("sentry.analytics.record")
     @patch(
@@ -1142,18 +1198,8 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             updated_at=iso_format(before_now(days=1)),
             group_ids=[],
         )
-        self.installation_id = "github:1"
-        self.user_id = "user_1"
-        self.app_id = "app_1"
-        self.access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-        self.expires_at = isoformat_z(timezone.now() + timedelta(days=365))
 
     def add_responses(self):
-        responses.add(
-            responses.POST,
-            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
-            json={"token": self.access_token, "expires_at": self.expires_at},
-        )
         responses.add(
             responses.GET,
             self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
@@ -1200,11 +1246,6 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
         self.pull_request.delete()
 
         responses.add(
-            responses.POST,
-            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
-            json={"token": self.access_token, "expires_at": self.expires_at},
-        )
-        responses.add(
             responses.GET,
             self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
             status=200,
@@ -1229,11 +1270,6 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
         """Captures exception if Github API call errors"""
 
         responses.add(
-            responses.POST,
-            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
-            json={"token": self.access_token, "expires_at": self.expires_at},
-        )
-        responses.add(
             responses.GET,
             self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
             status=400,
@@ -1257,11 +1293,6 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
     def test_gh_comment_commit_not_in_default_branch(self, get_jwt, mock_comment_workflow):
         """No comments on commit not in default branch"""
 
-        responses.add(
-            responses.POST,
-            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
-            json={"token": self.access_token, "expires_at": self.expires_at},
-        )
         responses.add(
             responses.GET,
             self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
