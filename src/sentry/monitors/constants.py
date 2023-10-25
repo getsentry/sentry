@@ -6,7 +6,7 @@ TIMEOUT = 30
 MAX_TIMEOUT = 40_320
 
 # Format to use in the issue subtitle for the missed check-in timestamp
-SUBTITLE_DATETIME_FORMAT = "%b %d, %I:%M %p"
+SUBTITLE_DATETIME_FORMAT = "%b %d, %I:%M %p %Z"
 
 # maximum value for incident + recovery thresholds to be set
 # affects the performance of recent check-ins query
