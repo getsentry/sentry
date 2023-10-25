@@ -174,8 +174,10 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             # Update monitor configuration during checkin if config is changed
             if update_monitor and monitor_data["config"] != monitor.config:
                 monitor.update_config(
-                    request.data.get("monitor_config", {}), monitor_data["config"]
+                    request.data.get("monitor_config", {}),
+                    monitor_data["config"],
                 )
+                monitor.save()
 
             try:
                 monitor_environment = MonitorEnvironment.objects.ensure_environment(

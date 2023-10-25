@@ -252,6 +252,7 @@ class MonitorEnvironmentTestCase(TestCase):
         assert validator.is_valid()
         validated_config = validator.validated_data
         monitor.update_config(new_config, validated_config)
+        monitor.save()
 
         assert monitor.config == {
             "schedule": "0 0 1 2 *",
