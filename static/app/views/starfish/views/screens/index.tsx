@@ -120,10 +120,10 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     fields: [
       'transaction',
       SpanMetricsField.PROJECT_ID,
-      'avg(measurements.time_to_initial_display)', // TODO: Update these to avgIf with primary release when available
-      `avg_compare(measurements.time_to_initial_display,release,${primaryRelease},${secondaryRelease})`,
-      'avg(measurements.time_to_full_display)',
-      `avg_compare(measurements.time_to_full_display,release,${primaryRelease},${secondaryRelease})`,
+      `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`,
+      `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
+      `avg_if(measurements.time_to_full_display,release,${primaryRelease})`,
+      `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`,
       'count()',
     ],
     query: queryString,
