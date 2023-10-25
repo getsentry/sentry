@@ -7,6 +7,7 @@ from copy import deepcopy
 from typing import Any, ClassVar, Mapping, Sequence
 
 from sentry.integrations.utils import where_should_sync
+from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.project import Project
@@ -267,7 +268,7 @@ class IssueBasicMixin:
         """
         return ""
 
-    def get_repository_choices(self, group, **kwargs):
+    def get_repository_choices(self, group: Group, params: dict, **kwargs):
         """
         Returns the default repository and a set/subset of repositories of associated with the installation
         """
@@ -278,9 +279,8 @@ class IssueBasicMixin:
         else:
             repo_choices = [(repo["identifier"], repo["name"]) for repo in repos]
 
-        params = kwargs.get("params", {})
         defaults = self.get_project_defaults(group.project_id)
-        repo = params.get("repo", defaults.get("repo"))
+        repo = params.get("repo") or defaults.get("repo")
 
         try:
             default_repo = repo or repo_choices[0][0]
