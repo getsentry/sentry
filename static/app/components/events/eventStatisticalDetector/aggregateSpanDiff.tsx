@@ -94,8 +94,7 @@ function getColumns() {
 }
 
 function getPercentChange(before: number, after: number) {
-  const rawPercent = ((after - before) / before) * 100;
-  return `${Math.round(rawPercent)}%`;
+  return ((after - before) / before) * 100;
 }
 
 function renderHeadCell(column: GridColumnOrder<string>) {
@@ -117,8 +116,7 @@ function NumericChange({
 }) {
   const organization = useOrganization();
   const location = useLocation();
-  const isPositive = afterRawValue > beforeRawValue;
-  const changed = beforeRawValue !== afterRawValue;
+  const percentChange = getPercentChange(beforeRawValue, afterRawValue);
 
   const unit = columnKey === 'p95' ? 'millisecond' : RateUnits.PER_MINUTE;
   const renderer = (value: number) =>
@@ -131,22 +129,29 @@ function NumericChange({
       false
     )({[columnKey]: value}, {organization, location, unit});
 
-  if (changed) {
+  if (Math.round(percentChange) !== 0) {
+    let percentChangeLabel = `${percentChange > 0 ? '+' : ''}${Math.round(
+      percentChange
+    )}%`;
+    if (beforeRawValue === 0) {
+      percentChangeLabel = t('New');
+    }
     return (
       <Change>
         {renderer(beforeRawValue)}
         <IconArrow direction="right" size="xs" />
         {renderer(afterRawValue)}
-        <ChangeLabel isPositive={isPositive}>{`(${
-          isPositive ? '+' : ''
-        }${getPercentChange(beforeRawValue, afterRawValue)})`}</ChangeLabel>
+        <ChangeLabel isPositive={percentChange > 0} isNeutral={beforeRawValue === 0}>
+          {percentChangeLabel}
+        </ChangeLabel>
       </Change>
     );
   }
+
   return (
     <Change>
-      {renderer(beforeRawValue)}
-      <ChangeDescription>{t('(No change)')}</ChangeDescription>
+      {renderer(afterRawValue)}
+      <ChangeDescription>{t('(No significant change)')}</ChangeDescription>
     </Change>
   );
 }
@@ -269,8 +274,16 @@ function AggregateSpanDiff({event, projectId}: {event: Event; projectId: string}
 
 export default AggregateSpanDiff;
 
-const ChangeLabel = styled('div')<{isPositive: boolean}>`
-  color: ${p => (p.isPositive ? p.theme.red300 : p.theme.green300)};
+const ChangeLabel = styled('div')<{isNeutral: boolean; isPositive: boolean}>`
+  color: ${p => {
+    if (p.isNeutral) {
+      return p.theme.gray300;
+    }
+    if (p.isPositive) {
+      return p.theme.red300;
+    }
+    return p.theme.green300;
+  }};
   text-align: right;
 `;
 
