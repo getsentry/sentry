@@ -52,10 +52,7 @@ def schedule_auto_resolution():
         if int(options.get("sentry:_last_auto_resolve", 0)) > cutoff:
             continue
 
-        auto_resolve_project_issues.delay(
-            project_id=project_id,
-            expires=ONE_HOUR,
-        )
+        auto_resolve_project_issues.delay(project_id=project_id, expires=ONE_HOUR)
 
 
 @instrumented_task(
@@ -66,12 +63,7 @@ def schedule_auto_resolution():
     silo_mode=SiloMode.REGION,
 )
 @log_error_if_queue_has_items
-def auto_resolve_project_issues(
-    project_id,
-    cutoff=None,
-    chunk_size=1000,
-    **kwargs,
-):
+def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwargs):
     project = Project.objects.get_from_cache(id=project_id)
     organization = project.organization
     flag_enabled = features.has("organizations:issue-platform-api-crons-sd", organization)
@@ -88,7 +80,7 @@ def auto_resolve_project_issues(
         cutoff = timezone.now() - timedelta(hours=int(age))
 
     filter_conditions = {
-        "project_id": project_id,
+        "project": project,
         "last_seen__lte": cutoff,
         "status": GroupStatus.UNRESOLVED,
     }
@@ -137,7 +129,5 @@ def auto_resolve_project_issues(
 
     if might_have_more:
         auto_resolve_project_issues.delay(
-            project_id=project_id,
-            cutoff=int(cutoff.strftime("%s")),
-            chunk_size=chunk_size,
+            project_id=project_id, cutoff=int(cutoff.strftime("%s")), chunk_size=chunk_size
         )
