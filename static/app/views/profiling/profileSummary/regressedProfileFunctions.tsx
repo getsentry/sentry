@@ -181,7 +181,11 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
         </RegressedFunctionsQueryState>
       ) : !trends.length ? (
         <RegressedFunctionsQueryState>
-          {t('Horay, no regressed functions detected!')}
+          {trendType === 'regression' ? (
+            <p>{t('No regressed functions detected')}</p>
+          ) : (
+            <p>{t('No improved functions detected')}</p>
+          )}
         </RegressedFunctionsQueryState>
       ) : (
         trends.map((fn, i) => {
@@ -318,11 +322,24 @@ const RegressedFunctionMetricsRow = styled('div')`
 
 const RegressedFunctionsContainer = styled('div')`
   flex-basis: 80px;
-  margin-top: ${space(0.5)};
+  padding: 0 ${space(1)};
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const RegressedFunctionsPagination = styled(Pagination)`
   margin: 0;
+
+  button {
+    height: 16px;
+    width: 16px;
+    min-width: 16px;
+    min-height: 16px;
+
+    svg {
+      width: 10px;
+      height: 10px;
+    }
+  }
 `;
 
 const RegressedFunctionsTitleContainer = styled('div')`
@@ -330,6 +347,7 @@ const RegressedFunctionsTitleContainer = styled('div')`
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${space(0.5)};
+  margin-top: ${space(0.5)};
 `;
 
 const RegressedFunctionsQueryState = styled('div')`
@@ -341,11 +359,11 @@ const RegressedFunctionsQueryState = styled('div')`
 const TRIGGER_PROPS = {borderless: true, size: 'zero' as const};
 const TREND_FUNCTION_OPTIONS: SelectOption<TrendType>[] = [
   {
-    label: t('Most regressed functions'),
+    label: t('Most Regressed Functions'),
     value: 'regression' as const,
   },
   {
-    label: t('Most improved functions'),
+    label: t('Most Improved Functions'),
     value: 'improvement' as const,
   },
 ];

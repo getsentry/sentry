@@ -247,9 +247,9 @@ class DatabaseBackedNotificationsService(NotificationsService):
         self,
         *,
         recipients: List[RpcActor],
-        project_ids: Optional[List[int]],
-        organization_id: Optional[int],
         type: NotificationSettingEnum,
+        project_ids: Optional[List[int]] = None,
+        organization_id: Optional[int] = None,
     ) -> MutableMapping[
         int, MutableMapping[int, str]
     ]:  # { actor_id : { provider_str: value_str } }
@@ -264,6 +264,17 @@ class DatabaseBackedNotificationsService(NotificationsService):
             actor.id: {provider.value: value.value for provider, value in providers.items()}
             for actor, providers in participants.items()
         }
+
+    def get_users_for_weekly_reports(
+        self, *, organization_id: int, user_ids: List[int]
+    ) -> List[int]:
+        users = User.objects.filter(id__in=user_ids)
+        controller = NotificationController(
+            recipients=users,
+            organization_id=organization_id,
+            type=NotificationSettingEnum.REPORTS,
+        )
+        return controller.get_users_for_weekly_reports()
 
     class _NotificationSettingsQuery(
         FilterQueryDatabaseImpl[

@@ -1,22 +1,21 @@
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackEmptyDetails from 'sentry/components/feedback/details/feedbackEmptyDetails';
 import {FeedbackDataContext} from 'sentry/components/feedback/feedbackDataContext';
 import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
 import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
 import FeedbackSearch from 'sentry/components/feedback/feedbackSearch';
 import FeedbackList from 'sentry/components/feedback/list/feedbackList';
-import useFeedbackListQueryView from 'sentry/components/feedback/useFeedbackListQueryView';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {FeedbackItemLoaderQueryParams} from 'sentry/utils/feedback/item/types';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
@@ -24,41 +23,63 @@ interface Props extends RouteComponentProps<{}, {}, {}> {}
 
 export default function FeedbackListPage({}: Props) {
   const organization = useOrganization();
-  const location = useLocation<FeedbackItemLoaderQueryParams>();
 
-  const queryView = useFeedbackListQueryView({
-    queryReferrer: 'feedback_list_page',
+  const queryView = useLocationQuery({
+    fields: {
+      collapse: ['inbox'],
+      expand: [
+        'owners', // Gives us assignment
+        'stats', // Gives us `firstSeen`
+      ],
+      limit: 25,
+      queryReferrer: 'feedback_list_page',
+      shortIdLookup: 0,
+      end: decodeScalar,
+      environment: decodeList,
+      field: decodeList,
+      project: decodeList,
+      query: decodeScalar,
+      start: decodeScalar,
+      statsPeriod: decodeScalar,
+      utc: decodeScalar,
+    },
   });
-  const feedbackSlug = decodeScalar(location.query.feedbackSlug);
+  const {feedbackSlug} = useLocationQuery({
+    fields: {
+      feedbackSlug: decodeScalar,
+    },
+  });
 
   return (
-    <FeedbackDataContext queryView={queryView} initialDate={new Date()}>
-      <SentryDocumentTitle title={t(`Bug Reports`)} orgSlug={organization.slug}>
-        <FullViewport>
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Layout.Title>{t('Bug Reports')}</Layout.Title>
-            </Layout.HeaderContent>
-          </Layout.Header>
-          <PageFiltersContainer>
-            <LayoutGrid>
-              <FeedbackFilters style={{gridArea: 'filters'}} />
-              <FeedbackSearch style={{gridArea: 'search'}} />
-              <Container style={{gridArea: 'list'}}>
-                <FeedbackList />
-              </Container>
-              <Container style={{gridArea: 'details'}}>
-                {feedbackSlug ? (
-                  <FeedbackItemLoader feedbackSlug={feedbackSlug} />
-                ) : (
-                  <FeedbackEmptyDetails />
-                )}
-              </Container>
-            </LayoutGrid>
-          </PageFiltersContainer>
-        </FullViewport>
-      </SentryDocumentTitle>
-    </FeedbackDataContext>
+    <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
+      <FullViewport>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Layout.Title>{t('User Feedback')}</Layout.Title>
+          </Layout.HeaderContent>
+        </Layout.Header>
+        <PageFiltersContainer>
+          <ErrorBoundary>
+            <FeedbackDataContext queryView={queryView}>
+              <LayoutGrid>
+                <FeedbackFilters style={{gridArea: 'filters'}} />
+                <FeedbackSearch style={{gridArea: 'search'}} />
+                <Container style={{gridArea: 'list'}}>
+                  <FeedbackList />
+                </Container>
+                <Container style={{gridArea: 'details'}}>
+                  {feedbackSlug ? (
+                    <FeedbackItemLoader feedbackSlug={feedbackSlug} />
+                  ) : (
+                    <FeedbackEmptyDetails />
+                  )}
+                </Container>
+              </LayoutGrid>
+            </FeedbackDataContext>
+          </ErrorBoundary>
+        </PageFiltersContainer>
+      </FullViewport>
+    </SentryDocumentTitle>
   );
 }
 

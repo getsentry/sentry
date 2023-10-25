@@ -1,38 +1,28 @@
-import {getCurrentHub} from '@sentry/react';
+import {useEffect} from 'react';
+import {BrowserClient, getCurrentHub} from '@sentry/react';
+import {Feedback} from '@sentry-internal/feedback';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
-import {FeedbackButton} from './feedbackButton';
-import {FeedbackModal} from './feedbackModal';
-
-interface FeedbackWidgetProps {
-  title?: string;
-  type?: string;
-}
-
 /**
- * The "Widget" connects the default Feedback button with the Feedback Modal
- *
- * XXX: this is temporary while we make this an SDK feature.
+ * Use this to display the Feedback widget in certain routes/components
  */
-export default function FeedbackWidget({
-  title = 'Report a Bug',
-  type,
-}: FeedbackWidgetProps) {
+export default function FeedbackWidget() {
   const config = useLegacyStore(ConfigStore);
-
-  // Don't render anything if Sentry SDK is not already loaded
-  if (!getCurrentHub()) {
-    return null;
-  }
-
   const widgetTheme = config.theme === 'dark' ? 'dark' : 'light';
-  return (
-    <FeedbackModal title={title} type={type} widgetTheme={widgetTheme}>
-      {({open, showModal}) =>
-        open ? null : <FeedbackButton onClick={showModal} widgetTheme={widgetTheme} />
-      }
-    </FeedbackModal>
-  );
+
+  useEffect(() => {
+    const hub = getCurrentHub();
+    const client = hub && hub.getClient<BrowserClient>();
+    const feedback = client?.getIntegration(Feedback);
+    const widget = feedback?.createWidget({
+      colorScheme: widgetTheme,
+    });
+    return () => {
+      feedback?.removeWidget(widget);
+    };
+  }, [widgetTheme]);
+
+  return null;
 }

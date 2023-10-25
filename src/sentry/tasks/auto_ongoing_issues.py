@@ -22,7 +22,7 @@ from sentry.utils.query import RangeQuerySetWrapper
 logger = logging.getLogger(__name__)
 
 TRANSITION_AFTER_DAYS = 7
-ITERATOR_CHUNK = 500
+ITERATOR_CHUNK = 100
 CHILD_TASK_COUNT = 250
 
 
@@ -115,32 +115,37 @@ def schedule_auto_transition_issues_new_to_ongoing(
         nonlocal total_count
         total_count += len(results)
 
-    logger.info(
-        "auto_transition_issues_new_to_ongoing started",
-        extra={
-            "first_seen_lte": first_seen_lte,
-        },
-    )
-
+    first_seen_lte_datetime = datetime.fromtimestamp(first_seen_lte, timezone.utc)
     base_queryset = Group.objects.filter(
         status=GroupStatus.UNRESOLVED,
         substatus=GroupSubStatus.NEW,
-        first_seen__lte=datetime.fromtimestamp(first_seen_lte, timezone.utc),
+        first_seen__lte=first_seen_lte_datetime,
+    )
+
+    logger_extra = {
+        "first_seen_lte": first_seen_lte,
+        "first_seen_lte_datetime": first_seen_lte_datetime,
+    }
+    if base_queryset:
+        logger_extra["issue_first_seen"] = base_queryset[0].first_seen
+    logger.info(
+        "auto_transition_issues_new_to_ongoing started",
+        extra=logger_extra,
     )
 
     with sentry_sdk.start_span(description="iterate_chunked_group_ids"):
-        for new_group_ids in chunked(
+        for groups in chunked(
             RangeQuerySetWrapper(
-                base_queryset._clone().values_list("id", flat=True),
+                base_queryset._clone(),
                 step=ITERATOR_CHUNK,
                 limit=ITERATOR_CHUNK * CHILD_TASK_COUNT,
-                result_value_getter=lambda item: item,
                 callbacks=[get_total_count],
+                order_by="first_seen",
             ),
             ITERATOR_CHUNK,
         ):
             run_auto_transition_issues_new_to_ongoing.delay(
-                group_ids=new_group_ids,
+                group_ids=[group.id for group in groups],
             )
 
     metrics.incr(

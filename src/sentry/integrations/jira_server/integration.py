@@ -78,6 +78,12 @@ FEATURE_DESCRIPTIONS = [
         """,
         IntegrationFeatures.ISSUE_SYNC,
     ),
+    FeatureDescription(
+        """
+        Automatically create Jira tickets based on Issue Alert conditions.
+        """,
+        IntegrationFeatures.TICKET_RULES,
+    ),
 ]
 
 setup_alert = {
@@ -870,7 +876,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         schema. Send this cleaned data to Jira. Finally, make another API call
         to Jira to make sure the issue was created and return basic issue details.
 
-        :param data: JiraCreateTicketAction object
+        :param data: JiraServerCreateTicketAction object
         :param kwargs: not used
         :return: simple object with basic Jira issue details
         """
@@ -972,6 +978,15 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             cleaned_data["issuetype"] = {"id": issue_type}
 
         try:
+            logger.info(
+                "jira_server.create_issue",
+                extra={
+                    "organization_id": self.organization_id,
+                    "integration_id": self.model.id,
+                    "jira_project": jira_project,
+                    "cleaned_data": cleaned_data,
+                },
+            )
             response = client.create_issue(cleaned_data)
         except Exception as e:
             self.raise_error(e)
@@ -1122,8 +1137,6 @@ class JiraServerIntegrationProvider(IntegrationProvider):
     integration_cls = JiraServerIntegration
 
     needs_default_identity = True
-
-    can_add = True
 
     features = frozenset([IntegrationFeatures.ISSUE_BASIC, IntegrationFeatures.ISSUE_SYNC])
 

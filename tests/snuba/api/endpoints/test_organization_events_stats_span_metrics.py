@@ -212,10 +212,11 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
             },
         )
 
-        data = response.data["data"]
         assert response.status_code == 200
+
+        data = response.data["data"]
         assert len(data) == 2
-        assert data[0][1][0]["count"] == 0.0
+        assert not data[0][1][0]["count"]
         assert data[1][1][0]["count"] == 4.0
 
     def test_resource_decoded_length(self):

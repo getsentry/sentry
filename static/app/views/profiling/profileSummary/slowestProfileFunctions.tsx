@@ -10,7 +10,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOverflow';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
@@ -138,7 +138,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
           </SlowestFunctionsQueryState>
         ) : !functions.length ? (
           <SlowestFunctionsQueryState>
-            {t('Yikes, you have no slow functions? This should not happen.')}
+            {t('The fastest code is one that never runs.')}
           </SlowestFunctionsQueryState>
         ) : (
           functions.map((fn, i) => {
@@ -175,7 +175,8 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
                     <TextTruncateOverflow>{fn.package}</TextTruncateOverflow>
                   </div>
                   <div>
-                    <Count value={fn['count()'] as number} />
+                    <Count value={fn['count()'] as number} />{' '}
+                    {tn('time', 'times', fn['count()'])}
                     {', '}
                     <PerformanceDuration
                       nanoseconds={fn['p75()'] as number}
@@ -203,10 +204,24 @@ const SlowestFunctionsContainer = styled('div')`
   min-height: 0;
   display: flex;
   flex-direction: column;
+  padding: 0 ${space(1)};
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const SlowestFunctionsPagination = styled(Pagination)`
   margin: 0;
+
+  button {
+    height: 16px;
+    width: 16px;
+    min-width: 16px;
+    min-height: 16px;
+
+    svg {
+      width: 10px;
+      height: 10px;
+    }
+  }
 `;
 
 const SlowestFunctionsTitleContainer = styled('div')`

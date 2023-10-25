@@ -152,7 +152,11 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     def validate_dataset(self, dataset):
         try:
-            return Dataset(dataset)
+            dataset = Dataset(dataset)
+            if dataset in [Dataset.PerformanceMetrics, Dataset.Transactions]:
+                return self._validate_performance_dataset(dataset)
+
+            return dataset
         except ValueError:
             raise serializers.ValidationError(
                 "Invalid dataset, valid values are %s" % [item.value for item in Dataset]
@@ -391,6 +395,30 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             raise serializers.ValidationError(
                 f"Critical trigger must have an alert threshold {threshold_type} warning trigger"
             )
+
+    def _validate_performance_dataset(self, dataset):
+        if dataset != Dataset.Transactions:
+            return dataset
+
+        has_dynamic_sampling = features.has(
+            "organizations:dynamic-sampling", self.context["organization"]
+        )
+        has_performance_metrics_flag = features.has(
+            "organizations:mep-rollout-flag", self.context["organization"]
+        )
+        has_performance_metrics = has_dynamic_sampling and has_performance_metrics_flag
+
+        has_on_demand_metrics = features.has(
+            "organizations:on-demand-metrics-extraction",
+            self.context["organization"],
+        )
+
+        if has_performance_metrics or has_on_demand_metrics:
+            raise serializers.ValidationError(
+                "Performance alerts must use the `generic_metrics` dataset"
+            )
+
+        return dataset
 
     def create(self, validated_data):
         org_subscription_count = QuerySubscription.objects.filter(
