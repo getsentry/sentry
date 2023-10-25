@@ -79,12 +79,12 @@ export default function FeedbackItem({feedbackItem, eventData, tags, replayId}: 
                   {
                     key: 'resolve',
                     label: t('Resolve'),
-                    onAction: () => onSetStatus(GroupStatus.UNRESOLVED),
+                    onAction: () => onSetStatus(GroupStatus.RESOLVED),
                   },
                   {
                     key: 'unresolve',
                     label: t('Unresolve'),
-                    onAction: () => onSetStatus(GroupStatus.RESOLVED),
+                    onAction: () => onSetStatus(GroupStatus.UNRESOLVED),
                   },
                 ]}
               />
