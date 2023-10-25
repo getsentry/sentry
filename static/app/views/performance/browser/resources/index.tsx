@@ -15,6 +15,7 @@ import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import ImageResourceView from 'sentry/views/performance/browser/imageResourceView';
 import {ResourceSidebar} from 'sentry/views/performance/browser/resources/resourceSidebar';
 import ResourceTable from 'sentry/views/performance/browser/resources/resourceTable';
 import {useResourceDomainsQuery} from 'sentry/views/performance/browser/resources/utils/useResourceDomansQuery';
@@ -70,6 +71,8 @@ function ResourcesLandingPage() {
               <DatePageFilter />
             </PageFilterBar>
           </PaddedContainer>
+
+          <ImageResourceView />
 
           <FilterOptionsContainer>
             <DomainSelector value={filters[SPAN_DOMAIN] || ''} />
