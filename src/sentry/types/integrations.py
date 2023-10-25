@@ -96,11 +96,5 @@ def get_provider_enum_from_string(provider: str) -> ExternalProviders:
     raise InvalidProviderException("Invalid provider ${provider}")
 
 
-PERSONAL_NOTIFICATION_PROVIDERS_AS_INT = [
-    get_provider_enum_from_string(provider_name).value
-    for provider_name in PERSONAL_NOTIFICATION_PROVIDERS
-]
-
-
 class InvalidProviderException(Exception):
     pass

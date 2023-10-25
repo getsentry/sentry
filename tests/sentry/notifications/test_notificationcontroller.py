@@ -9,8 +9,6 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.slack import link_team
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
@@ -797,46 +795,3 @@ class NotificationControllerTest(TestCase):
             type=NotificationSettingEnum.REPORTS,
         )
         assert controller.get_users_for_weekly_reports() == []
-
-    @with_feature("organizations:team-workflow-notifications")
-    def test_fallback_if_invalid_team_provider(self):
-        team = self.create_team()
-        user1 = self.create_user()
-        user2 = self.create_user()
-        self.create_member(user=user1, organization=self.organization, role="member", teams=[team])
-        self.create_member(user=user2, organization=self.organization, role="member", teams=[team])
-
-        controller = NotificationController(
-            recipients=[team],
-            organization_id=self.organization.id,
-        )
-
-        assert len(controller.recipients) == 2
-
-    @with_feature("organizations:team-workflow-notifications")
-    def test_keeps_team_as_recipient_if_valid_provider(self):
-        team = self.create_team()
-        user1 = self.create_user()
-        user2 = self.create_user()
-        self.create_member(user=user1, organization=self.organization, role="member", teams=[team])
-        self.create_member(user=user2, organization=self.organization, role="member", teams=[team])
-        link_team(team, self.integration, "#team-channel", "team_channel_id")
-
-        controller = NotificationController(
-            recipients=[team],
-            organization_id=self.organization.id,
-        )
-
-        assert len(controller.recipients) == 1
-
-    @with_feature("organizations:team-workflow-notifications")
-    def test_non_team_recipients_remain(self):
-        user1 = self.create_user()
-        user2 = self.create_user()
-
-        controller = NotificationController(
-            recipients=[user1, user2],
-            organization_id=self.organization.id,
-        )
-
-        assert len(controller.recipients) == 2
