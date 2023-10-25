@@ -176,7 +176,7 @@ Future<void> processOrderBatch(ISentrySpan span) async {
         description: (
           <p>
             {tct(
-              "[debugSymbols: Debug Symbols]: We offer a range of methods to provide Sentry with debug symbols so that you can see symbolicated stack traces and triage issues faster.",
+              '[debugSymbols: Debug Symbols]: We offer a range of methods to provide Sentry with debug symbols so that you can see symbolicated stack traces and triage issues faster.',
               {
                 debugSymbols: (
                   <ExternalLink href="https://docs.sentry.io/platforms/flutter/upload-debug/" />
