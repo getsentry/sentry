@@ -69,44 +69,22 @@ export default function FeedbackItem({feedbackItem, eventData, tags, replayId}: 
             <ErrorBoundary mini>
               <DropdownMenu
                 position="bottom-end"
-                triggerLabel={
-                  feedbackItem.status === GroupStatus.IGNORED
-                    ? t('Archived')
-                    : feedbackItem.status === GroupStatus.RESOLVED
-                    ? t('Resolved')
-                    : t('Unresolved')
-                }
+                triggerLabel={t('Resolve')}
                 triggerProps={{
-                  'aria-label': t('Resolve or Archive Menu'),
+                  'aria-label': t('Resolve Menu'),
                   showChevron: true,
                   size: 'xs',
                 }}
                 items={[
                   {
                     key: 'resolve',
-                    label:
-                      feedbackItem.status === GroupStatus.RESOLVED
-                        ? t('Unresolve')
-                        : t('Resolve'),
-                    onAction: () =>
-                      onSetStatus(
-                        feedbackItem.status === GroupStatus.RESOLVED
-                          ? GroupStatus.UNRESOLVED
-                          : GroupStatus.RESOLVED
-                      ),
+                    label: t('Resolve'),
+                    onAction: () => onSetStatus(GroupStatus.UNRESOLVED),
                   },
                   {
-                    key: 'archive',
-                    label:
-                      feedbackItem.status === GroupStatus.IGNORED
-                        ? t('Unarchive')
-                        : t('Archive'),
-                    onAction: () =>
-                      onSetStatus(
-                        feedbackItem.status === GroupStatus.IGNORED
-                          ? GroupStatus.UNRESOLVED
-                          : GroupStatus.IGNORED
-                      ),
+                    key: 'unresolve',
+                    label: t('Unresolve'),
+                    onAction: () => onSetStatus(GroupStatus.RESOLVED),
                   },
                 ]}
               />

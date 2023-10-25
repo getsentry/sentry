@@ -53,9 +53,9 @@ function HasSelection({checked}) {
         <ErrorBoundary mini>
           <DropdownMenu
             position="bottom-end"
-            triggerLabel="Unresolved"
+            triggerLabel={t('Resolve')}
             triggerProps={{
-              'aria-label': t('Resolve or Archive Menu'),
+              'aria-label': t('Resolve Menu'),
               showChevron: true,
               size: 'xs',
             }}
@@ -66,8 +66,8 @@ function HasSelection({checked}) {
                 onAction: () => {},
               },
               {
-                key: 'archive',
-                label: t('Archive'),
+                key: 'unresolve',
+                label: t('Unresolve'),
                 onAction: () => {},
               },
             ]}
