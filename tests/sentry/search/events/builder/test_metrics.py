@@ -2028,10 +2028,12 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_run_query_with_on_demand_distribution(self):
+    def test_run_query_with_on_demand_distribution_and_environment(self):
         field = "p75(measurements.fp)"
         query_s = "transaction.duration:>0"
-        spec = OnDemandMetricSpec(field=field, query=query_s)
+        spec = OnDemandMetricSpec(field=field, query=query_s, environment="prod")
+
+        self.create_environment(project=self.project, name="prod")
 
         for hour in range(0, 5):
             self.store_transaction_metric(
@@ -2044,7 +2046,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             )
 
         query = TimeseriesMetricQueryBuilder(
-            self.params,
+            {**self.params, "environment": ["prod"]},  # type:ignore
             dataset=Dataset.PerformanceMetrics,
             interval=3600,
             query=query_s,
@@ -2605,39 +2607,54 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         assert len(meta) == 1
         assert meta[0]["name"] == "d:transactions/on_demand@none"
 
-    def test_run_query_with_on_demand_count(self):
+    def test_run_query_with_on_demand_count_and_environments(self):
         field = "count(measurements.fp)"
         query_s = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, query=query_s)
 
-        self.store_transaction_metric(
-            value=100,
-            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
-            entity="metrics_counters",
-            tags={"query_hash": spec.query_hash},
-            timestamp=self.start,
-        )
+        self.create_environment(project=self.project, name="prod")
 
-        query = AlertMetricsQueryBuilder(
-            self.params,
-            granularity=3600,
-            query=query_s,
-            dataset=Dataset.PerformanceMetrics,
-            selected_columns=[field],
-            config=QueryBuilderConfig(
-                use_metrics_layer=False,
-                on_demand_metrics_enabled=True,
-                skip_time_conditions=False,
-            ),
-        )
+        # We want to test also with "dev" that is not in the database, to check that we fallback to avoiding the
+        # environment filter at all.
+        environments = ((None, 100), ("prod", 200), ("dev", 300))
+        specs = []
+        for environment, value in environments:
+            spec = OnDemandMetricSpec(field=field, query=query_s, environment=environment)
+            self.store_transaction_metric(
+                value=value,
+                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                entity="metrics_counters",
+                tags={"query_hash": spec.query_hash},
+                timestamp=self.start,
+            )
+            specs.append(spec)
 
-        result = query.run_query("test_query")
+        expected_environments = ((None, 100), ("prod", 200), ("dev", 100))
+        for (environment, value), spec in zip(expected_environments, specs):
+            params = (
+                self.params
+                if environment is None
+                else {**self.params, "environment": [environment]}
+            )
+            query = AlertMetricsQueryBuilder(
+                params,
+                granularity=3600,
+                query=query_s,
+                dataset=Dataset.PerformanceMetrics,
+                selected_columns=[field],
+                config=QueryBuilderConfig(
+                    use_metrics_layer=False,
+                    on_demand_metrics_enabled=True,
+                    skip_time_conditions=False,
+                ),
+            )
 
-        assert result["data"] == [{"c:transactions/on_demand@none": 100.0}]
-        meta = result["meta"]
-        assert len(meta) == 1
-        assert meta[0]["name"] == "c:transactions/on_demand@none"
+            result = query.run_query("test_query")
+
+            assert result["data"] == [{"c:transactions/on_demand@none": float(value)}]
+            meta = result["meta"]
+            assert len(meta) == 1
+            assert meta[0]["name"] == "c:transactions/on_demand@none"
 
     def test_run_query_with_on_demand_failure_rate(self):
         field = "failure_rate()"

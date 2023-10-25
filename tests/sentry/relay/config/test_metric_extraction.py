@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Optional, Sequence
 from unittest.mock import ANY
 
 import pytest
@@ -11,6 +11,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
+from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.relay.config.metric_extraction import get_metric_extraction_config
@@ -26,7 +27,11 @@ ON_DEMAND_METRICS_PREFILL = "organizations:on-demand-metrics-prefill"
 
 
 def create_alert(
-    aggregate: str, query: str, project: Project, dataset: Dataset = Dataset.PerformanceMetrics
+    aggregate: str,
+    query: str,
+    project: Project,
+    dataset: Dataset = Dataset.PerformanceMetrics,
+    environment: Optional[Environment] = None,
 ) -> AlertRule:
     snuba_query = SnubaQuery.objects.create(
         aggregate=aggregate,
@@ -34,7 +39,7 @@ def create_alert(
         dataset=dataset.value,
         time_window=300,
         resolution=60,
-        environment=None,
+        environment=environment,
         type=SnubaQuery.Type.PERFORMANCE.value,
     )
 
@@ -149,6 +154,29 @@ def test_get_metric_extraction_config_multiple_alerts_duplicated(default_project
 
         assert config
         assert len(config["metrics"]) == 1
+
+
+@django_db_all
+def test_get_metric_extraction_config_environment(default_project, default_environment):
+    with Feature(ON_DEMAND_METRICS):
+        create_alert("count()", "transaction.duration:>0", default_project)
+        create_alert("count()", "transaction.duration:>0", default_project, environment=None)
+        create_alert(
+            "count()", "transaction.duration:>0", default_project, environment=default_environment
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        # assert that the deduplication works with environments
+        assert len(config["metrics"]) == 2
+
+        no_env, default_env = config["metrics"]
+
+        # assert that the conditions are different
+        assert no_env["condition"] != default_env["condition"]
+        # assert that environment is part of the hash
+        assert no_env["tags"][0]["value"] != default_env["tags"][0]["value"]
 
 
 @django_db_all
