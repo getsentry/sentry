@@ -60,11 +60,9 @@ export function MajorGridlines({durationMs, minWidth = 50, width}: Props) {
   const organization = useOrganization();
   const hasNewTimeline = organization.features.includes('session-replay-new-timeline');
 
-  return hasNewTimeline ? (
-    <FullHeightGridLines cols={cols} lineStyle="solid" remaining={remaining} />
-  ) : (
+  return (
     <FullHeightGridLines cols={cols} lineStyle="solid" remaining={remaining}>
-      {i => <Label>{formatTime((i + 1) * timespan)}</Label>}
+      {hasNewTimeline ? undefined : i => <Label>{formatTime((i + 1) * timespan)}</Label>}
     </FullHeightGridLines>
   );
 }
