@@ -9,8 +9,8 @@ from click.testing import CliRunner
 from google_crc32c import value as crc32c
 
 from sentry.backup.helpers import (
+    DecryptionError,
     KeyManagementServiceClient,
-    KMSDecryptionError,
     create_encrypted_export_tarball,
     decrypt_data_encryption_key_local,
     unwrap_encrypted_export_tarball,
@@ -29,6 +29,45 @@ GOOD_FILE_PATH = get_fixture_path("backup", "fresh-install.json")
 MAX_USER_PATH = get_fixture_path("backup", "user-with-maximum-privileges.json")
 MIN_USER_PATH = get_fixture_path("backup", "user-with-minimum-privileges.json")
 NONEXISTENT_FILE_PATH = get_fixture_path("backup", "does-not-exist.json")
+
+
+def create_encryption_test_files(tmp_dir: str) -> tuple[Path, Path, Path]:
+    """
+    Returns a 3-tuple with the path to the private key file, public key file, and final tarball.
+    """
+
+    (priv_key_pem, pub_key_pem) = generate_rsa_key_pair()
+
+    tmp_priv_key_path = Path(tmp_dir).joinpath("key")
+    with open(tmp_priv_key_path, "wb") as f:
+        f.write(priv_key_pem)
+
+    tmp_pub_key_path = Path(tmp_dir).joinpath("key.pub")
+    with open(tmp_pub_key_path, "wb") as f:
+        f.write(pub_key_pem)
+
+    with open(GOOD_FILE_PATH) as f:
+        data = json.load(f)
+
+    tmp_tar_path = Path(tmp_dir).joinpath("input.tar")
+    with open(tmp_tar_path, "wb") as i, open(tmp_pub_key_path, "rb") as p:
+        i.write(create_encrypted_export_tarball(data, p).getvalue())
+
+    return (tmp_priv_key_path, tmp_pub_key_path, tmp_tar_path)
+
+
+class FakeKeyManagementServiceClient:
+    """
+    Fake version of `KeyManagementServiceClient` that removes the two network calls we rely on: the
+    `Transport` setup on class construction, and the call to the hosted `asymmetric_decrypt`
+    endpoint.
+    """
+
+    asymmetric_decrypt = MagicMock()
+
+    @staticmethod
+    def crypto_key_version_path(**kwargs) -> str:
+        return KeyManagementServiceClient.crypto_key_version_path(**kwargs)
 
 
 class GoodCompareCommandTests(TestCase):
@@ -69,6 +108,145 @@ class GoodCompareCommandTests(TestCase):
             with open(tmp_findings) as findings_file:
                 findings = json.load(findings_file)
                 assert len(findings) > 0
+
+
+class GoodCompareCommandEncryptionTests(TestCase):
+    """
+    Test success cases of the `sentry compare` CLI command on encrypted inputs.
+    """
+
+    def mock_gcp_kms_asymmetric_decrypt(
+        self,
+        tmp_dir: str,
+        tmp_priv_key_path: Path,
+        tmp_encrypted_path: Path,
+        fake_kms_client: FakeKeyManagementServiceClient,
+    ) -> Path:
+        with open(tmp_encrypted_path, "rb") as f:
+            unwrapped_tarball = unwrap_encrypted_export_tarball(f)
+        with open(tmp_priv_key_path, "rb") as f:
+            plaintext_dek = decrypt_data_encryption_key_local(unwrapped_tarball, f.read())
+            fake_kms_client.asymmetric_decrypt.return_value = SimpleNamespace(
+                plaintext=plaintext_dek,
+                plaintext_crc32c=crc32c(plaintext_dek),
+            )
+
+        gcp_kms_config_path = Path(tmp_dir).joinpath("config.json")
+        with open(gcp_kms_config_path, "w") as f:
+            f.write(
+                """
+                {
+                    "project_id": "test-google-cloud-project",
+                    "location": "global",
+                    "key_ring": "test-key-ring-name",
+                    "key": "test-key-name",
+                    "version": "1"
+                }
+                """
+            )
+
+        return gcp_kms_config_path
+
+    def test_compare_decrypt_with(self):
+        with TemporaryDirectory() as tmp_dir:
+            (tmp_priv_key_path, _, tmp_encrypted_path) = create_encryption_test_files(tmp_dir)
+            tmp_findings = Path(tmp_dir).joinpath(f"{self._testMethodName}.findings.json")
+
+            cases = [
+                # Only left-side encrypted.
+                [
+                    str(tmp_encrypted_path),
+                    GOOD_FILE_PATH,
+                    "--findings-file",
+                    str(tmp_findings),
+                    "--decrypt-left-with",
+                    str(tmp_priv_key_path),
+                ],
+                # Only right-side encrypted.
+                [
+                    GOOD_FILE_PATH,
+                    str(tmp_encrypted_path),
+                    "--findings-file",
+                    str(tmp_findings),
+                    "--decrypt-right-with",
+                    str(tmp_priv_key_path),
+                ],
+                # Both sides encrypted.
+                [
+                    str(tmp_encrypted_path),
+                    str(tmp_encrypted_path),
+                    "--findings-file",
+                    str(tmp_findings),
+                    "--decrypt-left-with",
+                    str(tmp_priv_key_path),
+                    "--decrypt-right-with",
+                    str(tmp_priv_key_path),
+                ],
+            ]
+
+            for args in cases:
+                rv = CliRunner().invoke(compare, args)
+                assert rv.exit_code == 0, rv.output
+
+                with open(tmp_findings) as findings_file:
+                    findings = json.load(findings_file)
+                    assert len(findings) == 0
+
+    @patch(
+        "sentry.backup.helpers.KeyManagementServiceClient",
+        new_callable=lambda: FakeKeyManagementServiceClient,
+    )
+    def test_compare_decrypt_with_gcp_kms(self, fake_kms_client: FakeKeyManagementServiceClient):
+        with TemporaryDirectory() as tmp_dir:
+            (tmp_priv_key_path, _, tmp_encrypted_path) = create_encryption_test_files(tmp_dir)
+            gcp_kms_config_path = self.mock_gcp_kms_asymmetric_decrypt(
+                tmp_dir, tmp_priv_key_path, tmp_encrypted_path, fake_kms_client
+            )
+            tmp_findings = Path(tmp_dir).joinpath(f"{self._testMethodName}.findings.json")
+
+            cases = [
+                # Only left-side encrypted.
+                [
+                    str(tmp_encrypted_path),
+                    GOOD_FILE_PATH,
+                    "--findings-file",
+                    str(tmp_findings),
+                    "--decrypt-left-with-gcp-kms",
+                    str(gcp_kms_config_path),
+                ],
+                # Only right-side encrypted.
+                [
+                    GOOD_FILE_PATH,
+                    str(tmp_encrypted_path),
+                    "--findings-file",
+                    str(tmp_findings),
+                    "--decrypt-right-with-gcp-kms",
+                    str(gcp_kms_config_path),
+                ],
+                # Both sides encrypted.
+                [
+                    str(tmp_encrypted_path),
+                    str(tmp_encrypted_path),
+                    "--findings-file",
+                    str(tmp_findings),
+                    "--decrypt-left-with-gcp-kms",
+                    str(gcp_kms_config_path),
+                    "--decrypt-right-with-gcp-kms",
+                    str(gcp_kms_config_path),
+                ],
+            ]
+
+            for args in cases:
+                fake_kms_client.asymmetric_decrypt.call_count = 0
+                rv = CliRunner().invoke(compare, args)
+                assert rv.exit_code == 0, rv.output
+
+                with open(tmp_findings) as findings_file:
+                    findings = json.load(findings_file)
+                    assert len(findings) == 0
+                    assert fake_kms_client.asymmetric_decrypt.call_count == len(
+                        [arg for arg in args if arg == str(gcp_kms_config_path)]
+                    )
 
 
 def cli_import_then_export(
@@ -126,44 +304,6 @@ class GoodImportExportCommandTests(TransactionTestCase):
         )
 
 
-def create_encryption_test_files(tmp_dir: str) -> tuple[Path, Path, Path]:
-    """
-    Returns a 3-tuple with the path to the private key file, public key file, and final tarball.
-    """
-    (priv_key_pem, pub_key_pem) = generate_rsa_key_pair()
-
-    tmp_priv_key_path = Path(tmp_dir).joinpath("key")
-    with open(tmp_priv_key_path, "wb") as f:
-        f.write(priv_key_pem)
-
-    tmp_pub_key_path = Path(tmp_dir).joinpath("key.pub")
-    with open(tmp_pub_key_path, "wb") as f:
-        f.write(pub_key_pem)
-
-    with open(GOOD_FILE_PATH) as f:
-        data = json.load(f)
-
-    tmp_tar_path = Path(tmp_dir).joinpath("input.tar")
-    with open(tmp_tar_path, "wb") as i, open(tmp_pub_key_path, "rb") as p:
-        i.write(create_encrypted_export_tarball(data, p).getvalue())
-
-    return (tmp_priv_key_path, tmp_pub_key_path, tmp_tar_path)
-
-
-class FakeKeyManagementServiceClient:
-    """
-    Fake version of `KeyManagementServiceClient` that removes the two network calls we rely on: the
-    `Transport` setup on class construction, and the call to the hosted `asymmetric_decrypt`
-    endpoint.
-    """
-
-    asymmetric_decrypt = MagicMock()
-
-    @staticmethod
-    def crypto_key_version_path(**kwargs) -> str:
-        return KeyManagementServiceClient.crypto_key_version_path(**kwargs)
-
-
 class GoodImportExportCommandEncryptionTests(TransactionTestCase):
     """
     Ensure that encryption using an `--encrypt-with` file works as expected.
@@ -188,7 +328,7 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
 
     @staticmethod
     def cli_encrypted_import_then_export_use_gcp_kms(
-        scope: str, fake_client: FakeKeyManagementServiceClient
+        scope: str, fake_kms_client: FakeKeyManagementServiceClient
     ):
         with TemporaryDirectory() as tmp_dir:
             (tmp_priv_key_path, tmp_pub_key_path, tmp_tar_path) = create_encryption_test_files(
@@ -200,7 +340,7 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
                 unwrapped_tarball = unwrap_encrypted_export_tarball(f)
             with open(tmp_priv_key_path, "rb") as f:
                 plaintext_dek = decrypt_data_encryption_key_local(unwrapped_tarball, f.read())
-                fake_client.asymmetric_decrypt.return_value = SimpleNamespace(
+                fake_kms_client.asymmetric_decrypt.return_value = SimpleNamespace(
                     plaintext=plaintext_dek,
                     plaintext_crc32c=crc32c(plaintext_dek),
                 )
@@ -246,11 +386,15 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
         "sentry.backup.helpers.KeyManagementServiceClient",
         new_callable=lambda: FakeKeyManagementServiceClient,
     )
-    def test_encryption_with_gcp_kms_decryption(self, fake_client: FakeKeyManagementServiceClient):
-        self.cli_encrypted_import_then_export_use_gcp_kms("global", fake_client)
-        self.cli_encrypted_import_then_export_use_gcp_kms("config", fake_client)
-        self.cli_encrypted_import_then_export_use_gcp_kms("organizations", fake_client)
-        self.cli_encrypted_import_then_export_use_gcp_kms("users", fake_client)
+    def test_encryption_with_gcp_kms_decryption(
+        self, fake_kms_client: FakeKeyManagementServiceClient
+    ):
+        fake_kms_client.asymmetric_decrypt.call_count = 0
+        self.cli_encrypted_import_then_export_use_gcp_kms("global", fake_kms_client)
+        self.cli_encrypted_import_then_export_use_gcp_kms("config", fake_kms_client)
+        self.cli_encrypted_import_then_export_use_gcp_kms("organizations", fake_kms_client)
+        self.cli_encrypted_import_then_export_use_gcp_kms("users", fake_kms_client)
+        assert fake_kms_client.asymmetric_decrypt.call_count == 4
 
 
 class BadImportExportDomainErrorTests(TransactionTestCase):
@@ -375,7 +519,7 @@ class BadImportExportCommandTests(TestCase):
                 import_,
                 ["global", str(tmp_tar_path), "--decrypt-with-gcp-kms", str(gcp_kms_config_path)],
             )
-            assert isinstance(rv.exception, KMSDecryptionError)
+            assert isinstance(rv.exception, DecryptionError)
             assert rv.exit_code == 1
 
 
