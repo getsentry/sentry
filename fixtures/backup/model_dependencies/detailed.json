@@ -291,6 +291,16 @@
         "kind": "FlexibleForeignKey",
         "model": "sentry.snubaquery",
         "nullable": true
+      },
+      "team": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.team",
+        "nullable": true
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
       }
     },
     "model": "sentry.alertrule",

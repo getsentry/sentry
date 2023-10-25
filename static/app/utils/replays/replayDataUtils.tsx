@@ -35,14 +35,6 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
     ...user,
   };
 
-  // Sort the tags by key
-  const tags = Object.keys(unorderedTags)
-    .sort()
-    .reduce((acc, key) => {
-      acc[key] = unorderedTags[key];
-      return acc;
-    }, {});
-
   const startedAt = new Date(apiResponse.started_at);
   invariant(isValidDate(startedAt), 'replay.started_at is invalid');
   const finishedAt = new Date(apiResponse.finished_at);
@@ -54,7 +46,7 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
     ...(apiResponse.duration !== undefined
       ? {duration: duration(apiResponse.duration * 1000)}
       : {}),
-    tags,
+    tags: unorderedTags,
   };
 }
 

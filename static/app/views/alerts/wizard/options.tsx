@@ -342,7 +342,7 @@ export function getMEPAlertsDataset(
   }
 
   if (dataset === Dataset.GENERIC_METRICS) {
-    return MEPAlertsDataset.METRICS;
+    return MEPAlertsDataset.METRICS_ENHANCED;
   }
 
   return MEPAlertsDataset.DISCOVER;

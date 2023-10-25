@@ -67,7 +67,7 @@ function HasSelection({checked}) {
           <DropdownMenu
             position="bottom-end"
             triggerProps={{
-              'aria-label': t('Read or Delete Menu'),
+              'aria-label': t('Read Menu'),
               icon: <IconEllipsis size="xs" />,
               showChevron: false,
               size: 'xs',
@@ -118,7 +118,7 @@ function MailboxPicker({
 
 const HeaderPanelItem = styled(PanelItem)`
   display: flex;
-  padding: ${space(1)} ${space(0.5)} ${space(1)} ${space(1.5)};
+  padding: ${space(1)} ${space(2)} ${space(1)} ${space(2)};
   gap: ${space(1)};
   align-items: center;
 `;

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import namedtuple
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 from uuid import uuid4
 
 from django.conf import settings
@@ -430,6 +430,8 @@ class AlertRule(Model):
         null=True,
         on_delete=models.SET_NULL,
     )
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
     excluded_projects = models.ManyToManyField(
         "sentry.Project", related_name="alert_rule_exclusions", through=AlertRuleExcludedProjects
     )
@@ -455,6 +457,21 @@ class AlertRule(Model):
         default_manager_name = "objects_with_snapshots"
 
     __repr__ = sane_repr("id", "name", "date_added")
+
+    def _validate_actor(self):
+        # TODO: Remove once owner is fully removed.
+        if self.owner_id is not None and self.team_id is None and self.user_id is None:
+            raise ValueError("AlertRule with owner requires either team_id or user_id")
+
+    def save(self, **kwargs: Any) -> None:
+        self._validate_actor()
+        return super().save(**kwargs)
+
+    def update(self, **kwargs: Any):
+        with transaction.atomic(router.db_for_write(AlertRule)):
+            result = super().update(**kwargs)
+            self._validate_actor()
+            return result
 
     @property
     def created_by_id(self):

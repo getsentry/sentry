@@ -107,7 +107,7 @@ def run_detection() -> None:
 
             if len(performance_projects) >= PROJECTS_PER_BATCH:
                 detect_transaction_trends.delay(
-                    [p.organization_id for p in performance_projects],
+                    list({p.organization_id for p in performance_projects}),
                     [p.id for p in performance_projects],
                     now,
                 )
@@ -127,7 +127,7 @@ def run_detection() -> None:
     # make sure to dispatch a task to handle the remaining projects
     if performance_projects:
         detect_transaction_trends.delay(
-            [p.organization_id for p in performance_projects],
+            list({p.organization_id for p in performance_projects}),
             [p.id for p in performance_projects],
             now,
         )
@@ -229,11 +229,13 @@ def _detect_transaction_change_points(
         request = {
             "data": data,
             "sort": "-trend_percentage()",
-            "min_change()": 100_000_000,  # require a minimum 100ms increase (in ns)
             # Disable the fall back to use the midpoint as the breakpoint
             # which was originally intended to detect a gradual regression
             # for the trends use case. That does not apply here.
             "allow_midpoint": "0",
+            "trend_percentage()": 0.5,
+            "min_change()": 200_000_000,
+            "validate_tail_hours": 12,
         }
 
         try:
@@ -273,6 +275,7 @@ def _detect_transaction_trends(
     improved_count = 0
 
     detector_config = MovingAverageRelativeChangeDetectorConfig(
+        change_metric="statistical_detectors.rel_change.transactions",
         min_data_points=6,
         short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
         long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
@@ -378,8 +381,11 @@ def query_transactions_timeseries(
         project_ids = {p for p, _ in transaction_chunk}
         project_objects = Project.objects.filter(id__in=project_ids)
         org_ids = list({project.organization_id for project in project_objects})
+        # The only tag available on DURATION_LIGHT is `transaction`: as long as
+        # we don't filter on any other tags, DURATION_LIGHT's lower cardinality
+        # will be faster to query.
         duration_metric_id = indexer.resolve(
-            use_case_id, org_ids[0], str(TransactionMRI.DURATION.value)
+            use_case_id, org_ids[0], str(TransactionMRI.DURATION_LIGHT.value)
         )
         transaction_name_metric_id = indexer.resolve(
             use_case_id,
@@ -595,6 +601,7 @@ def _detect_function_trends(
     improved_count = 0
 
     detector_config = MovingAverageRelativeChangeDetectorConfig(
+        change_metric="statistical_detectors.rel_change.functions",
         min_data_points=6,
         short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
         long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
@@ -702,7 +709,7 @@ def _detect_function_change_points(
         request = {
             "data": data,
             "sort": "-trend_percentage()",
-            "trendFunction": trend_function,
+            "min_change()": 100_000_000,  # require a minimum 100ms increase (in ns)
             # Disable the fall back to use the midpoint as the breakpoint
             # which was originally intended to detect a gradual regression
             # for the trends use case. That does not apply here.
@@ -862,6 +869,9 @@ def query_transactions(
 
     # both the metric and tag that we are using are hardcoded values in sentry_metrics.indexer.strings
     # so the org_id that we are using does not actually matter here, we only need to pass in an org_id
+    #
+    # Because we filter on more than just `transaction`, we have to use DURATION here instead of
+    # DURATION_LIGHT.
     duration_metric_id = indexer.resolve(
         use_case_id, org_ids[0], str(TransactionMRI.DURATION.value)
     )
