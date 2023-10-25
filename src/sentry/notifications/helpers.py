@@ -761,6 +761,7 @@ def get_team_members(team: Team | RpcActor) -> list[RpcActor]:
     return [
         RpcActor(id=user_id, actor_type=ActorType.USER)
         for user_id in members.values_list("user_id", flat=True)
+        if user_id
     ]
 
 

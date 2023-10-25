@@ -65,6 +65,11 @@ class NotificationController:
         type: NotificationSettingEnum | None = None,
         provider: ExternalProviderEnum | None = None,
     ) -> None:
+        self.project_ids = project_ids
+        self.organization_id = organization_id
+        self.type = type
+        self.provider = provider
+
         org = (
             serialize_organization_mapping(
                 OrganizationMapping.objects.filter(organization_id=organization_id).first()
@@ -86,10 +91,6 @@ class NotificationController:
                     self.recipients.append(recipient)
         else:
             self.recipients = list(recipients)
-        self.project_ids = project_ids
-        self.organization_id = organization_id
-        self.type = type
-        self.provider = provider
 
         if self.recipients:
             query = self._get_query()
