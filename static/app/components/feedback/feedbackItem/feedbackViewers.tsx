@@ -12,8 +12,8 @@ interface Props {
   feedbackItem: HydratedFeedbackItem;
 }
 
-export default function FeedbackViewers({feedbackItem: _}: Props) {
-  const displayUsers = [];
+export default function FeedbackViewers({feedbackItem}: Props) {
+  const displayUsers = feedbackItem.seenBy;
 
   return (
     <Tooltip title={t('People who have viewed this report')}>
@@ -21,6 +21,7 @@ export default function FeedbackViewers({feedbackItem: _}: Props) {
         users={displayUsers}
         avatarSize={28}
         maxVisibleAvatars={13}
+        tooltipOptions={{position: 'bottom'}}
         renderTooltip={user => (
           <Fragment>
             {userDisplayName(user)}
