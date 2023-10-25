@@ -10,6 +10,8 @@ import Link from 'sentry/components/links/link';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
+import {IconPlay} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
@@ -86,12 +88,12 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
               {feedbackItem.project.slug}
             </Flex>
 
-            {/* {feedbackItem.replay_id ? (
+            {feedbackItem.replay_id ? (
               <Flex align="center" gap={space(0.5)}>
                 <IconPlay size="xs" />
                 {t('Replay')}
               </Flex>
-            ) : null} */}
+            ) : null}
           </Flex>
         </LinkedFeedbackCard>
       </CardSpacing>

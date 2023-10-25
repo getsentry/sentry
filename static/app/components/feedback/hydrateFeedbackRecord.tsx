@@ -8,6 +8,7 @@ export default function hydrateFeedbackRecord(
 ): HydratedFeedbackItem {
   return {
     ...apiResponse,
+    replay_id: undefined,
     timestamp: new Date(apiResponse.firstSeen ?? ''),
     feedback_id: apiResponse.id,
   };
