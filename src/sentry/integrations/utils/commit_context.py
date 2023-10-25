@@ -6,7 +6,6 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, List, Mapping, Optional, Sequence, Tuple
 
-import sentry_sdk
 from django.utils.datastructures import OrderedSet
 
 from sentry import analytics
@@ -156,14 +155,15 @@ def find_commit_context_for_event(
             )
             continue
 
+        log_info = {
+            **extra,
+            "code_mapping_id": code_mapping.id,
+            "stacktrace_path": stacktrace_path,
+            "src_path": src_path,
+        }
         logger.info(
             "process_commit_context.found_stacktrace_and_src_paths",
-            extra={
-                **extra,
-                "code_mapping_id": code_mapping.id,
-                "stacktrace_path": stacktrace_path,
-                "src_path": src_path,
-            },
+            extra=log_info,
         )
         integration = integration_service.get_integration(
             organization_integration_id=code_mapping.organization_integration_id
@@ -177,7 +177,21 @@ def find_commit_context_for_event(
             )
         except ApiError as e:
             commit_context = None
-            sentry_sdk.capture_exception(e)
+
+            if e.code == 429:
+                metrics.incr("sentry.integrations.github.get_blame_for_file.rate_limit")
+            if e.code in (401, 403, 404, 429):
+                logger.warning(
+                    "process_commit_context.failed_to_fetch_commit_context.api_error",
+                    extra={**log_info, "code": e.code, "error_message": e.text},
+                )
+            # Only create Sentry errors for status codes that aren't expected
+            else:
+                logger.exception(
+                    "process_commit_context.failed_to_fetch_commit_context.api_error",
+                    extra={**log_info, "code": e.code, "error_message": e.text},
+                )
+
             analytics.record(
                 "integrations.failed_to_fetch_commit_context",
                 organization_id=code_mapping.organization_id,
@@ -186,16 +200,6 @@ def find_commit_context_for_event(
                 code_mapping_id=code_mapping.id,
                 provider=integration.provider,
                 error_message=e.text,
-            )
-            logger.error(
-                "process_commit_context.failed_to_fetch_commit_context",
-                extra={
-                    **extra,
-                    "code_mapping_id": code_mapping.id,
-                    "stacktrace_path": stacktrace_path,
-                    "src_path": src_path,
-                    "error_message": e.text,
-                },
             )
 
         # Only return suspect commits that are less than a year old
