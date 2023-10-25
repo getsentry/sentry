@@ -12,7 +12,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SwitchButton from 'sentry/components/switchButton';
-import {TabList} from 'sentry/components/tabs';
+import {TabList, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -82,12 +82,14 @@ function ResourcesLandingPage() {
             <FeatureBadge type="alpha" />
           </Layout.Title>
         </Layout.HeaderContent>
-        <TabList hideBorder>
-          <TabList.Item key="resource.css/script">
-            {t('Javascript/Stylesheets')}
-          </TabList.Item>
-          <TabList.Item key="resource.img">{t('Images')}</TabList.Item>
-        </TabList>
+        <StyledTabs>
+          <TabList hideBorder>
+            <TabList.Item key="resource.css/script">
+              {t('Javascript/Stylesheets')}
+            </TabList.Item>
+            <TabList.Item key="resource.img">{t('Images')}</TabList.Item>
+          </TabList>
+        </StyledTabs>
       </Layout.Header>
 
       <Layout.Body>
@@ -214,6 +216,10 @@ function SelectControlWithProps(props: ControlProps & {options: Option[]}) {
 
 export const PaddedContainer = styled('div')`
   margin-bottom: ${space(2)};
+`;
+
+const StyledTabs = styled(Tabs)`
+  grid-column: 1/-1;
 `;
 
 const FilterOptionsContainer = styled('div')`
