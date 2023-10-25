@@ -467,12 +467,6 @@ class AlertRule(Model):
         self._validate_actor()
         return super().save(**kwargs)
 
-    def update(self, **kwargs: Any):
-        with transaction.atomic(router.db_for_write(AlertRule)):
-            result = super().update(**kwargs)
-            self._validate_actor()
-            return result
-
     @property
     def created_by_id(self):
         try:
