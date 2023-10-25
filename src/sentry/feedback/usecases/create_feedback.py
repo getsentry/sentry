@@ -29,7 +29,6 @@ def fix_for_issue_platform(event_data):
     event_data["timestamp"] = ensure_aware(
         datetime.datetime.fromtimestamp(event_data["timestamp"])
     ).isoformat()
-
     if "contexts" not in event_data:
         event_data["contexts"] = {}
 
