@@ -10,7 +10,7 @@ import Link from 'sentry/components/links/link';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import {IconPlay} from 'sentry/icons';
+import {IconCircleFill, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -79,6 +79,13 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
           <span style={{gridArea: 'time'}}>
             <TimeSince date={feedbackItem.timestamp} />
           </span>
+          {feedbackItem.hasSeen ? null : (
+            <span
+              style={{gridArea: 'unread', display: 'inline-flex', alignItems: 'center'}}
+            >
+              <IconCircleFill size="xs" color="purple300" />
+            </span>
+          )}
           <div style={{gridArea: 'message'}}>
             <TextOverflow>{feedbackItem.metadata.message}</TextOverflow>
           </div>
@@ -124,7 +131,7 @@ const LinkedFeedbackCard = styled(Link)`
   grid-template-rows: max-content 1fr max-content;
   grid-template-areas:
     'checkbox user time'
-    'right message message'
+    'unread message message'
     'right icons icons';
   gap: ${space(1)};
   place-items: stretch;
