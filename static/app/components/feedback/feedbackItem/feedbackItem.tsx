@@ -10,6 +10,7 @@ import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedba
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
+import useMarkRead from 'sentry/components/feedback/feedbackItem/useMarkAsRead';
 import useUpdateFeedback from 'sentry/components/feedback/feedbackItem/useUpdateFeedback';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -32,6 +33,7 @@ interface Props {
 export default function FeedbackItem({feedbackItem, eventData, tags, replayId}: Props) {
   const organization = useOrganization();
   const {onSetStatus} = useUpdateFeedback({feedbackItem});
+  const {markAsRead} = useMarkRead({feedbackItem});
   const url = eventData?.tags.find(tag => tag.key === 'url');
 
   return (
@@ -122,12 +124,12 @@ export default function FeedbackItem({feedbackItem, eventData, tags, replayId}: 
                   {
                     key: 'mark read',
                     label: t('Mark as read'),
-                    onAction: () => {},
+                    onAction: () => markAsRead(true),
                   },
                   {
                     key: 'mark unread',
                     label: t('Mark as unread'),
-                    onAction: () => {},
+                    onAction: () => markAsRead(false),
                   },
                 ]}
               />
