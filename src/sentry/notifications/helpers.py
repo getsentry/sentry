@@ -721,7 +721,8 @@ def get_recipient_from_team_or_user(user_id: int | None, team_id: int | None) ->
 
 def team_is_valid_recipient(team: Team | RpcActor) -> bool:
     """
-    A team is a valid recipient if it has a linked integration (ie. linked Slack channel) for any one of the providers allowed for personal notifications.
+    A team is a valid recipient if it has a linked integration (ie. linked Slack channel)
+    for any one of the providers allowed for personal notifications.
     """
     from sentry.models.integrations.external_actor import ExternalActor
 
