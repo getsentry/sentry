@@ -95,6 +95,7 @@ module = [
     "django_zero_downtime_migrations.backends.postgres.schema.*",
     "docker.*",
     "fido2.*",
+    "google_crc32c.*",
     "honcho.manager.*",
     "honcho.printer.*",
     "kombu.*",
