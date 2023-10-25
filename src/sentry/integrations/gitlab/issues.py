@@ -1,5 +1,5 @@
 import re
-from typing import Any, Dict, List, Sequence
+from typing import Any, Dict, List, MutableMapping, Sequence
 
 from django.urls import reverse
 
@@ -24,7 +24,7 @@ class GitlabIssueBasic(IssueBasicMixin):
     def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["project"]
 
-    def get_projects_and_default(self, group: Group, params: dict, **kwargs):
+    def get_projects_and_default(self, group: Group, params: MutableMapping[str, Any], **kwargs):
         defaults = self.get_project_defaults(group.project_id)
 
         # XXX: In GitLab repositories are called projects but get_repository_choices

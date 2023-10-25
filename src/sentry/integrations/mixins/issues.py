@@ -4,7 +4,7 @@ import enum
 import logging
 from collections import defaultdict
 from copy import deepcopy
-from typing import Any, ClassVar, Mapping, Sequence
+from typing import Any, ClassVar, Mapping, MutableMapping, Sequence
 
 from sentry.integrations.utils import where_should_sync
 from sentry.models.group import Group
@@ -268,7 +268,7 @@ class IssueBasicMixin:
         """
         return ""
 
-    def get_repository_choices(self, group: Group, params: dict, **kwargs):
+    def get_repository_choices(self, group: Group, params: MutableMapping[str, Any], **kwargs):
         """
         Returns the default repository and a set/subset of repositories of associated with the installation
         """
