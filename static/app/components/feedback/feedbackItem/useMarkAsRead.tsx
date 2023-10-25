@@ -25,8 +25,14 @@ export default function useMarkAsRead({feedbackItem}: Props) {
   }, [feedbackId, organization]);
 
   const handleRead = useCallback(
-    async (readUpdate: boolean) => {
-      addLoadingMessage(t('Updating feedback...'));
+    async ({
+      readUpdate,
+      showSuccessToast,
+    }: {
+      readUpdate: boolean;
+      showSuccessToast: boolean;
+    }) => {
+      showSuccessToast ? addLoadingMessage(t('Updating feedback...')) : null;
       try {
         await api.requestPromise(url, {
           method: 'PUT',
@@ -34,9 +40,11 @@ export default function useMarkAsRead({feedbackItem}: Props) {
             hasSeen: readUpdate,
           },
         });
-        addSuccessMessage(t('Updated feedback'));
+        showSuccessToast ? addSuccessMessage(t('Updated feedback')) : null;
       } catch {
-        addErrorMessage(t('An error occurred while updating the feedback.'));
+        showSuccessToast
+          ? addErrorMessage(t('An error occurred while updating the feedback.'))
+          : null;
       }
     },
     [api, url]

@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Checkbox from 'sentry/components/checkbox';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
+import useMarkAsRead from 'sentry/components/feedback/feedbackItem/useMarkAsRead';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {Flex} from 'sentry/components/profiling/flex';
@@ -40,6 +41,7 @@ function useIsSelectedFeedback({feedbackItem}: {feedbackItem: HydratedFeedbackIt
 
 const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
   ({className, feedbackItem, isChecked, onChecked, style}: Props, ref) => {
+    const {markAsRead} = useMarkAsRead({feedbackItem});
     const organization = useOrganization();
     const isSelected = useIsSelectedFeedback({feedbackItem});
     const counts = useReplaysCount({
@@ -65,6 +67,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
             };
           }}
           onClick={() => {
+            markAsRead({readUpdate: true, showSuccessToast: false});
             trackAnalytics('feedback_list.details_link.click', {organization});
           }}
         >

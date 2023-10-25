@@ -124,12 +124,14 @@ export default function FeedbackItem({feedbackItem, eventData, tags, replayId}: 
                   {
                     key: 'mark read',
                     label: t('Mark as read'),
-                    onAction: () => markAsRead(true),
+                    onAction: () =>
+                      markAsRead({readUpdate: true, showSuccessToast: true}),
                   },
                   {
                     key: 'mark unread',
                     label: t('Mark as unread'),
-                    onAction: () => markAsRead(false),
+                    onAction: () =>
+                      markAsRead({readUpdate: false, showSuccessToast: true}),
                   },
                 ]}
               />
