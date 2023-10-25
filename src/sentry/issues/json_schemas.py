@@ -1,7 +1,8 @@
 import logging
+import pathlib
 from typing import Any, Mapping
 
-from sentry_kafka_schemas import SchemaNotFound, sentry_kafka_schemas
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -161,9 +162,12 @@ LEGACY_EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
 }
 
 try:
-    EVENT_PAYLOAD_SCHEMA = sentry_kafka_schemas._get_schema("generic-events")["schema"]
-except SchemaNotFound:
+    _event_payload_schema_json_file = pathlib.PurePath(__file__).with_name("event.schema.json")
+    with open(_event_payload_schema_json_file) as f:
+        EVENT_PAYLOAD_SCHEMA = json.load(f)
+
+except Exception:
     logger.exception(
-        "Failed to load Events schema from Kafka schemas, using legacy hardcoded schema"
+        "Failed to load Events schema from 'event.schema.json', falling back to hardcoded schema"
     )
-    raise
+    EVENT_PAYLOAD_SCHEMA = LEGACY_EVENT_PAYLOAD_SCHEMA
