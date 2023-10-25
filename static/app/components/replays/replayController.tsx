@@ -51,7 +51,7 @@ function ReplayPlayPauseBar() {
   } = useReplayContext();
 
   return (
-    <ButtonBar merged>
+    <ButtonBar gap={1}>
       <Button
         size="sm"
         title={t('Rewind 10s')}
@@ -61,19 +61,21 @@ function ReplayPlayPauseBar() {
       />
       {isFinished ? (
         <Button
-          size="sm"
+          size="md"
           title={t('Restart Replay')}
-          icon={<IconPrevious size="sm" />}
+          icon={<IconPrevious size="md" />}
           onClick={restart}
           aria-label={t('Restart Replay')}
+          priority="primary"
         />
       ) : (
         <Button
-          size="sm"
+          size="md"
           title={isPlaying ? t('Pause') : t('Play')}
-          icon={isPlaying ? <IconPause size="sm" /> : <IconPlay size="sm" />}
+          icon={isPlaying ? <IconPause size="md" /> : <IconPlay size="md" />}
           onClick={() => togglePlayPause(!isPlaying)}
           aria-label={isPlaying ? t('Pause') : t('Play')}
+          priority="primary"
         />
       )}
       <Button
@@ -234,7 +236,7 @@ function ReplayControls({
 
 const ButtonGrid = styled('div')<{isCompact: boolean}>`
   display: flex;
-  gap: 0 ${space(1)};
+  gap: 0 ${space(2)};
   flex-direction: row;
   justify-content: space-between;
   ${p => (p.isCompact ? `flex-wrap: wrap;` : '')}
@@ -268,7 +270,7 @@ const TimeAndScrubberGrid = styled('div')<{isCompact: boolean}>`
   grid-template-areas:
     '. timeline .'
     'currentTime scrubber duration';
-  grid-column-gap: ${space(1.5)};
+  grid-column-gap: ${space(2)};
   grid-template-columns: max-content auto max-content;
   align-items: center;
   ${p =>

@@ -155,6 +155,70 @@ def test_spec_simple_query_distribution():
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
 
 
+def test_spec_simple_query_with_environment():
+    spec = OnDemandMetricSpec("count()", "transaction.duration:>1s", "production")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "sum"
+    assert spec.condition == {
+        "inner": [
+            {"name": "event.environment", "op": "eq", "value": "production"},
+            {"name": "event.duration", "op": "gt", "value": 1000.0},
+        ],
+        "op": "and",
+    }
+
+
+def test_spec_query_with_parentheses_and_environment():
+    spec = OnDemandMetricSpec(
+        "count()", "(transaction.duration:>1s OR http.status_code:200)", "dev"
+    )
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "sum"
+    assert spec.condition == {
+        "inner": [
+            {"name": "event.environment", "op": "eq", "value": "dev"},
+            {
+                "inner": [
+                    {"name": "event.duration", "op": "gt", "value": 1000.0},
+                    {"name": "event.contexts.response.status_code", "op": "eq", "value": "200"},
+                ],
+                "op": "or",
+            },
+        ],
+        "op": "and",
+    }
+
+
+def test_spec_complex_query_with_environment():
+    spec = OnDemandMetricSpec(
+        "count()",
+        "transaction.duration:>1s AND http.status_code:200 OR os.browser:Chrome",
+        "staging",
+    )
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "sum"
+    assert spec.condition == {
+        "inner": [
+            {
+                "inner": [
+                    {"name": "event.environment", "op": "eq", "value": "staging"},
+                    {"name": "event.duration", "op": "gt", "value": 1000.0},
+                    {"name": "event.contexts.response.status_code", "op": "eq", "value": "200"},
+                ],
+                "op": "and",
+            },
+            {"name": "event.tags.os.browser", "op": "eq", "value": "Chrome"},
+        ],
+        "op": "or",
+    }
+
+
 def test_spec_or_condition():
     spec = OnDemandMetricSpec("count()", "transaction.duration:>=100 OR transaction.duration:<1000")
 

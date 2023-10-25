@@ -127,10 +127,14 @@ export function ReleaseComparisonSelector() {
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
   return (
     <PageFilterBar condensed>
-      <ReleaseSelector selectorKey="primaryRelease" selectorValue={primaryRelease} />
+      <ReleaseSelector
+        selectorKey="primaryRelease"
+        selectorValue={primaryRelease}
+        selectorName={t('Release 1')}
+      />
       <ReleaseSelector
         selectorKey="secondaryRelease"
-        selectorName={t('Compared To')}
+        selectorName={t('Release 2')}
         selectorValue={secondaryRelease}
       />
     </PageFilterBar>

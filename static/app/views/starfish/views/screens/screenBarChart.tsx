@@ -6,6 +6,7 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
 import {LoadingScreen} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 
@@ -45,7 +46,7 @@ export function ScreensBarChart({
               value={chartOptions[selectedDisplay].yAxis}
               onChange={option => {
                 const chartOption = chartOptions.findIndex(o => o.yAxis === option.value);
-                if (chartOption) {
+                if (defined(chartOption)) {
                   setChartSetting(chartOption);
                 }
               }}
