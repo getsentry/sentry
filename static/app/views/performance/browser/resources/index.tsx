@@ -110,7 +110,7 @@ function ResourcesLandingPage() {
                 isActive={filters[RESOURCE_RENDER_BLOCKING_STATUS] === 'blocking'}
                 toggle={handleBlockingToggle}
               />
-              Render Blocking
+              {t('Render Blocking')}
             </SwitchContainer>
           </FilterOptionsContainer>
           <ResourceTable sort={sort} />
