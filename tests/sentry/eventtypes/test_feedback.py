@@ -10,5 +10,17 @@ from sentry.testutils.silo import region_silo_test
 class GetMetadataTest(TestCase):
     def test_simple(self):
         inst = FeedbackEvent()
-        data = {"contexts": {"feedback": {"message": "Foo", "contact_email": "test@test.com"}}}
-        assert inst.get_metadata(data) == {"message": "Foo", "contact_email": "test@test.com"}
+        data = {
+            "contexts": {
+                "feedback": {
+                    "message": "Foo",
+                    "contact_email": "test@test.com",
+                    "name": "Name Test",
+                }
+            }
+        }
+        assert inst.get_metadata(data) == {
+            "message": "Foo",
+            "contact_email": "test@test.com",
+            "name": "Name Test",
+        }

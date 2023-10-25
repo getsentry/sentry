@@ -338,7 +338,11 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
     def test_populates_feedback_metadata(self) -> None:
         occurrence = self.build_occurrence(
             type=FeedbackGroup.type_id,
-            evidence_data={"contact_email": "test@test.com", "message": "test"},
+            evidence_data={
+                "contact_email": "test@test.com",
+                "message": "test",
+                "name": "Name Test",
+            },
         )
         event = self.store_event(data={}, project_id=self.project.id)
         event.data.setdefault("metadata", {})
@@ -351,6 +355,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "dogs": "are great",
             "contact_email": "test@test.com",
             "message": "test",
+            "name": "Name Test",
         }
 
 

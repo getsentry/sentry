@@ -8,4 +8,5 @@ class FeedbackEvent(BaseEvent):
     def extract_metadata(self, data):
         contact_email = get_path(data, "contexts", "feedback", "contact_email")
         message = get_path(data, "contexts", "feedback", "message")
-        return {"contact_email": contact_email, "message": message}
+        name = get_path(data, "contexts", "feedback", "name")
+        return {"contact_email": contact_email, "message": message, "name": name}

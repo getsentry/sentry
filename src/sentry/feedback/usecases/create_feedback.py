@@ -20,6 +20,10 @@ def make_evidence(feedback):
         evidence_display.append(
             IssueEvidence(name="message", value=feedback["message"], important=True)
         )
+    if feedback.get("name"):
+        evidence_data["name"] = feedback["name"]
+        evidence_display.append(IssueEvidence(name="name", value=feedback["name"], important=False))
+
     return evidence_data, evidence_display
 
 
