@@ -31,6 +31,7 @@ class SentryAppAvatarTest(APITestCase):
         assert response["Cache-Control"] == FOREVER_CACHE
         assert response.get("Vary") == "Accept-Language, Cookie"
         assert response.get("Set-Cookie") is None
+        assert response["Access-Control-Allow-Origin"]
 
     def test_headers_control_file(self):
         sentry_app = self.create_sentry_app(name="Meow", organization=self.organization)
@@ -45,3 +46,4 @@ class SentryAppAvatarTest(APITestCase):
         assert response["Cache-Control"] == FOREVER_CACHE
         assert response.get("Vary") == "Accept-Language, Cookie"
         assert response.get("Set-Cookie") is None
+        assert response["Access-Control-Allow-Origin"]

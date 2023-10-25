@@ -73,7 +73,6 @@ class AdditionalContext:
 additional_context = AdditionalContext()
 
 
-# TODO(hybridcloud) Make this view control silo only.
 @control_silo_view
 class AuthLoginView(BaseView):
     auth_required = False
