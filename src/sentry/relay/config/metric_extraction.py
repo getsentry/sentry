@@ -209,8 +209,14 @@ def _convert_snuba_query_to_metric(
     If the passed snuba_query is a valid query for on-demand metric extraction,
     returns a tuple of (hash, MetricSpec) for the query. Otherwise, returns None.
     """
+
+    # TODO: extract into function, add safe access, check for case where name is empty or none
+    query_string = snuba_query.query
+    if snuba_query.environment is not None:
+        query_string = f"environment:{snuba_query.environment} {query_string}"
+
     return _convert_aggregate_and_query_to_metric(
-        project, snuba_query.dataset, snuba_query.aggregate, snuba_query.query, prefilling
+        project, snuba_query.dataset, snuba_query.aggregate, query_string, prefilling
     )
 
 
@@ -259,7 +265,12 @@ def _convert_widget_query_to_metric(
 
 
 def _convert_aggregate_and_query_to_metric(
-    project: Project, dataset: str, aggregate: str, query: str, prefilling: bool
+    project: Project,
+    dataset: str,
+    aggregate: str,
+    query: str,
+    prefilling: bool,
+    environment: Optional[str] = None,
 ) -> Optional[HashedMetricSpec]:
     """
     Converts an aggregate and a query to a metric spec with its hash value.
@@ -271,6 +282,7 @@ def _convert_aggregate_and_query_to_metric(
         on_demand_spec = OnDemandMetricSpec(
             field=aggregate,
             query=query,
+            environment=environment,
         )
 
         return on_demand_spec.query_hash, on_demand_spec.to_metric_spec(project)

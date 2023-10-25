@@ -813,7 +813,7 @@ class OnDemandMetricSpec:
     _metric_type: str
     _arguments: Sequence[str]
 
-    def __init__(self, field: str, query: str):
+    def __init__(self, field: str, query: str, environment: Optional[str] = None):
         self.field = field
         self.query = query
         self._arguments = []
