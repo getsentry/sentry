@@ -14,7 +14,7 @@ interface Props {
   feedbackItem: HydratedFeedbackItem;
 }
 
-export default function useMarkRead({feedbackItem}: Props) {
+export default function useMarkAsRead({feedbackItem}: Props) {
   const feedbackId = feedbackItem.feedback_id;
 
   const api = useApi();
@@ -43,6 +43,6 @@ export default function useMarkRead({feedbackItem}: Props) {
   );
 
   return {
-    onMarkRead: handleRead,
+    markAsRead: handleRead,
   };
 }
