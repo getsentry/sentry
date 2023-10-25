@@ -55,6 +55,7 @@ class CustomRulesGetEndpoint(APITestCase):
             organization_id=self.organization.id,
             num_samples=100,
             sample_rate=1.0,
+            query="event.type:transaction, environment:prod",
         )
 
         # create an org rule
@@ -76,23 +77,8 @@ class CustomRulesGetEndpoint(APITestCase):
             organization_id=self.organization.id,
             num_samples=100,
             sample_rate=1.0,
+            query="event.type:transaction, environment:dev",
         )
-
-        # # create a condition with empty query
-        # now = timezone.now()
-        # self.empty_condition = {"op": "and", "inner": []}
-        # start = now - timedelta(hours=2)
-        # end = now + timedelta(hours=2)
-        #
-        # CustomDynamicSamplingRule.update_or_create(
-        #     condition=self.empty_condition,
-        #     start=start,
-        #     end=end,
-        #     project_ids=[self.known_projects[0].id],
-        #     organization_id=self.organization.id,
-        #     num_samples=100,
-        #     sample_rate=1.0,
-        # )
 
     def test_finds_project_rule(self):
         """

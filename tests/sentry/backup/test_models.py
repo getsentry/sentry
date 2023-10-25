@@ -97,7 +97,9 @@ UNIT_TESTED: set[NormalizedModelName] = set()
 DYNAMIC_RELOCATION_TESTED: set[NormalizedModelName] = set()
 
 
-@region_silo_test(stable=True)
+# There is no need to in both monolith and region mode for model-level unit tests - region mode
+# testing along should suffice.
+@region_silo_test
 class ModelUnitTests(TransactionTestCase):
     """
     Test the JSON-ification of models marked `__relocation_scope__ != RelocationScope.Excluded`.
@@ -245,6 +247,7 @@ class ModelUnitTests(TransactionTestCase):
             organization_id=self.organization.id,
             num_samples=100,
             sample_rate=0.5,
+            query="environment:prod",
         )
         return self.import_export_then_validate()
 
@@ -570,7 +573,9 @@ class ModelUnitTests(TransactionTestCase):
         return self.import_export_then_validate()
 
 
-@region_silo_test(stable=True)
+# There is no need to in both monolith and region mode for model-level unit tests - region mode
+# testing along should suffice.
+@region_silo_test
 class DynamicRelocationScopeTests(TransactionTestCase):
     """
     For models that support different relocation scopes depending on properties of the model instance itself (ie, they have a set for their `__relocation_scope__`, rather than a single value), make sure that this dynamic deduction works correctly.

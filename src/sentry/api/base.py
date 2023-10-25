@@ -4,7 +4,7 @@ import functools
 import logging
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Iterable, List, Mapping, Optional, Tuple, Type
+from typing import Any, Callable, Iterable, Mapping, Optional, Tuple, Type
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
@@ -58,11 +58,9 @@ __all__ = [
     "StatsMixin",
     "control_silo_endpoint",
     "region_silo_endpoint",
-    "pending_silo_endpoint",
 ]
 
 from ..services.hybrid_cloud import rpcmetrics
-from ..services.hybrid_cloud.auth import RpcAuthentication, RpcAuthenticatorType
 from ..utils.pagination_factory import (
     annotate_span_with_pagination_args,
     clamp_pagination_per_page,
@@ -168,33 +166,6 @@ class Endpoint(APIView):
         str, dict[RateLimitCategory, RateLimit]
     ] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
-
-    def get_authenticators(self) -> List[BaseAuthentication]:
-        """
-        Instantiates and returns the list of authenticators that this view can use.
-        Aggregates together authenticators that should be called cross silo, while
-        leaving methods that should be run locally.
-        """
-
-        # TODO: Increase test coverage and get this working for monolith mode.
-        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            return super().get_authenticators()
-
-        last_api_authenticator = RpcAuthentication([])
-        result: List[BaseAuthentication] = []
-        for authenticator_cls in self.authentication_classes:
-            auth_type = RpcAuthenticatorType.from_authenticator(authenticator_cls)
-            if auth_type is not None:
-                last_api_authenticator.types.append(auth_type)
-            else:
-                if last_api_authenticator.types:
-                    result.append(last_api_authenticator)
-                    last_api_authenticator = RpcAuthentication([])
-                result.append(authenticator_cls())
-
-        if last_api_authenticator.types:
-            result.append(last_api_authenticator)
-        return result
 
     def build_link_header(self, request: Request, path: str, rel: str):
         # TODO(dcramer): it would be nice to expand this to support params to consolidate `build_cursor_link`
@@ -688,14 +659,6 @@ Apply to endpoints that exist in REGION silo.
 If a request is received and the application is not in REGION
 mode 404s will be returned.
 """
-
-# Use this decorator to mark endpoints that still need to be marked as either
-# control_silo_endpoint or region_silo_endpoint. Marking a class with
-# pending_silo_endpoint keeps it from tripping SiloLimitCoverageTest, while ensuring
-# that the test will fail if a new endpoint is added with no decorator at all.
-# Eventually we should replace all instances of this decorator and delete it.
-pending_silo_endpoint = EndpointSiloLimit()
-
 
 all_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH)
 """

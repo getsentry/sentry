@@ -15,13 +15,15 @@ export default function MiniChartPanel({title, children, button, subtitle}: Prop
   return (
     <Panel>
       <PanelBody>
-        <HeaderContainer>
-          <Header>
-            {title && <ChartLabel>{title}</ChartLabel>}
-            {button}
-          </Header>
-          {subtitle && <Subtitle>{subtitle}</Subtitle>}
-        </HeaderContainer>
+        {(title || button || subtitle) && (
+          <HeaderContainer>
+            <Header>
+              {title && <ChartLabel>{title}</ChartLabel>}
+              {button}
+            </Header>
+            {subtitle && <Subtitle>{subtitle}</Subtitle>}
+          </HeaderContainer>
+        )}
         {children}
       </PanelBody>
     </Panel>

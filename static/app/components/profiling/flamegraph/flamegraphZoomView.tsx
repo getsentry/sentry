@@ -48,7 +48,7 @@ import {useDrawSelectedBorderEffect} from './interactions/useDrawSelectedBorderE
 import {useInteractionViewCheckPoint} from './interactions/useInteractionViewCheckPoint';
 import {useWheelCenterZoom} from './interactions/useWheelCenterZoom';
 
-function isHighlightingAllOccurences(
+function isHighlightingAllOccurrences(
   node: FlamegraphFrame | null,
   selectedNodes: FlamegraphFrame[] | null
 ) {
@@ -174,8 +174,8 @@ function FlamegraphZoomView({
 
   const hoveredNodeOnContextMenuOpen = useRef<FlamegraphFrame | null>(null);
   const contextMenu = useContextMenu({container: flamegraphCanvasRef});
-  const [highlightingAllOccurences, setHighlightingAllOccurences] = useState(
-    isHighlightingAllOccurences(hoveredNode, selectedFramesRef.current)
+  const [highlightingAllOccurrences, setHighlightingAllOccurrences] = useState(
+    isHighlightingAllOccurrences(hoveredNode, selectedFramesRef.current)
   );
 
   useEffect(() => {
@@ -384,8 +384,8 @@ function FlamegraphZoomView({
       }
 
       if (evt.key === 'Escape') {
-        if (highlightingAllOccurences) {
-          setHighlightingAllOccurences(false);
+        if (highlightingAllOccurrences) {
+          setHighlightingAllOccurrences(false);
           dispatch({type: 'set highlight all frames', payload: null});
           canvasPoolManager.dispatch('highlight frame', [null, 'selected']);
           previousKeyPress.current = {key: null, at: 0};
@@ -462,8 +462,8 @@ function FlamegraphZoomView({
     };
   }, [
     canvasPoolManager,
-    setHighlightingAllOccurences,
-    highlightingAllOccurences,
+    setHighlightingAllOccurrences,
+    highlightingAllOccurrences,
     dispatch,
     nextState,
     previousState,
@@ -641,8 +641,8 @@ function FlamegraphZoomView({
       hoveredNodeOnContextMenuOpen.current = hoveredNode;
       contextMenu.handleContextMenu(event);
       // Make sure we set the highlight state relative to the newly hovered node
-      setHighlightingAllOccurences(
-        isHighlightingAllOccurences(hoveredNode, selectedFramesRef.current)
+      setHighlightingAllOccurrences(
+        isHighlightingAllOccurrences(hoveredNode, selectedFramesRef.current)
       );
     },
     [contextMenu, hoveredNode]
@@ -653,20 +653,20 @@ function FlamegraphZoomView({
       return;
     }
 
-    // If all occurences are currently being highlighted, we want to unhighlight them now
+    // If all Occurrences are currently being highlighted, we want to unhighlight them now
     if (
-      isHighlightingAllOccurences(
+      isHighlightingAllOccurrences(
         hoveredNodeOnContextMenuOpen.current,
         selectedFramesRef.current
       )
     ) {
-      setHighlightingAllOccurences(false);
+      setHighlightingAllOccurrences(false);
       dispatch({type: 'set highlight all frames', payload: null});
       canvasPoolManager.dispatch('highlight frame', [null, 'selected']);
       return;
     }
 
-    setHighlightingAllOccurences(true);
+    setHighlightingAllOccurrences(true);
 
     const frameName = hoveredNodeOnContextMenuOpen.current.frame.name;
     const packageName =
@@ -745,9 +745,9 @@ function FlamegraphZoomView({
         contextMenu={contextMenu}
         profileGroup={profileGroup}
         hoveredNode={hoveredNodeOnContextMenuOpen.current}
-        isHighlightingAllOccurences={highlightingAllOccurences}
+        isHighlightingAllOccurrences={highlightingAllOccurrences}
         onCopyFunctionNameClick={handleCopyFunctionName}
-        onHighlightAllOccurencesClick={handleHighlightAllFramesClick}
+        onHighlightAllOccurrencesClick={handleHighlightAllFramesClick}
         disableCallOrderSort={disableCallOrderSort}
       />
       {flamegraphCanvas &&

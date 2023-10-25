@@ -5,7 +5,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import docs from './aspnet';
 
 describe('aspnet onboarding docs', function () {
-  it('renders gradle docs correctly', async function () {
+  it('renders docs correctly', async function () {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dotnet.aspnet': {

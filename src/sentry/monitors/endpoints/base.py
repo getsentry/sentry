@@ -14,11 +14,10 @@ from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
-from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
-from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
+from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorObjectStatus
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 
@@ -71,7 +70,7 @@ class MonitorEndpoint(Endpoint):
             raise ResourceDoesNotExist
 
         project = Project.objects.get_from_cache(id=monitor.project_id)
-        if project.status != ObjectStatus.ACTIVE:
+        if project.status != MonitorObjectStatus.ACTIVE:
             raise ResourceDoesNotExist
 
         self.check_object_permissions(request, project)
@@ -199,7 +198,7 @@ class MonitorIngestEndpoint(Endpoint):
         else:
             project = Project.objects.get_from_cache(id=monitor.project_id)
 
-        if project.status != ObjectStatus.ACTIVE:
+        if project.status != MonitorObjectStatus.ACTIVE:
             raise ResourceDoesNotExist
 
         # Validate that the authenticated project matches the monitor. This is
@@ -237,8 +236,7 @@ def try_checkin_lookup(monitor: Monitor, checkin_id: str):
     # which is unfinished (thus still mutable)
     if checkin_id == "latest":
         checkin = (
-            MonitorCheckIn.objects.filter(monitor=monitor)
-            .exclude(status__in=CheckInStatus.FINISHED_VALUES)
+            MonitorCheckIn.objects.filter(monitor=monitor, status=CheckInStatus.IN_PROGRESS)
             .order_by("-date_added")
             .first()
         )

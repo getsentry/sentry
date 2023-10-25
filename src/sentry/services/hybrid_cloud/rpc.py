@@ -28,6 +28,7 @@ import pydantic
 import requests
 import sentry_sdk
 from django.conf import settings
+from typing_extensions import Self
 
 from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.services.hybrid_cloud.rpcmetrics import RpcMetricRecord
@@ -454,7 +455,7 @@ class RpcService(abc.ABC):
         return cast(RpcService, remote_service_class())
 
     @classmethod
-    def create_delegation(cls, use_test_client: bool | None = None) -> DelegatingRpcService:
+    def create_delegation(cls, use_test_client: bool | None = None) -> Self:
         """Instantiate a base service class for the current mode."""
         constructors = {
             mode: (
@@ -466,7 +467,8 @@ class RpcService(abc.ABC):
         }
         service = DelegatingRpcService(cls, constructors, cls._signatures)
         _global_service_registry[cls.key] = service
-        return service
+        # this returns a proxy which simulates the given class
+        return service  # type: ignore[return-value]
 
 
 class RpcResolutionException(Exception):

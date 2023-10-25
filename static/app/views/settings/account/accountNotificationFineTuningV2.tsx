@@ -6,6 +6,7 @@ import EmptyMessage from 'sentry/components/emptyMessage';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -68,7 +69,15 @@ function AccountNotificationsByProject({projects, field}: ANBPProps) {
       // `name` key refers to field name
       // we use project.id because slugs are not unique across orgs
       name: project.id,
-      label: project.slug,
+      label: (
+        <ProjectBadge
+          project={project}
+          avatarSize={20}
+          displayName={project.slug}
+          avatarProps={{consistentWidth: true}}
+          disableLink
+        />
+      ),
     })),
   }));
 

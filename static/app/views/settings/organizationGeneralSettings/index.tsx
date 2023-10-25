@@ -110,12 +110,7 @@ function OrganizationGeneralSettings(props: Props) {
         <SettingsPageHeader title={t('Organization Settings')} />
         <PermissionAlert />
 
-        <OrganizationSettingsForm
-          {...props}
-          initialData={organization}
-          access={access}
-          onSave={handleSaveForm}
-        />
+        <OrganizationSettingsForm initialData={organization} onSave={handleSaveForm} />
 
         {access.has('org:admin') && !organization.isDefault && (
           <Panel>

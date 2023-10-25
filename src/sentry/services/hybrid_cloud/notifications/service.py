@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import List, Mapping, MutableMapping, Optional, Sequence, Tuple, cast
+from typing import List, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 from sentry.notifications.types import (
     NotificationSettingEnum,
@@ -157,7 +157,12 @@ class NotificationsService(RpcService):
     ) -> MutableMapping[int, MutableMapping[int, str]]:
         pass
 
+    @rpc_method
+    @abstractmethod
+    def get_users_for_weekly_reports(
+        self, *, organization_id: int, user_ids: List[int]
+    ) -> List[int]:
+        pass
 
-notifications_service: NotificationsService = cast(
-    NotificationsService, NotificationsService.create_delegation()
-)
+
+notifications_service = NotificationsService.create_delegation()
