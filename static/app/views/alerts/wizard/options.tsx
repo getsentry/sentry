@@ -32,7 +32,8 @@ export type AlertType =
   | 'cls'
   | 'custom'
   | 'crash_free_sessions'
-  | 'crash_free_users';
+  | 'crash_free_users'
+  | 'feedback_issues';
 
 export enum MEPAlertsQueryType {
   ERROR = 0,
@@ -46,7 +47,7 @@ export enum MEPAlertsDataset {
   METRICS_ENHANCED = 'metricsEnhanced',
 }
 
-export type MetricAlertType = Exclude<AlertType, 'issues'>;
+export type MetricAlertType = Exclude<AlertType, 'issues' | 'feedback_issues'>;
 
 export const DatasetMEPAlertQueryTypes: Record<Dataset, MEPAlertsQueryType> = {
   [Dataset.ERRORS]: MEPAlertsQueryType.ERROR,
@@ -70,6 +71,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   custom: t('Custom Metric'),
   crash_free_sessions: t('Crash Free Session Rate'),
   crash_free_users: t('Crash Free User Rate'),
+  feedback_issues: t('Feedback Issues'),
 };
 
 type AlertWizardCategory = {
@@ -100,6 +102,10 @@ export const getAlertWizardCategories = (org: Organization): AlertWizardCategory
       'fid',
       'cls',
     ],
+  },
+  {
+    categoryHeading: t('Feedback'),
+    options: ['feedback_issues'],
   },
   {
     categoryHeading: t('Other'),

@@ -147,4 +147,14 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     ],
     illustration: diagramCrashFreeUsers,
   },
+  feedback_issues: {
+    description: t(
+      'Feedback issues are written reports submitted by users on your site. Set an alert for new feedback or when a feedback state changes.'
+    ),
+    examples: [
+      t('When a feedback is received, send an email to yourself.'),
+      t('When a feedback is resolved, send a Slack notification to the team.'),
+    ],
+    illustration: diagramIssues,
+  },
 };
