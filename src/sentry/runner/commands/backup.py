@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Sequence, TextIO
+from typing import BinaryIO, Callable, Sequence, TextIO
 
 import click
 
@@ -17,7 +17,33 @@ DECRYPT_WITH_HELP = """A path to a file containing a private key with which to d
                     previously encrypted using an `export ... --encrypt_with=<PUBLIC_KEY>` command.
                     The private key provided via this flag should be the complement of the public
                     key used to encrypt the tarball (this public key is included in the tarball
-                    itself)."""
+                    itself).
+
+                    This flag is mutually exclusive with the `--decrypt-with-gcp-kms` flag."""
+
+DECRYPT_WITH_GCP_KMS_HELP = """For users that want to avoid storing their own private keys, this
+                            flag can be used in lieu of `--decrypt-with` to retrieve keys from
+                            Google Cloud's Key Management Service directly, avoiding ever storing
+                            them on the machine doing the decryption.
+
+                            This flag should point to a JSON file containing a single top-level
+                            object storing the `project-id`, `location`, `keyring`, `key`, and
+                            `version` of the desired asymmetric private key that pairs with the
+                            public key included in the tarball being imported (for more information
+                            on these resource identifiers and how to set up KMS to use the, see:
+                            https://cloud.google.com/kms/docs/getting-resource-ids). An example
+                            version of this file might look like:
+
+                            ``` {
+                                "project_id": "my-google-cloud-project",
+                                "location": "global",
+                                "key_ring": "my-key-ring-name",
+                                "key": "my-key-name",
+                                "version": "1"
+                            }
+                            ```
+
+                            Property names must be spelled exactly as above, and the `version` field in particular must be a string, not an integer."""
 
 ENCRYPT_WITH_HELP = """A path to the a public key with which to encrypt this export. If this flag is
                        enabled and points to a valid key, the output file will be a tarball
@@ -60,6 +86,16 @@ def parse_filter_arg(filter_arg: str) -> set[str] | None:
         filter_by = set(filter_arg.split(","))
 
     return filter_by
+
+
+def get_decryptor(
+    decrypt_with: BinaryIO | None, decrypt_with_gcp_kms: BinaryIO | None
+) -> BinaryIO | None:
+    if decrypt_with is not None and decrypt_with_gcp_kms is not None:
+        raise click.UsageError(
+            """`--decrypt-with` and `--decrypt-with-gcp-kms` are mutually exclusive options - you may use one or the other, but not both."""
+        )
+    return decrypt_with if decrypt_with is not None else decrypt_with_gcp_kms
 
 
 def write_findings(
@@ -132,6 +168,11 @@ def import_():
     help=DECRYPT_WITH_HELP,
 )
 @click.option(
+    "--decrypt-with-gcp-kms",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_GCP_KMS_HELP,
+)
+@click.option(
     "--filter-usernames",
     "--filter_usernames",  # For backwards compatibility with self-hosted@23.10.0
     default="",
@@ -154,7 +195,15 @@ def import_():
 )
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
-def import_users(src, decrypt_with, filter_usernames, findings_file, merge_users, silent):
+def import_users(
+    src,
+    decrypt_with,
+    decrypt_with_gcp_kms,
+    filter_usernames,
+    findings_file,
+    merge_users,
+    silent,
+):
     """
     Import the Sentry users from an exported JSON file.
     """
@@ -165,8 +214,11 @@ def import_users(src, decrypt_with, filter_usernames, findings_file, merge_users
     try:
         import_in_user_scope(
             src,
-            decrypt_with=decrypt_with,
-            flags=ImportFlags(merge_users=merge_users),
+            decrypt_with=get_decryptor(decrypt_with, decrypt_with_gcp_kms),
+            flags=ImportFlags(
+                merge_users=merge_users,
+                decrypt_using_gcp_kms=decrypt_with_gcp_kms is not None,
+            ),
             user_filter=parse_filter_arg(filter_usernames),
             printer=printer,
         )
@@ -183,6 +235,11 @@ def import_users(src, decrypt_with, filter_usernames, findings_file, merge_users
     "--decrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=DECRYPT_WITH_HELP,
+)
+@click.option(
+    "--decrypt-with-gcp-kms",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_GCP_KMS_HELP,
 )
 @click.option(
     "--filter-org-slugs",
@@ -208,7 +265,15 @@ def import_users(src, decrypt_with, filter_usernames, findings_file, merge_users
 )
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
-def import_organizations(src, decrypt_with, filter_org_slugs, findings_file, merge_users, silent):
+def import_organizations(
+    src,
+    decrypt_with,
+    decrypt_with_gcp_kms,
+    filter_org_slugs,
+    findings_file,
+    merge_users,
+    silent,
+):
     """
     Import the Sentry organizations, and all constituent Sentry users, from an exported JSON file.
     """
@@ -219,8 +284,11 @@ def import_organizations(src, decrypt_with, filter_org_slugs, findings_file, mer
     try:
         import_in_organization_scope(
             src,
-            decrypt_with=decrypt_with,
-            flags=ImportFlags(merge_users=merge_users),
+            decrypt_with=get_decryptor(decrypt_with, decrypt_with_gcp_kms),
+            flags=ImportFlags(
+                merge_users=merge_users,
+                decrypt_using_gcp_kms=decrypt_with_gcp_kms is not None,
+            ),
             org_filter=parse_filter_arg(filter_org_slugs),
             printer=printer,
         )
@@ -237,6 +305,11 @@ def import_organizations(src, decrypt_with, filter_org_slugs, findings_file, mer
     "--decrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=DECRYPT_WITH_HELP,
+)
+@click.option(
+    "--decrypt-with-gcp-kms",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_GCP_KMS_HELP,
 )
 @click.option(
     "--findings-file",
@@ -260,7 +333,15 @@ def import_organizations(src, decrypt_with, filter_org_slugs, findings_file, mer
 )
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
-def import_config(src, decrypt_with, findings_file, merge_users, overwrite_configs, silent):
+def import_config(
+    src,
+    decrypt_with,
+    decrypt_with_gcp_kms,
+    findings_file,
+    merge_users,
+    overwrite_configs,
+    silent,
+):
     """
     Import all configuration and administrator accounts needed to set up this Sentry instance.
     """
@@ -271,8 +352,12 @@ def import_config(src, decrypt_with, findings_file, merge_users, overwrite_confi
     try:
         import_in_config_scope(
             src,
-            decrypt_with=decrypt_with,
-            flags=ImportFlags(merge_users=merge_users, overwrite_configs=overwrite_configs),
+            decrypt_with=get_decryptor(decrypt_with, decrypt_with_gcp_kms),
+            flags=ImportFlags(
+                merge_users=merge_users,
+                overwrite_configs=overwrite_configs,
+                decrypt_using_gcp_kms=decrypt_with_gcp_kms is not None,
+            ),
             printer=printer,
         )
     except ImportingError as e:
@@ -290,6 +375,11 @@ def import_config(src, decrypt_with, findings_file, merge_users, overwrite_confi
     help=DECRYPT_WITH_HELP,
 )
 @click.option(
+    "--decrypt-with-gcp-kms",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_GCP_KMS_HELP,
+)
+@click.option(
     "--findings-file",
     type=click.File("w"),
     required=False,
@@ -304,7 +394,14 @@ def import_config(src, decrypt_with, findings_file, merge_users, overwrite_confi
 )
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
-def import_global(src, decrypt_with, findings_file, overwrite_configs, silent):
+def import_global(
+    src,
+    decrypt_with,
+    decrypt_with_gcp_kms,
+    findings_file,
+    overwrite_configs,
+    silent,
+):
     """
     Import all Sentry data from an exported JSON file.
     """
@@ -315,8 +412,11 @@ def import_global(src, decrypt_with, findings_file, overwrite_configs, silent):
     try:
         import_in_global_scope(
             src,
-            decrypt_with=decrypt_with,
-            flags=ImportFlags(overwrite_configs=overwrite_configs),
+            decrypt_with=get_decryptor(decrypt_with, decrypt_with_gcp_kms),
+            flags=ImportFlags(
+                overwrite_configs=overwrite_configs,
+                decrypt_using_gcp_kms=decrypt_with_gcp_kms is not None,
+            ),
             printer=printer,
         )
     except ImportingError as e:
