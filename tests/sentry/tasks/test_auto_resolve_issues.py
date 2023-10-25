@@ -4,9 +4,14 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
+from sentry.issues.grouptype import (
+    PerformanceDurationRegressionGroupType,
+    PerformanceSlowDBQueryGroupType,
+)
 from sentry.models.group import Group, GroupStatus
 from sentry.tasks.auto_resolve_issues import schedule_auto_resolution
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 
 
 class ScheduleAutoResolutionTest(TestCase):
@@ -75,3 +80,112 @@ class ScheduleAutoResolutionTest(TestCase):
             issue_type="error",
             issue_category="error",
         )
+
+    @patch("sentry.tasks.auto_ongoing_issues.backend")
+    @patch("sentry.tasks.auto_resolve_issues.kick_off_status_syncs")
+    def test_single_event_performance(self, mock_kick_off_status_syncs, mock_backend):
+        project = self.create_project()
+
+        current_ts = int(time()) - 1
+
+        project.update_option("sentry:resolve_age", 1)
+
+        group = self.create_group(
+            project=project,
+            status=GroupStatus.UNRESOLVED,
+            last_seen=timezone.now() - timedelta(days=1),
+            type=PerformanceSlowDBQueryGroupType.type_id,  # Test that auto_resolve is enabled for legacy performance issues
+        )
+
+        mock_backend.get_size.return_value = 0
+
+        with self.tasks():
+            schedule_auto_resolution()
+
+        assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+
+        mock_kick_off_status_syncs.apply_async.assert_called_once_with(
+            kwargs={"project_id": group.project_id, "group_id": group.id}
+        )
+
+        assert project.get_option("sentry:_last_auto_resolve") > current_ts
+
+    @patch("sentry.tasks.auto_ongoing_issues.backend")
+    @patch("sentry.tasks.auto_resolve_issues.kick_off_status_syncs")
+    @with_feature("organizations:issue-platform-api-crons-sd")
+    def test_single_event_performance_ff_enabled(self, mock_kick_off_status_syncs, mock_backend):
+        project = self.create_project()
+
+        current_ts = int(time()) - 1
+
+        project.update_option("sentry:resolve_age", 1)
+
+        group = self.create_group(
+            project=project,
+            status=GroupStatus.UNRESOLVED,
+            last_seen=timezone.now() - timedelta(days=1),
+            type=PerformanceSlowDBQueryGroupType.type_id,  # Test that auto_resolve is enabled for legacy performance issues
+        )
+
+        mock_backend.get_size.return_value = 0
+
+        with self.tasks():
+            schedule_auto_resolution()
+
+        assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+
+        mock_kick_off_status_syncs.apply_async.assert_called_once_with(
+            kwargs={"project_id": group.project_id, "group_id": group.id}
+        )
+
+        assert project.get_option("sentry:_last_auto_resolve") > current_ts
+
+    @patch("sentry.tasks.auto_ongoing_issues.backend")
+    @patch("sentry.tasks.auto_resolve_issues.kick_off_status_syncs")
+    def test_aggregate_performance(self, mock_kick_off_status_syncs, mock_backend):
+        project = self.create_project()
+
+        current_ts = int(time()) - 1
+
+        project.update_option("sentry:resolve_age", 1)
+
+        group = self.create_group(
+            project=project,
+            status=GroupStatus.UNRESOLVED,
+            last_seen=timezone.now() - timedelta(days=1),
+            type=PerformanceDurationRegressionGroupType.type_id,  # Test that auto_resolve is disabled for SD
+        )
+
+        mock_backend.get_size.return_value = 0
+
+        with self.tasks():
+            schedule_auto_resolution()
+
+        assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+
+        mock_kick_off_status_syncs.apply_async.assert_called_once_with(
+            kwargs={"project_id": group.project_id, "group_id": group.id}
+        )
+
+        assert project.get_option("sentry:_last_auto_resolve") > current_ts
+
+    @patch("sentry.tasks.auto_ongoing_issues.backend")
+    @with_feature("organizations:issue-platform-api-crons-sd")
+    def test_aggregate_performance_ff_enabled(self, mock_backend):
+        project = self.create_project()
+
+        project.update_option("sentry:resolve_age", 1)
+
+        group = self.create_group(
+            project=project,
+            status=GroupStatus.UNRESOLVED,
+            last_seen=timezone.now() - timedelta(days=1),
+            type=PerformanceDurationRegressionGroupType.type_id,  # Test that auto_resolve is disabled for SD
+        )
+
+        mock_backend.get_size.return_value = 0
+
+        with self.tasks():
+            schedule_auto_resolution()
+
+        assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
