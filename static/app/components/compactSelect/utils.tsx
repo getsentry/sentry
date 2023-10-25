@@ -158,21 +158,21 @@ export function getHiddenOptions<Value extends React.Key>(
     currentIndex += 1;
   }
 
-  // Return the values of options that were removed.
-  return new Set([
-    ...itemsToHide,
-    ...remainingItems.slice(threshold[0]).reduce((acc: Value[], cur, index) => {
-      if ('options' in cur) {
-        return acc.concat(
-          index === 0
-            ? cur.options.slice(threshold[1]).map(o => o.value)
-            : cur.options.map(o => o.value)
-        );
+  for (let i = threshold[0]; i < remainingItems.length; i++) {
+    const item = remainingItems[i];
+    if ('options' in item) {
+      if (i === threshold[0]) {
+        itemsToHide.push(...item.options.slice(threshold[1]).map(opt => opt.value));
+      } else {
+        itemsToHide.push(...item.options.map(opt => opt.value));
       }
+    } else {
+      itemsToHide.push(item.value);
+    }
+  }
 
-      return acc.concat(cur.value);
-    }, []),
-  ]);
+  // Return the values of options that were removed.
+  return new Set(itemsToHide);
 }
 
 /**
