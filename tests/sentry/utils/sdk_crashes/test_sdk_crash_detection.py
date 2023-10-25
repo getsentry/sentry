@@ -11,7 +11,6 @@ from fixtures.sdk_crash_detection.crash_event import (
     get_crash_event_with_frames,
     get_sentry_frame,
 )
-from sentry.conf.types.sdk_crash_detection_config import SDKCrashDetectionConfig
 from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.testutils.cases import BaseTestCase, SnubaTestCase, TestCase
@@ -20,6 +19,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection
+from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig
 
 sdk_configs = [SDKCrashDetectionConfig(sdk_name="cocoa", project_id=1234, sample_rate=1.0)]
 
