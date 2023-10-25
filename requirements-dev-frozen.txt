@@ -64,6 +64,7 @@ google-auth==2.16.0
 google-cloud-bigtable==2.11.3
 google-cloud-core==2.3.2
 google-cloud-functions==1.8.1
+google-cloud-kms==2.19.1
 google-cloud-pubsub==2.13.6
 google-cloud-spanner==3.20.0
 google-cloud-storage==2.5.0
@@ -206,7 +207,7 @@ types-psycopg2==2.9.21
 types-python-dateutil==2.8.19
 types-pytz==2022.1.2
 types-pyyaml==6.0.11
-types-redis==4.3.13
+types-redis==3.5.18
 types-requests==2.28.8
 types-setuptools==65.3.0
 types-simplejson==3.17.7.2
