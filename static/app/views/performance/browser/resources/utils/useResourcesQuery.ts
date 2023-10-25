@@ -56,7 +56,6 @@ export const useResourcesQuery = ({sort, defaultResourceTypes}: Props) => {
         `avg(${SPAN_SELF_TIME})`,
         'spm()',
         SPAN_GROUP,
-        RESOURCE_RENDER_BLOCKING_STATUS,
         SPAN_DOMAIN,
         `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
       ],
