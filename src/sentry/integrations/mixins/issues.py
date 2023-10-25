@@ -4,7 +4,7 @@ import enum
 import logging
 from collections import defaultdict
 from copy import deepcopy
-from typing import Any, ClassVar, Mapping, MutableMapping, Sequence
+from typing import Any, ClassVar, Dict, List, Mapping, MutableMapping, Sequence
 
 from sentry.integrations.utils import where_should_sync
 from sentry.models.group import Group
@@ -91,7 +91,7 @@ class IssueBasicMixin:
             output.extend(["", "```", body, "```"])
         return "\n".join(output)
 
-    def get_create_issue_config(self, group, user, **kwargs):
+    def get_create_issue_config(self, group: Group, user: User, **kwargs) -> List[Dict[str, Any]]:
         """
         These fields are used to render a form for the user,
         and are then passed in the format of:

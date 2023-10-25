@@ -34,7 +34,7 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
     def get_create_issue_config(self, group: Group, user: User, **kwargs) -> List[Dict[str, Any]]:
         kwargs["link_referrer"] = "bitbucket_integration"
         fields = super().get_create_issue_config(group, user, **kwargs)
-        params = kwargs.get("params", {})
+        params = kwargs.pop("params", {})
         default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
 
         org = group.organization
@@ -71,7 +71,7 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
         ]
 
     def get_link_issue_config(self, group: Group, **kwargs) -> List[Dict[str, Any]]:
-        params = kwargs.get("params", {})
+        params = kwargs.pop("params", {})
         default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
 
         org = group.organization

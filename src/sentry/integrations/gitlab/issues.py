@@ -44,10 +44,10 @@ class GitlabIssueBasic(IssueBasicMixin):
         return (project["id"], project["name_with_namespace"])
 
     def get_create_issue_config(self, group: Group, user: User, **kwargs) -> List[Dict[str, Any]]:
-        params = kwargs.get("params", {})
-        default_project, project_choices = self.get_projects_and_default(group, params, **kwargs)
         kwargs["link_referrer"] = "gitlab_integration"
         fields = super().get_create_issue_config(group, user, **kwargs)
+        params = kwargs.pop("params", {})
+        default_project, project_choices = self.get_projects_and_default(group, params, **kwargs)
 
         org = group.organization
         autocomplete_url = reverse(
@@ -113,7 +113,7 @@ class GitlabIssueBasic(IssueBasicMixin):
             raise IntegrationError(self.message_from_error(e))
 
     def get_link_issue_config(self, group: Group, **kwargs) -> List[Dict[str, Any]]:
-        params = kwargs.get("params", {})
+        params = kwargs.pop("params", {})
         default_project, project_choices = self.get_projects_and_default(group, params, **kwargs)
 
         org = group.organization

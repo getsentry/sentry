@@ -75,7 +75,7 @@ class GitHubIssueBasic(IssueBasicMixin):
     ) -> List[Dict[str, Any]]:
         kwargs["link_referrer"] = "github_integration"
         fields = super().get_create_issue_config(group, user, **kwargs)
-        params = kwargs.get("params", {})
+        params = kwargs.pop("params", {})
         default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
 
         assignees = self.get_allowed_assignees(default_repo) if default_repo else []
@@ -147,7 +147,7 @@ class GitHubIssueBasic(IssueBasicMixin):
         }
 
     def get_link_issue_config(self, group: Group, **kwargs: Any) -> List[Dict[str, Any]]:
-        params = kwargs.get("params", {})
+        params = kwargs.pop("params", {})
         default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
 
         org = group.organization
