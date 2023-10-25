@@ -335,7 +335,7 @@ def _shim_to_feedback(report, event, project):
 
         else:
             feedback_event["timestamp"] = datetime.utcnow().timestamp()
-            feedback_event["platform"] = "unknown"
+            feedback_event["platform"] = "other"
 
         create_feedback_issue(feedback_event, project.id)
     except Exception:

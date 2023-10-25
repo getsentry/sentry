@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 from uuid import uuid4
 
 from django.utils import timezone
@@ -379,7 +380,8 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
             == self.environment.id
         )
 
-    def test_simple_shim_to_feedback(self):
+    @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
+    def test_simple_shim_to_feedback(self, mock_produce_occurrence_to_kafka):
         self.login_as(user=self.user)
 
         url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
@@ -403,8 +405,17 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert report.email == "foo@example.com"
         assert report.name == "Foo Bar"
         assert report.comments == "It broke!"
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
+        mock_event_data = mock_produce_occurrence_to_kafka.call_args_list[0][1]["event_data"]
 
-    def test_simple_shim_to_feedback_no_event(self):
+        assert mock_event_data["contexts"]["feedback"]["email"] == "foo@example.com"
+        assert mock_event_data["contexts"]["feedback"]["message"] == "It broke!"
+        assert mock_event_data["contexts"]["feedback"]["name"] == "Foo Bar"
+        assert mock_event_data["platform"] == "other"
+        assert mock_event_data["contexts"]["feedback"]["crash_report_event_id"]
+
+    @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
+    def test_simple_shim_to_feedback_no_event(self, mock_produce_occurrence_to_kafka):
         self.login_as(user=self.user)
 
         url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
@@ -427,3 +438,12 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert report.email == "foo@example.com"
         assert report.name == "Foo Bar"
         assert report.comments == "It broke!"
+
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
+        mock_event_data = mock_produce_occurrence_to_kafka.call_args_list[0][1]["event_data"]
+
+        assert mock_event_data["contexts"]["feedback"]["email"] == "foo@example.com"
+        assert mock_event_data["contexts"]["feedback"]["message"] == "It broke!"
+        assert mock_event_data["contexts"]["feedback"]["name"] == "Foo Bar"
+        assert mock_event_data["platform"] == "other"
+        assert not mock_event_data["contexts"]["feedback"].get("crash_report_event_id")
