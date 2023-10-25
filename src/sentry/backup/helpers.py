@@ -194,7 +194,7 @@ def decrypt_data_encryption_key_using_gcp_kms(
     except TypeError:
         raise KMSDecryptionError(
             """Your supplied KMS configuration did not have the correct fields - please ensure that
-            it is a single, top-level object with the fields `project_id`, `location`, `key_rind`,
+            it is a single, top-level object with the fields `project_id`, `location`, `key_ring`,
             `key`, and `version`, with all values as strings."""
         )
 
