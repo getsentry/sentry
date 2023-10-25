@@ -81,7 +81,12 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
           </span>
           {feedbackItem.hasSeen ? null : (
             <span
-              style={{gridArea: 'unread', display: 'inline-flex', alignItems: 'center'}}
+              style={{
+                gridArea: 'unread',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             >
               <IconCircleFill size="xs" color="purple300" />
             </span>
