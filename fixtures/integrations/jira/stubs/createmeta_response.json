@@ -49,6 +49,22 @@
               "hasDefaultValue": false,
               "operations": ["set"]
             },
+            "priority": {
+              "required": false,
+              "schema": {
+                "type": "priority",
+                "items": "string",
+                "system": "priority"
+              },
+              "name": "Priority",
+              "key": "priority",
+              "operations": ["set"],
+              "allowedValues": [
+                {"id": 1, "label": "High"},
+                {"id": 2, "label": "Medium"},
+                {"id": 3, "label": "Low"}
+              ]
+            },
             "labels": {
               "required": false,
               "schema": {

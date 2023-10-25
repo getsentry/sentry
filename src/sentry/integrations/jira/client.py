@@ -1,7 +1,7 @@
 import datetime
 import logging
 import re
-from typing import Optional
+from typing import Any, Dict, Optional
 from urllib.parse import parse_qs, urlparse, urlsplit
 
 from requests import PreparedRequest
@@ -30,7 +30,9 @@ class JiraCloudClient(IntegrationProxyClient):
     CREATE_URL = "/rest/api/2/issue"
     ISSUE_URL = "/rest/api/2/issue/%s"
     META_URL = "/rest/api/2/issue/createmeta"
-    PRIORITIES_URL = "/rest/api/2/priority"
+    # https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issue-priorities/#api-rest-api-3-priority-search-get
+    # Note that we leave the default of 50 results per page and don't continue paginating
+    SEARCH_PRIORITIES_URL = "/rest/api/3/priority/search/?projectId=%s"
     PROJECT_URL = "/rest/api/2/project"
     SEARCH_URL = "/rest/api/2/search/"
     VERSIONS_URL = "/rest/api/2/project/%s/versions"
@@ -166,8 +168,13 @@ class JiraCloudClient(IntegrationProxyClient):
     def get_versions(self, project):
         return self.get_cached(self.VERSIONS_URL % project)
 
-    def get_priorities(self):
-        return self.get_cached(self.PRIORITIES_URL)
+    def get_priorities(self, project_id: str) -> Dict[str, Any]:
+        """
+        Jira Cloud allows you to fetch priorities for a project using a search
+        API where we pass the projectID as a query parameter.
+        """
+        search_response = self.get_cached(self.SEARCH_PRIORITIES_URL % project_id)
+        return search_response["values"]
 
     def get_users_for_project(self, project):
         # Jira Server wants a project key, while cloud is indifferent.

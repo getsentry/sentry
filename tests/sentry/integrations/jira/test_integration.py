@@ -10,7 +10,7 @@ from django.urls import reverse
 
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.stub_service import StubService
-from sentry.integrations.jira.integration import JiraIntegrationProvider
+from sentry.integrations.jira.integration import JiraIntegration, JiraIntegrationProvider
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.integrations.external_issue import ExternalIssue
@@ -29,6 +29,7 @@ from sentry.utils.signing import sign
 from sentry_plugins.jira.plugin import JiraPlugin
 
 pytestmark = [requires_snuba]
+DEFAULT_PROJECT_ID = 10000
 
 
 def get_client():
@@ -114,6 +115,20 @@ class JiraIntegrationTest(APITestCase):
                     "updatesForm": True,
                     "choices": [("1", "Bug")],
                     "label": "Issue Type",
+                    "type": "select",
+                },
+                {
+                    "name": "priority",
+                    "default": "",
+                    "required": False,
+                    "choices": [
+                        ("1", "Highest"),
+                        ("2", "High"),
+                        ("3", "Medium"),
+                        ("4", "Low"),
+                        ("5", "Lowest"),
+                    ],
+                    "label": "Priority",
                     "type": "select",
                 },
                 {
@@ -264,6 +279,7 @@ class JiraIntegrationTest(APITestCase):
                 "title",
                 "description",
                 "issuetype",
+                "priority",
                 "customfield_10200",
                 "customfield_10300",
                 "customfield_10400",
@@ -285,6 +301,7 @@ class JiraIntegrationTest(APITestCase):
                 "title",
                 "description",
                 "issuetype",
+                "priority",
                 "customfield_10300",
                 "customfield_10400",
                 "customfield_10500",
@@ -292,6 +309,85 @@ class JiraIntegrationTest(APITestCase):
                 "parent",
                 "reporter",
             ]
+
+    @responses.activate
+    def test_get_create_issue_config_with_project_having_subset_priorities(self):
+        """Test that a project that is limited to a subset of priorities
+        correctly returns the subset instead of all priorities
+        """
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": self.min_ago,
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        installation: JiraIntegration = self.integration.get_installation(self.organization.id)
+
+        responses.add(
+            responses.GET,
+            f"https://example.atlassian.net/rest/api/3/priority/search/?projectId={DEFAULT_PROJECT_ID}",
+            json={
+                "maxResults": 50,
+                "startAt": 0,
+                "total": 3,
+                "isLast": True,
+                "values": [
+                    {
+                        "self": "https://example.atlassian.net/rest/api/3/priority/2",
+                        "statusColor": "#f15C75",
+                        "description": "Serious problem that could block progress.",
+                        "iconUrl": "https://jira-integration.getsentry.net/images/icons/priorities/high.svg",
+                        "name": "High",
+                        "id": "2",
+                        "isDefault": False,
+                    },
+                    {
+                        "self": "https://example.atlassian.net/rest/api/3/priority/4",
+                        "statusColor": "#707070",
+                        "description": "Minor problem or easily worked around.",
+                        "iconUrl": "https://jira-integration.getsentry.net/images/icons/priorities/low.svg",
+                        "name": "Low",
+                        "id": "4",
+                        "isDefault": False,
+                    },
+                ],
+            },
+        )
+
+        def get_priorities_callthrough_client(installation: JiraIntegration):
+            """
+            This functions returns a lambda that when called upon, returns a
+            StubJiraApiClient. The only difference is we don't mock the function
+            call to get_priorities for the stub client.
+            """
+            mock_client = StubJiraApiClient()
+            # set the mock call to the real function
+            setattr(mock_client, "get_priorities", installation.get_client().get_priorities)
+            return lambda: mock_client
+
+        with mock.patch.object(
+            installation,
+            "get_client",
+            get_priorities_callthrough_client(installation=installation),
+        ):
+            # Initially all fields are present
+            fields = installation.get_create_issue_config(group, self.user)
+            priority_field = [field for field in fields if field["name"] == "priority"][0]
+            assert priority_field == {
+                "default": "",
+                "choices": [
+                    ("2", "High"),
+                    ("4", "Low"),
+                ],
+                "type": "select",
+                "name": "priority",
+                "label": "Priority",
+                "required": False,
+            }
 
     def test_get_create_issue_config_with_default_and_param(self):
         event = self.store_event(
