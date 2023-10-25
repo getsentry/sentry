@@ -31,8 +31,8 @@ class JiraCloudClient(IntegrationProxyClient):
     ISSUE_URL = "/rest/api/2/issue/%s"
     META_URL = "/rest/api/2/issue/createmeta"
     # https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issue-priorities/#api-rest-api-3-priority-search-get
-    # Note that we leave the default of 50 results per page and don't continue paginating
-    SEARCH_PRIORITIES_URL = "/rest/api/3/priority/search/?projectId=%s"
+    # We increase the max results per page to 100 because we don't paginate and want to get all the priorities
+    SEARCH_PRIORITIES_URL = "/rest/api/3/priority/search/?maxResults=100&projectId=%s"
     PROJECT_URL = "/rest/api/2/project"
     SEARCH_URL = "/rest/api/2/search/"
     VERSIONS_URL = "/rest/api/2/project/%s/versions"

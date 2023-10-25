@@ -329,7 +329,7 @@ class JiraIntegrationTest(APITestCase):
 
         responses.add(
             responses.GET,
-            f"https://example.atlassian.net/rest/api/3/priority/search/?projectId={DEFAULT_PROJECT_ID}",
+            f"https://example.atlassian.net/rest/api/3/priority/search/?maxResults=100&projectId={DEFAULT_PROJECT_ID}",
             json={
                 "maxResults": 50,
                 "startAt": 0,
