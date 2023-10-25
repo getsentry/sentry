@@ -157,7 +157,10 @@ export function EnvironmentPageFilter({
 
   const options = useMemo(
     () =>
-      environments.map(env => ({
+      // Restrict to first 100 environments for performance reasons.
+      // Projects can have tens of thousands of envs, which can cause downstream
+      // components to become unresponsive.
+      environments.slice(0, 100).map(env => ({
         value: env,
         label: env,
       })),
