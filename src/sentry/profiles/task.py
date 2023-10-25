@@ -139,6 +139,24 @@ def _should_deobfuscate(profile: Profile) -> bool:
     return platform in SHOULD_DEOBFUSCATE and not profile.get("deobfuscated", False)
 
 
+def get_profile_platforms(profile: Profile) -> List[str]:
+    platforms = [profile["platform"]]
+
+    if "version" in profile and profile["platform"] in SHOULD_SYMBOLICATE_JS:
+        for frame in profile["profile"]["frames"]:
+            if frame.get("platform", "") == "cocoa":
+                platforms.append(frame["platform"])
+                break
+
+    return platforms
+
+
+def get_debug_images_for_platform(images, platform):
+    if platform in SHOULD_SYMBOLICATE_JS:
+        return [frame for frame in images if frame["type"] == "sourcemap"]
+    return [frame for frame in images if frame["type"] == "macho"]
+
+
 def _symbolicate_profile(profile: Profile, project: Project) -> bool:
     if not _should_symbolicate(profile):
         return True
@@ -153,29 +171,40 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
                 )
                 return True
 
-            # WARNING(loewenheim): This function call may mutate `profile`'s frame list!
-            # See comments in the function for why this happens.
-            raw_modules, raw_stacktraces, frames_sent = _prepare_frames_from_profile(profile)
-
-            set_measurement("profile.frames.sent", len(frames_sent))
-
-            modules, stacktraces, success = run_symbolicate(
-                project=project,
-                profile=profile,
-                modules=raw_modules,
-                stacktraces=raw_stacktraces,
-            )
-
-            if success:
-                _process_symbolicator_results(
-                    profile=profile,
-                    modules=modules,
-                    stacktraces=stacktraces,
-                    frames_sent=frames_sent,
+            platforms = get_profile_platforms(profile)
+            images = dict()
+            for platform in platforms:
+                images[platform] = get_debug_images_for_platform(
+                    profile["debug_meta"]["images"], platform
                 )
 
-            profile["processed_by_symbolicator"] = True
-            return True
+            for platform in platforms:
+                # WARNING(loewenheim): This function call may mutate `profile`'s frame list!
+                # See comments in the function for why this happens.
+                profile["debug_meta"]["images"] = images[platform]
+                raw_modules, raw_stacktraces, frames_sent = _prepare_frames_from_profile(
+                    profile, platform
+                )
+
+                set_measurement(f"profile.frames.sent{platform}", len(frames_sent))
+
+                modules, stacktraces, success = run_symbolicate(
+                    project=project,
+                    profile=profile,
+                    modules=raw_modules,
+                    stacktraces=raw_stacktraces,
+                    platform=platform,
+                )
+
+                if success:
+                    _process_symbolicator_results(
+                        profile=profile,
+                        modules=modules,
+                        stacktraces=stacktraces,
+                        frames_sent=frames_sent,
+                        platform=platform,
+                    )
+
         except Exception as e:
             sentry_sdk.capture_exception(e)
             metrics.incr("process_profile.symbolicate.error", sample_rate=1.0)
@@ -186,6 +215,11 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
                 reason="profiling_failed_symbolication",
             )
             return False
+        profile["debug_meta"]["images"] = []
+        for imgs in images.values():
+            profile["debug_meta"]["images"] += imgs
+        profile["processed_by_symbolicator"] = True
+        return True
 
 
 def _deobfuscate_profile(profile: Profile, project: Project) -> bool:
@@ -273,11 +307,16 @@ def _normalize(profile: Profile, organization: Organization) -> None:
             profile["device_classification"] = classification
 
 
-def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any], set[int]]:
+def _prepare_frames_from_profile(
+    profile: Profile, platform: Optional[str] = None
+) -> Tuple[List[Any], List[Any], set[int]]:
     with sentry_sdk.start_span(op="task.profiling.symbolicate.prepare_frames"):
         modules = profile["debug_meta"]["images"]
         frames: List[Any] = []
         frames_sent: set[int] = set()
+
+        if platform is None:
+            platform = profile["platform"]
 
         # NOTE: the usage of `adjust_instruction_addr` assumes that all
         # the profilers on all the platforms are walking stacks right from a
@@ -285,14 +324,26 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
 
         # in the sample format, we have a frames key containing all the frames
         if "version" in profile:
-            if profile["platform"] in JS_PLATFORMS:
+            if platform in JS_PLATFORMS:
                 for idx, f in enumerate(profile["profile"]["frames"]):
                     if is_valid_javascript_frame(f, profile):
                         frames_sent.add(idx)
 
                 frames = [profile["profile"]["frames"][idx] for idx in frames_sent]
             else:
-                frames = profile["profile"]["frames"]
+                # if the root platform is cocoa, then we know we have only cocoa frames
+                if profile["platform"] == "cocoa":
+                    frames = profile["profile"]["frames"]
+                else:
+                    # else, we might have both js and cocoa ones (ract native)
+                    # and we need to filter only for the cocoa ones
+                    for idx, f in enumerate(profile["profile"]["frames"]):
+                        if (
+                            f.get("platform", "") == "cocoa"
+                            and f.get("instruction_addr") is not None
+                        ):
+                            frames_sent.add(idx)
+                    frames = [profile["profile"]["frames"][idx] for idx in frames_sent]
 
                 for stack in profile["profile"]["stacks"]:
                     if len(stack) > 0:
@@ -300,10 +351,23 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
                         # and append it to the list. This ensures correct behavior
                         # if the leaf frame also shows up in the middle of another stack.
                         first_frame_idx = stack[0]
-                        frame = deepcopy(frames[first_frame_idx])
-                        frame["adjust_instruction_addr"] = False
-                        frames.append(frame)
-                        stack[0] = len(frames) - 1
+                        if first_frame_idx in frames_sent:
+                            frame = deepcopy(profile["profile"]["frames"][first_frame_idx])
+                            frame["adjust_instruction_addr"] = False
+                            if profile["platform"] not in JS_PLATFORMS:
+                                frames.append(frame)
+                                stack[0] = len(frames) - 1
+                            else:
+                                # In case where root platform is not cocoa, but we're dealing
+                                # with a cocoa stack (as in react-native), since we're relying
+                                # on frames_sent instead of sending back the whole
+                                # profile["profile"]["frames"], we have to append the deepcopy
+                                # frame both to the original frames and to the list frames.
+                                # see _process_symbolicator_results_for_sample method's logic
+                                profile["profile"]["frames"].append(frame)
+                                frames.append(frame)
+                                stack[0] = len(profile["profile"]["frames"]) - 1
+                                frames_sent.add(stack[0])
 
             stacktraces = [{"frames": frames}]
         # in the original format, we need to gather frames from all samples
@@ -324,9 +388,13 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
 
 
 def symbolicate(
-    symbolicator: Symbolicator, profile: Profile, modules: List[Any], stacktraces: List[Any]
+    symbolicator: Symbolicator,
+    profile: Profile,
+    modules: List[Any],
+    stacktraces: List[Any],
+    platform: Optional[str] = None,
 ) -> Any:
-    if profile["platform"] in SHOULD_SYMBOLICATE_JS:
+    if platform in SHOULD_SYMBOLICATE_JS:
         return symbolicator.process_js(
             stacktraces=stacktraces,
             modules=modules,
@@ -349,6 +417,7 @@ def run_symbolicate(
     profile: Profile,
     modules: List[Any],
     stacktraces: List[Any],
+    platform: Optional[str] = None,
 ) -> Tuple[List[Any], List[Any], bool]:
     symbolication_start_time = time()
 
@@ -357,7 +426,9 @@ def run_symbolicate(
         if duration > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
             raise SymbolicationTimeout
 
-    is_js = profile["platform"] in SHOULD_SYMBOLICATE_JS
+    if platform is None:
+        platform = profile["platform"]
+    is_js = platform in SHOULD_SYMBOLICATE_JS
     symbolicator = Symbolicator(
         task_kind=SymbolicatorTaskKind(is_js=is_js),
         on_request=on_symbolicator_request,
@@ -372,6 +443,7 @@ def run_symbolicate(
                 profile=profile,
                 stacktraces=stacktraces,
                 modules=modules,
+                platform=platform,
             )
 
             if not response:
@@ -411,22 +483,27 @@ def _process_symbolicator_results(
     modules: List[Any],
     stacktraces: List[Any],
     frames_sent: set[int],
+    platform: Optional[str] = None,
 ) -> None:
     with sentry_sdk.start_span(op="task.profiling.symbolicate.process_results"):
         # update images with status after symbolication
         profile["debug_meta"]["images"] = modules
+
+        if platform is None:
+            platform = profile["platform"]
 
         if "version" in profile:
             _process_symbolicator_results_for_sample(
                 profile,
                 stacktraces,
                 frames_sent,
+                platform,
             )
             return
 
-        if profile["platform"] == "rust":
+        if platform == "rust":
             _process_symbolicator_results_for_rust(profile, stacktraces)
-        elif profile["platform"] == "cocoa":
+        elif platform == "cocoa":
             _process_symbolicator_results_for_cocoa(profile, stacktraces)
 
         # rename the profile key to suggest it has been processed
@@ -434,9 +511,12 @@ def _process_symbolicator_results(
 
 
 def _process_symbolicator_results_for_sample(
-    profile: Profile, stacktraces: List[Any], frames_sent: set[int]
+    profile: Profile, stacktraces: List[Any], frames_sent: set[int], platform: Optional[str] = None
 ) -> None:
-    if profile["platform"] == "rust":
+    if platform is None:
+        platform = profile["platform"]
+
+    if platform == "rust":
 
         def truncate_stack_needed(frames: List[dict[str, Any]], stack: List[Any]) -> List[Any]:
             # remove top frames related to the profiler (top of the stack)
@@ -447,7 +527,7 @@ def _process_symbolicator_results_for_sample(
                 stack = stack[:-2]
             return stack
 
-    elif profile["platform"] == "cocoa":
+    elif platform == "cocoa":
 
         def truncate_stack_needed(
             frames: List[dict[str, Any]],
@@ -496,13 +576,14 @@ def _process_symbolicator_results_for_sample(
             - len(symbolicated_frames_dict)
         )
 
-        assert len(new_frames) == new_frames_count
+        if platform in SHOULD_SYMBOLICATE_JS:
+            assert len(new_frames) == new_frames_count
 
         profile["profile"]["frames"] = new_frames
     elif symbolicated_frames:
         profile["profile"]["frames"] = symbolicated_frames
 
-    if profile["platform"] in SHOULD_SYMBOLICATE:
+    if platform in SHOULD_SYMBOLICATE:
 
         def get_stack(stack: List[int]) -> List[int]:
             new_stack: List[int] = []
@@ -511,7 +592,7 @@ def _process_symbolicator_results_for_sample(
                     # the new stack extends the older by replacing
                     # a specific frame index with the indices of
                     # the frames originated from the original frame
-                    # should inlines be present                    # should inlines be present
+                    # should inlines be present
                     new_stack.extend(symbolicated_frames_dict[index])
                 else:
                     new_stack.append(index)
