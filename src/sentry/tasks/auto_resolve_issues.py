@@ -99,7 +99,7 @@ def auto_resolve_project_issues(
             for group_type in grouptype.registry.all()
             if group_type.enable_auto_resolve
         ]
-        filter_conditions["type__in"] = enabled_auto_resolve_types or []
+        filter_conditions["type__in"] = enabled_auto_resolve_types
 
     queryset = list(Group.objects.filter(**filter_conditions)[:chunk_size])
 
