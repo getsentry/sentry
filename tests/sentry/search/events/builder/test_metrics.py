@@ -2028,10 +2028,12 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_run_query_with_on_demand_distribution(self):
+    def test_run_query_with_on_demand_distribution_and_environment(self):
         field = "p75(measurements.fp)"
         query_s = "transaction.duration:>0"
-        spec = OnDemandMetricSpec(field=field, query=query_s)
+        spec = OnDemandMetricSpec(field=field, query=query_s, environment="prod")
+
+        self.create_environment(project=self.project, name="prod")
 
         for hour in range(0, 5):
             self.store_transaction_metric(
@@ -2044,7 +2046,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             )
 
         query = TimeseriesMetricQueryBuilder(
-            self.params,
+            {**self.params, "environment": ["prod"]},  # type:ignore
             dataset=Dataset.PerformanceMetrics,
             interval=3600,
             query=query_s,
@@ -2611,7 +2613,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         self.create_environment(project=self.project, name="prod")
 
-        # We want to test also with "dev" that is not in the database, to check that we fall-back to avoiding the
+        # We want to test also with "dev" that is not in the database, to check that we fallback to avoiding the
         # environment filter at all.
         environments = ((None, 100), ("prod", 200), ("dev", 300))
         specs = []
