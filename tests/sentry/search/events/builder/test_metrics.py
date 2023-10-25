@@ -2609,11 +2609,11 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         field = "count(measurements.fp)"
         query_s = "transaction.duration:>=100"
 
-        env_name = "prod"
-        self.create_environment(project=self.project, name=env_name)
+        self.create_environment(project=self.project, name="prod")
 
-        # We use different values to distinguish between the two.
-        environments = ((None, 100), (env_name, 200))
+        # We want to test also with "dev" that is not in the database, to check that we fall-back to avoiding the
+        # environment filter at all.
+        environments = ((None, 100), ("prod", 200), ("dev", 300))
         specs = []
         for environment, value in environments:
             spec = OnDemandMetricSpec(field=field, query=query_s, environment=environment)
@@ -2627,7 +2627,8 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             )
             specs.append(spec)
 
-        for (environment, value), spec in zip(environments, specs):
+        expected_environments = ((None, 100), ("prod", 200), ("dev", 100))
+        for (environment, value), spec in zip(expected_environments, specs):
             params = (
                 self.params
                 if environment is None
