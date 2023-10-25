@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo} from 'react';
 import {Index, IndexRange} from 'react-virtualized';
 
 import hydrateFeedbackRecord from 'sentry/components/feedback/hydrateFeedbackRecord';
@@ -17,6 +17,7 @@ interface Params {
     end?: string;
     environment?: string[];
     field?: string[];
+    mailbox?: string;
     project?: string[];
     query?: string;
     start?: string;
@@ -41,19 +42,18 @@ export const EMPTY_INFINITE_LIST_DATA: ReturnType<
   issues: [],
   loadMoreRows: () => Promise.resolve(),
   setFeedback: () => undefined,
-  setQueryStatus: () => undefined,
 };
 
 export default function useFetchFeedbackInfiniteListData({queryView}: Params) {
   const organization = useOrganization();
-  const [queryStatus, setQueryStatus] = useState('unresolved');
+  // const [queryStatus, setQueryStatus] = useState('unresolved');
 
   const query = useMemo(
     () => ({
       ...queryView,
-      query: 'issue.category:feedback ' + 'status:' + queryStatus + queryView.query,
+      query: `issue.category:feedback status:${queryView.mailbox} ${queryView.query}`,
     }),
-    [queryView, queryStatus]
+    [queryView]
   );
 
   const {
@@ -109,6 +109,5 @@ export default function useFetchFeedbackInfiniteListData({queryView}: Params) {
     issues,
     loadMoreRows,
     setFeedback,
-    setQueryStatus,
   };
 }
