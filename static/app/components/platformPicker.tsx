@@ -216,6 +216,8 @@ const CategoryNav = styled(NavTabs)`
 
 const StyledPlatformIcon = styled(PlatformIcon)`
   margin: ${space(2)};
+  border: 1px solid ${p => p.theme.gray200};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const ClearButton = styled(Button)`
