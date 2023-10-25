@@ -18,12 +18,6 @@ class DiscordClient(IntegrationProxyClient):
     integration_name: str = "discord"
     base_url: str = "https://discord.com/api/v10"
 
-    # https://discord.com/developers/docs/resources/channel#channel-object-channel-types
-    GUILD_TEXT = 0
-    DM = 1
-    PUBLIC_THREAD = 11
-    PRIVATE_THREAD = 12
-
     # https://discord.com/developers/docs/resources/guild#get-guild
     GUILD_URL = "/guilds/{guild_id}"
 
@@ -38,12 +32,6 @@ class DiscordClient(IntegrationProxyClient):
 
     # https://discord.com/developers/docs/resources/channel#create-message
     MESSAGE_URL = "/channels/{channel_id}/messages"
-
-    SUPPORTED_CHANNEL_TYPES = {
-        GUILD_TEXT,
-        PUBLIC_THREAD,
-        PRIVATE_THREAD,
-    }
 
     def __init__(
         self,

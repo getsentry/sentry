@@ -66,7 +66,7 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
 )
-from sentry.integrations.discord.client import DiscordClient
+from sentry.integrations.discord.utils.channel import ChannelType
 from sentry.models.actor import ActorTuple, get_actor_id_for_user
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -1432,7 +1432,11 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
     @responses.activate
     def test_discord(self):
         guild_id = "example-discord-server"
-        metadata = {"guild_id": guild_id, "name": "Server Name", "type": DiscordClient.GUILD_TEXT}
+        metadata = {
+            "guild_id": guild_id,
+            "name": "Server Name",
+            "type": ChannelType.GUILD_TEXT.value,
+        }
         integration = Integration.objects.create(
             provider="discord",
             name="Example Discord",
@@ -1465,7 +1469,11 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
 
     def test_discord_flag_off(self):
         guild_id = "example-discord-server"
-        metadata = {"guild_id": guild_id, "name": "Server Name", "type": DiscordClient.GUILD_TEXT}
+        metadata = {
+            "guild_id": guild_id,
+            "name": "Server Name",
+            "type": ChannelType.GUILD_TEXT.value,
+        }
         integration = Integration.objects.create(
             provider="discord",
             external_id=guild_id,
@@ -1798,7 +1806,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             metadata={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
-                "type": DiscordClient.GUILD_TEXT,
+                "type": ChannelType.GUILD_TEXT.value,
             },
         )
 
@@ -1811,7 +1819,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             json={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
-                "type": DiscordClient.GUILD_TEXT,
+                "type": ChannelType.GUILD_TEXT.value,
             },
         )
 
@@ -1844,7 +1852,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             metadata={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
-                "type": DiscordClient.GUILD_TEXT,
+                "type": ChannelType.GUILD_TEXT.value,
             },
         )
 
@@ -1877,7 +1885,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             metadata={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
-                "type": DiscordClient.GUILD_TEXT,
+                "type": ChannelType.GUILD_TEXT.value,
             },
         )
 
@@ -1930,7 +1938,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             metadata={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
-                "type": DiscordClient.GUILD_TEXT,
+                "type": ChannelType.GUILD_TEXT.value,
             },
         )
 
@@ -1970,7 +1978,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             metadata={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
-                "type": DiscordClient.DM,
+                "type": ChannelType.DM.value,
             },
         )
 
@@ -1983,7 +1991,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             json={
                 "guild_id": "other-guild",
                 "name": f"{guild_name}",
-                "type": DiscordClient.DM,
+                "type": ChannelType.DM.value,
             },
         )
 
@@ -2011,7 +2019,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             metadata={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
-                "type": DiscordClient.DM,
+                "type": ChannelType.DM.value,
             },
         )
 
@@ -2024,7 +2032,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             json={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
-                "type": DiscordClient.DM,
+                "type": ChannelType.DM.value,
             },
         )
 
