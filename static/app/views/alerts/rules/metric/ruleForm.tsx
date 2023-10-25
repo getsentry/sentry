@@ -935,7 +935,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
     const wizardBuilderChart = this.renderTriggerChart();
     // TODO(telemetry-experience): Remove this and all connected logic once the migration is complete
-    const isMigration = location.query.migration === '1';
+    const isMigration = location?.query?.migration === '1';
 
     const triggerForm = (disabled: boolean) => (
       <Triggers
