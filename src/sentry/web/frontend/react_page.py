@@ -1,5 +1,6 @@
 from fnmatch import fnmatch
 
+import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponse, HttpResponseRedirect
@@ -90,11 +91,16 @@ class ReactMixin:
                             return HttpResponseRedirect(redirect_url)
 
         response = render_to_response("sentry/base-react.html", context=context, request=request)
-        if "x-sentry-browser-profiling" in request.headers or (
-            getattr(request, "organization", None) is not None
-            and features.has("organizations:profiling-browser", request.organization)
-        ):
-            response["Document-Policy"] = "js-profiling"
+
+        try:
+            if "x-sentry-browser-profiling" in request.headers or (
+                getattr(request, "organization", None) is not None
+                and features.has("organizations:profiling-browser", request.organization)
+            ):
+                response["Document-Policy"] = "js-profiling"
+        except Exception as error:
+            sentry_sdk.capture_exception(error)
+
         return response
 
 
