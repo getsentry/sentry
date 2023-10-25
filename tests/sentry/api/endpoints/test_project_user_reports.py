@@ -378,3 +378,52 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
             UserReport.objects.get(event_id=self.event.event_id).environment_id
             == self.environment.id
         )
+
+    def test_simple_shim_to_feedback(self):
+        self.login_as(user=self.user)
+
+        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
+
+        with self.feature("organizations:user-feedback-ingest"):
+            response = self.client.post(
+                url,
+                data={
+                    "event_id": self.event.event_id,
+                    "email": "foo@example.com",
+                    "name": "Foo Bar",
+                    "comments": "It broke!",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+
+        report = UserReport.objects.get(id=response.data["id"])
+        assert report.project_id == self.project.id
+        assert report.group_id == self.event.group.id
+        assert report.email == "foo@example.com"
+        assert report.name == "Foo Bar"
+        assert report.comments == "It broke!"
+
+    def test_simple_shim_to_feedback_no_event(self):
+        self.login_as(user=self.user)
+
+        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
+
+        with self.feature("organizations:user-feedback-ingest"):
+            response = self.client.post(
+                url,
+                data={
+                    "event_id": uuid4().hex,
+                    "email": "foo@example.com",
+                    "name": "Foo Bar",
+                    "comments": "It broke!",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+
+        report = UserReport.objects.get(id=response.data["id"])
+        assert report.project_id == self.project.id
+        assert report.email == "foo@example.com"
+        assert report.name == "Foo Bar"
+        assert report.comments == "It broke!"

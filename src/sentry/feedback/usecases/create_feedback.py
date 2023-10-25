@@ -1,8 +1,11 @@
 import datetime
 from uuid import uuid4
 
+import jsonschema
+
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.utils.dates import ensure_aware
 
@@ -87,6 +90,9 @@ def create_feedback_issue(event, project_id):
         **event,
     }
     fix_for_issue_platform(event_data)
+
+    # make sure event data is valid for issue platform
+    jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
 
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_data
