@@ -8,11 +8,13 @@ import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedba
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {Flex} from 'sentry/components/profiling/flex';
+import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import {IconPlay} from 'sentry/icons';
+import {IconCircleFill, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {IssueCategory} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -40,6 +42,12 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
   ({className, feedbackItem, isChecked, onChecked, style}: Props, ref) => {
     const organization = useOrganization();
     const isSelected = useIsSelectedFeedback({feedbackItem});
+    const counts = useReplaysCount({
+      organization,
+      issueCategory: IssueCategory.PERFORMANCE, // Feedbacks are in the same dataSource as performance
+      groupIds: [feedbackItem.id],
+    });
+    const hasReplay = Boolean(counts[feedbackItem.id]);
 
     return (
       <CardSpacing className={className} style={style} ref={ref}>
@@ -79,6 +87,17 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
           <span style={{gridArea: 'time'}}>
             <TimeSince date={feedbackItem.timestamp} />
           </span>
+          {feedbackItem.hasSeen ? null : (
+            <span
+              style={{
+                gridArea: 'unread',
+                display: 'flex',
+                justifyContent: 'center',
+              }}
+            >
+              <IconCircleFill size="xs" color="purple300" />
+            </span>
+          )}
           <div style={{gridArea: 'message'}}>
             <TextOverflow>{feedbackItem.metadata.message}</TextOverflow>
           </div>
@@ -88,7 +107,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
               {feedbackItem.project.slug}
             </Flex>
 
-            {feedbackItem.replay_id ? (
+            {hasReplay ? (
               <Flex align="center" gap={space(0.5)}>
                 <IconPlay size="xs" />
                 {t('Replay')}
@@ -124,7 +143,7 @@ const LinkedFeedbackCard = styled(Link)`
   grid-template-rows: max-content 1fr max-content;
   grid-template-areas:
     'checkbox user time'
-    'right message message'
+    'unread message message'
     'right icons icons';
   gap: ${space(1)};
   place-items: stretch;

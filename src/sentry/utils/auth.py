@@ -16,6 +16,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 
 from sentry import options
 from sentry.models.organization import Organization
+from sentry.models.outbox import outbox_context
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -344,7 +345,11 @@ def login(
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
     if organization_id:
         mark_sso_complete(request, organization_id)
-    _login(request, user)
+
+    # Do not require flush the user during login -- the mutation here is just  `last_login` update which isn't
+    # critical to flush.
+    with outbox_context(flush=False):
+        _login(request, user)
 
     log_auth_success(request, user.username, organization_id, source)
     return True
