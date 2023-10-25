@@ -1749,6 +1749,8 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "span.duration": "metrics_distributions",
         "span.self_time": "metrics_distributions",
         "http.response_content_length": "metrics_distributions",
+        "http.decoded_response_content_length": "metrics_distributions",
+        "http.response_transfer_size": "metrics_distributions",
         "measurements.lcp": "metrics_distributions",
         "measurements.fp": "metrics_distributions",
         "measurements.fcp": "metrics_distributions",
