@@ -17,6 +17,7 @@ import {
 import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {divide} from 'sentry/components/replays/utils';
+import toPercent from 'sentry/utils/number/toPercent';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -47,19 +48,19 @@ function ReplayTimeline({}: Props) {
   const timelineWidthPercentage = 300;
 
   // start of the timeline is in the middle
-  const timelineTranslatePercentage = 50 / timelineWidthPercentage;
+  const initialTranslatePercentage = 50 / timelineWidthPercentage;
 
-  const translatePercentage =
-    (timelineTranslatePercentage -
-      (currentTime > durationMs ? 1 : divide(currentTime, durationMs))) *
-    100;
+  const translatePercentage = toPercent(
+    initialTranslatePercentage -
+      (currentTime > durationMs ? 1 : divide(currentTime, durationMs))
+  );
 
   return hasNewTimeline ? (
     <VisiblePanel ref={panelRef} {...mouseTrackingProps}>
       <Stacked
         style={{
           width: `${timelineWidthPercentage}%`,
-          transform: `translate(${translatePercentage}%, 0%)`,
+          transform: `translate(${translatePercentage}, 0%)`,
         }}
         ref={stackedRef}
       >
@@ -112,7 +113,7 @@ const VisiblePanel = styled(Panel)`
 `;
 
 const TimelineEventsContainer = styled('div')`
-  padding-top: 10px;
+  padding-top: 20px;
   padding-bottom: 10px;
 `;
 
