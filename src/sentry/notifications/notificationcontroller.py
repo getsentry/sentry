@@ -5,19 +5,15 @@ from typing import Iterable, Mapping, MutableMapping, Union
 
 from django.db.models import Q
 
-from sentry import features
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
-from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.helpers import (
     get_default_for_provider,
-    get_team_members,
     get_type_defaults,
     recipient_is_team,
     recipient_is_user,
-    team_is_valid_recipient,
 )
 from sentry.notifications.types import (
     GroupSubscriptionStatus,
@@ -26,7 +22,6 @@ from sentry.notifications.types import (
     NotificationSettingsOptionEnum,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
-from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS_REVERSE,
@@ -59,40 +54,19 @@ class NotificationController:
 
     def __init__(
         self,
-        recipients: Iterable[Recipient],
+        recipients: Iterable[RpcActor] | Iterable[Team] | Iterable[RpcUser] | Iterable[User],
         project_ids: Iterable[int] | None = None,
         organization_id: int | None = None,
         type: NotificationSettingEnum | None = None,
         provider: ExternalProviderEnum | None = None,
     ) -> None:
+        self.recipients = recipients
         self.project_ids = project_ids
         self.organization_id = organization_id
         self.type = type
         self.provider = provider
 
-        org = (
-            serialize_organization_mapping(
-                OrganizationMapping.objects.filter(organization_id=organization_id).first()
-            )
-            if organization_id
-            else None
-        )
-        if org and features.has("organizations:team-workflow-notifications", org):
-            self.recipients: list[Recipient] = []
-            for recipient in recipients:
-                if recipient_is_team(
-                    recipient
-                ):  # this call assures the recipient type is okay (so can safely ignore below type errors)
-                    if team_is_valid_recipient(recipient):  # type: ignore
-                        self.recipients.append(recipient)
-                    else:
-                        self.recipients += get_team_members(recipient)  # type: ignore
-                else:
-                    self.recipients.append(recipient)
-        else:
-            self.recipients = list(recipients)
-
-        if self.recipients:
+        if recipients:
             query = self._get_query()
             type_filter = Q(type=self.type.value) if self.type else Q()
             provider_filter = Q(provider=self.provider.value) if self.provider else Q()
