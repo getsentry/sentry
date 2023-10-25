@@ -23,6 +23,7 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
   const location = useLocation();
   const resourceFilters = useResourceModuleFilters();
   const {slug: orgSlug} = useOrganization();
+
   const queryConditions = [
     `${SPAN_OP}:${resourceFilters.type || 'resource.*'}`,
     ...(resourceFilters.transaction
@@ -35,7 +36,7 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
       ? [
           `resource.render_blocking_status:${resourceFilters['resource.render_blocking_status']}`,
         ]
-      : []),
+      : [`!resource.render_blocking_status:blocking`]),
   ];
 
   // TODO - we should be using metrics data here
