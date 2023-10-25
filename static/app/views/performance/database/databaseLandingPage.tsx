@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import Alert from 'sentry/components/alert';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import FeatureBadge from 'sentry/components/featureBadge';
+import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -58,7 +59,7 @@ function DatabaseLandingPage() {
       <Layout.Body>
         <Layout.Main fullWidth>
           <NoDataMessage Wrapper={AlertBanner} />
-
+          <FeedbackWidget />
           <PaddedContainer>
             <PageFilterBar condensed>
               <ProjectPageFilter />
