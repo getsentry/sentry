@@ -187,7 +187,8 @@ class Tags extends Component<Props, State> {
     if (tags.length > 0) {
       return (
         <Fragment>
-          <StyledTagFacetList>
+          {/* sentry-discover-tags-chromext depends on a stable id */}
+          <StyledTagFacetList id="tag-facet-list">
             {tags.map((tag, index) => this.renderTag(tag, index))}
           </StyledTagFacetList>
           {hasMore &&
