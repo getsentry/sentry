@@ -415,7 +415,7 @@ class JiraServerIntegrationTest(APITestCase):
             """
             mock_client = StubJiraApiClient()
             # set the mock call to the real function
-            mock_client.get_priorities = installation.get_client().get_priorities  # type: ignore
+            setattr(mock_client, "get_priorities", installation.get_client().get_priorities)
             return lambda: mock_client
 
         with mock.patch.object(
