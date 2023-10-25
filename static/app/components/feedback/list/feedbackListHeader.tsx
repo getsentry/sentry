@@ -7,7 +7,6 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -121,18 +120,16 @@ function MailboxPicker({
 }) {
   return (
     <Flex justify="flex-end" style={{flexGrow: 1}}>
-      <Tooltip title={t('Coming soon')}>
-        <SegmentedControl
-          size="xs"
-          aria-label={t('Filter feedbacks')}
-          value={value}
-          onChange={onChange}
-        >
-          <SegmentedControl.Item key="inbox">{t('Inbox')}</SegmentedControl.Item>
-          <SegmentedControl.Item key="resolved">{t('Resolved')}</SegmentedControl.Item>
-          <SegmentedControl.Item key="archived">{t('Archived')}</SegmentedControl.Item>
-        </SegmentedControl>
-      </Tooltip>
+      <SegmentedControl
+        size="xs"
+        aria-label={t('Filter feedbacks')}
+        value={value}
+        onChange={onChange}
+      >
+        <SegmentedControl.Item key="inbox">{t('Inbox')}</SegmentedControl.Item>
+        <SegmentedControl.Item key="resolved">{t('Resolved')}</SegmentedControl.Item>
+        <SegmentedControl.Item key="archived">{t('Archived')}</SegmentedControl.Item>
+      </SegmentedControl>
     </Flex>
   );
 }
