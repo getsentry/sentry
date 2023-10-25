@@ -1,10 +1,12 @@
 import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ThresholdsList from 'sentry/views/releases/thresholdsList/';
+
+import {THRESHOLDS_PATH} from '../utils/constants';
 
 describe('ReleaseThresholdsList', () => {
   const organization = Organization({
@@ -54,12 +56,23 @@ describe('ReleaseThresholdsList', () => {
     const query = {
       project: [-1],
     };
-    render(<ThresholdsList />, {context: routerContext, organization});
-    await waitFor(() =>
-      expect(mockThresholdFetch).toHaveBeenCalledWith(
-        '/organizations/test-thresholds/release-thresholds/',
-        expect.objectContaining({query})
-      )
+    PageFiltersStore.onInitializeUrlState(
+      {
+        projects: [],
+        environments: [],
+        datetime: {start: null, end: null, period: '1d', utc: null},
+      },
+      new Set()
+    );
+    routerContext.context.location.pathname = THRESHOLDS_PATH;
+    render(<ThresholdsList />, {
+      context: routerContext,
+      organization,
+    });
+    expect(await screen.findByText('Thresholds')).toBeInTheDocument();
+    expect(mockThresholdFetch).toHaveBeenCalledWith(
+      '/organizations/test-thresholds/release-thresholds/',
+      expect.objectContaining({query})
     );
     expect(router.replace).not.toHaveBeenCalled();
   });
@@ -77,12 +90,12 @@ describe('ReleaseThresholdsList', () => {
       },
       new Set()
     );
+    routerContext.context.location.pathname = THRESHOLDS_PATH;
     render(<ThresholdsList />, {context: routerContext, organization});
-    await waitFor(() =>
-      expect(mockThresholdFetch).toHaveBeenCalledWith(
-        '/organizations/test-thresholds/release-thresholds/',
-        expect.objectContaining({query: expectedQuery})
-      )
+    expect(await screen.findByText('Thresholds')).toBeInTheDocument();
+    expect(mockThresholdFetch).toHaveBeenCalledWith(
+      '/organizations/test-thresholds/release-thresholds/',
+      expect.objectContaining({query: expectedQuery})
     );
   });
 });
