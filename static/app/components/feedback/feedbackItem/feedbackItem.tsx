@@ -25,10 +25,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 interface Props {
   eventData: Event | undefined;
   feedbackItem: HydratedFeedbackItem;
+  replayId: string;
   tags: Record<string, string>;
 }
 
-export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
+export default function FeedbackItem({feedbackItem, eventData, tags, replayId}: Props) {
   const organization = useOrganization();
   const {onSetStatus} = useUpdateFeedback({feedbackItem});
   const url = eventData?.tags.find(tag => tag.key === 'url');
@@ -147,8 +148,8 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           </ErrorBoundary>
         </Section>
 
-        {feedbackItem.replay_id ? (
-          <ReplaySection organization={organization} replayId={feedbackItem.replay_id} />
+        {replayId ? (
+          <ReplaySection organization={organization} replayId={replayId} />
         ) : null}
 
         <TagsSection tags={tags} />
