@@ -152,80 +152,79 @@ sentry {
       ...(packageManager === PackageManager.MAVEN
         ? [
             {
-              description: t("Add the Sentry SDK to your project's dependencies."),
               language: 'xml',
               partialLoading: sourcePackageRegistries?.isLoading,
-              code:
-                springVersion === SpringVersion.V5
-                  ? `
-  <dependency>
-    <groupId>io.sentry</groupId>
-    <artifactId>sentry-spring</artifactId>
-    <version>${
-      sourcePackageRegistries?.isLoading
-        ? t('\u2026loading')
-        : sourcePackageRegistries?.data?.['sentry.java.spring']?.version ?? '6.28.0'
-    }</version>
-  </dependency>`
-                  : `
-  <dependency>
-    <groupId>io.sentry</groupId>
-    <artifactId>sentry-spring-jakarta</artifactId>
-    <version>${
-      sourcePackageRegistries?.isLoading
-        ? t('\u2026loading')
-        : sourcePackageRegistries?.data?.['sentry.java.spring.jakarta']?.version ??
-          '6.28.0'
-    }</version>
-  </dependency>`,
-            },
-            {
-              language: 'xml',
-              partialLoading: sourcePackageRegistries?.isLoading,
-              description: t(
-                'To upload your source code to Sentry so it can be shown in stack traces, use our Maven plugin.'
+              description: (
+                <p>
+                  {tct(
+                    'The [link:Sentry Maven Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:pom.xml] file:',
+                    {
+                      code: <code />,
+                      link: (
+                        <ExternalLink href="https://github.com/getsentry/sentry-maven-plugin" />
+                      ),
+                    }
+                  )}
+                </p>
               ),
-              code: `
-<build>
-<plugins>
-<plugin>
-<groupId>io.sentry</groupId>
-<artifactId>sentry-maven-plugin</artifactId>
-<version>${
-                sourcePackageRegistries?.isLoading
-                  ? t('\u2026loading')
-                  : sourcePackageRegistries?.data?.['sentry.java.mavenplugin']?.version ??
-                    '0.0.4'
-              }</version>
-<configuration>
-  <!-- for showing output of sentry-cli -->
-  <debugSentryCli>true</debugSentryCli>
+              code: `<build>
+  <plugins>
+    <plugin>
+      <groupId>io.sentry</groupId>
+      <artifactId>sentry-maven-plugin</artifactId>
+      <version>${
+        sourcePackageRegistries?.isLoading
+          ? t('\u2026loading')
+          : sourcePackageRegistries?.data?.['sentry.java.maven-plugin']?.version ??
+            '0.0.4'
+      }</version>
+      <extensions>true</extensions>
+      <configuration>
+        <!-- for showing output of sentry-cli -->
+        <debugSentryCli>true</debugSentryCli>
 
-  <org>${organizationSlug}</org>
+        <org>${organizationSlug}</org>
 
-  <project>${projectSlug}</project>
+        <project>${projectSlug}</project>
 
-  <!-- in case you're self hosting, provide the URL here -->
-  <!--<url>http://localhost:8000/</url>-->
+        <!-- in case you're self hosting, provide the URL here -->
+        <!--<url>http://localhost:8000/</url>-->
 
-  <!-- provide your auth token via SENTRY_AUTH_TOKEN environment variable -->
-  <authToken>\${env.SENTRY_AUTH_TOKEN}</authToken>
-</configuration>
-<executions>
-  <execution>
-    <phase>generate-resources</phase>
-    <goals>
-    <goal>uploadSourceBundle</goal>
-    </goals>
-  </execution>
-</executions>
-</plugin>
-</plugins>
-...`,
+        <!-- provide your auth token via SENTRY_AUTH_TOKEN environment variable -->
+        <authToken>\${env.SENTRY_AUTH_TOKEN}</authToken>
+      </configuration>
+      <executions>
+        <execution>
+          <goals>
+            <!--
+            Generates a JVM (Java, Kotlin, etc.) source bundle and uploads your source code to Sentry.
+            This enables source context, allowing you to see your source
+            code as part of your stack traces in Sentry.
+            -->
+            <goal>uploadSourceBundle</goal>
+          </goals>
+        </execution>
+      </executions>
+    </plugin>
+  </plugins>
+  ...
+</build>`,
             },
           ]
         : []),
     ],
+    additionalInfo: (
+      <p>
+        {tct(
+          'If you prefer to manually upload your source code to Sentry, please refer to [link:Manually Uploading Source Context].',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/platforms/java/source-context/#manually-uploading-source-context" />
+            ),
+          }
+        )}
+      </p>
+    ),
   },
   {
     type: StepType.CONFIGURE,
