@@ -12,6 +12,7 @@ import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery
 const {SPAN_SELF_TIME} = SpanMetricsField;
 
 export type SpanTransactionMetrics = {
+  'avg(http.response_content_length)': number;
   'avg(span.self_time)': number;
   'http_error_count()': number;
   'spm()': number;
@@ -26,12 +27,13 @@ export const useSpanTransactionMetrics = (
   filters: MetricsFilters,
   sorts?: Sort[],
   cursor?: string,
+  extraFields?: string[],
   enabled: boolean = true,
   referrer = 'api.starfish.span-transaction-metrics'
 ) => {
   const location = useLocation();
 
-  const eventView = getEventView(location, filters, sorts);
+  const eventView = getEventView(location, filters, sorts, extraFields);
 
   return useWrappedDiscoverQuery<SpanTransactionMetrics[]>({
     eventView,
@@ -43,7 +45,12 @@ export const useSpanTransactionMetrics = (
   });
 };
 
-function getEventView(location: Location, filters: MetricsFilters = {}, sorts?: Sort[]) {
+function getEventView(
+  location: Location,
+  filters: MetricsFilters = {},
+  sorts?: Sort[],
+  extraFields = [] as string[]
+) {
   const search = new MutableSearch('');
 
   Object.entries(filters).forEach(([key, value]) => {
@@ -71,6 +78,7 @@ function getEventView(location: Location, filters: MetricsFilters = {}, sorts?: 
         'time_spent_percentage()',
         'transaction.op',
         'http_error_count()',
+        ...extraFields,
       ],
       orderby: '-time_spent_percentage',
       dataset: DiscoverDatasets.SPANS_METRICS,

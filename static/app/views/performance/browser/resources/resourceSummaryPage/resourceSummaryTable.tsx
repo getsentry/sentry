@@ -16,6 +16,7 @@ import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/render
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
 
 type Row = {
+  'avg(http.response_content_length)': number;
   'avg(span.self_time)': number;
   'spm()': number;
   transaction: string;
@@ -40,6 +41,11 @@ function ResourceSummaryTable() {
       key: 'avg(span.self_time)',
       width: COL_WIDTH_UNDEFINED,
       name: 'Avg Duration',
+    },
+    {
+      key: 'avg(http.response_content_length)',
+      width: COL_WIDTH_UNDEFINED,
+      name: 'Avg Resource Size',
     },
   ];
 
