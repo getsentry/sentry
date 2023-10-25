@@ -17,34 +17,23 @@ export function EventFunctionRegressionEvidence({
     return null;
   }
 
-  const data: KeyValueListData = [];
-
-  if (defined(evidenceData.function)) {
-    data.push({
+  const data: KeyValueListData = [
+    {
       key: 'function',
       subject: t('Function Name'),
-      value: evidenceData?.function,
-    });
-  }
-
-  if (defined(evidenceData.package || evidenceData.module)) {
-    data.push({
+      value: evidenceData?.function || t('unknown'),
+    },
+    {
       key: 'package',
       subject: t('Package Name'),
-      value: evidenceData.package || evidenceData.module,
-    });
-  }
-
-  if (defined(evidenceData.file)) {
-    data.push({
+      value: evidenceData.package || evidenceData.module || t('unknown'),
+    },
+    {
       key: 'file',
       subject: t('File Name'),
-      value: evidenceData.file,
-    });
-  }
-
-  if (defined(evidenceData.breakpoint)) {
-    data.push({
+      value: evidenceData.file || t('unknown'),
+    },
+    {
       key: 'regression',
       subject: t('Regression Date'),
       value: getFormattedDate(
@@ -54,8 +43,8 @@ export function EventFunctionRegressionEvidence({
           local: true,
         }
       ),
-    });
-  }
+    },
+  ];
 
   return (
     <EventDataSection title="Function Evidence" type="evidence">
