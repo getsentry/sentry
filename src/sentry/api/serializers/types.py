@@ -7,6 +7,7 @@ from typing_extensions import TypedDict
 class SerializedAvatarFields(TypedDict):
     avatarType: str
     avatarUuid: Optional[str]
+    avatarUrl: Optional[str]
 
 
 class _Status(TypedDict):
