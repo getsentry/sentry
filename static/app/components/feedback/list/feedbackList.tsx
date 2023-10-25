@@ -42,6 +42,7 @@ export default function FeedbackList() {
     issues,
     loadMoreRows,
     // setFeedback,
+    setQueryStatus,
   } = useInfiniteFeedbackListData();
 
   const {setParamValue} = useUrlParams('query');
@@ -91,7 +92,11 @@ export default function FeedbackList() {
 
   return (
     <Fragment>
-      <FeedbackListHeader checked={checked} toggleChecked={toggleChecked} />
+      <FeedbackListHeader
+        checked={checked}
+        toggleChecked={toggleChecked}
+        setQueryStatus={setQueryStatus}
+      />
       <OverflowPanelItem noPadding>
         <InfiniteLoader
           isRowLoaded={isRowLoaded}
