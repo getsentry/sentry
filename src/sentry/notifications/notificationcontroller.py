@@ -72,7 +72,7 @@ class NotificationController:
             if organization_id
             else None
         )
-        if features.has("organizations:team-workflow-notifications", org):
+        if org and features.has("organizations:team-workflow-notifications", org):
             self.recipients: list[Recipient] = []
             for recipient in recipients:
                 if recipient_is_team(
