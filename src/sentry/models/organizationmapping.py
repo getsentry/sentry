@@ -39,6 +39,7 @@ class OrganizationMapping(Model):
 
     # Replicated from the Organization.flags attribute
     require_2fa = models.BooleanField(default=False)
+    early_adopter = models.BooleanField(default=False)
 
     class Meta:
         app_label = "sentry"

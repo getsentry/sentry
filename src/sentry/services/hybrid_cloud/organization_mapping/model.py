@@ -31,3 +31,4 @@ class RpcOrganizationMappingUpdate(RpcModel):
     # that is the first element.
     customer_id: Optional[Tuple[Optional[str]]] = None
     requires_2fa: bool = False
+    early_adopter: bool = False

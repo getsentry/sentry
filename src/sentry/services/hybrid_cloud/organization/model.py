@@ -154,12 +154,15 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
         }
 
 
-class RpcOrganizationFlags(RpcModel):
+class RpcOrganizationMappingFlags(RpcModel):
+    early_adopter: bool = False
+    require_2fa: bool = False
+
+
+class RpcOrganizationFlags(RpcOrganizationMappingFlags):
     allow_joinleave: bool = False
     enhanced_privacy: bool = False
     disable_shared_issues: bool = False
-    early_adopter: bool = False
-    require_2fa: bool = False
     disable_new_visibility_features: bool = False
     require_email_verification: bool = False
     codecov_access: bool = False

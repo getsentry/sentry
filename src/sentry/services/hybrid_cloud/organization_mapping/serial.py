@@ -20,6 +20,7 @@ def update_organization_mapping_from_instance(
         slug=organization.slug,
         region_name=region.name,
         requires_2fa=bool(organization.flags.require_2fa),
+        early_adopter=bool(organization.flags.early_adopter),
         customer_id=customer_id,
     )
 
