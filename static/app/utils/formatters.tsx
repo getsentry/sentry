@@ -269,10 +269,10 @@ export function getExactDuration(
   return `0${abbreviation ? SUFFIX_ABBR[precision] : minSuffix}`;
 }
 
-const SEC_IN_WK = 604800;
-const SEC_IN_DAY = 86400;
-const SEC_IN_HR = 3600;
-const SEC_IN_MIN = 60;
+export const SEC_IN_WK = 604800;
+export const SEC_IN_DAY = 86400;
+export const SEC_IN_HR = 3600;
+export const SEC_IN_MIN = 60;
 
 type Level = [lvlSfx: string, denominator: number];
 
@@ -298,12 +298,18 @@ export function parseLargestSuffix(
   ];
   let val = seconds;
   let suffix = 'seconds';
+  if (val === 0) {
+    return [val, suffix];
+  }
   for (const [lvlSfx, denominator] of levels) {
-    if (seconds % denominator || lvlSfx === maxSuffix) {
+    if (seconds % denominator) {
       break;
     }
     val = seconds / denominator;
     suffix = lvlSfx;
+    if (lvlSfx === maxSuffix) {
+      break;
+    }
   }
   return [val, suffix];
 }
