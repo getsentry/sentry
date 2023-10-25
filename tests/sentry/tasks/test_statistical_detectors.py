@@ -164,12 +164,12 @@ def test_run_detection_options_multiple_batches(
     detect_transaction_trends.delay.assert_has_calls(
         [
             mock.call(
-                [project.organization_id for project in projects[:5]],
+                [organization.id],
                 [project.id for project in projects[:5]],
                 timestamp,
             ),
             mock.call(
-                [project.organization_id for project in projects[5:]],
+                [organization.id],
                 [project.id for project in projects[5:]],
                 timestamp,
             ),
@@ -301,7 +301,7 @@ def test_detect_function_trends(
                 project_id=project.id,
                 group=123,
                 count=100,
-                value=100 if i < n / 2 else 200,
+                value=100 if i < n / 2 else 300,
                 timestamp=ts,
             ),
         ]
@@ -580,7 +580,7 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
                 self.org.id,
                 project_id,
                 "distribution",
-                TransactionMRI.DURATION.value,
+                TransactionMRI.DURATION_LIGHT.value,
                 {"transaction": transaction},
                 int((self.now - timedelta(minutes=minutes_ago)).timestamp()),
                 value,

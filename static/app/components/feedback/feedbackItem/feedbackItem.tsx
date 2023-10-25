@@ -9,25 +9,29 @@ import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
+import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
+import useUpdateFeedback from 'sentry/components/feedback/feedbackItem/useUpdateFeedback';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {IconChevron, IconEllipsis, IconJson, IconLink} from 'sentry/icons';
+import {IconEllipsis, IconJson, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event} from 'sentry/types';
-import {getShortEventId} from 'sentry/utils/events';
+import {Event, GroupStatus} from 'sentry/types';
 import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   eventData: Event | undefined;
   feedbackItem: HydratedFeedbackItem;
+  tags: Record<string, string>;
 }
 
-export default function FeedbackItem({feedbackItem, eventData}: Props) {
+export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const organization = useOrganization();
+  const {onSetStatus} = useUpdateFeedback({feedbackItem});
+  const url = eventData?.tags.find(tag => tag.key === 'url');
 
   return (
     <Fragment>
@@ -53,10 +57,6 @@ export default function FeedbackItem({feedbackItem, eventData}: Props) {
                 />
                 {feedbackItem.project.slug}
               </Flex>
-              <Flex align="center" gap={space(1)}>
-                <IconChevron direction="right" size="xs" />
-                <Flex>{getShortEventId(feedbackItem.feedback_id)}</Flex>
-              </Flex>
             </Flex>
           </Flex>
           <Flex gap={space(1)} align="center">
@@ -66,7 +66,13 @@ export default function FeedbackItem({feedbackItem, eventData}: Props) {
             <ErrorBoundary mini>
               <DropdownMenu
                 position="bottom-end"
-                triggerLabel="Unresolved"
+                triggerLabel={
+                  feedbackItem.status === GroupStatus.IGNORED
+                    ? t('Archived')
+                    : feedbackItem.status === GroupStatus.RESOLVED
+                    ? t('Resolved')
+                    : t('Unresolved')
+                }
                 triggerProps={{
                   'aria-label': t('Resolve or Archive Menu'),
                   showChevron: true,
@@ -75,13 +81,29 @@ export default function FeedbackItem({feedbackItem, eventData}: Props) {
                 items={[
                   {
                     key: 'resolve',
-                    label: t('Resolve'),
-                    onAction: () => {},
+                    label:
+                      feedbackItem.status === GroupStatus.RESOLVED
+                        ? t('Unresolve')
+                        : t('Resolve'),
+                    onAction: () =>
+                      onSetStatus(
+                        feedbackItem.status === GroupStatus.RESOLVED
+                          ? GroupStatus.UNRESOLVED
+                          : GroupStatus.RESOLVED
+                      ),
                   },
                   {
                     key: 'archive',
-                    label: t('Archive'),
-                    onAction: () => {},
+                    label:
+                      feedbackItem.status === GroupStatus.IGNORED
+                        ? t('Unarchive')
+                        : t('Archive'),
+                    onAction: () =>
+                      onSetStatus(
+                        feedbackItem.status === GroupStatus.IGNORED
+                          ? GroupStatus.UNRESOLVED
+                          : GroupStatus.IGNORED
+                      ),
                   },
                 ]}
               />
@@ -90,7 +112,7 @@ export default function FeedbackItem({feedbackItem, eventData}: Props) {
               <DropdownMenu
                 position="bottom-end"
                 triggerProps={{
-                  'aria-label': t('Read or Delete Menu'),
+                  'aria-label': t('Read Menu'),
                   icon: <IconEllipsis size="xs" />,
                   showChevron: false,
                   size: 'xs',
@@ -121,7 +143,7 @@ export default function FeedbackItem({feedbackItem, eventData}: Props) {
 
         <Section icon={<IconLink size="xs" />} title={t('Url')}>
           <ErrorBoundary mini>
-            <TextCopyInput size="sm">{'TODO'}</TextCopyInput>
+            <TextCopyInput size="sm">{url?.value ?? t('URL not found')}</TextCopyInput>
           </ErrorBoundary>
         </Section>
 
@@ -129,7 +151,7 @@ export default function FeedbackItem({feedbackItem, eventData}: Props) {
           <ReplaySection organization={organization} replayId={feedbackItem.replay_id} />
         ) : null}
 
-        {/* <TagsSection tags={feedbackItem.tags} /> */}
+        <TagsSection tags={tags} />
 
         <Section icon={<IconJson size="xs" />} title={t('Raw Issue Data')}>
           <ObjectInspector

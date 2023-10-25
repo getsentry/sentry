@@ -1,8 +1,8 @@
-import type {ReplayError as TReplayError} from 'sentry/views/replays/types';
+import type {ReplayError} from 'sentry/views/replays/types';
 
-export function ReplayError(
-  error: Partial<TReplayError> & Pick<TReplayError, 'id' | 'issue' | 'timestamp'>
-): TReplayError {
+export function ReplayErrorFixture(
+  error: Partial<ReplayError> & Pick<ReplayError, 'id' | 'issue' | 'timestamp'>
+): ReplayError {
   return {
     'error.type': error['error.type'] ?? ([] as string[]),
     'error.value': error['error.value'] ?? ([] as string[]),

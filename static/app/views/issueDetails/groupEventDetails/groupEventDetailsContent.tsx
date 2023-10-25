@@ -14,7 +14,6 @@ import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
-import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
 import EventSpanOpBreakdown from 'sentry/components/events/eventStatisticalDetector/aggregateSpanOps/spanOpBreakdown';
 import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
 import {EventAffectedTransactions} from 'sentry/components/events/eventStatisticalDetector/eventAffectedTransactions';
@@ -201,9 +200,6 @@ function PerformanceDurationRegressionIssueDetailsContent({
         </ErrorBoundary>
         <ErrorBoundary mini>
           <EventSpanOpBreakdown event={event} />
-        </ErrorBoundary>
-        <ErrorBoundary mini>
-          <AggregateSpanDiff event={event} projectId={project.id} />
         </ErrorBoundary>
         <ErrorBoundary mini>
           <EventComparison event={event} group={group} project={project} />

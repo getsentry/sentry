@@ -170,8 +170,8 @@ describe('NotificationSettingsByType', function () {
   it('adds a project override and removes it', async function () {
     renderComponent({});
 
-    await selectEvent.select(screen.getByText('Sentry project\u2026'), 'foo');
-    await selectEvent.select(screen.getByText('Select\u2026'), 'On');
+    await selectEvent.select(screen.getByText('Project\u2026'), 'foo');
+    await selectEvent.select(screen.getByText('Value\u2026'), 'On');
 
     const addSettingMock = MockApiClient.addMockResponse({
       url: `/users/me/notification-options/`,
