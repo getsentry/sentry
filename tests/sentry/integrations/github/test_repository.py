@@ -18,21 +18,19 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
 
-def stub_installation_token(external_id=654321):
-    ten_hours = datetime.datetime.utcnow() + datetime.timedelta(hours=10)
-    responses.add(
-        responses.POST,
-        f"https://api.github.com/app/installations/{external_id}/access_tokens",
-        json={"token": "v1.install-token", "expires_at": ten_hours.strftime("%Y-%m-%dT%H:%M:%SZ")},
-    )
-
-
 @control_silo_test(stable=True)
 class GitHubAppsProviderTest(TestCase):
     def setUp(self):
         super().setUp()
+        ten_hours = datetime.datetime.utcnow() + datetime.timedelta(hours=10)
         self.integration = self.create_integration(
-            organization=self.organization, provider="github", external_id="654321"
+            organization=self.organization,
+            provider="github",
+            external_id="654321",
+            metadata={
+                "access_token": "v1.install-token",
+                "expires_at": ten_hours.strftime("%Y-%m-%dT%H:%M:%S"),
+            },
         )
 
     def tearDown(self):
@@ -79,7 +77,6 @@ class GitHubAppsProviderTest(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_compare_commits_no_start(self, get_jwt):
-        stub_installation_token()
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/example-repo/commits?sha=abcdef",
@@ -96,7 +93,6 @@ class GitHubAppsProviderTest(TestCase):
 
     @responses.activate
     def test_compare_commits_no_start_failure(self):
-        stub_installation_token()
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/example-repo/commits?sha=abcdef",
@@ -108,7 +104,6 @@ class GitHubAppsProviderTest(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_compare_commits(self, get_jwt):
-        stub_installation_token()
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef",
@@ -126,7 +121,6 @@ class GitHubAppsProviderTest(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_compare_commits_patchset_handling(self, get_jwt):
-        stub_installation_token()
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef",
@@ -149,7 +143,6 @@ class GitHubAppsProviderTest(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_patchset_caching(self, get_jwt):
-        stub_installation_token()
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/example-repo/commits/abcdef",
@@ -158,16 +151,15 @@ class GitHubAppsProviderTest(TestCase):
         client = self.integration.get_installation(self.repository.organization_id).get_client()
 
         self.provider._get_patchset(client, self.repository.config["name"], "abcdef")
-        # One call for auth token, another for the patchset
-        assert len(responses.calls) == 2
+        # Just for the patchset
+        assert len(responses.calls) == 1
 
         self.provider._get_patchset(client, self.repository.config["name"], "abcdef")
         # Now that patchset was cached, github shouldn't have been called again
-        assert len(responses.calls) == 2
+        assert len(responses.calls) == 1
 
     @responses.activate
     def test_compare_commits_failure(self):
-        stub_installation_token()
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef",
