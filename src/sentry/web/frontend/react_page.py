@@ -90,7 +90,10 @@ class ReactMixin:
                             return HttpResponseRedirect(redirect_url)
 
         response = render_to_response("sentry/base-react.html", context=context, request=request)
-        if "x-sentry-browser-profiling" in request.headers:
+        if "x-sentry-browser-profiling" in request.headers or (
+            getattr(request, "organization", None) is not None
+            and features.has("organizations:profiling-browser", request.orgnization)
+        ):
             response["Document-Policy"] = "js-profiling"
         return response
 
