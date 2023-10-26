@@ -36,7 +36,6 @@ class TestCommitContextMixin(TestCase):
             organization_id=self.organization.id,
             name="example",
             integration_id=self.integration.id,
-            provider="github",
         )
         self.code_mapping = self.create_code_mapping(
             repo=self.repo,
