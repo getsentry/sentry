@@ -924,7 +924,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
                                     "type": "minified_source",
                                     "headers": {
                                         "content-type": "application/json",
-                                        "sourcemap": "data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoibWFpbi5qcy",
+                                        "Sourcemap": "data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoibWFpbi5qcy",
                                     },
                                 },
                             },

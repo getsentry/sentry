@@ -65,30 +65,28 @@ function FilterBar({
           />
         )}
         {onChangeDataset && (
-          <SegmentedControlWrapper>
-            <SegmentedControl<DatasetOption>
-              aria-label={t('Alert type')}
-              value={selectedDataset}
-              onChange={onChangeDataset}
+          <SegmentedControl<DatasetOption>
+            aria-label={t('Alert type')}
+            value={selectedDataset}
+            onChange={onChangeDataset}
+          >
+            <SegmentedControl.Item key={DatasetOption.ALL}>
+              {t('All')}
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key={DatasetOption.ERRORS}>
+              {t('Errors')}
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key={DatasetOption.SESSIONS}>
+              {t('Sessions')}
+            </SegmentedControl.Item>
+            <SegmentedControl.Item
+              textValue={t('Performance')}
+              key={DatasetOption.PERFORMANCE}
             >
-              <SegmentedControl.Item key={DatasetOption.ALL}>
-                {t('All')}
-              </SegmentedControl.Item>
-              <SegmentedControl.Item key={DatasetOption.ERRORS}>
-                {t('Errors')}
-              </SegmentedControl.Item>
-              <SegmentedControl.Item key={DatasetOption.SESSIONS}>
-                {t('Sessions')}
-              </SegmentedControl.Item>
-              <SegmentedControl.Item
-                textValue={t('Performance')}
-                key={DatasetOption.PERFORMANCE}
-              >
-                {t('Performance')}
-                {showMigrationWarning ? <StyledIconWarning /> : null}
-              </SegmentedControl.Item>
-            </SegmentedControl>
-          </SegmentedControlWrapper>
+              {t('Performance')}
+              {showMigrationWarning ? <StyledIconWarning /> : null}
+            </SegmentedControl.Item>
+          </SegmentedControl>
         )}
       </FilterButtons>
       <SearchBar
@@ -116,17 +114,14 @@ const FilterButtons = styled(ButtonBar)`
   @media (max-width: ${p => p.theme.breakpoints.large}) {
     display: flex;
     align-items: flex-start;
+    flex-wrap: wrap;
     gap: ${space(1.5)};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     display: grid;
-    grid-auto-columns: minmax(auto, 300px);
+    grid-auto-columns: max-content;
   }
-`;
-
-const SegmentedControlWrapper = styled('div')`
-  width: max-content;
 `;
 
 const StyledIconWarning = styled(IconWarning)`

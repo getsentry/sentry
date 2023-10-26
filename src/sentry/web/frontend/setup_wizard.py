@@ -117,7 +117,7 @@ def get_token(orgs: list[Organization], user: User):
             return token
 
     # Otherwise, generate a user token
-    tokens = ApiToken.objects.filter(user=user)
+    tokens = ApiToken.objects.filter(user_id=user.id)
     token = next((token for token in tokens if "project:releases" in token.get_scopes()), None)
     if token is None:
         token = ApiToken.objects.create(

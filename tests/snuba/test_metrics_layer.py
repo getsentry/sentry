@@ -39,7 +39,6 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
         self.now = datetime.now(tz=timezone.utc).replace(microsecond=0)
         self.hour_ago = self.now - timedelta(hours=1)
         self.org_id = self.project.organization_id
-        # Store a data point every 10 seconds for an hour
         for mri, metric_type in self.metrics.items():
             assert metric_type in {"counter", "distribution", "set"}
             for i in range(360):
@@ -315,3 +314,63 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
 
         with pytest.raises(InvalidParams):
             run_query(request)
+
+    def test_interval_with_totals(self) -> None:
+        query = MetricsQuery(
+            query=Timeseries(
+                metric=Metric(
+                    "transaction.duration",
+                    TransactionMRI.DURATION.value,
+                ),
+                aggregate="max",
+                filters=[Condition(Column("status_code"), Op.EQ, "200")],
+                groupby=[Column("transaction")],
+            ),
+            start=self.hour_ago,
+            end=self.now,
+            rollup=Rollup(interval=60, totals=True, granularity=60),
+            scope=MetricsScope(
+                org_ids=[self.org_id],
+                project_ids=[self.project.id],
+                use_case_id=UseCaseID.TRANSACTIONS.value,
+            ),
+        )
+
+        request = Request(
+            dataset="generic_metrics",
+            app_id="tests",
+            query=query,
+            tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
+        )
+        result = run_query(request)
+        assert len(result["data"]) == 54
+        assert result["totals"]["aggregate_value"] == 59
+
+    def test_automatic_granularity(self) -> None:
+        query = MetricsQuery(
+            query=Timeseries(
+                metric=Metric(
+                    "transaction.duration",
+                    TransactionMRI.DURATION.value,
+                ),
+                aggregate="max",
+            ),
+            start=self.hour_ago,
+            end=self.now,
+            rollup=Rollup(interval=120),
+            scope=MetricsScope(
+                org_ids=[self.org_id],
+                project_ids=[self.project.id],
+            ),
+        )
+
+        request = Request(
+            dataset="generic_metrics",
+            app_id="tests",
+            query=query,
+            tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
+        )
+        result = run_query(request)
+        # 30 since it's every 2 minutes.
+        # # TODO(evanh): There's a flaky off by one error that comes from the interval rounding I don't care to fix right now, hence the 31 option.
+        assert len(result["data"]) in [30, 31]

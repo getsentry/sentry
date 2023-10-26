@@ -127,6 +127,7 @@ from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
 
 from ..services.hybrid_cloud.organization.serial import serialize_rpc_organization
+from ..shared_integrations.client.proxy import IntegrationProxyClient
 from ..snuba.metrics import (
     MetricConditionField,
     MetricField,
@@ -1748,6 +1749,8 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "span.duration": "metrics_distributions",
         "span.self_time": "metrics_distributions",
         "http.response_content_length": "metrics_distributions",
+        "http.decoded_response_content_length": "metrics_distributions",
+        "http.response_transfer_size": "metrics_distributions",
         "measurements.lcp": "metrics_distributions",
         "measurements.fp": "metrics_distributions",
         "measurements.fcp": "metrics_distributions",
@@ -2777,3 +2780,8 @@ class MonitorIngestTestCase(MonitorTestCase):
                 self.endpoint_with_org, args=[self.organization.slug, monitor_slug]
             ),
         )
+
+
+class IntegratedApiTestCase(BaseTestCase):
+    def should_call_api_without_proxying(self) -> bool:
+        return not IntegrationProxyClient.determine_whether_should_proxy_to_control()

@@ -994,6 +994,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# An option to enable writing from the new schema for the caching indexer
+register(
+    "sentry-metrics.indexer.write-new-cache-namespace",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {
@@ -1485,6 +1492,10 @@ register(
 )
 
 register("hybrid_cloud.outbox_rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register(
+    "hybrid_cloud.control-organization-provisioning", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
 register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Decides whether an incoming span triggers an update of the clustering rule applied to it.
@@ -1658,3 +1669,5 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register("metric_alerts.rate_limit", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)

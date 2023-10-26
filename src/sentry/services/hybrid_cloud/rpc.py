@@ -17,6 +17,7 @@ from typing import (
     Iterator,
     Mapping,
     NoReturn,
+    Sequence,
     Tuple,
     Type,
     TypeVar,
@@ -32,6 +33,7 @@ from typing_extensions import Self
 
 from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.services.hybrid_cloud.rpcmetrics import RpcMetricRecord
+from sentry.services.hybrid_cloud.sig import SerializableFunctionSignature
 from sentry.silo import SiloMode
 from sentry.types.region import Region, RegionMappingNotFound
 from sentry.utils import json, metrics
@@ -69,8 +71,8 @@ class RpcServiceUnimplementedException(RpcException):
     """
 
 
-class RpcMethodSignature:
-    """Represent the set of parameters expected for one RPC method.
+class RpcMethodSignature(SerializableFunctionSignature):
+    """Represent the contract for an RPC method.
 
     This class is responsible for serializing and deserializing arguments. If the
     base service runs in the region silo, this class is also responsible for
@@ -78,87 +80,22 @@ class RpcMethodSignature:
     """
 
     def __init__(self, base_service_cls: Type[RpcService], base_method: Callable[..., Any]) -> None:
-        super().__init__()
-        self._base_service_cls = base_service_cls
-        self._base_method = base_method
-        self._parameter_model = self._create_parameter_model()
-        self._return_model = self._create_return_model()
+        self.base_service_cls = base_service_cls
+        super().__init__(base_method, is_instance_method=True)
         self._region_resolution = self._extract_region_resolution()
 
-    @property
-    def service_name(self) -> str:
-        return self._base_service_cls.__name__
-
-    @property
-    def method_name(self) -> str:
-        return self._base_method.__name__
-
-    @staticmethod
-    def _validate_type_token(token: Any) -> None:
-        """Check whether a type token is usable.
-
-        Strings as type annotations, which Mypy can use if their types are imported
-        in an `if TYPE_CHECKING` block, can't be used for (de)serialization. Raise an
-        exception if the given token is one of these.
-
-        We can check only on a best-effort basis. String tokens may still be nested
-        in type parameters (e.g., `Optional["RpcThing"]`), which this won't catch.
-        Such a state would cause an exception when we attempt to use the signature
-        object to (de)serialize something.
-        """
-        if isinstance(token, str):
-            raise ValueError(
-                "Type annotations on RPC methods must be actual type tokens, not strings"
-            )
-
     def _setup_exception(self, message: str) -> RpcServiceSetupException:
-        return RpcServiceSetupException(self.service_name, self.method_name, message)
+        return RpcServiceSetupException(
+            self.base_service_cls.__name__, self.base_function.__name__, message
+        )
 
-    def _create_parameter_model(self) -> Type[pydantic.BaseModel]:
-        """Dynamically create a Pydantic model class representing the parameters."""
-
-        def create_field(param: inspect.Parameter) -> Tuple[Any, Any]:
-            if param.annotation is param.empty:
-                raise self._setup_exception("Type annotations are required on RPC methods")
-            try:
-                self._validate_type_token(param.annotation)
-            except ValueError as e:
-                raise self._setup_exception(
-                    f"Type annotations must be actual type tokens, not strings; {param.name=!r}"
-                ) from e
-
-            default_value = ... if param.default is param.empty else param.default
-            return param.annotation, default_value
-
-        name = f"{self.service_name}__{self.method_name}__ParameterModel"
-        parameters = list(inspect.signature(self._base_method).parameters.values())
-        parameters = parameters[1:]  # exclude `self` argument
-        field_definitions = {p.name: create_field(p) for p in parameters}
-        return pydantic.create_model(name, **field_definitions)  # type: ignore[call-overload]
-
-    _RETURN_MODEL_ATTR = "value"
-
-    def _create_return_model(self) -> Type[pydantic.BaseModel] | None:
-        """Dynamically create a Pydantic model class representing the return value.
-
-        The created model has a single attribute containing the return value. This
-        extra abstraction is necessary in order to have Pydantic handle generic
-        return annotations such as `Optional[RpcOrganization]` or `List[RpcUser]`,
-        where we can't directly access an RpcModel class on which to call `parse_obj`.
-        """
-        name = f"{self.service_name}__{self.method_name}__ReturnModel"
-        return_type = inspect.signature(self._base_method).return_annotation
-        if return_type is None:
-            return None
-        self._validate_type_token(return_type)
-
-        field_definitions = {self._RETURN_MODEL_ATTR: (return_type, ...)}
-        return pydantic.create_model(name, **field_definitions)  # type: ignore[call-overload]
+    def get_name_segments(self) -> Sequence[str]:
+        return (self.base_service_cls.__name__, self.base_function.__name__)
 
     def _extract_region_resolution(self) -> RegionResolutionStrategy | None:
-        region_resolution = getattr(self._base_method, _REGION_RESOLUTION_ATTR, None)
+        region_resolution = getattr(self.base_function, _REGION_RESOLUTION_ATTR, None)
 
-        is_region_service = self._base_service_cls.local_mode == SiloMode.REGION
+        is_region_service = self.base_service_cls.local_mode == SiloMode.REGION
         if not is_region_service and region_resolution is not None:
             raise self._setup_exception(
                 "@regional_rpc_method should be used only on a service with "
@@ -170,36 +107,6 @@ class RpcMethodSignature:
 
         return region_resolution
 
-    def serialize_arguments(self, raw_arguments: ArgumentDict) -> ArgumentDict:
-        try:
-            model_instance = self._parameter_model(**raw_arguments)
-        except Exception as e:
-            raise RpcArgumentException(
-                self.service_name, self.method_name, "Could not serialize arguments"
-            ) from e
-        return model_instance.dict()
-
-    def deserialize_arguments(self, serial_arguments: ArgumentDict) -> pydantic.BaseModel:
-        try:
-            return self._parameter_model.parse_obj(serial_arguments)
-        except Exception as e:
-            # TODO: Parse Pydantic's exception object(s) and produce more useful
-            #  error messages that can be put into the body of the HTTP 400 response
-            raise RpcArgumentException(
-                self.service_name, self.method_name, "Could not deserialize arguments"
-            ) from e
-
-    def deserialize_return_value(self, value: Any) -> Any:
-        if self._return_model is None:
-            if value is not None:
-                raise RpcResponseException(
-                    self.service_name, self.method_name, f"Expected None but got {type(value)}"
-                )
-            return None
-
-        parsed = self._return_model.parse_obj({self._RETURN_MODEL_ATTR: value})
-        return getattr(parsed, self._RETURN_MODEL_ATTR)
-
     def resolve_to_region(self, arguments: ArgumentDict) -> _RegionResolutionResult:
         if self._region_resolution is None:
             raise self._setup_exception("Does not run on the region silo")
@@ -209,13 +116,15 @@ class RpcMethodSignature:
                 region = self._region_resolution.resolve(arguments)
                 return _RegionResolutionResult(region)
             except RegionMappingNotFound:
-                if getattr(self._base_method, _REGION_RESOLUTION_OPTIONAL_RETURN_ATTR, False):
+                if getattr(self.base_function, _REGION_RESOLUTION_OPTIONAL_RETURN_ATTR, False):
                     return _RegionResolutionResult(None, is_early_halt=True)
                 else:
                     raise
         except Exception as e:
             raise RpcServiceUnimplementedException(
-                self.service_name, self.method_name, "Error while resolving region"
+                self.base_service_cls.__name__,
+                self.base_function.__name__,
+                "Error while resolving region",
             ) from e
 
 
@@ -473,10 +382,6 @@ class RpcService(abc.ABC):
 
 class RpcResolutionException(Exception):
     """Indicate that an RPC service or method name could not be resolved."""
-
-
-class RpcArgumentException(RpcException):
-    """Indicate that the serial arguments to an RPC service were invalid."""
 
 
 class RpcRemoteException(RpcException):

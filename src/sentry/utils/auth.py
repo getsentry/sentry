@@ -9,15 +9,19 @@ from urllib.parse import urlencode, urlparse
 from django.conf import settings
 from django.contrib.auth import login as _login
 from django.contrib.auth.backends import ModelBackend
+from django.contrib.auth.base_user import AbstractBaseUser
 from django.http.request import HttpRequest
 from django.urls import resolve, reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from sentry import options
 from sentry.models.organization import Organization
+from sentry.models.outbox import outbox_context
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import metrics
+from sentry.utils.env import AuthComponent, should_use_rpc_user
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.auth")
@@ -341,7 +345,11 @@ def login(
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
     if organization_id:
         mark_sso_complete(request, organization_id)
-    _login(request, user)
+
+    # Do not require flush the user during login -- the mutation here is just  `last_login` update which isn't
+    # critical to flush.
+    with outbox_context(flush=False):
+        _login(request, user)
 
     log_auth_success(request, user.username, organization_id, source)
     return True
@@ -421,6 +429,14 @@ class EmailAuthBackend(ModelBackend):
 
     def user_can_authenticate(self, user: User) -> bool:
         return True
+
+    def get_user(self, user_id: int) -> AbstractBaseUser | None:
+        if should_use_rpc_user(AuthComponent.EMAIL_BACKED_AUTH):
+            user = user_service.get_user(user_id=user_id)
+            if user:
+                return user
+            return None
+        return super().get_user(user_id)
 
 
 def construct_link_with_query(path: str, query_params: dict[str, str]) -> str:

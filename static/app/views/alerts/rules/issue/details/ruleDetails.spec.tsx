@@ -120,9 +120,10 @@ describe('AlertRuleDetails', () => {
   it('should reset pagination cursor on date change', async () => {
     createWrapper();
 
-    expect(await screen.findByText('Last 7 days')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Last 7 days'));
-    await userEvent.click(screen.getByText('Last 24 hours'));
+    const dateSelector = await screen.findByText('7D');
+    expect(dateSelector).toBeInTheDocument();
+    await userEvent.click(dateSelector);
+    await userEvent.click(screen.getByRole('option', {name: 'Last 24 hours'}));
 
     expect(context.router.push).toHaveBeenCalledWith(
       expect.objectContaining({

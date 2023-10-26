@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -28,6 +29,7 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
     <Container>
       <Flex>
         <MeterBarContainer key="lcp" onClick={() => onClick?.('lcp')}>
+          <InteractionStateLayer />
           <MeterBarBody>
             <MeterHeader>{t('Largest Contentful Paint')}</MeterHeader>
             <MeterValueText>
@@ -39,6 +41,7 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
           <MeterBarFooter score={projectScore.lcpScore} />
         </MeterBarContainer>
         <MeterBarContainer key="fcp" onClick={() => onClick?.('fcp')}>
+          <InteractionStateLayer />
           <MeterBarBody>
             <MeterHeader>{t('First Contentful Paint')}</MeterHeader>
             <MeterValueText>
@@ -50,6 +53,7 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
           <MeterBarFooter score={projectScore.fcpScore} />
         </MeterBarContainer>
         <MeterBarContainer key="fid" onClick={() => onClick?.('fid')}>
+          <InteractionStateLayer />
           <MeterBarBody>
             <MeterHeader>{t('First Input Delay')}</MeterHeader>
             <MeterValueText>
@@ -61,6 +65,7 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
           <MeterBarFooter score={projectScore.fidScore} />
         </MeterBarContainer>
         <MeterBarContainer key="cls" onClick={() => onClick?.('cls')}>
+          <InteractionStateLayer />
           <MeterBarBody>
             <MeterHeader>{t('Cumulative Layout Shift')}</MeterHeader>
             <MeterValueText>
@@ -72,6 +77,7 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
           <MeterBarFooter score={projectScore.clsScore} />
         </MeterBarContainer>
         <MeterBarContainer key="ttfb" onClick={() => onClick?.('ttfb')}>
+          <InteractionStateLayer />
           <MeterBarBody>
             <MeterHeader>{t('Time To First Byte')}</MeterHeader>
             <MeterValueText>
@@ -92,7 +98,6 @@ const getFormattedDuration = (value: number) => {
 };
 
 const Container = styled('div')`
-  margin-top: ${space(2)};
   margin-bottom: ${space(1)};
 `;
 
@@ -101,19 +106,17 @@ const Flex = styled('div')<{gap?: number}>`
   flex-direction: row;
   justify-content: center;
   width: 100%;
-  gap: ${p => (p.gap ? `${p.gap}px` : space(2))};
+  gap: ${p => (p.gap ? `${p.gap}px` : space(1))};
   align-items: center;
   flex-wrap: wrap;
 `;
 
 const MeterBarContainer = styled('div')`
   flex: 1;
-  top: -6px;
   position: relative;
   padding: 0;
   cursor: pointer;
   min-width: 180px;
-  max-width: 280px;
 `;
 
 const MeterBarBody = styled('div')`
