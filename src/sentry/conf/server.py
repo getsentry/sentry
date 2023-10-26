@@ -2598,6 +2598,9 @@ SENTRY_USE_CDC_DEV = False
 # This flag activates profiling backend in the development environment
 SENTRY_USE_PROFILING = False
 
+# This flag activates indexed spans backend in the development environment
+SENTRY_USE_SPANS = False
+
 # This flag activates consuming issue platform occurrence data in the development environment
 SENTRY_USE_ISSUE_OCCURRENCE = False
 
@@ -2770,6 +2773,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                 "REDIS_DB": "1",
                 "ENABLE_SENTRY_METRICS_DEV": "1" if settings.SENTRY_USE_METRICS_DEV else "",
                 "ENABLE_PROFILES_CONSUMER": "1" if settings.SENTRY_USE_PROFILING else "",
+                "ENABLE_SPANS_CONSUMER": "1" if settings.SENTRY_USE_SPANS else "",
                 "ENABLE_ISSUE_OCCURRENCE_CONSUMER": "1"
                 if settings.SENTRY_USE_ISSUE_OCCURRENCE
                 else "",
