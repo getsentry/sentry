@@ -24,11 +24,9 @@ import {
   Row,
   SORTABLE_FIELDS,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {
-  useProjectWebVitalsQuery,
-  useWebVitalsSort,
-} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
+import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionWebVitalsQuery';
+import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
 type RowWithScoreAndOpportunity = Row & {opportunity: number; score: number};
 
@@ -74,17 +72,15 @@ export function PagePerformanceTable() {
 
   const count = projectData?.data[0]['count()'] as number;
 
-  const tableData: RowWithScoreAndOpportunity[] = data
-    .map(row => ({
-      ...row,
-      opportunity: calculateOpportunity(
-        projectScore.totalScore,
-        count,
-        row.score,
-        row['count()']
-      ),
-    }))
-    .sort((a, b) => b.opportunity - a.opportunity);
+  const tableData: RowWithScoreAndOpportunity[] = data.map(row => ({
+    ...row,
+    opportunity: calculateOpportunity(
+      projectScore.totalScore,
+      count,
+      row.score,
+      row['count()']
+    ),
+  }));
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
   };
@@ -165,7 +161,11 @@ export function PagePerformanceTable() {
             />
           )}
           <Link
-            to={{...location, query: {...location.query, transaction: row.transaction}}}
+            to={{
+              ...location,
+              pathname: `${location.pathname}overview/`,
+              query: {...location.query, transaction: row.transaction},
+            }}
           >
             {row.transaction}
           </Link>
