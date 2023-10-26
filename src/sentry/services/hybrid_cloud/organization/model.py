@@ -2,6 +2,7 @@
 #     from __future__ import annotations
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
+from datetime import datetime
 from enum import IntEnum
 from typing import Any, List, Mapping, Optional, Sequence
 
@@ -234,6 +235,7 @@ class RpcOrganization(RpcOrganizationSummary):
     status: int = Field(default_factory=_DefaultEnumHelpers.get_default_organization_status_value)
 
     default_role: str = ""
+    date_added: datetime
 
     def get_audit_log_data(self):
         return {
