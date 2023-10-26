@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from datetime import datetime
 from functools import lru_cache
@@ -11,7 +13,6 @@ from confluent_kafka.admin import AdminClient, PartitionMetadata
 from django.conf import settings
 from django.utils import timezone
 
-from sentry.constants import ObjectStatus
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.schedule import get_prev_schedule
 from sentry.monitors.types import ClockPulseMessage
@@ -25,7 +26,14 @@ from sentry.utils.kafka_config import (
     get_topic_definition,
 )
 
-from .models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, MonitorStatus, MonitorType
+from .models import (
+    CheckInStatus,
+    MonitorCheckIn,
+    MonitorEnvironment,
+    MonitorObjectStatus,
+    MonitorStatus,
+    MonitorType,
+)
 
 logger = logging.getLogger("sentry")
 
@@ -118,7 +126,7 @@ def try_monitor_tasks_trigger(ts: datetime, partition: int):
 
     # Find the slowest partition from our sorted set of partitions, where the
     # clock is the score.
-    slowest_partitions = redis_client.zrange(
+    slowest_partitions: list[tuple[str, float]] = redis_client.zrange(
         name=MONITOR_TASKS_PARTITION_CLOCKS,
         withscores=True,
         start=0,
@@ -159,7 +167,8 @@ def try_monitor_tasks_trigger(ts: datetime, partition: int):
     # close, but in the case of a backlog, this will be much higher
     total_delay = datetime.now().timestamp() - slowest_part_ts
 
-    tick = datetime.fromtimestamp(slowest_part_ts)
+    # Keep tick datetime objects timezone aware
+    tick = timezone.utc.localize(datetime.fromtimestamp(slowest_part_ts))
 
     logger.info("monitors.consumer.clock_tick", extra={"reference_datetime": str(tick)})
     metrics.gauge("monitors.task.clock_delay", total_delay, sample_rate=1.0)
@@ -236,9 +245,9 @@ def check_missing(current_datetime: datetime):
         )
         .exclude(
             monitor__status__in=[
-                ObjectStatus.DISABLED,
-                ObjectStatus.PENDING_DELETION,
-                ObjectStatus.DELETION_IN_PROGRESS,
+                MonitorObjectStatus.DISABLED,
+                MonitorObjectStatus.PENDING_DELETION,
+                MonitorObjectStatus.DELETION_IN_PROGRESS,
             ]
         )[:MONITOR_LIMIT]
     )
@@ -303,11 +312,13 @@ def mark_environment_missing(monitor_environment_id: int, ts: datetime):
     # Specifically important for interval where it's a function of some
     # starting time.
     #
-    # Trim tzinfo. This is always UTC. ts does not have tzinfo and
-    # get_prev_schedule will fail if the start and reference time have
-    # different tzinfo.
-    start_ts = expected_time.replace(tzinfo=None)
-    most_recent_expected_ts = get_prev_schedule(start_ts, ts, monitor.schedule)
+    # When computing our timestamps MUST be in the correct timezone of the
+    # monitor to compute the previous schedule
+    most_recent_expected_ts = get_prev_schedule(
+        expected_time.astimezone(monitor.timezone),
+        ts.astimezone(monitor.timezone),
+        monitor.schedule,
+    )
 
     mark_failed(checkin, ts=most_recent_expected_ts)
 
@@ -373,7 +384,10 @@ def mark_checkin_timeout(checkin_id: int, ts: datetime):
         # their configured time-out time.
         #
         # See `test_timeout_using_interval`
-        start_ts = checkin.date_added.replace(tzinfo=None)
-        most_recent_expected_ts = get_prev_schedule(start_ts, ts, monitor.schedule)
+        most_recent_expected_ts = get_prev_schedule(
+            checkin.date_added.astimezone(monitor.timezone),
+            ts.astimezone(monitor.timezone),
+            monitor.schedule,
+        )
 
         mark_failed(checkin, ts=most_recent_expected_ts)

@@ -53,7 +53,6 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             "https://api.github.com/app/installations/github_external_id/access_tokens",
             json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
         )
-
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/sentry/assignees",
@@ -64,6 +63,40 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         assert self.integration.get_allowed_assignees(repo) == (
             ("", "Unassigned"),
             ("MeredithAnya", "MeredithAnya"),
+        )
+
+        if self.should_call_api_without_proxying():
+            assert len(responses.calls) == 2
+
+            request = responses.calls[0].request
+            assert request.headers["Authorization"] == "Bearer jwt_token_1"
+
+            request = responses.calls[1].request
+            assert request.headers["Authorization"] == "Bearer token_1"
+        else:
+            self._check_proxying()
+
+    @responses.activate
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    def test_get_repo_labels(self, mock_get_jwt):
+        responses.add(
+            responses.POST,
+            "https://api.github.com/app/installations/github_external_id/access_tokens",
+            json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/sentry/labels",
+            json=[{"name": "bug"}, {"name": "enhancement"}, {"name": "duplicate"}],
+        )
+
+        repo = "getsentry/sentry"
+
+        # results should be sorted alphabetically
+        assert self.integration.get_repo_labels(repo) == (
+            ("bug", "bug"),
+            ("duplicate", "duplicate"),
+            ("enhancement", "enhancement"),
         )
 
         if self.should_call_api_without_proxying():
@@ -124,6 +157,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
                 "body": "This is the description",
                 "assignee": None,
                 "title": "hello",
+                "labels": None,
             }
         else:
             self._check_proxying()
@@ -257,11 +291,15 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             "https://api.github.com/app/installations/github_external_id/access_tokens",
             json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
         )
-
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/sentry/assignees",
             json=[{"login": "MeredithAnya"}],
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/sentry/labels",
+            json=[{"name": "bug"}, {"name": "enhancement"}],
         )
 
         responses.add(
@@ -283,6 +321,11 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             responses.GET,
             "https://api.github.com/repos/getsentry/hello/assignees",
             json=[{"login": "MeredithAnya"}],
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/hello/labels",
+            json=[{"name": "bug"}, {"name": "enhancement"}],
         )
 
         # create an issue
@@ -376,6 +419,11 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             responses.GET,
             "https://api.github.com/repos/getsentry/sentry/assignees",
             json=[{"login": "MeredithAnya"}],
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/sentry/labels",
+            json=[{"name": "bug"}, {"name": "enhancement"}],
         )
         responses.add(
             responses.POST,

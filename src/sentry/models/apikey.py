@@ -30,7 +30,7 @@ class ApiKey(ReplicatedControlModel, HasApiScopes):
     category = OutboxCategory.API_KEY_UPDATE
     replication_version = 3
 
-    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade")
+    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
     label = models.CharField(max_length=64, blank=True, default="Default")
     key = models.CharField(max_length=32, unique=True)
     status = BoundedPositiveIntegerField(
@@ -88,8 +88,9 @@ class ApiKey(ReplicatedControlModel, HasApiScopes):
 
 def is_api_key_auth(auth: object) -> bool:
     """:returns True when an API Key is hitting the API."""
+    from sentry.hybridcloud.models.apikeyreplica import ApiKeyReplica
     from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 
     if isinstance(auth, AuthenticatedToken):
         return auth.kind == "api_key"
-    return isinstance(auth, ApiKey)
+    return isinstance(auth, ApiKey) or isinstance(auth, ApiKeyReplica)

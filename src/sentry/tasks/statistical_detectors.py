@@ -107,7 +107,7 @@ def run_detection() -> None:
 
             if len(performance_projects) >= PROJECTS_PER_BATCH:
                 detect_transaction_trends.delay(
-                    [p.organization_id for p in performance_projects],
+                    list({p.organization_id for p in performance_projects}),
                     [p.id for p in performance_projects],
                     now,
                 )
@@ -127,7 +127,7 @@ def run_detection() -> None:
     # make sure to dispatch a task to handle the remaining projects
     if performance_projects:
         detect_transaction_trends.delay(
-            [p.organization_id for p in performance_projects],
+            list({p.organization_id for p in performance_projects}),
             [p.id for p in performance_projects],
             now,
         )
@@ -204,10 +204,32 @@ def detect_transaction_change_points(
 
 
 def _detect_transaction_change_points(
-    transactions: List[Tuple[int, Union[int, str]]],
+    transactions_pairs: List[Tuple[int, Union[int, str]]],
     start: datetime,
 ) -> Generator[BreakpointData, None, None]:
     serializer = SnubaTSResultSerializer(None, None, None)
+
+    enabled_performance_projects: Set[int] = set(
+        options.get("statistical_detectors.enable.projects.performance")
+    )
+
+    projects_by_id = {
+        project.id: project
+        for project in Project.objects.filter(
+            id__in=[project_id for project_id, _ in transactions_pairs]
+        ).select_related("organization")
+        if (
+            features.has(
+                "organizations:performance-statistical-detectors-breakpoint", project.organization
+            )
+            or project.id in enabled_performance_projects
+        )
+    }
+    transactions: List[Tuple[Project, Union[int, str]]] = [
+        (projects_by_id[item[0]], item[1])
+        for item in transactions_pairs
+        if item[0] in projects_by_id
+    ]
 
     trend_function = "p95(transaction.duration)"
 
@@ -229,15 +251,33 @@ def _detect_transaction_change_points(
         request = {
             "data": data,
             "sort": "-trend_percentage()",
-            "min_change()": 100_000_000,  # require a minimum 100ms increase (in ns)
             # Disable the fall back to use the midpoint as the breakpoint
             # which was originally intended to detect a gradual regression
             # for the trends use case. That does not apply here.
             "allow_midpoint": "0",
+            "trend_percentage()": 0.5,
+            "min_change()": 200_000_000,
+            "validate_tail_hours": 12,
         }
 
         try:
             yield from detect_breakpoints(request)["data"]
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            continue
+
+
+def get_all_transaction_payloads(
+    org_ids: List[int], project_ids: List[int], start: datetime, end: datetime
+) -> Generator[DetectorPayload, None, None]:
+    projects_per_query = options.get("statistical_detectors.query.batch_size")
+    assert projects_per_query > 0
+
+    for chunked_project_ids in chunked(project_ids, projects_per_query):
+        try:
+            yield from query_transactions(
+                org_ids, chunked_project_ids, start, end, TRANSACTIONS_PER_PROJECT
+            )
         except Exception as e:
             sentry_sdk.capture_exception(e)
             continue
@@ -253,6 +293,7 @@ def _detect_transaction_trends(
     improved_count = 0
 
     detector_config = MovingAverageRelativeChangeDetectorConfig(
+        change_metric="statistical_detectors.rel_change.transactions",
         min_data_points=6,
         short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
         long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
@@ -264,9 +305,7 @@ def _detect_transaction_trends(
     start = start - timedelta(hours=1)
     start = start.replace(minute=0, second=0, microsecond=0)
     end = start + timedelta(hours=1)
-    all_transaction_payloads = query_transactions(
-        org_ids, project_ids, start, end, TRANSACTIONS_PER_PROJECT
-    )
+    all_transaction_payloads = get_all_transaction_payloads(org_ids, project_ids, start, end)
 
     for payloads in chunked(all_transaction_payloads, 100):
         transactions_count += len(payloads)
@@ -330,7 +369,7 @@ def _detect_transaction_trends(
 
 
 def query_transactions_timeseries(
-    transactions: List[Tuple[int, int | str]],
+    transactions: List[Tuple[Project, int | str]],
     start: datetime,
     agg_function: str,
 ) -> Generator[Tuple[int, Union[int, str], SnubaTSResult], None, None]:
@@ -343,12 +382,18 @@ def query_transactions_timeseries(
     # 336 data points per transaction name, so we can safely get 25 transaction
     # timeseries.
     chunk_size = 25
-    for transaction_chunk in chunked(sorted(transactions), chunk_size):
-        project_ids = {p for p, _ in transaction_chunk}
-        project_objects = Project.objects.filter(id__in=project_ids)
+    for transaction_chunk in chunked(
+        sorted(transactions, key=lambda transaction: (transaction[0].id, transaction[1])),
+        chunk_size,
+    ):
+        project_objects = {p for p, _ in transaction_chunk}
+        project_ids = [project.id for project in project_objects]
         org_ids = list({project.organization_id for project in project_objects})
+        # The only tag available on DURATION_LIGHT is `transaction`: as long as
+        # we don't filter on any other tags, DURATION_LIGHT's lower cardinality
+        # will be faster to query.
         duration_metric_id = indexer.resolve(
-            use_case_id, org_ids[0], str(TransactionMRI.DURATION.value)
+            use_case_id, org_ids[0], str(TransactionMRI.DURATION_LIGHT.value)
         )
         transaction_name_metric_id = indexer.resolve(
             use_case_id,
@@ -358,11 +403,11 @@ def query_transactions_timeseries(
 
         transactions_condition = None
         if len(transactions) == 1:
-            project_id, transaction_name = transactions[0]
+            project, transaction_name = transactions[0]
             transactions_condition = BooleanCondition(
                 BooleanOp.AND,
                 [
-                    Condition(Column("project_id"), Op.EQ, project_id),
+                    Condition(Column("project_id"), Op.EQ, project.id),
                     Condition(Column("transaction"), Op.EQ, transaction_name),
                 ],
             )
@@ -373,11 +418,11 @@ def query_transactions_timeseries(
                     BooleanCondition(
                         BooleanOp.AND,
                         [
-                            Condition(Column("project_id"), Op.EQ, project_id),
+                            Condition(Column("project_id"), Op.EQ, project.id),
                             Condition(Column("transaction"), Op.EQ, transaction_name),
                         ],
                     )
-                    for project_id, transaction_name in transactions
+                    for project, transaction_name in transactions
                 ],
             )
 
@@ -560,15 +605,18 @@ def _detect_function_trends(
     improved_count = 0
 
     detector_config = MovingAverageRelativeChangeDetectorConfig(
+        change_metric="statistical_detectors.rel_change.functions",
         min_data_points=6,
         short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
         long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
-        threshold=0.1,
+        threshold=0.2,
     )
 
     detector_store = redis.RedisDetectorStore()
 
-    for payloads in chunked(all_function_payloads(project_ids, start), 100):
+    projects = Project.objects.filter(id__in=project_ids)
+
+    for payloads in chunked(all_function_payloads(projects, start), 100):
         functions_count += len(payloads)
 
         raw_states = detector_store.bulk_read_states(payloads)
@@ -631,10 +679,30 @@ def _detect_function_trends(
 
 
 def _detect_function_change_points(
-    functions_list: List[Tuple[int, int]],
+    functions_pairs: List[Tuple[int, int]],
     start: datetime,
 ) -> Generator[BreakpointData, None, None]:
     serializer = SnubaTSResultSerializer(None, None, None)
+
+    enabled_profiling_projects: Set[int] = set(
+        options.get("statistical_detectors.enable.projects.profiling")
+    )
+
+    projects_by_id = {
+        project.id: project
+        for project in Project.objects.filter(
+            id__in=[project_id for project_id, _ in functions_pairs]
+        ).select_related("organization")
+        if (
+            features.has(
+                "organizations:profiling-statistical-detectors-breakpoint", project.organization
+            )
+            or project.id in enabled_profiling_projects
+        )
+    }
+    functions_list: List[Tuple[Project, int]] = [
+        (projects_by_id[item[0]], item[1]) for item in functions_pairs if item[0] in projects_by_id
+    ]
 
     trend_function = "p95()"
 
@@ -656,7 +724,7 @@ def _detect_function_change_points(
         request = {
             "data": data,
             "sort": "-trend_percentage()",
-            "trendFunction": trend_function,
+            "min_change()": 100_000_000,  # require a minimum 100ms increase (in ns)
             # Disable the fall back to use the midpoint as the breakpoint
             # which was originally intended to detect a gradual regression
             # for the trends use case. That does not apply here.
@@ -752,27 +820,13 @@ def emit_function_regression_issue(
 
 
 def all_function_payloads(
-    project_ids: List[int],
+    projects: List[Project],
     start: datetime,
 ) -> Generator[DetectorPayload, None, None]:
-    enabled_profiling_projects: Set[int] = set(
-        options.get("statistical_detectors.enable.projects.profiling")
-    )
-
     projects_per_query = options.get("statistical_detectors.query.batch_size")
     assert projects_per_query > 0
 
-    selected_projects = Project.objects.filter(id__in=project_ids).select_related("organization")
-    selected_projects = filter(
-        lambda project: (
-            features.has(
-                "organizations:profiling-statistical-detectors-breakpoint", project.organization
-            )
-            or project.id in enabled_profiling_projects
-        ),
-        selected_projects,
-    )
-    for projects in chunked(selected_projects, projects_per_query):
+    for projects in chunked(projects, projects_per_query):
         try:
             yield from query_functions(projects, start)
         except Exception as e:
@@ -781,7 +835,7 @@ def all_function_payloads(
 
 
 def all_function_timeseries(
-    functions_list: List[Tuple[int, int]],
+    functions_list: List[Tuple[Project, int]],
     start: datetime,
     trend_function: str,
 ) -> Generator[Tuple[int, int, Any], None, None]:
@@ -826,30 +880,13 @@ def query_transactions(
     end: datetime,
     transactions_per_project: int,
 ) -> List[DetectorPayload]:
-    enabled_performance_projects: Set[int] = set(
-        options.get("statistical_detectors.enable.projects.performance")
-    )
-
-    projects = [
-        project
-        for project in Project.objects.filter(id__in=project_ids).select_related("organization")
-        if (
-            project.id in enabled_performance_projects
-            or features.has(
-                "organizations:performance-statistical-detectors-breakpoint", project.organization
-            )
-        )
-    ]
-    project_ids = [project.id for project in projects]
-    org_ids = list({project.organization_id for project in projects})
-
-    if not project_ids or not org_ids:
-        return []
-
     use_case_id = UseCaseID.TRANSACTIONS
 
     # both the metric and tag that we are using are hardcoded values in sentry_metrics.indexer.strings
     # so the org_id that we are using does not actually matter here, we only need to pass in an org_id
+    #
+    # Because we filter on more than just `transaction`, we have to use DURATION here instead of
+    # DURATION_LIGHT.
     duration_metric_id = indexer.resolve(
         use_case_id, org_ids[0], str(TransactionMRI.DURATION.value)
     )
@@ -935,11 +972,7 @@ def query_transactions(
         query=query,
         tenant_ids={
             "referrer": Referrer.STATISTICAL_DETECTORS_FETCH_TOP_TRANSACTION_NAMES.value,
-            # HACK: the allocation policy is going to reject this query unless there is an org_id
-            # passed in. The allocation policy will be updated to handle cross-org queries better
-            # As it is now (09-13-2023), this query will likely be throttled (i.e be slower) by the allocation
-            # policy as soon as we start scanning more than just the sentry org
-            "organization_id": -42069,
+            "cross_org_query": 1,
             "use_case_id": use_case_id.value,
         },
     )
@@ -1005,12 +1038,12 @@ def query_functions(projects: List[Project], start: datetime) -> List[DetectorPa
 
 
 def query_functions_timeseries(
-    functions_list: List[Tuple[int, int]],
+    functions_list: List[Tuple[Project, int]],
     start: datetime,
     agg_function: str,
 ) -> Generator[Tuple[int, int, Any], None, None]:
-    project_ids = [project_id for project_id, _ in functions_list]
-    projects = Project.objects.filter(id__in=project_ids)
+    projects = [project for project, _ in functions_list]
+    project_ids = [project.id for project in projects]
 
     # take the last 14 days as our window
     end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
@@ -1024,10 +1057,10 @@ def query_functions_timeseries(
 
     chunk: List[Dict[str, Any]] = [
         {
-            "project.id": project_id,
+            "project.id": project.id,
             "fingerprint": fingerprint,
         }
-        for project_id, fingerprint in functions_list
+        for project, fingerprint in functions_list
     ]
 
     builder = ProfileTopFunctionsTimeseriesQueryBuilder(
@@ -1057,13 +1090,13 @@ def query_functions_timeseries(
         result_key_order=["project.id", "fingerprint"],
     )
 
-    for project_id, fingerprint in functions_list:
-        key = f"{project_id},{fingerprint}"
+    for project, fingerprint in functions_list:
+        key = f"{project.id},{fingerprint}"
         if key not in results:
             logger.warning(
                 "Missing timeseries for project: {} function: {}",
-                project_id,
+                project.id,
                 fingerprint,
             )
             continue
-        yield project_id, fingerprint, results[key]
+        yield project.id, fingerprint, results[key]

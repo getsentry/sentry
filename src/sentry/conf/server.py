@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import os
 import os.path
-import platform
 import re
 import socket
 import sys
@@ -1358,7 +1357,7 @@ if os.environ.get("OPENAPIGENERATE", False):
 CRISPY_TEMPLATE_PACK = "bootstrap3"
 # Sentry and internal client configuration
 
-SENTRY_FEATURES = {
+SENTRY_FEATURES: dict[str, bool | None] = {
     # Enables user registration.
     "auth:register": True,
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
@@ -1451,6 +1450,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-using-transactions": False,
     # Enabled for those orgs who participated in the profiling Beta program
     "organizations:profiling-beta": False,
+    # Enables production profiling in sentry browser application
+    "organizations:profiling-browser": False,
     # Enable stacktrace linking of multiple frames in profiles
     "organizations:profiling-stacktrace-links": False,
     # Enable global suspect functions in profiling
@@ -1507,6 +1508,8 @@ SENTRY_FEATURES = {
     "organizations:more-slow-alerts": False,
     # Extract on demand metrics
     "organizations:on-demand-metrics-extraction": False,
+    # Extract on demand metrics (widget extraction)
+    "organizations:on-demand-metrics-extraction-widgets": False,
     # Extract on demand metrics (experimental features)
     "organizations:on-demand-metrics-extraction-experimental": False,
     # Display on demand metrics related UI elements
@@ -1658,6 +1661,8 @@ SENTRY_FEATURES = {
     "organizations:performance-database-view": False,
     # Enable removing the fallback for metrics compatibility
     "organizations:performance-remove-metrics-compatibility-fallback": False,
+    # Enable performance score calculation for transactions in relay
+    "organizations:performance-calculate-score-relay": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1794,6 +1799,8 @@ SENTRY_FEATURES = {
     "organizations:user-feedback-ingest": False,
     # Enable User Feedback v2 UI
     "organizations:user-feedback-ui": False,
+    # Enable User Feedback v1
+    "organizations:old-user-feedback": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -2222,7 +2229,7 @@ SENTRY_MAX_MESSAGE_LENGTH = 1024 * 8
 SENTRY_MAX_STACKTRACE_FRAMES = 100
 
 # Gravatar service base url
-SENTRY_GRAVATAR_BASE_URL = "https://secure.gravatar.com"
+SENTRY_GRAVATAR_BASE_URL = "https://gravatar.com"
 
 # Timeout (in seconds) for fetching remote source files (e.g. JS)
 SENTRY_SOURCE_FETCH_TIMEOUT = 5
@@ -2631,11 +2638,6 @@ def build_cdc_postgres_init_db_volume(settings: Any) -> dict[str, dict[str, str]
     )
 
 
-# platform.processor() changed at some point between these:
-# 11.2.3: arm
-# 12.3.1: arm64
-APPLE_ARM64 = sys.platform == "darwin" and platform.processor() in {"arm", "arm64"}
-
 SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "redis": lambda settings, options: (
         {
@@ -2726,12 +2728,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "clickhouse": lambda settings, options: (
         {
-            "image": "ghcr.io/getsentry/image-mirror-yandex-clickhouse-server:20.3.9.70"
-            if not APPLE_ARM64
-            # altinity provides clickhouse support to other companies
-            # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
-            # This image is build with this script https://gist.github.com/filimonov/5f9732909ff66d5d0a65b8283382590d
-            else "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.6.1.6734-testing-arm",
+            "image": "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.8.13.1.altinitystable",
             "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
             "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
             # The arm image does not properly load the MAX_MEMORY_USAGE_RATIO
@@ -3246,9 +3243,11 @@ KAFKA_INGEST_EVENTS = "ingest-events"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
 KAFKA_INGEST_METRICS = "ingest-metrics"
+KAFKA_INGEST_METRICS_DLQ = "ingest-metrics-dlq"
 KAFKA_SNUBA_METRICS = "snuba-metrics"
 KAFKA_PROFILES = "profiles"
 KAFKA_INGEST_PERFORMANCE_METRICS = "ingest-performance-metrics"
+KAFKA_INGEST_GENERIC_METRICS_DLQ = "ingest-generic-metrics-dlq"
 KAFKA_SNUBA_GENERIC_METRICS = "snuba-generic-metrics"
 KAFKA_INGEST_REPLAY_EVENTS = "ingest-replay-events"
 KAFKA_INGEST_REPLAYS_RECORDINGS = "ingest-replay-recordings"
@@ -3294,12 +3293,15 @@ KAFKA_TOPICS: Mapping[str, Optional[TopicDefinition]] = {
     KAFKA_INGEST_TRANSACTIONS: {"cluster": "default"},
     # Topic for receiving metrics from Relay
     KAFKA_INGEST_METRICS: {"cluster": "default"},
+    # Topic for routing invalid messages from KAFKA_INGEST_METRICS
+    KAFKA_INGEST_METRICS_DLQ: {"cluster": "default"},
     # Topic for indexer translated metrics
     KAFKA_SNUBA_METRICS: {"cluster": "default"},
     # Topic for receiving profiles from Relay
     KAFKA_PROFILES: {"cluster": "default"},
     KAFKA_INGEST_PERFORMANCE_METRICS: {"cluster": "default"},
     KAFKA_SNUBA_GENERIC_METRICS: {"cluster": "default"},
+    KAFKA_INGEST_GENERIC_METRICS_DLQ: {"cluster": "default"},
     KAFKA_INGEST_REPLAY_EVENTS: {"cluster": "default"},
     KAFKA_INGEST_REPLAYS_RECORDINGS: {"cluster": "default"},
     KAFKA_INGEST_OCCURRENCES: {"cluster": "default"},
@@ -3603,6 +3605,15 @@ SENTRY_SSO_EXPIRY_SECONDS = os.environ.get("SENTRY_SSO_EXPIRY_SECONDS", None)
 # Set to an iterable of strings matching services so only logs from those services show up
 # eg. DEVSERVER_LOGS_ALLOWLIST = {"server", "webpack", "worker"}
 DEVSERVER_LOGS_ALLOWLIST = None
+
+# Filter for logs of incoming requests, which matches on substrings. For example, to prevent the
+# server from logging
+#
+#   `POST 200 /api/0/relays/projectconfigs/?version=3 HTTP/1.1 1915`,
+#
+# add "/api/0/relays/projectconfigs/" to the list, or to suppress logging of all requests to
+# `relays/xxx` endpoints, add "/api/0/relays/".
+DEVSERVER_REQUEST_LOG_EXCLUDES: list[str] = []
 
 LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
 

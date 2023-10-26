@@ -88,16 +88,24 @@ function getTransactionConfigSpace(
 ): Rect {
   // We have a transaction, so we should do our best to align the profile
   // with the transaction's timeline.
+  const maxProfileDuration = Math.max(...profileGroup.profiles.map(p => p.duration));
   if (transaction) {
     // TODO: Adjust the alignment based on the profile's timestamp if it does
     // not match the transaction's start timestamp
-    const duration = transaction.endTimestamp - transaction.startTimestamp;
-    return new Rect(0, 0, formatTo(duration, 'seconds', unit), 0);
+    const transactionDuration = transaction.endTimestamp - transaction.startTimestamp;
+    // On most platforms, profile duration < transaction duration, however
+    // there is one beloved platform where that is not true; android.
+    // Hence, we should take the max of the two to ensure both the transaction
+    // and profile are fully visible to the user.
+    const duration = Math.max(
+      formatTo(transactionDuration, 'seconds', unit),
+      maxProfileDuration
+    );
+    return new Rect(0, 0, duration, 0);
   }
 
   // No transaction was found, so best we can do is align it to the starting
   // position of the profiles - find the max of profile durations
-  const maxProfileDuration = Math.max(...profileGroup.profiles.map(p => p.duration));
   return new Rect(0, 0, maxProfileDuration, 0);
 }
 
