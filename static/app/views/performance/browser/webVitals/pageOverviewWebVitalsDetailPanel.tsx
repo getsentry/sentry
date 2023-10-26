@@ -99,6 +99,7 @@ export function PageOverviewWebVitalsDetailPanel({
         ? `measurements.${webVital}:<${PERFORMANCE_SCORE_P90S[webVital]}`
         : undefined,
       enabled: Boolean(webVital),
+      withProfiles: true,
     });
 
   const {data: mehData, isLoading: isMehTransactionWebVitalsQueryLoading} =
@@ -109,6 +110,7 @@ export function PageOverviewWebVitalsDetailPanel({
         ? `measurements.${webVital}:<${PERFORMANCE_SCORE_MEDIANS[webVital]} measurements.${webVital}:>=${PERFORMANCE_SCORE_P90S[webVital]}`
         : undefined,
       enabled: Boolean(webVital),
+      withProfiles: true,
     });
 
   const {data: poorData, isLoading: isPoorTransactionWebVitalsQueryLoading} =
@@ -119,6 +121,7 @@ export function PageOverviewWebVitalsDetailPanel({
         ? `measurements.${webVital}:>=${PERFORMANCE_SCORE_MEDIANS[webVital]}`
         : undefined,
       enabled: Boolean(webVital),
+      withProfiles: true,
     });
 
   const data = [...goodData, ...mehData, ...poorData];
