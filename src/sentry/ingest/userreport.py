@@ -310,6 +310,7 @@ def _start_and_end_dates(time: datetime) -> Tuple[datetime, datetime]:
 def _shim_to_feedback(report, event, project):
     """
     takes user reports from the legacy user report endpoint and
+    user reports that come from relay envelope ingestion and
     creates a new User Feedback from it.
     User feedbacks are an event type, so we try and grab as much from the
     legacy user report and event to create the new feedback.
