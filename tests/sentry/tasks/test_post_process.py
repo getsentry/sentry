@@ -19,6 +19,7 @@ from sentry.buffer.redis import RedisBuffer
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.ingest.transaction_clusterer import ClustererNamespace
+from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo
 from sentry.issues.escalating import manage_issue_states
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.issues.ingest import save_issue_occurrence
@@ -41,6 +42,7 @@ from sentry.models.projectteam import ProjectTeam
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.replays.lib import kafka as replays_kafka
 from sentry.rules import init_registry
+from sentry.rules.actions.base import EventAction
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import unguarded_write
 from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES
@@ -395,8 +397,8 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
             "sentry.rules.processor.rules", init_registry()
         ) as rules:
             MockAction = mock.Mock()
-            MockAction.rule_type = "action/event"
             MockAction.id = "tests.sentry.tasks.post_process.tests.MockAction"
+            MockAction.return_value = mock.Mock(spec=EventAction)
             MockAction.return_value.after.return_value = []
             rules.add(MockAction)
 
@@ -1379,11 +1381,10 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         )
         self.cache_key = write_event_to_cache(self.created_event)
         self.repo = self.create_repo(
-            name="example",
-            integration_id=self.integration.id,
+            name="example", integration_id=self.integration.id, provider="github"
         )
         self.code_mapping = self.create_code_mapping(
-            repo=self.repo, project=self.project, stack_root="src/"
+            repo=self.repo, project=self.project, stack_root="sentry/", source_root="sentry/"
         )
         self.commit_author = self.create_commit_author(project=self.project, user=self.user)
         self.commit = self.create_commit(
@@ -1393,6 +1394,23 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
             key="asdfwreqr",
             message="placeholder commit message",
         )
+
+        self.github_blame_all_files_return_value = [
+            FileBlameInfo(
+                code_mapping=self.code_mapping,
+                lineno=39,
+                path="sentry/models/release.py",
+                ref="master",
+                repo=self.repo,
+                commit=CommitInfo(
+                    commitId="asdfwreqr",
+                    committedDate=(datetime.now(timezone.utc) - timedelta(days=2)),
+                    commitMessage="placeholder commit message",
+                    commitAuthorName="",
+                    commitAuthorEmail="admin@localhost",
+                ),
+            )
+        ]
 
     @with_feature("organizations:commit-context")
     @patch(
@@ -1433,6 +1451,55 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
                 event=self.created_event,
             )
         assert not cache.has_key(f"process-commit-context-{self.created_event.group_id}")
+
+    @with_feature("organizations:commit-context")
+    @with_feature("organizations:suspect-commits-all-frames")
+    @patch("sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames")
+    def test_skip_when_not_is_new(self, mock_get_commit_context):
+        """
+        Tests that when the organizations:suspect-commits-all-frames feature is enabled,
+        and the group is not new, that we do not process commit context.
+        """
+        with self.tasks():
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=self.created_event,
+            )
+        assert not mock_get_commit_context.called
+        assert not GroupOwner.objects.filter(
+            group=self.created_event.group,
+            project=self.created_event.project,
+            organization=self.created_event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        ).exists()
+
+    @with_feature("organizations:commit-context")
+    @with_feature("organizations:suspect-commits-all-frames")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
+    )
+    def test_does_not_skip_when_is_new(self, mock_get_commit_context):
+        """
+        Tests that when the organizations:suspect-commits-all-frames feature is enabled,
+        and the group is new, the commit context should be processed.
+        """
+        mock_get_commit_context.return_value = self.github_blame_all_files_return_value
+        with self.tasks():
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=self.created_event,
+            )
+        assert mock_get_commit_context.called
+        assert GroupOwner.objects.get(
+            group=self.created_event.group,
+            project=self.created_event.project,
+            organization=self.created_event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        )
 
 
 class SnoozeTestMixin(BasePostProgressGroupMixin):

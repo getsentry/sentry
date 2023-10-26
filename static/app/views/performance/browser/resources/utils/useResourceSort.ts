@@ -36,7 +36,7 @@ export function useResourceSort(
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
-  field: SORTABLE_FIELDS[0],
+  field: SORTABLE_FIELDS[2],
 };
 
 function isAValidSort(sort: Sort): sort is ValidSort {

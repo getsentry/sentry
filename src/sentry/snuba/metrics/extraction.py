@@ -23,7 +23,13 @@ from django.utils.functional import cached_property
 from typing_extensions import NotRequired
 
 from sentry.api import event_search
-from sentry.api.event_search import AggregateFilter, ParenExpression, SearchFilter
+from sentry.api.event_search import (
+    AggregateFilter,
+    ParenExpression,
+    SearchFilter,
+    SearchKey,
+    SearchValue,
+)
 from sentry.constants import APDEX_THRESHOLD_DEFAULT, DataCategory
 from sentry.discover.arithmetic import is_equation
 from sentry.exceptions import InvalidSearchQuery
@@ -69,14 +75,32 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "geo.subdivision": "user.geo.subdivision",
     "http.method": "request.method",
     # Subset of context fields
-    "device.name": "contexts.device.name",
+    "device.arch": "contexts.device.arch",
+    "device.battery_level": "contexts.device.battery_level",
+    "device.brand": "contexts.device.brand",
+    "device.charging": "contexts.device.charging",
     "device.family": "contexts.device.family",
+    "device.locale": "contexts.device.locale",
+    "device.name": "contexts.device.name",
+    "device.online": "contexts.device.online",
+    "device.orientation": "contexts.device.orientation",
+    "device.screen_density": "contexts.device.screen_density",
+    "device.screen_dpi": "contexts.device.screen_dpi",
+    "device.screen_height_pixels": "contexts.device.screen_height_pixels",
+    "device.screen_width_pixels": "contexts.device.screen_width_pixels",
+    "device.simulator": "contexts.device.simulator",
+    "device.uuid": "contexts.device.uuid",
     "os.name": "contexts.os.name",
+    "os.build": "contexts.os.build",
+    "os.kernel_version": "contexts.os.kernel_version",
     "os.version": "contexts.os.version",
+    "platform.name": "contexts.platform.name",
     "browser.name": "contexts.browser.name",
     "transaction.op": "contexts.trace.op",
     "transaction.status": "contexts.trace.status",
     "http.status_code": "contexts.response.status_code",
+    "sdk.name": "sdk.name",
+    "sdk.version": "sdk.version",
     # Computed fields
     "transaction.duration": "duration",
     "release.build": "release.build",
@@ -116,10 +140,10 @@ _SEARCH_TO_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
     "max": "max",
     "p50": "p50",
     "p75": "p75",
-    "p90": "p90",
     "p95": "p95",
     "p99": "p99",
-    "p100": "p100"
+    # p100 is not supported in the metrics layer, so we convert to max which is equivalent.
+    "p100": "max"
     # generic percentile is not supported by metrics layer.
 }
 
@@ -142,7 +166,6 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "max": "d",
     "p50": "d",
     "p75": "d",
-    "p90": "d",
     "p95": "d",
     "p99": "d",
     "p100": "d",
@@ -313,7 +336,6 @@ def _get_aggregate_supported_by(aggregate: str) -> SupportedBy:
             return SupportedBy.neither()
 
         match = fields.is_function(aggregate)
-
         if not match:
             raise InvalidSearchQuery(f"Invalid characters in field {aggregate}")
 
@@ -322,7 +344,6 @@ def _get_aggregate_supported_by(aggregate: str) -> SupportedBy:
         args_support = _get_args_support(function, args)
 
         return SupportedBy.combine(function_support, args_support)
-
     except InvalidSearchQuery:
         logger.error(f"Failed to parse aggregate: {aggregate}", exc_info=True)
 
@@ -350,7 +371,7 @@ def _get_percentile_support(args: Sequence[str]) -> SupportedBy:
     if not _get_percentile_op(args):
         return SupportedBy.neither()
 
-    return SupportedBy(standard_metrics=False, on_demand_metrics=True)
+    return SupportedBy.both()
 
 
 def _get_percentile_op(args: Sequence[str]) -> Optional[MetricOperationType]:
@@ -363,8 +384,6 @@ def _get_percentile_op(args: Sequence[str]) -> Optional[MetricOperationType]:
         return "p50"
     if percentile == "0.75":
         return "p75"
-    if percentile in ["0.9", "0.90"]:
-        return "p90"
     if percentile == "0.95":
         return "p95"
     if percentile == "0.99":
@@ -800,9 +819,12 @@ class OnDemandMetricSpec:
     _metric_type: str
     _arguments: Sequence[str]
 
-    def __init__(self, field: str, query: str):
+    def __init__(self, field: str, query: str, environment: Optional[str] = None):
         self.field = field
         self.query = query
+        # For now, we just support the environment as extra, but in the future we might need more complex ways to
+        # combine extra values that are outside the query string.
+        self.environment = environment
         self._arguments = []
         self._eager_process()
 
@@ -928,9 +950,14 @@ class OnDemandMetricSpec:
                 # derived metrics have their conditions injected in the tags
                 if self._get_op(parsed_field.function, parsed_field.arguments) in _DERIVED_METRICS:
                     return None
+
                 raise Exception("This query should not use on demand metrics")
 
             return aggregate_conditions
+
+        # We extend the parsed query with other conditions that we want to inject externally from the query. For now
+        # we support only the environment.
+        parsed_query = self._extend_parsed_query(parsed_query)
 
         # Third step is to generate the actual Relay rule that contains all rules nested.
         rule_condition = SearchQueryConverter(parsed_query.conditions).convert()
@@ -944,6 +971,27 @@ class OnDemandMetricSpec:
         # In the other case, we can just flatten the conditions.
         rule_condition["inner"].append(aggregate_conditions)
         return rule_condition
+
+    def _extend_parsed_query(self, parsed_query_result: QueryParsingResult) -> QueryParsingResult:
+        conditions = cast(List[QueryToken], parsed_query_result.conditions)
+
+        new_conditions: List[QueryToken] = []
+        if self.environment is not None:
+            new_conditions.append(
+                SearchFilter(
+                    key=SearchKey(name="environment"),
+                    operator="=",
+                    value=SearchValue(raw_value=self.environment),
+                )
+            )
+            new_conditions.append("AND")
+
+        extended_conditions = new_conditions + conditions
+        return QueryParsingResult(
+            # This transformation is equivalent to the syntax "new_conditions AND conditions" where conditions can be
+            # in parentheses or not.
+            conditions=extended_conditions
+        )
 
     @staticmethod
     def _aggregate_conditions(parsed_field) -> Optional[RuleCondition]:
@@ -967,10 +1015,7 @@ class OnDemandMetricSpec:
             raise Exception(f"The operation {op} supports one or more parameters")
 
         arguments = parsed_field.arguments
-        map_argument = op not in _MULTIPLE_ARGS_METRICS
-
-        first_argument = arguments[0]
-        return [_map_field_name(first_argument)] if map_argument else arguments
+        return [_map_field_name(arguments[0])] if op not in _MULTIPLE_ARGS_METRICS else arguments
 
     @staticmethod
     def _get_op(function: str, args: Sequence[str]) -> MetricOperationType:
@@ -999,7 +1044,6 @@ class OnDemandMetricSpec:
     def _parse_field(value: str) -> Optional[FieldParsingResult]:
         try:
             match = fields.is_function(value)
-
             if not match:
                 raise InvalidSearchQuery(f"Invalid characters in field {value}")
 

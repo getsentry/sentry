@@ -7,13 +7,11 @@ from rest_framework import status
 
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.receivers.outbox.control import (
     process_api_application_updates,
     process_async_webhooks,
     process_integration_updates,
-    process_sentry_app_installation_updates,
 )
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.silo.base import SiloMode
@@ -44,15 +42,6 @@ class ProcessControlOutboxTest(TestCase):
         )
         mock_maybe_process.assert_called_with(
             ApiApplication, self.identifier, region_name=_TEST_REGION.name
-        )
-
-    @patch("sentry.receivers.outbox.control.maybe_process_tombstone")
-    def test_process_sentry_app_installation_updates(self, mock_maybe_process):
-        process_sentry_app_installation_updates(
-            object_identifier=self.identifier, region_name=_TEST_REGION.name
-        )
-        mock_maybe_process.assert_called_with(
-            SentryAppInstallation, self.identifier, region_name=_TEST_REGION.name
         )
 
     @responses.activate

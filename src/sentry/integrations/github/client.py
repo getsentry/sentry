@@ -27,9 +27,11 @@ from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
+from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.shared_integrations.response.mapping import MappingApiResponse
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 
@@ -39,6 +41,10 @@ logger = logging.getLogger("sentry.integrations.github")
 # as the lower ceiling before hitting Github anymore, thus, leaving at least these
 # many requests left for other features that need to reach Github
 MINIMUM_REQUESTS = 200
+
+
+class GitHubApproachingRateLimit(Exception):
+    pass
 
 
 class GithubRateLimitInfo:
@@ -52,7 +58,7 @@ class GithubRateLimitInfo:
         return datetime.utcfromtimestamp(self.reset).strftime("%H:%M:%S")
 
     def __repr__(self) -> str:
-        return f"GithubRateLimit(limit={self.limit},rem={self.remaining},reset={self.reset})"
+        return f"GithubRateLimitInfo(limit={self.limit},rem={self.remaining},reset={self.reset})"
 
 
 class GithubProxyClient(IntegrationProxyClient):
@@ -599,6 +605,12 @@ class GitHubClientMixin(GithubProxyClient):
         """
         return self.get(f"/users/{gh_username}")
 
+    def get_labels(self, repo: str) -> Sequence[JSONData]:
+        """
+        https://docs.github.com/en/rest/issues/labels#list-labels-for-a-repository
+        """
+        return self.get(f"/repos/{repo}/labels")
+
     def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
 
@@ -654,19 +666,46 @@ class GitHubClientMixin(GithubProxyClient):
             sentry_sdk.capture_exception(e)
             return []
 
-        if contents.get("errors"):
-            err_message = ", ".join(
-                [error.get("message", "") for error in contents.get("errors", [])]
-            )
-            raise ApiError(err_message)
+        errors = contents.get("errors", [])
+        if len(errors) > 0:
+            if any([error for error in errors if error.get("type") == "RATE_LIMITED"]):
+                raise ApiRateLimitedError("GitHub rate limit exceeded")
 
-        ref = contents.get("data", {}).get("repository", {}).get("ref")
-        if ref is None:
-            raise ApiError("Branch does not exist in GitHub.")
+            # When data is present, it means that the query was at least partially successful,
+            # usually a missing repo/branch/file which is expected with wrong configurations.
+            # If data is not present, the query may be formed incorrectly, so raise an error.
+            if not contents.get("data"):
+                err_message = ", ".join([error.get("message", "") for error in errors])
+                raise ApiError(err_message)
 
-        return ref.get("target", {}).get("blame", {}).get("ranges", [])
+        response_data = contents.get("data")
+        if not isinstance(response_data, dict):
+            raise ApiError("GitHub returned no data.", 404)
+        response_repo = response_data.get("repository")
+        if not isinstance(response_repo, dict):
+            raise ApiError("Repository does not exist in GitHub.", 404)
+        response_ref = response_repo.get("ref")
+        if not isinstance(response_ref, dict):
+            raise ApiError("Branch does not exist in GitHub.", 404)
+
+        return response_ref.get("target", {}).get("blame", {}).get("ranges", [])
 
     def get_blame_for_files(self, files: Sequence[SourceLineInfo]) -> Sequence[FileBlameInfo]:
+        rate_limit = self.get_rate_limit(specific_resource="graphql")
+        if rate_limit.remaining < MINIMUM_REQUESTS:
+            metrics.incr("sentry.integrations.github.get_blame_for_files.rate_limit")
+            logger.error(
+                "sentry.integrations.github.get_blame_for_files.rate_limit",
+                extra={
+                    "provider": "github",
+                    "specific_resource": "graphql",
+                    "remaining": rate_limit.remaining,
+                    "next_window": rate_limit.next_window(),
+                    "organization_integration_id": self.org_integration_id,
+                },
+            )
+            raise GitHubApproachingRateLimit()
+
         file_path_mapping = generate_file_path_mapping(files)
 
         try:
