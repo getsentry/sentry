@@ -62,5 +62,18 @@ class ProjectService(RpcService):
     ) -> List[OpaqueSerializedResponse]:
         pass
 
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def create_project_for_organization(
+        self,
+        *,
+        organization_id: int,
+        project_name: str,
+        platform: str,
+        user_id: int,
+        add_org_default_team: Optional[bool] = False,
+    ) -> RpcProject:
+        pass
+
 
 project_service = ProjectService.create_delegation()
