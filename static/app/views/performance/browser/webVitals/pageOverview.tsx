@@ -155,7 +155,6 @@ export default function PageOverview() {
                 transaction={transaction}
               />
               <PageOverviewFeaturedTagsList tag="release" transaction={transaction} />
-              {/* TODO: need a way to map country code to actual country name */}
               <PageOverviewFeaturedTagsList
                 tag="geo.country_code"
                 transaction={transaction}
