@@ -94,6 +94,8 @@ function renderReason(
       commit: (
         <Fragment>
           <CommitLink
+            inline
+            showIcon={false}
             commitId={statusDetails.inCommit.id}
             repository={statusDetails.inCommit.repository as Repository}
           />
