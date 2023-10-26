@@ -239,6 +239,7 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         self.run_test(get_test_message(self.project.id))
 
     def test_valid_nan(self) -> None:
+        # NaN is invalid in new event schema, but valid in legacy schema, so it emits only one of metrics
         message = deepcopy(get_test_message(self.project.id))
         message["event"]["tags"]["nan-tag"] = float("nan")
         with mock.patch("sentry.issues.occurrence_consumer.metrics") as metrics:
