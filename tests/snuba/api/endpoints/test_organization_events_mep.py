@@ -1617,6 +1617,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["p50(transaction.duration)"] == 1
         assert meta["isMetricsData"]
 
+    @pytest.mark.xfail(reason="Started failing on ClickHouse 21.8")
     def test_environment_query(self):
         self.create_environment(self.project, name="staging")
         self.store_transaction_metric(
