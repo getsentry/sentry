@@ -31,17 +31,11 @@ type TContext = unknown;
 
 export default function useFeedbackItem({feedbackId, organization, refetchIssue}: Props) {
   const api = useApi();
-  // const queryClient = useQueryClient();
 
   const mutation = useMutation<TData, TError, TVariables, TContext>({
     onMutate: (_variables: TVariables) => {
       addLoadingMessage(t('Updating feedback...'));
-      // const [, , , data] = variables;
-      // setApiQueryData(
-      //   queryClient,
-      //   feedbackItemQueryKey(organization, feedbackId),
-      //   (feedbackItem: FeedbackItemResponse) => ({...feedbackItem, ...data})
-      // );
+      // TODO: optimistic updates to the list cache, and the item cache with useFeedback*QueryKey() helpers
     },
     mutationFn: async (variables: ApiMutationVariables) => {
       const [method, url, opts, data] = variables;
