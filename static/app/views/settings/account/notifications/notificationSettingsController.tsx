@@ -15,11 +15,7 @@ export function NotificationSettingsController({organizations, ...props}: Props)
   const hasFeature = organizations.some(org =>
     org.features.includes('notification-settings-v2')
   );
-  return hasFeature ? (
-    <NotificationSettingsV2 {...props} />
-  ) : (
-    <NotificationSettings {...props} />
-  );
+  return hasFeature ? <NotificationSettingsV2 /> : <NotificationSettings {...props} />;
 }
 
 export default withOrganizations(NotificationSettingsController);
