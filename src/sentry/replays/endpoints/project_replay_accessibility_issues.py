@@ -14,10 +14,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.paginator import Cursor, CursorResult
 from sentry.models.project import Project
 from sentry.replays.lib.storage import make_filename
 from sentry.replays.usecases.reader import fetch_direct_storage_segments_meta
+from sentry.utils.cursors import Cursor, CursorResult
 
 REFERRER = "replays.query.query_replay_clicks_dataset"
 
