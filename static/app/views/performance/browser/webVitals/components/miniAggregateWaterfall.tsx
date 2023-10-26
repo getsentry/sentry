@@ -9,6 +9,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
+import {LandingDisplayField} from 'sentry/views/performance/browser/webVitals/pageOverview';
 
 type Props = {
   transaction: string;
@@ -24,7 +25,10 @@ export function MiniAggregateWaterfall({transaction}: Props) {
   }
   const AggregateSpanWaterfallLocation = {
     ...location,
-    pathname: '/performance/summary/aggregateWaterfall',
+    query: {
+      ...location.query,
+      tab: LandingDisplayField.SPANS,
+    },
   };
   const minimap = (
     <ActualMinimap
