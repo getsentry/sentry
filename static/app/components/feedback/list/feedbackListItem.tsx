@@ -5,49 +5,43 @@ import styled from '@emotion/styled';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Checkbox from 'sentry/components/checkbox';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
+import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {Flex} from 'sentry/components/profiling/flex';
-import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCircleFill, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {IssueCategory} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
+import {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 interface Props {
-  feedbackItem: HydratedFeedbackItem;
+  feedbackItem: FeedbackIssue;
   isChecked: boolean;
   onChecked: (isChecked: boolean) => void;
   className?: string;
   style?: CSSProperties;
 }
 
-function useIsSelectedFeedback({feedbackItem}: {feedbackItem: HydratedFeedbackItem}) {
+function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssue}) {
   const {feedbackSlug} = useLocationQuery({
     fields: {feedbackSlug: decodeScalar},
   });
   const [, feedbackId] = feedbackSlug.split(':') ?? [];
-  return feedbackId === feedbackItem.feedback_id;
+  return feedbackId === feedbackItem.id;
 }
 
 const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
   ({className, feedbackItem, isChecked, onChecked, style}: Props, ref) => {
     const organization = useOrganization();
     const isSelected = useIsSelectedFeedback({feedbackItem});
-    const counts = useReplaysCount({
-      organization,
-      issueCategory: IssueCategory.PERFORMANCE, // Feedbacks are in the same dataSource as performance
-      groupIds: [feedbackItem.id],
-    });
-    const hasReplay = Boolean(counts[feedbackItem.id]);
+    const hasReplayId = useFeedbackHasReplayId({feedbackId: feedbackItem.id});
 
     return (
       <CardSpacing className={className} style={style} ref={ref}>
@@ -60,7 +54,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
               query: {
                 ...location.query,
                 referrer: 'feedback_list_page',
-                feedbackSlug: `${feedbackItem.project.slug}:${feedbackItem.feedback_id}`,
+                feedbackSlug: `${feedbackItem.project.slug}:${feedbackItem.id}`,
               },
             };
           }}
@@ -85,7 +79,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
             </span>
           </TextOverflow>
           <span style={{gridArea: 'time'}}>
-            <TimeSince date={feedbackItem.timestamp} />
+            <TimeSince date={feedbackItem.firstSeen} />
           </span>
           {feedbackItem.hasSeen ? null : (
             <span
@@ -107,7 +101,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
               {feedbackItem.project.slug}
             </Flex>
 
-            {hasReplay ? (
+            {hasReplayId ? (
               <Flex align="center" gap={space(0.5)}>
                 <IconPlay size="xs" />
                 {t('Replay')}
