@@ -43,7 +43,7 @@ const Text = styled('div')<Omit<TextProps, 'theme'>>`
   width: 100%;
   color: ${p => p.theme.chartLabel};
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  transition: color 100ms;
+  transition: color 300ms;
   ${p => p.textCss && p.textCss(p)}
 `;
 
@@ -156,7 +156,7 @@ const RingBackground = styled('circle')<{
   stroke-dasharray: ${p => p.circumference} ${p => p.circumference};
   transform: rotate(${p => p.rotate}deg);
   transform-origin: 50% 50%;
-  transition: stroke 100ms;
+  transition: stroke 300ms;
 `;
 
 const RingBar = styled('circle')<{
@@ -172,8 +172,8 @@ const RingBar = styled('circle')<{
   transform: rotate(${p => p.rotate}deg);
   transform-origin: 50% 50%;
   transition:
-    stroke-dashoffset 200ms,
-    stroke 100ms;
+    stroke-dashoffset 300ms,
+    stroke 300ms;
 `;
 
 export default PerformanceScoreRing;
