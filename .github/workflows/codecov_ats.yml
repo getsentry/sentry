@@ -48,6 +48,7 @@ jobs:
         outputs:
           ATS_TESTS_TO_RUN: ${{ steps.codecov_automated_test_selection.outputs.ATS_TESTS_TO_RUN }}
           ATS_TESTS_TO_SKIP: ${{ steps.codecov_automated_test_selection.outputs.ATS_TESTS_TO_SKIP }}
+          ats_success: ${{ steps.codecov_automated_test_selection.outputs.ats_success }}
         steps:
         - uses: actions/checkout@v3
           with:
@@ -97,6 +98,8 @@ jobs:
         # The base commit will be the parent commit (apparently commits on master don't exist in codecov)
         - name: Codecov Automated Test Selection
           id: codecov_automated_test_selection
+          # Avoid PRs being marked X by a workflow devs should ignore
+          continue-on-error: true
           run: |
             BASE_COMMIT=$(git merge-base ${{ github.sha }}^ origin/master)
             echo $BASE_COMMIT
@@ -111,6 +114,7 @@ jobs:
               run_count=$(testcount ats_tests_to_run)
               skip_count=$(testcount ats_tests_to_skip)
               tee <<< "Selected $run_count / $(($run_count + $skip_count)) tests to run" "$GITHUB_STEP_SUMMARY"
+              echo "ats_success=true" >> "$GITHUB_OUTPUT"
             else
               tee <<< "ATS failed. Can't get list of tests to run. Fallback to all tests" "$GITHUB_STEP_SUMMARY"
               # We need not forget to add the search options in the fallback command, otherwise pytest might run more tests than expected
@@ -129,8 +133,7 @@ jobs:
               ]' >> $GITHUB_OUTPUT
               echo 'EOF' >> $GITHUB_OUTPUT
               echo ATS_TESTS_TO_SKIP="'[]'" >> "$GITHUB_OUTPUT"
-              echo "::error ATS failed"
-              exit 1
+              echo "ats_success=false" >> "$GITHUB_OUTPUT"
             fi
           env:
             CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -139,8 +142,10 @@ jobs:
     # Something like pytest <options> $ATS_TESTS_TO_RUN
     debug:
       runs-on: ubuntu-latest
-      needs: coverage-ats
-      if: ${{ always() }}
+      needs:
+        - coverage-ats
+        - files-changed
+      if: needs.files-changed.outputs.backend == 'true'
       steps:
         - name: Debug ATS_TESTS_TO_RUN
           run: |
