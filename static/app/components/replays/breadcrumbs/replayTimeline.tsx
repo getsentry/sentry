@@ -21,7 +21,7 @@ import toPercent from 'sentry/utils/number/toPercent';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type Props = {size};
+type Props = {size: number};
 
 function ReplayTimeline({size}: Props) {
   const {replay, currentTime} = useReplayContext();
