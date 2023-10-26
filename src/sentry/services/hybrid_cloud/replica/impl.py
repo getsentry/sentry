@@ -7,7 +7,12 @@ from sentry.db.models import BaseModel, FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
 from sentry.db.postgres.transactions import enforce_constraints
-from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
+from sentry.hybridcloud.models import (
+    ApiKeyReplica,
+    ApiTokenReplica,
+    ExternalActorReplica,
+    OrgAuthTokenReplica,
+)
 from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
@@ -17,6 +22,8 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authidentityreplica import AuthIdentityReplica
 from sentry.models.authprovider import AuthProvider
 from sentry.models.authproviderreplica import AuthProviderReplica
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
@@ -32,6 +39,7 @@ from sentry.services.hybrid_cloud.auth import (
     RpcAuthIdentity,
     RpcAuthProvider,
 )
+from sentry.services.hybrid_cloud.notifications import RpcExternalActor
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberTeam, RpcTeam
 from sentry.services.hybrid_cloud.orgauthtoken.model import RpcOrgAuthToken
 from sentry.services.hybrid_cloud.replica.service import ControlReplicaService, RegionReplicaService
@@ -91,6 +99,10 @@ def get_conflicting_unique_columns(
     elif scope == scope.ORGANIZATION_SCOPE:
         scope_controlled_columns = list(
             get_foreign_key_columns(destination, Organization, AuthProvider)
+        )
+    elif scope == scope.INTEGRATION_SCOPE:
+        scope_controlled_columns = list(
+            get_foreign_key_columns(destination, Organization, Integration)
         )
     else:
         raise TypeError(
@@ -266,6 +278,27 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
 
 
 class DatabaseBackedControlReplicaService(ControlReplicaService):
+    def upsert_external_actor_replica(self, *, external_actor: RpcExternalActor) -> None:
+        try:
+            if external_actor.user_id is not None:
+                # Validating existence of user
+                User.objects.get(id=external_actor.user_id)
+            integration = Integration.objects.get(id=external_actor.integration_id)
+        except (User.DoesNotExist, Integration.DoesNotExist):
+            return
+
+        destination = ExternalActorReplica(
+            externalactor_id=external_actor.id,
+            external_id=external_actor.external_id,
+            external_name=external_actor.external_name,
+            organization_id=external_actor.organization_id,
+            user_id=external_actor.user_id,
+            provider=external_actor.provider,
+            team_id=external_actor.team_id,
+            integration_id=integration.id,
+        )
+        handle_replication(ExternalActor, destination)
+
     def remove_replicated_organization_member_team(
         self, *, organization_id: int, organization_member_team_id: int
     ) -> None:
