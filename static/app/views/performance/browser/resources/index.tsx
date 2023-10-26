@@ -85,7 +85,7 @@ function ResourcesLandingPage() {
         <StyledTabs>
           <TabList hideBorder>
             <TabList.Item key="resource.css/script">
-              {t('JavaScript/Style sheets')}
+              {t('JavaScript/Style Sheets')}
             </TabList.Item>
             <TabList.Item key="resource.img">{t('Images')}</TabList.Item>
           </TabList>
