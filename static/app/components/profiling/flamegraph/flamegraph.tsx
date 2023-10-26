@@ -33,6 +33,7 @@ import {
   useCanvasScheduler,
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import {clamp} from 'sentry/utils/profiling/colors/utils';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphSearch as FlamegraphSearchType} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
@@ -92,17 +93,19 @@ function getTransactionConfigSpace(
   if (transaction) {
     // TODO: Adjust the alignment based on the profile's timestamp if it does
     // not match the transaction's start timestamp
-    const duration = transaction.endTimestamp - transaction.startTimestamp;
-    return new Rect(
-      0,
-      0,
-      // On most platforms, profile duration < transaction duration, however
-      // there is one beloved platform where that is not true; android.
-      // Hence, we should take the max of the two to ensure both the transaction
-      // and profile are fully visible to the user.
-      Math.max(formatTo(duration, 'seconds', unit), maxProfileDuration),
-      0
+    const transactionDuration = transaction.endTimestamp - transaction.startTimestamp;
+    // On most platforms, profile duration < transaction duration, however
+    // there is one beloved platform where that is not true; android.
+    // Hence, we should take the max of the two to ensure both the transaction
+    // and profile are fully visible to the user.
+    const duration = Math.max(
+      formatTo(transactionDuration, 'seconds', unit),
+      maxProfileDuration
     );
+    // We clamp the duration to 30 seconds which is our official "max" duration.
+    // Clamp the value here so that we dont end up showing profiles with insanely
+    // long durations - this may happen in some profiles when threads are suspended
+    return new Rect(0, 0, clamp(duration, 0, 30 * 1e9), 0);
   }
 
   // No transaction was found, so best we can do is align it to the starting
