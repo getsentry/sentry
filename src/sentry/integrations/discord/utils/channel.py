@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from enum import Enum
+
 from django.core.exceptions import ValidationError
 from requests.exceptions import Timeout
 
@@ -8,6 +10,30 @@ from sentry.shared_integrations.exceptions import ApiTimeoutError, IntegrationEr
 from sentry.shared_integrations.exceptions.base import ApiError
 
 from . import logger
+
+
+class ChannelType(Enum):
+    # https://discord.com/developers/docs/resources/channel#channel-object-channel-types
+    GUILD_TEXT = 0
+    DM = 1
+    GUILD_VOICE = 2
+    GROUP_DM = 3
+    GUILD_CATEGORY = 4
+    GUILD_ANNOUNCEMENT = 5
+    ANNOUNCEMENT_THREAD = 10
+    PUBLIC_THREAD = 11
+    PRIVATE_THREAD = 12
+    GUILD_STAGE_VOICE = 13
+    GUILD_DIRECTORY = 14
+    GUILD_FORUM = 15
+    GUILD_MEDIA = 16
+
+
+SUPPORTED_CHANNEL_TYPES = {
+    ChannelType.GUILD_TEXT,
+    ChannelType.PUBLIC_THREAD,
+    ChannelType.PRIVATE_THREAD,
+}
 
 
 def validate_channel_id(
@@ -79,6 +105,18 @@ def validate_channel_id(
 
     if not isinstance(result, dict):
         raise IntegrationError("Bad response from Discord channel lookup.")
+
+    if ChannelType(result["type"]) not in SUPPORTED_CHANNEL_TYPES:
+        # Forums are not supported
+        logger.info(
+            "rule.discord.wrong_channel_type",
+            extra={
+                "channel_id": channel_id,
+                "guild_name": guild_name,
+                "channel_type": result["type"],
+            },
+        )
+        raise ValidationError("Discord channel type is not supported")
 
     if result["guild_id"] != guild_id:
         # The channel exists and we have access to it, but it does not belong

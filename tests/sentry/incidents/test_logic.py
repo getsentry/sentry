@@ -67,6 +67,7 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
 )
+from sentry.integrations.discord.utils.channel import ChannelType
 from sentry.models.actor import ActorTuple, get_actor_for_user, get_actor_id_for_user
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -1443,6 +1444,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         metadata = {
             "guild_id": guild_id,
             "name": "Server Name",
+            "type": ChannelType.GUILD_TEXT.value,
         }
         integration = Integration.objects.create(
             provider="discord",
@@ -1479,6 +1481,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         metadata = {
             "guild_id": guild_id,
             "name": "Server Name",
+            "type": ChannelType.GUILD_TEXT.value,
         }
         integration = Integration.objects.create(
             provider="discord",
@@ -1812,6 +1815,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             metadata={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
+                "type": ChannelType.GUILD_TEXT.value,
             },
         )
 
@@ -1824,6 +1828,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             json={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
+                "type": ChannelType.GUILD_TEXT.value,
             },
         )
 
@@ -1856,6 +1861,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             metadata={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
+                "type": ChannelType.GUILD_TEXT.value,
             },
         )
 
@@ -1888,6 +1894,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             metadata={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
+                "type": ChannelType.GUILD_TEXT.value,
             },
         )
 
@@ -1940,6 +1947,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             metadata={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
+                "type": ChannelType.GUILD_TEXT.value,
             },
         )
 
@@ -1957,6 +1965,88 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
 
         with self.feature("organizations:integrations-discord-metric-alerts"):
             with pytest.raises(ChannelLookupTimeoutError):
+                update_alert_rule_trigger_action(
+                    self.action,
+                    type,
+                    target_type,
+                    target_identifier=channel_id,
+                    integration_id=integration.id,
+                )
+
+    @responses.activate
+    def test_discord_channel_not_in_guild(self):
+        base_url: str = "https://discord.com/api/v10"
+        channel_id = "channel-id"
+        guild_id = "example-discord-server"
+        guild_name = "Server Name"
+
+        integration = Integration.objects.create(
+            provider="discord",
+            name="Example Discord",
+            external_id=f"{guild_id}",
+            metadata={
+                "guild_id": f"{guild_id}",
+                "name": f"{guild_name}",
+                "type": ChannelType.DM.value,
+            },
+        )
+
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.DISCORD
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        responses.add(
+            method=responses.GET,
+            url=f"{base_url}/channels/{channel_id}",
+            json={
+                "guild_id": "other-guild",
+                "name": f"{guild_name}",
+                "type": ChannelType.DM.value,
+            },
+        )
+
+        with self.feature("organizations:integrations-discord-metric-alerts"):
+            with pytest.raises(InvalidTriggerActionError):
+                update_alert_rule_trigger_action(
+                    self.action,
+                    type,
+                    target_type,
+                    target_identifier=channel_id,
+                    integration_id=integration.id,
+                )
+
+    @responses.activate
+    def test_discord_unsupported_type(self):
+        base_url: str = "https://discord.com/api/v10"
+        channel_id = "channel-id"
+        guild_id = "example-discord-server"
+        guild_name = "Server Name"
+
+        integration = Integration.objects.create(
+            provider="discord",
+            name="Example Discord",
+            external_id=f"{guild_id}",
+            metadata={
+                "guild_id": f"{guild_id}",
+                "name": f"{guild_name}",
+                "type": ChannelType.DM.value,
+            },
+        )
+
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.DISCORD
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        responses.add(
+            method=responses.GET,
+            url=f"{base_url}/channels/{channel_id}",
+            json={
+                "guild_id": f"{guild_id}",
+                "name": f"{guild_name}",
+                "type": ChannelType.DM.value,
+            },
+        )
+
+        with self.feature("organizations:integrations-discord-metric-alerts"):
+            with pytest.raises(InvalidTriggerActionError):
                 update_alert_rule_trigger_action(
                     self.action,
                     type,

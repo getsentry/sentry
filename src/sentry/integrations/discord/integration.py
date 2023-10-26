@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from enum import Enum
 
 import requests
 from django.utils.translation import gettext_lazy as _
@@ -93,6 +94,19 @@ class DiscordIntegration(IntegrationInstallation):
             return
 
 
+class DiscordPermissions(Enum):
+    # https://discord.com/developers/docs/topics/permissions#permissions
+    VIEW_CHANNEL = 1 << 10
+    SEND_MESSAGES = 1 << 11
+    SEND_TTS_MESSAGES = 1 << 12
+    EMBED_LINKS = 1 << 14
+    ATTACH_FILES = 1 << 15
+    MANAGE_THREADS = 1 << 34
+    CREATE_PUBLIC_THREADS = 1 << 35
+    CREATE_PRIVATE_THREADS = 1 << 36
+    SEND_MESSAGES_IN_THREADS = 1 << 38
+
+
 class DiscordIntegrationProvider(IntegrationProvider):
     key = "discord"
     name = "Discord"
@@ -104,9 +118,14 @@ class DiscordIntegrationProvider(IntegrationProvider):
     # https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes
     oauth_scopes = frozenset(["applications.commands", "bot", "identify"])
 
-    # https://discord.com/developers/docs/topics/permissions#permissions
-    # Permissions value that can Send Messages (0x800), View Channel (0x400), and Embed Links (0x4000):
-    bot_permissions = 0x800 | 0x400 | 0x4000
+    bot_permissions = (
+        DiscordPermissions.VIEW_CHANNEL.value
+        | DiscordPermissions.SEND_MESSAGES.value
+        | DiscordPermissions.EMBED_LINKS.value
+        | DiscordPermissions.CREATE_PUBLIC_THREADS.value
+        | DiscordPermissions.CREATE_PRIVATE_THREADS.value
+        | DiscordPermissions.SEND_MESSAGES_IN_THREADS.value
+    )
 
     setup_dialog_config = {"width": 600, "height": 900}
 
