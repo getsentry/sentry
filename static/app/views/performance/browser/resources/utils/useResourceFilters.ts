@@ -18,7 +18,10 @@ export type ModuleFilters = {
     | 'blocking'
     | '!blocking';
   [BrowserStarfishFields.SPAN_DOMAIN]?: string;
-  [BrowserStarfishFields.RESOURCE_TYPE]?: 'resource.script' | 'resource.img';
+  [BrowserStarfishFields.RESOURCE_TYPE]?:
+    | 'resource.script'
+    | 'resource.css'
+    | 'resource.img';
   [BrowserStarfishFields.TRANSACTION]?: string;
   [BrowserStarfishFields.SPAN_DOMAIN]?: string;
 };
