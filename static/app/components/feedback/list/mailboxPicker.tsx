@@ -21,7 +21,6 @@ export default function MailboxPicker({onChange, value}: Props) {
       >
         <SegmentedControl.Item key="unresolved">{t('Inbox')}</SegmentedControl.Item>
         <SegmentedControl.Item key="resolved">{t('Resolved')}</SegmentedControl.Item>
-        <SegmentedControl.Item key="archived">{t('Archived')}</SegmentedControl.Item>
       </SegmentedControl>
     </Flex>
   );

@@ -1,9 +1,9 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import Button from 'sentry/components/actions/button';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
@@ -16,7 +16,7 @@ import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {IconEllipsis, IconJson, IconLink} from 'sentry/icons';
+import {IconJson, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, GroupStatus} from 'sentry/types';
@@ -92,72 +92,24 @@ export default function FeedbackItem({
               <FeedbackViewers feedbackItem={feedbackItem} />
             </ErrorBoundary>
             <ErrorBoundary mini>
-              <DropdownMenu
-                position="bottom-end"
-                triggerLabel={
-                  feedbackItem.status === GroupStatus.IGNORED
-                    ? t('Archived')
-                    : feedbackItem.status === GroupStatus.RESOLVED
-                    ? t('Resolved')
-                    : t('Unresolved')
-                }
-                triggerProps={{
-                  'aria-label': t('Resolve or Archive Menu'),
-                  showChevron: true,
-                  size: 'xs',
+              <Button
+                onClick={() => {
+                  feedbackItem.status === 'resolved'
+                    ? resolve(GroupStatus.UNRESOLVED)
+                    : resolve(GroupStatus.RESOLVED);
                 }}
-                items={[
-                  {
-                    key: 'resolve',
-                    label:
-                      feedbackItem.status === GroupStatus.RESOLVED
-                        ? t('Unresolve')
-                        : t('Resolve'),
-                    onAction: () =>
-                      resolve(
-                        feedbackItem.status === GroupStatus.RESOLVED
-                          ? GroupStatus.UNRESOLVED
-                          : GroupStatus.RESOLVED
-                      ),
-                  },
-                  {
-                    key: 'archive',
-                    label:
-                      feedbackItem.status === GroupStatus.IGNORED
-                        ? t('Unarchive')
-                        : t('Archive'),
-                    onAction: () =>
-                      resolve(
-                        feedbackItem.status === GroupStatus.IGNORED
-                          ? GroupStatus.UNRESOLVED
-                          : GroupStatus.IGNORED
-                      ),
-                  },
-                ]}
-              />
+              >
+                {feedbackItem.status === 'resolved' ? t('Unresolve') : t('Resolve')}
+              </Button>
             </ErrorBoundary>
             <ErrorBoundary mini>
-              <DropdownMenu
-                position="bottom-end"
-                triggerProps={{
-                  'aria-label': t('Read Menu'),
-                  icon: <IconEllipsis size="xs" />,
-                  showChevron: false,
-                  size: 'xs',
+              <Button
+                onClick={() => {
+                  feedbackItem.hasSeen ? markAsRead(false) : markAsRead(true);
                 }}
-                items={[
-                  {
-                    key: 'mark read',
-                    label: t('Mark as read'),
-                    onAction: () => markAsRead(true),
-                  },
-                  {
-                    key: 'mark unread',
-                    label: t('Mark as unread'),
-                    onAction: () => markAsRead(false),
-                  },
-                ]}
-              />
+              >
+                {feedbackItem.hasSeen ? t('Mark Unread') : t('Mark Read')}
+              </Button>
             </ErrorBoundary>
           </Flex>
         </Flex>

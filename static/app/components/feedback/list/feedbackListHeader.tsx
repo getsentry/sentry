@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import Button from 'sentry/components/actions/button';
 import Checkbox from 'sentry/components/checkbox';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -7,7 +8,7 @@ import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import MailboxPicker from 'sentry/components/feedback/list/mailboxPicker';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
-import {IconEllipsis} from 'sentry/icons';
+import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -35,7 +36,7 @@ export default function FeedbackListHeader({checked, toggleChecked}: Props) {
         }}
       />
       {checked.length ? (
-        <HasSelection checked={checked} />
+        <HasSelection checked={checked} mailbox={mailbox} />
       ) : (
         <MailboxPicker value={mailbox} onChange={setMailbox} />
       )}
@@ -43,7 +44,7 @@ export default function FeedbackListHeader({checked, toggleChecked}: Props) {
   );
 }
 
-function HasSelection({checked}) {
+function HasSelection({checked, mailbox}) {
   return (
     <Flex gap={space(1)} align="center" justify="space-between" style={{flexGrow: 1}}>
       <span>
@@ -51,27 +52,7 @@ function HasSelection({checked}) {
       </span>
       <Flex gap={space(1)} justify="flex-end">
         <ErrorBoundary mini>
-          <DropdownMenu
-            position="bottom-end"
-            triggerLabel="Unresolved"
-            triggerProps={{
-              'aria-label': t('Resolve or Archive Menu'),
-              showChevron: true,
-              size: 'xs',
-            }}
-            items={[
-              {
-                key: 'resolve',
-                label: t('Resolve'),
-                onAction: () => {},
-              },
-              {
-                key: 'archive',
-                label: t('Archive'),
-                onAction: () => {},
-              },
-            ]}
-          />
+          <Button>{mailbox === 'resolved' ? t('Unresolve') : t('Resolve')}</Button>
         </ErrorBoundary>
         <ErrorBoundary mini>
           <DropdownMenu
@@ -85,12 +66,12 @@ function HasSelection({checked}) {
             items={[
               {
                 key: 'mark read',
-                label: t('Mark as read'),
+                label: t('Mark Read'),
                 onAction: () => {},
               },
               {
                 key: 'mark unread',
-                label: t('Mark as unread'),
+                label: t('Mark Unread'),
                 onAction: () => {},
               },
             ]}
