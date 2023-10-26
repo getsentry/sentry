@@ -97,7 +97,7 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
           <Panel>
             {new Array(2).fill(0).map((_, idx) => (
               <PanelItem key={idx}>
-                <Placeholder height="36px" />
+                <Placeholder height="38px" />
               </PanelItem>
             ))}
           </Panel>
