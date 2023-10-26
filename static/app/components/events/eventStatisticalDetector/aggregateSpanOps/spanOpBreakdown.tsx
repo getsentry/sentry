@@ -16,10 +16,9 @@ import {Event} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {NumericChange, renderHeadCell} from 'sentry/utils/performance/regression/table';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import {NumericChange, renderHeadCell} from '../aggregateSpanDiff';
 
 const SPAN_OPS = ['db', 'http', 'resource', 'browser', 'ui'];
 const REQUEST_FIELDS = SPAN_OPS.map(op => ({field: `p95(spans.${op})`}));
@@ -28,7 +27,6 @@ interface SpanOpDiff {
   p95: {
     newBaseline: number;
     oldBaseline: number;
-    percentChange: number;
   };
   span_op: string;
 }
@@ -142,10 +140,6 @@ function EventSpanOpBreakdown({event}: {event: Event}) {
     return {
       span_op: op,
       p95: {
-        percentChange:
-          ((postBreakpointValueAsNumber - preBreakpointValueAsNumber) /
-            preBreakpointValueAsNumber) *
-          100,
         oldBaseline: preBreakpointValueAsNumber,
         newBaseline: postBreakpointValueAsNumber,
       },
