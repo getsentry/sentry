@@ -6,7 +6,6 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Checkbox from 'sentry/components/checkbox';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
-import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {Flex} from 'sentry/components/profiling/flex';
@@ -41,11 +40,6 @@ function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssue}) {
 const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
   ({className, feedbackItem, isChecked, onChecked, style}: Props, ref) => {
     const organization = useOrganization();
-    const {markAsRead} = useMutateFeedback({
-      feedbackId: feedbackItem.id,
-      organization,
-      refetchIssue,
-    });
     const isSelected = useIsSelectedFeedback({feedbackItem});
     const hasReplayId = useFeedbackHasReplayId({feedbackId: feedbackItem.id});
 
@@ -65,7 +59,6 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
             };
           }}
           onClick={() => {
-            markAsRead(true);
             trackAnalytics('feedback_list.details_link.click', {organization});
           }}
         >

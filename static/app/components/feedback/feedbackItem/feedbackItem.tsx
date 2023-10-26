@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -43,6 +43,11 @@ export default function FeedbackItem({
     organization,
     refetchIssue,
   });
+
+  useEffect(() => {
+    markAsRead(true);
+  });
+
   const url = eventData?.tags.find(tag => tag.key === 'url');
 
   const replayId = eventData?.contexts?.feedback?.replay_id;
