@@ -218,17 +218,10 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
             remove_event_fields=["platform"], expected_error=ValidationError
         )
 
-        # TODO: remove this, per https://develop.sentry.dev/sdk/event-payloads/ tags are optional
-        # self.run_invalid_payload_test(remove_event_fields=["tags"], expected_error=ValidationError)
-
         self.run_invalid_payload_test(
             update_event_fields={"project_id": "p_id"}, expected_error=InvalidEventPayloadError
         )
 
-        # TODO: validate this, per https://develop.sentry.dev/sdk/event-payloads/ timestamp can be numeric
-        # self.run_invalid_payload_test(
-        #    update_event_fields={"timestamp": 0000}, expected_error=ValidationError
-        # )
         self.run_invalid_payload_test(
             update_event_fields={"platform": 0000}, expected_error=ValidationError
         )
@@ -239,8 +232,21 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
     def test_valid(self) -> None:
         self.run_test(get_test_message(self.project.id))
 
+    def test_numeric_timestamp_valid_with_new_schema(self) -> None:
+        # per https://develop.sentry.dev/sdk/event-payloads/ timestamp can be numeric
+
+        message = deepcopy(get_test_message(self.project.id))
+        message["event"]["timestamp"] = 0000
+        self.run_test(message)
+
+    def test_tags_not_required_with_new_schema(self) -> None:
+        # per https://develop.sentry.dev/sdk/event-payloads/ tags are optional
+        message = deepcopy(get_test_message(self.project.id))
+        message["event"].pop("tags")
+        self.run_test(message)
+
     def test_valid_nan(self) -> None:
-        # NaN is invalid in new event schema, but valid in legacy schema, so it emits only one of metrics
+        # NaN is invalid in new event schema, but valid in legacy schema, so it emits only one of the metrics
         message = deepcopy(get_test_message(self.project.id))
         message["event"]["tags"]["nan-tag"] = float("nan")
         with mock.patch("sentry.issues.occurrence_consumer.metrics") as metrics:
