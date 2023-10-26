@@ -4,6 +4,7 @@ import uuid
 from copy import deepcopy
 from datetime import timezone
 from typing import Any, Dict, Optional, Sequence, Type
+from unittest import mock
 
 import pytest
 from jsonschema import ValidationError
@@ -237,11 +238,36 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
     def test_valid(self) -> None:
         self.run_test(get_test_message(self.project.id))
 
-    @pytest.mark.xfail(reason="NaN should not be a valid tag value")
     def test_valid_nan(self) -> None:
         message = deepcopy(get_test_message(self.project.id))
         message["event"]["tags"]["nan-tag"] = float("nan")
-        self.run_test(message)
+        with mock.patch("sentry.issues.occurrence_consumer.metrics") as metrics:
+            self.run_test(message)
+            metrics.incr.assert_called_once_with(
+                "occurrence_ingest.event_payload_invalid",
+                sample_rate=1.0,
+                tags={"occurrence_type": mock.ANY},
+            )
+
+    def test_invalid_payload_emits_both_metrics(self) -> None:
+        with mock.patch("sentry.issues.occurrence_consumer.metrics") as metrics:
+            self.run_invalid_payload_test(
+                remove_event_fields=["timestamp"], expected_error=ValidationError
+            )
+            metrics.incr.assert_has_calls(
+                [
+                    mock.call(
+                        "occurrence_ingest.event_payload_invalid",
+                        sample_rate=1.0,
+                        tags={"occurrence_type": mock.ANY},
+                    ),
+                    mock.call(
+                        "occurrence_ingest.legacy_event_payload_invalid",
+                        sample_rate=1.0,
+                        tags={"occurrence_type": mock.ANY},
+                    ),
+                ]
+            )
 
     def test_missing_event_id_and_event_data(self) -> None:
         message = deepcopy(get_test_message(self.project.id))
