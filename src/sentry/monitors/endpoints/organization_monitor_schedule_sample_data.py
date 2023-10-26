@@ -22,7 +22,6 @@ class OrganizationMonitorScheduleSampleDataEndpoint(OrganizationEndpoint):
         frequency = request.GET.get("frequency")
 
         if not num_ticks or num_ticks > 100 or not schedule_type:
-            # return error
             return self.respond([], status=400)
 
         # Align the reference ts to the nearest hour
