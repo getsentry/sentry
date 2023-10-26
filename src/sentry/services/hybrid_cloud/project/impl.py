@@ -93,7 +93,7 @@ class DatabaseBackedProjectService(ProjectService):
                 platform=platform,
             )
 
-            if add_org_default_team is not None:
+            if add_org_default_team:
                 team = Team.objects.filter(organization_id=organization_id).first()
                 project.add_team(team)
 
