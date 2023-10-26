@@ -121,7 +121,7 @@ def get_token(orgs: list[Organization], user: User):
     token = next((token for token in tokens if "project:releases" in token.get_scopes()), None)
     if token is None:
         token = ApiToken.objects.create(
-            user=user,
+            user_id=user.id,
             scope_list=["project:releases"],
             refresh_token=None,
             expires_at=None,
