@@ -1,10 +1,8 @@
 import {useCallback, useMemo} from 'react';
 import {Index, IndexRange} from 'react-virtualized';
 
-// import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import {FeedbackIssueList} from 'sentry/utils/feedback/types';
 import {ApiQueryKey, useInfiniteApiQuery} from 'sentry/utils/queryClient';
-// import useOrganization from 'sentry/utils/useOrganization';
 
 interface Params {
   queryKey: ApiQueryKey;

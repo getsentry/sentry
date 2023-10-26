@@ -49,6 +49,7 @@ def get_test_message(
         ],
         "type": ProfileFileIOGroupType.type_id,
         "detection_time": now.isoformat(),
+        "payload_type": "occurrence",
     }
 
     if include_event:
