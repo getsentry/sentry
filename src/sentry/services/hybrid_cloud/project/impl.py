@@ -94,8 +94,16 @@ class DatabaseBackedProjectService(ProjectService):
             )
 
             if add_org_default_team:
-                team = Team.objects.filter(organization_id=organization_id).first()
-                project.add_team(team)
+                team = (
+                    Team.objects.filter(organization_id=organization_id)
+                    .order_by("date_added")
+                    .first()
+                )
+
+                # Makes a best effort to add the default org team,
+                #  but doesn't block if one doesn't exist.
+                if team:
+                    project.add_team(team)
 
             project_created.send(
                 project=project,
