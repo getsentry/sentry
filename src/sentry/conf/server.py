@@ -1712,8 +1712,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-test-endpoint": False,
     # Enable starfish dropdown on the webservice view for switching chart visualization
     "organizations:starfish-wsv-chart-dropdown": False,
-    # Enable browser starfish view
+    # Enable browser starfish webvitals module view
     "organizations:starfish-browser-webvitals": False,
+    # Enable browser starfish webvitals module pageoverview v2 view
+    "organizations:starfish-browser-webvitals-pageoverview-v2": False,
     # Replace the footer Sentry logo with a Sentry pride logo
     "organizations:sentry-pride-logo-footer": False,
     # Enable Session Stats down to a minute resolution
