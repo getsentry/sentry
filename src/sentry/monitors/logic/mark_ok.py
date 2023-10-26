@@ -55,10 +55,32 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
                 )
 
                 params["last_state_change"] = ts
+
+                resolve_incident_group(monitor_env.incident_grouphash, monitor_env.project_id)
             else:
                 # Don't update status if incident isn't recovered
                 params.pop("status", None)
 
     MonitorEnvironment.objects.filter(id=monitor_env.id).exclude(last_checkin__gt=ts).update(
         **params
+    )
+
+
+def resolve_incident_group(
+    grouphash: str,
+    project_id: int,
+):
+    from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+    from sentry.issues.status_change_message import StatusChangeMessage
+    from sentry.models.group import GroupStatus
+
+    status_change = StatusChangeMessage(
+        fingerprint=[grouphash],
+        project_id=project_id,
+        new_status=GroupStatus.RESOLVED,
+    )
+
+    produce_occurrence_to_kafka(
+        payload_type=PayloadType.STATUS_CHANGE,
+        status_change=status_change,
     )
