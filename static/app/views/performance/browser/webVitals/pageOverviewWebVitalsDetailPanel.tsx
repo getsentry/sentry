@@ -9,6 +9,7 @@ import GridEditable, {
   GridColumnSortBy,
 } from 'sentry/components/gridEditable';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {getDuration} from 'sentry/utils/formatters';
@@ -17,6 +18,7 @@ import {
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
+import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -97,6 +99,7 @@ export function PageOverviewWebVitalsDetailPanel({
         ? `measurements.${webVital}:<${PERFORMANCE_SCORE_P90S[webVital]}`
         : undefined,
       enabled: Boolean(webVital),
+      withProfiles: true,
     });
 
   const {data: mehData, isLoading: isMehTransactionWebVitalsQueryLoading} =
@@ -107,6 +110,7 @@ export function PageOverviewWebVitalsDetailPanel({
         ? `measurements.${webVital}:<${PERFORMANCE_SCORE_MEDIANS[webVital]} measurements.${webVital}:>=${PERFORMANCE_SCORE_P90S[webVital]}`
         : undefined,
       enabled: Boolean(webVital),
+      withProfiles: true,
     });
 
   const {data: poorData, isLoading: isPoorTransactionWebVitalsQueryLoading} =
@@ -117,6 +121,7 @@ export function PageOverviewWebVitalsDetailPanel({
         ? `measurements.${webVital}:>=${PERFORMANCE_SCORE_MEDIANS[webVital]}`
         : undefined,
       enabled: Boolean(webVital),
+      withProfiles: true,
     });
 
   const data = [...goodData, ...mehData, ...poorData];
@@ -208,12 +213,19 @@ export function PageOverviewWebVitalsDetailPanel({
       );
     }
     if (key === 'profile.id') {
-      const eventSlug = generateEventSlug({...row, project: project?.slug});
-      const eventTarget = getTransactionDetailsUrl(organization.slug, eventSlug);
+      if (!defined(project) || !defined(row['profile.id'])) {
+        return null;
+      }
+      const target = generateProfileFlamechartRoute({
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+        profileId: String(row['profile.id']),
+      });
+
       return (
         <NoOverflow>
-          <Link to={eventTarget} onClick={onClose}>
-            {row['profile.id']}
+          <Link to={target} onClick={onClose}>
+            {getShortEventId(row['profile.id'])}
           </Link>
         </NoOverflow>
       );
