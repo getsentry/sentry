@@ -5,9 +5,11 @@ import Pagination from 'sentry/components/pagination';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 
 const FIELDS = [
@@ -34,9 +36,20 @@ export function ProfilesTable() {
     });
   }, [location.query.sort]);
 
-  const query = useMemo(() => {
+  const rawQuery = useMemo(() => {
     return decodeScalar(location.query.query, '');
   }, [location.query.query]);
+
+  const query = useMemo(() => {
+    const search = new MutableSearch(rawQuery);
+    const transaction = decodeScalar(location.query.transaction);
+
+    if (defined(transaction)) {
+      search.setFilterValues('transaction', [transaction]);
+    }
+
+    return search.formatString();
+  }, [rawQuery, location.query.transaction]);
 
   const profilesCursor = useMemo(
     () => decodeScalar(location.query.cursor),
