@@ -373,7 +373,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         *,
         team_id: int,
         organization_member_id: int,
-        role: Optional[str] = None,
+        role: Optional[str] = "contributor",
     ) -> None:
         team_member_query = OrganizationMemberTeam.objects.filter(
             team_id=team_id, organizationmember_id=organization_member_id
