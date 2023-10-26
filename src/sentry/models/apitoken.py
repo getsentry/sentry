@@ -37,7 +37,9 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     # users can generate tokens without being application-bound
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)
     user = FlexibleForeignKey("sentry.User")
+    name = models.CharField(max_length=255, null=True)
     token = models.CharField(max_length=64, unique=True, default=generate_token)
+    token_last_characters = models.CharField(max_length=4, null=True)
     refresh_token = models.CharField(max_length=64, unique=True, null=True, default=generate_token)
     expires_at = models.DateTimeField(null=True, default=default_expiration)
     date_added = models.DateTimeField(default=timezone.now)
