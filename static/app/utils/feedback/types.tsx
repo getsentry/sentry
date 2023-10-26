@@ -18,7 +18,7 @@ export type FeedbackIssue = Overwrite<
   }
 >;
 
-export type FeedbackEventResponse = Event;
+export type FeedbackEvent = Event;
 
 export type FeedbackIssueList = Overwrite<
   BaseGroup & GroupStats,
