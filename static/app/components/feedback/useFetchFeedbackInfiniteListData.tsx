@@ -1,28 +1,11 @@
 import {useCallback, useMemo} from 'react';
 import {Index, IndexRange} from 'react-virtualized';
 
-import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import {FeedbackIssueList} from 'sentry/utils/feedback/types';
-import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {ApiQueryKey, useInfiniteApiQuery} from 'sentry/utils/queryClient';
 
 interface Params {
-  queryView: {
-    collapse: string[];
-    expand: string[];
-    limit: number;
-    queryReferrer: string;
-    shortIdLookup: number;
-    end?: string;
-    environment?: string[];
-    field?: string[];
-    mailbox?: ReturnType<typeof decodeMailbox>;
-    project?: string[];
-    query?: string;
-    start?: string;
-    statsPeriod?: string;
-    utc?: string;
-  };
+  queryKey: ApiQueryKey;
 }
 
 export const EMPTY_INFINITE_LIST_DATA: ReturnType<
@@ -43,17 +26,7 @@ export const EMPTY_INFINITE_LIST_DATA: ReturnType<
   setFeedback: () => undefined,
 };
 
-export default function useFetchFeedbackInfiniteListData({queryView}: Params) {
-  const organization = useOrganization();
-
-  const query = useMemo(
-    () => ({
-      ...queryView,
-      query: `issue.category:feedback status:${queryView.mailbox} ${queryView.query}`,
-    }),
-    [queryView]
-  );
-
+export default function useFetchFeedbackInfiniteListData({queryKey}: Params) {
   const {
     data,
     error,
@@ -65,7 +38,7 @@ export default function useFetchFeedbackInfiniteListData({queryView}: Params) {
     isFetchingPreviousPage,
     isLoading, // If anything is loaded yet
   } = useInfiniteApiQuery<FeedbackIssueList>({
-    queryKey: [`/organizations/${organization.slug}/issues/`, {query}],
+    queryKey,
   });
 
   const issues = useMemo(
