@@ -7,6 +7,7 @@ from enum import IntEnum
 from typing import Any, List, Mapping, Optional, Sequence
 
 from django.dispatch import Signal
+from django.utils import timezone
 from pydantic import Field
 from typing_extensions import TypedDict
 
@@ -235,7 +236,7 @@ class RpcOrganization(RpcOrganizationSummary):
     status: int = Field(default_factory=_DefaultEnumHelpers.get_default_organization_status_value)
 
     default_role: str = ""
-    date_added: datetime = Field(default_factory=datetime.now)
+    date_added: datetime = Field(default_factory=timezone.now)
 
     def get_audit_log_data(self):
         return {
