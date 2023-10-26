@@ -14,21 +14,37 @@ from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMappingUpdate,
     organization_mapping_service,
 )
+from sentry.services.hybrid_cloud.organization_mapping.serial import (
+    update_organization_mapping_from_instance,
+)
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
+from sentry.types.region import get_local_region
 
 
-def assert_matching_organization_mapping(org: Organization, customer_id: Optional[str] = None):
+def assert_matching_organization_mapping(
+    org: Organization, customer_id: Optional[str] = None, validate_flags=False
+):
     org_mapping = OrganizationMapping.objects.get(organization_id=org.id)
     assert org_mapping.name == org.name
     assert org_mapping.slug == org.slug
     assert org_mapping.status == org.status
     assert org_mapping.region_name
     assert org_mapping.customer_id == customer_id
-    assert org_mapping.early_adopter == org.flags.early_adopter
-    assert org_mapping.require_2fa == org.flags.require_2fa
+
+    if validate_flags:
+        assert org_mapping.early_adopter == org.flags.early_adopter
+        assert org_mapping.require_2fa == org.flags.require_2fa
+        assert org_mapping.allow_joinleave == bool(org.flags.allow_joinleave)
+        assert org_mapping.enhanced_privacy == bool(org.flags.enhanced_privacy)
+        assert org_mapping.disable_shared_issues == bool(org.flags.disable_shared_issues)
+        assert org_mapping.disable_new_visibility_features == bool(
+            org.flags.disable_new_visibility_features
+        )
+        assert org_mapping.require_email_verification == bool(org.flags.require_email_verification)
+        assert org_mapping.codecov_access == bool(org.flags.codecov_access)
 
 
 @control_silo_test(stable=True)
@@ -196,3 +212,18 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
 
         # Organization mapping shouldn't have changed
         assert_matching_organization_mapping(org=self.organization)
+
+
+@region_silo_test(stable=True)
+class OrganizationMappingReplicationTest(TransactionTestCase):
+    def test_replicates_all_flags(self):
+        self.organization = self.create_organization(slug="santry", region="us")
+        self.organization.flags = 255  # all flags set
+        organization_mapping_service.upsert(
+            organization_id=self.organization.id,
+            update=update_organization_mapping_from_instance(
+                organization=self.organization, region=get_local_region()
+            ),
+        )
+
+        assert_matching_organization_mapping(self.organization, validate_flags=True)

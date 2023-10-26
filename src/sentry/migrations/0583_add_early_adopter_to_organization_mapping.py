@@ -22,10 +22,37 @@ class Migration(CheckedMigration):
         ("sentry", "0582_add_status_indexes_checkins"),
     ]
 
+    new_flags = [
+        "early_adopter",
+        "allow_joinleave",
+        "enhanced_privacy",
+        "disable_shared_issues",
+        "disable_new_visibility_features",
+        "require_email_verification",
+        "codecov_access",
+    ]
+
     operations = [
-        migrations.AddField(
-            model_name="organizationmapping",
-            name="early_adopter",
-            field=models.BooleanField(default=False),
-        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    f"""
+                    ALTER TABLE "sentry_organizationmapping" ADD COLUMN "{column}" BOOLEAN NOT NULL DEFAULT false;
+                    """,
+                    reverse_sql=f"""
+                ALTER TABLE "sentry_organizationmapping" DROP COLUMN "{column}";
+                """,
+                    hints={"tables": ["sentry_groupedmessage"]},
+                )
+                for column in new_flags
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="organizationmapping",
+                    name=column,
+                    field=models.BooleanField(default=False),
+                )
+                for column in new_flags
+            ],
+        )
     ]

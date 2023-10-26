@@ -109,6 +109,12 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
             region_name=update.region_name,
             require_2fa=update.requires_2fa,
             early_adopter=update.early_adopter,
+            allow_joinleave=update.allow_joinleave,
+            enhanced_privacy=update.enhanced_privacy,
+            disable_shared_issues=update.disable_shared_issues,
+            disable_new_visibility_features=update.disable_new_visibility_features,
+            require_email_verification=update.require_email_verification,
+            codecov_access=update.codecov_access,
         )
         if update.customer_id is not None:
             update_dict["customer_id"] = update.customer_id[0]

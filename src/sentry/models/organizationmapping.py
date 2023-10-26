@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from django.db import models
 from django.utils import timezone
@@ -11,6 +11,9 @@ from sentry.db.models import BoundedBigIntegerField, sane_repr
 from sentry.db.models.base import Model, control_silo_only_model
 from sentry.models.organization import OrganizationStatus
 from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH, REGION_NAME_LENGTH
+
+if TYPE_CHECKING:
+    from sentry.services.hybrid_cloud.organization import RpcOrganizationMappingFlags
 
 
 @control_silo_only_model
@@ -38,8 +41,14 @@ class OrganizationMapping(Model):
     status = BoundedBigIntegerField(choices=OrganizationStatus.as_choices(), null=True)
 
     # Replicated from the Organization.flags attribute
+    allow_joinleave = models.BooleanField(default=False)
+    enhanced_privacy = models.BooleanField(default=False)
     require_2fa = models.BooleanField(default=False)
     early_adopter = models.BooleanField(default=False)
+    disable_shared_issues = models.BooleanField(default=False)
+    disable_new_visibility_features = models.BooleanField(default=False)
+    require_email_verification = models.BooleanField(default=False)
+    codecov_access = models.BooleanField(default=False)
 
     class Meta:
         app_label = "sentry"
@@ -74,3 +83,11 @@ class OrganizationMapping(Model):
             return None
 
         return mapping
+
+    @property
+    def flags(self) -> RpcOrganizationMappingFlags:
+        from sentry.services.hybrid_cloud.organization_mapping.serial import (
+            serialize_organization_mapping_flags,
+        )
+
+        return serialize_organization_mapping_flags(self)

@@ -36,3 +36,9 @@ class RpcOrganizationMappingUpdate(RpcModel):
     customer_id: Optional[Tuple[Optional[str]]] = None
     requires_2fa: bool = False
     early_adopter: bool = False
+    codecov_access: bool = False
+    disable_shared_issues: bool = False
+    allow_joinleave: bool = False
+    disable_new_visibility_features: bool = False
+    enhanced_privacy: bool = False
+    require_email_verification: bool = False
