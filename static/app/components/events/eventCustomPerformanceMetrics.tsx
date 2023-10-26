@@ -36,6 +36,10 @@ function isNotMarkMeasurement(field: string) {
   return !field.startsWith('mark.');
 }
 
+function isNotPerformanceScoreMeasurement(field: string) {
+  return !field.startsWith('score.');
+}
+
 export default function EventCustomPerformanceMetrics({
   event,
   location,
@@ -46,6 +50,7 @@ export default function EventCustomPerformanceMetrics({
   const measurementNames = Object.keys(event.measurements ?? {})
     .filter(name => isCustomMeasurement(`measurements.${name}`))
     .filter(isNotMarkMeasurement)
+    .filter(isNotPerformanceScoreMeasurement)
     .sort();
 
   if (measurementNames.length === 0) {
