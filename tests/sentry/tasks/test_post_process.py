@@ -1792,7 +1792,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
                 self.assertNotEqual(args, ("post_process.process_replay_link.id_sampled"))
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class PostProcessGroupErrorTest(
     TestCase,
     AssignmentTestMixin,
