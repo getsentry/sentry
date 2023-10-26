@@ -12,6 +12,7 @@ import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
 import useMarkRead from 'sentry/components/feedback/feedbackItem/useMarkAsRead';
 import useUpdateFeedback from 'sentry/components/feedback/feedbackItem/useUpdateFeedback';
+import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
@@ -31,6 +32,7 @@ interface Props {
 
 export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const organization = useOrganization();
+  const hasReplayId = useFeedbackHasReplayId({feedbackId: feedbackItem.id});
   const {onSetStatus} = useUpdateFeedback({feedbackItem});
   const {markAsRead} = useMarkRead({feedbackItem});
   const url = eventData?.tags.find(tag => tag.key === 'url');
@@ -151,7 +153,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           </ErrorBoundary>
         </Section>
 
-        {replayId ? (
+        {hasReplayId && replayId ? (
           <ReplaySection organization={organization} replayId={replayId} />
         ) : null}
 
