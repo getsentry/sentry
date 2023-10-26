@@ -83,7 +83,7 @@ export const useTransactionSamplesWebVitalsQuery = ({
             'measurements.fid': toNumber(row['measurements.fid']),
             'transaction.duration': toNumber(row['transaction.duration']),
             replayId: row.replayId?.toString(),
-            'profile.id': row.profileId?.toString(),
+            'profile.id': row['profile.id']?.toString(),
             timestamp: row.timestamp?.toString(),
           }))
           .map(row => {
