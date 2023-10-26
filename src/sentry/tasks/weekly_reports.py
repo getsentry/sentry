@@ -29,9 +29,7 @@ from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.notifications.helpers import should_use_notifications_v2
-from sentry.notifications.notificationcontroller import NotificationController
-from sentry.notifications.types import NotificationSettingEnum
-from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -657,15 +655,10 @@ def deliver_reports(
             .filter(flags=F("flags").bitand(~OrganizationMember.flags["member-limit:restricted"]))
             .values_list("user_id", flat=True)
         )
-
-        users = [RpcUser(id=user_id) for user_id in user_list]
-        controller = NotificationController(
-            recipients=users,
-            organization_id=ctx.organization.id,
-            type=NotificationSettingEnum.REPORTS,
+        user_list = list(filter(lambda v: v is not None, user_list))
+        user_ids = notifications_service.get_users_for_weekly_reports(
+            organization_id=ctx.organization.id, user_ids=user_list
         )
-
-        user_ids = controller.get_users_for_weekly_reports()
         for user_id in user_ids:
             send_email(ctx, user_id, dry_run=dry_run)
 

@@ -146,7 +146,10 @@ test-monolith-dbs: create-db
 	SENTRY_LEGACY_TEST_SUITE=1 \
 	SENTRY_USE_MONOLITH_DBS=1 \
 	pytest \
-	  tests/sentry/backup \
+	  tests/sentry/backup/test_exhaustive.py \
+	  tests/sentry/backup/test_exports.py \
+	  tests/sentry/backup/test_imports.py \
+	  tests/sentry/backup/test_releases.py \
 	  tests/sentry/runner/commands/test_backup.py \
 	  --cov . \
 	  --cov-report="xml:.artifacts/python.monolith-dbs.coverage.xml" \

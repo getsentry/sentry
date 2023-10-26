@@ -4,6 +4,7 @@ import {Location} from 'history';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import FeatureBadge from 'sentry/components/featureBadge';
+import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -146,6 +147,7 @@ function SpanSummaryPage({params}: Props) {
       </Layout.Header>
 
       <Layout.Body>
+        <FeedbackWidget />
         <Layout.Main fullWidth>
           <HeaderContainer>
             <PaddedContainer>

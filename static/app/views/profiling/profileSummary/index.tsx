@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -12,6 +12,8 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import SearchBar from 'sentry/components/events/searchBar';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -50,6 +52,7 @@ import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggre
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
+import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -90,7 +93,7 @@ const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
 };
 interface ProfileSummaryHeaderProps {
   location: Location;
-  onViewChange: (newVie: 'flamegraph' | 'profiles') => void;
+  onViewChange: (newView: 'flamegraph' | 'profiles') => void;
   organization: Organization;
   project: Project | null;
   query: string;
@@ -157,8 +160,8 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
       )}
       <Tabs onChange={props.onViewChange} value={props.view}>
         <TabList hideBorder>
-          <TabList.Item key="flamegraph">Flamegraph</TabList.Item>
-          <TabList.Item key="profiles">profiles</TabList.Item>
+          <TabList.Item key="flamegraph">{t('Flamegraph')}</TabList.Item>
+          <TabList.Item key="profiles">{t('Sampled Profiles')}</TabList.Item>
         </TabList>
       </Tabs>
     </ProfilingHeader>
@@ -328,7 +331,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     return search.formatString();
   }, [rawQuery, transaction]);
 
-  const {data} = useAggregateFlamegraphQuery({transaction});
+  const {data, isLoading, isError} = useAggregateFlamegraphQuery({transaction});
 
   const [visualization, setVisualization] = useLocalStorageState<
     'flamegraph' | 'call tree'
@@ -369,6 +372,13 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   const [view, setView] = useState<'flamegraph' | 'profiles'>(
     decodeViewOrDefault(location.query.view, 'flamegraph')
   );
+
+  useEffect(() => {
+    const newView = decodeViewOrDefault(location.query.view, 'flamegraph');
+    if (newView !== view) {
+      setView(decodeViewOrDefault(location.query.view, 'flamegraph'));
+    }
+  }, [location.query.view, view]);
 
   const onSetView = useCallback(
     (newView: 'flamegraph' | 'profiles') => {
@@ -448,6 +458,15 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                             hideSystemFrames={false}
                             setHideSystemFrames={() => void 0}
                           />
+                          {isLoading ? (
+                            <RequestStateMessageContainer>
+                              <LoadingIndicator />
+                            </RequestStateMessageContainer>
+                          ) : isError ? (
+                            <RequestStateMessageContainer>
+                              {t('There was an error loading the flamegraph.')}
+                            </RequestStateMessageContainer>
+                          ) : null}
                           {visualization === 'flamegraph' ? (
                             <AggregateFlamegraph
                               canvasPoolManager={canvasPoolManager}
@@ -470,7 +489,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
               </ProfileVisualization>
               <ProfileDigestContainer>
                 <ProfileDigestScrollContainer>
-                  <ProfileDigest />
+                  <ProfileDigest onViewChange={onSetView} />
                   <MostRegressedProfileFunctions transaction={transaction} />
                   <SlowestProfileFunctions transaction={transaction} />
                 </ProfileDigestScrollContainer>
@@ -482,6 +501,18 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     </SentryDocumentTitle>
   );
 }
+
+const RequestStateMessageContainer = styled('div')`
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: ${p => p.theme.subText};
+`;
 
 const AggregateFlamegraphContainer = styled('div')`
   display: flex;
@@ -643,8 +674,15 @@ const PROFILE_DIGEST_FIELDS = [
 
 const percentiles = ['p75()', 'p95()', 'p99()'] as const;
 
-function ProfileDigest() {
+interface ProfileDigestProps {
+  onViewChange: (newView: 'flamegraph' | 'profiles') => void;
+}
+
+function ProfileDigest(props: ProfileDigestProps) {
   const location = useLocation();
+  const organization = useOrganization();
+  const project = useCurrentProjectFromRouteParam();
+
   const profilesCursor = useMemo(
     () => decodeScalar(location.query.cursor),
     [location.query.cursor]
@@ -657,8 +695,26 @@ function ProfileDigest() {
     sort: {key: 'last_seen()', order: 'desc'},
     referrer: 'api.profiling.profile-summary-table',
   });
-
   const data = profiles.data?.data?.[0];
+
+  const latestProfile = useProfileEvents<ProfilingFieldType>({
+    cursor: profilesCursor,
+    fields: ['profile.id', 'timestamp'],
+    query: '',
+    sort: {key: 'timestamp', order: 'desc'},
+    limit: 1,
+    referrer: 'api.profiling.profile-summary-table',
+  });
+  const profile = latestProfile.data?.data?.[0];
+
+  const flamegraphTarget =
+    project && profile
+      ? generateProfileFlamechartRoute({
+          orgSlug: organization.slug,
+          projectSlug: project.slug,
+          profileId: profile?.['profile.id'] as string,
+        })
+      : undefined;
 
   return (
     <ProfileDigestHeader>
@@ -669,6 +725,10 @@ function ProfileDigest() {
             ''
           ) : profiles.isError ? (
             ''
+          ) : flamegraphTarget ? (
+            <Link to={flamegraphTarget}>
+              <DateTime date={new Date(data?.['last_seen()'] as string)} />
+            </Link>
           ) : (
             <DateTime date={new Date(data?.['last_seen()'] as string)} />
           )}
@@ -699,7 +759,9 @@ function ProfileDigest() {
           ) : profiles.isError ? (
             ''
           ) : (
-            <Count value={data?.['count()'] as number} />
+            <Link onClick={() => props.onViewChange('profiles')} to="">
+              <Count value={data?.['count()'] as number} />
+            </Link>
           )}
         </div>
       </ProfileDigestColumn>

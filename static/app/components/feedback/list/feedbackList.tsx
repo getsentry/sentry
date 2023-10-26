@@ -91,7 +91,7 @@ export default function FeedbackList() {
 
   return (
     <Fragment>
-      <FeedbackListHeader checked={checked} />
+      <FeedbackListHeader checked={checked} toggleChecked={toggleChecked} />
       <OverflowPanelItem noPadding>
         <InfiniteLoader
           isRowLoaded={isRowLoaded}

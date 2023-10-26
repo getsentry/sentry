@@ -15,6 +15,7 @@ import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hook
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {formatColorForFrame} from 'sentry/utils/profiling/gl/utils';
+import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {
   useVirtualizedTree,
   UseVirtualizedTreeProps,
@@ -23,8 +24,11 @@ import {VirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/V
 import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 import {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useFlamegraph} from 'sentry/views/profiling/flamegraphProvider';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
+
+import {AggregateFlamegraphTreeContextMenu} from './aggregateFlamegraphTreeContextMenu';
 
 function computeRelativeWeight(base: number, value: number) {
   // Make sure we dont divide by zero
@@ -63,6 +67,7 @@ interface FastFrameCallersRowsProps {
 interface FastFrameCallerRowProps {
   children: React.ReactNode;
   onClick: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
   onKeyDown: (event: React.KeyboardEvent) => void;
   onMouseEnter: () => void;
   tabIndex: number;
@@ -79,6 +84,7 @@ const FastFrameCallersRow = forwardRef<HTMLDivElement, FastFrameCallerRowProps>(
         onClick={props.onClick}
         onKeyDown={props.onKeyDown}
         onMouseEnter={props.onMouseEnter}
+        onContextMenu={props.onContextMenu}
       >
         {props.children}
       </div>
@@ -395,6 +401,11 @@ export function AggregateFlamegraphTreeTable({
   const theme = useFlamegraphTheme();
   const referenceNode = flamegraph.root;
 
+  const [treeView, setTreeView] = useLocalStorageState<'bottom up' | 'top down'>(
+    'profiling-aggregate-call-tree-view',
+    'bottom up'
+  );
+
   const rootNodes = useMemo(() => {
     return flamegraph.root.children;
   }, [flamegraph.root.children]);
@@ -409,10 +420,13 @@ export function AggregateFlamegraphTreeTable({
     }
 
     const maybeFilteredRoots =
-      frameFilter !== 'all' ? filterFlamegraphTree(rootNodes, skipFunction) : rootNodes;
+      frameFilter === 'all' ? rootNodes : filterFlamegraphTree(rootNodes, skipFunction);
 
+    if (treeView === 'top down') {
+      return maybeFilteredRoots;
+    }
     return invertCallTree(maybeFilteredRoots);
-  }, [frameFilter, rootNodes]);
+  }, [frameFilter, rootNodes, treeView]);
 
   const {colorMap} = useMemo(() => {
     return theme.COLORS.STACK_TO_COLOR(
@@ -461,6 +475,11 @@ export function AggregateFlamegraphTreeTable({
     return makeSortFunction(sort, direction);
   }, [sort, direction]);
 
+  const [tableParentContainer, setTableParentContainer] = useState<HTMLDivElement | null>(
+    null
+  );
+  const contextMenu = useContextMenu({container: tableParentContainer});
+
   const fixedRenderRow: UseVirtualizedTreeProps<FlamegraphFrame>['renderRow'] =
     useCallback(
       (
@@ -484,6 +503,7 @@ export function AggregateFlamegraphTreeTable({
             onKeyDown={handleRowKeyDown}
             onClick={handleRowClick}
             onMouseEnter={handleRowMouseEnter}
+            onContextMenu={contextMenu.handleContextMenu}
           >
             <FastFrameCallersFixedRows
               node={r.item}
@@ -496,7 +516,7 @@ export function AggregateFlamegraphTreeTable({
           </FastFrameCallersRow>
         );
       },
-      [referenceNode, flamegraph.formatter, getFrameColor]
+      [referenceNode, flamegraph.formatter, getFrameColor, contextMenu]
     );
 
   const dynamicRenderRow: UseVirtualizedTreeProps<FlamegraphFrame>['renderRow'] =
@@ -522,6 +542,7 @@ export function AggregateFlamegraphTreeTable({
             onKeyDown={handleRowKeyDown}
             onClick={handleRowClick}
             onMouseEnter={handleRowMouseEnter}
+            onContextMenu={contextMenu.handleContextMenu}
           >
             <FastFrameCallersDynamicRows
               node={r.item}
@@ -534,7 +555,7 @@ export function AggregateFlamegraphTreeTable({
           </FastFrameCallersRow>
         );
       },
-      [referenceNode, flamegraph.formatter, getFrameColor]
+      [referenceNode, flamegraph.formatter, getFrameColor, contextMenu]
     );
 
   // This is slighlty unfortunate and ugly, but because our two columns are sticky
@@ -712,54 +733,69 @@ export function AggregateFlamegraphTreeTable({
             </TableHeaderButton>
           </FrameNameCell>
         </FrameCallersTableHeader>
-        <FixedTableItemsContainer>
-          {/*
+        <AggregateFlamegraphTableContainer ref={setTableParentContainer}>
+          <AggregateFlamegraphTreeContextMenu
+            onBottomUpClick={() => setTreeView('bottom up')}
+            onTopDownClick={() => setTreeView('top down')}
+            contextMenu={contextMenu}
+          />
+          <FixedTableItemsContainer>
+            {/*
           The order of these two matters because we want clicked state to
           be on top of hover in cases where user is hovering a clicked row.
            */}
-          <div ref={setFixedScrollContainerRef} style={scrollContainerStyles}>
-            <div style={fixedContainerStyles}>
-              {renderItems.map(r => {
-                return fixedRenderRow(r, {
-                  handleRowClick: handleRowClick(r.key),
-                  handleRowMouseEnter: handleRowMouseEnter(r.key),
-                  handleExpandTreeNode,
-                  handleRowKeyDown,
-                  selectedNodeIndex,
-                });
-              })}
-              <div className={FastFrameCallersTableClassNames.GHOST_ROW_CONTAINER}>
-                <div className={FastFrameCallersTableClassNames.GHOST_ROW_CELL} />
-                <div className={FastFrameCallersTableClassNames.GHOST_ROW_CELL} />
+            <div ref={setFixedScrollContainerRef} style={scrollContainerStyles}>
+              <div style={fixedContainerStyles}>
+                {renderItems.map(r => {
+                  return fixedRenderRow(r, {
+                    handleRowClick: handleRowClick(r.key),
+                    handleRowMouseEnter: handleRowMouseEnter(r.key),
+                    handleExpandTreeNode,
+                    handleRowKeyDown,
+                    selectedNodeIndex,
+                  });
+                })}
+                <div className={FastFrameCallersTableClassNames.GHOST_ROW_CONTAINER}>
+                  <div className={FastFrameCallersTableClassNames.GHOST_ROW_CELL} />
+                  <div className={FastFrameCallersTableClassNames.GHOST_ROW_CELL} />
+                </div>
               </div>
             </div>
-          </div>
-        </FixedTableItemsContainer>
-        <DynamicTableItemsContainer>
-          {/*
+          </FixedTableItemsContainer>
+          <DynamicTableItemsContainer>
+            {/*
           The order of these two matters because we want clicked state to
           be on top of hover in cases where user is hovering a clicked row.
            */}
-          <div ref={setDynamicScrollContainerRef} style={scrollContainerStyles}>
-            <div style={fixedContainerStyles}>
-              {renderItems.map(r => {
-                return dynamicRenderRow(r, {
-                  handleRowClick: handleRowClick(r.key),
-                  handleRowMouseEnter: handleRowMouseEnter(r.key),
-                  handleExpandTreeNode,
-                  handleRowKeyDown,
-                  selectedNodeIndex,
-                });
-              })}
+            <div ref={setDynamicScrollContainerRef} style={scrollContainerStyles}>
+              <div style={fixedContainerStyles}>
+                {renderItems.map(r => {
+                  return dynamicRenderRow(r, {
+                    handleRowClick: handleRowClick(r.key),
+                    handleRowMouseEnter: handleRowMouseEnter(r.key),
+                    handleExpandTreeNode,
+                    handleRowKeyDown,
+                    selectedNodeIndex,
+                  });
+                })}
+              </div>
             </div>
-          </div>
-        </DynamicTableItemsContainer>
-        <div ref={hoveredGhostRowRef} style={{zIndex: 0}} />
-        <div ref={clickedGhostRowRef} style={{zIndex: 0}} />
+          </DynamicTableItemsContainer>
+          <div ref={hoveredGhostRowRef} style={{zIndex: 0}} />
+          <div ref={clickedGhostRowRef} style={{zIndex: 0}} />
+        </AggregateFlamegraphTableContainer>
       </FrameCallersTable>
     </FrameBar>
   );
 }
+
+const AggregateFlamegraphTableContainer = styled('div')`
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  right: 0;
+`;
 
 const FRAME_WEIGHT_CELL_WIDTH_PX = 164;
 const FixedTableItemsContainer = styled('div')`

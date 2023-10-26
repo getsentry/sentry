@@ -347,13 +347,15 @@ function Sidebar({location, organization}: Props) {
   );
 
   const userFeedback = hasOrganization && (
-    <SidebarItem
-      {...sidebarItemProps}
-      icon={<IconSupport />}
-      label={t('User Feedback')}
-      to={`/organizations/${organization.slug}/user-feedback/`}
-      id="user-feedback"
-    />
+    <Feature features={['old-user-feedback']} organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconSupport />}
+        label={t('User Feedback')}
+        to={`/organizations/${organization.slug}/user-feedback/`}
+        id="user-feedback"
+      />
+    </Feature>
   );
 
   const feedback = hasOrganization && (
@@ -361,10 +363,11 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconMegaphone />}
-        label={t('Bug Reports')}
+        label={t('User Feedback')}
         to={`/organizations/${organization.slug}/feedback/`}
         id="feedback"
         isAlpha
+        variant="short"
       />
     </Feature>
   );

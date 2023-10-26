@@ -93,6 +93,5 @@ class OccurrenceStatusChange:
                 substatus=self.new_substatus,
                 activity_type=activity_type,
             )
-
         else:
             raise NotImplementedError(f"Unsupported status: {self.new_status} {self.new_substatus}")

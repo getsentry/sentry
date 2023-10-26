@@ -60,13 +60,17 @@ function ObjectInspector({data, onCopy, showCopyButton, theme, ...props}: Props)
           size="xs"
           text={JSON.stringify(data, null, '\t')}
         />
-        {inspector}
+        <InspectorWrapper>{inspector}</InspectorWrapper>
       </Wrapper>
     );
   }
 
   return inspector;
 }
+
+const InspectorWrapper = styled('div')`
+  margin-right: ${space(4)};
+`;
 
 const Wrapper = styled('div')`
   position: relative;

@@ -2,6 +2,7 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import FeedbackEmptyDetails from 'sentry/components/feedback/details/feedbackEmptyDetails';
 import {FeedbackDataContext} from 'sentry/components/feedback/feedbackDataContext';
 import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
@@ -42,6 +43,7 @@ export default function FeedbackListPage({}: Props) {
       start: decodeScalar,
       statsPeriod: decodeScalar,
       utc: decodeScalar,
+      mailbox: decodeMailbox,
     },
   });
   const {feedbackSlug} = useLocationQuery({
@@ -51,11 +53,11 @@ export default function FeedbackListPage({}: Props) {
   });
 
   return (
-    <SentryDocumentTitle title={t(`Bug Reports`)} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
       <FullViewport>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Layout.Title>{t('Bug Reports')}</Layout.Title>
+            <Layout.Title>{t('User Feedback')}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
         <PageFiltersContainer>

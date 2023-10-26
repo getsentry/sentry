@@ -64,7 +64,6 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
 from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequest, PullRequestCommit
 from sentry.models.release import Release
@@ -94,7 +93,6 @@ from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.outcomes import Outcome
 from sentry.utils.samples import load_data
-from tests.sentry.integrations.github.test_repository import stub_installation_token
 
 pytestmark = [requires_snuba]
 
@@ -2489,9 +2487,6 @@ class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
         super().setUp()
         self.repo_name = "example"
         self.project = self.create_project(name="foo")
-        self.integration = Integration.objects.create(
-            provider="github", name=self.repo_name, external_id="654321"
-        )
         self.org_integration = self.integration.add_organization(
             self.project.organization, self.user
         )
@@ -2510,7 +2505,6 @@ class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
             source_root="/source/root",
             default_branch="main",
         )
-        stub_installation_token()
         responses.add(
             "GET",
             f"https://api.github.com/repos/{self.repo_name}/commits/{LATER_COMMIT_SHA}",
