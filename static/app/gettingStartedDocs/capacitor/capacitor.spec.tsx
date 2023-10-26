@@ -10,7 +10,7 @@ describe('GettingStartedWithCapacitor', function () {
 
     // Steps
     for (const step of steps({
-      siblingOption: SiblingOption.AngularV12,
+      siblingOption: SiblingOption.ANGULARV12,
       errorHandlerProviders: 'test-error-handler-providers',
       sentryInitContent: 'test-init-content',
     })) {
