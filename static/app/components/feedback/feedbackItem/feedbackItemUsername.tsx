@@ -1,9 +1,9 @@
 import {t} from 'sentry/locale';
-import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
+import type {FeedbackItemResponse} from 'sentry/utils/feedback/types';
 
 interface Props {
   detailDisplay: boolean;
-  feedbackItem: HydratedFeedbackItem;
+  feedbackItem: FeedbackItemResponse;
 }
 
 export default function FeedbackItemUsername({feedbackItem, detailDisplay}: Props) {

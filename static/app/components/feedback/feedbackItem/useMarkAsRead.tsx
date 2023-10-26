@@ -6,16 +6,16 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
+import type {FeedbackItemResponse} from 'sentry/utils/feedback/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
-  feedbackItem: HydratedFeedbackItem;
+  feedbackItem: FeedbackItemResponse;
 }
 
 export default function useMarkAsRead({feedbackItem}: Props) {
-  const feedbackId = feedbackItem.feedback_id;
+  const feedbackId = feedbackItem.id;
 
   const api = useApi();
   const organization = useOrganization();

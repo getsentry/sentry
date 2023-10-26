@@ -5,11 +5,11 @@ import DateTime from 'sentry/components/dateTime';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {AvatarUser} from 'sentry/types';
-import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
+import type {FeedbackItemResponse} from 'sentry/utils/feedback/types';
 import {userDisplayName} from 'sentry/utils/formatters';
 
 interface Props {
-  feedbackItem: HydratedFeedbackItem;
+  feedbackItem: FeedbackItemResponse;
 }
 
 export default function FeedbackViewers({feedbackItem}: Props) {
