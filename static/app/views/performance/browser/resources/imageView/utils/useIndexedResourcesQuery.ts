@@ -57,7 +57,7 @@ export const useIndexedResourcesQuery = () => {
     limit: 100,
     location,
     orgSlug,
-    referrer: 'api.performance.browswer.resource.image-table',
+    referrer: 'api.performance.browser.resource.image-table',
   });
 
   const data =
