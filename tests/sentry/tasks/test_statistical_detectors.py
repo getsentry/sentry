@@ -56,24 +56,33 @@ def project(organization):
     [
         "project_flags",
         "enable",
+        "performance_project_option_enabled",
         "performance_project",
         "expected_performance_project",
         "profiling_project",
         "expected_profiling_project",
     ],
     [
-        pytest.param(None, False, True, False, True, False, id="disabled"),
-        pytest.param(None, True, False, False, False, False, id="no projects"),
-        pytest.param(None, True, True, False, False, False, id="no transactions"),
-        pytest.param(None, True, False, False, True, False, id="no profiles"),
+        pytest.param(None, False, True, True, False, True, False, id="disabled"),
+        pytest.param(None, True, True, False, False, False, False, id="no projects"),
+        pytest.param(None, True, True, True, False, False, False, id="no transactions"),
+        pytest.param(None, True, True, False, False, True, False, id="no profiles"),
         pytest.param(
-            Project.flags.has_transactions, True, True, True, False, False, id="performance only"
+            Project.flags.has_transactions,
+            True,
+            True,
+            True,
+            True,
+            False,
+            False,
+            id="performance only",
         ),
         pytest.param(
-            Project.flags.has_profiles, True, False, False, True, True, id="profiling only"
+            Project.flags.has_profiles, True, True, False, False, True, True, id="profiling only"
         ),
         pytest.param(
             Project.flags.has_transactions | Project.flags.has_profiles,
+            True,
             True,
             False,
             False,
@@ -81,18 +90,31 @@ def project(organization):
             True,
             id="performance + profiling",
         ),
+        pytest.param(
+            Project.flags.has_transactions,
+            True,
+            False,
+            False,
+            False,
+            False,
+            False,
+            id="performance project option disabled",
+        ),
     ],
 )
 @mock.patch("sentry.tasks.statistical_detectors.detect_transaction_trends")
 @mock.patch("sentry.tasks.statistical_detectors.detect_function_trends")
+@mock.patch("sentry.tasks.statistical_detectors.get_performance_issues_project_settings")
 @django_db_all
 def test_run_detection_options(
+    get_performance_issues_project_settings,
     detect_function_trends,
     detect_transaction_trends,
     project_flags,
     enable,
     performance_project,
     profiling_project,
+    performance_project_option_enabled,
     expected_performance_project,
     expected_profiling_project,
     project,
@@ -109,6 +131,10 @@ def test_run_detection_options(
         "statistical_detectors.enable.projects.profiling": [project.id]
         if profiling_project
         else [],
+    }
+
+    get_performance_issues_project_settings.return_value = {
+        "duration_regression_detection_enabled": performance_project_option_enabled
     }
 
     with freeze_time(timestamp), override_options(options), TaskRunner():
