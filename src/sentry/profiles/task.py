@@ -351,19 +351,19 @@ def _prepare_frames_from_profile(
                         # and append it to the list. This ensures correct behavior
                         # if the leaf frame also shows up in the middle of another stack.
                         first_frame_idx = stack[0]
-                        if first_frame_idx in frames_sent:
-                            frame = deepcopy(profile["profile"]["frames"][first_frame_idx])
-                            frame["adjust_instruction_addr"] = False
-                            if profile["platform"] not in JS_PLATFORMS:
-                                frames.append(frame)
-                                stack[0] = len(frames) - 1
-                            else:
-                                # In case where root platform is not cocoa, but we're dealing
-                                # with a cocoa stack (as in react-native), since we're relying
-                                # on frames_sent instead of sending back the whole
-                                # profile["profile"]["frames"], we have to append the deepcopy
-                                # frame both to the original frames and to the list frames.
-                                # see _process_symbolicator_results_for_sample method's logic
+                        frame = deepcopy(profile["profile"]["frames"][first_frame_idx])
+                        frame["adjust_instruction_addr"] = False
+                        if profile["platform"] not in JS_PLATFORMS:
+                            frames.append(frame)
+                            stack[0] = len(frames) - 1
+                        else:
+                            # In case where root platform is not cocoa, but we're dealing
+                            # with a cocoa stack (as in react-native), since we're relying
+                            # on frames_sent instead of sending back the whole
+                            # profile["profile"]["frames"], we have to append the deepcopy
+                            # frame both to the original frames and to the list frames.
+                            # see _process_symbolicator_results_for_sample method's logic
+                            if first_frame_idx in frames_sent:
                                 profile["profile"]["frames"].append(frame)
                                 frames.append(frame)
                                 stack[0] = len(profile["profile"]["frames"]) - 1
