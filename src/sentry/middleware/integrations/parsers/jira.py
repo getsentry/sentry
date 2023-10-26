@@ -63,3 +63,5 @@ class JiraRequestParser(BaseRequestParser):
 
         if self.view_class in self.outbox_response_region_classes:
             return self.get_response_from_outbox_creation(regions=regions)
+
+        return self.get_response_from_control_silo()
