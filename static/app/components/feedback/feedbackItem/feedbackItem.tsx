@@ -162,7 +162,11 @@ export default function FeedbackItem({
         </Section>
 
         {hasReplayId && replayId ? (
-          <ReplaySection organization={organization} replayId={replayId} />
+          <ReplaySection
+            eventTimestampMs={new Date(feedbackItem.firstSeen).getTime()}
+            organization={organization}
+            replayId={replayId}
+          />
         ) : null}
 
         <TagsSection tags={tags} />
