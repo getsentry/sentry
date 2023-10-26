@@ -10,9 +10,8 @@ import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedba
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
-import useMarkRead from 'sentry/components/feedback/feedbackItem/useMarkAsRead';
-import useUpdateFeedback from 'sentry/components/feedback/feedbackItem/useUpdateFeedback';
 import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
+import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
@@ -27,14 +26,23 @@ import useOrganization from 'sentry/utils/useOrganization';
 interface Props {
   eventData: Event | undefined;
   feedbackItem: FeedbackIssue;
+  refetchIssue: () => void;
   tags: Record<string, string>;
 }
 
-export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
+export default function FeedbackItem({
+  feedbackItem,
+  eventData,
+  refetchIssue,
+  tags,
+}: Props) {
   const organization = useOrganization();
   const hasReplayId = useFeedbackHasReplayId({feedbackId: feedbackItem.id});
-  const {onSetStatus} = useUpdateFeedback({feedbackItem});
-  const {markAsRead} = useMarkRead({feedbackItem});
+  const {markAsRead, resolve} = useMutateFeedback({
+    feedbackId: feedbackItem.id,
+    organization,
+    refetchIssue,
+  });
   const url = eventData?.tags.find(tag => tag.key === 'url');
 
   const replayId = eventData?.contexts?.feedback?.replay_id;
@@ -92,7 +100,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
                         ? t('Unresolve')
                         : t('Resolve'),
                     onAction: () =>
-                      onSetStatus(
+                      resolve(
                         feedbackItem.status === GroupStatus.RESOLVED
                           ? GroupStatus.UNRESOLVED
                           : GroupStatus.RESOLVED
@@ -105,7 +113,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
                         ? t('Unarchive')
                         : t('Archive'),
                     onAction: () =>
-                      onSetStatus(
+                      resolve(
                         feedbackItem.status === GroupStatus.IGNORED
                           ? GroupStatus.UNRESOLVED
                           : GroupStatus.IGNORED
