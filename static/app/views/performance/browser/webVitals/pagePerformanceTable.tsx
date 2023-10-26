@@ -16,6 +16,7 @@ import {space} from 'sentry/styles/space';
 import {Sort} from 'sentry/utils/discover/fields';
 import {formatAbbreviatedNumber, getDuration} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {calculateOpportunity} from 'sentry/views/performance/browser/webVitals/utils/calculateOpportunity';
@@ -45,6 +46,7 @@ const columnOrder: GridColumnOrder<keyof RowWithScoreAndOpportunity>[] = [
 ];
 
 export function PagePerformanceTable() {
+  const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
   const [search, setSearch] = useState<string | undefined>(undefined);
@@ -161,7 +163,15 @@ export function PagePerformanceTable() {
             />
           )}
           <Link
-            to={{...location, query: {...location.query, transaction: row.transaction}}}
+            to={{
+              ...location,
+              ...(organization.features.includes(
+                'starfish-browser-webvitals-pageoverview-v2'
+              )
+                ? {pathname: `${location.pathname}overview/`}
+                : {}),
+              query: {...location.query, transaction: row.transaction},
+            }}
           >
             {row.transaction}
           </Link>
