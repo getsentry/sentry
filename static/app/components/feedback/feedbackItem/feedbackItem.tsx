@@ -20,21 +20,22 @@ import {IconEllipsis, IconJson, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, GroupStatus} from 'sentry/types';
-import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
+import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   eventData: Event | undefined;
-  feedbackItem: HydratedFeedbackItem;
-  replayId: string;
+  feedbackItem: FeedbackIssue;
   tags: Record<string, string>;
 }
 
-export default function FeedbackItem({feedbackItem, eventData, tags, replayId}: Props) {
+export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const organization = useOrganization();
   const {onSetStatus} = useUpdateFeedback({feedbackItem});
   const {markAsRead} = useMarkRead({feedbackItem});
   const url = eventData?.tags.find(tag => tag.key === 'url');
+
+  const replayId = eventData?.contexts?.feedback?.replay_id;
 
   return (
     <Fragment>
