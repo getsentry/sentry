@@ -13,12 +13,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
-defaults:
-  run:
-    # the default default is:
-    #      bash --noprofile --norc -eo pipefail {0}
-    shell: bash --noprofile --norc -eo pipefail -ux {0}
-
 jobs:
     files-changed:
         name: detect what files changed
@@ -44,11 +38,6 @@ jobs:
         if: needs.files-changed.outputs.backend == 'true'
         needs: files-changed
         runs-on: ubuntu-latest
-        # Map a step output to a job output
-        outputs:
-          ATS_TESTS_TO_RUN: ${{ steps.codecov_automated_test_selection.outputs.ATS_TESTS_TO_RUN }}
-          ATS_TESTS_TO_SKIP: ${{ steps.codecov_automated_test_selection.outputs.ATS_TESTS_TO_SKIP }}
-          ats_success: ${{ steps.codecov_automated_test_selection.outputs.ats_success }}
         steps:
         - uses: actions/checkout@v3
           with:
@@ -98,8 +87,6 @@ jobs:
         # The base commit will be the parent commit (apparently commits on master don't exist in codecov)
         - name: Codecov Automated Test Selection
           id: codecov_automated_test_selection
-          # Avoid PRs being marked X by a workflow devs should ignore
-          continue-on-error: true
           run: |
             BASE_COMMIT=$(git merge-base ${{ github.sha }}^ origin/master)
             echo $BASE_COMMIT
@@ -107,20 +94,21 @@ jobs:
             if [ -n "${output}" ];
             then
 
-              echo ATS_TESTS_TO_RUN=$(jq <<< $output '.runner_options + .ats_tests_to_run | @json | @sh' --raw-output) >> "$GITHUB_OUTPUT"
-              echo ATS_TESTS_TO_SKIP=$(jq <<< $output '.runner_options + .ats_tests_to_skip | @json | @sh' --raw-output) >> "$GITHUB_OUTPUT"
+              echo $(jq <<< $output '.runner_options + .ats_tests_to_run | @json' --raw-output) > .artifacts/codecov_ats_tests_to_run.json
+              echo $(jq <<< $output '.runner_options + .ats_tests_to_skip | @json' --raw-output) > .artifacts/codecov_ats_tests_to_skip.json
 
               testcount() { jq <<< $output ".$1 | length"; }
               run_count=$(testcount ats_tests_to_run)
               skip_count=$(testcount ats_tests_to_skip)
               tee <<< "Selected $run_count / $(($run_count + $skip_count)) tests to run" "$GITHUB_STEP_SUMMARY"
-              echo "ats_success=true" >> "$GITHUB_OUTPUT"
+              # Once codecov/engineering-team#711 is done we can starting adding error codes here
+              # And also change 'ats_success' to the actual value (fallback to all tests is not considered success)
+              tee <<< '{"ats_success": true, "error": null,}' "$GITHUB_STEP_SUMMARY" ".artifacts/ats_result.json"
             else
-              tee <<< "ATS failed. Can't get list of tests to run. Fallback to all tests" "$GITHUB_STEP_SUMMARY"
+              tee <<< "ATS failed. Can't get list of tests to run." "$GITHUB_STEP_SUMMARY"
               # We need not forget to add the search options in the fallback command, otherwise pytest might run more tests than expected
               # These search options match what's defined in codecov.yml:105
-              echo 'ATS_TESTS_TO_RUN<<EOF' >> $GITHUB_OUTPUT
-              jq -c @json <<< '[
+              jq '@json' --raw-output <<< '[
                 "--cov-context=test",
                 "tests/sentry",
                 "tests/integration",
@@ -130,14 +118,29 @@ jobs:
                 "--ignore=tests/sentry/search/events",
                 "--ignore=tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py",
                 "--ignore=tests/sentry/region_to_control/test_region_to_control_kafka.py"
-              ]' >> $GITHUB_OUTPUT
-              echo 'EOF' >> $GITHUB_OUTPUT
-              echo ATS_TESTS_TO_SKIP="'[]'" >> "$GITHUB_OUTPUT"
-              echo "ats_success=false" >> "$GITHUB_OUTPUT"
+              ]' > .artifacts/codecov_ats_tests_to_skip.json
+              echo '[]' > .artifacts/codecov_ats_tests_to_run.json
+              # If we reached this point it means that ATS failed with some error
+              tee <<< '{"ats_success": false, "error": "exception_raised"}' "$GITHUB_STEP_SUMMARY" ".artifacts/ats_result.json"
             fi
           env:
             CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
             CODECOV_STATIC_TOKEN: ${{ secrets.CODECOV_STATIC_TOKEN }}
+        - uses: actions/upload-artifact@v3
+          with:
+            name: ats_tests_to_run.json
+            path: .artifacts/codecov_ats_tests_to_run.json
+            if-no-files-found: error
+        - uses: actions/upload-artifact@v3
+          with:
+            name: ats_tests_to_skip.json
+            path: .artifacts/codecov_ats_tests_to_skip.json
+            if-no-files-found: error
+        - uses: actions/upload-artifact@v3
+          with:
+            name: ats_result.json
+            path: .artifacts/codecov_ats_result.json
+            if-no-files-found: error
     # The actual running of tests would come here, after the labels are available
     # Something like pytest <options> $ATS_TESTS_TO_RUN
     debug:
@@ -147,28 +150,33 @@ jobs:
         - files-changed
       if: needs.files-changed.outputs.backend == 'true'
       steps:
+        - uses: actions/download-artifact@v3
+          with:
+            name: ats_tests_to_run.json
+            path: .artifacts
+        - uses: actions/download-artifact@v3
+          with:
+            name: ats_tests_to_skip.json
+            path: .artifacts
         - name: Debug ATS_TESTS_TO_RUN
           run: |
-            : ${{ needs.coverage-ats.outputs.ATS_TESTS_TO_RUN }}
-            length_of_tests=$(jq <<< ${{ needs.coverage-ats.outputs.ATS_TESTS_TO_RUN }} 'length')
+            length_of_tests=$(cat .artifacts/codecov_ats_tests_to_run.json | jq 'length')
             # The 1st value doesn't count, it's '--cov-context=test' (hence -gt 1)
             if [ $length_of_tests -gt 1 ]; then
               echo "Running $length_of_tests tests"
               # --raw-output0 doesn't work.
-              jq <<< ${{ needs.coverage-ats.outputs.ATS_TESTS_TO_RUN }} 'join("\u0000")' --raw-output | tr -d '\n' | xargs -r0 echo
+              cat .artifacts/codecov_ats_tests_to_run.json | jq 'join("\u0000")' --raw-output | tr -d '\n' | xargs -r0 echo 'pytest'
             else
               echo "No tests to run"
             fi
         - name: Debug ATS_TESTS_TO_SKIP
           run: |
-            : ${{ needs.coverage-ats.outputs.ATS_TESTS_TO_SKIP }}
-            ATS_TESTS_TO_SKIP='${{ needs.coverage-ats.outputs.ATS_TESTS_TO_SKIP }}'
-            length_of_tests=$(jq <<< ${{ needs.coverage-ats.outputs.ATS_TESTS_TO_SKIP }} 'length')
+            length_of_tests=$(cat .artifacts/codecov_ats_tests_to_skip.json | jq 'length')
             # The 1st value doesn't count, it's '--cov-context=test'
             if [ $length_of_tests -gt 1 ]; then
               echo "Running $length_of_tests tests"
               # --raw-output0 doesn't work.
-              jq <<< ${{ needs.coverage-ats.outputs.ATS_TESTS_TO_SKIP }} 'join("\u0000")' --raw-output | tr -d '\n' | xargs -r0 echo
+              cat .artifacts/codecov_ats_tests_to_skip.json | jq 'join("\u0000")' --raw-output | tr -d '\n' | xargs -r0 echo 'pytest'
             else
               echo "No tests to run"
             fi
