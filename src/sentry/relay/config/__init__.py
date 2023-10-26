@@ -410,7 +410,7 @@ def _get_project_config(
         }
 
     if features.has("organizations:performance-calculate-score-relay", project.organization):
-        config["performanceScoreConfig"] = {
+        config["performanceScore"] = {
             "profiles": [
                 {
                     "name": "Desktop",
