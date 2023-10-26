@@ -7,16 +7,16 @@ import withOrganizations from 'sentry/utils/withOrganizations';
 import NotificationSettings from './notificationSettings';
 import NotificationSettingsV2 from './notificationSettingsV2';
 
-type Props = RouteComponentProps<{}, {}> & {
+interface NotificationSettingsControllerProps extends RouteComponentProps<{}, {}> {
   organizations: Organization[];
   organizationsLoading?: boolean;
-};
+}
 
 export function NotificationSettingsController({
   organizations,
   organizationsLoading,
   ...props
-}: Props) {
+}: NotificationSettingsControllerProps) {
   if (organizationsLoading) {
     return <LoadingIndicator />;
   }
