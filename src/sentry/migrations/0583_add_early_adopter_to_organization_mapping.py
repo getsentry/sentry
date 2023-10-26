@@ -42,7 +42,7 @@ class Migration(CheckedMigration):
                     reverse_sql=f"""
                 ALTER TABLE "sentry_organizationmapping" DROP COLUMN "{column}";
                 """,
-                    hints={"tables": ["sentry_groupedmessage"]},
+                    hints={"tables": ["sentry_organizationmapping"]},
                 )
                 for column in new_flags
             ],
