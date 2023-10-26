@@ -132,5 +132,6 @@ class IntegrationClassification(BaseClassification):
         metrics.incr(
             f"hybrid_cloud.integration_control.integration.{parser.provider}",
             tags={"url_name": parser.match.url_name, "status_code": response.status_code},
+            sample_rate=1.0,
         )
         return response

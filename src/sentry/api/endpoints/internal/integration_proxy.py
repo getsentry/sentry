@@ -123,12 +123,12 @@ class InternalIntegrationProxyEndpoint(Endpoint):
 
         is_valid_sender = self._validate_sender(request=request)
         if not is_valid_sender:
-            metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_sender")
+            metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_sender", sample_rate=1.0)
             return False
 
         is_valid_request = self._validate_request(request=request)
         if not is_valid_request:
-            metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_request")
+            metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_request", sample_rate=1.0)
             return False
 
         return True
@@ -169,7 +169,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         if not self._should_operate(request):
             raise Http404
 
-        metrics.incr("hybrid_cloud.integration_proxy.initialize")
+        metrics.incr("hybrid_cloud.integration_proxy.initialize", sample_rate=1.0)
 
         base_url = request.headers.get(PROXY_BASE_URL_HEADER)
         base_url = base_url.rstrip("/")
@@ -192,6 +192,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         metrics.incr(
             "hybrid_cloud.integration_proxy.complete.response_code",
             tags={"status": response.status_code},
+            sample_rate=1.0,
         )
         logger.info("proxy_success", extra=self.log_extra)
         return response
