@@ -184,11 +184,17 @@ export default function PageOverview() {
               <Flex>
                 <PageOverviewFeaturedTagsList
                   tag="browser.name"
+                  title={t('Slowest Browsers')}
                   transaction={transaction}
                 />
-                <PageOverviewFeaturedTagsList tag="release" transaction={transaction} />
+                <PageOverviewFeaturedTagsList
+                  tag="release"
+                  title={t('Slowest Releases')}
+                  transaction={transaction}
+                />
                 <PageOverviewFeaturedTagsList
                   tag="geo.country_code"
+                  title={t('Slowest Regions')}
                   transaction={transaction}
                 />
               </Flex>
