@@ -6,15 +6,20 @@ from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.models.organization import Organization
 from sentry.monitors.schedule import SCHEDULE_INTERVAL_MAP
 
 
 @region_silo_endpoint
 class OrganizationMonitorScheduleSampleDataEndpoint(OrganizationEndpoint):
-    def get(self, request: Request, organization: Organization) -> Response:
+    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    private = True
+    owner = ApiOwner.CRONS
+
+    def get(self, request: Request) -> Response:
         num_ticks = int(request.GET.get("numTicks", 0))
         schedule_type = request.GET.get("scheduleType")
         cron_schedule = request.GET.get("cronSchedule")
