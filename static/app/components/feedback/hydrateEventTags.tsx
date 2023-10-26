@@ -7,6 +7,7 @@ export default function hydrateEventTags(
     return {};
   }
   const context = eventData.contexts;
+  const eventTags = eventData.tags;
 
   const unorderedTags = {
     ...(context.browser?.name ? {'browser.name': context.browser.name} : {}),
@@ -15,9 +16,15 @@ export default function hydrateEventTags(
     ...(context.device?.family ? {'device.family': context.device?.family} : {}),
     ...(context.device?.model ? {'device.model': context.device?.model} : {}),
     ...(context.device?.name ? {'device.name': context.device?.name} : {}),
-    ...(context.replay ? {replay: context.replay} : {}),
     ...(context.os?.name ? {'os.name': context.os?.name} : {}),
     ...(context.os?.version ? {'os.version': context.os?.version} : {}),
+    ...(eventTags.find(e => e.key === 'environment')
+      ? {environment: eventTags.find(e => e.key === 'environment')?.value}
+      : {}),
+    ...(eventTags.find(e => e.key === 'transaction')
+      ? {transaction: eventTags.find(e => e.key === 'transaction')?.value}
+      : {}),
+    ...(eventData.platform ? {platform: eventData.platform} : {}),
     ...(eventData.sdk?.name ? {'sdk.name': eventData.sdk?.name} : {}),
     ...(eventData.sdk?.version ? {'sdk.version': eventData.sdk?.version} : {}),
   };
