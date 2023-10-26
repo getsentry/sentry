@@ -102,16 +102,14 @@ function useFetchSampleEvents({
   });
 }
 
-type EventDisplayProps = {
-  durationBaseline: number;
-  end: number;
-  eventSelectLabel: string;
-  project: Project;
-  start: number;
-  transaction: string;
-};
+interface NavButtonProps {
+  disabled: boolean;
+  icon: React.ReactNode;
+  onPaginate: () => void;
+  title: string;
+}
 
-function NavButton({title, disabled, icon, onPaginate}) {
+function NavButton({title, disabled, icon, onPaginate}: NavButtonProps) {
   return (
     <Tooltip title={title} disabled={disabled} skipWrapper>
       <div>
@@ -125,6 +123,15 @@ function NavButton({title, disabled, icon, onPaginate}) {
       </div>
     </Tooltip>
   );
+}
+
+interface EventDisplayProps {
+  durationBaseline: number;
+  end: number;
+  eventSelectLabel: string;
+  project: Project;
+  start: number;
+  transaction: string;
 }
 
 function EventDisplay({
