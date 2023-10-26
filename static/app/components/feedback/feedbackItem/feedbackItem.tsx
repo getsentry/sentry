@@ -10,6 +10,7 @@ import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedba
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
+import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -36,6 +37,7 @@ export default function FeedbackItem({
   tags,
 }: Props) {
   const organization = useOrganization();
+  const hasReplayId = useFeedbackHasReplayId({feedbackId: feedbackItem.id});
   const {markAsRead, resolve} = useMutateFeedback({
     feedbackId: feedbackItem.id,
     organization,
@@ -159,7 +161,7 @@ export default function FeedbackItem({
           </ErrorBoundary>
         </Section>
 
-        {replayId ? (
+        {hasReplayId && replayId ? (
           <ReplaySection organization={organization} replayId={replayId} />
         ) : null}
 
