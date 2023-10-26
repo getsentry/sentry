@@ -94,8 +94,6 @@ def get_context(
     }
     # TODO: The unsubscribe system relies on `user_id` so it doesn't
     # work with Teams.
-
-    # TODO(mark) Would need to get the organization slug into each notification somehow.
     unsubscribe_key = notification.get_unsubscribe_key()
     if recipient_actor.actor_type == ActorType.USER and unsubscribe_key:
         context.update(

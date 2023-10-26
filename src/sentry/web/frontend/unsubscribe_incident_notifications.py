@@ -10,14 +10,14 @@ from sentry.web.frontend.unsubscribe_notifications import UnsubscribeBaseView
 class UnsubscribeIncidentNotificationsView(UnsubscribeBaseView):
     object_type = "incident"
 
-    def fetch_instance(self, incident_id):
+    def fetch_instance(self, incident_id) -> Incident:
         try:
             incident = Incident.objects.get(id=incident_id)
         except Incident.DoesNotExist:
             raise Http404
         return incident
 
-    def build_link(self, instance):
+    def build_link(self, instance) -> str:
         return absolute_uri(
             reverse(
                 "sentry-metric-alert",
