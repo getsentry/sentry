@@ -14,7 +14,7 @@ import {
   CompactTimelineScrubber,
   TimelineScrubber,
 } from 'sentry/components/replays/player/scrubber';
-import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
+import {useTimelineScrubberMouseTracking} from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {divide} from 'sentry/components/replays/utils';
 import toPercent from 'sentry/utils/number/toPercent';
@@ -27,8 +27,7 @@ function ReplayTimeline({size}: Props) {
   const {replay, currentTime} = useReplayContext();
 
   const panelRef = useRef<HTMLDivElement>(null);
-  const mouseTrackingProps = useScrubberMouseTracking({elem: panelRef});
-  const panelWidth = useDimensions<HTMLDivElement>({elementRef: panelRef}).width;
+  const mouseTrackingProps = useTimelineScrubberMouseTracking({elem: panelRef}, size);
 
   const stackedRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions<HTMLDivElement>({elementRef: stackedRef});
@@ -62,7 +61,8 @@ function ReplayTimeline({size}: Props) {
         }}
         ref={stackedRef}
       >
-        <MajorGridlines durationMs={durationMs} width={panelWidth} />
+        <MinorGridlines durationMs={durationMs} width={width} />
+        <MajorGridlines durationMs={durationMs} width={width} />
         <CompactTimelineScrubber />
         <TimelineEventsContainer>
           <ReplayTimelineEvents
