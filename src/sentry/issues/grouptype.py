@@ -122,6 +122,8 @@ class GroupType:
 
     # Allow automatic resolution of an issue type, using the project-level option.
     enable_auto_resolve: bool = True
+    # Allow escalation forecasts and detection
+    generate_escalating_forecasts = True
     creation_quota: Quota = Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
 
     def __init_subclass__(cls: Type[GroupType], **kwargs: Any) -> None:
@@ -335,6 +337,7 @@ class PerformanceDurationRegressionGroupType(PerformanceGroupTypeDefaults, Group
     noise_config = NoiseConfig(ignore_limit=0)
     category = GroupCategory.PERFORMANCE.value
     enable_auto_resolve = False
+    generate_escalating_forecasts = False
 
 
 @dataclass(frozen=True)
@@ -345,6 +348,7 @@ class PerformanceP95DurationRegressionGroupType(PerformanceGroupTypeDefaults, Gr
     noise_config = NoiseConfig(ignore_limit=0)
     category = GroupCategory.PERFORMANCE.value
     enable_auto_resolve = False
+    generate_escalating_forecasts = False
 
 
 # 2000 was ProfileBlockingFunctionMainThreadType
