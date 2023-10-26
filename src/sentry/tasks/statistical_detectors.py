@@ -233,8 +233,8 @@ def _detect_transaction_change_points(
             # which was originally intended to detect a gradual regression
             # for the trends use case. That does not apply here.
             "allow_midpoint": "0",
-            "trend_percentage()": 0.5,
-            "min_change()": 200_000_000,
+            # "trend_percentage()": 0.5,
+            # "min_change()": 200_000_000,
             "validate_tail_hours": 12,
         }
 
