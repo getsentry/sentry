@@ -1,39 +1,28 @@
 import {useMemo} from 'react';
 
 import hydrateEventTags from 'sentry/components/feedback/hydrateEventTags';
-import {Organization} from 'sentry/types';
-import {FeedbackEvent, FeedbackIssue} from 'sentry/utils/feedback/types';
-import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
+import type {FeedbackEvent, FeedbackIssue} from 'sentry/utils/feedback/types';
+import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 
 interface Props {
-  feedbackId: string;
-  organization: Organization;
+  eventQueryKey: ApiQueryKey | undefined;
+  issueQueryKey: ApiQueryKey | undefined;
 }
 
-export default function useFetchFeedbackData(
-  {feedbackId, organization}: Props,
-  options: undefined | Partial<UseApiQueryOptions<FeedbackIssue>> = {}
-) {
+export default function useFetchFeedbackData({issueQueryKey, eventQueryKey}: Props) {
   const {data: issueData, ...issueResult} = useApiQuery<FeedbackIssue>(
-    [
-      `/organizations/${organization.slug}/issues/${feedbackId}/`,
-      {
-        query: {
-          collapse: ['release', 'tags'],
-          expand: ['inbox', 'owners'],
-        },
-      },
-    ],
+    issueQueryKey ?? [''],
     {
       staleTime: 0,
-      ...options,
+      enabled: Boolean(issueQueryKey),
     }
   );
 
   const {data: eventData, ...eventResult} = useApiQuery<FeedbackEvent>(
-    [`/organizations/${organization.slug}/issues/${feedbackId}/events/latest/`],
+    eventQueryKey ?? [''],
     {
       staleTime: 0,
+      enabled: Boolean(eventQueryKey),
     }
   );
 
