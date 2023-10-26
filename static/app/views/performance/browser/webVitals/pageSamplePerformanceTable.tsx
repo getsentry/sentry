@@ -12,9 +12,11 @@ import GridEditable, {
 import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getDuration} from 'sentry/utils/formatters';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
+import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -70,6 +72,7 @@ export function PageSamplePerformanceTable({transaction}: Props) {
       limit: 3,
       transaction,
       query: `measurements.lcp:<${PERFORMANCE_SCORE_P90S.lcp}`,
+      withProfiles: true,
     });
 
   const {data: mehData, isLoading: isMehTransactionWebVitalsQueryLoading} =
@@ -77,6 +80,7 @@ export function PageSamplePerformanceTable({transaction}: Props) {
       limit: 3,
       transaction,
       query: `measurements.lcp:<${PERFORMANCE_SCORE_MEDIANS.lcp} measurements.lcp:>=${PERFORMANCE_SCORE_P90S.lcp}`,
+      withProfiles: true,
     });
 
   const {data: poorData, isLoading: isPoorTransactionWebVitalsQueryLoading} =
@@ -84,6 +88,7 @@ export function PageSamplePerformanceTable({transaction}: Props) {
       limit: 3,
       transaction,
       query: `measurements.lcp:>=${PERFORMANCE_SCORE_MEDIANS.lcp}`,
+      withProfiles: true,
     });
 
   // In case we don't have enough data, get some transactions with no LCP data
@@ -92,6 +97,7 @@ export function PageSamplePerformanceTable({transaction}: Props) {
       limit: 9,
       transaction,
       query: `!has:measurements.lcp`,
+      withProfiles: true,
     });
 
   const data = [...goodData, ...mehData, ...poorData];
@@ -210,13 +216,26 @@ export function PageSamplePerformanceTable({transaction}: Props) {
           },
           undefined
         );
+      const profileTarget =
+        defined(project) && defined(row['profile.id'])
+          ? generateProfileFlamechartRoute({
+              orgSlug: organization.slug,
+              projectSlug: project.slug,
+              profileId: String(row['profile.id']),
+            })
+          : null;
 
       return (
         <NoOverflow>
           <Flex>
             <LinkButton to={eventTarget} size="xs">
-              {t('Event')}
+              {t('Transaction')}
             </LinkButton>
+            {profileTarget && (
+              <LinkButton to={profileTarget} size="xs">
+                {t('Profile')}
+              </LinkButton>
+            )}
             {row.replayId && replayTarget && (
               <LinkButton to={replayTarget} size="xs">
                 <IconPlay size="xs" />
