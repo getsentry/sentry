@@ -51,6 +51,7 @@ type Props = {
     | 'sentryAppSimple'
     | 'docIntegration';
   updateDataUrlState: (opts: {dataUrl?: string; savedDataUrl?: string | null}) => void;
+  uploadDomain: string;
   savedDataUrl?: string;
 };
 
@@ -351,9 +352,10 @@ class AvatarUploader extends Component<Props, State> {
   }
 
   get imageSrc() {
-    const {savedDataUrl, model, type} = this.props;
+    const {savedDataUrl, model, type, uploadDomain} = this.props;
     const uuid = model.avatar?.avatarUuid;
-    const photoUrl = uuid && `/${AVATAR_URL_MAP[type] || 'avatar'}/${uuid}/`;
+    const photoUrl =
+      uuid && `${uploadDomain}/${AVATAR_URL_MAP[type] || 'avatar'}/${uuid}/`;
 
     return savedDataUrl || this.state.objectURL || photoUrl;
   }
@@ -383,6 +385,7 @@ class AvatarUploader extends Component<Props, State> {
           <img
             ref={this.image}
             src={src}
+            crossOrigin="anonymous"
             onLoad={this.onImageLoad}
             onDragStart={e => e.preventDefault()}
           />
