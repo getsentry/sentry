@@ -29,7 +29,7 @@ class ExternalActorReplica(Model):
 
     class Meta:
         app_label = "hybridcloud"
-        db_table = "sentry_externalactorreplica"
+        db_table = "hybridcloud_externalactorreplica"
         unique_together = (
             ("organization_id", "provider", "external_name", "team_id"),
             ("organization_id", "provider", "external_name", "user_id"),

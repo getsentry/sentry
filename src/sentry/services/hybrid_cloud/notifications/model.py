@@ -44,7 +44,7 @@ class RpcExternalActor(RpcModel):
     organization_id: int = -1
     integration_id: int = -1
 
-    provider: int = ExternalProviders.UNUSED_GH
+    provider: int = int(ExternalProviders.UNUSED_GH.value)
     # The display name i.e. username, team name, channel name.
     external_name: str = ""
     # The unique identifier i.e user ID, channel ID.

@@ -294,7 +294,7 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
             organization_id=external_actor.organization_id,
             user_id=external_actor.user_id,
             provider=external_actor.provider,
-            team_id=external_actor.team_id,
+            team_id=external_actor.team_id,  # type: ignore
             integration_id=integration.id,
         )
         handle_replication(ExternalActor, destination)

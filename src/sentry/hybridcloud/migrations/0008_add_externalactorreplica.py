@@ -70,7 +70,7 @@ class Migration(CheckedMigration):
                 ),
             ],
             options={
-                "db_table": "sentry_externalactorreplica",
+                "db_table": "hybridcloud_externalactorreplica",
                 "unique_together": {
                     ("organization_id", "provider", "external_name", "user_id"),
                     ("organization_id", "provider", "external_name", "team_id"),

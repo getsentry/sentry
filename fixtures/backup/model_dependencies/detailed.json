@@ -87,6 +87,57 @@
     "table_name": "hybridcloud_apitokenreplica",
     "uniques": []
   },
+  "hybridcloud.externalactorreplica": {
+    "dangling": false,
+    "foreign_keys": {
+      "externalactor_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.externalactor",
+        "nullable": false
+      },
+      "integration": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.integration",
+        "nullable": false
+      },
+      "organization_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.organization",
+        "nullable": false
+      },
+      "team_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.team",
+        "nullable": true
+      },
+      "user": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      }
+    },
+    "model": "hybridcloud.externalactorreplica",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Control"
+    ],
+    "table_name": "hybridcloud_externalactorreplica",
+    "uniques": [
+      [
+        "external_name",
+        "organization_id",
+        "provider",
+        "team_id"
+      ],
+      [
+        "external_name",
+        "organization_id",
+        "provider",
+        "user_id"
+      ]
+    ]
+  },
   "hybridcloud.organizationslugreservationreplica": {
     "dangling": false,
     "foreign_keys": {
