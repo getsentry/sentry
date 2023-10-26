@@ -152,12 +152,17 @@ export default function PageOverview() {
             <Flex>
               <PageOverviewFeaturedTagsList
                 tag="browser.name"
+                title={t('Browser Name')}
                 transaction={transaction}
               />
-              <PageOverviewFeaturedTagsList tag="release" transaction={transaction} />
+              <PageOverviewFeaturedTagsList
+                tag="release"
+                title={t('Release')}
+                transaction={transaction}
+              />
               <PageOverviewFeaturedTagsList
                 tag="geo.country_code"
-                title="country"
+                title={t('Country')}
                 transaction={transaction}
               />
             </Flex>
