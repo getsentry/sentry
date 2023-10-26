@@ -41,7 +41,7 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
 
   const timeline = hasNewTimeline ? null : (
     <ErrorBoundary mini>
-      <ReplayTimeline />
+      <ReplayTimeline size={100} />
     </ErrorBoundary>
   );
 
