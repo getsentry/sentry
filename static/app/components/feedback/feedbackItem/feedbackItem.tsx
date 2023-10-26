@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -21,6 +21,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, GroupStatus} from 'sentry/types';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
@@ -43,8 +44,21 @@ export default function FeedbackItem({
     organization,
     refetchIssue,
   });
-  const url = eventData?.tags.find(tag => tag.key === 'url');
+  const api = useApi();
 
+  const markReadUrl = `/organizations/${organization.slug}/issues/${feedbackItem.id}/`;
+
+  useEffect(() => {
+    (async () => {
+      await api.requestPromise(markReadUrl, {
+        method: 'PUT',
+        data: {hasSeen: true},
+      });
+      refetchIssue();
+    })();
+  }, []); // eslint-disable-line
+
+  const url = eventData?.tags.find(tag => tag.key === 'url');
   const replayId = eventData?.contexts?.feedback?.replay_id;
 
   return (
