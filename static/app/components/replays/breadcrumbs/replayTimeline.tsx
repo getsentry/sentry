@@ -21,9 +21,9 @@ import toPercent from 'sentry/utils/number/toPercent';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type Props = {};
+type Props = {size};
 
-function ReplayTimeline({}: Props) {
+function ReplayTimeline({size}: Props) {
   const {replay, currentTime} = useReplayContext();
 
   const panelRef = useRef<HTMLDivElement>(null);
@@ -45,11 +45,8 @@ function ReplayTimeline({}: Props) {
   const chapterFrames = replay.getChapterFrames();
   const networkFrames = replay.getNetworkFrames();
 
-  // timeline size is 300% larger
-  const timelineWidthPercentage = 300;
-
   // start of the timeline is in the middle
-  const initialTranslatePercentage = 50 / timelineWidthPercentage;
+  const initialTranslatePercentage = 50 / size;
 
   const translatePercentage = toPercent(
     initialTranslatePercentage -
@@ -60,7 +57,7 @@ function ReplayTimeline({}: Props) {
     <VisiblePanel ref={panelRef} {...mouseTrackingProps}>
       <Stacked
         style={{
-          width: `${timelineWidthPercentage}%`,
+          width: `${size}%`,
           transform: `translate(${translatePercentage}, 0%)`,
         }}
         ref={stackedRef}
