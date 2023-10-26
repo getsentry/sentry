@@ -13,6 +13,14 @@ from sentry.web.frontend.base import BaseView
 signed_auth_required_m = method_decorator(signed_auth_required)
 
 
+# All of the subclasses of this are using region resources.
+# That implies that this should be a region endpoint
+# There is also a view func that handles projects.
+# The projects func makes updates to settings which is unusual.
+# Having all the unsubscribe links go the regions seems better though.
+#
+# Will need to update URL generation to point at the regions and
+# have gateway handling for all the views so that old links work.
 class UnsubscribeBaseView(BaseView, metaclass=abc.ABCMeta):
     auth_required = False
 

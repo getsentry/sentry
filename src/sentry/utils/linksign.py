@@ -33,6 +33,13 @@ def generate_signed_link(user, viewname, referrer=None, args=None, kwargs=None):
     path = reverse(viewname, args=args, kwargs=kwargs)
     item = "{}|{}|{}".format(options.get("system.url-prefix"), path, base36_encode(user_id))
     signature = ":".join(get_signer().sign(item).rsplit(":", 2)[1:])
+    # TODO(mark) If this used region.to_url() we'd be good as new links would go to the region
+    # that the organization resides in.
+    # Alternative: Encode the region into the signed token so that we have it.
+    # We would need custom logic in the gateway to parse out the signature
+    # and do the right thing.
+    # Alternative: Make new URLs that have organization slug so we can proxy
+    # correctly. These links will break when an org is reslugged.
     signed_link = f"{absolute_uri(path)}?_={base36_encode(user_id)}:{signature}"
     if referrer:
         signed_link = signed_link + "&" + urlencode({"referrer": referrer})

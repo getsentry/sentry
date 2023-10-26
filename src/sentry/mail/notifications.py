@@ -12,6 +12,7 @@ from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.notify import register_notification_provider
+from sentry.notifications.types import UnsubscribeContext
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -60,14 +61,12 @@ def get_subject_with_prefix(
     return f"{prefix}{notification.get_subject(context)}".encode()
 
 
-def get_unsubscribe_link(
-    user_id: int, resource_id: int, key: str = "issue", referrer: str | None = None
-) -> str:
+def get_unsubscribe_link(user_id: int, data: UnsubscribeContext) -> str:
     signed_link: str = generate_signed_link(
         user_id,
-        f"sentry-account-email-unsubscribe-{key}",
-        referrer,
-        kwargs={f"{key}_id": resource_id},
+        f"sentry-account-email-unsubscribe-{data.key}",
+        data.referrer,
+        kwargs={f"{data.key}_id": data.resource_id},
     )
     return signed_link
 
@@ -93,17 +92,14 @@ def get_context(
         **shared_context,
         **notification.get_recipient_context(recipient_actor, extra_context),
     }
-    # TODO(mgaeta): The unsubscribe system relies on `user_id` so it doesn't
-    #  work with Teams. We should add the `actor_id` to the signed link.
+    # TODO: The unsubscribe system relies on `user_id` so it doesn't
+    # work with Teams.
+
+    # TODO(mark) Would need to get the organization slug into each notification somehow.
     unsubscribe_key = notification.get_unsubscribe_key()
     if recipient_actor.actor_type == ActorType.USER and unsubscribe_key:
-        key, resource_id, referrer = unsubscribe_key
         context.update(
-            {
-                "unsubscribe_link": get_unsubscribe_link(
-                    recipient_actor.id, resource_id, key, referrer
-                )
-            }
+            {"unsubscribe_link": get_unsubscribe_link(recipient_actor.id, unsubscribe_key)}
         )
 
     return context
