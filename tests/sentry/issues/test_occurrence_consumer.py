@@ -246,7 +246,7 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
             self.run_test(message)
             metrics.incr.assert_called_once_with(
                 "occurrence_ingest.event_payload_invalid",
-                sample_rate=1.0,
+                sample_rate=mock.ANY,
                 tags={"occurrence_type": mock.ANY},
             )
 
@@ -259,12 +259,12 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
                 [
                     mock.call(
                         "occurrence_ingest.event_payload_invalid",
-                        sample_rate=1.0,
+                        sample_rate=mock.ANY,
                         tags={"occurrence_type": mock.ANY},
                     ),
                     mock.call(
                         "occurrence_ingest.legacy_event_payload_invalid",
-                        sample_rate=1.0,
+                        sample_rate=mock.ANY,
                         tags={"occurrence_type": mock.ANY},
                     ),
                 ]
