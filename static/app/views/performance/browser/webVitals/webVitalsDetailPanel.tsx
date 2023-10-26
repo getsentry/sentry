@@ -348,11 +348,7 @@ export function WebVitalsDetailPanel({
       return (
         <NoOverflow>
           <Link
-            to={{
-              ...location,
-              pathname: `${location.pathname}overview/`,
-              query: {...location.query, transaction: row.transaction},
-            }}
+            to={{...location, query: {...location.query, transaction: row.transaction}}}
             onClick={onClose}
           >
             {row.transaction}
