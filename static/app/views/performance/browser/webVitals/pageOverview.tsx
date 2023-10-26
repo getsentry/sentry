@@ -13,6 +13,7 @@ import {TabList, Tabs} from 'sentry/components/tabs';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {Tag} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -26,6 +27,8 @@ import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVit
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
+
+import {PageOverviewWebVitalsTagDetailPanel} from './pageOverWebVitalsTagDetailPanel';
 
 enum LandingDisplayField {
   OVERVIEW = 'overview',
@@ -60,8 +63,9 @@ export default function PageOverview() {
   // TODO: When visiting page overview from a specific webvital detail panel in the landing page,
   // we should automatically default this webvital state to the respective webvital so the detail
   // panel in this page opens automatically.
-  const [state, setState] = useState<{webVital: WebVitals | null}>({
+  const [state, setState] = useState<{webVital: WebVitals | null; tag?: Tag}>({
     webVital: null,
+    tag: undefined,
   });
 
   const {data: pageData, isLoading} = useProjectWebVitalsQuery({transaction});
@@ -151,12 +155,18 @@ export default function PageOverview() {
               <PageOverviewFeaturedTagsList
                 tag="browser.name"
                 transaction={transaction}
+                onClick={tag => setState({...state, tag})}
               />
-              <PageOverviewFeaturedTagsList tag="release" transaction={transaction} />
+              <PageOverviewFeaturedTagsList
+                tag="release"
+                transaction={transaction}
+                onClick={tag => setState({...state, tag})}
+              />
               {/* TODO: need a way to map country code to actual country name */}
               <PageOverviewFeaturedTagsList
                 tag="geo.country_code"
                 transaction={transaction}
+                onClick={tag => setState({...state, tag})}
               />
             </Flex>
           </Layout.Main>
@@ -170,7 +180,12 @@ export default function PageOverview() {
             setState({...state, webVital: null});
           }}
         />
-        {/* TODO: Add the detail panel for tags here. Can copy foundation from PageOverviewWebVitalsDetailPanel above. */}
+        <PageOverviewWebVitalsTagDetailPanel
+          tag={state.tag}
+          onClose={() => {
+            setState({...state, tag: undefined});
+          }}
+        />
       </Tabs>
     </ModulePageProviders>
   );

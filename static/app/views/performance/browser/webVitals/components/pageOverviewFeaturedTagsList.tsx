@@ -2,10 +2,12 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {space} from 'sentry/styles/space';
+import {Tag} from 'sentry/types';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {useSlowestTagValuesQuery} from 'sentry/views/performance/browser/webVitals/utils/useSlowestTagValuesQuery';
 
 type Props = {
+  onClick: (tag: Tag) => void;
   tag: string;
   transaction: string;
   title?: string;
@@ -13,7 +15,7 @@ type Props = {
 
 const LIMIT = 4;
 
-export function PageOverviewFeaturedTagsList({transaction, tag, title}: Props) {
+export function PageOverviewFeaturedTagsList({transaction, tag, title, onClick}: Props) {
   const {data} = useSlowestTagValuesQuery({transaction, tag, limit: LIMIT});
   const tagValues = data?.data ?? [];
   return (
@@ -33,9 +35,7 @@ export function PageOverviewFeaturedTagsList({transaction, tag, title}: Props) {
               <TagValue>
                 <TagButton
                   priority="link"
-                  onClick={() => {
-                    // TODO: need to pass in handler here to open detail panel
-                  }}
+                  onClick={() => onClick({key: tag, name: row[tag].toString()})}
                 >
                   {row[tag]}
                 </TagButton>
