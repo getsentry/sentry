@@ -2,7 +2,7 @@ import {useCallback, useMemo} from 'react';
 import {Index, IndexRange} from 'react-virtualized';
 
 import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
-import {FeedbackListResponse} from 'sentry/utils/feedback/types';
+import {FeedbackIssueList} from 'sentry/utils/feedback/types';
 import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -64,7 +64,7 @@ export default function useFetchFeedbackInfiniteListData({queryView}: Params) {
     isFetchingNextPage,
     isFetchingPreviousPage,
     isLoading, // If anything is loaded yet
-  } = useInfiniteApiQuery<FeedbackListResponse>({
+  } = useInfiniteApiQuery<FeedbackIssueList>({
     queryKey: [`/organizations/${organization.slug}/issues/`, {query}],
   });
 
@@ -74,7 +74,7 @@ export default function useFetchFeedbackInfiniteListData({queryView}: Params) {
   );
 
   const getRow = useCallback(
-    ({index}: Index): FeedbackListResponse[number] | undefined => issues?.[index],
+    ({index}: Index): FeedbackIssueList[number] | undefined => issues?.[index],
     [issues]
   );
 
@@ -88,7 +88,7 @@ export default function useFetchFeedbackInfiniteListData({queryView}: Params) {
   );
 
   const setFeedback = useCallback(
-    (_feedbackId: string, _feedback: undefined | FeedbackListResponse) => {},
+    (_feedbackId: string, _feedback: undefined | FeedbackIssueList) => {},
     // loaderRef.current?.setFeedback(feedbackId, feedback),
     []
   );

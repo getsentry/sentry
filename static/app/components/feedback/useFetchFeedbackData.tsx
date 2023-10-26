@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 
 import hydrateEventTags from 'sentry/components/feedback/hydrateEventTags';
 import {Organization} from 'sentry/types';
-import {FeedbackEventResponse, FeedbackItemResponse} from 'sentry/utils/feedback/types';
+import {FeedbackEventResponse, FeedbackIssue} from 'sentry/utils/feedback/types';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 
 interface Props {
@@ -12,9 +12,9 @@ interface Props {
 
 export default function useFetchFeedbackData(
   {feedbackId, organization}: Props,
-  options: undefined | Partial<UseApiQueryOptions<FeedbackItemResponse>> = {}
+  options: undefined | Partial<UseApiQueryOptions<FeedbackIssue>> = {}
 ) {
-  const {data: issueData, ...issueResult} = useApiQuery<FeedbackItemResponse>(
+  const {data: issueData, ...issueResult} = useApiQuery<FeedbackIssue>(
     [
       `/organizations/${organization.slug}/issues/${feedbackId}/`,
       {

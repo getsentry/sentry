@@ -2,7 +2,7 @@ import type {BaseGroup, Event, GroupStats} from 'sentry/types';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
-export type FeedbackItemResponse = Overwrite<
+export type FeedbackIssue = Overwrite<
   BaseGroup & GroupStats,
   {
     issueCategory: 'feedback';
@@ -20,7 +20,7 @@ export type FeedbackItemResponse = Overwrite<
 
 export type FeedbackEventResponse = Event;
 
-export type FeedbackListResponse = Overwrite<
+export type FeedbackIssueList = Overwrite<
   BaseGroup & GroupStats,
   {
     issueCategory: 'feedback';

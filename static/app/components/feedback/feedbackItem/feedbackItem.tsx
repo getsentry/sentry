@@ -20,12 +20,12 @@ import {IconEllipsis, IconJson, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, GroupStatus} from 'sentry/types';
-import type {FeedbackItemResponse} from 'sentry/utils/feedback/types';
+import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   eventData: Event | undefined;
-  feedbackItem: FeedbackItemResponse;
+  feedbackItem: FeedbackIssue;
   tags: Record<string, string>;
 }
 

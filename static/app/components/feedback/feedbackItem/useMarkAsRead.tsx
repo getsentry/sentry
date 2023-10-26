@@ -6,12 +6,12 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import type {FeedbackItemResponse} from 'sentry/utils/feedback/types';
+import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
-  feedbackItem: FeedbackItemResponse;
+  feedbackItem: FeedbackIssue;
 }
 
 export default function useMarkAsRead({feedbackItem}: Props) {

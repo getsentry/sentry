@@ -16,21 +16,21 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {IssueCategory} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {FeedbackItemResponse} from 'sentry/utils/feedback/types';
+import {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 interface Props {
-  feedbackItem: FeedbackItemResponse;
+  feedbackItem: FeedbackIssue;
   isChecked: boolean;
   onChecked: (isChecked: boolean) => void;
   className?: string;
   style?: CSSProperties;
 }
 
-function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackItemResponse}) {
+function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssue}) {
   const {feedbackSlug} = useLocationQuery({
     fields: {feedbackSlug: decodeScalar},
   });
