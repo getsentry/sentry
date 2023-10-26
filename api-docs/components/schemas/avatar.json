@@ -8,6 +8,10 @@
       "avatarUuid": {
         "type": "string",
         "nullable": true
+      },
+      "avatarUrl": {
+        "type": "string",
+        "nullable": true
       }
     }
   }
