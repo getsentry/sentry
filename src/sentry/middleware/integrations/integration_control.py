@@ -7,7 +7,6 @@ from django.http import HttpRequest
 from django.http.response import HttpResponseBase
 
 from sentry.silo import SiloMode
-from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -56,11 +55,6 @@ class IntegrationControlMiddleware:
         for classification in self.classifications:
             _cls = classification(response_handler=self.get_response)
             if _cls.should_operate(request):
-                response = _cls.get_response(request)
-                metrics.incr(
-                    "hybrid_cloud.integration_control.response_code",
-                    tags={"status": response.status_code, "classification": _cls.__name__},
-                )
-                return response
+                return _cls.get_response(request)
 
         return self.get_response(request)
