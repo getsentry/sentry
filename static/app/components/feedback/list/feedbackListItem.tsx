@@ -16,26 +16,26 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {IssueCategory} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
+import {FeedbackItemResponse} from 'sentry/utils/feedback/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 interface Props {
-  feedbackItem: HydratedFeedbackItem;
+  feedbackItem: FeedbackItemResponse;
   isChecked: boolean;
   onChecked: (isChecked: boolean) => void;
   className?: string;
   style?: CSSProperties;
 }
 
-function useIsSelectedFeedback({feedbackItem}: {feedbackItem: HydratedFeedbackItem}) {
+function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackItemResponse}) {
   const {feedbackSlug} = useLocationQuery({
     fields: {feedbackSlug: decodeScalar},
   });
   const [, feedbackId] = feedbackSlug.split(':') ?? [];
-  return feedbackId === feedbackItem.feedback_id;
+  return feedbackId === feedbackItem.id;
 }
 
 const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
@@ -60,7 +60,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
               query: {
                 ...location.query,
                 referrer: 'feedback_list_page',
-                feedbackSlug: `${feedbackItem.project.slug}:${feedbackItem.feedback_id}`,
+                feedbackSlug: `${feedbackItem.project.slug}:${feedbackItem.id}`,
               },
             };
           }}
@@ -85,7 +85,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
             </span>
           </TextOverflow>
           <span style={{gridArea: 'time'}}>
-            <TimeSince date={feedbackItem.timestamp} />
+            <TimeSince date={feedbackItem.firstSeen} />
           </span>
           {feedbackItem.hasSeen ? null : (
             <span
