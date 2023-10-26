@@ -81,6 +81,7 @@ def request_accessibility_issues(filenames: list[str]) -> Any:
     # TODO: Remove this once the service is ready.
     return [
         {
+            "meta": {"total": 1},
             "data": [
                 [
                     {
@@ -119,7 +120,7 @@ def request_accessibility_issues(filenames: list[str]) -> Any:
                         "timestamp": 1695967678108,
                     }
                 ]
-            ]
+            ],
         }
     ]
     # TODO: When the service is deploy this should be the primary path.
