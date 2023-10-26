@@ -123,10 +123,18 @@ function ReleaseThresholdList({}: Props) {
     return <LoadingIndicator />;
   }
 
+  const createNewThresholdGroup = () => {
+    console.log('CREATE NEW THRESHOLD GROUP');
+  };
+
   return (
     <PageFiltersContainer>
       <NoProjectMessage organization={organization}>
-        <Header router={router} hasV2ReleaseUIEnabled />
+        <Header
+          router={router}
+          hasV2ReleaseUIEnabled
+          newThresholdAction={createNewThresholdGroup}
+        />
         <Layout.Body>
           <Layout.Main fullWidth>
             <FilterRow>

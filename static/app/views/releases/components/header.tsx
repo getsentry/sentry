@@ -2,11 +2,13 @@ import {useState} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
@@ -14,10 +16,11 @@ import {MONITOR_PATH, THRESHOLDS_PATH} from '../utils/constants';
 
 type Props = {
   hasV2ReleaseUIEnabled: boolean;
+  newThresholdAction: () => void;
   router: InjectedRouter;
 };
 
-function Header({router, hasV2ReleaseUIEnabled}: Props) {
+function Header({router, hasV2ReleaseUIEnabled, newThresholdAction}: Props) {
   const [selected, setSelected] = useState(router.location.pathname);
 
   const location = router.location;
@@ -63,6 +66,13 @@ function Header({router, hasV2ReleaseUIEnabled}: Props) {
           />
         </Layout.Title>
       </Layout.HeaderContent>
+      {hasV2ReleaseUIEnabled && (
+        <Layout.HeaderActions>
+          <Button size="sm" priority="primary" onClick={newThresholdAction}>
+            <IconAdd isCircled /> &nbsp; New Threshold
+          </Button>
+        </Layout.HeaderActions>
+      )}
       <StyledTabs value={selected} onChange={onTabSelect}>
         <TabList hideBorder>
           {tabs.map(({key, label, description, path}) => {
