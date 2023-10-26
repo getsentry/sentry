@@ -101,13 +101,4 @@ function ResourceTable({sort}: Props) {
   );
 }
 
-export const getActionName = (transactionOp: string) => {
-  switch (transactionOp) {
-    case 'ui.action.click':
-      return 'Click';
-    default:
-      return transactionOp;
-  }
-};
-
 export default ResourceTable;

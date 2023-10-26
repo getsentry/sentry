@@ -52,7 +52,13 @@ export const useIndexedResourcesQuery = () => {
     pageFilters.selection
   );
 
-  const result = useDiscoverQuery({eventView, limit: 100, location, orgSlug});
+  const result = useDiscoverQuery({
+    eventView,
+    limit: 100,
+    location,
+    orgSlug,
+    referrer: 'api.performance.browswer.resource.image-table',
+  });
 
   const data =
     result?.data?.data.map(row => ({
