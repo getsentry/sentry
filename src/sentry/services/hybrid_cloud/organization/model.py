@@ -235,7 +235,7 @@ class RpcOrganization(RpcOrganizationSummary):
     status: int = Field(default_factory=_DefaultEnumHelpers.get_default_organization_status_value)
 
     default_role: str = ""
-    date_added: datetime
+    date_added: datetime = Field(default_factory=datetime.now)
 
     def get_audit_log_data(self):
         return {
