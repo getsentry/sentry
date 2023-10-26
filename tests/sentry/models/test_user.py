@@ -9,11 +9,16 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.utils import redis
 
 
 @control_silo_test
 class UserTest(TestCase):
     def test_hybrid_cloud_deletion(self):
+        with redis.clusters.get("default").get_local_client_for_key(
+            "deletions.watermark"
+        ) as client:
+            client
         user = self.create_user()
         user_id = user.id
         self.create_saved_search(name="some-search", owner=user)
