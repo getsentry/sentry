@@ -318,7 +318,7 @@ def _shim_to_feedback(report, event, project):
         feedback_event: dict[str, Any] = {
             "feedback": {
                 "name": report.get("name", ""),
-                "email": report["email"],
+                "contact_email": report["email"],
                 "message": report["comments"],
             },
             "contexts": {},

@@ -418,7 +418,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
         mock_event_data = mock_produce_occurrence_to_kafka.call_args_list[0][1]["event_data"]
 
-        assert mock_event_data["contexts"]["feedback"]["email"] == "foo@example.com"
+        assert mock_event_data["contexts"]["feedback"]["contact_email"] == "foo@example.com"
         assert mock_event_data["contexts"]["feedback"]["message"] == "It broke!"
         assert mock_event_data["contexts"]["feedback"]["name"] == "Foo Bar"
         assert mock_event_data["contexts"]["feedback"]["replay_id"] == replay_id
@@ -454,7 +454,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
         mock_event_data = mock_produce_occurrence_to_kafka.call_args_list[0][1]["event_data"]
 
-        assert mock_event_data["contexts"]["feedback"]["email"] == "foo@example.com"
+        assert mock_event_data["contexts"]["feedback"]["contact_email"] == "foo@example.com"
         assert mock_event_data["contexts"]["feedback"]["message"] == "It broke!"
         assert mock_event_data["contexts"]["feedback"]["name"] == "Foo Bar"
         assert mock_event_data["platform"] == "other"
