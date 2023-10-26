@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -16,9 +17,11 @@ import OpsBreakdown from 'sentry/components/events/opsBreakdown';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconChevron, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EventTransaction, Group, Project} from 'sentry/types';
+import {EventTransaction, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -28,7 +31,10 @@ import {getShortEventId} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {GroupEventActions} from 'sentry/views/issueDetails/groupEventCarousel';
+import {NavButtons, StyledNavButton} from 'sentry/views/issueDetails/groupEventCarousel';
+
+const BUTTON_ICON_SIZE = 'sm';
+const BUTTON_SIZE = 'sm';
 
 export function getSampleEventQuery({
   transaction,
@@ -92,7 +98,7 @@ function useFetchSampleEvents({
     eventView,
     location,
     orgSlug: organization.slug,
-    limit: 5,
+    limit: 20,
   });
 }
 
@@ -100,11 +106,26 @@ type EventDisplayProps = {
   durationBaseline: number;
   end: number;
   eventSelectLabel: string;
-  group: Group;
   project: Project;
   start: number;
   transaction: string;
 };
+
+function NavButton({title, disabled, icon, onPaginate}) {
+  return (
+    <Tooltip title={title} disabled={disabled} skipWrapper>
+      <div>
+        <StyledNavButton
+          size={BUTTON_SIZE}
+          aria-label={title}
+          icon={icon}
+          disabled={disabled}
+          onClick={onPaginate}
+        />
+      </div>
+    </Tooltip>
+  );
+}
 
 function EventDisplay({
   eventSelectLabel,
@@ -113,7 +134,6 @@ function EventDisplay({
   end,
   transaction,
   durationBaseline,
-  group,
 }: EventDisplayProps) {
   const location = useLocation();
   const organization = useOrganization();
@@ -140,6 +160,12 @@ function EventDisplay({
     }
   }, [eventIds, selectedEventId]);
 
+  const eventIdIndex =
+    eventIds && eventIds.findIndex(eventId => eventId === selectedEventId);
+  const hasNext =
+    defined(eventIdIndex) && defined(eventIds) && eventIdIndex + 1 < eventIds.length;
+  const hasPrev = defined(eventIdIndex) && eventIdIndex - 1 >= 0;
+
   if (isError) {
     return null;
   }
@@ -162,30 +188,65 @@ function EventDisplay({
   return (
     <EventDisplayContainer>
       <div>
-        <StyledEventSelectorControlBar>
-          <CompactSelect
-            size="sm"
-            disabled={false}
-            options={eventIds.map(id => ({
-              value: id,
-              label: id,
-              details: <DateTime date={data?.data.find(d => d.id === id)?.timestamp} />,
-            }))}
-            value={selectedEventId}
-            onChange={({value}) => setSelectedEventId(value)}
-            triggerLabel={
-              <ButtonLabelWrapper>
-                <TextOverflow>
-                  {eventSelectLabel}:{' '}
-                  <SelectionTextWrapper>
-                    {getShortEventId(selectedEventId)}
-                  </SelectionTextWrapper>
-                </TextOverflow>
-              </ButtonLabelWrapper>
-            }
-          />
-          <GroupEventActions event={eventData} group={group} projectSlug={project.slug} />
-        </StyledEventSelectorControlBar>
+        <StyledControlBar>
+          <StyledEventControls>
+            <CompactSelect
+              size="sm"
+              disabled={false}
+              options={eventIds.map(id => ({
+                value: id,
+                label: id,
+                details: <DateTime date={data?.data.find(d => d.id === id)?.timestamp} />,
+              }))}
+              value={selectedEventId}
+              onChange={({value}) => setSelectedEventId(value)}
+              triggerLabel={
+                <ButtonLabelWrapper>
+                  <TextOverflow>
+                    {eventSelectLabel}:{' '}
+                    <SelectionTextWrapper>
+                      {getShortEventId(selectedEventId)}
+                    </SelectionTextWrapper>
+                  </TextOverflow>
+                </ButtonLabelWrapper>
+              }
+            />
+            <LinkButton
+              title={t('Full Event Details')}
+              size={BUTTON_SIZE}
+              to={eventDetailsRoute({
+                eventSlug: generateEventSlug({project: project.slug, id: eventData.id}),
+                orgSlug: organization.slug,
+              })}
+              aria-label={t('Full Event Details')}
+              icon={<IconOpen />}
+            />
+          </StyledEventControls>
+          <div>
+            <NavButtons>
+              <NavButton
+                title={t('Previous Event')}
+                disabled={!hasPrev}
+                icon={<IconChevron direction="left" size={BUTTON_ICON_SIZE} />}
+                onPaginate={() => {
+                  if (hasPrev) {
+                    setSelectedEventId(eventIds[eventIdIndex - 1]);
+                  }
+                }}
+              />
+              <NavButton
+                title={t('Next Event')}
+                disabled={!hasNext}
+                icon={<IconChevron direction="right" size={BUTTON_ICON_SIZE} />}
+                onPaginate={() => {
+                  if (hasNext) {
+                    setSelectedEventId(eventIds[eventIdIndex + 1]);
+                  }
+                }}
+              />
+            </NavButtons>
+          </div>
+        </StyledControlBar>
         <ComparisonContentWrapper>
           <Link
             to={eventDetailsRoute({
@@ -241,7 +302,12 @@ const ButtonLabelWrapper = styled('span')`
   grid-template-columns: 1fr auto;
 `;
 
-const StyledEventSelectorControlBar = styled('div')`
+const StyledControlBar = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;
+
+const StyledEventControls = styled('div')`
   display: flex;
   align-items: center;
   gap: 8px;
