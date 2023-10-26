@@ -80,9 +80,9 @@ export default function FeedbackList() {
         <FeedbackListItem
           feedbackItem={item}
           style={style}
-          isChecked={checked.includes(item.feedback_id)}
+          isChecked={checked.includes(item.id)}
           onChecked={() => {
-            toggleChecked(item.feedback_id);
+            toggleChecked(item.id);
           }}
         />
       </CellMeasurer>
@@ -118,9 +118,7 @@ export default function FeedbackList() {
                   }
                   onRowsRendered={onRowsRendered}
                   overscanRowCount={5}
-                  ref={e => {
-                    registerChild(e);
-                  }}
+                  ref={registerChild}
                   rowCount={issues.length}
                   rowHeight={cache.rowHeight}
                   rowRenderer={renderRow}
