@@ -152,12 +152,18 @@ export default function PageOverview() {
             <Flex>
               <PageOverviewFeaturedTagsList
                 tag="browser.name"
+                title={t('Slowest Browsers')}
                 transaction={transaction}
               />
-              <PageOverviewFeaturedTagsList tag="release" transaction={transaction} />
+              <PageOverviewFeaturedTagsList
+                tag="release"
+                title={t('Slowest Releases')}
+                transaction={transaction}
+              />
               {/* TODO: need a way to map country code to actual country name */}
               <PageOverviewFeaturedTagsList
                 tag="geo.country_code"
+                title={t('Slowest Regions')}
                 transaction={transaction}
               />
             </Flex>
