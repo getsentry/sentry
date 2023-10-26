@@ -15,6 +15,9 @@ env:
   SENTRY_SHUFFLE_TESTS: true
 
 jobs:
+  per-test-coverage:
+    uses: ./.github/workflows/codecov_per_test_coverage.yml
+    secrets: inherit
   backend-test:
     name: run backend tests
     runs-on: ubuntu-20.04

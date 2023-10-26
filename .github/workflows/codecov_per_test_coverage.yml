@@ -1,14 +1,10 @@
-name: Periodic tests with --cov-context=test
+name: Codecov - per test coverage
 # This workflow generates pytest coverage with the flag --cov-context=test
 # This coverage is used as input for Codecov Automated Test Selection (see .github/workflows/codecov_ats.yml)
 # However there's a performance toll in running tests with this flag.
-# So we will be running the test suite every hour in master
+# So we will not be running the test suite on every commit
 
-on:
-  schedule:
-    # Runs every day at 1AM UTC
-    - cron: '0 1 * * *'
-
+on: [workflow_dispatch, workflow_call]
 
 jobs:
   # Same as 'backend' in .github/workflows/backed.yml
@@ -52,10 +48,6 @@ jobs:
             # is way smaller than the time it would take to run in its own job.
             bigtable: true
             pg-version: ${{ matrix.pg-version }}
-
-        - name: Install codecov CLI
-          run: |
-            pip install --extra-index-url https://pypi.org/simple --no-cache-dir codecov-cli>=0.4.0
 
         - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }}) with --cov-context=test
           id: run_backend_tests
