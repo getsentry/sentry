@@ -109,7 +109,7 @@ class GitHubIssueBasic(IssueBasicMixin):
                 "name": "labels",
                 "label": "Labels",
                 "default": [],
-                "type": "choice",
+                "type": "select",
                 "multiple": True,
                 "required": False,
                 "choices": labels,
