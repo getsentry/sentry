@@ -9,10 +9,10 @@ export type FeedbackIssue = Overwrite<
     issueType: 'feedback';
     metadata: {
       contact_email: null | string;
+      crash_report_event_id: null | string;
       message: string;
-      name: string;
+      name: null | string;
       title: string;
-      value: string;
     };
     owners: null | unknown;
   }
@@ -27,10 +27,10 @@ export type FeedbackIssueList = Overwrite<
     issueType: 'feedback';
     metadata: {
       contact_email: null | string;
+      crash_report_event_id: null | string;
       message: string;
-      name: string;
+      name: null | string;
       title: string;
-      value: string;
     };
     owners: null | unknown;
   }
