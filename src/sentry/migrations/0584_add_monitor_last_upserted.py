@@ -18,16 +18,14 @@ class Migration(CheckedMigration):
     #   change, it's completely safe to run the operation after the code has deployed.
     is_dangerous = False
 
-
     dependencies = [
-        ('sentry', '0583_add_early_adopter_to_organization_mapping'),
+        ("sentry", "0583_add_early_adopter_to_organization_mapping"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='monitor',
-            name='last_upsert',
+            model_name="monitor",
+            name="last_upsert",
             field=models.DateTimeField(null=True),
         ),
     ]
-
