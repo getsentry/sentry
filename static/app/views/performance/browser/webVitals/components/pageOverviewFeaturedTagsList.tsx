@@ -1,7 +1,9 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import {COUNTRY_CODE_TO_NAME_MAP} from 'sentry/data/countryCodesMap';
 import {space} from 'sentry/styles/space';
+import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {useSlowestTagValuesQuery} from 'sentry/views/performance/browser/webVitals/utils/useSlowestTagValuesQuery';
 
@@ -12,6 +14,14 @@ type Props = {
 };
 
 const LIMIT = 4;
+
+function toReadableValue(tag, tagValue) {
+  if (tag === 'geo.country_code') {
+    return COUNTRY_CODE_TO_NAME_MAP[tagValue] ?? tagValue;
+  }
+
+  return tagValue;
+}
 
 export function PageOverviewFeaturedTagsList({transaction, tag, title}: Props) {
   const {data} = useSlowestTagValuesQuery({transaction, tag, limit: LIMIT});
@@ -37,10 +47,12 @@ export function PageOverviewFeaturedTagsList({transaction, tag, title}: Props) {
                     // TODO: need to pass in handler here to open detail panel
                   }}
                 >
-                  {row[tag]}
+                  {toReadableValue(tag, row[tag])}
                 </TagButton>
               </TagValue>
-              <Score>{score.totalScore}</Score>
+              <Score>
+                <PerformanceBadge score={score.totalScore} />
+              </Score>
             </RowContainer>
           );
         })}
@@ -71,7 +83,7 @@ const TagValuesContainer = styled('div')`
 
 const RowContainer = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 32px;
+  grid-template-columns: 1fr auto;
   height: 32px;
 `;
 

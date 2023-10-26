@@ -160,7 +160,6 @@ export default function PageOverview() {
                 title={t('Slowest Releases')}
                 transaction={transaction}
               />
-              {/* TODO: need a way to map country code to actual country name */}
               <PageOverviewFeaturedTagsList
                 tag="geo.country_code"
                 title={t('Slowest Regions')}
