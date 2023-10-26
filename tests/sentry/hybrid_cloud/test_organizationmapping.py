@@ -20,7 +20,7 @@ from sentry.services.hybrid_cloud.organization_mapping.serial import (
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.region import get_local_region
 
 
@@ -214,7 +214,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
         assert_matching_organization_mapping(org=self.organization)
 
 
-@region_silo_test(stable=True)
+@control_silo_test(stable=True)
 class OrganizationMappingReplicationTest(TransactionTestCase):
     def test_replicates_all_flags(self):
         self.organization = self.create_organization(slug="santry", region="us")
