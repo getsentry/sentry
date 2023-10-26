@@ -16,7 +16,6 @@ from sentry.monitors.schedule import SCHEDULE_INTERVAL_MAP
 @region_silo_endpoint
 class OrganizationMonitorScheduleSampleDataEndpoint(OrganizationEndpoint):
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
-    private = True
     owner = ApiOwner.CRONS
 
     def get(self, request: Request) -> Response:
