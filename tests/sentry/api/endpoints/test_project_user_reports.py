@@ -382,6 +382,16 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
 
     @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
     def test_simple_shim_to_feedback(self, mock_produce_occurrence_to_kafka):
+        replay_id = "b" * 32
+        event_with_replay = self.store_event(
+            data={
+                "contexts": {"replay": {"replay_id": replay_id}},
+                "event_id": "a" * 32,
+                "timestamp": self.min_ago,
+                "environment": self.environment.name,
+            },
+            project_id=self.project.id,
+        )
         self.login_as(user=self.user)
 
         url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
@@ -390,7 +400,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
             response = self.client.post(
                 url,
                 data={
-                    "event_id": self.event.event_id,
+                    "event_id": event_with_replay.event_id,
                     "email": "foo@example.com",
                     "name": "Foo Bar",
                     "comments": "It broke!",
@@ -401,7 +411,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
 
         report = UserReport.objects.get(id=response.data["id"])
         assert report.project_id == self.project.id
-        assert report.group_id == self.event.group.id
+        assert report.group_id == event_with_replay.group.id
         assert report.email == "foo@example.com"
         assert report.name == "Foo Bar"
         assert report.comments == "It broke!"
@@ -411,6 +421,8 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert mock_event_data["contexts"]["feedback"]["email"] == "foo@example.com"
         assert mock_event_data["contexts"]["feedback"]["message"] == "It broke!"
         assert mock_event_data["contexts"]["feedback"]["name"] == "Foo Bar"
+        assert mock_event_data["contexts"]["feedback"]["replay_id"] == replay_id
+        assert mock_event_data["contexts"]["replay"]["replay_id"] == replay_id
         assert mock_event_data["platform"] == "other"
         assert mock_event_data["contexts"]["feedback"]["crash_report_event_id"]
 

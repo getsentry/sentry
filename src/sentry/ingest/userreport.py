@@ -320,15 +320,18 @@ def _shim_to_feedback(report, event, project):
                 "name": report.get("name", ""),
                 "email": report["email"],
                 "message": report["comments"],
-            }
+            },
+            "contexts": {},
         }
 
         if event:
             feedback_event["feedback"]["crash_report_event_id"] = event.event_id
 
             if get_path(event.data, "contexts", "replay", "replay_id"):
-                feedback_event["contexts"]["replay"] = event.contexts["replay"]
-                feedback_event["feedback"]["replay_id"] = event.contexts["replay"]["replay_id"]
+                feedback_event["contexts"]["replay"] = event.data["contexts"]["replay"]
+                feedback_event["feedback"]["replay_id"] = event.data["contexts"]["replay"][
+                    "replay_id"
+                ]
             feedback_event["timestamp"] = event.datetime.timestamp()
 
             feedback_event["platform"] = event.platform
