@@ -2,8 +2,6 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
-import FeedbackEmptyDetails from 'sentry/components/feedback/details/feedbackEmptyDetails';
 import {FeedbackDataContext} from 'sentry/components/feedback/feedbackDataContext';
 import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
 import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
@@ -15,8 +13,6 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
@@ -24,33 +20,6 @@ interface Props extends RouteComponentProps<{}, {}, {}> {}
 
 export default function FeedbackListPage({}: Props) {
   const organization = useOrganization();
-
-  const queryView = useLocationQuery({
-    fields: {
-      collapse: ['inbox'],
-      expand: [
-        'owners', // Gives us assignment
-        'stats', // Gives us `firstSeen`
-      ],
-      limit: 25,
-      queryReferrer: 'feedback_list_page',
-      shortIdLookup: 0,
-      end: decodeScalar,
-      environment: decodeList,
-      field: decodeList,
-      project: decodeList,
-      query: decodeScalar,
-      start: decodeScalar,
-      statsPeriod: decodeScalar,
-      utc: decodeScalar,
-      mailbox: decodeMailbox,
-    },
-  });
-  const {feedbackSlug} = useLocationQuery({
-    fields: {
-      feedbackSlug: decodeScalar,
-    },
-  });
 
   return (
     <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
@@ -62,7 +31,7 @@ export default function FeedbackListPage({}: Props) {
         </Layout.Header>
         <PageFiltersContainer>
           <ErrorBoundary>
-            <FeedbackDataContext queryView={queryView}>
+            <FeedbackDataContext>
               <LayoutGrid>
                 <FeedbackFilters style={{gridArea: 'filters'}} />
                 <FeedbackSearch style={{gridArea: 'search'}} />
@@ -70,11 +39,7 @@ export default function FeedbackListPage({}: Props) {
                   <FeedbackList />
                 </Container>
                 <Container style={{gridArea: 'details'}}>
-                  {feedbackSlug ? (
-                    <FeedbackItemLoader feedbackSlug={feedbackSlug} />
-                  ) : (
-                    <FeedbackEmptyDetails />
-                  )}
+                  <FeedbackItemLoader />
                 </Container>
               </LayoutGrid>
             </FeedbackDataContext>
