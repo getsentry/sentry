@@ -54,6 +54,9 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.math import ExponentialMovingAverage
+from sentry.utils.performance_issues.performance_detection import (
+    get_performance_issues_project_settings,
+)
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba import SnubaTSResult, raw_snql_query
 
@@ -96,10 +99,13 @@ def run_detection() -> None:
         Project.objects.filter(status=ObjectStatus.ACTIVE).select_related("organization"),
         step=100,
     ):
+        project_settings = get_performance_issues_project_settings(project.id)
+
         if project.flags.has_transactions and (
             features.has(
                 "organizations:performance-statistical-detectors-ema", project.organization
             )
+            and project_settings["duration_regression_detection_enabled"]
             or project.id in enabled_performance_projects
         ):
             performance_projects.append(project)
