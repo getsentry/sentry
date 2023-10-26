@@ -764,8 +764,8 @@ def test_performance_calculate_score(default_project):
         config = get_project_config(default_project, full_config=True).to_dict()["config"]
 
         validate_project_config(json.dumps(config), strict=False)
-        performance_score_config = config["performanceScoreConfig"]
-        assert performance_score_config == {
+        performance_score = config["performanceScore"]
+        assert performance_score == {
             "profiles": [
                 {
                     "name": "Desktop",
