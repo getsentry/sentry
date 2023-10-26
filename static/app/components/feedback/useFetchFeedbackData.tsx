@@ -44,7 +44,6 @@ export default function useFetchFeedbackData(
     eventResult,
     issueData,
     issueResult,
-    hasReplay,
     tags,
   };
 }
