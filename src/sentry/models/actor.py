@@ -10,12 +10,13 @@ from django.db.models.signals import post_save
 from django.forms import model_to_dict
 from rest_framework import serializers
 
-from sentry.backup.dependencies import ImportKind
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import Model, region_silo_only_model
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 
@@ -134,6 +135,19 @@ class Actor(Model):
         app_label = "sentry"
         db_table = "sentry_actor"
 
+    def outbox_for_update(self) -> RegionOutbox:
+        return RegionOutbox(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=self.id,
+            object_identifier=self.id,
+            category=OutboxCategory.ACTOR_UPDATE,
+        )
+
+    def delete(self, **kwargs):
+        with outbox_context(transaction.atomic(router.db_for_write(Actor))):
+            self.outbox_for_update().save()
+        return super().delete(**kwargs)
+
     def resolve(self) -> Union[Team, RpcUser]:
         # Returns User/Team model object
         return fetch_actor_by_actor_id(actor_type_to_class(self.type), self.id)
@@ -147,6 +161,13 @@ class Actor(Model):
         # Returns a string like "team:1"
         # essentially forwards request to ActorTuple.get_actor_identifier
         return self.get_actor_tuple().get_actor_identifier()
+
+    @classmethod
+    def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
+        # Actors that can have both their `user` and `team` value set to null. Exclude such actors # from the export.
+        q = super().query_for_relocation_export(q, pk_map)
+
+        return q & ~models.Q(team__isnull=True, user_id__isnull=True)
 
     # TODO(hybrid-cloud): actor refactor. Remove this method when done.
     def write_relocation_import(
@@ -164,12 +185,12 @@ class Actor(Model):
         # fixtures/backup/model_dependencies/sorted.json), a viable solution here is to always null
         # out the `actor_id` field of the `Team` when we import it, then rely on that model's
         # `post_save()` hook to fill in the `Actor` model.
-        (actor, created) = Actor.objects.get_or_create(team=self.team, defaults=model_to_dict(self))
+        (actor, _) = Actor.objects.get_or_create(team=self.team, defaults=model_to_dict(self))
         if actor:
             self.pk = actor.pk
             self.save()
 
-        return (self.pk, ImportKind.Inserted if created else ImportKind.Existing)
+        return (self.pk, ImportKind.Inserted)
 
 
 def get_actor_id_for_user(user: Union[User, RpcUser]) -> int:

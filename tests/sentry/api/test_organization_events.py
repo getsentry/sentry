@@ -1,10 +1,12 @@
 from unittest import mock
 
+from django.test import override_settings
 from django.urls import reverse
 
+from sentry.api.endpoints.organization_events import RATE_LIMIT
 from sentry.search.events import constants
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
 
@@ -156,3 +158,17 @@ class OrganizationEventsEndpointTest(APITestCase):
         self.do_request(query)
         _, kwargs = mock.call_args
         self.assertEqual(kwargs["referrer"], "api.performance.transaction-summary")
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_ratelimit(self):
+        query = {
+            "field": ["transaction"],
+            "project": [self.project.id],
+        }
+        with freeze_time("2000-01-01"):
+            for _ in range(RATE_LIMIT):
+                self.do_request(query, features={"organizations:discover-events-rate-limit": True})
+            response = self.do_request(
+                query, features={"organizations:discover-events-rate-limit": True}
+            )
+            assert response.status_code == 429, response.content

@@ -8,7 +8,7 @@ import {Event} from 'sentry/types/event';
 import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useHasOrganizationSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
-import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
+import {projectCanUpsellReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 
@@ -18,10 +18,13 @@ type Props = {
   group?: Group;
 };
 
-function EventReplayContent({event, group}: Props) {
+function EventReplayContent({
+  event,
+  group,
+  replayId,
+}: Props & {replayId: undefined | string}) {
   const organization = useOrganization();
   const {hasOrgSentReplays, fetching} = useHasOrganizationSentAnyReplayEvents();
-  const replayId = getReplayIdFromEvent(event);
 
   const onboardingPanel = useCallback(() => import('./replayInlineOnboardingPanel'), []);
   const replayPreview = useCallback(() => import('./replayPreview'), []);
@@ -70,15 +73,24 @@ function EventReplayContent({event, group}: Props) {
   );
 }
 
-export default function EventReplay({projectSlug, event, group}: Props) {
+export default function EventReplay({event, group, projectSlug}: Props) {
   const organization = useOrganization();
   const hasReplaysFeature = organization.features.includes('session-replay');
-  const project = useProjectFromSlug({organization, projectSlug});
-  const isReplayRelated = projectCanLinkToReplay(project);
 
-  if (!hasReplaysFeature || !isReplayRelated) {
-    return null;
+  const project = useProjectFromSlug({organization, projectSlug});
+  const canUpsellReplay = projectCanUpsellReplay(project);
+  const replayId = getReplayIdFromEvent(event);
+
+  if (hasReplaysFeature && (replayId || canUpsellReplay)) {
+    return (
+      <EventReplayContent
+        event={event}
+        group={group}
+        projectSlug={projectSlug}
+        replayId={replayId}
+      />
+    );
   }
 
-  return <EventReplayContent {...{projectSlug, event, group}} />;
+  return null;
 }

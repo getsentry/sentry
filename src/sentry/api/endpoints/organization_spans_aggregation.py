@@ -104,7 +104,6 @@ class BaseAggregateSpans:
             the md5 hash of the value A-C-D and for span E would be md5 hash of the value A-C1-E.
         """
         key = span_tree["key"]
-        description = span_tree["description"]
         start_timestamp = span_tree["start_timestamp_ms"]
         if root_prefix is None:
             prefix = key
@@ -151,7 +150,7 @@ class BaseAggregateSpans:
                 "parent_node_fingerprint": parent_node_fingerprint,
                 "group": span_tree["group"],
                 "op": span_tree["op"],
-                "description": description if span_tree["group"] == NULL_GROUP else description,
+                "description": "" if span_tree["group"] == NULL_GROUP else span_tree["description"],
                 "start_timestamp": start_timestamp,
                 "start_ms": start_timestamp,  # TODO: Remove after updating frontend, duplicated for backward compatibility
                 "avg(exclusive_time)": span_tree["exclusive_time"],
@@ -263,9 +262,7 @@ class AggregateNodestoreSpans(BaseAggregateSpans):
                         "group": span.get("sentry_tags", {}).get("group")
                         or span.get("data", {}).get("span.group", NULL_GROUP),
                         "group_raw": span["hash"],
-                        "description": span.get("sentry_tags", {}).get("description")
-                        or span.get("data", {}).get("span.description")
-                        or span.get("description", ""),
+                        "description": span.get("sentry_tags", {}).get("description", ""),
                         "op": span.get("op", ""),
                         "start_timestamp_ms": span["start_timestamp"]
                         * 1000,  # timestamp is unix timestamp, convert to ms
@@ -315,6 +312,7 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
             return Response(status=404)
 
         transaction = request.query_params.get("transaction", None)
+        http_method = request.query_params.get("http.method", None)
         if transaction is None:
             return Response(
                 status=status.HTTP_400_BAD_REQUEST, data={"details": "Transaction not provided"}
@@ -326,12 +324,16 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
                 status=status.HTTP_400_BAD_REQUEST, data={"details": "Backend not supported"}
             )
 
+        query = f"transaction:{transaction}"
+        if http_method is not None:
+            query += f" transaction.method:{http_method}"
+
         if backend == "indexedSpans":
             builder = SpansIndexedQueryBuilder(
                 dataset=Dataset.SpansIndexed,
                 params=params,
                 selected_columns=["transaction_id", "count()"],
-                query=f"transaction:{transaction}",
+                query=query,
                 limit=100,
             )
 
@@ -370,9 +372,13 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
 
             return Response(data=aggregated_tree)
 
+        conditions = [["transaction", "=", transaction]]
+        if http_method is not None:
+            conditions.append(["http.method", "=", http_method])
+
         events = eventstore.backend.get_events(
             filter=eventstore.Filter(
-                conditions=[["transaction", "=", transaction]],
+                conditions=conditions,
                 start=params["start"],
                 end=params["end"],
                 project_ids=params["project_id"],

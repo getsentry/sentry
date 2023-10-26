@@ -1,3 +1,5 @@
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -12,7 +14,7 @@ const MockUseLocation = jest.mocked(useLocation);
 const MockFetchReplayClicks = jest.mocked(fetchReplayClicks);
 
 const {organization, project} = initializeOrg();
-const replay = TestStubs.ReplayRecord();
+const replay = ReplayRecordFixture();
 
 const NOON = '2023-04-14T12:00:00';
 const FIVE_PAST_FORMATTED = '2023-04-14T12:05:00';
@@ -201,7 +203,7 @@ describe('useInitialTimeOffsetMs', () => {
       // Expecting 5 minutes difference, in ms
       expect(result.current).toStrictEqual({
         highlight: {
-          annotation: 'click.tag:button',
+          annotation: undefined,
           nodeId: 7,
           spotlight: true,
         },
@@ -246,7 +248,7 @@ describe('useInitialTimeOffsetMs', () => {
       expect(MockFetchReplayClicks).toHaveBeenCalledTimes(1);
       expect(result.current).toStrictEqual({
         highlight: {
-          annotation: 'click.tag:button',
+          annotation: undefined,
           nodeId: 7,
           spotlight: true,
         },

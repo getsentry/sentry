@@ -1,47 +1,90 @@
+import {useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {t} from 'sentry/locale';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import {t, tn} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {getFormattedDate} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   useReleases,
   useReleaseSelection,
+  useReleaseStats,
 } from 'sentry/views/starfish/queries/useReleases';
-
-const ALL_RELEASES = {
-  value: '',
-  label: t('All Releases'),
-};
 
 type Props = {
   selectorKey: string;
-  selectorName: string;
+  selectorName?: string;
   selectorValue?: string;
 };
 
 export function ReleaseSelector({selectorName, selectorKey, selectorValue}: Props) {
-  const {data, isLoading} = useReleases();
+  const [searchTerm, setSearchTerm] = useState<string | undefined>(undefined);
+  const {data, isLoading} = useReleases(searchTerm);
+  const {data: releaseStats} = useReleaseStats();
   const location = useLocation();
-  let value = selectorValue;
 
-  if (!isLoading && !defined(value)) {
-    value = ALL_RELEASES.value;
+  const options: SelectOption<string>[] = [];
+  if (defined(selectorValue)) {
+    const index = data?.findIndex(({version}) => version === selectorValue);
+    const selectedRelease = defined(index) ? data?.[index] : undefined;
+    let selectedReleaseDate: string | undefined = undefined;
+    if (defined(selectedRelease)) {
+      selectedReleaseDate = selectedRelease.dateCreated;
+    }
+
+    options.push({
+      value: selectorValue,
+      label: selectorValue,
+      details: (
+        <LabelDetails
+          sessionCount={releaseStats[selectorValue]?.['sum(session)']}
+          dateCreated={selectedReleaseDate}
+        />
+      ),
+    });
   }
+  data
+    ?.filter(({version}) => selectorValue !== version)
+    .forEach(release => {
+      const option = {
+        value: release.version,
+        label: release.version,
+        details: (
+          <LabelDetails
+            sessionCount={releaseStats[release.version]?.['sum(session)']}
+            dateCreated={release.dateCreated}
+          />
+        ),
+      };
+
+      options.push(option);
+    });
+
   return (
     <StyledCompactSelect
       triggerProps={{
         prefix: selectorName,
+        title: selectorValue,
       }}
+      loading={isLoading}
+      searchable
       value={selectorValue}
       options={[
-        ...(data ?? [ALL_RELEASES]).map(release => ({
-          value: release.version,
-          label: release.shortVersion ?? release.version,
-        })),
+        {
+          value: '_releases',
+          label: t('Sorted by date created'),
+          options,
+        },
       ]}
+      onSearch={debounce(val => {
+        setSearchTerm(val);
+      }, DEFAULT_DEBOUNCE_DURATION)}
       onChange={newValue => {
         browserHistory.push({
           ...location,
@@ -51,7 +94,32 @@ export function ReleaseSelector({selectorName, selectorKey, selectorValue}: Prop
           },
         });
       }}
+      onClose={() => {
+        setSearchTerm(undefined);
+      }}
     />
+  );
+}
+
+type LabelDetailsProps = {
+  dateCreated?: string;
+  sessionCount?: number;
+};
+
+function LabelDetails(props: LabelDetailsProps) {
+  return (
+    <DetailsContainer>
+      <div>
+        {defined(props.sessionCount)
+          ? tn('%s session', '%s sessions', props.sessionCount)
+          : '-'}
+      </div>
+      <div>
+        {defined(props.dateCreated)
+          ? getFormattedDate(props.dateCreated, 'MMM D, YYYY')
+          : null}
+      </div>
+    </DetailsContainer>
   );
 }
 
@@ -61,12 +129,12 @@ export function ReleaseComparisonSelector() {
     <PageFilterBar condensed>
       <ReleaseSelector
         selectorKey="primaryRelease"
-        selectorName={t('Primary Release')}
         selectorValue={primaryRelease}
+        selectorName={t('Release 1')}
       />
       <ReleaseSelector
         selectorKey="secondaryRelease"
-        selectorName={t('Secondary Release')}
+        selectorName={t('Release 2')}
         selectorValue={secondaryRelease}
       />
     </PageFilterBar>
@@ -74,7 +142,14 @@ export function ReleaseComparisonSelector() {
 }
 
 const StyledCompactSelect = styled(CompactSelect)`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    max-width: 300px;
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    max-width: 275px;
   }
+`;
+
+const DetailsContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: ${space(1)};
 `;

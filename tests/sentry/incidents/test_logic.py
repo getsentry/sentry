@@ -41,6 +41,7 @@ from sentry.incidents.logic import (
     get_incident_aggregates,
     get_incident_subscribers,
     get_triggers_for_alert_rule,
+    snapshot_alert_rule,
     subscribe_to_incident,
     translate_aggregate_field,
     update_alert_rule,
@@ -66,9 +67,10 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
 )
-from sentry.models.actor import ActorTuple, get_actor_id_for_user
+from sentry.models.actor import ActorTuple, get_actor_for_user, get_actor_id_for_user
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, ApiTimeoutError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -709,6 +711,14 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert (
             old_subscription_id != self.alert_rule.snuba_query.subscriptions.get().subscription_id
         )
+
+    def test_snapshot_alert_rule_with_only_owner(self):
+        # Force the alert rule into an invalid state
+        AlertRule.objects.filter(id=self.alert_rule.id).update(
+            user_id=None, team_id=None, owner=get_actor_for_user(self.user)
+        )
+        self.alert_rule.refresh_from_db()
+        snapshot_alert_rule(self.alert_rule, self.user)
 
     def test_empty_query(self):
         alert_rule = update_alert_rule(self.alert_rule, query="")
@@ -1997,14 +2007,18 @@ class GetAvailableActionIntegrationsForOrgTest(TestCase):
     def test_registered(self):
         integration = Integration.objects.create(external_id="1", provider="slack")
         integration.add_organization(self.organization)
-        assert list(get_available_action_integrations_for_org(self.organization)) == [integration]
+        assert list(get_available_action_integrations_for_org(self.organization)) == [
+            serialize_integration(integration)
+        ]
 
     def test_mixed(self):
         integration = Integration.objects.create(external_id="1", provider="slack")
         integration.add_organization(self.organization)
         other_integration = Integration.objects.create(external_id="12345", provider="random")
         other_integration.add_organization(self.organization)
-        assert list(get_available_action_integrations_for_org(self.organization)) == [integration]
+        assert list(get_available_action_integrations_for_org(self.organization)) == [
+            serialize_integration(integration)
+        ]
 
     def test_disabled_integration(self):
         integration = Integration.objects.create(

@@ -64,7 +64,6 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
 from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequest, PullRequestCommit
 from sentry.models.release import Release
@@ -94,7 +93,6 @@ from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.outcomes import Outcome
 from sentry.utils.samples import load_data
-from tests.sentry.integrations.github.test_repository import stub_installation_token
 
 pytestmark = [requires_snuba]
 
@@ -914,6 +912,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=event.group.id)
+        assert group.active_at
         assert group.active_at.replace(second=0) == event2.datetime.replace(second=0)
         assert group.active_at.replace(second=0) != event.datetime.replace(second=0)
 
@@ -2488,9 +2487,6 @@ class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
         super().setUp()
         self.repo_name = "example"
         self.project = self.create_project(name="foo")
-        self.integration = Integration.objects.create(
-            provider="github", name=self.repo_name, external_id="654321"
-        )
         self.org_integration = self.integration.add_organization(
             self.project.organization, self.user
         )
@@ -2509,7 +2505,6 @@ class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
             source_root="/source/root",
             default_branch="main",
         )
-        stub_installation_token()
         responses.add(
             "GET",
             f"https://api.github.com/repos/{self.repo_name}/commits/{LATER_COMMIT_SHA}",
@@ -2921,7 +2916,7 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @freeze_time("2022-11-03 10:00:00")
     def test_boost_release_with_non_observed_release(self):
-        ts = time()
+        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
 
         project = self.create_project(platform="python")
         release_1 = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())
@@ -2982,7 +2977,7 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @freeze_time("2022-11-03 10:00:00")
     def test_boost_release_boosts_only_latest_release(self):
-        ts = time()
+        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
 
         project = self.create_project(platform="python")
         release_1 = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())
@@ -3176,7 +3171,7 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @freeze_time("2022-11-03 10:00:00")
     def test_release_not_boosted_with_deleted_release_after_event_received(self):
-        ts = time()
+        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
 
         project = self.create_project(platform="python")
         release_1 = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())
@@ -3226,7 +3221,7 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @freeze_time("2022-11-03 10:00:00")
     def test_get_boosted_releases_with_old_and_new_cache_keys(self):
-        ts = time()
+        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
 
         project = self.create_project(platform="python")
 
@@ -3296,7 +3291,7 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @freeze_time("2022-11-03 10:00:00")
     def test_expired_boosted_releases_are_removed(self):
-        ts = time()
+        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
 
         # We want to test with multiple platforms.
         for platform in ("python", "java", None):
@@ -3375,10 +3370,10 @@ class DSLatestReleaseBoostTest(TestCase):
             for o in mocked_invalidate.mock_calls
         )
 
-    @freeze_time()
+    @freeze_time("2022-11-03 10:00:00")
     @mock.patch("sentry.dynamic_sampling.rules.helpers.latest_releases.BOOSTED_RELEASES_LIMIT", 2)
     def test_least_recently_boosted_release_is_removed_if_limit_is_exceeded(self):
-        ts = time()
+        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
 
         project = self.create_project(platform="python")
         release_1 = Release.get_or_create(
@@ -3448,7 +3443,7 @@ class DSLatestReleaseBoostTest(TestCase):
     @freeze_time()
     @mock.patch("sentry.dynamic_sampling.rules.helpers.latest_releases.BOOSTED_RELEASES_LIMIT", 2)
     def test_removed_boost_not_added_again_if_limit_is_exceeded(self):
-        ts = time()
+        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
 
         project = self.create_project(platform="python")
         release_1 = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())

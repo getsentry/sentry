@@ -422,6 +422,7 @@ def configure_sdk():
         "flush-buffers",
         "sync-options",
         "schedule-digests",
+        "check-symbolicator-lpq-project-eligibility",  # defined in getsentry
     ]
 
     # turn on minimetrics

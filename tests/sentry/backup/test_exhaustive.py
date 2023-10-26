@@ -16,12 +16,14 @@ from sentry.testutils.helpers.backups import (
     clear_database,
     export_to_file,
 )
+from sentry.testutils.silo import region_silo_test
 from tests.sentry.backup import mark, targets
 
 EXHAUSTIVELY_TESTED: set[NormalizedModelName] = set()
 UNIQUENESS_TESTED: set[NormalizedModelName] = set()
 
 
+@region_silo_test(stable=True)
 class ExhaustiveTests(BackupTestCase):
     """
     Ensure that a database with all exportable models filled out still works.
@@ -38,6 +40,7 @@ class ExhaustiveTests(BackupTestCase):
         return self.import_export_then_validate(self._testMethodName, reset_pks=False)
 
 
+@region_silo_test(stable=True)
 class UniquenessTests(BackupTestCase):
     """
     Ensure that required uniqueness (ie, model fields marked `unique=True`) is honored.
@@ -58,9 +61,9 @@ class UniquenessTests(BackupTestCase):
 
             # Now import twice, so that all random values in the export (UUIDs etc) are identical,
             # to test that these are properly replaced and handled.
-            with open(tmp_expect) as tmp_file:
+            with open(tmp_expect, "rb") as tmp_file:
                 import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
-            with open(tmp_expect) as tmp_file:
+            with open(tmp_expect, "rb") as tmp_file:
                 # Back-to-back global scope imports are disallowed (global scope assume a clean
                 # database), so use organization scope instead.
                 #
@@ -82,9 +85,9 @@ class UniquenessTests(BackupTestCase):
 
             # Now import twice, so that all random values in the export (UUIDs etc) are identical,
             # to test that these are properly replaced and handled.
-            with open(tmp_expect) as tmp_file:
+            with open(tmp_expect, "rb") as tmp_file:
                 import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
-            with open(tmp_expect) as tmp_file:
+            with open(tmp_expect, "rb") as tmp_file:
                 # Back-to-back global scope imports are disallowed (global scope assume a clean
                 # database), so use organization scope followed by config scope instead.
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)

@@ -45,6 +45,7 @@ class UserEmailManager(BaseManager):
 @control_silo_only_model
 class UserEmail(ControlOutboxProducingModel):
     __relocation_scope__ = RelocationScope.User
+    __relocation_dependencies__ = {"sentry.Email"}
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, related_name="emails")
     email = models.EmailField(_("email address"), max_length=75)
@@ -101,10 +102,9 @@ class UserEmail(ControlOutboxProducingModel):
         if old_pk is None:
             return None
 
-        # If we are merging users, ignore this import and use the merged user's data.
+        # If we are merging users, ignore the imported email and use the merged user's email
+        # instead.
         if pk_map.get_kind(get_model_name(User), old_user_id) == ImportKind.Existing:
-            # TODO(getsentry/team-ospo#190): Mutating `pk_map` here is a bit hacky, and we probably
-            # shouldn't do it.
             useremail = self.__class__.objects.get(user_id=self.user_id)
             pk_map.insert(get_model_name(self), self.pk, useremail.pk, ImportKind.Existing)
             return None
@@ -130,4 +130,8 @@ class UserEmail(ControlOutboxProducingModel):
                 setattr(useremail, f.name, getattr(self, f.name))
         useremail.save()
 
+        # If we've entered this method at all, we can be sure that the `UserEmail` was created as
+        # part of the import, since this is a new `User` (the "existing" `User` due to
+        # `--merge_users=true` case is handled in the `normalize_before_relocation_import()` method
+        # above).
         return (useremail.pk, ImportKind.Inserted)

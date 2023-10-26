@@ -16,7 +16,11 @@ from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 from sentry.ratelimits.cardinality import CardinalityLimiter
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.consumers.indexer.batch import valid_metric_name
-from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MetricsBatchBuilder
+from sentry.sentry_metrics.consumers.indexer.common import (
+    BatchMessages,
+    IndexerOutputMessageBatch,
+    MetricsBatchBuilder,
+)
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.sentry_metrics.indexer.limiters.cardinality import (
     TimeseriesCardinalityLimiter,
@@ -64,10 +68,10 @@ def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Messag
 
 
 def compare_message_batches_ignoring_metadata(
-    actual: Sequence[Message], expected: Sequence[Message]
+    actual: IndexerOutputMessageBatch, expected: Sequence[Message]
 ) -> None:
-    assert len(actual) == len(expected)
-    for (a, e) in zip(actual, expected):
+    assert len(actual.data) == len(expected)
+    for (a, e) in zip(actual.data, expected):
         compare_messages_ignoring_mapping_metadata(a, e)
 
 

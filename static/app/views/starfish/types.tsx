@@ -26,9 +26,18 @@ export enum SpanMetricsField {
   SPAN_DURATION = 'span.duration',
   SPAN_SELF_TIME = 'span.self_time',
   PROJECT_ID = 'project.id',
+  RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
+  HTTP_RESPONSE_CONTENT_LENGTH = 'http.response_content_length',
+  HTTP_DECODED_RESPONSE_CONTENT_LENGTH = 'http.decoded_response_content_length',
+  HTTP_RESPONSE_TRANSFER_SIZE = 'http.response_transfer_size',
 }
 
-export type SpanNumberFields = 'span.self_time' | 'span.duration';
+export type SpanNumberFields =
+  | SpanMetricsField.SPAN_SELF_TIME
+  | SpanMetricsField.SPAN_DURATION
+  | SpanMetricsField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH
+  | SpanMetricsField.HTTP_RESPONSE_CONTENT_LENGTH
+  | SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE;
 
 export type SpanStringFields =
   | 'span.op'

@@ -342,10 +342,12 @@ export function TimeRangeSelector({
 
               return (
                 <DropdownButton
-                  {...triggerProps}
                   isOpen={isOpen}
                   size={selectProps.size}
                   icon={<IconCalendar />}
+                  data-test-id="page-filter-timerange-selector"
+                  {...triggerProps}
+                  {...selectProps.triggerProps}
                 >
                   <TriggerLabel>{selectProps.triggerLabel ?? defaultLabel}</TriggerLabel>
                 </DropdownButton>

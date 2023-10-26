@@ -3,6 +3,7 @@
 const patterns: RegExp[] = [
   new RegExp('^remote/github/marketplace/purchase/$'),
   new RegExp('^docs/api/user/$'),
+  new RegExp('^_experiment/log_exposure/$'),
   new RegExp('^api/0/audit-logs/$'),
   new RegExp('^api/0/_admin/options/$'),
   new RegExp('^api/0/billingadmins/$'),
@@ -15,6 +16,7 @@ const patterns: RegExp[] = [
   new RegExp('^api/0/broadcasts/[^/]+/$'),
   new RegExp('^api/0/customers/[^/]+/subscription/usage-logs/$'),
   new RegExp('^api/0/customers/[^/]+/policies/$'),
+  new RegExp('^api/0/customers/[^/]+/migrate-google-domain/$'),
   new RegExp('^api/0/users/[^/]+/merge-accounts/$'),
   new RegExp('^api/0/policies/$'),
   new RegExp('^api/0/policies/[^/]+/$'),
@@ -25,9 +27,12 @@ const patterns: RegExp[] = [
   new RegExp('^api/0/promocodes/[^/]+/claimants/$'),
   new RegExp('^api/0/gdpr_request/$'),
   new RegExp('^api/0/sponsored_account_request/$'),
+  new RegExp('^api/0/migrate_to_hosted/$'),
   new RegExp('^api/0/sponsored_education_account/$'),
   new RegExp('^api/0/organizations/[^/]+/broadcasts/$'),
   new RegExp('^api/0/auth-details/$'),
+  new RegExp('^api/0/_admin/instance-level-oauth/$'),
+  new RegExp('^api/0/_admin/instance-level-oauth/[^/]+/$'),
   new RegExp('^_admin/'),
   new RegExp('^api/0/organizations/[^/]+/api-keys/$'),
   new RegExp('^api/0/organizations/[^/]+/api-keys/[^/]+/$'),
@@ -120,6 +125,7 @@ const patterns: RegExp[] = [
   new RegExp('^auth/login/[^/]+/$'),
   new RegExp('^auth/channel/[^/]+/[^/]+/$'),
   new RegExp('^auth/link/[^/]+/$'),
+  new RegExp('^auth/2fa/$'),
   new RegExp('^auth/sso/$'),
   new RegExp('^auth/register/$'),
   new RegExp('^avatar/[^/]+/$'),
@@ -149,6 +155,7 @@ const patterns: RegExp[] = [
   new RegExp('^extensions/msteams/unlink-identity/[^/]+/$'),
   new RegExp('^extensions/discord/link-identity/[^/]+/$'),
   new RegExp('^extensions/discord/unlink-identity/[^/]+/$'),
+  new RegExp('^share/(?:group|issue)/[^/]+/$'),
 ];
 
 export default patterns;

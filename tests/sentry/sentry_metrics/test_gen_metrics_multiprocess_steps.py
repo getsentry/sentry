@@ -18,7 +18,11 @@ from sentry.ratelimits.cardinality import CardinalityLimiter
 from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_option
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.consumers.indexer.batch import valid_metric_name
-from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MetricsBatchBuilder
+from sentry.sentry_metrics.consumers.indexer.common import (
+    BatchMessages,
+    IndexerOutputMessageBatch,
+    MetricsBatchBuilder,
+)
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.sentry_metrics.indexer.limiters.cardinality import (
     TimeseriesCardinalityLimiter,
@@ -65,10 +69,10 @@ def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Messag
 
 
 def compare_message_batches_ignoring_metadata(
-    actual: Sequence[Message], expected: Sequence[Message]
+    actual: IndexerOutputMessageBatch, expected: Sequence[Message]
 ) -> None:
-    assert len(actual) == len(expected)
-    for (a, e) in zip(actual, expected):
+    assert len(actual.data) == len(expected)
+    for (a, e) in zip(actual.data, expected):
         compare_messages_ignoring_mapping_metadata(a, e)
 
 
@@ -386,7 +390,8 @@ def test_process_messages_default_card_rollout(set_sentry_option) -> None:
         "sentry-metrics.cardinality-limiter.orgs-rollout-rate",
         1.0,
     ):
-        MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
+        new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
+        assert len(new_batch.data) == len(message_batch)
 
 
 invalid_payloads = [

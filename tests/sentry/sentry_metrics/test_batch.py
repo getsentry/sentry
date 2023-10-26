@@ -10,7 +10,8 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
-from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch, PartitionIdxOffset
+from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
+from sentry.sentry_metrics.consumers.indexer.common import BrokerMeta
 from sentry.sentry_metrics.consumers.indexer.tags_validator import ReleaseHealthTagsValidator
 from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, Metadata
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -753,7 +754,7 @@ def test_resolved_with_aggregation_options(caplog, settings):
                 }
             },
         },
-    )
+    ).data
 
     assert _get_string_indexer_log_records(caplog) == []
 
@@ -901,7 +902,7 @@ def test_all_resolved(caplog, settings):
                 }
             },
         },
-    )
+    ).data
 
     assert _get_string_indexer_log_records(caplog) == []
 
@@ -1049,7 +1050,7 @@ def test_all_resolved_with_routing_information(caplog, settings):
                 }
             }
         },
-    )
+    ).data
 
     assert _get_string_indexer_log_records(caplog) == []
     assert _deconstruct_routing_messages(snuba_payloads) == [
@@ -1211,7 +1212,7 @@ def test_all_resolved_retention_days_honored(caplog, settings):
                 }
             }
         },
-    )
+    ).data
 
     assert _get_string_indexer_log_records(caplog) == []
     assert _deconstruct_messages(snuba_payloads) == [
@@ -1355,7 +1356,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
                 }
             }
         },
-    )
+    ).data
 
     assert _get_string_indexer_log_records(caplog) == []
     assert _deconstruct_messages(snuba_payloads, kafka_logical_topic="snuba-generic-metrics") == [
@@ -1513,7 +1514,7 @@ def test_metric_id_rate_limited(caplog, settings):
                 }
             }
         },
-    )
+    ).data
 
     assert _deconstruct_messages(snuba_payloads) == [
         (
@@ -1625,7 +1626,7 @@ def test_tag_key_rate_limited(caplog, settings):
                 }
             }
         },
-    )
+    ).data
 
     assert _get_string_indexer_log_records(caplog) == [
         (
@@ -1716,7 +1717,7 @@ def test_tag_value_rate_limited(caplog, settings):
                 }
             }
         },
-    )
+    ).data
 
     assert _get_string_indexer_log_records(caplog) == [
         (
@@ -1864,7 +1865,7 @@ def test_one_org_limited(caplog, settings):
                 },
             }
         },
-    )
+    ).data
 
     assert _get_string_indexer_log_records(caplog) == [
         (
@@ -1932,12 +1933,12 @@ def test_cardinality_limiter(caplog, settings):
         input_codec=_INGEST_CODEC,
         tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
-    keys_to_remove = list(batch.parsed_payloads_by_offset)[:2]
+    keys_to_remove = list(batch.parsed_payloads_by_meta)[:2]
     # the messages come in a certain order, and Python dictionaries preserve
     # their insertion order. So we can hardcode offsets here.
     assert keys_to_remove == [
-        PartitionIdxOffset(partition_idx=0, offset=0),
-        PartitionIdxOffset(partition_idx=0, offset=1),
+        BrokerMeta(partition=Partition(Topic("topic"), 0), offset=0),
+        BrokerMeta(partition=Partition(Topic("topic"), 0), offset=1),
     ]
     batch.filter_messages(keys_to_remove)
     assert batch.extract_strings() == {
@@ -1977,7 +1978,7 @@ def test_cardinality_limiter(caplog, settings):
                 }
             }
         },
-    )
+    ).data
 
     assert _deconstruct_messages(snuba_payloads) == [
         (

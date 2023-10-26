@@ -11,7 +11,7 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Final, Mapping, MutableSequence, Optional, TypeVar, overload
+from typing import Any, Callable, Dict, Final, Mapping, MutableSequence, Optional, Union, overload
 from urllib.parse import urlparse
 
 import sentry
@@ -21,9 +21,7 @@ from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.topic_definition import TopicDefinition
 from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import crontab_with_minute_jitter
-from sentry.utils.types import type_from_value
-
-T = TypeVar("T")
+from sentry.utils.types import Type, type_from_value
 
 
 def gettext_noop(s: str) -> str:
@@ -33,27 +31,31 @@ def gettext_noop(s: str) -> str:
 socket.setdefaulttimeout(5)
 
 
+_EnvTypes = Union[str, float, int, list, dict]
+
+
 @overload
 def env(key: str) -> str:
     ...
 
 
 @overload
-def env(key: str, default: T, type: Callable[[Any], T] | None = None) -> T:
+def env(key: str, default: _EnvTypes, type: Optional[Type] = None) -> _EnvTypes:
     ...
 
 
 def env(
     key: str,
-    default: str | T = "",
-    type: Optional[Callable[[Any], T]] = None,
-) -> T:
+    default: str | _EnvTypes = "",
+    type: Optional[Type] = None,
+) -> _EnvTypes:
     """
     Extract an environment variable for use in configuration
 
     :param key: The environment variable to be extracted.
     :param default: The value to be returned if `key` is not found.
     :param type: The type of the returned object (defaults to the type of `default`).
+       Type parsers must come from sentry.utils.types and not python stdlib.
     :return: The environment variable if it exists, else `default`.
     """
 
@@ -1356,13 +1358,15 @@ if os.environ.get("OPENAPIGENERATE", False):
 CRISPY_TEMPLATE_PACK = "bootstrap3"
 # Sentry and internal client configuration
 
-SENTRY_FEATURES = {
+SENTRY_FEATURES: dict[str, bool | None] = {
     # Enables user registration.
     "auth:register": True,
-    # Enables actionable items alerts and endpoint
-    "organizations:actionable-items": False,
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
     "organizations:alert-allow-indexed": False,
+    # Enables transaction to metric dataset migration UI for alert rules
+    "organizations:alert-migration-ui": False,
+    # Enables the migration of alerts (checked in a migration script).
+    "organizations:alerts-migration-enabled": False,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
     # Enables the cron job to auto-enable codecov integrations.
@@ -1382,6 +1386,8 @@ SENTRY_FEATURES = {
     "organizations:api-keys": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
+    # Removes extra fields from the project serializers
+    "organizations:cleanup-project-serializer": False,
     # Enable change alerts for an org
     "organizations:change-alerts": True,
     # Enable alerting based on crash free sessions/users
@@ -1391,8 +1397,8 @@ SENTRY_FEATURES = {
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
-    # Enable the new crons onboarding experience with platform specific options
-    "organizations:crons-new-onboarding": False,
+    # Enable the new crons monitor form
+    "organizations:crons-new-monitor-form": False,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
     # Delightful Developer Metrics (DDM): Enable sidebar menu item and all UI (requires custom-metrics flag as well)
@@ -1423,6 +1429,8 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues-v2": False,
     # Enable emiting escalating data to the metrics backend
     "organizations:escalating-metrics-backend": False,
+    # Enable querying Snuba to get the EventUser
+    "organizations:eventuser-from-snuba": False,
     # Enable the frontend to request from region & control silo domains.
     "organizations:frontend-domainsplit": False,
     # Allows an org to have a larger set of project ownership rules per project
@@ -1443,6 +1451,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-using-transactions": False,
     # Enabled for those orgs who participated in the profiling Beta program
     "organizations:profiling-beta": False,
+    # Enables production profiling in sentry browser application
+    "organizations:profiling-browser": False,
     # Enable stacktrace linking of multiple frames in profiles
     "organizations:profiling-stacktrace-links": False,
     # Enable global suspect functions in profiling
@@ -1455,8 +1465,10 @@ SENTRY_FEATURES = {
     "organizations:profiling-battery-usage-chart": False,
     # Enable profiling summary redesign view
     "organizations:profiling-summary-redesign": False,
-    # Enable profiling statistical detectors
-    "organizations:profiling-statistical-detectors": False,
+    # Enable profiling statistical detectors ema detection
+    "organizations:profiling-statistical-detectors-ema": False,
+    # Enable profiling statistical detectors breakpoint detection
+    "organizations:profiling-statistical-detectors-breakpoint": False,
     # Enable disabling gitlab integrations when broken is detected
     "organizations:gitlab-disable-on-broken": False,
     # Enable multi project selection
@@ -1477,6 +1489,8 @@ SENTRY_FEATURES = {
     "organizations:issue-platform": False,
     # Enable additional logging for issue platform
     "organizations:issue-platform-extra-logging": False,
+    # Enable issue platform status change API for crons and SD issues
+    "organizations:issue-platform-api-crons-sd": False,
     # Whether to allow issue only search on the issue list
     "organizations:issue-search-allow-postgres-only-search": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
@@ -1485,6 +1499,8 @@ SENTRY_FEATURES = {
     "organizations:issue-search-use-cdc-secondary": False,
     # Whether to make a side/parallel query against events -> group_attributes when searching issues
     "organizations:issue-search-group-attributes-side-query": False,
+    # Enable issue stream performance improvements
+    "organizations:issue-stream-performance": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
@@ -1493,8 +1509,12 @@ SENTRY_FEATURES = {
     "organizations:more-slow-alerts": False,
     # Extract on demand metrics
     "organizations:on-demand-metrics-extraction": False,
+    # Extract on demand metrics (widget extraction)
+    "organizations:on-demand-metrics-extraction-widgets": False,
     # Extract on demand metrics (experimental features)
     "organizations:on-demand-metrics-extraction-experimental": False,
+    # Display on demand metrics related UI elements
+    "organizations:on-demand-metrics-ui": False,
     # Normalize URL transaction names during ingestion.
     "organizations:transaction-name-normalize": True,
     # Mark URL transactions scrubbed by regex patterns as "sanitized".
@@ -1578,7 +1598,7 @@ SENTRY_FEATURES = {
     # Display CPU and memory metrics in transactions with profiles
     "organizations:mobile-cpu-memory-in-transactions": False,
     # Enable new page filter UI
-    "organizations:new-page-filter": False,
+    "organizations:new-page-filter": True,
     # Display warning banner for every event issue alerts
     "organizations:noisy-alert-warning": False,
     # Prefix host with organization ID when giving users DSNs (can be
@@ -1640,6 +1660,10 @@ SENTRY_FEATURES = {
     "organizations:performance-tracing-without-performance": False,
     # Enable database view powered by span metrics
     "organizations:performance-database-view": False,
+    # Enable removing the fallback for metrics compatibility
+    "organizations:performance-remove-metrics-compatibility-fallback": False,
+    # Enable performance score calculation for transactions in relay
+    "organizations:performance-calculate-score-relay": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1677,6 +1701,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-rage-dead-selectors": False,
     # Enable the new event linking columns to be queried
     "organizations:session-replay-new-event-counts": False,
+    # Enable the Replay Details > New timeline
+    "organizations:session-replay-new-timeline": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
@@ -1687,6 +1713,8 @@ SENTRY_FEATURES = {
     "organizations:starfish-test-endpoint": False,
     # Enable starfish dropdown on the webservice view for switching chart visualization
     "organizations:starfish-wsv-chart-dropdown": False,
+    # Enable browser starfish view
+    "organizations:starfish-browser-webvitals": False,
     # Replace the footer Sentry logo with a Sentry pride logo
     "organizations:sentry-pride-logo-footer": False,
     # Enable Session Stats down to a minute resolution
@@ -1695,8 +1723,6 @@ SENTRY_FEATURES = {
     "organizations:notification-all-recipients": False,
     # Enable performance issues dev options, includes changing parts of issues that we're using for development.
     "organizations:performance-issues-dev": False,
-    # Enable performance issues detector threshold configuration
-    "organizations:project-performance-settings-admin": False,
     # Enable feature to load more than 100 rows in performance trace view.
     "organizations:trace-view-load-more": False,
     # Enable dashboard widget indicators.
@@ -1705,6 +1731,10 @@ SENTRY_FEATURES = {
     "organizations:performance-issues-all-events-tab": False,
     # Temporary flag to test search performance that's running slow in S4S
     "organizations:performance-issues-search": True,
+    # Enable profiling statistical detectors ema detection
+    "organizations:performance-statistical-detectors-ema": False,
+    # Enable profiling statistical detectors breakpoint detection
+    "organizations:performance-statistical-detectors-breakpoint": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable the UI for the overage alert settings
@@ -1734,18 +1764,12 @@ SENTRY_FEATURES = {
     "organizations:device-classification": False,
     # Enables synthesis of device.class in ingest
     "organizations:device-class-synthesis": False,
-    # Enable the product selection feature in the getting started docs, regardless of the organization's strategy
-    "organizations:getting-started-doc-with-product-selection": False,
     # Enable the SDK selection feature in the onboarding
     "organizations:onboarding-sdk-selection": False,
     # Enable OpenAI suggestions in the issue details page
     "organizations:open-ai-suggestion": False,
-    # Enable ANR rates in project details page
-    "organizations:anr-rate": False,
     # Enable tag improvements in the issue details page
     "organizations:issue-details-tag-improvements": False,
-    # Enable updates to the stacktrace ui
-    "organizations:issue-details-stacktrace-improvements": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
     # Enable team insights page
@@ -1764,8 +1788,6 @@ SENTRY_FEATURES = {
     "organizations:scim-team-roles": False,
     # Enable the setting of org roles for team
     "organizations:org-roles-for-teams": False,
-    # Enable new JS SDK Dynamic Loader
-    "organizations:js-sdk-dynamic-loader": False,
     # Enable detecting SDK crashes during event processing
     "organizations:sdk-crash-detection": False,
     # Enable functionality for recap server polling.
@@ -1778,6 +1800,8 @@ SENTRY_FEATURES = {
     "organizations:user-feedback-ingest": False,
     # Enable User Feedback v2 UI
     "organizations:user-feedback-ui": False,
+    # Enable User Feedback v1
+    "organizations:old-user-feedback": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1788,8 +1812,6 @@ SENTRY_FEATURES = {
     "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Signals that the organization supports the on demand metrics prefill.
     "organizations:on-demand-metrics-prefill": False,
-    # Enable writing to the new notification system when updating the old system
-    "organizations:notifications-double-write": True,
     # Enable source maps debugger
     "organizations:source-maps-debugger-blue-thunder-edition": False,
     # Enable the new suspect commits calculation that uses all frames in the stack trace
@@ -1821,6 +1843,7 @@ SENTRY_FEATURES = {
     "projects:span-metrics-extraction": False,
     "projects:span-metrics-extraction-ga-modules": False,
     "projects:span-metrics-extraction-all-modules": False,
+    "projects:span-metrics-extraction-resource": False,
     # Metrics: Enable ingestion, storage, and rendering of custom metrics
     "organizations:custom-metrics": False,
     # Metrics: Enable creation of investigation dynamic sampling rules (rules that
@@ -2207,7 +2230,7 @@ SENTRY_MAX_MESSAGE_LENGTH = 1024 * 8
 SENTRY_MAX_STACKTRACE_FRAMES = 100
 
 # Gravatar service base url
-SENTRY_GRAVATAR_BASE_URL = "https://secure.gravatar.com"
+SENTRY_GRAVATAR_BASE_URL = "https://gravatar.com"
 
 # Timeout (in seconds) for fetching remote source files (e.g. JS)
 SENTRY_SOURCE_FETCH_TIMEOUT = 5
@@ -3231,9 +3254,11 @@ KAFKA_INGEST_EVENTS = "ingest-events"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
 KAFKA_INGEST_METRICS = "ingest-metrics"
+KAFKA_INGEST_METRICS_DLQ = "ingest-metrics-dlq"
 KAFKA_SNUBA_METRICS = "snuba-metrics"
 KAFKA_PROFILES = "profiles"
 KAFKA_INGEST_PERFORMANCE_METRICS = "ingest-performance-metrics"
+KAFKA_INGEST_GENERIC_METRICS_DLQ = "ingest-generic-metrics-dlq"
 KAFKA_SNUBA_GENERIC_METRICS = "snuba-generic-metrics"
 KAFKA_INGEST_REPLAY_EVENTS = "ingest-replay-events"
 KAFKA_INGEST_REPLAYS_RECORDINGS = "ingest-replay-recordings"
@@ -3279,12 +3304,15 @@ KAFKA_TOPICS: Mapping[str, Optional[TopicDefinition]] = {
     KAFKA_INGEST_TRANSACTIONS: {"cluster": "default"},
     # Topic for receiving metrics from Relay
     KAFKA_INGEST_METRICS: {"cluster": "default"},
+    # Topic for routing invalid messages from KAFKA_INGEST_METRICS
+    KAFKA_INGEST_METRICS_DLQ: {"cluster": "default"},
     # Topic for indexer translated metrics
     KAFKA_SNUBA_METRICS: {"cluster": "default"},
     # Topic for receiving profiles from Relay
     KAFKA_PROFILES: {"cluster": "default"},
     KAFKA_INGEST_PERFORMANCE_METRICS: {"cluster": "default"},
     KAFKA_SNUBA_GENERIC_METRICS: {"cluster": "default"},
+    KAFKA_INGEST_GENERIC_METRICS_DLQ: {"cluster": "default"},
     KAFKA_INGEST_REPLAY_EVENTS: {"cluster": "default"},
     KAFKA_INGEST_REPLAYS_RECORDINGS: {"cluster": "default"},
     KAFKA_INGEST_OCCURRENCES: {"cluster": "default"},
@@ -3588,6 +3616,15 @@ SENTRY_SSO_EXPIRY_SECONDS = os.environ.get("SENTRY_SSO_EXPIRY_SECONDS", None)
 # Set to an iterable of strings matching services so only logs from those services show up
 # eg. DEVSERVER_LOGS_ALLOWLIST = {"server", "webpack", "worker"}
 DEVSERVER_LOGS_ALLOWLIST = None
+
+# Filter for logs of incoming requests, which matches on substrings. For example, to prevent the
+# server from logging
+#
+#   `POST 200 /api/0/relays/projectconfigs/?version=3 HTTP/1.1 1915`,
+#
+# add "/api/0/relays/projectconfigs/" to the list, or to suppress logging of all requests to
+# `relays/xxx` endpoints, add "/api/0/relays/".
+DEVSERVER_REQUEST_LOG_EXCLUDES: list[str] = []
 
 LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
 

@@ -8,6 +8,7 @@ from django.db.models import Q
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.notifications.helpers import (
     get_default_for_provider,
     get_type_defaults,
@@ -29,7 +30,7 @@ from sentry.types.integrations import (
     ExternalProviders,
 )
 
-Recipient = Union[RpcActor, Team, RpcUser]
+Recipient = Union[RpcActor, Team, RpcUser, User]
 
 
 def sort_settings_by_scope(setting: NotificationSettingOption | NotificationSettingProvider) -> int:
@@ -53,7 +54,7 @@ class NotificationController:
 
     def __init__(
         self,
-        recipients: Iterable[RpcActor] | Iterable[Team] | Iterable[RpcUser],
+        recipients: Iterable[RpcActor] | Iterable[Team] | Iterable[RpcUser] | Iterable[User],
         project_ids: Iterable[int] | None = None,
         organization_id: int | None = None,
         type: NotificationSettingEnum | None = None,
@@ -171,9 +172,8 @@ class NotificationController:
         Args:
             setting_type: If specified, only return settings of this type.
         """
-
-        if self.project_ids and len(list(self.project_ids)) > 2 and not project_id:
-            raise Exception("Must specify project_id if controller has more than 2 projects")
+        if self.project_ids and len(list(self.project_ids)) > 1 and not project_id:
+            raise Exception("Must specify project_id if controller has more than 1 projects")
 
         most_specific_setting_options: MutableMapping[
             Recipient, MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum]

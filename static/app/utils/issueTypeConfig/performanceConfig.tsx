@@ -187,6 +187,11 @@ const performanceConfig: IssueCategoryConfigMapping = {
       linksByPlatform: {},
     },
   },
+  [IssueType.PERFORMANCE_DURATION_REGRESSION]: {
+    stats: {enabled: false},
+    tags: {enabled: false},
+    replays: {enabled: false},
+  },
   [IssueType.PROFILE_FILE_IO_MAIN_THREAD]: {
     resources: {
       description: t(
@@ -270,6 +275,12 @@ const performanceConfig: IssueCategoryConfigMapping = {
       ],
       linksByPlatform: {},
     },
+  },
+  [IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL]: {
+    events: {enabled: false},
+    replays: {enabled: false},
+    stats: {enabled: false},
+    tags: {enabled: false},
   },
 };
 

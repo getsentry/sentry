@@ -8,13 +8,13 @@ from django.db.models import Q
 from django.utils import timezone
 
 from sentry import features
-from sentry.constants import ObjectStatus
 from sentry.grouping.utils import hash_from_values
 from sentry.issues.grouptype import (
     MonitorCheckInFailure,
     MonitorCheckInMissed,
     MonitorCheckInTimeout,
 )
+from sentry.issues.producer import PayloadType
 from sentry.models.organization import Organization
 from sentry.monitors.constants import SUBTITLE_DATETIME_FORMAT, TIMEOUT
 from sentry.monitors.models import (
@@ -22,6 +22,7 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorIncident,
+    MonitorObjectStatus,
     MonitorStatus,
 )
 
@@ -34,7 +35,7 @@ def mark_failed(
 ):
     """
     Given a failing check-in, mark the monitor environment as failed and trigger
-    side-effects for creating monitor incidents and issues.
+    side effects for creating monitor incidents and issues.
 
     The provided `ts` is the reference time for when the next check-in time is
     calculated from. This typically would be the failed check-in's `date_added`
@@ -70,7 +71,7 @@ def mark_failed(
         "next_checkin_latest": next_checkin_latest,
     }
 
-    # Additionaly update status when not using thresholds. The threshold based
+    # Additionally update status when not using thresholds. The threshold based
     # failure will only update status once it has passed the threshold.
     if not failure_issue_threshold:
         failed_status_map = {
@@ -106,20 +107,25 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
 
     monitor_env = failed_checkin.monitor_environment
 
+    monitor_disabled = monitor_env.monitor.status == MonitorObjectStatus.DISABLED
+
+    fingerprint = None
+
     # check to see if we need to update the status
     if monitor_env.status == MonitorStatus.OK:
         # reverse the list after slicing in order to start with oldest check-in
+        # use .values() to speed up query
         previous_checkins = list(
             reversed(
-                MonitorCheckIn.objects.filter(monitor_environment=monitor_env).order_by(
-                    "-date_added"
-                )[:failure_issue_threshold]
+                MonitorCheckIn.objects.filter(monitor_environment=monitor_env)
+                .order_by("-date_added")
+                .values("id", "date_added", "status")[:failure_issue_threshold]
             )
         )
         # check for successive failed previous check-ins
         if not all(
             [
-                checkin.status not in [CheckInStatus.IN_PROGRESS, CheckInStatus.OK]
+                checkin["status"] not in [CheckInStatus.IN_PROGRESS, CheckInStatus.OK]
                 for checkin in previous_checkins
             ]
         ):
@@ -130,18 +136,20 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
         monitor_env.last_state_change = monitor_env.last_checkin
         monitor_env.save(update_fields=("status", "last_state_change"))
 
-        starting_checkin = previous_checkins[0]
+        # Do not create incident if monitor is disabled
+        if not monitor_disabled:
+            starting_checkin = previous_checkins[0]
 
-        # for new incidents, generate a new hash from a uuid to use
-        fingerprint = hash_from_values([uuid.uuid4()])
+            # for new incidents, generate a new hash from a uuid to use
+            fingerprint = hash_from_values([uuid.uuid4()])
 
-        MonitorIncident.objects.create(
-            monitor=monitor_env.monitor,
-            monitor_environment=monitor_env,
-            starting_checkin=starting_checkin,
-            starting_timestamp=starting_checkin.date_added,
-            grouphash=fingerprint,
-        )
+            MonitorIncident.objects.create(
+                monitor=monitor_env.monitor,
+                monitor_environment=monitor_env,
+                starting_checkin_id=starting_checkin["id"],
+                starting_timestamp=starting_checkin["date_added"],
+                grouphash=fingerprint,
+            )
     elif monitor_env.status in [
         MonitorStatus.ERROR,
         MonitorStatus.MISSED_CHECKIN,
@@ -152,6 +160,7 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
         previous_checkins = [
             MonitorCheckIn.objects.filter(monitor_environment=monitor_env)
             .order_by("-date_added")
+            .values("id", "date_added", "status")
             .first()
         ]
 
@@ -161,12 +170,13 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
         # don't send occurrence for other statuses
         return False
 
-    # Do not create event if monitor is disabled
-    if monitor_env.monitor.status == ObjectStatus.DISABLED:
+    # Do not create event/occurrence if monitor is disabled
+    if monitor_disabled:
         return True
 
     for previous_checkin in previous_checkins:
-        create_issue_platform_occurrence(previous_checkin, fingerprint)
+        checkin_from_db = MonitorCheckIn.objects.get(id=previous_checkin["id"])
+        create_issue_platform_occurrence(checkin_from_db, fingerprint)
 
     monitor_environment_failed.send(monitor_environment=monitor_env, sender=type(monitor_env))
 
@@ -179,7 +189,7 @@ def mark_failed_no_threshold(failed_checkin: MonitorCheckIn):
     monitor_env = failed_checkin.monitor_environment
 
     # Do not create event if monitor is disabled
-    if monitor_env.monitor.status == ObjectStatus.DISABLED:
+    if monitor_env.monitor.status == MonitorObjectStatus.DISABLED:
         return True
 
     use_issue_platform = False
@@ -288,8 +298,9 @@ def create_issue_platform_occurrence(
         trace_id = None
 
     produce_occurrence_to_kafka(
-        occurrence,
-        {
+        payload_type=PayloadType.OCCURRENCE,
+        occurrence=occurrence,
+        event_data={
             "contexts": {"monitor": get_monitor_environment_context(monitor_env)},
             "environment": monitor_env.environment.name,
             "event_id": occurrence.event_id,
@@ -332,7 +343,9 @@ def get_monitor_environment_context(monitor_environment: MonitorEnvironment):
 def get_occurrence_data(checkin: MonitorCheckIn):
     if checkin.status == CheckInStatus.MISSED:
         expected_time = (
-            checkin.expected_time.strftime(SUBTITLE_DATETIME_FORMAT)
+            checkin.expected_time.astimezone(checkin.monitor.timezone).strftime(
+                SUBTITLE_DATETIME_FORMAT
+            )
             if checkin.expected_time
             else "the expected time"
         )

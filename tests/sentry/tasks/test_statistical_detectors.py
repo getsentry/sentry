@@ -8,6 +8,7 @@ from django.db.models import F
 from sentry.models.project import Project
 from sentry.seer.utils import BreakpointData
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.statistical_detectors.detector import DetectorPayload
 from sentry.tasks.statistical_detectors import (
@@ -18,6 +19,7 @@ from sentry.tasks.statistical_detectors import (
     emit_function_regression_issue,
     query_functions,
     query_transactions,
+    query_transactions_timeseries,
     run_detection,
 )
 from sentry.testutils.cases import MetricsAPIBaseTestCase, ProfilesSnubaTestCase
@@ -27,6 +29,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.snuba import SnubaTSResult
 
 
 @pytest.fixture
@@ -161,12 +164,12 @@ def test_run_detection_options_multiple_batches(
     detect_transaction_trends.delay.assert_has_calls(
         [
             mock.call(
-                [project.organization_id for project in projects[:5]],
+                [organization.id],
                 [project.id for project in projects[:5]],
                 timestamp,
             ),
             mock.call(
-                [project.organization_id for project in projects[5:]],
+                [organization.id],
                 [project.id for project in projects[5:]],
                 timestamp,
             ),
@@ -216,7 +219,12 @@ def test_detect_function_trends_options(
     timestamp,
     project,
 ):
-    with override_options({"statistical_detectors.enable": enabled}):
+    with override_options(
+        {
+            "statistical_detectors.enable": enabled,
+            "statistical_detectors.enable.projects.profiling": [project.id],
+        }
+    ):
         detect_function_trends([project.id], timestamp)
     assert query_functions.called == enabled
 
@@ -224,7 +232,12 @@ def test_detect_function_trends_options(
 @mock.patch("sentry.snuba.functions.query")
 @django_db_all
 def test_detect_function_trends_query_timerange(functions_query, timestamp, project):
-    with override_options({"statistical_detectors.enable": True}):
+    with override_options(
+        {
+            "statistical_detectors.enable": True,
+            "statistical_detectors.enable.projects.profiling": [project.id],
+        }
+    ):
         detect_function_trends([project.id], timestamp)
 
     assert functions_query.called
@@ -259,7 +272,12 @@ def test_detect_transaction_trends(
         for i, ts in enumerate(timestamps)
     ]
 
-    with override_options({"statistical_detectors.enable": True}), TaskRunner():
+    with override_options(
+        {
+            "statistical_detectors.enable": True,
+            "statistical_detectors.enable.projects.performance": [project.id],
+        }
+    ), TaskRunner():
         for ts in timestamps:
             detect_transaction_trends([organization.id], [project.id], ts)
     assert detect_transaction_change_points.apply_async.called
@@ -283,14 +301,19 @@ def test_detect_function_trends(
                 project_id=project.id,
                 group=123,
                 count=100,
-                value=100 if i < n / 2 else 200,
+                value=100 if i < n / 2 else 300,
                 timestamp=ts,
             ),
         ]
         for i, ts in enumerate(timestamps)
     ]
 
-    with override_options({"statistical_detectors.enable": True}), TaskRunner():
+    with override_options(
+        {
+            "statistical_detectors.enable": True,
+            "statistical_detectors.enable.projects.profiling": [project.id],
+        }
+    ), TaskRunner():
         for ts in timestamps:
             detect_function_trends([project.id], ts)
     assert detect_function_change_points.apply_async.called
@@ -321,7 +344,13 @@ def test_detect_function_change_points(
             }
             for day in reversed(range(14))
             for hour in reversed(range(24))
-        ]
+        ],
+        "meta": [
+            {"name": "time", "type": "DateTime"},
+            {"name": "project.id", "type": "UInt64"},
+            {"name": "fingerprint", "type": "UInt32"},
+            {"name": "p95", "type": "Float64"},
+        ],
     }
 
     mock_detect_breakpoints.return_value = {
@@ -455,12 +484,13 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
 
         for project in self.projects:
             for i in range(self.num_transactions):
+                # Store metrics for a backend transaction
                 self.store_metric(
                     self.org.id,
                     project.id,
                     "distribution",
                     TransactionMRI.DURATION.value,
-                    {"transaction": f"transaction_{i}"},
+                    {"transaction": f"transaction_{i}", "transaction.op": "http.server"},
                     self.hour_ago_seconds,
                     1.0,
                     UseCaseID.TRANSACTIONS,
@@ -470,7 +500,30 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
                     project.id,
                     "distribution",
                     TransactionMRI.DURATION.value,
-                    {"transaction": f"transaction_{i}"},
+                    {"transaction": f"transaction_{i}", "transaction.op": "http.server"},
+                    self.hour_ago_seconds,
+                    9.5,
+                    UseCaseID.TRANSACTIONS,
+                )
+
+                # Store metrics for a frontend transaction, which should be
+                # ignored by the query
+                self.store_metric(
+                    self.org.id,
+                    project.id,
+                    "distribution",
+                    TransactionMRI.DURATION.value,
+                    {"transaction": f"fe_transaction_{i}", "transaction.op": "navigation"},
+                    self.hour_ago_seconds,
+                    1.0,
+                    UseCaseID.TRANSACTIONS,
+                )
+                self.store_metric(
+                    self.org.id,
+                    project.id,
+                    "distribution",
+                    TransactionMRI.DURATION.value,
+                    {"transaction": f"fe_transaction_{i}", "transaction.op": "navigation"},
                     self.hour_ago_seconds,
                     9.5,
                     UseCaseID.TRANSACTIONS,
@@ -481,13 +534,21 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
         return MetricsAPIBaseTestCase.MOCK_DATETIME
 
     def test_transactions_query(self) -> None:
-        res = query_transactions(
-            [self.org.id],
-            [p.id for p in self.projects],
-            self.hour_ago,
-            self.now,
-            self.num_transactions,
-        )
+        with override_options(
+            {
+                "statistical_detectors.enable.projects.performance": [
+                    project.id for project in self.projects
+                ],
+            }
+        ):
+            res = query_transactions(
+                [self.org.id],
+                [p.id for p in self.projects],
+                self.hour_ago,
+                self.now,
+                self.num_transactions + 1,  # detect if any extra transactions are returned
+            )
+
         assert len(res) == len(self.projects) * self.num_transactions
         for trend_payload in res:
             assert trend_payload.count == 2
@@ -519,7 +580,7 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
                 self.org.id,
                 project_id,
                 "distribution",
-                TransactionMRI.DURATION.value,
+                TransactionMRI.DURATION_LIGHT.value,
                 {"transaction": transaction},
                 int((self.now - timedelta(minutes=minutes_ago)).timestamp()),
                 value,
@@ -538,6 +599,136 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
     @property
     def now(self):
         return MetricsAPIBaseTestCase.MOCK_DATETIME
+
+    def test_query_transactions_timeseries(self) -> None:
+        results = [
+            timeseries
+            for timeseries in query_transactions_timeseries(
+                [
+                    (self.projects[0].id, "transaction_1"),
+                    (self.projects[0].id, "transaction_2"),
+                    (self.projects[1].id, "transaction_1"),
+                ],
+                self.now,
+                "p95(transaction.duration)",
+            )
+        ]
+
+        end = self.now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+        start = end - timedelta(days=14)
+        first_timeseries_time = self.now - timedelta(hours=2)
+        second_timeseries_time = self.now - timedelta(hours=1)
+        assert results == [
+            (
+                self.projects[0].id,
+                "transaction_1",
+                SnubaTSResult(
+                    {
+                        "data": zerofill(
+                            [
+                                {
+                                    "transaction": "transaction_1",
+                                    "time": first_timeseries_time.isoformat(),
+                                    "project_id": self.projects[0].id,
+                                    "p95_transaction_duration": 1.0,
+                                },
+                                {
+                                    "transaction": "transaction_1",
+                                    "time": second_timeseries_time.isoformat(),
+                                    "project_id": self.projects[0].id,
+                                    "p95_transaction_duration": 9.5,
+                                },
+                            ],
+                            start,
+                            end,
+                            3600,
+                            "time",
+                        ),
+                        "project": self.projects[0].id,
+                    },
+                    start,
+                    end,
+                    3600,
+                ),
+            ),
+            (
+                self.projects[0].id,
+                "transaction_2",
+                SnubaTSResult(
+                    {
+                        "data": zerofill(
+                            [
+                                {
+                                    "transaction": "transaction_2",
+                                    "time": first_timeseries_time.isoformat(),
+                                    "project_id": self.projects[0].id,
+                                    "p95_transaction_duration": 1.0,
+                                },
+                                {
+                                    "transaction": "transaction_2",
+                                    "time": second_timeseries_time.isoformat(),
+                                    "project_id": self.projects[0].id,
+                                    "p95_transaction_duration": 9.5,
+                                },
+                            ],
+                            start,
+                            end,
+                            3600,
+                            "time",
+                        ),
+                        "project": self.projects[0].id,
+                    },
+                    start,
+                    end,
+                    3600,
+                ),
+            ),
+            (
+                self.projects[1].id,
+                "transaction_1",
+                SnubaTSResult(
+                    {
+                        "data": zerofill(
+                            [
+                                {
+                                    "transaction": "transaction_1",
+                                    "time": first_timeseries_time.isoformat(),
+                                    "project_id": self.projects[1].id,
+                                    "p95_transaction_duration": 1.0,
+                                },
+                                {
+                                    "transaction": "transaction_1",
+                                    "time": second_timeseries_time.isoformat(),
+                                    "project_id": self.projects[1].id,
+                                    "p95_transaction_duration": 9.5,
+                                },
+                            ],
+                            start,
+                            end,
+                            3600,
+                            "time",
+                        ),
+                        "project": self.projects[1].id,
+                    },
+                    start,
+                    end,
+                    3600,
+                ),
+            ),
+        ]
+
+    def test_query_transactions_single_timeseries(self) -> None:
+        results = [
+            timeseries
+            for timeseries in query_transactions_timeseries(
+                [
+                    (self.projects[0].id, "transaction_1"),
+                ],
+                self.now,
+                "p95(transaction.duration)",
+            )
+        ]
+        assert len(results) == 1
 
     @mock.patch("sentry.tasks.statistical_detectors.send_regressions_to_plaform")
     @mock.patch("sentry.tasks.statistical_detectors.detect_breakpoints")

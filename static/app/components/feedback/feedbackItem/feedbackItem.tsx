@@ -1,56 +1,141 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import DeleteButton from 'sentry/components/feedback/feedbackItem/deleteButton';
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
-import ResolveButton from 'sentry/components/feedback/feedbackItem/resolveButton';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
+import useMarkRead from 'sentry/components/feedback/feedbackItem/useMarkAsRead';
+import useUpdateFeedback from 'sentry/components/feedback/feedbackItem/useUpdateFeedback';
+import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {IconJson, IconLink} from 'sentry/icons';
+import {IconEllipsis, IconJson, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
+import {Event, GroupStatus} from 'sentry/types';
+import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
-  feedbackItem: HydratedFeedbackItem;
+  eventData: Event | undefined;
+  feedbackItem: FeedbackIssue;
+  tags: Record<string, string>;
 }
 
-export default function FeedbackItem({feedbackItem}: Props) {
+export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const organization = useOrganization();
+  const hasReplayId = useFeedbackHasReplayId({feedbackId: feedbackItem.id});
+  const {onSetStatus} = useUpdateFeedback({feedbackItem});
+  const {markAsRead} = useMarkRead({feedbackItem});
+  const url = eventData?.tags.find(tag => tag.key === 'url');
+
+  const replayId = eventData?.contexts?.feedback?.replay_id;
 
   return (
     <Fragment>
       <HeaderPanelItem>
         <Flex gap={space(2)} justify="space-between">
-          <Flex gap={space(1)} align="center">
-            <FeedbackItemUsername feedbackItem={feedbackItem} />
-            {feedbackItem.contact_email ? (
-              <CopyToClipboardButton
-                size="xs"
-                iconSize="xs"
-                text={feedbackItem.contact_email}
-              />
-            ) : null}
+          <Flex column>
+            <Flex align="center" gap={space(0.5)}>
+              <FeedbackItemUsername feedbackItem={feedbackItem} detailDisplay />
+              {feedbackItem.metadata.contact_email ? (
+                <CopyToClipboardButton
+                  size="xs"
+                  iconSize="xs"
+                  text={feedbackItem.metadata.contact_email}
+                />
+              ) : null}
+            </Flex>
+            <Flex gap={space(1)}>
+              <Flex align="center" gap={space(0.5)}>
+                <ProjectAvatar
+                  project={feedbackItem.project}
+                  size={12}
+                  title={feedbackItem.project.slug}
+                />
+                {feedbackItem.project.slug}
+              </Flex>
+            </Flex>
           </Flex>
-
           <Flex gap={space(1)} align="center">
             <ErrorBoundary mini>
               <FeedbackViewers feedbackItem={feedbackItem} />
             </ErrorBoundary>
             <ErrorBoundary mini>
-              <ResolveButton feedbackItem={feedbackItem} />
+              <DropdownMenu
+                position="bottom-end"
+                triggerLabel={
+                  feedbackItem.status === GroupStatus.IGNORED
+                    ? t('Archived')
+                    : feedbackItem.status === GroupStatus.RESOLVED
+                    ? t('Resolved')
+                    : t('Unresolved')
+                }
+                triggerProps={{
+                  'aria-label': t('Resolve or Archive Menu'),
+                  showChevron: true,
+                  size: 'xs',
+                }}
+                items={[
+                  {
+                    key: 'resolve',
+                    label:
+                      feedbackItem.status === GroupStatus.RESOLVED
+                        ? t('Unresolve')
+                        : t('Resolve'),
+                    onAction: () =>
+                      onSetStatus(
+                        feedbackItem.status === GroupStatus.RESOLVED
+                          ? GroupStatus.UNRESOLVED
+                          : GroupStatus.RESOLVED
+                      ),
+                  },
+                  {
+                    key: 'archive',
+                    label:
+                      feedbackItem.status === GroupStatus.IGNORED
+                        ? t('Unarchive')
+                        : t('Archive'),
+                    onAction: () =>
+                      onSetStatus(
+                        feedbackItem.status === GroupStatus.IGNORED
+                          ? GroupStatus.UNRESOLVED
+                          : GroupStatus.IGNORED
+                      ),
+                  },
+                ]}
+              />
             </ErrorBoundary>
             <ErrorBoundary mini>
-              <DeleteButton feedbackItem={feedbackItem} />
+              <DropdownMenu
+                position="bottom-end"
+                triggerProps={{
+                  'aria-label': t('Read Menu'),
+                  icon: <IconEllipsis size="xs" />,
+                  showChevron: false,
+                  size: 'xs',
+                }}
+                items={[
+                  {
+                    key: 'mark read',
+                    label: t('Mark as read'),
+                    onAction: () => markAsRead(true),
+                  },
+                  {
+                    key: 'mark unread',
+                    label: t('Mark as unread'),
+                    onAction: () => markAsRead(false),
+                  },
+                ]}
+              />
             </ErrorBoundary>
           </Flex>
         </Flex>
@@ -58,25 +143,35 @@ export default function FeedbackItem({feedbackItem}: Props) {
       <OverflowPanelItem>
         <Section title={t('Description')}>
           <Blockquote>
-            <pre>{feedbackItem.message}</pre>
+            <pre>{feedbackItem.metadata.message}</pre>
           </Blockquote>
         </Section>
 
         <Section icon={<IconLink size="xs" />} title={t('Url')}>
           <ErrorBoundary mini>
-            <TextCopyInput size="sm">{feedbackItem.url}</TextCopyInput>
+            <TextCopyInput size="sm">{url?.value ?? t('URL not found')}</TextCopyInput>
           </ErrorBoundary>
         </Section>
 
-        {feedbackItem.replay_id ? (
-          <ReplaySection organization={organization} replayId={feedbackItem.replay_id} />
+        {hasReplayId && replayId ? (
+          <ReplaySection organization={organization} replayId={replayId} />
         ) : null}
 
-        <TagsSection tags={feedbackItem.tags} />
+        <TagsSection tags={tags} />
 
-        <Section icon={<IconJson size="xs" />} title={t('Raw')}>
+        <Section icon={<IconJson size="xs" />} title={t('Raw Issue Data')}>
           <ObjectInspector
             data={feedbackItem}
+            expandLevel={3}
+            theme={{
+              TREENODE_FONT_SIZE: '0.7rem',
+              ARROW_FONT_SIZE: '0.5rem',
+            }}
+          />
+        </Section>
+        <Section icon={<IconJson size="xs" />} title={t('Raw Event Data')}>
+          <ObjectInspector
+            data={eventData}
             expandLevel={3}
             theme={{
               TREENODE_FONT_SIZE: '0.7rem',

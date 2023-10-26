@@ -1,7 +1,5 @@
-import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import moment from 'moment';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {DataSection} from 'sentry/components/events/styles';
@@ -13,26 +11,29 @@ import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
-import {t, tct} from 'sentry/locale';
+import {IconArrow} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {Event, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {RateUnits} from 'sentry/utils/discover/fields';
+import {NumberContainer} from 'sentry/utils/discover/styles';
+import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 
 interface SpanDiff {
-  duration_after: number;
-  duration_before: number;
-  duration_delta: number;
-  freq_after: number;
-  freq_before: number;
-  freq_delta: number;
-  sample_event_id: string;
-  score_delta: number;
+  p95_after: number;
+  p95_before: number;
+  score: number;
   span_description: string;
   span_group: string;
   span_op: string;
+  spm_after: number;
+  spm_before: number;
 }
 
 interface UseFetchAdvancedAnalysisProps {
@@ -85,37 +86,73 @@ function useFetchAdvancedAnalysis({
 
 function getColumns() {
   return [
-    {key: 'span_op', name: t('Operation'), width: COL_WIDTH_UNDEFINED},
-    {key: 'span_description', name: t('Description'), width: 400},
-
-    // TODO: Relative Frequency should be replaced with Throughput
-    {key: 'freq_after', name: t('Relative Frequency'), width: COL_WIDTH_UNDEFINED},
-    {key: 'freq_delta', name: t('Change'), width: COL_WIDTH_UNDEFINED},
-    {key: 'duration_after', name: t('P95'), width: COL_WIDTH_UNDEFINED},
-    {key: 'duration_delta', name: t('Change'), width: COL_WIDTH_UNDEFINED},
+    {key: 'span_op', name: t('Operation'), width: 200},
+    {key: 'span_description', name: t('Description'), width: COL_WIDTH_UNDEFINED},
+    {key: 'spm', name: t('Span Frequency'), width: COL_WIDTH_UNDEFINED},
+    {key: 'p95', name: t('P95'), width: COL_WIDTH_UNDEFINED},
   ];
 }
 
-function renderHeadCell(column: GridColumnOrder<string>) {
-  if (
-    ['freq_after', 'freq_delta', 'duration_after', 'duration_delta'].includes(column.key)
-  ) {
-    if (column.key === 'freq_after') {
-      return (
-        <Tooltip
-          title={t(
-            'Relative Frequency is the number of times the span appeared divided by the number of transactions observed'
-          )}
-          skipWrapper
-        >
-          <NumericColumnLabel>{column.name}</NumericColumnLabel>
-        </Tooltip>
-      );
-    }
+function getPercentChange(before: number, after: number) {
+  return ((after - before) / before) * 100;
+}
 
+function renderHeadCell(column: GridColumnOrder<string>) {
+  if (['spm', 'p95'].includes(column.key)) {
     return <NumericColumnLabel>{column.name}</NumericColumnLabel>;
   }
   return column.name;
+}
+
+function NumericChange({
+  columnKey,
+  beforeRawValue,
+  afterRawValue,
+}: {
+  afterRawValue: number;
+  beforeRawValue: number;
+  columnKey: string;
+}) {
+  const organization = useOrganization();
+  const location = useLocation();
+  const percentChange = getPercentChange(beforeRawValue, afterRawValue);
+
+  const unit = columnKey === 'p95' ? 'millisecond' : RateUnits.PER_MINUTE;
+  const renderer = (value: number) =>
+    getFieldRenderer(
+      columnKey,
+      {
+        p95: 'duration',
+        spm: 'rate',
+      },
+      false
+    )({[columnKey]: value}, {organization, location, unit});
+
+  if (Math.round(percentChange) !== 0) {
+    let percentChangeLabel = `${percentChange > 0 ? '+' : ''}${Math.round(
+      percentChange
+    )}%`;
+    if (beforeRawValue === 0) {
+      percentChangeLabel = t('New');
+    }
+    return (
+      <Change>
+        {renderer(beforeRawValue)}
+        <IconArrow direction="right" size="xs" />
+        {renderer(afterRawValue)}
+        <ChangeLabel isPositive={percentChange > 0} isNeutral={beforeRawValue === 0}>
+          {percentChangeLabel}
+        </ChangeLabel>
+      </Change>
+    );
+  }
+
+  return (
+    <Change>
+      {renderer(afterRawValue)}
+      <ChangeDescription>{t('(No significant change)')}</ChangeDescription>
+    </Change>
+  );
 }
 
 function renderBodyCell({
@@ -155,39 +192,15 @@ function renderBodyCell({
     );
   }
 
-  if (['duration_delta', 'freq_delta'].includes(column.key)) {
-    if (row[column.key] === 0) {
-      return <NumericColumnLabel>-</NumericColumnLabel>;
-    }
-
-    const prefix = column.key.split('_delta')[0];
-    const unitSuffix = prefix === 'duration' ? 'ms' : '';
-    const percentDelta = (row[column.key] / row[`${prefix}_before`]) * 100;
-    const strippedLabel = Math.abs(percentDelta).toFixed(2);
-    const isPositive = percentDelta > 0;
-
-    const labelContent =
-      row[`${prefix}_before`] !== 0
-        ? `${isPositive ? '+' : '-'}${strippedLabel}%`
-        : t('Added');
+  if (['p95', 'spm'].includes(column.key)) {
+    const beforeRawValue = row[`${column.key}_before`];
+    const afterRawValue = row[`${column.key}_after`];
     return (
-      <Tooltip
-        title={tct('From [before] to [after]', {
-          before: `${row[`${prefix}_before`].toFixed(2)}${unitSuffix}`,
-          after: `${row[`${prefix}_after`].toFixed(2)}${unitSuffix}`,
-        })}
-      >
-        <ChangeLabel isPositive={isPositive}>{labelContent}</ChangeLabel>
-      </Tooltip>
-    );
-  }
-
-  if (typeof row[column.key] === 'number') {
-    const unitSuffix = column.key === 'duration_after' ? 'ms' : '';
-    return (
-      <NumericColumnLabel>{`${row[column.key].toFixed(
-        2
-      )}${unitSuffix}`}</NumericColumnLabel>
+      <NumericChange
+        columnKey={column.key}
+        beforeRawValue={beforeRawValue}
+        afterRawValue={afterRawValue}
+      />
     );
   }
 
@@ -197,17 +210,17 @@ function renderBodyCell({
 function AggregateSpanDiff({event, projectId}: {event: Event; projectId: string}) {
   const location = useLocation();
   const organization = useOrganization();
-  const now = useMemo(() => Date.now(), []);
-  const retentionPeriodMs = moment().subtract(90, 'days').valueOf();
-  const {transaction, dataStart, breakpoint} = event?.occurrence?.evidenceData ?? {};
-
-  const start = new Date(Math.max(dataStart * 1000, retentionPeriodMs)).toISOString();
-  const end = new Date(now).toISOString();
+  const {transaction, breakpoint} = event?.occurrence?.evidenceData ?? {};
   const breakpointTimestamp = new Date(breakpoint * 1000).toISOString();
+
+  const {start, end} = useRelativeDateTime({
+    anchor: breakpoint,
+    relativeDays: 7,
+  });
   const {data, isLoading, isError} = useFetchAdvancedAnalysis({
     transaction,
-    start,
-    end,
+    start: (start as Date).toISOString(),
+    end: (end as Date).toISOString(),
     breakpoint: breakpointTimestamp,
     projectId,
   });
@@ -247,8 +260,8 @@ function AggregateSpanDiff({event, projectId}: {event: Event; projectId: string}
               transaction,
               projectId,
               location,
-              start,
-              end,
+              start: (start as Date).toISOString(),
+              end: (end as Date).toISOString(),
             }),
         }}
       />
@@ -260,12 +273,36 @@ function AggregateSpanDiff({event, projectId}: {event: Event; projectId: string}
 
 export default AggregateSpanDiff;
 
-const ChangeLabel = styled('div')<{isPositive: boolean}>`
-  color: ${p => (p.isPositive ? p.theme.red300 : p.theme.green300)};
+const ChangeLabel = styled('div')<{isNeutral: boolean; isPositive: boolean}>`
+  color: ${p => {
+    if (p.isNeutral) {
+      return p.theme.gray300;
+    }
+    if (p.isPositive) {
+      return p.theme.red300;
+    }
+    return p.theme.green300;
+  }};
   text-align: right;
 `;
 
 const NumericColumnLabel = styled('div')`
   text-align: right;
   width: 100%;
+`;
+
+const Change = styled('span')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  justify-content: right;
+
+  ${NumberContainer} {
+    width: unset;
+  }
+`;
+
+const ChangeDescription = styled('span')`
+  color: ${p => p.theme.gray300};
+  white-space: nowrap;
 `;
