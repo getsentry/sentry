@@ -20,7 +20,10 @@ import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releas
 import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {ScreensView, YAxis} from 'sentry/views/starfish/views/screens';
+import {
+  ScreenCharts,
+  YAxis,
+} from 'sentry/views/starfish/views/screens/screenLoadSpans/charts';
 import {ScreenLoadSpansTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/table';
 import {ScreenMetricsRibbon} from 'sentry/views/starfish/views/screens/screenMetricsRibbon';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
@@ -86,10 +89,12 @@ function ScreenLoadSpans() {
                     <DatePageFilter />
                   </PageFilterBar>
                   <ReleaseComparisonSelector />
-                  <ScreenMetricsRibbon />
+                  <ScreenMetricsRibbon
+                    additionalFilters={[`transaction:${transactionName}`]}
+                  />
                 </Container>
               </StarfishPageFiltersContainer>
-              <ScreensView
+              <ScreenCharts
                 yAxes={[YAxis.COUNT, YAxis.TTID, YAxis.TTFD]}
                 additionalFilters={[`transaction:${transactionName}`]}
                 chartHeight={120}

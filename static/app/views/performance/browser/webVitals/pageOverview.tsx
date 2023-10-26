@@ -5,6 +5,7 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
+import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -124,6 +125,7 @@ export default function PageOverview() {
           </TabList>
         </Layout.Header>
         <Layout.Body>
+          <FeedbackWidget />
           <Layout.Main>
             <TopMenuContainer>
               {transaction && (

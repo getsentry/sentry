@@ -89,7 +89,7 @@ export function PageOverviewWebVitalsTagDetailPanel({
   const {
     data: samplesTableData,
     isLoading: isSamplesTabledDataLoading,
-    isFetching,
+    isRefetching,
     refetch,
   } = useTransactionSamplesWebVitalsQuery({
     limit: 3,
@@ -196,7 +196,7 @@ export function PageOverviewWebVitalsTagDetailPanel({
             />
             <GridEditable
               data={tableData}
-              isLoading={isSamplesTabledDataLoading || isFetching}
+              isLoading={isSamplesTabledDataLoading || isRefetching}
               columnOrder={columnOrder}
               columnSortBy={[sort]}
               grid={{

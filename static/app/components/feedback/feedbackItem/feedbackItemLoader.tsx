@@ -1,6 +1,6 @@
 import FeedbackErrorDetails from 'sentry/components/feedback/details/feedbackErrorDetails';
 import FeedbackItem from 'sentry/components/feedback/feedbackItem/feedbackItem';
-import useFetchFeedbackIssue from 'sentry/components/feedback/useFetchFeedbackIssue';
+import useFetchFeedbackData from 'sentry/components/feedback/useFetchFeedbackData';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -14,12 +14,11 @@ export default function FeedbackItemLoader({feedbackSlug}: Props) {
 
   const [, feedbackId] = feedbackSlug.split(':');
   const {
-    isLoading: isIssueLoading,
-    isError: isIssueError,
+    issueResult: {isLoading: isIssueLoading, isError: isIssueError},
     issueData: issue,
     tags,
     eventData: event,
-  } = useFetchFeedbackIssue({feedbackId, organization});
+  } = useFetchFeedbackData({feedbackId, organization});
 
   return isIssueLoading || !issue ? (
     <Placeholder height="100%" />

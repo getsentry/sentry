@@ -108,8 +108,8 @@ export function WebVitalTagsDetailHeader({
           text={
             <ProgressRingTextContainer>
               <ProgressRingText>{projectScore.totalScore}</ProgressRingText>
-              <StyledTooltip title={tag.key.toUpperCase()} showOnlyOnOverflow>
-                <ProgressRingTabSubText>{tag.key.toUpperCase()}</ProgressRingTabSubText>
+              <StyledTooltip title={title} showOnlyOnOverflow skipWrapper>
+                <ProgressRingTabSubText>{title.toUpperCase()}</ProgressRingTabSubText>
               </StyledTooltip>
             </ProgressRingTextContainer>
           }
@@ -206,7 +206,8 @@ const ProgressRingSubText = styled('h5')`
 
 const ProgressRingTabSubText = styled(ProgressRingSubText)`
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  max-width: 60px;
+  max-width: 70px;
+  text-transform: capitalize;
   ${p => p.theme.overflowEllipsis}
 `;
 

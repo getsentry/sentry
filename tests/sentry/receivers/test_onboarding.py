@@ -32,6 +32,7 @@ from sentry.signals import (
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
@@ -39,7 +40,7 @@ from sentry.utils.samples import load_data
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationOnboardingTaskTest(TestCase):
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_integration(self, provider, external_id=9999):
@@ -294,7 +295,8 @@ class OrganizationOnboardingTaskTest(TestCase):
                 status=OnboardingTaskStatus.COMPLETE,
             )
 
-        helper.accept_invite(user=user)
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            helper.accept_invite(user=user)
 
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
@@ -317,7 +319,8 @@ class OrganizationOnboardingTaskTest(TestCase):
             None,
         )
 
-        helper.accept_invite(user=user2)
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            helper.accept_invite(user=user2)
 
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
