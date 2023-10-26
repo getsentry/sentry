@@ -12,6 +12,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.types.activity import ActivityType
+from sentry.types.group import IGNORED_SUBSTATUS_CHOICES
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -42,7 +43,7 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
     else:
         if status_change["new_substatus"] is not None:
             logger.error(
-                "group.update_status.invalid_substatus",
+                "group.update_status.unexpected_substatus",
                 extra={**log_extra},
             )
             return
@@ -53,6 +54,23 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             status=status_change["new_status"],
             substatus=status_change["new_substatus"],
             activity_type=ActivityType.SET_RESOLVED,
+        )
+    elif status_change["new_status"] == GroupStatus.IGNORED:
+        # The IGNORED status supports 3 substatuses. For UNTIL_ESCALATING and
+        # UNTIL_CONDITION_MET, we expect the caller to monitor the conditions/escalating
+        # logic and call the API with the new status when the conditions change.
+        if status_change["new_substatus"] not in IGNORED_SUBSTATUS_CHOICES:
+            logger.error(
+                "group.update_status.invalid_substatus",
+                extra={**log_extra},
+            )
+            return
+
+        Group.objects.update_group_status(
+            groups=[group],
+            status=status_change["new_status"],
+            substatus=status_change["new_substatus"],
+            activity_type=ActivityType.SET_IGNORED,
         )
     else:
         raise NotImplementedError(
