@@ -1,7 +1,8 @@
+import {useMemo} from 'react';
+
 import hydrateEventTags from 'sentry/components/feedback/hydrateEventTags';
-import hydrateFeedbackRecord from 'sentry/components/feedback/hydrateFeedbackRecord';
-import {Event, Organization} from 'sentry/types';
-import {RawFeedbackItemResponse} from 'sentry/utils/feedback/item/types';
+import {Organization} from 'sentry/types';
+import {FeedbackEvent, FeedbackIssue} from 'sentry/utils/feedback/types';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 
 interface Props {
@@ -9,11 +10,11 @@ interface Props {
   organization: Organization;
 }
 
-export default function useFetchFeedbackIssue(
+export default function useFetchFeedbackData(
   {feedbackId, organization}: Props,
-  options: undefined | Partial<UseApiQueryOptions<RawFeedbackItemResponse>> = {}
+  options: undefined | Partial<UseApiQueryOptions<FeedbackIssue>> = {}
 ) {
-  const {data: issueData, ...issueResult} = useApiQuery<RawFeedbackItemResponse>(
+  const {data: issueData, ...issueResult} = useApiQuery<FeedbackIssue>(
     [
       `/organizations/${organization.slug}/issues/${feedbackId}/`,
       {
@@ -29,19 +30,20 @@ export default function useFetchFeedbackIssue(
     }
   );
 
-  const {data: eventData, ...eventResult} = useApiQuery<Event>(
+  const {data: eventData, ...eventResult} = useApiQuery<FeedbackEvent>(
     [`/organizations/${organization.slug}/issues/${feedbackId}/events/latest/`],
     {
       staleTime: 0,
     }
   );
 
+  const tags = useMemo(() => hydrateEventTags(eventData), [eventData]);
+
   return {
-    issueData: issueData ? hydrateFeedbackRecord(issueData) : undefined,
-    replayId: eventData?.contexts?.feedback?.replay_id,
     eventData,
-    tags: hydrateEventTags(eventData),
     eventResult,
-    ...issueResult,
+    issueData,
+    issueResult,
+    tags,
   };
 }
