@@ -1,9 +1,7 @@
 from unittest.mock import MagicMock, patch
 
-import pytest
 from django.test import RequestFactory, override_settings
 
-from sentry.integrations.utils.atlassian_connect import AtlassianConnectValidationError
 from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.jira import JiraRequestParser
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
@@ -31,8 +29,7 @@ class JiraRequestParserTest(TestCase):
     def test_get_integration_from_request(self):
         request = self.factory.post(path=f"{self.path_base}/issue-updated/")
         parser = JiraRequestParser(request, self.get_response)
-        with pytest.raises(AtlassianConnectValidationError):
-            parser.get_integration_from_request()
+        assert parser.get_integration_from_request() is None
 
         with patch(
             "sentry.middleware.integrations.parsers.jira.parse_integration_from_request"
