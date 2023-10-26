@@ -250,6 +250,7 @@ def test_extract_strings_with_rollout(should_index_tag_values, expected):
     )
 
     assert batch.extract_strings() == expected
+    assert not batch.invalid_msg_meta
 
 
 @pytest.mark.django_db
@@ -413,6 +414,7 @@ def test_extract_strings_with_single_use_case_ids_blocked():
             }
         }
     }
+    assert not batch.invalid_msg_meta
 
 
 @override_options({"sentry-metrics.indexer.disabled-namespaces": ["spans", "escalating_issues"]})
@@ -485,6 +487,7 @@ def test_extract_strings_with_multiple_use_case_ids_blocked():
             }
         },
     }
+    assert not batch.invalid_msg_meta
 
 
 @pytest.mark.django_db
@@ -587,6 +590,7 @@ def test_extract_strings_with_invalid_mri():
             }
         },
     }
+    assert batch.invalid_msg_meta == {BrokerMeta(Partition(Topic("topic"), 0), 0)}
 
 
 @pytest.mark.django_db
@@ -677,6 +681,7 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
             }
         },
     }
+    assert not batch.invalid_msg_meta
 
 
 @pytest.mark.django_db
@@ -729,6 +734,7 @@ def test_resolved_with_aggregation_options(caplog, settings):
             }
         }
     )
+    assert not batch.invalid_msg_meta
 
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
@@ -869,6 +875,7 @@ def test_all_resolved(caplog, settings):
             }
         }
     )
+    assert not batch.invalid_msg_meta
 
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
@@ -1179,6 +1186,7 @@ def test_all_resolved_retention_days_honored(caplog, settings):
             }
         }
     )
+    assert not batch.invalid_msg_meta
 
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
@@ -1331,6 +1339,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
             }
         }
     )
+    assert not batch.invalid_msg_meta
 
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
@@ -1475,6 +1484,7 @@ def test_metric_id_rate_limited(caplog, settings):
             }
         }
     )
+    assert not batch.invalid_msg_meta
 
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
@@ -1589,6 +1599,7 @@ def test_tag_key_rate_limited(caplog, settings):
             }
         }
     )
+    assert not batch.invalid_msg_meta
 
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
@@ -1680,6 +1691,7 @@ def test_tag_value_rate_limited(caplog, settings):
             }
         }
     )
+    assert not batch.invalid_msg_meta
 
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
@@ -1822,6 +1834,7 @@ def test_one_org_limited(caplog, settings):
             }
         }
     )
+    assert not batch.invalid_msg_meta
 
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
@@ -1954,6 +1967,7 @@ def test_cardinality_limiter(caplog, settings):
             },
         }
     }
+    assert not batch.invalid_msg_meta
 
     snuba_payloads = batch.reconstruct_messages(
         {

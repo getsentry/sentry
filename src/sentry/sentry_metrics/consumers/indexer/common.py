@@ -1,7 +1,17 @@
 import logging
 import time
 from dataclasses import dataclass
-from typing import Any, List, Mapping, MutableMapping, MutableSequence, NamedTuple, Optional, Union
+from typing import (
+    Any,
+    Deque,
+    List,
+    Mapping,
+    MutableMapping,
+    MutableSequence,
+    NamedTuple,
+    Optional,
+    Union,
+)
 
 from arroyo import Partition
 from arroyo.backends.kafka import KafkaPayload
@@ -32,6 +42,7 @@ DEFAULT_QUEUED_MIN_MESSAGES = 100000
 @dataclass(frozen=True)
 class IndexerOutputMessageBatch:
     data: MutableSequence[Message[Union[RoutingPayload, KafkaPayload]]]
+    invalid_msg_meta: Deque[BrokerMeta]
     cogs_data: Mapping[UseCaseID, int]
 
 
