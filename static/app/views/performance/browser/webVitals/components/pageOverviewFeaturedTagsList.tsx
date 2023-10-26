@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {space} from 'sentry/styles/space';
+import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {useSlowestTagValuesQuery} from 'sentry/views/performance/browser/webVitals/utils/useSlowestTagValuesQuery';
 
@@ -40,7 +41,9 @@ export function PageOverviewFeaturedTagsList({transaction, tag, title}: Props) {
                   {row[tag]}
                 </TagButton>
               </TagValue>
-              <Score>{score.totalScore}</Score>
+              <Score>
+                <PerformanceBadge score={score.totalScore} />
+              </Score>
             </RowContainer>
           );
         })}
@@ -71,7 +74,7 @@ const TagValuesContainer = styled('div')`
 
 const RowContainer = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 32px;
+  grid-template-columns: 1fr 75px;
   height: 32px;
 `;
 
