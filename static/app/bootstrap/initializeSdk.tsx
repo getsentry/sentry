@@ -37,7 +37,7 @@ const IGNORED_SPANS_BY_DESCRIPTION = ['amplitude.com', 'reload.getsentry.net'];
 // We check for `window.__initialData.user` property and only enable profiling
 // for Sentry employees. This is to prevent a Violation error being visible in
 // the browser console for our users.
-const shouldEnableBrowserProfiling = window?.__initialData?.user?.isSuperuser;
+const shouldOverrideBrowserProfiling = window?.__initialData?.user?.isSuperuser;
 /**
  * We accept a routes argument here because importing `static/routes`
  * is expensive in regards to bundle size. Some entrypoints may opt to forgo
@@ -100,7 +100,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.allowUrls,
     integrations: getSentryIntegrations(routes),
     tracesSampleRate,
-    profilesSampleRate: shouldEnableBrowserProfiling ? 1 : 0,
+    profilesSampleRate: shouldOverrideBrowserProfiling ? 1 : 0.1,
     tracePropagationTargets: ['localhost', /^\//, ...extraTracePropagationTargets],
     tracesSampler: context => {
       if (context.transactionContext.op?.startsWith('ui.action')) {
