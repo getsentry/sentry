@@ -86,7 +86,7 @@ function useFetchAdvancedAnalysis({
 
 function getColumns() {
   return [
-    {key: 'span_op', name: t('Operation'), width: 200},
+    {key: 'span_op', name: t('Span Operation'), width: 200},
     {key: 'span_description', name: t('Description'), width: COL_WIDTH_UNDEFINED},
     {key: 'spm', name: t('Span Frequency'), width: COL_WIDTH_UNDEFINED},
     {key: 'p95', name: t('P95'), width: COL_WIDTH_UNDEFINED},
@@ -97,14 +97,14 @@ function getPercentChange(before: number, after: number) {
   return ((after - before) / before) * 100;
 }
 
-function renderHeadCell(column: GridColumnOrder<string>) {
+export function renderHeadCell(column: GridColumnOrder<string>) {
   if (['spm', 'p95'].includes(column.key)) {
     return <NumericColumnLabel>{column.name}</NumericColumnLabel>;
   }
   return column.name;
 }
 
-function NumericChange({
+export function NumericChange({
   columnKey,
   beforeRawValue,
   afterRawValue,
@@ -141,7 +141,7 @@ function NumericChange({
         <IconArrow direction="right" size="xs" />
         {renderer(afterRawValue)}
         <ChangeLabel isPositive={percentChange > 0} isNeutral={beforeRawValue === 0}>
-          {percentChangeLabel}
+          ({percentChangeLabel})
         </ChangeLabel>
       </Change>
     );
@@ -268,7 +268,12 @@ function AggregateSpanDiff({event, projectId}: {event: Event; projectId: string}
     );
   }
 
-  return <DataSection>{content}</DataSection>;
+  return (
+    <DataSection>
+      <strong>{t('Span Analysis:')}</strong>
+      {content}
+    </DataSection>
+  );
 }
 
 export default AggregateSpanDiff;
@@ -286,7 +291,7 @@ const ChangeLabel = styled('div')<{isNeutral: boolean; isPositive: boolean}>`
   text-align: right;
 `;
 
-const NumericColumnLabel = styled('div')`
+export const NumericColumnLabel = styled('div')`
   text-align: right;
   width: 100%;
 `;

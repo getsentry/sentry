@@ -5,26 +5,33 @@ import moment from 'moment';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {DataSection} from 'sentry/components/events/styles';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumnOrder,
+} from 'sentry/components/gridEditable';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import PieChart from './pieChart';
+import {NumericChange, renderHeadCell} from '../aggregateSpanDiff';
 
 const SPAN_OPS = ['db', 'http', 'resource', 'browser', 'ui'];
-const REQUEST_FIELDS = SPAN_OPS.map(op => ({field: `p100(spans.${op})`}));
-const SPAN_OPS_NAME_MAP = {
-  ['p100(spans.db)']: 'db',
-  ['p100(spans.http)']: 'http',
-  ['p100(spans.resource)']: 'resource',
-  ['p100(spans.browser)']: 'browser',
-  ['p100(spans.ui)']: 'ui',
-};
+const REQUEST_FIELDS = SPAN_OPS.map(op => ({field: `p95(spans.${op})`}));
+
+interface SpanOpDiff {
+  p95: {
+    newBaseline: number;
+    oldBaseline: number;
+    percentChange: number;
+  };
+  span_op: string;
+}
 
 function getPostBreakpointEventView(location: Location, event: Event, end: number) {
   const eventView = EventView.fromLocation(location);
@@ -64,6 +71,26 @@ function getPreBreakpointEventView(location: Location, event: Event) {
   return eventView;
 }
 
+function renderBodyCell({
+  column,
+  row,
+}: {
+  column: GridColumnOrder<string>;
+  row: SpanOpDiff;
+}) {
+  if (column.key === 'p95') {
+    const {oldBaseline, newBaseline} = row[column.key];
+    return (
+      <NumericChange
+        beforeRawValue={oldBaseline}
+        afterRawValue={newBaseline}
+        columnKey={column.key}
+      />
+    );
+  }
+  return row[column.key];
+}
+
 function EventSpanOpBreakdown({event}: {event: Event}) {
   const organization = useOrganization();
   const location = useLocation();
@@ -96,22 +123,15 @@ function EventSpanOpBreakdown({event}: {event: Event}) {
     queryExtras,
   });
 
-  const postBreakpointPrunedSpanOps = Object.entries(postBreakpointData?.data[0] || {})
-    .filter(entry => (entry[1] as number) > 0)
-    .map(entry => ({
-      value: entry[1] as number,
-      name: SPAN_OPS_NAME_MAP[entry[0]],
-    }));
-
-  const spanOpDiffs = SPAN_OPS.map(op => {
+  const spanOpDiffs: SpanOpDiff[] = SPAN_OPS.map(op => {
     const preBreakpointValue =
-      (preBreakpointData?.data[0][`p100(spans.${op})`] as string) || undefined;
+      (preBreakpointData?.data[0][`p95(spans.${op})`] as string) || undefined;
     const preBreakpointValueAsNumber = preBreakpointValue
       ? parseInt(preBreakpointValue, 10)
       : 0;
 
     const postBreakpointValue =
-      (postBreakpointData?.data[0][`p100(spans.${op})`] as string) || undefined;
+      (postBreakpointData?.data[0][`p95(spans.${op})`] as string) || undefined;
     const postBreakpointValueAsNumber = postBreakpointValue
       ? parseInt(postBreakpointValue, 10)
       : 0;
@@ -120,57 +140,50 @@ function EventSpanOpBreakdown({event}: {event: Event}) {
       return null;
     }
     return {
-      [op]: {
-        percentChange: postBreakpointValueAsNumber / preBreakpointValueAsNumber,
+      span_op: op,
+      p95: {
+        percentChange:
+          ((postBreakpointValueAsNumber - preBreakpointValueAsNumber) /
+            preBreakpointValueAsNumber) *
+          100,
         oldBaseline: preBreakpointValueAsNumber,
         newBaseline: postBreakpointValueAsNumber,
       },
     };
-  })
-    .filter(Boolean)
-    .reduce((acc, opDiffData) => {
-      if (opDiffData && acc) {
-        Object.keys(opDiffData).forEach(op => {
-          acc[op] = opDiffData[op];
-        });
-      }
-      return acc;
-    }, {});
-
-  const series = [
-    {
-      seriesName: 'Aggregate Span Op Breakdown',
-      data: postBreakpointPrunedSpanOps,
-    },
-  ];
+  }).filter(defined);
 
   if (postBreakpointIsLoading || preBreakpointIsLoading) {
-    return (
-      <Wrapper>
-        <LoadingIndicator />
-      </Wrapper>
-    );
+    return <LoadingIndicator />;
   }
 
   if (postBreakpointIsError || preBreakpointIsError) {
     return (
-      <Wrapper>
-        <EmptyStateWrapper>
-          <EmptyStateWarning withIcon>
-            <div>{t('Unable to fetch span breakdowns')}</div>
-          </EmptyStateWarning>
-        </EmptyStateWrapper>
-      </Wrapper>
+      <EmptyStateWrapper>
+        <EmptyStateWarning withIcon>
+          <div>{t('Unable to fetch span breakdowns')}</div>
+        </EmptyStateWarning>
+      </EmptyStateWrapper>
     );
   }
 
   return (
-    <Wrapper>
-      <DataSection>
-        <strong>{t('Operation Breakdown:')}</strong>
-        <PieChart data={spanOpDiffs} series={series} />
-      </DataSection>
-    </Wrapper>
+    <DataSection>
+      <strong>{t('Operation Breakdown:')}</strong>
+      <GridEditable
+        isLoading={false}
+        data={spanOpDiffs}
+        location={location}
+        columnOrder={[
+          {key: 'span_op', name: t('Span Operation'), width: 200},
+          {key: 'p95', name: t('p95'), width: COL_WIDTH_UNDEFINED},
+        ]}
+        columnSortBy={[]}
+        grid={{
+          renderHeadCell,
+          renderBodyCell: (column, row) => renderBodyCell({column, row}),
+        }}
+      />
+    </DataSection>
   );
 }
 
@@ -181,11 +194,6 @@ const EmptyStateWrapper = styled('div')`
   justify-content: center;
   align-items: center;
   margin: ${space(1.5)} ${space(4)};
-`;
-
-const Wrapper = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
 `;
 
 export default EventSpanOpBreakdown;
