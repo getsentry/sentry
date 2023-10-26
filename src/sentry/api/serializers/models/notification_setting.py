@@ -6,7 +6,7 @@ from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.types import NotificationSettingTypes
-from sentry.services.hybrid_cloud.organization import RpcTeam
+from sentry.services.hybrid_cloud.team import RpcTeam
 from sentry.services.hybrid_cloud.user import RpcUser
 
 
