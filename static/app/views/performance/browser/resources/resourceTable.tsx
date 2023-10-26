@@ -85,7 +85,14 @@ function ResourceTable({sort}: Props) {
       return <ThroughputCell rate={row[key] * 60} unit={RateUnits.PER_SECOND} />;
     }
     if (key === 'avg(http.response_content_length)') {
-      return <FileSize bytes={row[key]} />;
+      let bytes = row[key];
+      if (bytes < 1024) {
+        // The filesize compontent does not have fixed decimal places at all with Bytes, but Kb, Mb and Gb, etc do.
+        // This will round them i.e 999.1234533333 B becomes 999.1 B
+        bytes = Math.round(bytes * 10) / 10;
+      }
+
+      return <FileSize bytes={bytes} />;
     }
     if (key === `avg(span.self_time)`) {
       return <DurationCell milliseconds={row[key]} />;
