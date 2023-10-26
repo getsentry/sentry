@@ -63,7 +63,7 @@ function ResourcesLandingPage() {
               });
             }}
           >
-            <TabList.Item key="">{t('Javascript/Stylesheets')}</TabList.Item>
+            <TabList.Item key="">{t('JS/CSS/Fonts')}</TabList.Item>
             <TabList.Item key="resource.img">{t('Images')}</TabList.Item>
           </TabList>
         </StyledTabs>
