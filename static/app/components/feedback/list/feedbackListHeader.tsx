@@ -66,12 +66,12 @@ function HasSelection({checked, mailbox}) {
             items={[
               {
                 key: 'mark read',
-                label: t('Mark as read'),
+                label: t('Mark Read'),
                 onAction: () => {},
               },
               {
                 key: 'mark unread',
-                label: t('Mark as unread'),
+                label: t('Mark Unread'),
                 onAction: () => {},
               },
             ]}
