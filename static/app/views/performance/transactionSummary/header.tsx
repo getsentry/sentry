@@ -230,10 +230,10 @@ function TransactionHeader({
               </TabList.Item>
               <TabList.Item
                 key={Tab.AGGREGATE_WATERFALL}
-                textValue={t('Aggregate Waterfall')}
+                textValue={t('Aggregate Spans')}
                 hidden={!hasAggregateWaterfall}
               >
-                {t('Aggregate Waterfall')}
+                {t('Aggregate Spans')}
               </TabList.Item>
             </TabList>
           );
