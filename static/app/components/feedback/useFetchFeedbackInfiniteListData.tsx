@@ -1,9 +1,8 @@
 import {useCallback, useMemo} from 'react';
 import {Index, IndexRange} from 'react-virtualized';
 
-import hydrateFeedbackRecord from 'sentry/components/feedback/hydrateFeedbackRecord';
-import {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
-import {RawFeedbackListResponse} from 'sentry/utils/feedback/list/types';
+import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
+import {FeedbackIssueList} from 'sentry/utils/feedback/types';
 import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -17,6 +16,7 @@ interface Params {
     end?: string;
     environment?: string[];
     field?: string[];
+    mailbox?: ReturnType<typeof decodeMailbox>;
     project?: string[];
     query?: string;
     start?: string;
@@ -49,7 +49,7 @@ export default function useFetchFeedbackInfiniteListData({queryView}: Params) {
   const query = useMemo(
     () => ({
       ...queryView,
-      query: 'issue.category:feedback ' + queryView.query,
+      query: `issue.category:feedback status:${queryView.mailbox} ${queryView.query}`,
     }),
     [queryView]
   );
@@ -64,17 +64,17 @@ export default function useFetchFeedbackInfiniteListData({queryView}: Params) {
     isFetchingNextPage,
     isFetchingPreviousPage,
     isLoading, // If anything is loaded yet
-  } = useInfiniteApiQuery<RawFeedbackListResponse>({
+  } = useInfiniteApiQuery<FeedbackIssueList>({
     queryKey: [`/organizations/${organization.slug}/issues/`, {query}],
   });
 
   const issues = useMemo(
-    () => data?.pages.flatMap(([pageData]) => pageData).map(hydrateFeedbackRecord) ?? [],
+    () => data?.pages.flatMap(([pageData]) => pageData) ?? [],
     [data]
   );
 
   const getRow = useCallback(
-    ({index}: Index): HydratedFeedbackItem | undefined => issues?.[index],
+    ({index}: Index): FeedbackIssueList[number] | undefined => issues?.[index],
     [issues]
   );
 
@@ -88,7 +88,7 @@ export default function useFetchFeedbackInfiniteListData({queryView}: Params) {
   );
 
   const setFeedback = useCallback(
-    (_feedbackId: string, _feedback: undefined | HydratedFeedbackItem) => {},
+    (_feedbackId: string, _feedback: undefined | FeedbackIssueList) => {},
     // loaderRef.current?.setFeedback(feedbackId, feedback),
     []
   );

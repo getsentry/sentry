@@ -99,8 +99,8 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "transaction.op": "contexts.trace.op",
     "transaction.status": "contexts.trace.status",
     "http.status_code": "contexts.response.status_code",
-    "sdk.name": "contexts.sdk.name",
-    "sdk.version": "contexts.sdk.version",
+    "sdk.name": "sdk.name",
+    "sdk.version": "sdk.version",
     # Computed fields
     "transaction.duration": "duration",
     "release.build": "release.build",
