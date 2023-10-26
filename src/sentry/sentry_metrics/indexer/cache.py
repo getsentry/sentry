@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import random
+from datetime import datetime
 from typing import Collection, Iterable, Mapping, MutableMapping, Optional, Sequence, Set
 
 from django.conf import settings
@@ -33,7 +34,10 @@ _INDEXER_CACHE_RESOLVE_CACHE_REPLENISHMENT_METRIC = (
 _INDEXER_CACHE_FETCH_METRIC = "sentry_metrics.indexer.memcache.fetch"
 
 
-BULK_RECORD_CACHE_NAME_SPACE = "br"
+NAMESPACED_WRITE_FEAT_FLAG = "sentry-metrics.indexer.write-new-cache-namespace"
+NAMESPACED_READ_FEAT_FLAG = "sentry-metrics.indexer.read-new-cache-namespace"
+
+BULK_RECORD_CACHE_NAMESPACE = "br"
 RESOLVE_CACHE_NAMESPACE = "res"
 
 
@@ -66,6 +70,9 @@ class StringIndexerCache:
         hashed = md5_text(org_string).hexdigest()
 
         return f"indexer:{self.partition_key}:{namespace}:org:str:{use_case_id}:{hashed}"
+
+    def _make_cache_val(self, val: int, timestamp: int):
+        return f"{val}:{timestamp}"
 
     def _format_results(
         self, keys: Iterable[str], results: Mapping[str, Optional[int]]
@@ -109,11 +116,10 @@ class StringIndexerCache:
         if result is None:
             return None
         result, _ = result.split(":")
-
         return int(result)
 
     def get(self, namespace: str, key: str) -> Optional[int]:
-        if options.get("sentry-metrics.indexer.read-new-cache-namespace"):
+        if options.get(NAMESPACED_READ_FEAT_FLAG):
             result = self.cache.get(
                 self._make_namespaced_cache_key(namespace, key), version=self.version
             )
@@ -127,9 +133,16 @@ class StringIndexerCache:
             timeout=self.randomized_ttl,
             version=self.version,
         )
+        if options.get(NAMESPACED_WRITE_FEAT_FLAG):
+            self.cache.set(
+                key=self._make_namespaced_cache_key(namespace, key),
+                value=self._make_cache_val(value, int(datetime.utcnow().timestamp())),
+                timeout=self.randomized_ttl,
+                version=self.version,
+            )
 
     def get_many(self, namespace: str, keys: Iterable[str]) -> MutableMapping[str, Optional[int]]:
-        if options.get("sentry-metrics.indexer.read-new-cache-namespace"):
+        if options.get(NAMESPACED_READ_FEAT_FLAG):
             cache_keys = {self._make_namespaced_cache_key(namespace, key): key for key in keys}
             namespaced_results: MutableMapping[str, Optional[int]] = {
                 k: self._validate_result(v)
@@ -150,14 +163,28 @@ class StringIndexerCache:
     def set_many(self, namespace: str, key_values: Mapping[str, int]) -> None:
         cache_key_values = {self._make_cache_key(k): v for k, v in key_values.items()}
         self.cache.set_many(cache_key_values, timeout=self.randomized_ttl, version=self.version)
+        if options.get(NAMESPACED_WRITE_FEAT_FLAG):
+            timestamp = int(datetime.utcnow().timestamp())
+            namespaced_cache_key_values = {
+                self._make_namespaced_cache_key(namespace, k): self._make_cache_val(v, timestamp)
+                for k, v in key_values.items()
+            }
+            self.cache.set_many(
+                namespaced_cache_key_values, timeout=self.randomized_ttl, version=self.version
+            )
 
     def delete(self, namespace: str, key: str) -> None:
-        cache_key = self._make_cache_key(key)
-        self.cache.delete(cache_key, version=self.version)
+        self.cache.delete(self._make_cache_key(key), version=self.version)
+        if options.get(NAMESPACED_WRITE_FEAT_FLAG):
+            self.cache.delete(self._make_namespaced_cache_key(namespace, key), version=self.version)
 
     def delete_many(self, namespace: str, keys: Sequence[str]) -> None:
-        cache_keys = [self._make_cache_key(key) for key in keys]
-        self.cache.delete_many(cache_keys, version=self.version)
+        self.cache.delete_many([self._make_cache_key(key) for key in keys], version=self.version)
+        if options.get(NAMESPACED_WRITE_FEAT_FLAG):
+            self.cache.delete_many(
+                [self._make_namespaced_cache_key(namespace, key) for key in keys],
+                version=self.version,
+            )
 
 
 class CachingIndexer(StringIndexer):
@@ -172,7 +199,7 @@ class CachingIndexer(StringIndexer):
         cache_keys = UseCaseKeyCollection(strings)
         metrics.gauge("sentry_metrics.indexer.lookups_per_batch", value=cache_keys.size)
         cache_key_strs = cache_keys.as_strings()
-        cache_results = self.cache.get_many(BULK_RECORD_CACHE_NAME_SPACE, cache_key_strs)
+        cache_results = self.cache.get_many(BULK_RECORD_CACHE_NAMESPACE, cache_key_strs)
 
         hits = [k for k, v in cache_results.items() if v is not None]
 
@@ -213,7 +240,7 @@ class CachingIndexer(StringIndexer):
         )
 
         self.cache.set_many(
-            BULK_RECORD_CACHE_NAME_SPACE, db_record_key_results.get_mapped_strings_to_ints()
+            BULK_RECORD_CACHE_NAMESPACE, db_record_key_results.get_mapped_strings_to_ints()
         )
 
         return cache_key_results.merge(db_record_key_results)

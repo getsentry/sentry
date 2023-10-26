@@ -10,8 +10,8 @@ import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedba
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
-import useMarkRead from 'sentry/components/feedback/feedbackItem/useMarkAsRead';
-import useUpdateFeedback from 'sentry/components/feedback/feedbackItem/useUpdateFeedback';
+import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
+import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
@@ -20,21 +20,32 @@ import {IconEllipsis, IconJson, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, GroupStatus} from 'sentry/types';
-import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
+import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   eventData: Event | undefined;
-  feedbackItem: HydratedFeedbackItem;
-  replayId: string;
+  feedbackItem: FeedbackIssue;
+  refetchIssue: () => void;
   tags: Record<string, string>;
 }
 
-export default function FeedbackItem({feedbackItem, eventData, tags, replayId}: Props) {
+export default function FeedbackItem({
+  feedbackItem,
+  eventData,
+  refetchIssue,
+  tags,
+}: Props) {
   const organization = useOrganization();
-  const {onSetStatus} = useUpdateFeedback({feedbackItem});
-  const {markAsRead} = useMarkRead({feedbackItem});
+  const hasReplayId = useFeedbackHasReplayId({feedbackId: feedbackItem.id});
+  const {markAsRead, resolve} = useMutateFeedback({
+    feedbackId: feedbackItem.id,
+    organization,
+    refetchIssue,
+  });
   const url = eventData?.tags.find(tag => tag.key === 'url');
+
+  const replayId = eventData?.contexts?.feedback?.replay_id;
 
   return (
     <Fragment>
@@ -89,7 +100,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags, replayId}: 
                         ? t('Unresolve')
                         : t('Resolve'),
                     onAction: () =>
-                      onSetStatus(
+                      resolve(
                         feedbackItem.status === GroupStatus.RESOLVED
                           ? GroupStatus.UNRESOLVED
                           : GroupStatus.RESOLVED
@@ -102,7 +113,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags, replayId}: 
                         ? t('Unarchive')
                         : t('Archive'),
                     onAction: () =>
-                      onSetStatus(
+                      resolve(
                         feedbackItem.status === GroupStatus.IGNORED
                           ? GroupStatus.UNRESOLVED
                           : GroupStatus.IGNORED
@@ -124,14 +135,12 @@ export default function FeedbackItem({feedbackItem, eventData, tags, replayId}: 
                   {
                     key: 'mark read',
                     label: t('Mark as read'),
-                    onAction: () =>
-                      markAsRead({readUpdate: true, showSuccessToast: true}),
+                    onAction: () => markAsRead(true),
                   },
                   {
                     key: 'mark unread',
                     label: t('Mark as unread'),
-                    onAction: () =>
-                      markAsRead({readUpdate: false, showSuccessToast: true}),
+                    onAction: () => markAsRead(false),
                   },
                 ]}
               />
@@ -152,7 +161,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags, replayId}: 
           </ErrorBoundary>
         </Section>
 
-        {replayId ? (
+        {hasReplayId && replayId ? (
           <ReplaySection organization={organization} replayId={replayId} />
         ) : null}
 
