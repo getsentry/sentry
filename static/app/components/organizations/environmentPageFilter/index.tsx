@@ -29,6 +29,7 @@ export interface EnvironmentPageFilterProps
       | 'multiple'
       | 'options'
       | 'value'
+      | 'defaultValue'
       | 'onReplace'
       | 'onToggle'
       | 'menuBody'
@@ -50,7 +51,7 @@ export interface EnvironmentPageFilterProps
 
 export function EnvironmentPageFilter({
   onChange,
-  onClear,
+  onReset,
   disabled,
   sizeLimit,
   sizeLimitMessage,
@@ -189,8 +190,9 @@ export function EnvironmentPageFilter({
       multiple
       options={options}
       value={value}
+      defaultValue={[]}
       onChange={handleChange}
-      onClear={onClear}
+      onReset={onReset}
       onReplace={onReplace}
       onToggle={onToggle}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}

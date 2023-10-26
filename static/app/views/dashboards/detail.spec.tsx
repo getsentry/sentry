@@ -1103,7 +1103,7 @@ describe('Dashboards > Detail', function () {
 
       await screen.findByText('7D');
       await userEvent.click(await screen.findByText('sentry-android-shop@1.2.0'));
-      await userEvent.click(screen.getAllByText('Clear')[1]);
+      await userEvent.click(screen.getAllByText('Clear')[0]);
       screen.getByText('All Releases');
       await userEvent.click(document.body);
 
