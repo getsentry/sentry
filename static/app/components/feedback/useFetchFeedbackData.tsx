@@ -10,7 +10,7 @@ interface Props {
   organization: Organization;
 }
 
-export default function useFetchFeedbackItem(
+export default function useFetchFeedbackData(
   {feedbackId, organization}: Props,
   options: undefined | Partial<UseApiQueryOptions<FeedbackItemResponse>> = {}
 ) {

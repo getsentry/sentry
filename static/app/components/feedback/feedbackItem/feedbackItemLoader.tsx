@@ -1,6 +1,6 @@
 import FeedbackErrorDetails from 'sentry/components/feedback/details/feedbackErrorDetails';
 import FeedbackItem from 'sentry/components/feedback/feedbackItem/feedbackItem';
-import useFetchFeedbackItem from 'sentry/components/feedback/useFetchFeedbackItem';
+import useFetchFeedbackData from 'sentry/components/feedback/useFetchFeedbackData';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -18,7 +18,7 @@ export default function FeedbackItemLoader({feedbackSlug}: Props) {
     issueData: issue,
     tags,
     eventData: event,
-  } = useFetchFeedbackItem({feedbackId, organization});
+  } = useFetchFeedbackData({feedbackId, organization});
 
   return isIssueLoading || !issue ? (
     <Placeholder height="100%" />
