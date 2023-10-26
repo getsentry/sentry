@@ -168,7 +168,7 @@ class Organization(
     """
 
     category = OutboxCategory.ORGANIZATION_UPDATE
-    replication_version = 3
+    replication_version = 4
 
     __relocation_scope__ = RelocationScope.Organization
     name = models.CharField(max_length=64)
