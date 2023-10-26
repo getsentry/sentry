@@ -2526,6 +2526,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         assert "Other" not in response.data
 
+    @pytest.mark.xfail(reason="Started failing on ClickHouse 21.8")
     def test_top_events_with_equation_including_unselected_fields_passes_field_validation(self):
         with self.feature(self.enabled_features):
             response = self.client.get(
