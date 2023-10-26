@@ -17,6 +17,11 @@ class TestAccounts(TestCase):
     def password_recover_path(self, user_id, hash_):
         return reverse("sentry-account-recover-confirm", kwargs={"user_id": user_id, "hash": hash_})
 
+    def relocation_recover_path(self, user_id, hash_):
+        return reverse(
+            "sentry-account-relocate-confirm", kwargs={"user_id": user_id, "hash": hash_}
+        )
+
     def test_get_renders_form(self):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
@@ -93,3 +98,22 @@ class TestAccounts(TestCase):
         )
         assert resp.status_code == 200
         assert b"The password is too similar to the username." in resp.content
+
+    def test_relocate_recovery(self):
+        user = self.create_user()
+
+        resp = self.client.post(self.path, {"user": user.email})
+        assert resp.status_code == 200
+
+        lost_password = LostPasswordHash.objects.get(user=user)
+
+        resp = self.client.post(
+            self.relocation_recover_path(lost_password.user_id, lost_password.hash),
+            {"username": "test_username", "password": "test_password"},
+        )
+
+        header_name = "Referrer-Policy"
+
+        assert resp.has_header(header_name)
+        self.assertTemplateUsed("sentry/account/relocate/confirm.html")
+        assert resp[header_name] == "strict-origin-when-cross-origin"

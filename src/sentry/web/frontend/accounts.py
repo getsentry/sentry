@@ -25,7 +25,7 @@ from sentry.signals import email_verified
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import auth
 from sentry.web.decorators import login_required, set_referrer_policy, signed_auth_required
-from sentry.web.forms.accounts import ChangePasswordRecoverForm, RecoverPasswordForm
+from sentry.web.forms.accounts import ChangePasswordRecoverForm, RecoverPasswordForm, RelocationForm
 from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger("sentry.accounts")
@@ -109,10 +109,13 @@ def recover_confirm(request, user_id, hash, mode="recover"):
     except LostPasswordHash.DoesNotExist:
         return render_to_response(get_template(mode, "failure"), {}, request)
 
+    form = RelocationForm if mode == "relocate" else ChangePasswordRecoverForm
     if request.method == "POST":
-        form = ChangePasswordRecoverForm(request.POST, user=user)
+        form = form(request.POST, user=user)
         if form.is_valid():
             with transaction.atomic(router.db_for_write(User)):
+                if mode == "relocate":
+                    user.username = form.cleaned_data["username"]
                 user.set_password(form.cleaned_data["password"])
                 user.refresh_session_nonce(request)
                 user.save()
@@ -137,7 +140,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
 
             return login_redirect(request)
     else:
-        form = ChangePasswordRecoverForm(user=user)
+        form = form(user=user)
 
     return render_to_response(get_template(mode, "confirm"), {"form": form}, request)
 
@@ -145,6 +148,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
 # Set password variation of password recovery
 set_password_confirm = partial(recover_confirm, mode="set_password")
 set_password_confirm = update_wrapper(set_password_confirm, recover)
+
 
 # Relocation variation of password recovery
 relocate_confirm = partial(recover_confirm, mode="relocate")

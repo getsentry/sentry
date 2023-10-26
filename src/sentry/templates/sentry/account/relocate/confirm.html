@@ -8,7 +8,7 @@
 {% block auth_main %}
     <h3>{% trans "Claim Account" %}</h3>
 
-    <p>{% trans "You have confirmed your email, and may now update your password below." %}</p>
+    <p>{% trans "You have been invited to join the following migrated Sentry organizations as" %}</p>
     <form method="POST" action="">
         {% csrf_token %}
         {{ form|as_crispy_errors }}
@@ -18,7 +18,7 @@
         {% endfor %}
 
         <fieldset class="form-actions">
-            <button type="submit" class="btn btn-primary">{% trans "Change Password" %}</button>
+            <button type="submit" class="btn btn-primary">{% trans "Claim Account" %}</button>
         </fieldset>
     </form>
 {% endblock %}
