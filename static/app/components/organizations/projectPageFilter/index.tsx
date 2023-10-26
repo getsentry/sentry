@@ -42,6 +42,7 @@ export interface ProjectPageFilterProps
       | 'multiple'
       | 'options'
       | 'value'
+      | 'defaultValue'
       | 'onReplace'
       | 'onToggle'
       | 'menuBody'
@@ -69,7 +70,7 @@ const SELECTION_COUNT_LIMIT = 50;
 
 export function ProjectPageFilter({
   onChange,
-  onClear,
+  onReset,
   disabled,
   sizeLimit,
   sizeLimitMessage,
@@ -170,6 +171,11 @@ export function ProjectPageFilter({
     [mapURLValueToNormalValue, pageFilterValue]
   );
 
+  const defaultValue = useMemo<number[]>(
+    () => mapURLValueToNormalValue([]),
+    [mapURLValueToNormalValue]
+  );
+
   const handleChange = useCallback(
     async (newValue: number[]) => {
       if (isEqual(newValue, value)) {
@@ -224,13 +230,13 @@ export function ProjectPageFilter({
     });
   }, [routes, organization]);
 
-  const handleClear = useCallback(() => {
-    onClear?.();
+  const handleReset = useCallback(() => {
+    onReset?.();
     trackAnalytics('projectselector.clear', {
       path: getRouteStringFromRoutes(routes),
       organization,
     });
-  }, [onClear, routes, organization]);
+  }, [onReset, routes, organization]);
 
   const options = useMemo<SelectOptionOrSection<number>[]>(() => {
     const hasProjects = !!memberProjects.length || !!nonMemberProjects.length;
@@ -365,9 +371,10 @@ export function ProjectPageFilter({
       multiple={allowMultiple}
       options={options}
       value={value}
+      defaultValue={defaultValue}
       onChange={handleChange}
       onStagedValueChange={setStagedValue}
-      onClear={handleClear}
+      onReset={handleReset}
       onReplace={onReplace}
       onToggle={onToggle}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}

@@ -32,6 +32,11 @@ export default function FeedbackItemLoader() {
   ) : !feedbackIssue ? (
     <FeedbackEmptyDetails />
   ) : (
-    <FeedbackItem feedbackItem={feedbackIssue} eventData={feedbackEvent} tags={tags} />
+    <FeedbackItem
+      eventData={feedbackEvent}
+      feedbackItem={feedbackIssue}
+      refetchIssue={issueResult.refetch}
+      tags={tags}
+    />
   );
 }
