@@ -50,7 +50,7 @@ export const useTransactionSamplesWebVitalsQuery = ({
       ],
       name: 'Web Vitals',
       query: `transaction.op:pageload transaction:"${transaction}" ${query ? query : ''}`,
-      orderby: mapWebVitalToOrderBy(orderBy),
+      orderby: mapWebVitalToOrderBy(orderBy) ?? '-profile.id',
       version: 2,
     },
     pageFilters.selection
