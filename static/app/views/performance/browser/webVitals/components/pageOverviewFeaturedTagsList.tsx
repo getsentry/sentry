@@ -74,7 +74,7 @@ const TagValuesContainer = styled('div')`
 
 const RowContainer = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 75px;
+  grid-template-columns: 1fr auto;
   height: 32px;
 `;
 
