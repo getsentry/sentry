@@ -161,9 +161,11 @@ LEGACY_EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
     "additionalProperties": False,
 }
 
+
+_EVENT_PAYLOAD_SCHEMA_JSON_FILE = pathlib.PurePath(__file__).with_name("event.schema.json")
+
 try:
-    _event_payload_schema_json_file = pathlib.PurePath(__file__).with_name("event.schema.json")
-    with open(_event_payload_schema_json_file) as f:
+    with open(_EVENT_PAYLOAD_SCHEMA_JSON_FILE) as f:
         EVENT_PAYLOAD_SCHEMA = json.load(f)
 
 except Exception:
