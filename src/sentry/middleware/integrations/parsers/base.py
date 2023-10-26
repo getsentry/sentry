@@ -158,7 +158,7 @@ class BaseRequestParser(abc.ABC):
         if not integration:
             integration = self.get_integration_from_request()
         if not integration:
-            logger.error("no_integration", extra={"path": self.request.path})
+            logger.info(f"{self.provider}.no_integration", extra={"path": self.request.path})
             return []
         organization_integrations = OrganizationIntegration.objects.filter(
             integration_id=integration.id
@@ -175,7 +175,7 @@ class BaseRequestParser(abc.ABC):
         if not organizations:
             organizations = self.get_organizations_from_integration()
         if not organizations:
-            logger.error("no_organizations", extra={"path": self.request.path})
+            logger.info(f"{self.provider}.no_organizations", extra={"path": self.request.path})
             return []
 
         return [get_region_for_organization(organization.slug) for organization in organizations]

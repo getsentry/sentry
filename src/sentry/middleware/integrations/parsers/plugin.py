@@ -27,7 +27,7 @@ class PluginRequestParser(BaseRequestParser):
         organization_id = self.match.kwargs.get("organization_id")
         logging_extra: dict[str, Any] = {"path": self.request.path}
         if not organization_id:
-            logger.info("no_organization_id", extra=logging_extra)
+            logger.info(f"{self.provider}no_organization_id", extra=logging_extra)
             return self.get_response_from_control_silo()
 
         try:
@@ -37,7 +37,7 @@ class PluginRequestParser(BaseRequestParser):
         except OrganizationMapping.DoesNotExist as e:
             logging_extra["error"] = str(e)
             logging_extra["organization_id"] = organization_id
-            logger.error("no_mapping", extra=logging_extra)
+            logger.info(f"{self.provider}.no_mapping", extra=logging_extra)
             return self.get_response_from_control_silo()
 
         try:
@@ -45,6 +45,6 @@ class PluginRequestParser(BaseRequestParser):
         except RegionResolutionError as e:
             logging_extra["error"] = str(e)
             logging_extra["mapping_id"] = mapping.id
-            logger.error("no_region", extra=logging_extra)
+            logger.info(f"{self.provider}.no_region", extra=logging_extra)
             return self.get_response_from_control_silo()
         return self.get_response_from_outbox_creation(regions=[region])
