@@ -14,7 +14,6 @@ interface Props {
   feedbackId: string;
   organization: Organization;
   refetchIssue: () => void;
-  showToast?: boolean;
 }
 
 type QueryKeyEndpointOptions = {
@@ -30,17 +29,12 @@ type TError = unknown;
 type TVariables = ApiMutationVariables;
 type TContext = unknown;
 
-export default function useFeedbackItem({
-  feedbackId,
-  organization,
-  refetchIssue,
-  showToast = true,
-}: Props) {
+export default function useFeedbackItem({feedbackId, organization, refetchIssue}: Props) {
   const api = useApi();
 
   const mutation = useMutation<TData, TError, TVariables, TContext>({
     onMutate: (_variables: TVariables) => {
-      showToast && addLoadingMessage(t('Updating feedback...'));
+      addLoadingMessage(t('Updating feedback...'));
       // TODO: optimistic updates to the list cache, and the item cache with useFeedback*QueryKey() helpers
     },
     mutationFn: async (variables: ApiMutationVariables) => {
@@ -56,7 +50,7 @@ export default function useFeedbackItem({
       addErrorMessage(t('An error occurred while updating the feedback.'));
     },
     onSuccess: () => {
-      showToast && addSuccessMessage(t('Updated feedback'));
+      addSuccessMessage(t('Updated feedback'));
     },
     onSettled: () => {
       refetchIssue();
