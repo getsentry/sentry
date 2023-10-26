@@ -5,7 +5,7 @@ from pytest import raises
 from requests.exceptions import Timeout
 
 from sentry.integrations.discord.utils.auth import verify_signature
-from sentry.integrations.discord.utils.channel import validate_channel_id
+from sentry.integrations.discord.utils.channel import ChannelType, validate_channel_id
 from sentry.shared_integrations.exceptions import ApiTimeoutError, IntegrationError
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.testutils.cases import TestCase
@@ -105,7 +105,7 @@ class ValidateChannelTest(TestCase):
 
     @mock.patch("sentry.integrations.discord.utils.channel.DiscordClient.get_channel")
     def test_not_supported_type(self, mock_get_channel):
-        mock_get_channel.return_value = {"guild_id": self.guild_id, "type": 123}
+        mock_get_channel.return_value = {"guild_id": self.guild_id, "type": ChannelType.DM.value}
         with raises(ValidationError):
             validate_channel_id(
                 self.channel_id, self.guild_id, self.integration_id, self.guild_name
