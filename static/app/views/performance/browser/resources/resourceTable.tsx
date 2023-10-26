@@ -11,7 +11,6 @@ import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {RateUnits} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import roundFileSize from 'sentry/views/performance/browser/resources/utils/roundFileSize';
 import {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {useResourcesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
@@ -86,7 +85,7 @@ function ResourceTable({sort}: Props) {
       return <ThroughputCell rate={row[key] * 60} unit={RateUnits.PER_SECOND} />;
     }
     if (key === 'avg(http.response_content_length)') {
-      return <FileSize bytes={roundFileSize(row[key])} />;
+      return <FileSize bytes={row[key]} />;
     }
     if (key === `avg(span.self_time)`) {
       return <DurationCell milliseconds={row[key]} />;

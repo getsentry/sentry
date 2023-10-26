@@ -2,7 +2,6 @@ import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
 import {formatBytesBase2} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import roundFileSize from 'sentry/views/performance/browser/resources/utils/roundFileSize';
 import {AVG_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
@@ -48,8 +47,8 @@ function ResourceSummaryCharts(props: {groupId: string}) {
             tooltipFormatterOptions={{
               valueFormatter: bytes =>
                 getDynamicText({
-                  value: formatBytesBase2(roundFileSize(bytes)),
-                  fixed: 'xx KB',
+                  value: formatBytesBase2(bytes),
+                  fixed: 'xx KiB',
                 }),
             }}
           />

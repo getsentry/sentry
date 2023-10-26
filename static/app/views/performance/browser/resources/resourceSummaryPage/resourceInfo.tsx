@@ -4,7 +4,6 @@ import {t, tct} from 'sentry/locale';
 import {formatBytesBase2} from 'sentry/utils';
 import {RateUnits} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import roundFileSize from 'sentry/views/performance/browser/resources/utils/roundFileSize';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
@@ -32,23 +31,23 @@ function ResourceInfo(props: Props) {
       'On average, this resource is [bytes] when encoded (for example when gzipped).',
       {
         bytes: getDynamicText({
-          value: formatBytesBase2(roundFileSize(avgContentLength)),
-          fixed: 'xx KB',
+          value: formatBytesBase2(avgContentLength),
+          fixed: 'xx KiB',
         }),
       }
     ),
     avgDecodedContentLength: tct('On average, this resource is [bytes] when decoded.', {
       bytes: getDynamicText({
-        value: formatBytesBase2(roundFileSize(avgDecodedContentLength)),
-        fixed: 'xx KB',
+        value: formatBytesBase2(avgDecodedContentLength),
+        fixed: 'xx KiB',
       }),
     }),
     avgTransferSize: tct(
       'On average, the total bytes transferred over the network (body + headers) for this resource is [bytes].',
       {
         bytes: getDynamicText({
-          value: formatBytesBase2(roundFileSize(avgTransferSize)),
-          fixed: 'xx KB',
+          value: formatBytesBase2(avgTransferSize),
+          fixed: 'xx KiB',
         }),
       }
     ),
@@ -58,17 +57,17 @@ function ResourceInfo(props: Props) {
     <BlockContainer>
       <Block title={t('Avg encoded size')}>
         <Tooltip isHoverable title={tooltips.avgContentLength} showUnderline>
-          <FileSize bytes={roundFileSize(avgContentLength)} />
+          <FileSize bytes={avgContentLength} />
         </Tooltip>
       </Block>
       <Block title={t('Avg decoded size')}>
         <Tooltip isHoverable title={tooltips.avgDecodedContentLength} showUnderline>
-          <FileSize bytes={roundFileSize(avgDecodedContentLength)} />
+          <FileSize bytes={avgDecodedContentLength} />
         </Tooltip>
       </Block>
       <Block title={t('Avg transfer size')}>
         <Tooltip isHoverable title={tooltips.avgTransferSize} showUnderline>
-          <FileSize bytes={roundFileSize(avgTransferSize)} />
+          <FileSize bytes={avgTransferSize} />
         </Tooltip>
       </Block>
       <Block title={DataTitles.avg}>
