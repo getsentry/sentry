@@ -32,14 +32,14 @@ function ResourceInfo(props: Props) {
       {
         bytes: getDynamicText({
           value: formatBytesBase2(avgContentLength),
-          fixed: 'xx KB',
+          fixed: 'xx KiB',
         }),
       }
     ),
     avgDecodedContentLength: tct('On average, this resource is [bytes] when decoded.', {
       bytes: getDynamicText({
         value: formatBytesBase2(avgDecodedContentLength),
-        fixed: 'xx KB',
+        fixed: 'xx KiB',
       }),
     }),
     avgTransferSize: tct(
@@ -47,7 +47,7 @@ function ResourceInfo(props: Props) {
       {
         bytes: getDynamicText({
           value: formatBytesBase2(avgTransferSize),
-          fixed: 'xx KB',
+          fixed: 'xx KiB',
         }),
       }
     ),
