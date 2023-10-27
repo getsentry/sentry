@@ -10,13 +10,19 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 
-# pin a timestamp for now so tests results dont change
-now = datetime(2022, 10, 31, 0, 0, tzinfo=timezone.utc)
-today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+@pytest.fixture
+def now():
+    return datetime(2022, 10, 31, 0, 0, tzinfo=timezone.utc)
 
 
 @pytest.fixture
-def params():
+def today(now):
+    return now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+@pytest.fixture
+def params(now, today):
     organization = Factories.create_organization()
     team = Factories.create_team(organization=organization)
     project1 = Factories.create_project(organization=organization, teams=[team])

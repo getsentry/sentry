@@ -5784,9 +5784,7 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(
             "p99()",
             "avg()",
             "sum()",
-            f"percentile_before(function.duration, 0.95, {int(mid.timestamp())})",
-            f"percentile_after(function.duration, 0.95, {int(mid.timestamp())})",
-            f"percentile_delta(function.duration, 0.95, {int(mid.timestamp())})",
+            f"regression_score(function.duration, 0.95, {int(mid.timestamp())})",
         ]
 
         response = self.do_request(
@@ -5824,9 +5822,7 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(
             "p99()": "nanosecond",
             "avg()": "nanosecond",
             "sum()": "nanosecond",
-            f"percentile_before(function.duration, 0.95, {int(mid.timestamp())})": "nanosecond",
-            f"percentile_after(function.duration, 0.95, {int(mid.timestamp())})": "nanosecond",
-            f"percentile_delta(function.duration, 0.95, {int(mid.timestamp())})": "nanosecond",
+            f"regression_score(function.duration, 0.95, {int(mid.timestamp())})": None,
         }
 
 
