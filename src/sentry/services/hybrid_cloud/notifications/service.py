@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import List, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import List, Mapping, MutableMapping, Optional, Sequence, Set, Tuple
 
 from sentry.notifications.types import (
     NotificationSettingEnum,
@@ -173,7 +173,7 @@ class NotificationsService(RpcService):
         project_ids: Optional[List[int]] = None,
         organization_id: Optional[int] = None,
         actor_type: Optional[ActorType] = None,
-    ) -> Mapping[ExternalProviders, set[RpcActor]]:
+    ) -> Mapping[ExternalProviders, Set[RpcActor]]:
         pass
 
 
