@@ -15,17 +15,17 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {MONITOR_PATH, THRESHOLDS_PATH} from '../utils/constants';
 
 type Props = {
-  hasV2ReleaseUIEnabled: boolean;
-  newThresholdAction: () => void;
-  newThresholdDisabled: boolean;
   router: InjectedRouter;
+  hasV2ReleaseUIEnabled?: boolean;
+  newThresholdAction?: () => void;
+  newThresholdDisabled?: boolean;
 };
 
 function Header({
   router,
-  hasV2ReleaseUIEnabled,
-  newThresholdAction,
-  newThresholdDisabled,
+  hasV2ReleaseUIEnabled = false,
+  newThresholdAction = () => {},
+  newThresholdDisabled = true,
 }: Props) {
   const [selected, setSelected] = useState(router.location.pathname);
 
