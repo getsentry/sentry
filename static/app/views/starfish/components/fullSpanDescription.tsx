@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
@@ -38,11 +39,11 @@ export function FullSpanDescription({group, shortDescription, language}: Props) 
     );
   }
 
-  return (
-    <CodeSnippet language={snippetLanguage}>
-      {formatter.toString(description, {maxLineLength: LINE_LENGTH})}
-    </CodeSnippet>
-  );
+  if (snippetLanguage) {
+    return <CodeSnippet language={snippetLanguage}>{description}</CodeSnippet>;
+  }
+
+  return <Fragment>{description}</Fragment>;
 }
 
 interface Props {
