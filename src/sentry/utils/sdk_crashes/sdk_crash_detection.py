@@ -78,12 +78,12 @@ class SDKCrashDetection:
 
         config = [x for x in configs if x["sdk_name"] == sdk_name]
         if not config:
-            sentry_sdk.capture_message("No config found for sdk_name=%s", sdk_name)
+            sentry_sdk.capture_message(f"No config found for sdk_name={sdk_name}")
             return None
 
         if len(config) > 1:
             sentry_sdk.capture_message(
-                "Multiple configs found for sdk_name=%s. Taking first one.", sdk_name
+                "Multiple configs found for sdk_name={sdk_name}. Taking first one."
             )
 
         sample_rate = config[0]["sample_rate"]
