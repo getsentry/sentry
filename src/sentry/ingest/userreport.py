@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Mapping, Optional, Tuple
@@ -9,12 +11,14 @@ from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 from sentry import analytics, eventstore, features
 from sentry.api.serializers import serialize
 from sentry.eventstore.models import Event
+from sentry.feedback.usecases.create_feedback import create_feedback_issue
 from sentry.models.eventuser import EventUser
 from sentry.models.userreport import UserReport
 from sentry.signals import user_feedback_received
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
+from sentry.utils.safe import get_path
 from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
@@ -98,6 +102,9 @@ def save_userreport(project, report, start_time=None):
                 report_instance.notify()
 
         user_feedback_received.send(project=project, sender=save_userreport)
+
+        if features.has("organizations:user-feedback-ingest", project.organization, actor=None):
+            _shim_to_feedback(report, event, project)
 
         return report_instance
 
@@ -298,3 +305,44 @@ def _generate_entity_dataset_query(
 def _start_and_end_dates(time: datetime) -> Tuple[datetime, datetime]:
     """Return the 10 min range start and end time range ."""
     return time - timedelta(minutes=5), time + timedelta(minutes=5)
+
+
+def _shim_to_feedback(report, event, project):
+    """
+    takes user reports from the legacy user report endpoint and
+    user reports that come from relay envelope ingestion and
+    creates a new User Feedback from it.
+    User feedbacks are an event type, so we try and grab as much from the
+    legacy user report and event to create the new feedback.
+    """
+    try:
+        feedback_event: dict[str, Any] = {
+            "feedback": {
+                "name": report.get("name", ""),
+                "contact_email": report["email"],
+                "message": report["comments"],
+            },
+            "contexts": {},
+        }
+
+        if event:
+            feedback_event["feedback"]["crash_report_event_id"] = event.event_id
+
+            if get_path(event.data, "contexts", "replay", "replay_id"):
+                feedback_event["contexts"]["replay"] = event.data["contexts"]["replay"]
+                feedback_event["feedback"]["replay_id"] = event.data["contexts"]["replay"][
+                    "replay_id"
+                ]
+            feedback_event["timestamp"] = event.datetime.timestamp()
+
+            feedback_event["platform"] = event.platform
+
+        else:
+            feedback_event["timestamp"] = datetime.utcnow().timestamp()
+            feedback_event["platform"] = "other"
+
+        create_feedback_issue(feedback_event, project.id)
+    except Exception:
+        logger.exception(
+            "Error attempting to create new User Feedback from Shiming old User Report"
+        )
