@@ -95,7 +95,6 @@ function EventStatisticalDetectorRegressedFunctionMessage({
 }: EventStatisticalDetectorMessageProps) {
   const evidenceData = event?.occurrence?.evidenceData;
   const percentageChange = evidenceData?.trendPercentage;
-  const absoluteChange = evidenceData?.aggregateRange2 - evidenceData?.aggregateRange1;
   const detectionTime = new Date(evidenceData?.breakpoint * 1000);
   const functionName = evidenceData?.function as string;
 
@@ -103,27 +102,17 @@ function EventStatisticalDetectorRegressedFunctionMessage({
     <DataSection>
       <div style={{display: 'inline'}}>
         {tct(
-          '[functionName] had [change] in duration (P95) from [before] to [after] around [date] at [time]. The example profiles may indicate what changed in the regression.',
+          '[functionName] had a [change] in duration (P95) from [before] to [after] around [date] at [time]. The example profiles may indicate what changed in the regression.',
           {
             functionName: <code>{functionName}</code>,
             change: defined(percentageChange)
-              ? t(
-                  'a %s (%s) increase',
-                  <PerformanceDuration abbreviation nanoseconds={absoluteChange} />,
-                  formatPercentage(percentageChange - 1)
-                )
+              ? t('a %s increase', formatPercentage(percentageChange - 1))
               : t('an increase'),
             before: (
-              <PerformanceDuration
-                abbreviation
-                nanoseconds={evidenceData?.aggregateRange1 ?? 0}
-              />
+              <PerformanceDuration nanoseconds={evidenceData?.aggregateRange1 ?? 0} />
             ),
             after: (
-              <PerformanceDuration
-                abbreviation
-                nanoseconds={evidenceData?.aggregateRange2 ?? 0}
-              />
+              <PerformanceDuration nanoseconds={evidenceData?.aggregateRange2 ?? 0} />
             ),
             date: <DateTime date={detectionTime} dateOnly />,
             time: <DateTime date={detectionTime} timeOnly />,
