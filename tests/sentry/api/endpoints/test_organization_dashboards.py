@@ -838,3 +838,28 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             DashboardWidgetDisplayTypes.LINE_CHART
         )
         assert widget_data["layout"] is None
+
+    def test_post_dashboard_with_widget_filter_requiring_environment(self):
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Dashboard",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Widget",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "release.stage:adopted",
+                        }
+                    ],
+                }
+            ],
+        }
+        response = self.do_request("post", f"{self.url}?environment=mock_env", data=data)
+        assert response.status_code == 201, response.data
