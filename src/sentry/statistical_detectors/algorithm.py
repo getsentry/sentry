@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Callable, Mapping, MutableMapping, Optional
+from typing import Any, Callable, Mapping, MutableMapping, Optional, Tuple
 
 from sentry.statistical_detectors.detector import (
     DetectorAlgorithm,
@@ -100,7 +100,7 @@ class MovingAverageDetector(DetectorAlgorithm):
 
 
 class MovingAverageCrossOverDetector(MovingAverageDetector):
-    def update(self, payload: DetectorPayload) -> Optional[TrendType]:
+    def update(self, payload: DetectorPayload) -> Tuple[Optional[TrendType], float]:
         if self.timestamp is not None and self.timestamp > payload.timestamp:
             # In the event that the timestamp is before the payload's timestamps,
             # we do not want to process this payload.
@@ -111,7 +111,7 @@ class MovingAverageCrossOverDetector(MovingAverageDetector):
                 payload.timestamp.isoformat(),
                 self.timestamp.isoformat(),
             )
-            return None
+            return None, 0
 
         old_moving_avg_short = self.moving_avg_short.value
         old_moving_avg_long = self.moving_avg_long.value
@@ -125,6 +125,8 @@ class MovingAverageCrossOverDetector(MovingAverageDetector):
         # number of data points before looking for a regression.
         stablized = self.count > self.config.min_data_points
 
+        score = self.moving_avg_short.value - self.moving_avg_long.value
+
         if (
             stablized
             and self.moving_avg_short.value > self.moving_avg_long.value
@@ -133,7 +135,7 @@ class MovingAverageCrossOverDetector(MovingAverageDetector):
             # The new fast moving average is above the new slow moving average.
             # The old fast moving average is below the old slow moving average.
             # This indicates an upwards trend.
-            return TrendType.Regressed
+            return TrendType.Regressed, score
 
         elif (
             stablized
@@ -143,9 +145,9 @@ class MovingAverageCrossOverDetector(MovingAverageDetector):
             # The new fast moving average is below the new slow moving average
             # The old fast moving average is above the old slow moving average
             # This indicates an downwards trend.
-            return TrendType.Improved
+            return TrendType.Improved, score
 
-        return TrendType.Unchanged
+        return TrendType.Unchanged, score
 
 
 @dataclass(frozen=True)
@@ -164,7 +166,7 @@ class MovingAverageRelativeChangeDetector(MovingAverageDetector):
         self.change_metric = config.change_metric
         self.threshold = abs(config.threshold)
 
-    def update(self, payload: DetectorPayload) -> Optional[TrendType]:
+    def update(self, payload: DetectorPayload) -> Tuple[Optional[TrendType], float]:
         if self.timestamp is not None and self.timestamp > payload.timestamp:
             # In the event that the timestamp is before the payload's timestamps,
             # we do not want to process this payload.
@@ -175,7 +177,7 @@ class MovingAverageRelativeChangeDetector(MovingAverageDetector):
                 payload.timestamp.isoformat(),
                 self.timestamp.isoformat(),
             )
-            return None
+            return None, 0
 
         old_moving_avg_short = self.moving_avg_short.value
         old_moving_avg_long = self.moving_avg_long.value
@@ -188,6 +190,8 @@ class MovingAverageRelativeChangeDetector(MovingAverageDetector):
         # The heuristic isn't stable initially, so ensure we have a minimum
         # number of data points before looking for a regression.
         stablized = self.count > self.config.min_data_points
+
+        score = abs(self.moving_avg_short.value - self.moving_avg_long.value)
 
         try:
             relative_change_old = (old_moving_avg_short - old_moving_avg_long) / abs(
@@ -208,13 +212,13 @@ class MovingAverageRelativeChangeDetector(MovingAverageDetector):
             and relative_change_old < self.threshold
             and relative_change_new > self.threshold
         ):
-            return TrendType.Regressed
+            return TrendType.Regressed, score
 
         elif (
             stablized
             and relative_change_old > -self.threshold
             and relative_change_new < -self.threshold
         ):
-            return TrendType.Improved
+            return TrendType.Improved, score
 
-        return TrendType.Unchanged
+        return TrendType.Unchanged, score

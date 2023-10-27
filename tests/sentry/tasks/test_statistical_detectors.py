@@ -246,12 +246,14 @@ def test_detect_function_trends_query_timerange(functions_query, timestamp, proj
     assert params["end"] == datetime(2023, 8, 1, 11, 1, tzinfo=timezone.utc)
 
 
+@pytest.mark.parametrize(["ratelimit"], [pytest.param(-1) for i in range(-1, 3)])
 @mock.patch("sentry.tasks.statistical_detectors.query_transactions")
 @mock.patch("sentry.tasks.statistical_detectors.detect_transaction_change_points")
 @django_db_all
 def test_detect_transaction_trends(
     detect_transaction_change_points,
     query_transactions,
+    ratelimit,
     timestamp,
     project,
     organization,
@@ -276,19 +278,22 @@ def test_detect_transaction_trends(
         {
             "statistical_detectors.enable": True,
             "statistical_detectors.enable.projects.performance": [project.id],
+            "statistical_detectors.ratelimit.ema": ratelimit,
         }
     ), TaskRunner():
         for ts in timestamps:
             detect_transaction_trends([organization.id], [project.id], ts)
-    assert detect_transaction_change_points.apply_async.called
+    assert detect_transaction_change_points.apply_async.called == (ratelimit != 0)
 
 
+@pytest.mark.parametrize(["ratelimit"], [pytest.param(-1) for i in range(-1, 3)])
 @mock.patch("sentry.tasks.statistical_detectors.query_functions")
 @mock.patch("sentry.tasks.statistical_detectors.detect_function_change_points")
 @django_db_all
 def test_detect_function_trends(
     detect_function_change_points,
     query_functions,
+    ratelimit,
     timestamp,
     project,
 ):
@@ -312,11 +317,12 @@ def test_detect_function_trends(
         {
             "statistical_detectors.enable": True,
             "statistical_detectors.enable.projects.profiling": [project.id],
+            "statistical_detectors.ratelimit.ema": ratelimit,
         }
     ), TaskRunner():
         for ts in timestamps:
             detect_function_trends([project.id], ts)
-    assert detect_function_change_points.apply_async.called
+    assert detect_function_change_points.apply_async.called == (ratelimit != 0)
 
 
 @mock.patch("sentry.tasks.statistical_detectors.emit_function_regression_issue")
