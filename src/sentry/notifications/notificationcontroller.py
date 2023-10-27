@@ -283,11 +283,7 @@ class NotificationController:
             if self.organization_id
             else None
         )
-        has_team_workflow = (
-            True
-            if org and features.has("organizations:team-workflow-notifications", org)
-            else False
-        )
+        has_team_workflow = org and features.has("organizations:team-workflow-notifications", org)
 
         for recipient in self.recipients:
             # get the settings for this user/team

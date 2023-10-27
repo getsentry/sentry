@@ -11,7 +11,6 @@ from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.team import Team
 from sentry.models.user import User
-from sentry.notifications.helpers import recipient_is_team, recipient_is_user
 from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationScopeEnum,
@@ -383,12 +382,10 @@ class GetParticipantsTest(TestCase):
         all_expected = {ExternalProviders.EMAIL: email, ExternalProviders.SLACK: slack}
         for provider in ExternalProviders:
             actual = dict(all_participants.get_participants_by_provider(provider))
-            expected = {}
-            for (user, reason) in (all_expected.get(provider) or {}).items():
-                if recipient_is_user(user):
-                    expected.update({RpcActor.from_orm_user(user): reason})  # type: ignore
-                elif recipient_is_team(user):
-                    expected.update({RpcActor.from_orm_team(user): reason})  # type: ignore
+            expected = {
+                RpcActor.from_object(user): reason
+                for (user, reason) in (all_expected.get(provider) or {}).items()
+            }
             assert actual == expected
 
     def test_simple(self):
