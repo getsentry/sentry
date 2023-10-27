@@ -261,11 +261,13 @@ def _process_message(
         sampled=True,
     ) as txn:
         try:
-            if message.get("payload_type") == PayloadType.OCCURRENCE.value:
-                return process_occurrence_message(message, txn)
-            elif message.get("payload_type") == PayloadType.STATUS_CHANGE.value:
+            if message["payload_type"] == PayloadType.STATUS_CHANGE.value:
                 group = process_status_change_message(message, txn)
                 return None, GroupInfo(group=group, is_new=False, is_regression=False)
+            else:
+                # Messages without a payload are defaulted to PayloadType.OCCURRENCE
+                return process_occurrence_message(message, txn)
+
         except (ValueError, KeyError) as e:
             txn.set_tag("result", "error")
             raise InvalidEventPayloadError(e)
