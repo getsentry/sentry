@@ -21,7 +21,7 @@ import {
 } from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 
-const {RESOURCE_TYPE} = BrowserStarfishFields;
+const {SPAN_OP} = BrowserStarfishFields;
 
 function ResourcesLandingPage() {
   const organization = useOrganization();
@@ -58,7 +58,7 @@ function ResourcesLandingPage() {
                 ...location,
                 query: {
                   ...location.query,
-                  [RESOURCE_TYPE]: key,
+                  [SPAN_OP]: key,
                 },
               });
             }}
@@ -78,11 +78,11 @@ function ResourcesLandingPage() {
             </PageFilterBar>
           </PaddedContainer>
 
-          {(!filters[RESOURCE_TYPE] ||
-            filters[RESOURCE_TYPE] === 'resource.script' ||
-            filters[RESOURCE_TYPE] === 'resource.css') && <JSCSSView />}
+          {(!filters[SPAN_OP] ||
+            filters[SPAN_OP] === 'resource.script' ||
+            filters[SPAN_OP] === 'resource.css') && <JSCSSView />}
 
-          {filters[RESOURCE_TYPE] === 'resource.img' && <ImageView />}
+          {filters[SPAN_OP] === 'resource.img' && <ImageView />}
         </Layout.Main>
       </Layout.Body>
     </ModulePageProviders>

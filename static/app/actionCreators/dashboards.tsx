@@ -4,6 +4,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {DashboardDetails, DashboardListItem, Widget} from 'sentry/views/dashboards/types';
 import {flattenErrors} from 'sentry/views/dashboards/utils';
 
@@ -193,6 +194,7 @@ export function validateWidget(
   orgId: string,
   widget: Widget
 ): Promise<undefined> {
+  const {selection} = PageFiltersStore.getState();
   const promise: Promise<undefined> = api.requestPromise(
     `/organizations/${orgId}/dashboards/widgets/`,
     {
@@ -203,6 +205,7 @@ export function validateWidget(
         // when we save Dashboard page filters. This is being sent to
         // bypass validation when creating or updating dashboards
         project: [ALL_ACCESS_PROJECTS],
+        environment: selection.environments,
       },
     }
   );

@@ -16,6 +16,8 @@ describe('SQLishParser', function () {
       "WHERE$1 ILIKE ' % ' || 'text'", // Conditionals
       'SELECT id, name;', // Column lists
       'columns AS `tags[column]`', // ClickHouse backtics
+      'SELECT * FROM #temp', // Temporary tables
+      '# Fetches', // Comments
       'SELECT id, nam*', // Truncation
       'AND created >= :c1', // PHP-Style I
       'LIMIT $2', // PHP-style II
@@ -26,6 +28,7 @@ describe('SQLishParser', function () {
       'flags | %s)', // Bitwise OR
       'flags ^ %s)', // Bitwise XOR
       'flags ~ %s)', // Bitwise NOT
+      'FROM temp{%s}', // Relay integer stripping
       '+ %s as count', // Arithmetic I
       '- %s as count', // Arithmetic II
       "ILIKE '\\_')", // Backslash

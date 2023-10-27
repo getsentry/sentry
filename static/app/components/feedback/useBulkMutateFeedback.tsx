@@ -5,17 +5,14 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import useFeedbackItemQueryKey from 'sentry/components/feedback/useFeedbackItemQueryKey';
 import {t} from 'sentry/locale';
 import {GroupStatus, Organization} from 'sentry/types';
-import {FeedbackIssue} from 'sentry/utils/feedback/types';
-import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 interface Props {
-  feedbackId: string;
+  feedbackList: string[];
   organization: Organization;
-  refetchIssue: () => void;
 }
 
 type QueryKeyEndpointOptions = {
@@ -31,23 +28,13 @@ type TError = unknown;
 type TVariables = ApiMutationVariables;
 type TContext = unknown;
 
-export default function useFeedbackItem({feedbackId, organization, refetchIssue}: Props) {
+export default function useBulkFeedbackItem({feedbackList, organization}: Props) {
   const api = useApi();
-  const queryClient = useQueryClient();
-
-  const {issueQueryKey} = useFeedbackItemQueryKey({organization});
 
   const mutation = useMutation<TData, TError, TVariables, TContext>({
-    onMutate: (variables: TVariables) => {
+    onMutate: (_variables: TVariables) => {
       addLoadingMessage(t('Updating feedback...'));
-
-      if (issueQueryKey) {
-        const [, , , data] = variables;
-        setApiQueryData(queryClient, issueQueryKey, (feedbackIssue: FeedbackIssue) => ({
-          ...feedbackIssue,
-          ...data,
-        }));
-      }
+      // TODO: optimistic updates to the list cache, and the item cache with useFeedback*QueryKey() helpers
     },
     mutationFn: async (variables: ApiMutationVariables) => {
       const [method, url, opts, data] = variables;
@@ -64,26 +51,24 @@ export default function useFeedbackItem({feedbackId, organization, refetchIssue}
     onSuccess: () => {
       addSuccessMessage(t('Updated feedback'));
     },
-    onSettled: () => {
-      refetchIssue();
-    },
+    onSettled: () => {},
     cacheTime: 0,
   });
 
-  const url = `/organizations/${organization.slug}/issues/${feedbackId}/`;
+  const url = `/organizations/${organization.slug}/issues/`;
 
   const markAsRead = useCallback(
     (hasSeen: boolean) => {
-      mutation.mutate(['PUT', url, {}, {hasSeen}]);
+      mutation.mutate(['PUT', url, {query: {id: feedbackList}}, {hasSeen}]);
     },
-    [mutation, url]
+    [mutation, url, feedbackList]
   );
 
   const resolve = useCallback(
     (status: GroupStatus) => {
-      mutation.mutate(['PUT', url, {}, {status}]);
+      mutation.mutate(['PUT', url, {query: {id: feedbackList}}, {status}]);
     },
-    [mutation, url]
+    [mutation, url, feedbackList]
   );
 
   return {

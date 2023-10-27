@@ -25,7 +25,6 @@ from sentry.services.hybrid_cloud.import_export.model import (
     RpcPrimaryKeyMap,
 )
 from sentry.services.hybrid_cloud.import_export.service import ImportExportService
-from sentry.services.organization import should_use_control_provisioning
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.utils import json
@@ -261,8 +260,7 @@ def _import(
     else:
         do_writes(pk_map)
 
-    if should_use_control_provisioning():
-        resolve_org_slugs_from_pk_map(pk_map)
+    resolve_org_slugs_from_pk_map(pk_map)
 
     if deferred_org_auth_tokens:
         do_write(pk_map, org_auth_token_model_name, deferred_org_auth_tokens)
