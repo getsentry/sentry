@@ -10,7 +10,7 @@ from sentry.web.frontend.unsubscribe_notifications import UnsubscribeBaseView
 class UnsubscribeIncidentNotificationsView(UnsubscribeBaseView):
     object_type = "incident"
 
-    def fetch_instance(self, incident_id) -> Incident:
+    def fetch_instance(self, incident_id):
         try:
             incident = Incident.objects.get(id=incident_id)
         except Incident.DoesNotExist:

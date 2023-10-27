@@ -8,7 +8,7 @@ from sentry.web.frontend.unsubscribe_notifications import UnsubscribeBaseView
 class UnsubscribeIssueNotificationsView(UnsubscribeBaseView):
     object_type = "issue"
 
-    def fetch_instance(self, issue_id) -> Group:
+    def fetch_instance(self, issue_id):
         try:
             group = Group.objects.get_from_cache(id=issue_id)
         except Group.DoesNotExist:

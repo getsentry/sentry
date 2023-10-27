@@ -1,5 +1,4 @@
 import abc
-from typing import Any
 
 from django.db import router, transaction
 from django.http import Http404, HttpResponseRedirect
@@ -50,7 +49,7 @@ class UnsubscribeBaseView(BaseView, metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def fetch_instance(self, **kwargs) -> Any:
+    def fetch_instance(self, **kwargs):
         pass
 
     @abc.abstractmethod
