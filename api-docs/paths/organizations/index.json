@@ -31,7 +31,8 @@
               {
                 "avatar": {
                   "avatarType": "letter_avatar",
-                  "avatarUuid": null
+                  "avatarUuid": null,
+                  "avatarUrl": null
                 },
                 "dateCreated": "2018-11-06T21:19:55.101Z",
                 "id": "2",
