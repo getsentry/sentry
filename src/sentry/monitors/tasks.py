@@ -346,7 +346,7 @@ def check_timeout(current_datetime: datetime):
     max_retries=0,
     record_timing=True,
 )
-def mark_checkin_timeout(checkin_id: int, ts: datetime):
+def mark_checkin_timeout(checkin_id: int, ts: datetime, **kwargs):
     logger.info("checkin.timeout", extra={"checkin_id": checkin_id})
 
     checkin = (
