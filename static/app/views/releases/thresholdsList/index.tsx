@@ -90,6 +90,7 @@ function ReleaseThresholdList({}: Props) {
     );
     const envDiff = new Set([...allEnvSet].filter(x => !unSortedEnvs.has(x)));
 
+    // bubble the selected projects envs first, then concat the rest of the envs
     return Array.from(unSortedEnvs)
       .sort()
       .concat([...envDiff].sort());
@@ -200,7 +201,6 @@ function ReleaseThresholdList({}: Props) {
                       key={`${projId}-${envName}`}
                       thresholds={thresholdGroup}
                       refetch={refetch}
-                      columns={5}
                       orgSlug={organization.slug}
                       setError={tempError}
                     />
@@ -208,17 +208,18 @@ function ReleaseThresholdList({}: Props) {
                 })}
               {selectedProjects.length === 1 &&
                 newThresholdGroup[0] &&
-                newThresholdGroup.map(group => (
-                  <ThresholdGroupRows
-                    key={group.id}
-                    newGroup={group}
-                    refetch={refetch}
-                    columns={5}
-                    orgSlug={organization.slug}
-                    setError={tempError}
-                    onFormClose={onNewGroupFinished}
-                  />
-                ))}
+                newThresholdGroup
+                  .filter(group => group.project === selectedProjects[0])
+                  .map(group => (
+                    <ThresholdGroupRows
+                      key={group.id}
+                      newGroup={group}
+                      refetch={refetch}
+                      orgSlug={organization.slug}
+                      setError={tempError}
+                      onFormClose={onNewGroupFinished}
+                    />
+                  ))}
             </StyledPanelTable>
           </Layout.Main>
         </Layout.Body>

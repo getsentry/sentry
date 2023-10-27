@@ -19,7 +19,6 @@ import {NEW_GROUP_PREFIX, NEW_THRESHOLD_PREFIX} from '../utils/constants';
 import {EditingThreshold, NewThresholdGroup, Threshold} from '../utils/types';
 
 type Props = {
-  columns: number;
   orgSlug: string;
   refetch: () => void;
   setError: (msg: string) => void;
@@ -30,7 +29,6 @@ type Props = {
 
 export function ThresholdGroupRows({
   thresholds = [],
-  columns,
   orgSlug,
   refetch,
   setError,
@@ -213,7 +211,7 @@ export function ThresholdGroupRows({
   };
 
   return (
-    <StyledThresholdGroup columns={columns}>
+    <StyledThresholdGroup>
       {Array.from(thresholdIdSet).map((tId: string, idx: number) => {
         // TODO: will not exist if `newGroup`
         const threshold = editingThresholds[tId] || thresholdsById[tId];
@@ -432,10 +430,7 @@ export function ThresholdGroupRows({
   );
 }
 
-type StyledThresholdGroupProps = {
-  columns: number;
-};
-const StyledThresholdGroup = styled('div')<StyledThresholdGroupProps>`
+const StyledThresholdGroup = styled('div')`
   display: contents;
 `;
 
