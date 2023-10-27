@@ -8,7 +8,7 @@ import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatte
 
 const formatter = new SQLishFormatter();
 
-export function FullSpanDescription({group, shortDescription, language}: Props) {
+export function FullSpanDescription({group, shortDescription, language = 'sql'}: Props) {
   const {
     data: fullSpan,
     isLoading,
@@ -16,6 +16,7 @@ export function FullSpanDescription({group, shortDescription, language}: Props) 
   } = useFullSpanFromTrace(group, Boolean(group));
 
   const description = fullSpan?.description ?? shortDescription;
+  const snippetLanguage = language ?? 'sql';
 
   if (!description) {
     return null;
@@ -26,8 +27,10 @@ export function FullSpanDescription({group, shortDescription, language}: Props) 
       <LoadingIndicator mini hideMessage relative />
     </PaddedSpinner>
   ) : (
-    <CodeSnippet language={language || 'sql'}>
-      {formatter.toString(description, {maxLineLength: LINE_LENGTH})}
+    <CodeSnippet language={snippetLanguage}>
+      {snippetLanguage === 'sql'
+        ? formatter.toString(description, {maxLineLength: LINE_LENGTH})
+        : description}
     </CodeSnippet>
   );
 }

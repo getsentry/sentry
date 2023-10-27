@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Hovercard} from 'sentry/components/hovercard';
-import {FullSpanDescription} from 'sentry/views/starfish/components/fullQueryDescription';
+import {FullSpanDescription} from 'sentry/views/starfish/components/fullSpanDescription';
 import {SpanDescriptionLink} from 'sentry/views/starfish/components/spanDescriptionLink';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
@@ -41,18 +41,39 @@ export function SpanDescriptionCell({
     />
   );
 
-  return ModuleName.DB ? (
-    <DescriptionWrapper>
-      <WiderHovercard
-        position="right"
-        body={<FullSpanDescription group={group} shortDescription={description} />}
-      >
-        {descriptionLink}
-      </WiderHovercard>
-    </DescriptionWrapper>
-  ) : (
-    descriptionLink
-  );
+  if (moduleName === ModuleName.DB) {
+    return (
+      <DescriptionWrapper>
+        <WiderHovercard
+          position="right"
+          body={<FullSpanDescription group={group} shortDescription={description} />}
+        >
+          {descriptionLink}
+        </WiderHovercard>
+      </DescriptionWrapper>
+    );
+  }
+
+  if (moduleName === ModuleName.HTTP) {
+    return (
+      <DescriptionWrapper>
+        <WiderHovercard
+          position="right"
+          body={
+            <FullSpanDescription
+              group={group}
+              shortDescription={description}
+              language="http"
+            />
+          }
+        >
+          {descriptionLink}
+        </WiderHovercard>
+      </DescriptionWrapper>
+    );
+  }
+
+  return descriptionLink;
 }
 
 const NULL_DESCRIPTION = <span>&lt;null&gt;</span>;

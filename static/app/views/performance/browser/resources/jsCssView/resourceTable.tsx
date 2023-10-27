@@ -1,6 +1,4 @@
 import {Fragment} from 'react';
-import {Link} from 'react-router';
-import styled from '@emotion/styled';
 
 import FileSize from 'sentry/components/fileSize';
 import GridEditable, {
@@ -14,15 +12,20 @@ import {RateUnits} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {useResourcesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
-import {FullSpanDescription} from 'sentry/views/starfish/components/fullQueryDescription';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import {WiderHovercard} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
+import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 
-const {SPAN_DESCRIPTION, SPAN_OP, SPAN_SELF_TIME, HTTP_RESPONSE_CONTENT_LENGTH} =
-  SpanMetricsField;
+const {
+  SPAN_DESCRIPTION,
+  SPAN_OP,
+  SPAN_SELF_TIME,
+  HTTP_RESPONSE_CONTENT_LENGTH,
+  PROJECT_ID,
+  SPAN_GROUP,
+} = SpanMetricsField;
 
 const {SPM} = SpanFunction;
 
@@ -30,6 +33,7 @@ type Row = {
   'avg(http.response_content_length)': number;
   'avg(span.self_time)': number;
   'http.decoded_response_content_length': number;
+  'project.id': number;
   'resource.render_blocking_status': string;
   'span.description': string;
   'span.domain': string;
@@ -79,25 +83,12 @@ function ResourceTable({sort}: Props) {
     const {key} = col;
     if (key === SPAN_DESCRIPTION) {
       return (
-        <DescriptionWrapper>
-          <WiderHovercard
-            position="right"
-            body={
-              <Fragment>
-                {t('Example')}
-                <FullSpanDescription
-                  group={row['span.group']}
-                  shortDescription={row['span.description']}
-                  language="http"
-                />
-              </Fragment>
-            }
-          >
-            <Link to={`/performance/browser/resources/resource/${row['span.group']}`}>
-              {row[key]}
-            </Link>{' '}
-          </WiderHovercard>
-        </DescriptionWrapper>
+        <SpanDescriptionCell
+          moduleName={ModuleName.HTTP}
+          projectId={row[PROJECT_ID]}
+          description={row[SPAN_DESCRIPTION]}
+          group={row[SPAN_GROUP]}
+        />
       );
     }
     if (key === 'spm()') {
@@ -157,11 +148,5 @@ function ResourceTable({sort}: Props) {
     </Fragment>
   );
 }
-
-const DescriptionWrapper = styled('div')`
-  .inline-flex {
-    display: inline-flex;
-  }
-`;
 
 export default ResourceTable;
