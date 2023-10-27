@@ -170,6 +170,8 @@ SHARED_TAG_STRINGS = {
     "span.main_thread": PREFIX + 255,
     "device.class": PREFIX + 256,
     "resource.render_blocking_status": PREFIX + 257,
+    "ttid": PREFIX + 257,
+    "ttfd": PREFIX + 258,
     # More Transactions
     "has_profile": PREFIX + 260,
     "query_hash": PREFIX + 261,
