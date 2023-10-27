@@ -20,7 +20,7 @@ const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
 
 type QueryKeyEndpointOptions<
   Headers = Record<string, string>,
-  Query = Record<string, string>,
+  Query = Record<string, any>,
 > = {
   headers?: Headers;
   query?: Query;
@@ -28,7 +28,10 @@ type QueryKeyEndpointOptions<
 
 type ApiQueryKey =
   | readonly [url: string]
-  | readonly [url: string, options: QueryKeyEndpointOptions];
+  | readonly [
+      url: string,
+      options: QueryKeyEndpointOptions<Record<string, string>, Record<string, any>>,
+    ];
 
 interface UseApiQueryOptions<TApiResponse, TError = RequestError>
   extends Omit<
