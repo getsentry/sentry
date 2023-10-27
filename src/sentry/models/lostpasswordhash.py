@@ -60,7 +60,7 @@ class LostPasswordHash(Model):
             template = "set_password"
         elif mode == "relocate_account":
             template = "relocate_account"
-            subject = "Set New Password"
+            subject = "Set Username and Password for Your Relocated Sentry.io Account"
 
         msg = MessageBuilder(
             subject="{}{}".format(options.get("mail.subject-prefix"), subject),

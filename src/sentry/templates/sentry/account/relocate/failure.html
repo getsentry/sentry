@@ -7,6 +7,7 @@
 
 {% block auth_main %}
 	<h3>{% trans "Claim Account" %}</h3>
-	{% url 'sentry-account-recover' as link %}
-	<p>{% blocktrans %}We were unable to confirm your identity. Either the link you followed is invalid, or it has expired. You can always <a href="{{ link }}">try again</a>.{% endblocktrans %}</p>
+	<p>{% blocktrans %}This password link has expired. Request a new password recovery code to set
+		your account password{% endblocktrans %}</p>
+	<p><a href="{% url 'sentry-account-recover' %}" class="btn btn-primary">Request Reset Code</a></p>
 {% endblock %}

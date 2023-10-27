@@ -42,9 +42,14 @@ class LostPasswordTest(TestCase):
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
         assert msg.to == [self.user.email]
-        assert msg.subject == "[Sentry]Set New Password"
+        assert (
+            msg.subject == "[Sentry]Set Username and Password for Your Relocated Sentry.io Account"
+        )
         url = "http://testserver" + reverse(
             "sentry-account-relocate-confirm",
             args=[password_hash.user_id, password_hash.hash],
+        )
+        assert msg.body.startswith(
+            "The following Sentry organizations that you are a member of have been migrated onto sentry.io:\n\n\nTo continue with using these accounts at their new location, please claim your account with sentry.io.\n\nClaim Account"
         )
         assert url in msg.body
