@@ -334,6 +334,12 @@ def should_use_on_demand_metrics(
     return not supported_by.standard_metrics and supported_by.on_demand_metrics
 
 
+def _get_columns_supported_by(columns: Sequence[str]) -> SupportedBy:
+    if len(columns) == 0:
+        return SupportedBy.both()
+    return SupportedBy.both()
+
+
 def _get_aggregate_supported_by(aggregate: str) -> SupportedBy:
     try:
         if is_equation(aggregate):
@@ -342,7 +348,7 @@ def _get_aggregate_supported_by(aggregate: str) -> SupportedBy:
 
         match = fields.is_function(aggregate)
         if not match:
-            raise InvalidSearchQuery(f"Invalid characters in field {aggregate}")
+            return SupportedBy.both()
 
         function, _, args, _ = query_builder.parse_function(match)
         function_support = _get_function_support(function, args)

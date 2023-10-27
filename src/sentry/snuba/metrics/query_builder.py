@@ -799,6 +799,8 @@ class SnubaQueryBuilder:
                 column_name = FIELD_ALIAS_MAPPINGS[metric_action_by_field.field]
             elif metric_action_by_field.field in FIELD_ALIAS_MAPPINGS.values():
                 column_name = metric_action_by_field.field
+            elif metric_action_by_field.field in ["timestamp"]:
+                column_name = 'timestamp' #TODO: Fix to be bucketed time 
             else:
                 # The support for tags in the order by is disabled for now because there is no need to have it. If the
                 # need arise, we will implement it.

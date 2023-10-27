@@ -412,6 +412,7 @@ def top_events_timeseries(
     zerofill_results=True,
     include_other=False,
     functions_acl=None,
+    on_demand_metrics_enabled=False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -434,6 +435,7 @@ def top_events_timeseries(
     top_events (dict|None) A dictionary with a 'data' key containing a list of dictionaries that
                     represent the top events matching the query. Useful when you have found
                     the top events earlier and want to save a query.
+    on_demand_metrics_enabled (bool) enables pulling from on_demand_metrics for the query, if applicable
     """
     if top_events is None:
         with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
@@ -449,6 +451,7 @@ def top_events_timeseries(
                 use_aggregate_conditions=True,
                 include_equation_fields=True,
                 skip_tag_resolution=True,
+                on_demand_metrics_enabled=on_demand_metrics_enabled,
             )
 
     top_events_builder = TopEventsQueryBuilder(

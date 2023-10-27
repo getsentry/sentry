@@ -47,6 +47,7 @@ def query(
     granularity: Optional[int] = None,
 ):
     with sentry_sdk.start_span(op="mep", description="MetricQueryBuilder"):
+        print("Using MQB")
         metrics_query = MetricsQueryBuilder(
             params,
             dataset=Dataset.PerformanceMetrics,
@@ -330,8 +331,11 @@ def top_events_timeseries(
     zerofill_results=True,
     include_other=False,
     functions_acl=None,
+    on_demand_metrics_enabled=False,
 ):
+    print("metrics_performance / top_events_timeseries")
     if top_events is None:
+        print("metrics_performance / query")
         top_events = query(
             selected_columns,
             query=user_query,
@@ -342,8 +346,10 @@ def top_events_timeseries(
             referrer=referrer,
             auto_aggregations=True,
             use_aggregate_conditions=True,
+            on_demand_metrics_enabled=on_demand_metrics_enabled,
         )
 
+    print("metrics_performance / top_events_builder")
     top_events_builder = TopMetricsQueryBuilder(
         Dataset.PerformanceMetrics,
         params,
@@ -355,6 +361,7 @@ def top_events_timeseries(
         timeseries_columns=timeseries_columns,
         config=QueryBuilderConfig(
             functions_acl=functions_acl,
+            on_demand_metrics_enabled=on_demand_metrics_enabled,
         ),
     )
     if len(top_events["data"]) == limit and include_other:
@@ -367,6 +374,7 @@ def top_events_timeseries(
             query=user_query,
             selected_columns=selected_columns,
             timeseries_columns=timeseries_columns,
+            on_demand_metrics_enabled=on_demand_metrics_enabled,
         )
 
         # TODO: use bulk_snql_query

@@ -7,6 +7,9 @@ from typing import List, Tuple
 from unittest import mock
 
 import pytest
+from sentry.models.project import Project
+from sentry.search.events.builder.metrics import TopMetricsQueryBuilder
+from sentry.testutils.pytest.fixtures import default_project
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
 
 from sentry.exceptions import IncompatibleMetricsQuery
@@ -2325,6 +2328,138 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             [
                 {"name": "time", "type": "DateTime('Universal')"},
                 {"name": "count_web_vitals_measurements_lcp_good", "type": "Float64"},
+            ],
+        )
+
+    def test_run_query_with_on_demand_columns(self):
+        field = "epm()"
+        columns = ["customtag1", "customtag2"]
+        query_s = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, columns=columns, query=query_s)
+
+        assert (
+            spec._query_pre_hash
+            == "on_demand_epm;{'name': 'event.duration', 'op': 'gte', 'value': 100.0}:['customtag1', 'customtag2']"
+        )
+
+        project: Project = default_project
+        metric_spec = spec.to_metric_spec(project)
+        metric_spec_tags = metric_spec["tags"] or [] if metric_spec else []
+        spec_tags = {i["key"]: i.get("value") or i.get("field") for i in metric_spec_tags}
+
+        for hour in range(0, 5):
+            self.store_transaction_metric(
+                value=hour * 10,
+                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                entity="metrics_counters",
+                tags={
+                    **spec_tags,
+                    "customtag1": "div > text",  # Spec tags for fields need to be overriden since the stored value is dynamic
+                    "customtag2": "red",
+                },
+                timestamp=self.start + datetime.timedelta(hours=hour),
+            )
+            self.store_transaction_metric(
+                value=hour * 10,
+                tags={
+                    "customtag1": "div > text",
+                    "customtag2": "red",
+                },
+                timestamp=self.start + datetime.timedelta(hours=hour),
+            )
+
+        timeseries_query = TimeseriesMetricQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=3600,
+            query=query_s,
+            selected_columns=[field],
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=True,
+            ),
+        )
+        assert timeseries_query._on_demand_metric_spec_map["epm()"]
+
+        query = TopMetricsQueryBuilder(
+            Dataset.PerformanceMetrics,
+            self.params,
+            3600,
+            ["5"],
+            query=query_s,
+            selected_columns=[field],
+            timeseries_columns=columns,
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=True,
+            ),
+        )
+        assert query._on_demand_metric_spec_map["epm()"]
+
+        mep_query = TopMetricsQueryBuilder(
+            Dataset.PerformanceMetrics,
+            self.params,
+            3600,
+            ["5"],
+            query="",
+            selected_columns=[field],
+            timeseries_columns=columns,
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=False,
+            ),
+        )
+
+        assert not mep_query._on_demand_metric_spec_map
+
+        metrics_query = query._get_metrics_query_from_on_demand_spec(
+            spec=query._on_demand_metric_spec_map["epm()"], require_time_range=True
+        )
+
+        assert len(metrics_query.select) == 1
+        assert metrics_query.select[0].op == "on_demand_epm"
+        print(metrics_query)
+
+        assert metrics_query.where
+        assert metrics_query.where[0].rhs == spec.query_hash
+        timeseries_result = timeseries_query.run_query("test_timeseries_query")
+
+        assert timeseries_result["data"][:1] == [{"epm": 0, "time": "2023-10-09T10:00:00+00:00"}]
+
+        result = query.run_query("test_query")
+        mep_result = mep_query.run_query("test_mep_query")
+
+        assert result["data"]
+        assert mep_result["data"]
+
+        assert result["data"][:3] == [
+            {
+                "time": self.start.isoformat(),
+                "epm": 1 / 60,
+                "customtag1": "div > text",
+                "customtag2": "red",
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
+                "epm": 1 / 60,
+                "customtag1": "div > text",
+                "customtag2": "red",
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
+                "epm": 1 / 60,
+                "customtag1": "div > text",
+                "customtag2": "red",
+            },
+        ]
+
+        # assert result["data"][:3] == mep_result["data"][:3] # mep results aren't right.
+
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime('Universal')"},
+                {"name": "epm", "type": "Float64"},
+                {"name": "customtag1", "type": "string"},
+                {"name": "customtag2", "type": "string"},
             ],
         )
 

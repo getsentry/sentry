@@ -211,6 +211,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             comparison_delta: Optional[datetime],
         ) -> SnubaTSResult:
             if top_events > 0:
+                print(dataset)
                 return dataset.top_events_timeseries(
                     timeseries_columns=query_columns,
                     selected_columns=self.get_field_list(organization, request),
@@ -224,6 +225,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     referrer=referrer + ".find-topn",
                     allow_empty=False,
                     zerofill_results=zerofill_results,
+                    on_demand_metrics_enabled=use_on_demand_metrics,
                     include_other=include_other,
                 )
             return dataset.timeseries_query(

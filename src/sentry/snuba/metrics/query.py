@@ -269,10 +269,12 @@ class MetricsQuery(MetricsQueryValidationRunner):
                 else:
                     metric_entities.add(entity)
             elif isinstance(metric_order_by_field.field, str):
-                if metric_order_by_field.field not in group_by_str_fields:
+                #TODO: Fix to be bucketed time.
+                if metric_order_by_field.field not in group_by_str_fields and metric_order_by_field.field != 'timestamp':
                     raise InvalidParams(
                         f"String field {metric_order_by_field.field} in the 'order by' must be also "
                         f"in the 'group by'"
+                        f"{group_by_str_fields}"
                     )
 
         # If metric entities set contains more than 1 metric, we can't orderBy these fields
