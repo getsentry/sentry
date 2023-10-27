@@ -33,7 +33,7 @@ function ReplayCurrentUrl() {
     return (
       <Tooltip
         title={t(
-          'Warning! This URL contains content scrubbed by our PII filters and may no longer be valid.'
+          'Warning! This URL contains content scrubbed by our PII filters and may no longer be valid. You can turn this off in your Settings, under Security & Privacy.'
         )}
       >
         <TextCopyInput size="sm">{url}</TextCopyInput>
