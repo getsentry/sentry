@@ -26,7 +26,9 @@ from sentry.notifications.utils import (
     get_rules,
 )
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.integrations import ExternalProviders
 
 
@@ -248,7 +250,7 @@ class NotificationHelpersTest(TestCase):
             external_name="invalid_integration",
             provider=0,
         )
-
-        assert team_is_valid_recipient(team1)
-        assert not team_is_valid_recipient(team2)
-        assert not team_is_valid_recipient(team3)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert team_is_valid_recipient(team1)
+            assert not team_is_valid_recipient(team2)
+            assert not team_is_valid_recipient(team3)
