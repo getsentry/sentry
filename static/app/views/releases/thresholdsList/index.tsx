@@ -179,7 +179,11 @@ function ReleaseThresholdList({}: Props) {
             </FilterRow>
             <StyledPanelTable
               isLoading={isLoading}
-              isEmpty={filteredThresholds.length === 0 && !isError}
+              isEmpty={
+                filteredThresholds.length === 0 &&
+                newThresholdGroup.length === 0 &&
+                !isError
+              }
               emptyMessage={t('No thresholds found.')}
               headers={[
                 t('Project Name'),
