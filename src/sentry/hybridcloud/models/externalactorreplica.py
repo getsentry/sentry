@@ -14,7 +14,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 class ExternalActorReplica(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    externalactor_id = HybridCloudForeignKey("sentry.ExternalActor", on_delete="CASCADE")
+    externalactor_id = BoundedPositiveIntegerField()
     team_id = HybridCloudForeignKey("sentry.Team", null=True, db_index=True, on_delete="CASCADE")
     user = FlexibleForeignKey("sentry.User", null=True, db_index=True, on_delete=models.CASCADE)
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")

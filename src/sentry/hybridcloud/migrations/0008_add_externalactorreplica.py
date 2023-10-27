@@ -52,6 +52,7 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 ("provider", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
+                ("externalactor_id", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
                 ("external_name", models.TextField()),
                 ("external_id", models.TextField(null=True)),
                 (

@@ -297,7 +297,7 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
             team_id=external_actor.team_id,  # type: ignore
             integration_id=integration.id,
         )
-        handle_replication(ExternalActor, destination)
+        handle_replication(ExternalActor, destination, "externalactor_id")
 
     def remove_replicated_organization_member_team(
         self, *, organization_id: int, organization_member_team_id: int
