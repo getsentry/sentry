@@ -82,7 +82,7 @@ class MarkFailedTestCase(TestCase):
                         },
                         "id": str(monitor.guid),
                         "name": monitor.name,
-                        "slug": monitor.slug,
+                        "slug": str(monitor.slug),
                     }
                 },
                 "logentry": {"formatted": "Monitor failure: test monitor (unknown)"},
@@ -326,7 +326,7 @@ class MarkFailedTestCase(TestCase):
                 "sdk": None,
                 "tags": {
                     "monitor.id": str(monitor.guid),
-                    "monitor.slug": monitor.slug,
+                    "monitor.slug": str(monitor.slug),
                 },
                 "trace_id": trace_id.hex,
             },
@@ -420,7 +420,7 @@ class MarkFailedTestCase(TestCase):
                         },
                         "id": str(monitor.guid),
                         "name": monitor.name,
-                        "slug": monitor.slug,
+                        "slug": str(monitor.slug),
                     }
                 },
                 "environment": monitor_environment.environment.name,
@@ -431,7 +431,7 @@ class MarkFailedTestCase(TestCase):
                 "sdk": None,
                 "tags": {
                     "monitor.id": str(monitor.guid),
-                    "monitor.slug": monitor.slug,
+                    "monitor.slug": str(monitor.slug),
                 },
                 "trace_id": None,
             },
@@ -528,7 +528,7 @@ class MarkFailedTestCase(TestCase):
                         },
                         "id": str(monitor.guid),
                         "name": monitor.name,
-                        "slug": monitor.slug,
+                        "slug": str(monitor.slug),
                     }
                 },
                 "environment": monitor_environment.environment.name,
@@ -539,7 +539,7 @@ class MarkFailedTestCase(TestCase):
                 "sdk": None,
                 "tags": {
                     "monitor.id": str(monitor.guid),
-                    "monitor.slug": monitor.slug,
+                    "monitor.slug": str(monitor.slug),
                 },
                 "trace_id": None,
             },
