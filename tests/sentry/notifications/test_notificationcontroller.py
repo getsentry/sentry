@@ -1,3 +1,4 @@
+from sentry.hybridcloud.models.externalactorreplica import ExternalActorReplica
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notificationcontroller import NotificationController
@@ -10,7 +11,7 @@ from sentry.notifications.types import (
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.slack import link_team
+from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
@@ -55,6 +56,7 @@ def add_notification_setting_provider(
 # The tests below are intended to check behavior with the new
 # NotificationSettingOption and NotificationSettingProvider tables,
 # which will be enabled with the "organization:notification-settings-v2" flag.
+@control_silo_test(stable=True)
 class NotificationControllerTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -805,6 +807,14 @@ class NotificationControllerTest(TestCase):
         user2 = self.create_user()
         self.create_member(user=user1, organization=self.organization, role="member", teams=[team])
         self.create_member(user=user2, organization=self.organization, role="member", teams=[team])
+        ExternalActorReplica.objects.create(
+            externalactor_id=0,
+            team_id=team.id,
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+            provider=0,
+            external_name="invalid-integration",
+        )
 
         controller = NotificationController(
             recipients=[team],
@@ -820,7 +830,14 @@ class NotificationControllerTest(TestCase):
         user2 = self.create_user()
         self.create_member(user=user1, organization=self.organization, role="member", teams=[team])
         self.create_member(user=user2, organization=self.organization, role="member", teams=[team])
-        link_team(team, self.integration, "#team-channel", "team_channel_id")
+        ExternalActorReplica.objects.create(
+            externalactor_id=0,
+            team_id=team.id,
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+            provider=110,
+            external_name="valid-integration",
+        )
 
         controller = NotificationController(
             recipients=[team],
