@@ -2,8 +2,6 @@
 #     from __future__ import annotations
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
-from __future__ import annotations
-
 from abc import abstractmethod
 from typing import List, Mapping, MutableMapping, Optional, Sequence, Set, Tuple
 
