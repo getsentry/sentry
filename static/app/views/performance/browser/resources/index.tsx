@@ -29,7 +29,10 @@ function ResourcesLandingPage() {
   const filters = useResourceModuleFilters();
 
   return (
-    <ModulePageProviders title={[t('Performance'), t('Resources')].join(' — ')}>
+    <ModulePageProviders
+      title={[t('Performance'), t('Resources')].join(' — ')}
+      baseURL="/performance/browser/resources"
+    >
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
