@@ -46,6 +46,7 @@ google-auth==2.16.0
 google-cloud-bigtable==2.11.3
 google-cloud-core==2.3.2
 google-cloud-functions==1.8.1
+google-cloud-kms==2.19.1
 google-cloud-pubsub==2.13.6
 google-cloud-spanner==3.20.0
 google-cloud-storage==2.5.0
@@ -110,7 +111,7 @@ rfc3339-validator==0.1.2
 rfc3986-validator==0.1.1
 rsa==4.8
 s3transfer==0.6.1
-sentry-arroyo==2.14.12
+sentry-arroyo==2.14.13
 sentry-kafka-schemas==0.1.32
 sentry-redis-tools==0.1.7
 sentry-relay==0.8.32

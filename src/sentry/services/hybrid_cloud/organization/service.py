@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 import abc
 from abc import abstractmethod
-from typing import Any, Iterable, Mapping, Optional, Union
+from typing import Any, Iterable, List, Mapping, Optional, Union
 
 from django.dispatch import Signal
 
@@ -320,6 +320,11 @@ class OrganizationService(RpcService):
         _organization_signal_service.schedule_signal(
             signal=signal, organization_id=organization_id, args=args
         )
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_organization_owner_members(self, organization_id: int) -> List[RpcOrganizationMember]:
+        pass
 
 
 class OrganizationSignalService(abc.ABC):

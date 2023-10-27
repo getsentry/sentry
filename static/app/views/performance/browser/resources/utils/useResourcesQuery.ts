@@ -18,13 +18,21 @@ const {
   HTTP_RESPONSE_CONTENT_LENGTH,
 } = SpanMetricsField;
 
-export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
+type Props = {
+  sort: ValidSort;
+  defaultResourceTypes?: string[];
+};
+
+export const useResourcesQuery = ({sort, defaultResourceTypes}: Props) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
   const resourceFilters = useResourceModuleFilters();
   const {slug: orgSlug} = useOrganization();
+
   const queryConditions = [
-    `${SPAN_OP}:${resourceFilters.type || 'resource.*'}`,
+    `${SPAN_OP}:${
+      resourceFilters[SPAN_OP] || `[${defaultResourceTypes?.join(',')}]` || 'resource.*'
+    }`,
     ...(resourceFilters.transaction
       ? [`transaction:"${resourceFilters.transaction}"`]
       : []),
@@ -35,7 +43,7 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
       ? [
           `resource.render_blocking_status:${resourceFilters['resource.render_blocking_status']}`,
         ]
-      : []),
+      : [`!resource.render_blocking_status:blocking`]),
   ];
 
   // TODO - we should be using metrics data here
@@ -48,7 +56,6 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
         `avg(${SPAN_SELF_TIME})`,
         'spm()',
         SPAN_GROUP,
-        RESOURCE_RENDER_BLOCKING_STATUS,
         SPAN_DOMAIN,
         `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
       ],

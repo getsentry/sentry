@@ -1352,11 +1352,8 @@ def get_alert_rule_trigger_action_discord_channel_id(
             integration_id=integration.id,
             guild_name=integration.name,
         )
-    except ValidationError:
-        raise InvalidTriggerActionError(
-            "Could not find channel %s. Channel may not exist, may be formatted incorrectly, or Sentry may not "
-            "have been granted permission to access it" % name
-        )
+    except ValidationError as e:
+        raise InvalidTriggerActionError(e.message)
     except IntegrationError:
         raise InvalidTriggerActionError("Bad response from Discord channel lookup")
     except ApiTimeoutError:

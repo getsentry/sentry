@@ -1,7 +1,10 @@
+import pytest
+
 from sentry.constants import ObjectStatus
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip("External actor replication won't work with project rule factories")
 class MigrateNoActionDupleIssueAlerts(TestMigrations):
     migrate_from = "0549_re_add_groupsubscription_columns"
     migrate_to = "0550_migrate_no_action_dupe_issue_alerts"

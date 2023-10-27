@@ -752,3 +752,35 @@ def test_alert_metric_extraction_rules(default_project, factories):
                 }
             ],
         }
+
+
+@django_db_all
+def test_performance_calculate_score(default_project):
+    features = {
+        "organizations:performance-calculate-score-relay": True,
+    }
+
+    with Feature(features):
+        config = get_project_config(default_project, full_config=True).to_dict()["config"]
+
+        validate_project_config(json.dumps(config), strict=False)
+        performance_score = config["performanceScore"]
+        assert performance_score == {
+            "profiles": [
+                {
+                    "name": "Desktop",
+                    "scoreComponents": [
+                        {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600},
+                        {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400},
+                        {"measurement": "fid", "weight": 0.3, "p10": 100, "p50": 300},
+                        {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
+                        {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400},
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Chrome",
+                    },
+                }
+            ]
+        }
