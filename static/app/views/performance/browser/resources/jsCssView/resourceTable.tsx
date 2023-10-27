@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {Link} from 'react-router';
+import styled from '@emotion/styled';
 
 import FileSize from 'sentry/components/fileSize';
 import GridEditable, {
@@ -13,8 +14,10 @@ import {RateUnits} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {useResourcesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
+import {FullSpanDescription} from 'sentry/views/starfish/components/fullQueryDescription';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
+import {WiderHovercard} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 
@@ -76,9 +79,25 @@ function ResourceTable({sort}: Props) {
     const {key} = col;
     if (key === SPAN_DESCRIPTION) {
       return (
-        <Link to={`/performance/browser/resources/resource/${row['span.group']}`}>
-          {row[key]}
-        </Link>
+        <DescriptionWrapper>
+          <WiderHovercard
+            position="right"
+            body={
+              <Fragment>
+                {t('Example')}
+                <FullSpanDescription
+                  group={row['span.group']}
+                  shortDescription={row['span.description']}
+                  language="http"
+                />
+              </Fragment>
+            }
+          >
+            <Link to={`/performance/browser/resources/resource/${row['span.group']}`}>
+              {row[key]}
+            </Link>{' '}
+          </WiderHovercard>
+        </DescriptionWrapper>
       );
     }
     if (key === 'spm()') {
@@ -139,13 +158,10 @@ function ResourceTable({sort}: Props) {
   );
 }
 
-export const getActionName = (transactionOp: string) => {
-  switch (transactionOp) {
-    case 'ui.action.click':
-      return 'Click';
-    default:
-      return transactionOp;
+const DescriptionWrapper = styled('div')`
+  .inline-flex {
+    display: inline-flex;
   }
-};
+`;
 
 export default ResourceTable;
