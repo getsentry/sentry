@@ -29,7 +29,7 @@ REGION_PINNED_URL_NAMES = (
     "sentry-api-0-relay-publickeys",
     "sentry-api-0-relays-healthcheck",
     "sentry-api-0-relays-details",
-    # Backwards compatibility for US cusstomers.
+    # Backwards compatibility for US customers.
     # New usage of these is region scoped.
     "sentry-error-page-embed",
     "sentry-release-hook",
