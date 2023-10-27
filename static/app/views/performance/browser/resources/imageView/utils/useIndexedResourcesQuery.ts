@@ -13,6 +13,7 @@ const {
   HTTP_RESPONSE_CONTENT_LENGTH,
   SPAN_SELF_TIME,
   RESOURCE_RENDER_BLOCKING_STATUS,
+  SPAN_DOMAIN,
 } = SpanIndexedField;
 
 export const useIndexedResourcesQuery = () => {
@@ -27,6 +28,9 @@ export const useIndexedResourcesQuery = () => {
           `resource.render_blocking_status:${resourceFilters['resource.render_blocking_status']}`,
         ]
       : [`!resource.render_blocking_status:blocking`]),
+    ...(resourceFilters[SPAN_DOMAIN]
+      ? [`span.domain:${resourceFilters[SPAN_DOMAIN]}`]
+      : []),
   ];
 
   // TODO - we should be using metrics data here
@@ -71,7 +75,9 @@ export const useIndexedResourcesQuery = () => {
         | ''
         | 'non-blocking'
         | 'blocking',
-      [HTTP_RESPONSE_CONTENT_LENGTH]: row[HTTP_RESPONSE_CONTENT_LENGTH] as number,
+      [HTTP_RESPONSE_CONTENT_LENGTH]: parseFloat(
+        (row[HTTP_RESPONSE_CONTENT_LENGTH] as string) || '0'
+      ),
     })) ?? [];
 
   return {...result, data};
