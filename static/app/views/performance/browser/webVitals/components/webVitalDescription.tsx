@@ -16,8 +16,9 @@ import {getScoreColor} from 'sentry/views/performance/browser/webVitals/utils/ge
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
 
-import OverallProgressRing from '../overallProgressRing';
 import {ProjectScore} from '../utils/calculatePerformanceScore';
+
+import PerformanceScoreRingWithTooltips from './performanceScoreRingWithTooltips';
 
 type Props = {
   score: number;
@@ -104,7 +105,7 @@ export function WebVitalTagsDetailHeader({
       </span>
       {isProjectScoreCalculated && projectScore ? (
         <ProgressRingWrapper>
-          <OverallProgressRing
+          <PerformanceScoreRingWithTooltips
             hideWebVitalLabels
             projectScore={projectScore}
             text={

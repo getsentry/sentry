@@ -10,7 +10,7 @@ import {PerformanceScoreBreakdownChart} from 'sentry/views/performance/browser/w
 import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 
-import OverallProgressRing from './overallProgressRing';
+import PerformanceScoreRingWithTooltips from './components/performanceScoreRingWithTooltips';
 
 type Props = {
   isProjectScoreLoading?: boolean;
@@ -58,7 +58,7 @@ export function PerformanceScoreChart({
         <PerformanceScoreLabel>{t('Performance Score')}</PerformanceScoreLabel>
         <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
         {!isProjectScoreLoading && projectScore && (
-          <OverallProgressRing
+          <PerformanceScoreRingWithTooltips
             projectScore={projectScore}
             text={score}
             width={220}

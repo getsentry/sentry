@@ -12,7 +12,7 @@ import {
 } from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 
-import {ORDER} from './performanceScoreChart';
+import {ORDER} from '../performanceScoreChart';
 
 const {
   lcp: LCP_WEIGHT,
@@ -32,7 +32,7 @@ type Props = {
   hideWebVitalLabels?: boolean;
 };
 
-function OverallProgressRing({
+function PerformanceScoreRingWithTooltips({
   projectScore,
   ringBackgroundColors,
   ringSegmentColors,
@@ -195,4 +195,4 @@ const TooltipValue = styled('span')`
   color: ${p => p.theme.gray300};
 `;
 
-export default OverallProgressRing;
+export default PerformanceScoreRingWithTooltips;

@@ -138,7 +138,9 @@ export function PageOverviewWebVitalsTagDetailPanel({
     const shouldHighlight = row.id === highlightedSampleId;
 
     const commonProps = {
-      style: (shouldHighlight ? {fontWeight: 'bold'} : {}) satisfies CSSProperties,
+      style: (shouldHighlight
+        ? {textShadow: '0 0 0.5px black'}
+        : {}) satisfies CSSProperties,
       onMouseEnter: () => setHighlightedSampleId(row.id),
       onMouseLeave: () => setHighlightedSampleId(undefined),
     };

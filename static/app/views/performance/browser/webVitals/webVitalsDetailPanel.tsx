@@ -357,7 +357,11 @@ export function WebVitalsDetailPanel({
               )
                 ? {pathname: `${location.pathname}overview/`}
                 : {}),
-              query: {...location.query, transaction: row.transaction},
+              query: {
+                ...location.query,
+                transaction: row.transaction,
+                webVital,
+              },
             }}
             onClick={onClose}
           >
