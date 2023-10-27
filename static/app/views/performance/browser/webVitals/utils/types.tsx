@@ -12,6 +12,7 @@ export type Row = {
 };
 
 export type TransactionSampleRow = {
+  browser: string;
   id: string;
   'measurements.cls': number | null;
   'measurements.fcp': number | null;
