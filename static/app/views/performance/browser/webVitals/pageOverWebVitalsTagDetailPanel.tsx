@@ -112,6 +112,7 @@ export function PageOverviewWebVitalsTagDetailPanel({
     enabled: Boolean(tag),
   });
 
+  // Sample Table props
   const tableData: TransactionSampleRowWithScore[] = samplesTableData.sort(
     (a, b) => a.score - b.score
   );
@@ -210,6 +211,7 @@ export function PageOverviewWebVitalsTagDetailPanel({
     return <AlignCenter {...commonProps}>{row[key]}</AlignCenter>;
   };
 
+  // Chart props
   const samplesScatterPlotSeries: Series[] = tableData.map(({timestamp, score, id}) => {
     const color = theme[PERFORMANCE_SCORE_COLORS[scoreToStatus(score)].normal];
     return {
