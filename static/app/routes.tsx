@@ -1626,12 +1626,14 @@ function buildRoutes() {
             () => import('sentry/views/performance/database/databaseLandingPage')
           )}
         />
-        <Route
-          path="spans/span/:groupId/"
-          component={make(
-            () => import('sentry/views/performance/database/databaseSpanSummaryPage')
-          )}
-        />
+        <Route path="spans/">
+          <Route
+            path="span/:groupId/"
+            component={make(
+              () => import('sentry/views/performance/database/databaseSpanSummaryPage')
+            )}
+          />
+        </Route>
       </Route>
       <Route path="browser/">
         <Route path="interactions/">
@@ -1668,7 +1670,7 @@ function buildRoutes() {
             )}
           />
           <Route
-            path="resource/:groupId/"
+            path="spans/span/:groupId/"
             component={make(
               () =>
                 import(
