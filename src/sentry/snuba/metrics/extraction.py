@@ -310,8 +310,10 @@ def should_use_on_demand_metrics(
     aggregate: str,
     query: Optional[str],
     prefilling: bool = False,
+    columns: Optional[Sequence[str]] = None,
 ) -> bool:
     """On-demand metrics are used if the aggregate and query are supported by on-demand metrics but not standard"""
+    columns = columns or []
     supported_datasets = [Dataset.PerformanceMetrics]
     # In case we are running a prefill, we want to support also transactions, since our goal is to start extracting
     # metrics that will be needed after a query is converted from using transactions to metrics.
@@ -323,8 +325,11 @@ def should_use_on_demand_metrics(
 
     aggregate_supported_by = _get_aggregate_supported_by(aggregate)
     query_supported_by = _get_query_supported_by(query)
+    columns_supported_by = _get_columns_support(columns)
 
-    supported_by = SupportedBy.combine(aggregate_supported_by, query_supported_by)
+    supported_by = SupportedBy.combine(
+        aggregate_supported_by, query_supported_by, columns_supported_by
+    )
 
     return not supported_by.standard_metrics and supported_by.on_demand_metrics
 
@@ -341,7 +346,7 @@ def _get_aggregate_supported_by(aggregate: str) -> SupportedBy:
 
         function, _, args, _ = query_builder.parse_function(match)
         function_support = _get_function_support(function, args)
-        args_support = _get_args_support(function, args)
+        args_support = _get_columns_support(args, function)
 
         return SupportedBy.combine(function_support, args_support)
     except InvalidSearchQuery:
@@ -394,15 +399,18 @@ def _get_percentile_op(args: Sequence[str]) -> Optional[MetricOperationType]:
     return None
 
 
-def _get_args_support(function: str, args: Sequence[str]) -> SupportedBy:
-    if len(args) == 0:
+def _get_columns_support(
+    columns: Sequence[str], used_in_function: Optional[str] = None
+) -> SupportedBy:
+    if len(columns) == 0:
+        # This is also called to check columns in functions.
         return SupportedBy.both()
 
-    # apdex can have two variations, either apdex() or apdex(value).
-    if function == "apdex":
+    if used_in_function == "apdex":
+        # apdex can have two variations, either apdex() or apdex(value).
         return SupportedBy(on_demand_metrics=True, standard_metrics=False)
 
-    arg = args[0]
+    arg = columns[0]
 
     standard_metrics = _is_standard_metrics_field(arg)
     on_demand_metrics = _is_on_demand_supported_field(arg)
@@ -811,6 +819,7 @@ class OnDemandMetricSpec:
     # Base fields from outside.
     field: str
     query: str
+    columns: Sequence[str]
 
     # Public fields.
     op: MetricOperationType
@@ -819,9 +828,18 @@ class OnDemandMetricSpec:
     _metric_type: str
     _arguments: Sequence[str]
 
-    def __init__(self, field: str, query: str, environment: Optional[str] = None):
+    def __init__(
+        self,
+        field: str,
+        query: str,
+        columns: Optional[Sequence[str]] = None,
+        environment: Optional[str] = None,
+    ):
+        columns = columns or []
         self.field = field
         self.query = query
+        self.columns = [column for column in columns if column != field]
+        # Removes field if passed in selected_columns
         # For now, we just support the environment as extra, but in the future we might need more complex ways to
         # combine extra values that are outside the query string.
         self.environment = environment
@@ -854,9 +872,18 @@ class OnDemandMetricSpec:
         return f"{self._metric_type}:{CUSTOM_ALERT_METRIC_NAME}@none"
 
     @cached_property
-    def query_hash(self) -> str:
+    def _query_pre_hash(self) -> str:
         """Returns a hash of the query and field to be used as a unique identifier for the on-demand metric."""
         str_to_hash = f"{self._field_for_hash()};{self._query_for_hash()}"
+        if len(self.columns):
+            # For compatibility with existing deployed metrics, leave existing hash untouched unless conditions are now
+            # included in the spec.
+            return f"{str_to_hash}:{self._columns_for_hash()}"
+        return str_to_hash
+
+    @cached_property
+    def query_hash(self) -> str:
+        str_to_hash = self._query_pre_hash
         return hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
 
     def _field_for_hash(self) -> Optional[str]:
@@ -891,6 +918,10 @@ class OnDemandMetricSpec:
         # semantically identical queries.
         return str(_deep_sorted(self.condition))
 
+    def _columns_for_hash(self):
+        # A sorted list of columns (for idempotency) for the hash, since groupbys will be unique per on_demand metric.
+        return str(sorted(self.columns))
+
     @cached_property
     def condition(self) -> Optional[RuleCondition]:
         """Returns a parent condition containing a list of other conditions which determine whether of not the metric
@@ -905,11 +936,27 @@ class OnDemandMetricSpec:
 
         return tags_specs_generator(project, self._arguments)
 
+    def _tag_for_column(self, column: str) -> TagSpec:
+        """Returns a TagSpec for a dynamic column"""
+        field = _map_field_name(column)
+
+        return {
+            "key": field,
+            "field": field,
+        }
+
+    def tags_columns(self, columns: Sequence[str]) -> List[TagSpec]:
+        """Returns a list of tag specs generate for added columns, as they need to be stored separately for group-bys to work."""
+        return [self._tag_for_column(column) for column in columns]
+
     def to_metric_spec(self, project: Project) -> MetricSpec:
         """Converts the OndemandMetricSpec into a MetricSpec that Relay can understand."""
         # Tag conditions are always computed based on the project.
         extended_tags_conditions = self.tags_conditions(project).copy()
         extended_tags_conditions.append({"key": QUERY_HASH_KEY, "value": self.query_hash})
+
+        tag_from_columns = self.tags_columns(self.columns)
+        extended_tags_conditions.extend(tag_from_columns)
 
         metric_spec: MetricSpec = {
             "category": DataCategory.TRANSACTION.api_name(),
@@ -1048,7 +1095,11 @@ class OnDemandMetricSpec:
                 raise InvalidSearchQuery(f"Invalid characters in field {value}")
 
             function, _, arguments, alias = query_builder.parse_function(match)
-            return FieldParsingResult(function=function, arguments=arguments, alias=alias)
+            if function:
+                return FieldParsingResult(function=function, arguments=arguments, alias=alias)
+            column = query_builder.resolve_column(value)
+            return column
+
         except InvalidSearchQuery:
             return None
 
