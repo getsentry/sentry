@@ -163,6 +163,8 @@ class NotificationsService(RpcService):
     ) -> List[int]:
         pass
 
+    @rpc_method
+    @abstractmethod
     def get_notification_recipients(
         self,
         *,
