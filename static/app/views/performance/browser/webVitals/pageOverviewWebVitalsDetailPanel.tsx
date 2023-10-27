@@ -180,7 +180,7 @@ export function PageOverviewWebVitalsDetailPanel({
       return <AlignRight>{formattedValue}</AlignRight>;
     }
     if (key === 'id') {
-      const eventSlug = generateEventSlug({...row, project: project?.slug});
+      const eventSlug = generateEventSlug({...row, project: row.projectSlug});
       const eventTarget = getTransactionDetailsUrl(organization.slug, eventSlug);
       return (
         <NoOverflow>

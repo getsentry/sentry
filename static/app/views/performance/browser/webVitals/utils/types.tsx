@@ -19,6 +19,7 @@ export type TransactionSampleRow = {
   'measurements.lcp': number | null;
   'measurements.ttfb': number | null;
   'profile.id': string;
+  projectSlug: string;
   replayId: string;
   timestamp: string;
   transaction: string;
