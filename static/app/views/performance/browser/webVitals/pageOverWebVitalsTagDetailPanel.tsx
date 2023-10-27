@@ -1,6 +1,8 @@
-import {Fragment, useMemo} from 'react';
-import {Link} from 'react-router';
+import {CSSProperties, Fragment, useCallback, useState} from 'react';
+import {browserHistory, Link} from 'react-router';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
 import {Button} from 'sentry/components/button';
 import GridEditable, {
@@ -11,6 +13,8 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import {t} from 'sentry/locale';
 import {Tag} from 'sentry/types';
+import {EChartClickHandler, EChartHighlightHandler, Series} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {getDuration} from 'sentry/utils/formatters';
@@ -19,9 +23,10 @@ import {
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
+import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {WebVitalTagsDetailHeader} from 'sentry/views/performance/browser/webVitals/components/webVitalDescription';
@@ -30,7 +35,14 @@ import {TransactionSampleRowWithScore} from 'sentry/views/performance/browser/we
 import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
 import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionSamplesWebVitalsQuery';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
+import {AVG_COLOR} from 'sentry/views/starfish/colours';
+import Chart from 'sentry/views/starfish/components/chart';
+import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
+
+import {PERFORMANCE_SCORE_COLORS} from './utils/performanceScoreColors';
+import {scoreToStatus} from './utils/scoreToStatus';
+import {useProjectWebVitalsTimeseriesQuery} from './utils/useProjectWebVitalsTimeseriesQuery';
 
 type Column = GridColumnHeader;
 
@@ -56,16 +68,15 @@ export function PageOverviewWebVitalsTagDetailPanel({
   tag?: Tag;
 }) {
   const location = useLocation();
-  const {projects} = useProjects();
+  const theme = useTheme();
   const organization = useOrganization();
+  const pageFilters = usePageFilters();
   const routes = useRoutes();
+  const [highlightedSampleId, setHighlightedSampleId] = useState<string | undefined>(
+    undefined
+  );
 
   const replayLinkGenerator = generateReplayLink(routes);
-
-  const project = useMemo(
-    () => projects.find(p => p.id === String(location.query.project)),
-    [projects, location.query.project]
-  );
 
   const transaction = location.query.transaction
     ? Array.isArray(location.query.transaction)
@@ -77,6 +88,9 @@ export function PageOverviewWebVitalsTagDetailPanel({
     transaction,
     tag,
   });
+
+  const {data: chartSeriesData, isLoading: chartSeriesDataIsLoading} =
+    useProjectWebVitalsTimeseriesQuery({transaction, tag});
 
   const projectScore = calculatePerformanceScore({
     lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
@@ -120,22 +134,30 @@ export function PageOverviewWebVitalsTagDetailPanel({
   };
 
   const renderBodyCell = (col: Column, row: TransactionSampleRowWithScore) => {
+    const shouldHighlight = row.id === highlightedSampleId;
+
+    const commonProps = {
+      style: (shouldHighlight ? {fontWeight: 'bold'} : {}) satisfies CSSProperties,
+      onMouseEnter: () => setHighlightedSampleId(row.id),
+      onMouseLeave: () => setHighlightedSampleId(undefined),
+    };
+
     const {key} = col;
     if (key === 'score') {
       return (
-        <AlignCenter>
+        <AlignCenter {...commonProps}>
           <PerformanceBadge score={row.score} />
         </AlignCenter>
       );
     }
     if (key === 'browser') {
-      return <NoOverflow>{row[key]}</NoOverflow>;
+      return <NoOverflow {...commonProps}>{row[key]}</NoOverflow>;
     }
     if (key === 'id') {
-      const eventSlug = generateEventSlug({...row, project: project?.slug});
+      const eventSlug = generateEventSlug({...row, project: row.projectSlug});
       const eventTarget = getTransactionDetailsUrl(organization.slug, eventSlug);
       return (
-        <NoOverflow>
+        <NoOverflow {...commonProps}>
           <Link to={eventTarget} onClick={onClose}>
             {getShortEventId(row.id)}
           </Link>
@@ -157,36 +179,102 @@ export function PageOverviewWebVitalsTagDetailPanel({
         );
 
       return row.replayId && replayTarget ? (
-        <AlignCenter>
+        <AlignCenter {...commonProps}>
           <Link to={replayTarget}>{getShortEventId(row.replayId)}</Link>
         </AlignCenter>
       ) : (
-        <AlignCenter>{' \u2014 '}</AlignCenter>
+        <AlignCenter {...commonProps}>{' \u2014 '}</AlignCenter>
       );
     }
     if (key === 'profile.id') {
-      const eventSlug = generateEventSlug({...row, project: project?.slug});
-      const eventTarget = getTransactionDetailsUrl(organization.slug, eventSlug);
-      return row['profile.id'] ? (
-        <AlignCenter>
-          <Link to={eventTarget} onClick={onClose}>
-            {row['profile.id']}
+      if (!row.projectSlug || !defined(row['profile.id'])) {
+        return <AlignCenter {...commonProps}>{' \u2014 '}</AlignCenter>;
+      }
+      const target = generateProfileFlamechartRoute({
+        orgSlug: organization.slug,
+        projectSlug: row.projectSlug,
+        profileId: String(row['profile.id']),
+      });
+
+      return (
+        <NoOverflow>
+          <Link to={target} onClick={onClose}>
+            {getShortEventId(row['profile.id'])}
           </Link>
-        </AlignCenter>
-      ) : (
-        <AlignCenter>{' \u2014 '}</AlignCenter>
+        </NoOverflow>
       );
     }
     if (key === 'transaction.duration') {
-      return <AlignCenter>{getFormattedDuration(row[key])}</AlignCenter>;
+      return <AlignCenter {...commonProps}>{getFormattedDuration(row[key])}</AlignCenter>;
     }
-    return <AlignCenter>{row[key]}</AlignCenter>;
+    return <AlignCenter {...commonProps}>{row[key]}</AlignCenter>;
   };
+
+  const samplesScatterPlotSeries: Series[] = tableData.map(({timestamp, score, id}) => {
+    const color = theme[PERFORMANCE_SCORE_COLORS[scoreToStatus(score)].normal];
+    return {
+      data: [
+        {
+          name: timestamp,
+          value: score,
+        },
+      ],
+      symbol: 'roundRect',
+      color,
+      symbolSize: id === highlightedSampleId ? 16 : 12,
+      seriesName: id.substring(0, 8),
+    };
+  });
+
+  const chartSubTitle = pageFilters.selection.datetime.period
+    ? t('Last %s', pageFilters.selection.datetime.period)
+    : t('Last period');
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const debounceSetHighlightedSpanId = useCallback(
+    debounce(id => {
+      setHighlightedSampleId(id);
+    }, 10),
+    []
+  );
+
+  const handleChartHighlight: EChartHighlightHandler = e => {
+    const {seriesIndex} = e.batch[0];
+    const isSample = seriesIndex >= 1;
+
+    if (isSample) {
+      const sampleData = samplesScatterPlotSeries?.[seriesIndex - 1]?.data[0];
+      const {name: timestamp, value: score} = sampleData;
+      const sample = tableData.find(s => s.timestamp === timestamp && s.score === score);
+      if (sample) {
+        debounceSetHighlightedSpanId(sample.id);
+      }
+    }
+    if (!isSample) {
+      debounceSetHighlightedSpanId(undefined);
+    }
+  };
+
+  const handleChartClick: EChartClickHandler = e => {
+    const isSample = e?.componentSubType === 'scatter';
+    if (isSample) {
+      const [timestamp, score] = e.value as [string, number];
+      const sample = tableData.find(s => s.timestamp === timestamp && s.score === score);
+      if (sample) {
+        const eventSlug = generateEventSlug({...sample, project: sample.projectSlug});
+        const eventTarget = getTransactionDetailsUrl(organization.slug, eventSlug);
+        browserHistory.push(eventTarget);
+      }
+    }
+  };
+
+  const chartIsLoading =
+    chartSeriesDataIsLoading || isSamplesTabledDataLoading || isRefetching;
 
   return (
     <PageErrorProvider>
-      <DetailPanel detailKey={tag?.key} onClose={onClose}>
-        {tag && (
+      {tag && (
+        <DetailPanel detailKey={tag?.key} onClose={onClose}>
           <Fragment>
             <WebVitalTagsDetailHeader
               value="TBD"
@@ -194,6 +282,30 @@ export function PageOverviewWebVitalsTagDetailPanel({
               projectScore={projectScore}
               isProjectScoreCalculated={!projectDataLoading}
             />
+            <ChartPanel title={t('Performance Score')} subtitle={chartSubTitle}>
+              <Chart
+                height={180}
+                onClick={handleChartClick}
+                onHighlight={handleChartHighlight}
+                aggregateOutputFormat="integer"
+                data={[
+                  {
+                    data: chartIsLoading ? [] : chartSeriesData.total,
+                    seriesName: 'performance score',
+                  },
+                ]}
+                loading={chartIsLoading}
+                utc={false}
+                chartColors={[AVG_COLOR, 'black']}
+                scatterPlot={
+                  isSamplesTabledDataLoading || isRefetching
+                    ? undefined
+                    : samplesScatterPlotSeries
+                }
+                isLineChart
+                definedAxisTicks={4}
+              />
+            </ChartPanel>
             <GridEditable
               data={tableData}
               isLoading={isSamplesTabledDataLoading || isRefetching}
@@ -205,11 +317,11 @@ export function PageOverviewWebVitalsTagDetailPanel({
               }}
               location={location}
             />
+            <Button onClick={() => refetch()}>{t('Try Different Samples')}</Button>
           </Fragment>
-        )}
-        <Button onClick={() => refetch()}>{t('Try Different Samples')}</Button>
-        <PageErrorAlert />
-      </DetailPanel>
+          <PageErrorAlert />
+        </DetailPanel>
+      )}
     </PageErrorProvider>
   );
 }

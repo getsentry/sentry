@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -29,6 +29,7 @@ type Props = {
   ringSegmentColors: string[];
   text: React.ReactNode;
   width: number;
+  hideWebVitalLabels?: boolean;
 };
 
 function OverallProgressRing({
@@ -38,6 +39,7 @@ function OverallProgressRing({
   width,
   height,
   text,
+  hideWebVitalLabels = false,
 }: Props) {
   const theme = useTheme();
   const [mousePosition, setMousePosition] = useState({x: 0, y: 0});
@@ -75,21 +77,25 @@ function OverallProgressRing({
         </PerformanceScoreRingTooltip>
       )}
       <svg height={height} width={width}>
-        <ProgressRingText x={160} y={30}>
-          LCP
-        </ProgressRingText>
-        <ProgressRingText x={175} y={140}>
-          FCP
-        </ProgressRingText>
-        <ProgressRingText x={20} y={140}>
-          FID
-        </ProgressRingText>
-        <ProgressRingText x={10} y={60}>
-          CLS
-        </ProgressRingText>
-        <ProgressRingText x={50} y={20}>
-          TTFB
-        </ProgressRingText>
+        {!hideWebVitalLabels && (
+          <Fragment>
+            <ProgressRingText x={160} y={30}>
+              LCP
+            </ProgressRingText>
+            <ProgressRingText x={175} y={140}>
+              FCP
+            </ProgressRingText>
+            <ProgressRingText x={20} y={140}>
+              FID
+            </ProgressRingText>
+            <ProgressRingText x={10} y={60}>
+              CLS
+            </ProgressRingText>
+            <ProgressRingText x={50} y={20}>
+              TTFB
+            </ProgressRingText>
+          </Fragment>
+        )}
         <PerformanceScoreRing
           values={[
             projectScore.lcpScore * LCP_WEIGHT * 0.01,

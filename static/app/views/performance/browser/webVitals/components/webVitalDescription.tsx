@@ -103,21 +103,24 @@ export function WebVitalTagsDetailHeader({
         <Value>{value}</Value>
       </span>
       {isProjectScoreCalculated && projectScore ? (
-        <OverallProgressRing
-          projectScore={projectScore}
-          text={
-            <ProgressRingTextContainer>
-              <ProgressRingText>{projectScore.totalScore}</ProgressRingText>
-              <StyledTooltip title={title} showOnlyOnOverflow skipWrapper>
-                <ProgressRingTabSubText>{title.toUpperCase()}</ProgressRingTabSubText>
-              </StyledTooltip>
-            </ProgressRingTextContainer>
-          }
-          width={220}
-          height={180}
-          ringBackgroundColors={ringBackgroundColors}
-          ringSegmentColors={ringSegmentColors}
-        />
+        <ProgressRingWrapper>
+          <OverallProgressRing
+            hideWebVitalLabels
+            projectScore={projectScore}
+            text={
+              <ProgressRingTextContainer>
+                <ProgressRingText>{projectScore.totalScore}</ProgressRingText>
+                <StyledTooltip title={title} showOnlyOnOverflow skipWrapper>
+                  <ProgressRingTabSubText>{title.toUpperCase()}</ProgressRingTabSubText>
+                </StyledTooltip>
+              </ProgressRingTextContainer>
+            }
+            width={220}
+            height={180}
+            ringBackgroundColors={ringBackgroundColors}
+            ringSegmentColors={ringSegmentColors}
+          />
+        </ProgressRingWrapper>
       ) : (
         <StyledLoadingIndicator size={50} />
       )}
@@ -229,5 +232,11 @@ const StyledCopyToClipboardButton = styled(CopyToClipboardButton)`
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
-  margin: 58px 80px;
+  margin: 20px 65px;
+`;
+
+const ProgressRingWrapper = styled('span')`
+  position: absolute;
+  right: 0;
+  top: 15px;
 `;
