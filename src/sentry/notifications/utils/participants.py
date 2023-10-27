@@ -586,7 +586,7 @@ def get_recipients_by_provider(
     if should_use_notifications_v2(project.organization):
         # get by team
         teams_by_provider = notifications_service.get_notification_recipients(
-            recipients=teams,
+            recipients=list(teams),
             type=setting_type,
             organization_id=project.organization_id,
             project_ids=[project.id],
@@ -611,7 +611,7 @@ def get_recipients_by_provider(
     users_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
     if should_use_notifications_v2(project.organization):
         users_by_provider = notifications_service.get_notification_recipients(
-            recipients=users,
+            recipients=list(users),
             type=setting_type,
             organization_id=project.organization_id,
             project_ids=[project.id],
