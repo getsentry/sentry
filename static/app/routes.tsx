@@ -1626,14 +1626,12 @@ function buildRoutes() {
             () => import('sentry/views/performance/database/databaseLandingPage')
           )}
         />
-        <Route path="spans/">
-          <Route
-            path="span/:groupId/"
-            component={make(
-              () => import('sentry/views/performance/database/databaseSpanSummaryPage')
-            )}
-          />
-        </Route>
+        <Route
+          path="spans/span/:groupId/"
+          component={make(
+            () => import('sentry/views/performance/database/databaseSpanSummaryPage')
+          )}
+        />
       </Route>
       <Route path="browser/">
         <Route path="interactions/">
