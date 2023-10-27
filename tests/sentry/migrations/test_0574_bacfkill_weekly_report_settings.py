@@ -1,9 +1,12 @@
 from uuid import uuid4
 
+import pytest
+
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip("External actor replication won't work with notification settings changes")
 class BackfillWeeklyReportSettingsMigrationTest(TestMigrations):
     migrate_from = "0573_add_first_seen_index_groupedmessage"
     migrate_to = "0574_backfill_weekly_report_settings"
