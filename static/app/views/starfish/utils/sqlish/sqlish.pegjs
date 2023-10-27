@@ -36,4 +36,4 @@ Whitespace
   = Whitespace:[\n\t ]+ { return { type: 'Whitespace', content: Whitespace.join("") } }
 
 GenericToken
-  = GenericToken:[a-zA-Z0-9"'`_\-.=><:,*;!\[\]?$%|/\\@&~^+{}]+ { return { type: 'GenericToken', content: GenericToken.join('') } }
+  = GenericToken:[a-zA-Z0-9"'`_\-.=><:,*;!\[\]?$%|/\\@#&~^+{}]+ { return { type: 'GenericToken', content: GenericToken.join('') } }

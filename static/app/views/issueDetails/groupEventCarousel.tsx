@@ -23,7 +23,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, IssueType, Organization} from 'sentry/types';
+import {Event, Group, Organization} from 'sentry/types';
 import {defined, formatBytesBase2} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {eventDetailsRoute, generateEventSlug} from 'sentry/utils/discover/urls';
@@ -249,8 +249,6 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
   const isReplayEnabled =
     organization.features.includes('session-replay') &&
     projectCanLinkToReplay(group.project);
-  const isDurationRegressionIssue =
-    group?.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION;
 
   const downloadJson = () => {
     const jsonUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${event.id}/json/`;
@@ -311,7 +309,7 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
             key: 'copy-event-url',
             label: t('Copy Event Link'),
             hidden: xlargeViewport,
-            onAction: isDurationRegressionIssue ? copyEventDetailLink : copyLink,
+            onAction: copyLink,
           },
           {
             key: 'json',
@@ -353,7 +351,7 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
           },
         ]}
       />
-      {xlargeViewport && !isDurationRegressionIssue && (
+      {xlargeViewport && (
         <Button
           title={t('Copy link to this issue event')}
           size={BUTTON_SIZE}
@@ -362,7 +360,7 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
           icon={<IconLink />}
         />
       )}
-      {xlargeViewport && isDurationRegressionIssue && (
+      {xlargeViewport && (
         <Button
           title={t('Copy link to this event')}
           size={BUTTON_SIZE}
@@ -508,11 +506,11 @@ const ActionsWrapper = styled('div')`
   gap: ${space(0.5)};
 `;
 
-const StyledNavButton = styled(Button)`
+export const StyledNavButton = styled(Button)`
   border-radius: 0;
 `;
 
-const NavButtons = styled('div')`
+export const NavButtons = styled('div')`
   display: flex;
 
   > * {
