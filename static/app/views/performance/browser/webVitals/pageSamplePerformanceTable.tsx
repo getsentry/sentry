@@ -102,6 +102,24 @@ export function PageSamplePerformanceTable({transaction}: Props) {
 
   const data = [...goodData, ...mehData, ...poorData];
 
+  // If we have enough data, but not enough with profiles, replace rows without profiles with no LCP data that have profiles
+  if (
+    data.length >= 9 &&
+    data.filter(row => row['profile.id']).length < 9 &&
+    noLcpData.filter(row => row['profile.id']).length > 0
+  ) {
+    const noLcpDataWithProfiles = noLcpData.filter(row => row['profile.id']);
+    let numRowsToReplace = Math.min(
+      data.filter(row => !row['profile.id']).length,
+      noLcpDataWithProfiles.length
+    );
+    while (numRowsToReplace > 0) {
+      const index = data.findIndex(row => !row['profile.id']);
+      data[index] = noLcpDataWithProfiles.pop()!;
+      numRowsToReplace--;
+    }
+  }
+
   // If we don't have enough data, fill in the rest with no LCP data
   if (data.length < 9) {
     data.push(...noLcpData.slice(0, 9 - data.length));
