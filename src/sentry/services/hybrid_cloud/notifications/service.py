@@ -12,7 +12,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.auth.model import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
@@ -172,6 +172,7 @@ class NotificationsService(RpcService):
         type: NotificationSettingEnum,
         project_ids: Optional[List[int]] = None,
         organization_id: Optional[int] = None,
+        actor_type: Optional[ActorType] = None,
     ) -> Mapping[ExternalProviders, set[RpcActor]]:
         pass
 
