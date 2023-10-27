@@ -300,7 +300,7 @@ def _detect_transaction_trends(
         min_data_points=6,
         short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
         long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
-        threshold=0.1,
+        threshold=0.2,
     )
 
     detector_store = redis.TransactionDetectorStore()
