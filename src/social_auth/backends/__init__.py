@@ -26,7 +26,6 @@ from requests_oauthlib import OAuth1
 
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import json
-from sentry.utils.env import AuthComponent, should_use_rpc_user
 from sentry.utils.http import absolute_uri
 from social_auth.exceptions import (
     AuthCanceled,
@@ -187,12 +186,10 @@ class SocialAuthBackend:
         Return user with given ID from the User model used by this backend.
         This is called by django.contrib.auth.middleware.
         """
-        if should_use_rpc_user(AuthComponent.SOCIAL_BACKED_AUTH):
-            user = user_service.get_user(user_id=user_id)
-            if user and user.is_active:
-                return user
-            return None
-        return UserSocialAuth.get_user(user_id)
+        user = user_service.get_user(user_id=user_id)
+        if user and user.is_active:
+            return user
+        return None
 
 
 class OAuthBackend(SocialAuthBackend):
