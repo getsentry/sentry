@@ -39,7 +39,7 @@ _occurrence_producer = SingletonProducer(
 
 
 def produce_occurrence_to_kafka(
-    payload_type: PayloadType,
+    payload_type: PayloadType | None = PayloadType.OCCURRENCE,
     occurrence: IssueOccurrence | None = None,
     status_change: StatusChangeMessage | None = None,
     event_data: Optional[Dict[str, Any]] = None,
