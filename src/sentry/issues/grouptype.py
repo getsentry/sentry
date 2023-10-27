@@ -467,6 +467,7 @@ class FeedbackGroup(GroupType):
     slug = "feedback"
     description = "Feedback"
     category = GroupCategory.FEEDBACK.value
+    creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
 
 
 @metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)
