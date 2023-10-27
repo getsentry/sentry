@@ -1,6 +1,8 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Hovercard} from 'sentry/components/hovercard';
+import {t} from 'sentry/locale';
 import {FullSpanDescription} from 'sentry/views/starfish/components/fullSpanDescription';
 import {SpanDescriptionLink} from 'sentry/views/starfish/components/spanDescriptionLink';
 import {ModuleName} from 'sentry/views/starfish/types';
@@ -60,11 +62,14 @@ export function SpanDescriptionCell({
         <WiderHovercard
           position="right"
           body={
-            <FullSpanDescription
-              group={group}
-              shortDescription={description}
-              language="http"
-            />
+            <Fragment>
+              {t('Example')}
+              <FullSpanDescription
+                group={group}
+                shortDescription={description}
+                language="http"
+              />
+            </Fragment>
           }
         >
           {descriptionLink}
