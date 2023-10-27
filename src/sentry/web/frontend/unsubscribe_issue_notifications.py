@@ -15,7 +15,7 @@ class UnsubscribeIssueNotificationsView(UnsubscribeBaseView):
             raise Http404
         return group
 
-    def build_link(self, instance):
+    def build_link(self, instance) -> str:
         return instance.get_absolute_url()
 
     def unsubscribe(self, instance, user):
