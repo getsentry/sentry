@@ -139,7 +139,7 @@ export function PageOverviewWebVitalsTagDetailPanel({
 
     const commonProps = {
       style: (shouldHighlight
-        ? {textShadow: '0 0 0.01px black'}
+        ? {textShadow: '0 0 0.5px black'}
         : {}) satisfies CSSProperties,
       onMouseEnter: () => setHighlightedSampleId(row.id),
       onMouseLeave: () => setHighlightedSampleId(undefined),
