@@ -11,7 +11,6 @@ from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMappingUpdate,
 )
 from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
-from sentry.services.organization import should_use_control_provisioning
 from sentry.silo import unguarded_write
 
 
@@ -120,24 +119,15 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
             update_dict["customer_id"] = update.customer_id[0]
 
         with unguarded_write(using=router.db_for_write(OrganizationMapping)):
-            use_control_provisioning = should_use_control_provisioning()
-            if use_control_provisioning:
-                mapping_is_valid = self._check_organization_mapping_integrity(
-                    org_id=organization_id, update=update
-                )
-                if not mapping_is_valid:
-                    return
+            mapping_is_valid = self._check_organization_mapping_integrity(
+                org_id=organization_id, update=update
+            )
+            if not mapping_is_valid:
+                return
 
             OrganizationMapping.objects.update_or_create(
                 organization_id=organization_id, defaults=update_dict
             )
-
-            if not use_control_provisioning:
-                # If control provisioning is disabled, we have to manually write a slug
-                # reservation for the organization.
-                self._upsert_organization_slug_reservation_for_monolith(
-                    organization_id=organization_id, mapping_update=update
-                )
 
     def delete(self, organization_id: int) -> None:
         OrganizationMapping.objects.filter(organization_id=organization_id).delete()

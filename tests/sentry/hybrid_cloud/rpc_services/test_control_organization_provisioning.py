@@ -32,11 +32,6 @@ from sentry.types.region import get_local_region
 
 
 class TestControlOrganizationProvisioningBase(TestCase):
-    @pytest.fixture(autouse=True)
-    def _enable_control_provisioning_option(self):
-        with override_options({"hybrid_cloud.control-organization-provisioning": True}):
-            yield
-
     def setUp(self):
         self.provision_user = self.create_user()
         self.provisioning_args = self.generate_provisioning_args(
