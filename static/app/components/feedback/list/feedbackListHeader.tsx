@@ -6,12 +6,15 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import MailboxPicker from 'sentry/components/feedback/list/mailboxPicker';
+import useBulkMutateFeedback from 'sentry/components/feedback/useBulkMutateFeedback';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {GroupStatus} from 'sentry/types';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
 interface Props {
@@ -45,6 +48,12 @@ export default function FeedbackListHeader({checked, toggleChecked}: Props) {
 }
 
 function HasSelection({checked, mailbox}) {
+  const organization = useOrganization();
+  const {markAsRead, resolve} = useBulkMutateFeedback({
+    feedbackList: checked,
+    organization,
+  });
+
   return (
     <Flex gap={space(1)} align="center" justify="space-between" style={{flexGrow: 1}}>
       <span>
@@ -52,7 +61,15 @@ function HasSelection({checked, mailbox}) {
       </span>
       <Flex gap={space(1)} justify="flex-end">
         <ErrorBoundary mini>
-          <Button>{mailbox === 'resolved' ? t('Unresolve') : t('Resolve')}</Button>
+          <Button
+            onClick={() =>
+              mailbox === 'resolved'
+                ? resolve(GroupStatus.UNRESOLVED)
+                : resolve(GroupStatus.RESOLVED)
+            }
+          >
+            {mailbox === 'resolved' ? t('Unresolve') : t('Resolve')}
+          </Button>
         </ErrorBoundary>
         <ErrorBoundary mini>
           <DropdownMenu
@@ -67,12 +84,12 @@ function HasSelection({checked, mailbox}) {
               {
                 key: 'mark read',
                 label: t('Mark Read'),
-                onAction: () => {},
+                onAction: () => markAsRead(true),
               },
               {
                 key: 'mark unread',
                 label: t('Mark Unread'),
-                onAction: () => {},
+                onAction: () => markAsRead(false),
               },
             ]}
           />
