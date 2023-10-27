@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import {COUNTRY_CODE_TO_NAME_MAP} from 'sentry/data/countryCodesMap';
 import {space} from 'sentry/styles/space';
 import {Tag} from 'sentry/types';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
@@ -15,6 +16,14 @@ type Props = {
 };
 
 const LIMIT = 4;
+
+function toReadableValue(tag, tagValue) {
+  if (tag === 'geo.country_code') {
+    return COUNTRY_CODE_TO_NAME_MAP[tagValue] ?? tagValue;
+  }
+
+  return tagValue;
+}
 
 export function PageOverviewFeaturedTagsList({transaction, tag, title, onClick}: Props) {
   const {data} = useSlowestTagValuesQuery({transaction, tag, limit: LIMIT});
@@ -38,7 +47,7 @@ export function PageOverviewFeaturedTagsList({transaction, tag, title, onClick}:
                   priority="link"
                   onClick={() => onClick({key: tag, name: row[tag].toString()})}
                 >
-                  {row[tag]}
+                  {toReadableValue(tag, row[tag])}
                 </TagButton>
               </TagValue>
               <Score>
