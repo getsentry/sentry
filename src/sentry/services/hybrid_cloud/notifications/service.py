@@ -2,6 +2,7 @@
 #     from __future__ import annotations
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
+from __future__ import annotations
 
 from abc import abstractmethod
 from typing import List, Mapping, MutableMapping, Optional, Sequence, Tuple
@@ -162,6 +163,16 @@ class NotificationsService(RpcService):
     def get_users_for_weekly_reports(
         self, *, organization_id: int, user_ids: List[int]
     ) -> List[int]:
+        pass
+
+    def get_notification_recipients(
+        self,
+        *,
+        recipients: List[RpcActor],
+        type: NotificationSettingEnum,
+        project_ids: Optional[List[int]] = None,
+        organization_id: Optional[int] = None,
+    ) -> Mapping[ExternalProviders, set[RpcActor]]:
         pass
 
 
