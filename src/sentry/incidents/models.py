@@ -430,6 +430,8 @@ class AlertRule(Model):
         null=True,
         on_delete=models.SET_NULL,
     )
+    # These columns represent the owner of the alert rule, with one or the other being set.  Represented via
+    # an actor tuple.
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
     excluded_projects = models.ManyToManyField(
