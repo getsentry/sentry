@@ -142,6 +142,11 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         # NOTE: we're only filtering on date ADDED
         # This is not synonymous with a deploy... which may be what we actually want.
         # ========================================================================
+
+        # TODO: Don't fetch all releases with date_added between start/end
+        # Instead fetch all deploys
+        # deploys w/ relevant environments
+        # Releases attached to those deploys - filtered via project / release id list (or deploy id?)
         release_query = Q(organization=organization, date_added__gte=start, date_added__lte=end)
         if environments_list:
             release_query &= Q(

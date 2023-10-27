@@ -17,10 +17,16 @@ import {MONITOR_PATH, THRESHOLDS_PATH} from '../utils/constants';
 type Props = {
   hasV2ReleaseUIEnabled: boolean;
   newThresholdAction: () => void;
+  newThresholdDisabled: boolean;
   router: InjectedRouter;
 };
 
-function Header({router, hasV2ReleaseUIEnabled, newThresholdAction}: Props) {
+function Header({
+  router,
+  hasV2ReleaseUIEnabled,
+  newThresholdAction,
+  newThresholdDisabled,
+}: Props) {
   const [selected, setSelected] = useState(router.location.pathname);
 
   const location = router.location;
@@ -66,11 +72,23 @@ function Header({router, hasV2ReleaseUIEnabled, newThresholdAction}: Props) {
           />
         </Layout.Title>
       </Layout.HeaderContent>
-      {hasV2ReleaseUIEnabled && (
+      {hasV2ReleaseUIEnabled && selected === THRESHOLDS_PATH && (
         <Layout.HeaderActions>
-          <Button size="sm" priority="primary" onClick={newThresholdAction}>
-            <IconAdd isCircled /> &nbsp; New Threshold
-          </Button>
+          <Tooltip
+            title="Select a single project from the project filters to create a threshold for"
+            position="bottom"
+            isHoverable
+            delay={SLOW_TOOLTIP_DELAY}
+          >
+            <Button
+              size="sm"
+              priority="primary"
+              onClick={newThresholdAction}
+              disabled={newThresholdDisabled}
+            >
+              <IconAdd isCircled /> &nbsp; New Threshold
+            </Button>
+          </Tooltip>
         </Layout.HeaderActions>
       )}
       <StyledTabs value={selected} onChange={onTabSelect}>
