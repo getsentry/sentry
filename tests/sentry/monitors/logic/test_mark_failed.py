@@ -436,7 +436,6 @@ class MarkFailedTestCase(TestCase):
                     "monitor.id": str(monitor.guid),
                     "monitor.slug": str(monitor.slug),
                 },
-                "trace_id": None,
             },
         ) == dict(event)
 
@@ -544,7 +543,6 @@ class MarkFailedTestCase(TestCase):
                     "monitor.id": str(monitor.guid),
                     "monitor.slug": str(monitor.slug),
                 },
-                "trace_id": None,
             },
         ) == dict(event)
 

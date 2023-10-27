@@ -322,18 +322,6 @@ def create_issue_platform_occurrence(
     if trace_id:
         event_data["contexts"]["trace"] = {"trace_id": trace_id, "span_id": None}
 
-    import jsonschema
-
-    from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
-
-    try:
-        jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
-    except jsonschema.exceptions.ValidationError:
-        import traceback
-
-        traceback.print_exc()
-        raise
-
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE,
         occurrence=occurrence,
