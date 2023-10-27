@@ -17,7 +17,6 @@ export function FullSpanDescription({group, shortDescription, language}: Props) 
   } = useFullSpanFromTrace(group, Boolean(group));
 
   const description = fullSpan?.description ?? shortDescription;
-  const snippetLanguage = language ?? 'sql';
 
   if (!description) {
     return null;
@@ -31,15 +30,15 @@ export function FullSpanDescription({group, shortDescription, language}: Props) 
     );
   }
 
-  if (snippetLanguage === 'sql') {
+  if (language === 'sql') {
     return (
-      <CodeSnippet language={snippetLanguage}>
+      <CodeSnippet language={language}>
         {formatter.toString(description, {maxLineLength: LINE_LENGTH})}
       </CodeSnippet>
     );
   }
 
-  if (snippetLanguage) {
+  if (language) {
     return <CodeSnippet language={snippetLanguage}>{description}</CodeSnippet>;
   }
 
