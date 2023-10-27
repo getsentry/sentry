@@ -2,7 +2,8 @@ import abc
 from typing import Any
 
 from django.db import router, transaction
-from django.http import Http404, HttpResponseBase, HttpResponseRedirect
+from django.http import Http404, HttpResponseRedirect
+from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
