@@ -474,10 +474,10 @@ def run_sessions_query(
                     f"not permitted"
                 )
 
-            if query.limit is not None:
+            if getattr(query, "has_custom_limit", False):
                 if query.limit > MAX_POSTGRES_LIMIT:
                     raise InvalidParams(
-                        f"This limit is too high for queries that requests a preflight query. "
+                        f"The limit {query.limit} is too high for queries that requests a preflight query. "
                         f"Please choose a limit below {MAX_POSTGRES_LIMIT}"
                     )
                 limit = Limit(query.limit)

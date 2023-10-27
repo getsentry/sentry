@@ -35,8 +35,7 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
         )
 
         # We can only request as many groups as fit into a single snuba request:
-        max_num_groups = SNUBA_LIMIT // num_intervals
-
+        max_num_groups = int(SNUBA_LIMIT // num_intervals)
         # The paginator fetches one extra group to determine whether there's more data, so subtract one here:
         max_num_groups = max_num_groups - 1
 
@@ -48,6 +47,10 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
                     query = self.build_sessions_query(
                         request, organization, offset=offset, limit=limit
                     )
+
+                    if request.GET.get("per_page") is not None:
+                        # HACK: need this later
+                        query.has_custom_limit = True
 
                 return release_health.backend.run_sessions_query(
                     organization.id, query, span_op="sessions.endpoint"

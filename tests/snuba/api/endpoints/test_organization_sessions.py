@@ -2038,6 +2038,7 @@ class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
                 "orderBy": "-release.timestamp",
             }
         )
+        assert response.status_code == 200, response.data
         assert response.data["groups"] == [
             {
                 "by": {"release": "1B", "session.status": "abnormal"},
