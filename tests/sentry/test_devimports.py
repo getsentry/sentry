@@ -1,77 +1,120 @@
 from __future__ import annotations
 
+import functools
 import importlib.metadata
-import re
 import subprocess
 import sys
 
 import pytest
 
-from sentry.utils import json
-
-requirement_re = re.compile(r"^(?P<name>[a-z0-9-_]+)", re.IGNORECASE)
+XFAIL = (
+    # XXX: ideally these should get fixed
+    "sentry.sentry_metrics.client.snuba",
+    "sentry.web.debug_urls",
+)
+EXCLUDED = ("sentry.testutils.", "sentry.web.frontend.debug.")
 
 
 def extract_packages(text_content: str) -> set[str]:
-    parsed: list[str] = []
-    for line in text_content.splitlines():
-        if not len(line) or line.startswith("-") or line.startswith("#"):
-            continue
-        match = requirement_re.match(line)
-        if match is None:
-            continue
-        parsed.append(match.group("name"))
-    return set(parsed)
+    return {line.split("==")[0] for line in text_content.splitlines() if "==" in line}
 
 
-@pytest.fixture
-def dev_dependencies() -> set[str]:
-    with open("./requirements-dev.txt") as f:
-        dev_requirements = f.read()
-    dev_packages = extract_packages(dev_requirements)
-    with open("./requirements-base.txt") as f:
-        runtime_requirements = f.read()
-    runtime_packages = extract_packages(runtime_requirements)
+def package_top_level(package: str) -> list[str]:
+    # Ideally we'd use importlib.metadata.packages_distributions()
+    # but we're not on py3.10 yet.
+    # Inspired by https://github.com/python/cpython/blob/e25d8b40cd70744513e190b1ca153087382b6b09/Lib/importlib/metadata/__init__.py#L934
+    dist = importlib.metadata.distribution(package)
+    top_level = dist.read_text("top_level.txt")
+    if top_level:
+        return top_level.split()
+    else:
+        return []
 
-    module_names: list[str] = []
+
+@functools.lru_cache
+def dev_dependencies() -> tuple[str, ...]:
+    with open("requirements-dev-frozen.txt") as f:
+        dev_packages = extract_packages(f.read())
+    with open("requirements-frozen.txt") as f:
+        prod_packages = extract_packages(f.read())
+
+    module_names = []
     # We have some packages that are both runtime + dev
     # but we only care about packages that are exclusively dev deps
-    for package in dev_packages - runtime_packages:
-        modules = [package]
-        # Ideally we'd use importlib.metadata.packages_distributions()
-        # but we're not on py3.10 yet.
-        # Inspired by https://github.com/python/cpython/blob/e25d8b40cd70744513e190b1ca153087382b6b09/Lib/importlib/metadata/__init__.py#L934
-        dist = importlib.metadata.distribution(package)
-        top_level = (dist.read_text("top_level.txt") or "").split()
-        if top_level:
-            modules = top_level
-        module_names.extend(modules)
-    return set(module_names)
+    for package in dev_packages - prod_packages:
+        module_names.extend(package_top_level(package))
+    return tuple(sorted(module_names))
 
 
-def test_startup_imports(dev_dependencies):
-    # Import the urls, endpoints, tasks and models
-    script = """
-import sys, json
-from sentry.runner import configure
+def validate_package(
+    package: str,
+    excluded: tuple[str, ...],
+    xfail: tuple[str, ...],
+) -> None:
+    script = f"""\
+import builtins
+import sys
 
-configure()
+DISALLOWED = frozenset({dev_dependencies()!r})
+EXCLUDED = {excluded!r}
+XFAIL = frozenset({xfail!r})
 
-import sentry.app
-import sentry.conf.urls
-import sentry.api.urls
-import sentry.web.urls
-import sentry.tasks
-import sentry.models
+orig = builtins.__import__
 
-print(json.dumps(list(sys.modules.keys())))
-    """
-    empty_env: dict[str, str] = {}
-    process = subprocess.run((sys.executable, "-c", script), capture_output=True, env=empty_env)
-    assert not process.stderr
-    loaded_modules = json.loads(process.stdout)
-    for module in loaded_modules:
-        if module in dev_dependencies:
-            raise AssertionError(
-                f"Found usage of {module} in production code. Do not use requirements-dev packages in production code."
-            )
+def _import(name, globals=None, locals=None, fromlist=(), level=0):
+    base, *_ = name.split('.')
+    if level == 0 and base in DISALLOWED:
+        raise ImportError(f'disallowed dev import: {{name}}')
+    else:
+        return orig(name, globals=globals, locals=locals, fromlist=fromlist, level=level)
+
+builtins.__import__ = _import
+
+import sentry.conf.server_mypy
+
+from django.conf import settings
+settings.DEBUG = False
+
+import pkgutil
+
+pkg = __import__({package!r})
+names = [
+    name
+    for _, name, _ in pkgutil.walk_packages(pkg.__path__, f'{{pkg.__name__}}.')
+    if name not in XFAIL and not name.startswith(EXCLUDED)
+]
+
+for name in names:
+    try:
+        __import__(name)
+    except SystemExit:
+        raise SystemExit(f'unexpected exit from {{name}}')
+    except Exception:
+        print(f'error importing {{name}}:', flush=True)
+        print(flush=True)
+        raise
+
+for xfail in {xfail!r}:
+    try:
+        __import__(xfail)
+    except ImportError:  # expected failure
+        pass
+    else:
+        raise SystemExit(f'unexpected success importing {{xfail}}')
+"""
+
+    env = {"SENTRY_ENVIRONMENT": "production"}
+    ret = subprocess.run(
+        (sys.executable, "-c", script),
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    if ret.returncode:
+        raise AssertionError(ret.stdout)
+
+
+@pytest.mark.parametrize("pkg", ("sentry", "sentry_plugins"))
+def test_startup_imports(pkg):
+    validate_package(pkg, EXCLUDED, XFAIL)
