@@ -26,6 +26,7 @@ export enum SpanMetricsField {
   SPAN_DURATION = 'span.duration',
   SPAN_SELF_TIME = 'span.self_time',
   PROJECT_ID = 'project.id',
+  TRANSACTION = 'transaction',
   RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
   HTTP_RESPONSE_CONTENT_LENGTH = 'http.response_content_length',
   HTTP_DECODED_RESPONSE_CONTENT_LENGTH = 'http.decoded_response_content_length',
