@@ -1,9 +1,11 @@
 import re
-from typing import Sequence
+from typing import Any, Dict, List, MutableMapping, Sequence
 
 from django.urls import reverse
 
 from sentry.integrations.mixins import IssueBasicMixin
+from sentry.models.group import Group
+from sentry.models.user import User
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.utils.http import absolute_uri
 
@@ -22,13 +24,14 @@ class GitlabIssueBasic(IssueBasicMixin):
     def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["project"]
 
-    def get_projects_and_default(self, group, **kwargs):
-        params = kwargs.get("params", {})
+    def get_projects_and_default(self, group: Group, params: MutableMapping[str, Any], **kwargs):
         defaults = self.get_project_defaults(group.project_id)
-        kwargs["repo"] = params.get("project", defaults.get("project"))
 
-        # In GitLab Repositories are called Projects
-        default_project, project_choices = self.get_repository_choices(group, **kwargs)
+        # XXX: In GitLab repositories are called projects but get_repository_choices
+        # expects the param to be called 'repo', so we need to rename it here.
+        params["repo"] = params.get("project") or defaults.get("project")
+
+        default_project, project_choices = self.get_repository_choices(group, params, **kwargs)
         return default_project, project_choices
 
     def create_default_repo_choice(self, default_repo):
@@ -40,10 +43,11 @@ class GitlabIssueBasic(IssueBasicMixin):
             return ("", "")
         return (project["id"], project["name_with_namespace"])
 
-    def get_create_issue_config(self, group, user, **kwargs):
-        default_project, project_choices = self.get_projects_and_default(group, **kwargs)
+    def get_create_issue_config(self, group: Group, user: User, **kwargs) -> List[Dict[str, Any]]:
         kwargs["link_referrer"] = "gitlab_integration"
         fields = super().get_create_issue_config(group, user, **kwargs)
+        params = kwargs.pop("params", {})
+        default_project, project_choices = self.get_projects_and_default(group, params, **kwargs)
 
         org = group.organization
         autocomplete_url = reverse(
@@ -108,8 +112,9 @@ class GitlabIssueBasic(IssueBasicMixin):
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
-    def get_link_issue_config(self, group, **kwargs):
-        default_project, project_choices = self.get_projects_and_default(group, **kwargs)
+    def get_link_issue_config(self, group: Group, **kwargs) -> List[Dict[str, Any]]:
+        params = kwargs.pop("params", {})
+        default_project, project_choices = self.get_projects_and_default(group, params, **kwargs)
 
         org = group.organization
         autocomplete_url = reverse(
