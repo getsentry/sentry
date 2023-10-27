@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {FullSpanDescription} from 'sentry/views/starfish/components/fullSpanDescription';
 import {SpanDescriptionLink} from 'sentry/views/starfish/components/spanDescriptionLink';
 import {ModuleName} from 'sentry/views/starfish/types';
@@ -48,7 +49,13 @@ export function SpanDescriptionCell({
       <DescriptionWrapper>
         <WiderHovercard
           position="right"
-          body={<FullSpanDescription group={group} shortDescription={description} />}
+          body={
+            <FullSpanDescription
+              group={group}
+              shortDescription={description}
+              language="sql"
+            />
+          }
         >
           {descriptionLink}
         </WiderHovercard>
@@ -63,7 +70,7 @@ export function SpanDescriptionCell({
           position="right"
           body={
             <Fragment>
-              {t('Example')}
+              <TitleWrapper>{t('Example')}</TitleWrapper>
               <FullSpanDescription
                 group={group}
                 shortDescription={description}
@@ -103,6 +110,10 @@ export const WiderHovercard = styled(
     width: auto;
     max-width: 550px;
   }
+`;
+
+const TitleWrapper = styled('div')`
+  margin-bottom: ${space(1)};
 `;
 
 const DescriptionWrapper = styled('div')`
