@@ -4,7 +4,7 @@ from typing import List, Optional
 from typing_extensions import TypedDict
 
 
-class SerializedAvatarFields(TypedDict):
+class SerializedAvatarFields(TypedDict, total=False):
     avatarType: str
     avatarUuid: Optional[str]
     avatarUrl: Optional[str]

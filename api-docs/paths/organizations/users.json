@@ -55,8 +55,7 @@
                   ],
                   "avatar": {
                     "avatarType": "letter_avatar",
-                    "avatarUuid": null,
-                    "avatarUrl": null
+                    "avatarUuid": null
                   },
                   "hasPasswordAuth": false,
                   "email": "testEmail@test.com"

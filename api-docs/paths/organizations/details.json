@@ -45,8 +45,7 @@
               ],
               "avatar": {
                 "avatarType": "letter_avatar",
-                "avatarUuid": null,
-                "avatarUrl": null
+                "avatarUuid": null
               },
               "dataScrubber": false,
               "dataScrubberDefaults": false,
@@ -296,8 +295,7 @@
               ],
               "avatar": {
                 "avatarType": "letter_avatar",
-                "avatarUuid": null,
-                "avatarUrl": null
+                "avatarUuid": null
               },
               "dataScrubber": false,
               "dataScrubberDefaults": false,
