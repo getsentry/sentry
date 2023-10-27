@@ -49,6 +49,8 @@ export const useTransactionSamplesWebVitalsQuery = ({
         'replayId',
         'timestamp',
         'profile.id',
+        'browser',
+        'project',
       ],
       name: 'Web Vitals',
       query: `transaction.op:pageload transaction:"${transaction}" ${query ? query : ''}`,
@@ -78,6 +80,7 @@ export const useTransactionSamplesWebVitalsQuery = ({
             'user.display': row['user.display']?.toString(),
             transaction: row.transaction?.toString(),
             'transaction.op': row['transaction.op']?.toString(),
+            browser: row.browser?.toString(),
             'measurements.lcp': toNumber(row['measurements.lcp']),
             'measurements.fcp': toNumber(row['measurements.fcp']),
             'measurements.cls': toNumber(row['measurements.cls']),
@@ -86,6 +89,7 @@ export const useTransactionSamplesWebVitalsQuery = ({
             'transaction.duration': toNumber(row['transaction.duration']),
             replayId: row.replayId?.toString(),
             'profile.id': row['profile.id']?.toString(),
+            projectSlug: row.project?.toString(),
             timestamp: row.timestamp?.toString(),
           }))
           .map(row => {

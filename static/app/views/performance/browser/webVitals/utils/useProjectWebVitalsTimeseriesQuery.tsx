@@ -1,4 +1,5 @@
 import {getInterval} from 'sentry/components/charts/utils';
+import {Tag} from 'sentry/types';
 import {SeriesDataUnit} from 'sentry/types/echarts';
 import EventView, {MetaType} from 'sentry/utils/discover/eventView';
 import {
@@ -12,10 +13,11 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 
 type Props = {
+  tag?: Tag;
   transaction?: string;
 };
 
-export const useProjectWebVitalsTimeseriesQuery = ({transaction}: Props) => {
+export const useProjectWebVitalsTimeseriesQuery = ({transaction, tag}: Props) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
@@ -31,7 +33,9 @@ export const useProjectWebVitalsTimeseriesQuery = ({transaction}: Props) => {
       ],
       name: 'Web Vitals',
       query:
-        'transaction.op:pageload' + (transaction ? ` transaction:"${transaction}"` : ''),
+        'transaction.op:pageload' +
+        (transaction ? ` transaction:"${transaction}"` : '') +
+        (tag ? ` ${tag.key}:"${tag.name}"` : ''),
       version: 2,
       fields: [],
       interval: getInterval(pageFilters.selection.datetime, 'low'),
