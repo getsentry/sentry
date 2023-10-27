@@ -265,7 +265,7 @@ def test_detect_transaction_trends(
                 project_id=project.id,
                 group="/123",
                 count=100,
-                value=100 if i < n / 2 else 200,
+                value=100 if i < n / 2 else 300,
                 timestamp=ts,
             ),
         ]
