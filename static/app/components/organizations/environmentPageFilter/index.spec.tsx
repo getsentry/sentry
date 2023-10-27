@@ -90,33 +90,29 @@ describe('EnvironmentPageFilter', function () {
     );
   });
 
-  it('handles clear', async function () {
-    render(<EnvironmentPageFilter />, {
+  it('handles reset', async function () {
+    const onReset = jest.fn();
+    render(<EnvironmentPageFilter onReset={onReset} />, {
       context: routerContext,
       organization,
     });
 
-    // Open menu
+    // Open the menu, select project-1
     await userEvent.click(screen.getByRole('button', {name: 'All Envs'}));
-
-    // Select prod & stage
-    await fireEvent.click(screen.getByRole('checkbox', {name: 'Select prod'}));
-    await fireEvent.click(screen.getByRole('checkbox', {name: 'Select stage'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
-
-    // prod & stage are selected
+    await userEvent.click(screen.getByRole('row', {name: 'prod'}));
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: {environment: ['prod', 'stage']},
+        query: {environment: ['prod']},
       })
     );
 
-    // Open menu again, click "Clear"
-    await userEvent.click(screen.getByRole('button', {name: 'prod, stage'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
+    // Open menu again & click "Reset"
+    await userEvent.click(screen.getByRole('button', {name: 'prod'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Reset'}));
 
-    // Trigger button was updated
+    // Trigger button was updated, onReset was called
     expect(screen.getByRole('button', {name: 'All Envs'})).toBeInTheDocument();
+    expect(onReset).toHaveBeenCalled();
   });
 
   it('responds to page filter changes, async e.g. from back button nav', function () {

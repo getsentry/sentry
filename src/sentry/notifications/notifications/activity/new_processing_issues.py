@@ -36,7 +36,7 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
                 organization_id=self.project.organization_id,
             )
             participants_by_provider = notification_controller.get_notification_recipients(
-                type=NotificationSettingEnum.ISSUE_ALERTS,
+                type=NotificationSettingEnum.WORKFLOW,
             )
         else:
             participants_by_provider = NotificationSetting.objects.get_notification_recipients(

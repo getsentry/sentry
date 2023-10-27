@@ -12,6 +12,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import SearchBar from 'sentry/components/events/searchBar';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -51,6 +52,7 @@ import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggre
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
+import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -91,7 +93,7 @@ const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
 };
 interface ProfileSummaryHeaderProps {
   location: Location;
-  onViewChange: (newVie: 'flamegraph' | 'profiles') => void;
+  onViewChange: (newView: 'flamegraph' | 'profiles') => void;
   organization: Organization;
   project: Project | null;
   query: string;
@@ -487,7 +489,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
               </ProfileVisualization>
               <ProfileDigestContainer>
                 <ProfileDigestScrollContainer>
-                  <ProfileDigest />
+                  <ProfileDigest onViewChange={onSetView} />
                   <MostRegressedProfileFunctions transaction={transaction} />
                   <SlowestProfileFunctions transaction={transaction} />
                 </ProfileDigestScrollContainer>
@@ -672,8 +674,15 @@ const PROFILE_DIGEST_FIELDS = [
 
 const percentiles = ['p75()', 'p95()', 'p99()'] as const;
 
-function ProfileDigest() {
+interface ProfileDigestProps {
+  onViewChange: (newView: 'flamegraph' | 'profiles') => void;
+}
+
+function ProfileDigest(props: ProfileDigestProps) {
   const location = useLocation();
+  const organization = useOrganization();
+  const project = useCurrentProjectFromRouteParam();
+
   const profilesCursor = useMemo(
     () => decodeScalar(location.query.cursor),
     [location.query.cursor]
@@ -686,8 +695,26 @@ function ProfileDigest() {
     sort: {key: 'last_seen()', order: 'desc'},
     referrer: 'api.profiling.profile-summary-table',
   });
-
   const data = profiles.data?.data?.[0];
+
+  const latestProfile = useProfileEvents<ProfilingFieldType>({
+    cursor: profilesCursor,
+    fields: ['profile.id', 'timestamp'],
+    query: '',
+    sort: {key: 'timestamp', order: 'desc'},
+    limit: 1,
+    referrer: 'api.profiling.profile-summary-table',
+  });
+  const profile = latestProfile.data?.data?.[0];
+
+  const flamegraphTarget =
+    project && profile
+      ? generateProfileFlamechartRoute({
+          orgSlug: organization.slug,
+          projectSlug: project.slug,
+          profileId: profile?.['profile.id'] as string,
+        })
+      : undefined;
 
   return (
     <ProfileDigestHeader>
@@ -698,6 +725,10 @@ function ProfileDigest() {
             ''
           ) : profiles.isError ? (
             ''
+          ) : flamegraphTarget ? (
+            <Link to={flamegraphTarget}>
+              <DateTime date={new Date(data?.['last_seen()'] as string)} />
+            </Link>
           ) : (
             <DateTime date={new Date(data?.['last_seen()'] as string)} />
           )}
@@ -728,7 +759,9 @@ function ProfileDigest() {
           ) : profiles.isError ? (
             ''
           ) : (
-            <Count value={data?.['count()'] as number} />
+            <Link onClick={() => props.onViewChange('profiles')} to="">
+              <Count value={data?.['count()'] as number} />
+            </Link>
           )}
         </div>
       </ProfileDigestColumn>

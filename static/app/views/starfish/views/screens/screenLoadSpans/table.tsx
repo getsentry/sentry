@@ -10,24 +10,28 @@ import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {NewQuery} from 'sentry/types';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventView';
+import EventView, {
+  fromSorts,
+  isFieldSortable,
+  MetaType,
+} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {TableColumn} from 'sentry/views/discover/table/types';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import {useModuleSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
   SpanMetricsField;
@@ -51,10 +55,12 @@ export function ScreenLoadSpansTable({transaction, primaryRelease}: Props) {
   ]);
   const queryStringPrimary = appendReleaseFilters(searchQuery, primaryRelease);
 
-  const sort = useModuleSort(QueryParameterNames.SPANS_SORT, {
+  const sort = fromSorts(
+    decodeScalar(location.query[QueryParameterNames.SPANS_SORT])
+  )[0] ?? {
     kind: 'desc',
-    field: `${SpanFunction.TIME_SPENT_PERCENTAGE}(local)`,
-  });
+    field: 'count()',
+  };
 
   const newQuery: NewQuery = {
     name: '',
@@ -65,8 +71,6 @@ export function ScreenLoadSpansTable({transaction, primaryRelease}: Props) {
       SPAN_DESCRIPTION,
       `avg(${SPAN_SELF_TIME})`, // TODO: Update these to avgIf with primary release when available
       'count()',
-      'time_spent_percentage(local)',
-      `sum(${SPAN_SELF_TIME})`,
     ],
     query: queryStringPrimary,
     dataset: DiscoverDatasets.SPANS_METRICS,
@@ -90,7 +94,6 @@ export function ScreenLoadSpansTable({transaction, primaryRelease}: Props) {
     [SPAN_DESCRIPTION]: t('Span Description'),
     'count()': DataTitles.count,
     [`avg(${SPAN_SELF_TIME})`]: DataTitles.avg,
-    'time_spent_percentage(local)': DataTitles.timeSpent,
   };
 
   function renderBodyCell(column, row): React.ReactNode {

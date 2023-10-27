@@ -15,9 +15,13 @@ export type ModuleFilters = {
   [BrowserStarfishFields.RESOURCE_RENDER_BLOCKING_STATUS]:
     | ''
     | 'non-blocking'
-    | 'blocking';
+    | 'blocking'
+    | '!blocking';
   [BrowserStarfishFields.SPAN_DOMAIN]?: string;
-  [BrowserStarfishFields.RESOURCE_TYPE]?: 'resource.script' | 'resource.img';
+  [BrowserStarfishFields.RESOURCE_TYPE]?:
+    | 'resource.script'
+    | 'resource.css'
+    | 'resource.img';
   [BrowserStarfishFields.TRANSACTION]?: string;
   [BrowserStarfishFields.SPAN_DOMAIN]?: string;
 };

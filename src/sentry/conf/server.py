@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import os
 import os.path
-import platform
 import re
 import socket
 import sys
@@ -1451,6 +1450,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:profiling-using-transactions": False,
     # Enabled for those orgs who participated in the profiling Beta program
     "organizations:profiling-beta": False,
+    # Enables production profiling in sentry browser application
+    "organizations:profiling-browser": False,
     # Enable stacktrace linking of multiple frames in profiles
     "organizations:profiling-stacktrace-links": False,
     # Enable global suspect functions in profiling
@@ -1660,6 +1661,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-database-view": False,
     # Enable removing the fallback for metrics compatibility
     "organizations:performance-remove-metrics-compatibility-fallback": False,
+    # Enable performance score calculation for transactions in relay
+    "organizations:performance-calculate-score-relay": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1709,8 +1712,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-test-endpoint": False,
     # Enable starfish dropdown on the webservice view for switching chart visualization
     "organizations:starfish-wsv-chart-dropdown": False,
-    # Enable browser starfish view
+    # Enable browser starfish webvitals module view
     "organizations:starfish-browser-webvitals": False,
+    # Enable browser starfish webvitals module pageoverview v2 view
+    "organizations:starfish-browser-webvitals-pageoverview-v2": False,
     # Replace the footer Sentry logo with a Sentry pride logo
     "organizations:sentry-pride-logo-footer": False,
     # Enable Session Stats down to a minute resolution
@@ -2593,6 +2598,9 @@ SENTRY_USE_CDC_DEV = False
 # This flag activates profiling backend in the development environment
 SENTRY_USE_PROFILING = False
 
+# This flag activates indexed spans backend in the development environment
+SENTRY_USE_SPANS = False
+
 # This flag activates consuming issue platform occurrence data in the development environment
 SENTRY_USE_ISSUE_OCCURRENCE = False
 
@@ -2634,11 +2642,6 @@ def build_cdc_postgres_init_db_volume(settings: Any) -> dict[str, dict[str, str]
         else {}
     )
 
-
-# platform.processor() changed at some point between these:
-# 11.2.3: arm
-# 12.3.1: arm64
-APPLE_ARM64 = sys.platform == "darwin" and platform.processor() in {"arm", "arm64"}
 
 SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "redis": lambda settings, options: (
@@ -2730,12 +2733,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "clickhouse": lambda settings, options: (
         {
-            "image": "ghcr.io/getsentry/image-mirror-yandex-clickhouse-server:20.3.9.70"
-            if not APPLE_ARM64
-            # altinity provides clickhouse support to other companies
-            # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
-            # This image is build with this script https://gist.github.com/filimonov/5f9732909ff66d5d0a65b8283382590d
-            else "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.6.1.6734-testing-arm",
+            "image": "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.8.13.1.altinitystable",
             "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
             "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
             # The arm image does not properly load the MAX_MEMORY_USAGE_RATIO
@@ -2775,6 +2773,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                 "REDIS_DB": "1",
                 "ENABLE_SENTRY_METRICS_DEV": "1" if settings.SENTRY_USE_METRICS_DEV else "",
                 "ENABLE_PROFILES_CONSUMER": "1" if settings.SENTRY_USE_PROFILING else "",
+                "ENABLE_SPANS_CONSUMER": "1" if settings.SENTRY_USE_SPANS else "",
                 "ENABLE_ISSUE_OCCURRENCE_CONSUMER": "1"
                 if settings.SENTRY_USE_ISSUE_OCCURRENCE
                 else "",
