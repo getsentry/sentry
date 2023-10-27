@@ -1,7 +1,8 @@
 import FeedbackEmptyDetails from 'sentry/components/feedback/details/feedbackEmptyDetails';
 import FeedbackErrorDetails from 'sentry/components/feedback/details/feedbackErrorDetails';
 import FeedbackItem from 'sentry/components/feedback/feedbackItem/feedbackItem';
-import useFeedbackItemQueryKey from 'sentry/components/feedback/useFeedbackItemQueryKey';
+import getFeedbackItemQueryKey from 'sentry/components/feedback/getFeedbackItemQueryKey';
+import useFeedbackIdFromLocation from 'sentry/components/feedback/useFeedbackIdFromLocation';
 import useFetchFeedbackData from 'sentry/components/feedback/useFetchFeedbackData';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -10,7 +11,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 export default function FeedbackItemLoader() {
   const organization = useOrganization();
 
-  const queryKeys = useFeedbackItemQueryKey({organization});
+  const feedbackId = useFeedbackIdFromLocation();
+  const queryKeys = getFeedbackItemQueryKey({feedbackId, organization});
   const {
     issueResult,
     issueData: feedbackIssue,

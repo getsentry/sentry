@@ -6,7 +6,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import MailboxPicker from 'sentry/components/feedback/list/mailboxPicker';
-import useBulkMutateFeedback from 'sentry/components/feedback/useBulkMutateFeedback';
+import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
@@ -49,9 +49,10 @@ export default function FeedbackListHeader({checked, toggleChecked}: Props) {
 
 function HasSelection({checked, mailbox}) {
   const organization = useOrganization();
-  const {markAsRead, resolve} = useBulkMutateFeedback({
-    feedbackList: checked,
+  const {markAsRead, resolve} = useMutateFeedback({
+    feedbackIds: checked,
     organization,
+    refetchIssue: () => {},
   });
 
   return (

@@ -1,6 +1,7 @@
 import {createContext, ReactNode, useContext} from 'react';
 
-import useFeedbackListQueryKey from 'sentry/components/feedback/useFeedbackListQueryKey';
+import getFeedbackListQueryKey from 'sentry/components/feedback/getFeedbackListQueryKey';
+import useFeedbackListQueryFromLocation from 'sentry/components/feedback/useFeedbackListQueryFromLocation';
 import useFetchFeedbackInfiniteListData, {
   EMPTY_INFINITE_LIST_DATA,
 } from 'sentry/components/feedback/useFetchFeedbackInfiniteListData';
@@ -16,7 +17,9 @@ const FeedbackListDataContext = createContext<
 
 export function FeedbackDataContext({children}: Props) {
   const organization = useOrganization();
-  const queryKey = useFeedbackListQueryKey({organization});
+
+  const queryView = useFeedbackListQueryFromLocation();
+  const queryKey = getFeedbackListQueryKey({organization, queryView});
   const contextValue = useFetchFeedbackInfiniteListData({queryKey});
 
   return (

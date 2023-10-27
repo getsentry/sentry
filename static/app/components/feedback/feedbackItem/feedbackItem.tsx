@@ -40,7 +40,7 @@ export default function FeedbackItem({
   const organization = useOrganization();
   const hasReplayId = useFeedbackHasReplayId({feedbackId: feedbackItem.id});
   const {markAsRead, resolve} = useMutateFeedback({
-    feedbackId: feedbackItem.id,
+    feedbackIds: [feedbackItem.id],
     organization,
     refetchIssue,
   });
