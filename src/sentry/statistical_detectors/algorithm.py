@@ -125,7 +125,7 @@ class MovingAverageCrossOverDetector(MovingAverageDetector):
         # number of data points before looking for a regression.
         stablized = self.count > self.config.min_data_points
 
-        score = self.moving_avg_short.value - self.moving_avg_long.value
+        score = abs(self.moving_avg_short.value - self.moving_avg_long.value)
 
         if (
             stablized
