@@ -8,11 +8,13 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 def backfill_alert_rule_user_and_team(apps, schema_editor):
     AlertRule = apps.get_model("sentry", "AlertRule")
-    for ar in RangeQuerySetWrapperWithProgressBar(AlertRule.objects.all().select_related("owner")):
+    for ar in RangeQuerySetWrapperWithProgressBar(
+        AlertRule.objects_with_snapshots.all().select_related("owner")
+    ):
         if ar.owner:
             ar.user_id = ar.owner.user_id
             ar.team_id = ar.owner.team_id
-            ar.save(updated_fields=["user_id", "team_id"])
+            ar.save(update_fields=["user_id", "team_id"])
 
 
 class Migration(CheckedMigration):
