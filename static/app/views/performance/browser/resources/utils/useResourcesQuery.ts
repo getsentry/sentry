@@ -31,7 +31,7 @@ export const useResourcesQuery = ({sort, defaultResourceTypes}: Props) => {
 
   const queryConditions = [
     `${SPAN_OP}:${
-      resourceFilters.type || `[${defaultResourceTypes?.join(',')}]` || 'resource.*'
+      resourceFilters[SPAN_OP] || `[${defaultResourceTypes?.join(',')}]` || 'resource.*'
     }`,
     ...(resourceFilters.transaction
       ? [`transaction:"${resourceFilters.transaction}"`]

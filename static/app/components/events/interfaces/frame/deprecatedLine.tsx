@@ -55,6 +55,7 @@ const VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS = [
   '.mjs',
   '.cjs',
   '.jsbundle', // React Native file ending
+  '.js.gz', // file ending idiomatic for Ember.js
 ];
 
 export interface DeprecatedLineProps {

@@ -5,9 +5,11 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
+import useFeedbackItemQueryKey from 'sentry/components/feedback/useFeedbackItemQueryKey';
 import {t} from 'sentry/locale';
 import {GroupStatus, Organization} from 'sentry/types';
-import {useMutation} from 'sentry/utils/queryClient';
+import {FeedbackIssue} from 'sentry/utils/feedback/types';
+import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 interface Props {
@@ -31,11 +33,21 @@ type TContext = unknown;
 
 export default function useFeedbackItem({feedbackId, organization, refetchIssue}: Props) {
   const api = useApi();
+  const queryClient = useQueryClient();
+
+  const {issueQueryKey} = useFeedbackItemQueryKey({organization});
 
   const mutation = useMutation<TData, TError, TVariables, TContext>({
-    onMutate: (_variables: TVariables) => {
+    onMutate: (variables: TVariables) => {
       addLoadingMessage(t('Updating feedback...'));
-      // TODO: optimistic updates to the list cache, and the item cache with useFeedback*QueryKey() helpers
+
+      if (issueQueryKey) {
+        const [, , , data] = variables;
+        setApiQueryData(queryClient, issueQueryKey, (feedbackIssue: FeedbackIssue) => ({
+          ...feedbackIssue,
+          ...data,
+        }));
+      }
     },
     mutationFn: async (variables: ApiMutationVariables) => {
       const [method, url, opts, data] = variables;

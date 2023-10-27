@@ -36,6 +36,7 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationEndpoint):
                 "organization": organization,
                 "projects": self.get_projects(request, organization),
                 "displayType": request.data.get("displayType"),
+                "environment": request.GET.get("environment"),
             },
         )
         if not serializer.is_valid():
