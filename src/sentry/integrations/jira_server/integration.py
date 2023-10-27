@@ -835,7 +835,6 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
 
         for field in fields:
             if field["name"] == "priority":
-                print(field)
                 # whenever priorities are available, put the available ones in the list.
                 # allowedValues for some reason doesn't pass enough info.
                 field["choices"] = self.make_choices(client.get_priorities(project_id))

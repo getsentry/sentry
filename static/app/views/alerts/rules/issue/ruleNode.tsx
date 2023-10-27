@@ -585,14 +585,6 @@ function RuleNode({
       formData.dynamic_form_fields = ((formData.dynamic_form_fields as any) || []).map(
         (field: any) => {
           // Overwrite the choices because the user's pick is in this list.
-          if (field.name === 'priority') {
-            console.log('******************************');
-            console.log('FIELD', field);
-            console.log('formData', formData);
-            console.log('fetchedFieldOptionsCache', fetchedFieldOptionsCache);
-            console.log('******************************');
-          }
-
           if (
             field.name in formData &&
             fetchedFieldOptionsCache?.hasOwnProperty(field.name)

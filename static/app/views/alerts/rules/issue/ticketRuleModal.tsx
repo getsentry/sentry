@@ -37,7 +37,6 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   getDefaultState(): State {
     const {instance} = this.props;
     const issueConfigFieldsCache = Object.values(instance?.dynamic_form_fields || {});
-    console.log('CACHE FIELDS', issueConfigFieldsCache);
     return {
       ...super.getDefaultState(),
       fetchedFieldOptionsCache: Object.fromEntries(
@@ -64,10 +63,6 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   }
 
   handleReceiveIntegrationDetails = (integrationDetails: any) => {
-    console.log(
-      'setting issueConfigFieldsCache to',
-      integrationDetails[this.getConfigName()]
-    );
     this.setState({
       issueConfigFieldsCache: integrationDetails[this.getConfigName()],
     });
@@ -166,7 +161,6 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
         disabled: true,
       } as IssueConfigField,
     ];
-    console.log('USING CACHED FIELDS', this.getCleanedFields());
 
     return fields.concat(
       this.getCleanedFields()
