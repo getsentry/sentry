@@ -457,7 +457,10 @@ class GetParticipantsTest(TestCase):
 
         self._assert_subscribers_are(
             group,
-            email={self.user: GroupSubscriptionReason.implicit},
+            email={
+                self.user: GroupSubscriptionReason.implicit,
+                team: GroupSubscriptionReason.comment,
+            },
             slack={
                 self.user: GroupSubscriptionReason.implicit,
                 team: GroupSubscriptionReason.comment,

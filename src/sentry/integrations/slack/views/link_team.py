@@ -8,7 +8,7 @@ from django.http import Http404, HttpResponse
 from django.utils.decorators import method_decorator
 from rest_framework.request import Request
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmember import OrganizationMember
@@ -195,13 +195,14 @@ class SlackLinkTeamView(BaseView):
             )
 
         # Turn on notifications for all of a team's projects.
-        notifications_service.update_settings(
-            external_provider=ExternalProviders.SLACK,
-            notification_type=NotificationSettingTypes.ISSUE_ALERTS,
-            setting_option=NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor(id=team.id, actor_type=ActorType.TEAM),
-            organization_id_for_team=team.organization_id,
-        )
+        if not features.has("organizations:team-workflow-notifications", team.organization):
+            notifications_service.update_settings(
+                external_provider=ExternalProviders.SLACK,
+                notification_type=NotificationSettingTypes.ISSUE_ALERTS,
+                setting_option=NotificationSettingOptionValues.ALWAYS,
+                actor=RpcActor(id=team.id, actor_type=ActorType.TEAM),
+                organization_id_for_team=team.organization_id,
+            )
         message = SUCCESS_LINKED_MESSAGE.format(slug=team.slug, channel_name=channel_name)
         integration_service.send_message(
             integration_id=integration.id,

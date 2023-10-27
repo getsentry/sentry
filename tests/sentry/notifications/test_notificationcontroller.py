@@ -645,7 +645,10 @@ class NotificationControllerTest(TestCase):
             type=NotificationSettingEnum.WORKFLOW,
         )
         assert controller.get_participants() == {
-            rpc_user: {ExternalProviders.SLACK: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY}
+            rpc_user: {
+                ExternalProviders.SLACK: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+                ExternalProviders.EMAIL: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+            }
         }
 
     def test_get_notification_value_for_recipient_and_type(self):
