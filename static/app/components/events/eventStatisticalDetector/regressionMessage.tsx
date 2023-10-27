@@ -110,10 +110,16 @@ function EventStatisticalDetectorRegressedFunctionMessage({
               ? t('a %s increase', formatPercentage(percentageChange - 1))
               : t('an increase'),
             before: (
-              <PerformanceDuration nanoseconds={evidenceData?.aggregateRange1 ?? 0} />
+              <PerformanceDuration
+                abbreviation
+                nanoseconds={evidenceData?.aggregateRange1 ?? 0}
+              />
             ),
             after: (
-              <PerformanceDuration nanoseconds={evidenceData?.aggregateRange2 ?? 0} />
+              <PerformanceDuration
+                abbreviation
+                nanoseconds={evidenceData?.aggregateRange2 ?? 0}
+              />
             ),
             date: <DateTime date={detectionTime} dateOnly />,
             time: <DateTime date={detectionTime} timeOnly />,
