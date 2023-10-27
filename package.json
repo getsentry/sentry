@@ -34,7 +34,7 @@
     "@react-aria/menu": "^3.9.1",
     "@react-aria/numberfield": "^3.5.1",
     "@react-aria/overlays": "^3.14.1",
-    "@react-aria/radio": "^3.6.1",
+    "@react-aria/radio": "^3.8.2",
     "@react-aria/separator": "^3.3.2",
     "@react-aria/slider": "^3.4.1",
     "@react-aria/tabs": "^3.6.0",
