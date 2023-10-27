@@ -62,14 +62,25 @@ function EventStatisticalDetectorRegressedPerformanceMessage({
     <DataSection>
       <div style={{display: 'inline'}}>
         {tct(
-          '[detected] Based on the transaction [transactionName], there was a [amount] increase in duration (P95) around [date] at [time]. Overall operation percentage changes indicate what may have changed in the regression.',
+          'Based on the transaction [transactionName], there was a [amount] increase in duration (P95) from [previousDuration] to [regressionDuration] around [date] at [time]. Overall operation percentage changes indicate what may have changed in the regression.',
           {
-            detected: <strong>{t('Detected:')}</strong>,
             transactionName: (
               <Link to={normalizeUrl(transactionSummaryLink)}>{transactionName}</Link>
             ),
             amount: formatPercentage(
               event?.occurrence?.evidenceData?.trendPercentage - 1
+            ),
+            previousDuration: (
+              <PerformanceDuration
+                abbreviation
+                milliseconds={event?.occurrence?.evidenceData?.aggregateRange1}
+              />
+            ),
+            regressionDuration: (
+              <PerformanceDuration
+                abbreviation
+                milliseconds={event?.occurrence?.evidenceData?.aggregateRange2}
+              />
             ),
             date: <DateTime date={detectionTime} dateOnly />,
             time: <DateTime date={detectionTime} timeOnly />,
