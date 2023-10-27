@@ -75,6 +75,7 @@ export const useIndexedResourcesQuery = () => {
         | ''
         | 'non-blocking'
         | 'blocking',
+      // TODO - parseFloat here is temporary, we should be parsing from the backend
       [HTTP_RESPONSE_CONTENT_LENGTH]: parseFloat(
         (row[HTTP_RESPONSE_CONTENT_LENGTH] as string) || '0'
       ),
