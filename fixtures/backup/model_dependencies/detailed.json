@@ -91,7 +91,7 @@
     "dangling": false,
     "foreign_keys": {
       "externalactor_id": {
-        "kind": "HybridCloudForeignKey",
+        "kind": "ImplicitForeignKey",
         "model": "sentry.externalactor",
         "nullable": false
       },
