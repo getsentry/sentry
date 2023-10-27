@@ -39,7 +39,7 @@ export function FullSpanDescription({group, shortDescription, language}: Props) 
   }
 
   if (language) {
-    return <CodeSnippet language={snippetLanguage}>{description}</CodeSnippet>;
+    return <CodeSnippet language={language}>{description}</CodeSnippet>;
   }
 
   return <Fragment>{description}</Fragment>;
