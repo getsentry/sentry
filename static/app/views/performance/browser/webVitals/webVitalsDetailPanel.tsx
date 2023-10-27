@@ -21,6 +21,7 @@ import {
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
@@ -62,6 +63,7 @@ export function WebVitalsDetailPanel({
   onClose: () => void;
   webVital: WebVitals | null;
 }) {
+  const organization = useOrganization();
   const location = useLocation();
   const theme = useTheme();
   const pageFilters = usePageFilters();
@@ -348,7 +350,15 @@ export function WebVitalsDetailPanel({
       return (
         <NoOverflow>
           <Link
-            to={{...location, query: {...location.query, transaction: row.transaction}}}
+            to={{
+              ...location,
+              ...(organization.features.includes(
+                'starfish-browser-webvitals-pageoverview-v2'
+              )
+                ? {pathname: `${location.pathname}overview/`}
+                : {}),
+              query: {...location.query, transaction: row.transaction},
+            }}
             onClick={onClose}
           >
             {row.transaction}

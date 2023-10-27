@@ -3,11 +3,13 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {COUNTRY_CODE_TO_NAME_MAP} from 'sentry/data/countryCodesMap';
 import {space} from 'sentry/styles/space';
+import {Tag} from 'sentry/types';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {useSlowestTagValuesQuery} from 'sentry/views/performance/browser/webVitals/utils/useSlowestTagValuesQuery';
 
 type Props = {
+  onClick: (tag: Tag) => void;
   tag: string;
   transaction: string;
   title?: string;
@@ -23,7 +25,7 @@ function toReadableValue(tag, tagValue) {
   return tagValue;
 }
 
-export function PageOverviewFeaturedTagsList({transaction, tag, title}: Props) {
+export function PageOverviewFeaturedTagsList({transaction, tag, title, onClick}: Props) {
   const {data} = useSlowestTagValuesQuery({transaction, tag, limit: LIMIT});
   const tagValues = data?.data ?? [];
   return (
@@ -43,9 +45,7 @@ export function PageOverviewFeaturedTagsList({transaction, tag, title}: Props) {
               <TagValue>
                 <TagButton
                   priority="link"
-                  onClick={() => {
-                    // TODO: need to pass in handler here to open detail panel
-                  }}
+                  onClick={() => onClick({key: tag, name: row[tag].toString()})}
                 >
                   {toReadableValue(tag, row[tag])}
                 </TagButton>

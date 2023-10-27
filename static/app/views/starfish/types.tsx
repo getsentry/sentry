@@ -26,6 +26,7 @@ export enum SpanMetricsField {
   SPAN_DURATION = 'span.duration',
   SPAN_SELF_TIME = 'span.self_time',
   PROJECT_ID = 'project.id',
+  TRANSACTION = 'transaction',
   RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
   HTTP_RESPONSE_CONTENT_LENGTH = 'http.response_content_length',
   HTTP_DECODED_RESPONSE_CONTENT_LENGTH = 'http.decoded_response_content_length',
@@ -77,6 +78,8 @@ export type MetricsFilters = {
 export type MetricsProperty = keyof MetricsResponse;
 
 export enum SpanIndexedField {
+  RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
+  HTTP_RESPONSE_CONTENT_LENGTH = 'http.response_content_length',
   SPAN_SELF_TIME = 'span.self_time',
   SPAN_GROUP = 'span.group', // Span group computed from the normalized description. Matches the group in the metrics data set
   SPAN_GROUP_RAW = 'span.group_raw', // Span group computed from non-normalized description. Matches the group in the event payload

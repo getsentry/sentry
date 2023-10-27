@@ -134,6 +134,7 @@ def serialize_rpc_organization(org: Organization) -> RpcOrganization:
         name=org.name,
         status=int(org.status),
         default_role=org.default_role,
+        date_added=org.date_added,
     )
 
     projects: List[Project] = Project.objects.filter(organization=org)
