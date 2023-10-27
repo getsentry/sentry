@@ -169,7 +169,7 @@ rfc3986-validator==0.1.1
 rsa==4.8
 s3transfer==0.6.1
 selenium==4.3.0
-sentry-arroyo==2.14.13
+sentry-arroyo==2.14.12
 sentry-cli==2.16.0
 sentry-kafka-schemas==0.1.32
 sentry-redis-tools==0.1.7
