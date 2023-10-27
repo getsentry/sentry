@@ -66,7 +66,7 @@ import sentry.models
 
 print(json.dumps(list(sys.modules.keys())))
     """
-    process = subprocess.run((sys.executable, "-c", script), capture_output=True)
+    process = subprocess.run((sys.executable, "-c", script), capture_output=True, env={})
     assert not process.stderr
     loaded_modules = json.loads(process.stdout)
     for module in loaded_modules:
