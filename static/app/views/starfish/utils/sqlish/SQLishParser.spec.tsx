@@ -26,6 +26,7 @@ describe('SQLishParser', function () {
       'flags | %s)', // Bitwise OR
       'flags ^ %s)', // Bitwise XOR
       'flags ~ %s)', // Bitwise NOT
+      'FROM temp{%s}', // Relay integer stripping
       '+ %s as count', // Arithmetic I
       '- %s as count', // Arithmetic II
       "ILIKE '\\_')", // Backslash
