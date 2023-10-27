@@ -102,6 +102,7 @@ class NotificationController:
             self._setting_providers = list(
                 NotificationSettingProvider.objects.filter(query & type_filter & provider_filter)
             )
+        else:
             self._setting_options = []
             self._setting_providers = []
 
