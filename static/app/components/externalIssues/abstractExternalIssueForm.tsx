@@ -67,6 +67,7 @@ export default class AbstractExternalIssueForm<
   }
 
   refetchConfig = () => {
+    console.log('refetching config');
     const {action, dynamicFieldValues} = this.state;
     const query = {action, ...dynamicFieldValues};
     const endpoint = this.getEndPointString();
@@ -109,6 +110,14 @@ export default class AbstractExternalIssueForm<
     const {integrationDetails: integrationDetailsFromState} = this.state;
     const integrationDetails = integrationDetailsParam || integrationDetailsFromState;
     const config = (integrationDetails || {})[this.getConfigName()];
+    console.log(
+      'Setting dynamicFieldValues to',
+      Object.fromEntries(
+        (config || [])
+          .filter((field: IssueConfigField) => field.updatesForm)
+          .map((field: IssueConfigField) => [field.name, field.default || null])
+      )
+    );
     return Object.fromEntries(
       (config || [])
         .filter((field: IssueConfigField) => field.updatesForm)
@@ -117,7 +126,9 @@ export default class AbstractExternalIssueForm<
   };
 
   onRequestSuccess = ({stateKey, data}) => {
+    console.log('Handling successful request in OnRequestSuccess');
     if (stateKey === 'integrationDetails') {
+      console.log('handling response');
       this.handleReceiveIntegrationDetails(data);
       this.setState({
         dynamicFieldValues: this.getDynamicFields(data),
@@ -131,6 +142,8 @@ export default class AbstractExternalIssueForm<
   onFieldChange = (fieldName: string, value: FieldValue) => {
     const {dynamicFieldValues} = this.state;
     const dynamicFields = this.getDynamicFields();
+    console.log('FIELDS TO CHANGE', dynamicFields);
+    console.log('VALUES', dynamicFieldValues);
     if (dynamicFields.hasOwnProperty(fieldName) && dynamicFieldValues) {
       dynamicFieldValues[fieldName] = value;
       this.setState(
@@ -222,6 +235,9 @@ export default class AbstractExternalIssueForm<
           reject(err);
         } else {
           result = this.ensureCurrentOption(field, result);
+          if (field.name === 'priority') {
+            console.log('Updating field: ', field, 'with result: ', result);
+          }
           this.updateFetchedFieldOptionsCache(field, result);
           resolve(result);
         }
@@ -313,12 +329,21 @@ export default class AbstractExternalIssueForm<
 
   getCleanedFields = (): IssueConfigField[] => {
     const {fetchedFieldOptionsCache, integrationDetails} = this.state;
+    console.log(
+      'ORIGINAL FIELD MAPPING',
+      (integrationDetails || {})[this.getConfigName()]
+    );
 
     const configsFromAPI = (integrationDetails || {})[this.getConfigName()];
     return (configsFromAPI || []).map(field => {
       const fieldCopy = {...field};
       // Overwrite choices from cache.
       if (fetchedFieldOptionsCache?.hasOwnProperty(field.name)) {
+        if (field.name === 'priority') {
+          console.log('SETTING CHOICES FOR FIELD: ', field);
+          console.log('----------------------------');
+          console.log('TO: ', fetchedFieldOptionsCache[field.name]);
+        }
         fieldCopy.choices = fetchedFieldOptionsCache[field.name];
       }
 
