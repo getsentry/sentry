@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, List, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import Callable, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 from django.db import router, transaction
 from django.db.models import Q, QuerySet
@@ -279,7 +279,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
     def get_notification_recipients(
         self,
         *,
-        recipients: List[RpcActor],
+        recipients: Iterable[RpcActor],
         type: NotificationSettingEnum,
         project_ids: Optional[List[int]] = None,
         organization_id: Optional[int] = None,
