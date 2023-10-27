@@ -164,7 +164,7 @@ class SynchronizedConsumer(Consumer[TStrategyPayload]):
             if commit.orig_message_ts is not None:
                 metrics.timing(
                     "commit_log_msg_latency",
-                    (now - commit.orig_message_ts) * 1000,
+                    (now - datetime.timestamp(commit.orig_message_ts)) * 1000,
                     tags={
                         "partition": str(commit.partition.index),
                         "group": commit.group,
