@@ -26,7 +26,7 @@ interface Props {
 
 type TData = {hasSeen: boolean} | {status: GroupStatus};
 type TError = unknown;
-type TOptions = [string[], TData];
+type TVariables = [string[], TData];
 type TContext = unknown;
 
 export default function useBulkMutateFeedback({
@@ -37,11 +37,10 @@ export default function useBulkMutateFeedback({
   const api = useApi();
   const queryClient = useQueryClient();
 
-  const mutation = useMutation<TData, TError, TOptions, TContext>({
-    onMutate: variables => {
+  const mutation = useMutation<TData, TError, TVariables, TContext>({
+    onMutate: ([ids, data]) => {
       addLoadingMessage(t('Updating feedback...'));
 
-      const [ids, data] = variables;
       const queryKeysForIds = ids.map(feedbackId =>
         getFeedbackItemQueryKey({feedbackId, organization})
       );
@@ -61,8 +60,7 @@ export default function useBulkMutateFeedback({
         });
       }
     },
-    mutationFn: variables => {
-      const [ids, data] = variables;
+    mutationFn: ([ids, data]) => {
       const url =
         ids.length === 1
           ? `/organizations/${organization.slug}/issues/${first(ids)}/`
