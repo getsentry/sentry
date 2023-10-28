@@ -141,10 +141,4 @@ class MessageProcessor:
 
         sdk.set_measurement("new_messages.len", len(results.data))
 
-        with metrics.timer("metrics_consumer.apply_cardinality_limits"), sentry_sdk.start_span(
-            op="apply_cardinality_limits"
-        ):
-            # TODO: move to separate thread
-            cardinality_limiter.apply_cardinality_limits(cardinality_limiter_state)
-
         return results
