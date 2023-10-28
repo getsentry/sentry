@@ -1,6 +1,7 @@
 import logging
 import random
-from typing import Any, Callable, Mapping
+from concurrent.futures import Future, ThreadPoolExecutor
+from typing import Any, Callable, Mapping, Optional
 
 import sentry_kafka_schemas
 import sentry_sdk
@@ -26,6 +27,8 @@ from sentry.utils import metrics, sdk
 
 logger = logging.getLogger(__name__)
 
+executor = ThreadPoolExecutor(max_workers=1)
+
 STORAGE_TO_INDEXER: Mapping[IndexerStorage, Callable[[], StringIndexer]] = {
     IndexerStorage.POSTGRES: PostgresIndexer,
     IndexerStorage.MOCK: MockIndexer,
@@ -40,6 +43,7 @@ class MessageProcessor:
     def __init__(self, config: MetricsIngestConfiguration):
         self._indexer = STORAGE_TO_INDEXER[config.db_backend](**config.db_backend_options)
         self._config = config
+        self._prev_future: Optional[Future] = None
 
     # The following two methods are required to work such that the parallel
     # indexer can spawn subprocesses correctly.
@@ -101,6 +105,12 @@ class MessageProcessor:
         4. Take a mapping of string -> int (indexed strings), and replace all of
            the messages strings into ints
         """
+        with metrics.timer("metrics_consumer.apply_cardinality_limits"), sentry_sdk.start_span(
+            op="apply_cardinality_limits"
+        ):
+            if self._prev_future:
+                self._prev_future.result()
+
         should_index_tag_values = self._config.should_index_tag_values
         is_output_sliced = self._config.is_output_sliced or False
 
@@ -141,10 +151,8 @@ class MessageProcessor:
 
         sdk.set_measurement("new_messages.len", len(results.data))
 
-        with metrics.timer("metrics_consumer.apply_cardinality_limits"), sentry_sdk.start_span(
-            op="apply_cardinality_limits"
-        ):
-            # TODO: move to separate thread
-            cardinality_limiter.apply_cardinality_limits(cardinality_limiter_state)
+        self._prev_future = executor.submit(
+            cardinality_limiter.apply_cardinality_limits, cardinality_limiter_state
+        )
 
         return results
