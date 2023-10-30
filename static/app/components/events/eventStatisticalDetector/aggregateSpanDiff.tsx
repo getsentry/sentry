@@ -149,6 +149,7 @@ function AggregateSpanDiff({event, projectId}: {event: Event; projectId: string}
   const {start, end} = useRelativeDateTime({
     anchor: breakpoint,
     relativeDays: 7,
+    retentionDays: 30,
   });
   const {data, isLoading, isError} = useFetchAdvancedAnalysis({
     transaction,
