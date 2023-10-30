@@ -19,7 +19,6 @@ from sentry.sentry_metrics.consumers.indexer.tags_validator import (
     ReleaseHealthTagsValidator,
 )
 from sentry.sentry_metrics.indexer.base import StringIndexer
-from sentry.sentry_metrics.indexer.limiters.cardinality import cardinality_limiter_factory
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.sentry_metrics.indexer.postgres.postgres_v2 import PostgresIndexer
 from sentry.utils import metrics, sdk
@@ -113,19 +112,6 @@ class MessageProcessor:
         )
 
         sdk.set_measurement("indexer_batch.payloads.len", len(batch.parsed_payloads_by_meta))
-
-        with metrics.timer("metrics_consumer.check_cardinality_limits"), sentry_sdk.start_span(
-            op="check_cardinality_limits"
-        ):
-            cardinality_limiter = cardinality_limiter_factory.get_ratelimiter(self._config)
-            cardinality_limiter_state = cardinality_limiter.check_cardinality_limits(
-                self._config.use_case_id, batch.parsed_payloads_by_meta
-            )
-
-        sdk.set_measurement(
-            "cardinality_limiter.keys_to_remove.len", len(cardinality_limiter_state.keys_to_remove)
-        )
-        batch.filter_messages(cardinality_limiter_state.keys_to_remove)
 
         extracted_strings = batch.extract_strings()
 
