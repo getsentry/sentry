@@ -52,13 +52,7 @@ export function PageOverviewFeaturedTagsList({transaction, tag, title, onClick}:
       <Title>{title ?? tag}</Title>
       <TagValuesContainer>
         {sortedTagValues.map((row, index) => {
-          const score = calculatePerformanceScore({
-            lcp: row['p75(measurements.lcp)'] as number,
-            fcp: row['p75(measurements.fcp)'] as number,
-            cls: row['p75(measurements.cls)'] as number,
-            ttfb: row['p75(measurements.ttfb)'] as number,
-            fid: row['p75(measurements.fid)'] as number,
-          });
+          const score = getPerformanceTotalScore(row);
           return (
             <RowContainer key={`${tag}:${index}`}>
               <TagValue>
@@ -70,7 +64,7 @@ export function PageOverviewFeaturedTagsList({transaction, tag, title, onClick}:
                 </TagButton>
               </TagValue>
               <Score>
-                <PerformanceBadge score={score.totalScore} />
+                <PerformanceBadge score={score} />
               </Score>
             </RowContainer>
           );
