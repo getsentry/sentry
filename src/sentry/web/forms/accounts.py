@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import Any
 
@@ -348,7 +349,7 @@ class RelocationForm(forms.Form):
 
     def clean_username(self):
         value = self.cleaned_data.get("username") or self.user.username
-        value = value.strip(" \n\t\r\0")
+        value = re.sub(r"[ \n\t\r\0]*", "", value)
         if not value:
             return
         return value.lower()

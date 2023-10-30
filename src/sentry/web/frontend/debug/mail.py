@@ -710,7 +710,7 @@ def recover_account(request):
 
 @login_required
 def relocate_account(request):
-    password_hash, __ = LostPasswordHash.objects.get_or_create(user=request.user)
+    password_hash, __ = LostPasswordHash.objects.get_or_create(user_id=request.user.id)
     return MailPreview(
         html_template="sentry/emails/relocate_account.html",
         text_template="sentry/emails/relocate_account.txt",

@@ -24,7 +24,7 @@ class TestRelocationForm(TestCase):
         username = "test_user"
         user = self.create_user(username=username)
         relocation_form = RelocationForm(user=user)
-        relocation_form.cleaned_data = {"username": "\n\rnew_username\n\n\t\r\0\n"}
+        relocation_form.cleaned_data = {"username": "\n\rnew_u\n\n \0se\r\trname\n\n\t\r\0\n"}
 
         assert relocation_form.clean_username() == "new_username"
 
