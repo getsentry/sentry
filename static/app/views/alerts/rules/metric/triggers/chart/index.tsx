@@ -87,7 +87,6 @@ const TIME_PERIOD_MAP: Record<TimePeriod, string> = {
   [TimePeriod.THREE_DAYS]: t('Last 3 days'),
   [TimePeriod.SEVEN_DAYS]: t('Last 7 days'),
   [TimePeriod.FOURTEEN_DAYS]: t('Last 14 days'),
-  [TimePeriod.THIRTY_DAYS]: t('Last 30 days'),
 };
 
 /**
