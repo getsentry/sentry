@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import List, Optional, cast
+from typing import List, Optional
 
 from sentry.services.hybrid_cloud import OptionValue
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
@@ -62,5 +62,18 @@ class ProjectService(RpcService):
     ) -> List[OpaqueSerializedResponse]:
         pass
 
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def create_project_for_organization(
+        self,
+        *,
+        organization_id: int,
+        project_name: str,
+        platform: str,
+        user_id: int,
+        add_org_default_team: Optional[bool] = False,
+    ) -> RpcProject:
+        pass
 
-project_service = cast(ProjectService, ProjectService.create_delegation())
+
+project_service = ProjectService.create_delegation()

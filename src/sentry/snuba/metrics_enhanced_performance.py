@@ -35,10 +35,11 @@ def query(
     on_demand_metrics_enabled: bool = False,
 ):
     metrics_compatible = not equations
+    dataset_reason = discover.DEFAULT_DATASET_REASON
 
     if metrics_compatible:
         try:
-            return metrics_query(
+            result = metrics_query(
                 selected_columns,
                 query,
                 params,
@@ -59,12 +60,16 @@ def query(
                 use_metrics_layer,
                 on_demand_metrics_enabled,
             )
+            result["meta"]["datasetReason"] = dataset_reason
+
+            return result
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
             raise error
         # any remaining errors mean we should try again with discover
         except IncompatibleMetricsQuery as error:
             sentry_sdk.set_tag("performance.mep_incompatible", str(error))
+            dataset_reason = str(error)
             metrics_compatible = False
         except Exception as error:
             raise error
@@ -90,6 +95,7 @@ def query(
             has_metrics=has_metrics,
         )
         results["meta"]["isMetricsData"] = False
+        results["meta"]["datasetReason"] = dataset_reason
 
         return results
 
@@ -114,10 +120,8 @@ def timeseries_query(
     High-level API for doing arbitrary user timeseries queries against events.
     this API should match that of sentry.snuba.discover.timeseries_query
     """
-    metrics_compatible = False
     equations, columns = categorize_columns(selected_columns)
-    if comparison_delta is None and not equations:
-        metrics_compatible = True
+    metrics_compatible = not equations
 
     if metrics_compatible:
         try:

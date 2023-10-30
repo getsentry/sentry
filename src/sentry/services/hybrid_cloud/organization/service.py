@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 import abc
 from abc import abstractmethod
-from typing import Any, Iterable, Mapping, Optional, Union, cast
+from typing import Any, Iterable, List, Mapping, Optional, Union
 
 from django.dispatch import Signal
 
@@ -229,6 +229,18 @@ class OrganizationService(RpcService):
     ) -> None:
         pass
 
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_or_create_team_member(
+        self,
+        organization_id: int,
+        *,
+        team_id: int,
+        organization_member_id: int,
+        role: Optional[str],
+    ) -> None:
+        pass
+
     @regional_rpc_method(resolve=UnimplementedRegionResolution("organization", "get_team_members"))
     @abstractmethod
     def get_team_members(self, *, team_id: int) -> Iterable[RpcOrganizationMember]:
@@ -321,6 +333,11 @@ class OrganizationService(RpcService):
             signal=signal, organization_id=organization_id, args=args
         )
 
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_organization_owner_members(self, organization_id: int) -> List[RpcOrganizationMember]:
+        pass
+
 
 class OrganizationSignalService(abc.ABC):
     @abc.abstractmethod
@@ -355,4 +372,4 @@ _organization_signal_service: OrganizationSignalService = silo_mode_delegation(
     }
 )
 
-organization_service = cast(OrganizationService, OrganizationService.create_delegation())
+organization_service = OrganizationService.create_delegation()

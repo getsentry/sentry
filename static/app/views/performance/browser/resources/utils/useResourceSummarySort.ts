@@ -1,13 +1,20 @@
 import {fromSorts} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+
+const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_SELF_TIME} = SpanMetricsField;
 
 type Query = {
   sort?: string;
 };
 
-const SORTABLE_FIELDS = ['avg(span.self_time)', 'spm()'] as const;
+const SORTABLE_FIELDS = [
+  `avg(${SPAN_SELF_TIME})`,
+  'spm()',
+  `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
+] as const;
 
 export type ValidSort = Sort & {
   field: (typeof SORTABLE_FIELDS)[number];
@@ -28,7 +35,7 @@ export function useResourceSummarySort(
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
-  field: SORTABLE_FIELDS[0],
+  field: SORTABLE_FIELDS[1],
 };
 
 function isAValidSort(sort: Sort): sort is ValidSort {

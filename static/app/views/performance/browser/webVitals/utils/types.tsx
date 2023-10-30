@@ -1,3 +1,5 @@
+import {Sort} from 'sentry/utils/discover/fields';
+
 export type Row = {
   'count()': number;
   'p75(measurements.cls)': number;
@@ -10,12 +12,15 @@ export type Row = {
 };
 
 export type TransactionSampleRow = {
+  browser: string;
   id: string;
   'measurements.cls': number | null;
   'measurements.fcp': number | null;
   'measurements.fid': number | null;
   'measurements.lcp': number | null;
   'measurements.ttfb': number | null;
+  'profile.id': string;
+  projectSlug: string;
   replayId: string;
   timestamp: string;
   transaction: string;
@@ -38,3 +43,17 @@ export type RowWithScore = Row & Score;
 export type TransactionSampleRowWithScore = TransactionSampleRow & Score;
 
 export type WebVitals = 'lcp' | 'fcp' | 'cls' | 'ttfb' | 'fid';
+
+export const SORTABLE_FIELDS = [
+  'count()',
+  'p75(measurements.cls)',
+  'p75(measurements.fcp)',
+  'p75(measurements.fid)',
+  'p75(measurements.lcp)',
+  'p75(measurements.ttfb)',
+] as const;
+
+export const DEFAULT_SORT: Sort = {
+  kind: 'desc',
+  field: 'count()',
+};
