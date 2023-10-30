@@ -889,6 +889,8 @@ def process_replay_link(job: PostProcessJob) -> None:
 
     group_event = job["event"]
     replay_id = _get_replay_id(group_event)
+    if not replay_id:
+        return
 
     # Validate the UUID.
     try:
