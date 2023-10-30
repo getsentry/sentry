@@ -67,7 +67,11 @@ export default function FeedbackItem({
         <Flex gap={space(2)} justify="space-between">
           <Flex column>
             <Flex align="center" gap={space(0.5)}>
-              <FeedbackItemUsername feedbackItem={feedbackItem} detailDisplay />
+              <FeedbackItemUsername
+                feedbackIssue={feedbackItem}
+                feedbackEvent={eventData}
+                detailDisplay
+              />
               {feedbackItem.metadata.contact_email ? (
                 <CopyToClipboardButton
                   size="xs"
