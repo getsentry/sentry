@@ -1670,15 +1670,18 @@ register(
 register("metric_alerts.rate_limit", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # SDK Crash Detection
+#
+# The project ID belongs to the sentry organization: https://sentry.sentry.io/projects/cocoa-sdk-crashes/?project=4505469596663808.
 register(
     "issues.sdk_crash_detection.cocoa.project_id",
     type=int,
+    default=4505469596663808,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
     "issues.sdk_crash_detection.cocoa.sample_rate",
-    default=0.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # END: SDK Crash Detection
