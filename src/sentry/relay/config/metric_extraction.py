@@ -297,7 +297,7 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
 
     New queries will be checked upon creation and not allowed at that time.
     """
-    params: dict[str, Any] = {
+    params: Dict[str, Any] = {
         "statsPeriod": "1d",
         "project_objects": [project],
         "organization_id": project.organization_id,  # Organization id has to be specified to not violate allocation policy.
@@ -310,7 +310,7 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
     if query_killswitch:
         return False
 
-    if len(widget_query.columns) == 0:
+    if not widget_query.columns:
         # No columns means no high-cardinality tags.
         return True
 
