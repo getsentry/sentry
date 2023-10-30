@@ -157,6 +157,7 @@ function TimelineSizeBar() {
         borderless
         onClick={() => setTimelineSize(Math.max(timelineSize - 50, 100))}
         aria-label={t('Zoom out')}
+        disabled={timelineSize === 100 ? true : false}
       />
       <Button
         size="xs"
@@ -165,6 +166,7 @@ function TimelineSizeBar() {
         borderless
         onClick={() => setTimelineSize(Math.min(timelineSize + 50, 1000))}
         aria-label={t('Zoom in')}
+        disabled={timelineSize === 1000 ? true : false}
       />
     </ButtonBar>
   );
