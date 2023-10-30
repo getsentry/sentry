@@ -89,12 +89,9 @@ def _fetch_file_blame(
     )
 
     if not isinstance(response, SequenceApiResponse):
-        raise ApiError("Response is in expected format")
+        raise ApiError("Response is not in expected format")
 
     rate_limit_info = get_rate_limit_info_from_response(response)
-
-    if response is None:
-        return None, rate_limit_info
 
     return _get_commit_info_from_blame_response(response, extra=extra), rate_limit_info
 
@@ -141,15 +138,22 @@ def _get_commit_info_from_blame_response(
 
 
 def _create_commit_from_blame(
-    commit: GitLabCommitResponse, extra: Mapping[str, Any]
+    commit: Optional[GitLabCommitResponse], extra: Mapping[str, Any]
 ) -> Optional[CommitInfo]:
-    if not commit.get("id"):
+    if not commit:
+        logger.warning("get_blame_for_files.no_commit_in_response", extra=extra)
+        return None
+
+    commit_id = commit.get("id")
+    committed_date = commit.get("committed_date")
+
+    if not commit_id:
         logger.warning(
             "get_blame_for_files.invalid_commit_response", extra={**extra, "missing_property": "id"}
         )
         return None
 
-    if not commit.get("committed_date"):
+    if not committed_date:
         logger.warning(
             "get_blame_for_files.invalid_commit_response",
             extra={**extra, "missing_property": "committed_date"},
@@ -158,11 +162,11 @@ def _create_commit_from_blame(
 
     try:
         return CommitInfo(
-            commitId=commit["id"],
-            commitMessage=commit["message"],
-            commitAuthorName=commit["author_name"],
-            commitAuthorEmail=commit["author_email"],
-            committedDate=parse_datetime(commit["committed_date"]).replace(tzinfo=timezone.utc),
+            commitId=commit_id,
+            commitMessage=commit.get("message"),
+            commitAuthorName=commit.get("author_name"),
+            commitAuthorEmail=commit.get("author_email"),
+            committedDate=parse_datetime(committed_date).replace(tzinfo=timezone.utc),
         )
     except Exception:
         logger.exception("get_blame_for_files.invalid_commit_response", extra=extra)

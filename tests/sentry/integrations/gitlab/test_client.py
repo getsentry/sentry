@@ -352,15 +352,18 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         return f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/{quote(file.path, safe='')}/blame?ref={file.ref}&range[start]={file.lineno}&range[end]={file.lineno}"
 
     def make_blame_response(self, **kwargs) -> list[GitLabFileBlameResponseItem]:
-        kwargs.setdefault("id", "1")
-        kwargs.setdefault("message", "test message")
-        kwargs.setdefault("committed_date", "2023-01-01T00:00:00.000Z")
-        kwargs.setdefault("author_name", "Marvin")
-        kwargs.setdefault("author_email", "marvin@place.com")
         return [
             GitLabFileBlameResponseItem(
                 lines=[],
-                commit=GitLabCommitResponse(**kwargs),
+                commit=GitLabCommitResponse(
+                    id=kwargs.get("id", "1"),
+                    message=kwargs.get("message", "test message"),
+                    committed_date=kwargs.get("committed_date", "2023-01-01T00:00:00.000Z"),
+                    author_name=kwargs.get("author_name", "Marvin"),
+                    author_email=kwargs.get("author_email", "marvin@place.com"),
+                    committer_email=None,
+                    committer_name=None,
+                ),
             )
         ]
 
@@ -384,6 +387,27 @@ class GitLabBlameForFilesTest(GitLabClientTest):
     @responses.activate
     def test_failure_404(self, mock_logger_exception):
         responses.add(responses.GET, self.make_blame_request(self.file_1), status=404)
+        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1])
+
+        assert resp == []
+        mock_logger_exception.assert_called_with(
+            "get_blame_for_files.api_error",
+            extra={
+                "provider": "gitlab",
+                "org_integration_id": self.gitlab_client.org_integration_id,
+                "repo_name": self.repo.name,
+                "file_path": self.file_1.path,
+                "branch_name": self.file_1.ref,
+                "file_lineno": self.file_1.lineno,
+            },
+        )
+
+    @mock.patch(
+        "sentry.integrations.gitlab.blame.logger.exception",
+    )
+    @responses.activate
+    def test_failure_response_type(self, mock_logger_exception):
+        responses.add(responses.GET, "some text", status=200)
         resp = self.gitlab_client.get_blame_for_files(files=[self.file_1])
 
         assert resp == []
