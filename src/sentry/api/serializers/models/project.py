@@ -39,7 +39,6 @@ from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.lang.native.sources import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
-from sentry.models.avatars.project_avatar import ProjectAvatar
 from sentry.models.environment import EnvironmentProject
 from sentry.models.options.project_option import OPTION_KEYS, ProjectOption
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -372,7 +371,6 @@ class ProjectSerializer(Serializer):
             if self._expand("options"):
                 options = self.get_options(item_list)
 
-        avatars = {a.project_id: a for a in ProjectAvatar.objects.filter(project__in=item_list)}
         project_ids = [i.id for i in item_list]
         platforms = ProjectPlatform.objects.filter(project_id__in=project_ids).values_list(
             "project_id", "platform"
@@ -419,7 +417,6 @@ class ProjectSerializer(Serializer):
                 serialized.update(
                     {
                         "is_bookmarked": project.id in bookmarks,
-                        "avatar": avatars.get(project.id),
                         "platforms": platforms_by_project[project.id],
                     }
                 )
@@ -535,14 +532,6 @@ class ProjectSerializer(Serializer):
     ) -> ProjectSerializerResponse:
         status_label = STATUS_LABELS.get(obj.status, "unknown")
 
-        if attrs.get("avatar"):
-            avatar = {
-                "avatarType": attrs["avatar"].get_avatar_type_display(),
-                "avatarUuid": attrs["avatar"].ident if attrs["avatar"].file_id else None,
-            }
-        else:
-            avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
-
         context: ProjectSerializerResponse = {
             "id": str(obj.id),
             "slug": obj.slug,
@@ -563,7 +552,9 @@ class ProjectSerializer(Serializer):
             "hasSessions": bool(obj.flags.has_sessions),
             "isInternal": obj.is_internal_project(),
             "isPublic": obj.public,
-            "avatar": avatar,
+            # Projects don't have avatar uploads, but we need to maintain the payload shape for
+            # compatibility.
+            "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
             "color": obj.color,
             "status": status_label,
         }
