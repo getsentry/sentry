@@ -873,7 +873,16 @@ def process_replay_link(job: PostProcessJob) -> None:
         # logic.
 
         context_replay_id = get_path(event.data, "contexts", "replay", "replay_id")
-        return context_replay_id or event.get_tag("replayId")
+        if context_replay_id:
+            return context_replay_id
+
+        # Note: replay ids found in the tags are vulnerable to PII scrubbing. We check for the `*`
+        # character before returning the id.
+        tag_replay_id = event.get_tag("replayId")
+        if tag_replay_id and "*" not in tag_replay_id:
+            return tag_replay_id
+
+        return None
 
     if job["is_reprocessed"]:
         return
