@@ -1,7 +1,8 @@
 import logging
+import random
 from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional, Sequence, Set, Tuple, TypedDict, Union
-import random
+
 import sentry_sdk
 
 from sentry import features, options
