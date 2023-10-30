@@ -61,6 +61,7 @@ class TeamManager(BaseManager):
         organization: Organization,
         user: Union[User, RpcUser],
         scope: Optional[str] = None,
+        is_team_admin: bool = False,
         with_projects: bool = False,
     ) -> Union[Sequence[Team], Sequence[Tuple[Team, Sequence[Project]]]]:
         """
@@ -91,13 +92,13 @@ class TeamManager(BaseManager):
             if scope is not None and scope not in om.get_scopes():
                 return []
 
-            team_list = list(
-                base_team_qs.filter(
-                    id__in=OrganizationMemberTeam.objects.filter(
-                        organizationmember=om, is_active=True
-                    ).values_list("team")
-                )
+            org_member_team_filter = OrganizationMemberTeam.objects.filter(
+                organizationmember=om, is_active=True
             )
+            if is_team_admin:
+                org_member_team_filter = org_member_team_filter.filter(role="admin")
+
+            team_list = list(base_team_qs.filter(id__in=org_member_team_filter.values_list("team")))
 
         results = sorted(team_list, key=lambda x: x.name.lower())
 

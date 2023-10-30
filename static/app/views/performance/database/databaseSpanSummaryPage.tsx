@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import DatePageFilter from 'sentry/components/datePageFilter';
 import FeatureBadge from 'sentry/components/featureBadge';
+import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
@@ -146,12 +147,13 @@ function SpanSummaryPage({params}: Props) {
       </Layout.Header>
 
       <Layout.Body>
+        <FeedbackWidget />
         <Layout.Main fullWidth>
           <HeaderContainer>
             <PaddedContainer>
               <PageFilterBar condensed>
                 <EnvironmentPageFilter />
-                <DatePageFilter alignDropdown="left" />
+                <DatePageFilter />
               </PageFilterBar>
             </PaddedContainer>
 

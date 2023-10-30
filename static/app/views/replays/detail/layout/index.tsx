@@ -39,9 +39,9 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
   const organization = useOrganization();
   const hasNewTimeline = organization.features.includes('session-replay-new-timeline');
 
-  const timeline = (
+  const timeline = hasNewTimeline ? null : (
     <ErrorBoundary mini>
-      <ReplayTimeline />
+      <ReplayTimeline size={100} />
     </ErrorBoundary>
   );
 
@@ -81,7 +81,7 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
 
   if (layout === LayoutKey.NO_VIDEO) {
     return (
-      <BodyContent>
+      <BodyContent style={{gridTemplateRows: hasNewTimeline ? '1fr auto' : 'auto 1fr'}}>
         {timeline}
         <FluidHeight ref={measureRef}>
           {hasSize ? <PanelContainer key={layout}>{focusArea}</PanelContainer> : null}
@@ -92,7 +92,7 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
 
   if (layout === LayoutKey.SIDEBAR_LEFT) {
     return (
-      <BodyContent>
+      <BodyContent style={{gridTemplateRows: hasNewTimeline ? '1fr auto' : 'auto 1fr'}}>
         {timeline}
         <FluidHeight ref={measureRef}>
           {hasSize ? (
@@ -116,7 +116,7 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
 
   // layout === 'topbar'
   return (
-    <BodyContent>
+    <BodyContent style={{gridTemplateRows: hasNewTimeline ? '1fr auto' : 'auto 1fr'}}>
       {timeline}
       <FluidHeight ref={measureRef}>
         {hasSize ? (

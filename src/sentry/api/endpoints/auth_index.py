@@ -187,7 +187,7 @@ class AuthIndexEndpoint(Endpoint):
 
         try:
             # Must use the real request object that Django knows about
-            auth.login(request._request, request.user)
+            auth.login(request._request, promote_request_rpc_user(request))
         except auth.AuthUserPasswordExpired:
             return Response(
                 {

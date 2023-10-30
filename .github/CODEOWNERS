@@ -154,6 +154,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/views/projectDetail/                          @getsentry/issues
 /static/app/views/releases/                               @getsentry/issues
 /static/app/views/organizationStats/teamInsights/         @getsentry/issues
+/static/app/views/settings/account/notifications/         @getsentry/issues
 
 /src/sentry/templates/sentry/emails/incidents/            @getsentry/issues
 /src/sentry/incidents/                                    @getsentry/issues

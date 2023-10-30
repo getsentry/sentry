@@ -14,9 +14,11 @@ import {
 
 type Props = {
   transaction: string;
+  enabled?: boolean;
   limit?: number;
   orderBy?: WebVitals | null;
   query?: string;
+  withProfiles?: boolean;
 };
 
 export const useTransactionSamplesWebVitalsQuery = ({
@@ -24,6 +26,8 @@ export const useTransactionSamplesWebVitalsQuery = ({
   limit,
   transaction,
   query,
+  enabled,
+  withProfiles,
 }: Props) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -44,10 +48,13 @@ export const useTransactionSamplesWebVitalsQuery = ({
         'transaction.duration',
         'replayId',
         'timestamp',
+        'profile.id',
+        'browser',
+        'project',
       ],
       name: 'Web Vitals',
       query: `transaction.op:pageload transaction:"${transaction}" ${query ? query : ''}`,
-      orderby: mapWebVitalToOrderBy(orderBy),
+      orderby: mapWebVitalToOrderBy(orderBy) ?? withProfiles ? '-profile.id' : undefined,
       version: 2,
     },
     pageFilters.selection
@@ -59,12 +66,12 @@ export const useTransactionSamplesWebVitalsQuery = ({
     location,
     orgSlug: organization.slug,
     options: {
-      enabled: pageFilters.isReady,
+      enabled: enabled && pageFilters.isReady,
       refetchOnWindowFocus: false,
     },
   });
 
-  const toInt = (item: ReactText) => (item ? parseInt(item.toString(), 10) : null);
+  const toNumber = (item: ReactText) => (item ? parseFloat(item.toString()) : null);
   const tableData: TransactionSampleRowWithScore[] =
     !isLoading && data?.data.length
       ? data.data
@@ -73,13 +80,16 @@ export const useTransactionSamplesWebVitalsQuery = ({
             'user.display': row['user.display']?.toString(),
             transaction: row.transaction?.toString(),
             'transaction.op': row['transaction.op']?.toString(),
-            'measurements.lcp': toInt(row['measurements.lcp']),
-            'measurements.fcp': toInt(row['measurements.fcp']),
-            'measurements.cls': toInt(row['measurements.cls']),
-            'measurements.ttfb': toInt(row['measurements.ttfb']),
-            'measurements.fid': toInt(row['measurements.fid']),
-            'transaction.duration': toInt(row['transaction.duration']),
+            browser: row.browser?.toString(),
+            'measurements.lcp': toNumber(row['measurements.lcp']),
+            'measurements.fcp': toNumber(row['measurements.fcp']),
+            'measurements.cls': toNumber(row['measurements.cls']),
+            'measurements.ttfb': toNumber(row['measurements.ttfb']),
+            'measurements.fid': toNumber(row['measurements.fid']),
+            'transaction.duration': toNumber(row['transaction.duration']),
             replayId: row.replayId?.toString(),
+            'profile.id': row['profile.id']?.toString(),
+            projectSlug: row.project?.toString(),
             timestamp: row.timestamp?.toString(),
           }))
           .map(row => {

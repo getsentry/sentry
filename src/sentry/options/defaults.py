@@ -722,6 +722,22 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enable sending the flag to the microservice to tell it to purposefully take longer than our
+# timeout, to see the effect on the overall error event processing backlog
+register(
+    "processing.severity-backlog-test.timeout",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enable sending the flag to the microservice to tell it to purposefully send back an error, to see
+# the effect on the overall error event processing backlog
+register(
+    "processing.severity-backlog-test.error",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # ## sentry.killswitches
 #
@@ -974,6 +990,13 @@ register(
 # An option to enable reading from the new schema for the caching indexer
 register(
     "sentry-metrics.indexer.read-new-cache-namespace",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# An option to enable writing from the new schema for the caching indexer
+register(
+    "sentry-metrics.indexer.write-new-cache-namespace",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -1469,6 +1492,7 @@ register(
 )
 
 register("hybrid_cloud.outbox_rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
 register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Decides whether an incoming span triggers an update of the clustering rule applied to it.
@@ -1570,6 +1594,12 @@ register(
     default=100,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "statistical_detectors.query.transactions.timeseries_days",
+    type=Int,
+    default=14,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "options_automator_slack_webhook_enabled",
@@ -1636,3 +1666,21 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register("metric_alerts.rate_limit", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# SDK Crash Detection
+#
+# The project ID belongs to the sentry organization: https://sentry.sentry.io/projects/cocoa-sdk-crashes/?project=4505469596663808.
+register(
+    "issues.sdk_crash_detection.cocoa.project_id",
+    default=4505469596663808,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.sdk_crash_detection.cocoa.sample_rate",
+    default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# END: SDK Crash Detection

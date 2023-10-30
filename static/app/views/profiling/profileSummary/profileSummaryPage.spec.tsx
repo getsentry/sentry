@@ -80,6 +80,7 @@ describe('ProfileSummaryPage', () => {
 
     render(
       <ProfileSummaryPage
+        view="flamegraph"
         params={{}}
         selection={GlobalSelection()}
         location={
@@ -138,6 +139,7 @@ describe('ProfileSummaryPage', () => {
 
     render(
       <ProfileSummaryPage
+        view="flamegraph"
         params={{}}
         selection={GlobalSelection()}
         location={

@@ -42,10 +42,8 @@ import {
   isEquation,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
-import {
-  createOnDemandFilterWarning,
-  hasOnDemandMetricWidgetFeature,
-} from 'sentry/utils/onDemandMetrics';
+import {createOnDemandFilterWarning} from 'sentry/utils/onDemandMetrics';
+import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -92,6 +90,8 @@ import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
+
+import {Tooltip} from '../tooltip';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 import {
@@ -1015,7 +1015,15 @@ function WidgetViewerModal(props: Props) {
                           getColoredWidgetIndicator(widget.thresholds, tableData)}
                       </WidgetTitleRow>
                       {widget.description && (
-                        <WidgetDescription>{widget.description}</WidgetDescription>
+                        <Tooltip
+                          title={widget.description}
+                          containerDisplayMode="grid"
+                          showOnlyOnOverflow
+                          isHoverable
+                          position="bottom"
+                        >
+                          <WidgetDescription>{widget.description}</WidgetDescription>
+                        </Tooltip>
                       )}
                       <DashboardsMEPConsumer>
                         {({}) => {

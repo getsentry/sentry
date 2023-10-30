@@ -126,6 +126,32 @@ export const TimelineScrubber = styled(Scrubber)`
   }
 `;
 
+export const CompactTimelineScrubber = styled(Scrubber)`
+  height: 100%;
+
+  ${Meter} {
+    background: transparent;
+  }
+
+  ${RangeWrapper},
+  ${Range},
+  ${SliderAndInputWrapper} {
+    height: 100%;
+  }
+
+  /**
+   * Draw lines so users can see the currenTime & their mouse position
+   * "----|----|--------------------- duration = 1:00"
+   *      ^    ^
+   *      |    PlaybackTimeValue @ 20s
+   *      MouseTrackingValue @ 10s
+   */
+  ${PlaybackTimeValue},
+  ${MouseTrackingValue} {
+    border-right: ${space(0.25)} solid ${p => p.theme.purple300};
+  }
+`;
+
 export const PlayerScrubber = styled(Scrubber)`
   height: ${space(0.5)};
 

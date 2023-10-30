@@ -18,7 +18,6 @@ from django.utils.text import slugify
 from sentry_sdk.tracing import Span, Transaction
 
 from sentry import ratelimits
-from sentry.constants import ObjectStatus
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
 from sentry.monitors.logic.mark_failed import mark_failed
@@ -32,6 +31,7 @@ from sentry.monitors.models import (
     MonitorEnvironmentLimitsExceeded,
     MonitorEnvironmentValidationFailed,
     MonitorLimitsExceeded,
+    MonitorObjectStatus,
     MonitorType,
 )
 from sentry.monitors.tasks import try_monitor_tasks_trigger
@@ -102,12 +102,13 @@ def _ensure_monitor_with_config(
             defaults={
                 "project_id": project.id,
                 "name": monitor_slug,
-                "status": ObjectStatus.ACTIVE,
+                "status": MonitorObjectStatus.ACTIVE,
                 "type": MonitorType.CRON_JOB,
                 "config": validated_config,
             },
         )
-        signal_monitor_created(project, None, True)
+        if created:
+            signal_monitor_created(project, None, True)
 
     # Update existing monitor
     if monitor and not created and monitor.config != validated_config:
@@ -457,8 +458,10 @@ def _process_checkin(
                 if use_latest_checkin:
                     check_in = (
                         MonitorCheckIn.objects.select_for_update()
-                        .filter(monitor_environment=monitor_environment)
-                        .exclude(status__in=CheckInStatus.FINISHED_VALUES)
+                        .filter(
+                            monitor_environment=monitor_environment,
+                            status=CheckInStatus.IN_PROGRESS,
+                        )
                         .order_by("-date_added")[:1]
                         .get()
                     )
