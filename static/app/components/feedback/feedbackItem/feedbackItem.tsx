@@ -5,6 +5,7 @@ import Button from 'sentry/components/actions/button';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import FeedbackAssignedTo from 'sentry/components/feedback/feedbackItem/feedbackAssignedTo';
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
@@ -88,6 +89,12 @@ export default function FeedbackItem({
             </Flex>
           </Flex>
           <Flex gap={space(1)} align="center">
+            <ErrorBoundary mini>
+              <FeedbackAssignedTo
+                feedbackIssue={feedbackItem}
+                feedbackEvent={eventData}
+              />
+            </ErrorBoundary>
             <ErrorBoundary mini>
               <FeedbackViewers feedbackItem={feedbackItem} />
             </ErrorBoundary>
