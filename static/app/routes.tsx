@@ -1668,7 +1668,7 @@ function buildRoutes() {
             )}
           />
           <Route
-            path="resource/:groupId/"
+            path="spans/span/:groupId/"
             component={make(
               () =>
                 import(
