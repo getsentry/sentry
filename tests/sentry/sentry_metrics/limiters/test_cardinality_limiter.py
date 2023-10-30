@@ -1,4 +1,5 @@
 import time
+from collections import deque
 from typing import Optional, Sequence, Tuple
 
 import pytest
@@ -13,7 +14,9 @@ from sentry.ratelimits.cardinality import (
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.common import BrokerMeta
 from sentry.sentry_metrics.indexer.limiters.cardinality import (
+    OfflineTimeseriesCardinalityLimiter,
     TimeseriesCardinalityLimiter,
+    TimeseriesCardinalityWindow,
     _build_quota_key,
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -455,3 +458,121 @@ def test_sample_rate_half(set_sentry_option):
         # We are sampling org_id=1 into cardinality limiting. Because our quota is
         # zero, only that org's metrics are dropped.
         assert result.keys_to_remove == [BrokerMeta(Partition(Topic("topic"), 0), 0)]
+
+
+def test_offline_limiter():
+    window = TimeseriesCardinalityWindow(window_size=10, granularity=2, limit=4, timestamp=1)
+
+    assert window.cur_granule == 0
+    assert window._buckets == deque([set() for _ in range(5)])
+
+    window.evict(11)
+
+    assert window.cur_granule == 5
+    assert window._buckets == deque([set() for _ in range(5)])
+
+    rejected = window.apply_limits({1, 2}, 11)
+
+    assert not rejected
+    assert window._buckets == deque([{1, 2}, {1, 2}, {1, 2}, {1, 2}, {1, 2}])
+
+    window.evict(15)
+    assert window._buckets == deque([{1, 2}, {1, 2}, {1, 2}, set(), set()])
+    assert window.cur_granule == 7
+
+    rejected = window.apply_limits({2, 3}, 16)
+    assert not rejected
+    assert window.cur_granule == 8
+    assert window._buckets == deque([{1, 2, 3}, {1, 2, 3}, {2, 3}, {2, 3}, {2, 3}])
+
+    rejected = window.apply_limits({4}, 18)
+    assert not rejected
+    assert window.cur_granule == 9
+    assert window._buckets == deque([{1, 2, 3, 4}, {2, 3, 4}, {2, 3, 4}, {2, 3, 4}, {4}])
+
+    rejected = window.apply_limits({5, 6, 7}, 19)
+    assert rejected == {5, 6, 7}
+    assert window.cur_granule == 9
+    assert window._buckets == deque([{1, 2, 3, 4}, {2, 3, 4}, {2, 3, 4}, {2, 3, 4}, {4}])
+
+    window.evict(27)
+    assert window.cur_granule == 13
+    assert window._buckets == deque([{4}, set(), set(), set(), set()])
+
+    window.evict(28)
+    assert window.cur_granule == 14
+    assert window._buckets == deque([set(), set(), set(), set(), set()])
+
+
+def test_offline_reject():
+    with override_options(
+        {
+            "sentry-metrics.cardinality-limiter.limits.performance.per-org": [
+                {"window_seconds": 3600, "granularity_seconds": 60, "limit": 2}
+            ],
+            "sentry-metrics.cardinality-limiter.limits.spans.per-org": [
+                {"window_seconds": 3600, "granularity_seconds": 60, "limit": 1}
+            ],
+            "sentry-metrics.cardinality-limiter.limits.custom.per-org": [
+                {"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}
+            ],
+        },
+    ):
+        limiter = OfflineTimeseriesCardinalityLimiter()
+        rejected = limiter.apply_cardinality_limits(
+            UseCaseKey.PERFORMANCE,
+            {
+                BrokerMeta(Partition(Topic("topic"), 0), 0): {
+                    "org_id": 1,
+                    "name": "foo",
+                    "tags": {},
+                    "use_case_id": UseCaseID.TRANSACTIONS,
+                },
+                BrokerMeta(Partition(Topic("topic"), 0), 1): {
+                    "org_id": 1,
+                    "name": "foo",
+                    "tags": {},
+                    "use_case_id": UseCaseID.SPANS,
+                },
+            },
+        )
+        rejected = limiter.apply_cardinality_limits(
+            UseCaseKey.PERFORMANCE,
+            {
+                BrokerMeta(Partition(Topic("topic"), 0), 1): {
+                    "org_id": 1,
+                    "name": "bar",
+                    "tags": {},
+                    "use_case_id": UseCaseID.TRANSACTIONS,
+                }
+            },
+        )
+        assert not rejected
+        rejected = limiter.apply_cardinality_limits(
+            UseCaseKey.PERFORMANCE,
+            {
+                BrokerMeta(Partition(Topic("topic"), 0), 3): {
+                    "org_id": 1,
+                    "name": "a",
+                    "tags": {},
+                    "use_case_id": UseCaseID.TRANSACTIONS,
+                },
+                BrokerMeta(Partition(Topic("topic"), 0), 4): {
+                    "org_id": 1,
+                    "name": "b",
+                    "tags": {},
+                    "use_case_id": UseCaseID.SPANS,
+                },
+                BrokerMeta(Partition(Topic("topic"), 0), 5): {
+                    "org_id": 1,
+                    "name": "c",
+                    "tags": {},
+                    "use_case_id": UseCaseID.CUSTOM,
+                },
+            },
+        )
+        assert rejected == [
+            BrokerMeta(Partition(Topic("topic"), 0), 3),
+            BrokerMeta(Partition(Topic("topic"), 0), 4),
+            BrokerMeta(Partition(Topic("topic"), 0), 5),
+        ]

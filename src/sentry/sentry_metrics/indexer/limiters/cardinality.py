@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import dataclasses
-from collections import defaultdict
-from typing import Dict, Mapping, MutableMapping, Optional, Sequence, TypedDict
+import time
+from collections import defaultdict, deque
+from typing import Deque, Dict, Mapping, MutableMapping, Optional, Sequence, Set, Tuple, TypedDict
 
 from sentry import options
 from sentry.ratelimits.cardinality import (
@@ -72,6 +73,130 @@ class InboundMessage(TypedDict):
     # now that all messages are getting a use_case_id
     # field via message processing, we can add it here
     use_case_id: UseCaseID
+
+
+class TimeseriesCardinalityWindow:
+    """A class to represent an interval of time and unique elements it has seen at each granule.
+
+    Maintains a collection of sets to store unique elements ordered by granule. Assumes
+    non-decreasing timestamp, so each set in the collection are subsets of the previous one.
+
+    Attributes:
+        window_size: Interval length.
+        limit:       Maximum number of unique elements (cardinality) that can appear within a window.
+        granularity: Interval at which to apply the limit enforced by the window.
+        _buckets:    A deque that represents the unique elements seen at each granule within the window.
+        cur_granule: The current granule the window is on.
+    """
+
+    def __init__(
+        self, window_size: int, granularity: int, limit: int, timestamp: Optional[int] = None
+    ) -> None:
+        """Initialize the window"""
+        if timestamp is None:
+            timestamp = int(time.time())
+
+        self.window_size = window_size
+        self.limit = limit
+        self.granularity = granularity
+        self._buckets: Deque[Set] = deque([set() for _ in range(window_size // granularity)])
+        self.cur_granule = timestamp // granularity
+
+    def evict(self, timestamp: Optional[int] = None) -> None:
+        """Evict buckets base on timestamp"""
+        if timestamp is None:
+            timestamp = int(time.time())
+
+        granule = timestamp // self.granularity
+        num_buckets_to_evict = granule - self.cur_granule
+
+        for _ in range(num_buckets_to_evict):
+            self._buckets.popleft()
+        self._buckets.extend([set() for _ in range(num_buckets_to_evict)])
+
+        self.cur_granule = granule
+
+    def apply_limits(self, hashes: Set[int], timestamp: Optional[int] = None) -> Set[int]:
+        """Given a set of hashes and current timestamp, obtain a set of hash that must be removed
+        in order to satisfy the granularity limit established by the window"""
+        if timestamp is None:
+            timestamp = int(time.time())
+
+        self.evict(timestamp)
+
+        rate_limited_hashes = set()
+        never_seen_hashes = hashes - self._buckets[0]
+
+        num_hashes_allowed = self.limit - len(self._buckets[0])
+
+        for _ in range(len(never_seen_hashes) - num_hashes_allowed):
+            rate_limited_hashes.add(never_seen_hashes.pop())
+        hashes -= rate_limited_hashes
+
+        for i in range(self.window_size // self.granularity):
+            self._buckets[i].update(hashes)
+        return rate_limited_hashes
+
+
+class OfflineTimeseriesCardinalityLimiter:
+    def __init__(self) -> None:
+        self._windows: MutableMapping[Tuple[UseCaseID, OrgId], TimeseriesCardinalityWindow] = {}
+
+    def _get_cardinality_limit_config(self, use_case_id: UseCaseID):
+        if use_case_id in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS:
+            return options.get(USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS[use_case_id])[0]
+        return options.get("sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org")[0]
+
+    def _get_window(self, use_case_id: UseCaseID, org_id: OrgId):
+        if (use_case_id, org_id) not in self._windows:
+            window_config = self._get_cardinality_limit_config(use_case_id)
+            self._windows[(use_case_id, org_id)] = TimeseriesCardinalityWindow(
+                window_size=window_config["window_seconds"],
+                granularity=window_config["granularity_seconds"],
+                limit=window_config["limit"],
+            )
+        return self._windows[(use_case_id, org_id)]
+
+    def _hash_msgs(
+        self, messages: Mapping[BrokerMeta, InboundMessage]
+    ) -> Tuple[Mapping[Tuple[UseCaseID, OrgId], Set[int]], Mapping[int, BrokerMeta]]:
+        bucketed_hashes: MutableMapping[Tuple[UseCaseID, OrgId], Set[int]] = defaultdict(set)
+        hash_to_meta: MutableMapping[int, BrokerMeta] = {}
+
+        for meta, message in messages.items():
+            use_case_id = message["use_case_id"]
+            org_id = message["org_id"]
+            hash = int(
+                hash_values(
+                    [
+                        message["name"],
+                        message["tags"],
+                    ]
+                ),
+                16,
+            )
+
+            bucketed_hashes[(use_case_id, org_id)].add(hash)
+            hash_to_meta[hash] = meta
+        return bucketed_hashes, hash_to_meta
+
+    def apply_cardinality_limits(
+        self, metric_path_key: UseCaseKey, messages: Mapping[BrokerMeta, InboundMessage]
+    ) -> Sequence[BrokerMeta]:
+        if metric_path_key is UseCaseKey.RELEASE_HEALTH:
+            return []
+
+        bucketed_hashes, hash_to_meta = self._hash_msgs(messages)
+
+        rate_limited_msg_meta = []
+        for (use_case_id, org_id), unit_hashes in bucketed_hashes.items():
+            window = self._get_window(use_case_id, org_id)
+            rate_limited_hashes = window.apply_limits(unit_hashes)
+            rate_limited_msg_meta.extend(
+                [hash_to_meta[rate_limited_hash] for rate_limited_hash in rate_limited_hashes]
+            )
+
+        return rate_limited_msg_meta
 
 
 class TimeseriesCardinalityLimiter:

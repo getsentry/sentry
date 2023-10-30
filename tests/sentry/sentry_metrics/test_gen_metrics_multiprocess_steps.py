@@ -15,7 +15,6 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import MessageRejected
 from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
-from sentry.ratelimits.cardinality import CardinalityLimiter
 from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_option
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.consumers.indexer.batch import valid_metric_name
@@ -26,12 +25,12 @@ from sentry.sentry_metrics.consumers.indexer.common import (
     MetricsBatchBuilder,
 )
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
-from sentry.sentry_metrics.indexer.limiters.cardinality import (
-    TimeseriesCardinalityLimiter,
-    cardinality_limiter_factory,
-)
 from sentry.sentry_metrics.indexer.mock import MockIndexer, RawSimpleIndexer
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import (
+    USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS,
+    UseCaseID,
+)
+from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -582,32 +581,29 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
 
 
 @pytest.mark.django_db
-def test_process_messages_cardinality_limited(
-    caplog, settings, monkeypatch, set_sentry_option
-) -> None:
+def test_process_messages_cardinality_limited(caplog, settings, set_sentry_option) -> None:
     """
     Test that the message processor correctly calls the cardinality limiter.
     """
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
 
     # set any limit at all to ensure we actually use the underlying rate limiter
-    with set_sentry_option(
-        "sentry-metrics.cardinality-limiter.limits.performance.per-org",
-        [{"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}],
-    ), set_sentry_option("sentry-metrics.cardinality-limiter.orgs-rollout-rate", 1.0):
-
-        class MockCardinalityLimiter(CardinalityLimiter):
-            def check_within_quotas(self, requested_quotas):
-                # Grant nothing, limit everything
-                return 123, []
-
-            def use_quotas(self, grants, timestamp):
-                pass
-
-        monkeypatch.setitem(
-            cardinality_limiter_factory.rate_limiters,
-            "performance",
-            TimeseriesCardinalityLimiter("performance", MockCardinalityLimiter()),
+    with override_options(
+        {
+            v: [
+                {"window_seconds": 3600, "granularity_seconds": 600, "limit": 0},
+            ]
+            for _, v in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS.items()
+        }
+    ), override_options(
+        {
+            "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org": [
+                {"window_seconds": 3600, "granularity_seconds": 600, "limit": 0},
+            ]
+        }
+    ):
+        MESSAGE_PROCESSOR = MessageProcessor(
+            get_ingest_config(UseCaseKey.PERFORMANCE, IndexerStorage.POSTGRES)
         )
 
         message_payloads = counter_payloads + distribution_payloads + set_payloads
