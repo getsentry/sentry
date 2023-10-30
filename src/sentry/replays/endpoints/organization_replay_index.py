@@ -9,7 +9,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import NoProjects
+from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
 from sentry.api.event_search import parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
@@ -18,15 +18,15 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
-from sentry.replays.endpoints.base import BaseReplaysOrganizationEndpoint
 from sentry.replays.post_process import ReplayDetailsResponse, process_raw_response
 from sentry.replays.query import query_replays_collection, replay_url_parser_config
+from sentry.replays.usecases.errors import handled_snuba_exceptions
 from sentry.replays.validators import ReplayValidator
 
 
 @region_silo_endpoint
 @extend_schema(tags=["Replays"])
-class OrganizationReplayIndexEndpoint(BaseReplaysOrganizationEndpoint):
+class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -58,6 +58,7 @@ class OrganizationReplayIndexEndpoint(BaseReplaysOrganizationEndpoint):
         },
         examples=ReplayExamples.GET_REPLAYS,
     )
+    @handled_snuba_exceptions
     def get(self, request: Request, organization: Organization) -> Response:
         """
         Return a list of replays belonging to an organization.

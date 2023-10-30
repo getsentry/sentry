@@ -25,23 +25,23 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import NoProjects
+from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
 from sentry.api.event_search import ParenExpression, SearchFilter, parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
-from sentry.replays.endpoints.base import BaseReplaysOrganizationEndpoint
 from sentry.replays.lib.new_query.conditions import IntegerScalar
 from sentry.replays.lib.new_query.fields import FieldProtocol, IntegerColumnField
 from sentry.replays.lib.new_query.parsers import parse_int
 from sentry.replays.query import make_pagination_values
+from sentry.replays.usecases.errors import handled_snuba_exceptions
 from sentry.replays.usecases.query import Paginators, handle_ordering, handle_search_filters
 from sentry.replays.validators import ReplaySelectorValidator
 from sentry.utils.snuba import raw_snql_query
 
 
 @region_silo_endpoint
-class OrganizationReplaySelectorIndexEndpoint(BaseReplaysOrganizationEndpoint):
+class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
@@ -58,6 +58,7 @@ class OrganizationReplaySelectorIndexEndpoint(BaseReplaysOrganizationEndpoint):
 
         return filter_params
 
+    @handled_snuba_exceptions
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has("organizations:session-replay", organization, actor=request.user):
             return Response(status=404)

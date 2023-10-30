@@ -1,7 +1,8 @@
+import functools
+
 import sentry_sdk
 from rest_framework.response import Response
 
-from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.utils.snuba import (
     DatasetSelectionError,
     QueryConnectionFailed,
@@ -17,10 +18,11 @@ ENGINEER_ERROR = "An internal error occurred. The error has been logged."
 RESOURCE_LIMIT = "Query limits exceeded. Try narrowing your request."
 
 
-class BaseReplaysOrganizationEndpoint(OrganizationEndpoint):
-    def paginate(self, *args, **kwargs):
+def handled_snuba_exceptions(fn):
+    @functools.wraps(fn)
+    def decorator(*args, **kwargs):
         try:
-            return super().paginate(*args, **kwargs)
+            return fn(*args, **kwargs)
         except DatasetSelectionError as exc:
             return respond_logged(ENGINEER_ERROR, exc, status=500)
         except QueryConnectionFailed as exc:
@@ -37,6 +39,8 @@ class BaseReplaysOrganizationEndpoint(OrganizationEndpoint):
             return respond_logged(ENGINEER_ERROR, exc, status=500)
         except QueryTooManySimultaneous as exc:
             return respond_logged("Server overloaded. Please try again.", exc, status=400)
+
+    return decorator
 
 
 def respond_logged(message: str, exc: Exception, status: int) -> Response:
