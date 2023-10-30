@@ -308,7 +308,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
         }
       );
       this.setState(state => {
-        // Replace the item in the state
+        // Replace the item in state
         const newNotificationOptions = state.notificationOptions.map(option => {
           if (option.id === data.id) {
             return notificationOption;
