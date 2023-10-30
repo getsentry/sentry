@@ -2741,7 +2741,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "clickhouse": lambda settings, options: (
         {
-            "image": "ghcr.io/getsentry/image-mirror-yandex-clickhouse-server:20.3.9.70"
+            "image": "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.8.13.1.altinitystable"
             if not APPLE_ARM64
             # altinity provides clickhouse support to other companies
             # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
