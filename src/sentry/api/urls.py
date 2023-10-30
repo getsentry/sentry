@@ -2671,6 +2671,13 @@ SENTRY_APP_URLS = [
         name="sentry-api-0-sentry-app-stats",
     ),
     re_path(
+        r"^(?P<sentry_app_slug>[^\/]+)/publish-request/$",
+        SentryAppPublishRequestEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-publish-request",
+    ),
+    # The following a region endpoints as interactions and request logs
+    # are per-region.
+    re_path(
         r"^(?P<sentry_app_slug>[^\/]+)/requests/$",
         SentryAppRequestsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-requests",
@@ -2679,11 +2686,6 @@ SENTRY_APP_URLS = [
         r"^(?P<sentry_app_slug>[^\/]+)/interaction/$",
         SentryAppInteractionEndpoint.as_view(),
         name="sentry-api-0-sentry-app-interaction",
-    ),
-    re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/publish-request/$",
-        SentryAppPublishRequestEndpoint.as_view(),
-        name="sentry-api-0-sentry-app-publish-request",
     ),
 ]
 
@@ -2698,6 +2700,8 @@ SENTRY_APP_INSTALLATION_URLS = [
         SentryAppAuthorizationsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-installation-authorizations",
     ),
+    # The following endpoints are region scoped, not control
+    # like most of sentryapps.
     re_path(
         r"^(?P<uuid>[^\/]+)/external-requests/$",
         SentryAppInstallationExternalRequestsEndpoint.as_view(),
