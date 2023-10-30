@@ -1,5 +1,4 @@
 import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
-import {FeedbackIssue} from 'sentry/utils/feedback/types';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
@@ -662,12 +661,7 @@ export interface GroupUnresolved extends BaseGroup, GroupStats {
   statusDetails: {};
 }
 
-export type Group =
-  | GroupUnresolved
-  | GroupResolved
-  | GroupIgnored
-  | GroupReprocessing
-  | FeedbackIssue;
+export type Group = GroupUnresolved | GroupResolved | GroupIgnored | GroupReprocessing;
 
 export interface GroupTombstone {
   actor: AvatarUser;

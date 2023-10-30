@@ -1,4 +1,4 @@
-import {Fragment, ReactNode, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
@@ -22,6 +22,7 @@ import {space} from 'sentry/styles/space';
 import type {Actor, Commit, Committer, Group, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useApi from 'sentry/utils/useApi';
 import useCommitters from 'sentry/utils/useCommitters';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -54,7 +55,6 @@ interface AssignedToProps {
   group: Group;
   project: Project;
   disableDropdown?: boolean;
-  dropdown?: ReactNode;
   event?: Event;
   onAssign?: OnAssignCallback;
 }
@@ -149,7 +149,10 @@ export function getOwnerList(
   }));
 }
 
-export function getAssignedToDisplayName(group: Group, isFeedback?: boolean) {
+export function getAssignedToDisplayName(
+  group: Group | FeedbackIssue,
+  isFeedback?: boolean
+) {
   if (group.assignedTo?.type === 'team') {
     const team = TeamStore.getById(group.assignedTo.id);
     return `#${team?.slug ?? group.assignedTo.name}`;
@@ -168,7 +171,6 @@ function AssignedTo({
   event,
   onAssign,
   disableDropdown = false,
-  dropdown,
 }: AssignedToProps) {
   const organization = useOrganization();
   const api = useApi();
@@ -217,67 +219,63 @@ function AssignedTo({
 
   return (
     <SidebarSection.Wrap data-test-id="assigned-to">
-      {dropdown ?? (
-        <Fragment>
-          <StyledSidebarTitle>
-            {t('Assigned To')}
-            <Access access={['project:read']}>
-              <Button
-                onClick={() => {
-                  openIssueOwnershipRuleModal({
-                    project,
-                    organization,
-                    issueId: group.id,
-                    eventData: event!,
-                  });
-                }}
-                aria-label={t('Create Ownership Rule')}
-                icon={<IconSettings />}
-                borderless
-                size="xs"
-              />
-            </Access>
-          </StyledSidebarTitle>
-          <StyledSidebarSectionContent>
-            <AssigneeSelectorDropdown
-              organization={organization}
-              owners={owners}
-              disabled={disableDropdown}
-              id={group.id}
-              assignedTo={group.assignedTo}
-              onAssign={onAssign}
-            >
-              {({loading, isOpen, getActorProps}) => (
-                <DropdownButton data-test-id="assignee-selector" {...getActorProps({})}>
-                  <ActorWrapper>
-                    {loading ? (
-                      <StyledLoadingIndicator mini size={24} />
-                    ) : group.assignedTo ? (
-                      <ActorAvatar
-                        data-test-id="assigned-avatar"
-                        actor={group.assignedTo}
-                        hasTooltip={false}
-                        size={24}
-                      />
-                    ) : (
-                      <IconWrapper>
-                        <IconUser size="md" />
-                      </IconWrapper>
-                    )}
-                    <ActorName>{getAssignedToDisplayName(group)}</ActorName>
-                  </ActorWrapper>
-                  {!disableDropdown && (
-                    <IconChevron
-                      data-test-id="assigned-to-chevron-icon"
-                      direction={isOpen ? 'up' : 'down'}
-                    />
-                  )}
-                </DropdownButton>
+      <StyledSidebarTitle>
+        {t('Assigned To')}
+        <Access access={['project:read']}>
+          <Button
+            onClick={() => {
+              openIssueOwnershipRuleModal({
+                project,
+                organization,
+                issueId: group.id,
+                eventData: event!,
+              });
+            }}
+            aria-label={t('Create Ownership Rule')}
+            icon={<IconSettings />}
+            borderless
+            size="xs"
+          />
+        </Access>
+      </StyledSidebarTitle>
+      <StyledSidebarSectionContent>
+        <AssigneeSelectorDropdown
+          organization={organization}
+          owners={owners}
+          disabled={disableDropdown}
+          id={group.id}
+          assignedTo={group.assignedTo}
+          onAssign={onAssign}
+        >
+          {({loading, isOpen, getActorProps}) => (
+            <DropdownButton data-test-id="assignee-selector" {...getActorProps({})}>
+              <ActorWrapper>
+                {loading ? (
+                  <StyledLoadingIndicator mini size={24} />
+                ) : group.assignedTo ? (
+                  <ActorAvatar
+                    data-test-id="assigned-avatar"
+                    actor={group.assignedTo}
+                    hasTooltip={false}
+                    size={24}
+                  />
+                ) : (
+                  <IconWrapper>
+                    <IconUser size="md" />
+                  </IconWrapper>
+                )}
+                <ActorName>{getAssignedToDisplayName(group)}</ActorName>
+              </ActorWrapper>
+              {!disableDropdown && (
+                <IconChevron
+                  data-test-id="assigned-to-chevron-icon"
+                  direction={isOpen ? 'up' : 'down'}
+                />
               )}
-            </AssigneeSelectorDropdown>
-          </StyledSidebarSectionContent>
-        </Fragment>
-      )}
+            </DropdownButton>
+          )}
+        </AssigneeSelectorDropdown>
+      </StyledSidebarSectionContent>
     </SidebarSection.Wrap>
   );
 }
