@@ -58,6 +58,7 @@ export function createDashboard(
       },
       query: {
         project: projects,
+        environment,
       },
     }
   );
@@ -142,6 +143,7 @@ export function updateDashboard(
       data,
       query: {
         project: projects,
+        environment,
       },
     }
   );

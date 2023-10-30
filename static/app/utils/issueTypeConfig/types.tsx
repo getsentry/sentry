@@ -26,6 +26,10 @@ export type IssueTypeConfig = {
    */
   attachments: DisabledWithReasonConfig;
   /**
+   * Is the "Open in Discover" button available for this issue
+   */
+  discover: DisabledWithReasonConfig;
+  /**
    * Is the Events tab show for this issue
    */
   events: DisabledWithReasonConfig;
