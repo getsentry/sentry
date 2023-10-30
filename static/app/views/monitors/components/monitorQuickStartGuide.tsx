@@ -22,6 +22,8 @@ import {
   PythonCeleryCronQuickStart,
   PythonCronQuickStart,
   QuickStartProps,
+  RubyCronQuickStart,
+  RubyRailsCronQuickStart,
 } from 'sentry/views/monitors/components/quickStartEntries';
 
 import {Monitor} from '../types';
@@ -107,6 +109,16 @@ const onboardingGuides: Record<string, OnboardingGuide> = {
       'java-spring-boot',
       'java-spring',
     ]),
+  },
+  ruby: {
+    label: 'Ruby',
+    Guide: RubyCronQuickStart,
+    platforms: new Set(['ruby']),
+  },
+  rubyRails: {
+    label: 'Rails',
+    Guide: RubyRailsCronQuickStart,
+    platforms: new Set(['ruby', 'ruby-rails']),
   },
 };
 

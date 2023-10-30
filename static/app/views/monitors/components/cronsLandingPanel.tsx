@@ -30,6 +30,7 @@ import {
   NodeJsUpsertPlatformGuide,
   PHPUpsertPlatformGuide,
   QuickStartProps,
+  RubyUpsertPlatformGuide,
 } from './quickStartEntries';
 
 enum GuideKey {
@@ -89,6 +90,14 @@ const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
     },
   ],
   'java-spring-boot': [],
+  ruby: [
+    {
+      Guide: RubyUpsertPlatformGuide,
+      title: 'Upsert',
+      key: GuideKey.UPSERT,
+    },
+  ],
+  'ruby-rails': [],
 };
 
 export function isValidPlatform(platform?: string | null): platform is SupportedPlatform {

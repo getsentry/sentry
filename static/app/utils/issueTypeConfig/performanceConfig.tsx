@@ -190,6 +190,8 @@ const performanceConfig: IssueCategoryConfigMapping = {
   [IssueType.PERFORMANCE_DURATION_REGRESSION]: {
     stats: {enabled: false},
     tags: {enabled: false},
+    replays: {enabled: false},
+    discover: {enabled: false},
   },
   [IssueType.PROFILE_FILE_IO_MAIN_THREAD]: {
     resources: {
@@ -280,6 +282,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
     replays: {enabled: false},
     stats: {enabled: false},
     tags: {enabled: false},
+    discover: {enabled: false},
   },
 };
 

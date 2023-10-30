@@ -183,7 +183,7 @@ def export_to_encrypted_tarball(
     # part of the encrypt/decrypt tar-ing API, so we need to ensure that these exact names are
     # present and contain the data we expect.
     with open(tar_file_path, "rb") as f:
-        return json.loads(decrypt_encrypted_tarball(f, io.BytesIO(private_key_pem)))
+        return json.loads(decrypt_encrypted_tarball(f, False, io.BytesIO(private_key_pem)))
 
 
 # No arguments, so we lazily cache the result after the first calculation.
@@ -384,7 +384,8 @@ class BackupTestCase(TransactionTestCase):
         # Integration*
         org_integration = self.create_exhaustive_organization_integration(org)
         integration_id = org_integration.integration.id
-        # Note: this model is deprecated, and can safely be removed from this test when it is finally removed. Until then, it is included for completeness.
+        # Note: this model is deprecated, and can safely be removed from this test when it is
+        # finally removed. Until then, it is included for completeness.
         ProjectIntegration.objects.create(
             project=project, integration_id=integration_id, config='{"hello":"hello"}'
         )

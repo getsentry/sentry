@@ -41,6 +41,7 @@ type DefaultProps = {
   allowUpload?: boolean;
   defaultChoice?: DefaultChoice;
   type?: AvatarChooserType;
+  uploadDomain?: string;
 };
 
 type Props = {
@@ -71,6 +72,7 @@ class AvatarChooser extends Component<Props, State> {
     defaultChoice: {
       allowDefault: false,
     },
+    uploadDomain: '',
   };
 
   state: State = {
@@ -170,6 +172,7 @@ class AvatarChooser extends Component<Props, State> {
       title,
       help,
       defaultChoice,
+      uploadDomain,
     } = this.props;
     const {hasError, model, dataUrl} = this.state;
 
@@ -242,6 +245,7 @@ class AvatarChooser extends Component<Props, State> {
                   type={type!}
                   model={model}
                   savedDataUrl={savedDataUrl}
+                  uploadDomain={uploadDomain ?? ''}
                   updateDataUrlState={dataState => this.setState(dataState)}
                 />
               )}

@@ -1,28 +1,11 @@
 import {useCallback, useMemo} from 'react';
 import {Index, IndexRange} from 'react-virtualized';
 
-import hydrateFeedbackRecord from 'sentry/components/feedback/hydrateFeedbackRecord';
-import {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
-import {RawFeedbackListResponse} from 'sentry/utils/feedback/list/types';
-import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {FeedbackIssueList} from 'sentry/utils/feedback/types';
+import {ApiQueryKey, useInfiniteApiQuery} from 'sentry/utils/queryClient';
 
 interface Params {
-  queryView: {
-    collapse: string[];
-    expand: string[];
-    limit: number;
-    queryReferrer: string;
-    shortIdLookup: number;
-    end?: string;
-    environment?: string[];
-    field?: string[];
-    project?: string[];
-    query?: string;
-    start?: string;
-    statsPeriod?: string;
-    utc?: string;
-  };
+  queryKey: ApiQueryKey;
 }
 
 export const EMPTY_INFINITE_LIST_DATA: ReturnType<
@@ -43,17 +26,7 @@ export const EMPTY_INFINITE_LIST_DATA: ReturnType<
   setFeedback: () => undefined,
 };
 
-export default function useFetchFeedbackInfiniteListData({queryView}: Params) {
-  const organization = useOrganization();
-
-  const query = useMemo(
-    () => ({
-      ...queryView,
-      query: 'issue.category:feedback ' + queryView.query,
-    }),
-    [queryView]
-  );
-
+export default function useFetchFeedbackInfiniteListData({queryKey}: Params) {
   const {
     data,
     error,
@@ -64,17 +37,17 @@ export default function useFetchFeedbackInfiniteListData({queryView}: Params) {
     isFetchingNextPage,
     isFetchingPreviousPage,
     isLoading, // If anything is loaded yet
-  } = useInfiniteApiQuery<RawFeedbackListResponse>({
-    queryKey: [`/organizations/${organization.slug}/issues/`, {query}],
+  } = useInfiniteApiQuery<FeedbackIssueList>({
+    queryKey,
   });
 
   const issues = useMemo(
-    () => data?.pages.flatMap(([pageData]) => pageData).map(hydrateFeedbackRecord) ?? [],
+    () => data?.pages.flatMap(([pageData]) => pageData) ?? [],
     [data]
   );
 
   const getRow = useCallback(
-    ({index}: Index): HydratedFeedbackItem | undefined => issues?.[index],
+    ({index}: Index): FeedbackIssueList[number] | undefined => issues?.[index],
     [issues]
   );
 
@@ -88,7 +61,7 @@ export default function useFetchFeedbackInfiniteListData({queryView}: Params) {
   );
 
   const setFeedback = useCallback(
-    (_feedbackId: string, _feedback: undefined | HydratedFeedbackItem) => {},
+    (_feedbackId: string, _feedback: undefined | FeedbackIssueList) => {},
     // loaderRef.current?.setFeedback(feedbackId, feedback),
     []
   );
