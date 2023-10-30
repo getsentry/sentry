@@ -2295,7 +2295,6 @@
     "src/sentry/utils/redis.py",
     "src/sentry/utils/request_cache.py",
     "src/sentry/utils/retries.py",
-    "src/sentry/utils/runner.py",
     "src/sentry/utils/rust.py",
     "src/sentry/utils/safe.py",
     "src/sentry/utils/samples.py",
