@@ -251,16 +251,6 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                         },
                     )
 
-            # if not data.get("actions", []):
-            #     return Response(
-            #         {
-            #             "actions": [
-            #                 "You must add an action for this alert to fire.",
-            #             ]
-            #         },
-            #         status=status.HTTP_400_BAD_REQUEST,
-            #     )
-
             # combine filters and conditions into one conditions criteria for the rule object
             conditions = data.get("conditions", [])
             if "filters" in data:
