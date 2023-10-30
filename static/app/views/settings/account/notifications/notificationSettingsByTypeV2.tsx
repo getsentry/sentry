@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -13,22 +14,20 @@ import {Organization, OrganizationSummary} from 'sentry/types';
 import {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import withOrganizations from 'sentry/utils/withOrganizations';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
+
 import {
   DefaultSettings,
   NotificationOptionsObject,
   NotificationProvidersObject,
-} from 'sentry/views/settings/account/notifications/constants';
-import {ACCOUNT_NOTIFICATION_FIELDS} from 'sentry/views/settings/account/notifications/fields';
-import {
-  NOTIFICATION_SETTING_FIELDS_V2,
-  QUOTA_FIELDS,
-} from 'sentry/views/settings/account/notifications/fields2';
-import NotificationSettingsByEntity from 'sentry/views/settings/account/notifications/notificationSettingsByEntity';
-import {Identity} from 'sentry/views/settings/account/notifications/types';
-import UnlinkedAlert from 'sentry/views/settings/account/notifications/unlinkedAlert';
-import {isGroupedByProject} from 'sentry/views/settings/account/notifications/utils';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+} from './constants';
+import {ACCOUNT_NOTIFICATION_FIELDS} from './fields';
+import {NOTIFICATION_SETTING_FIELDS_V2, QUOTA_FIELDS} from './fields2';
+import NotificationSettingsByEntity from './notificationSettingsByEntity';
+import {Identity} from './types';
+import UnlinkedAlert from './unlinkedAlert';
+import {isGroupedByProject} from './utils';
 
 type Props = {
   notificationType: string; // TODO(steve)? type better
@@ -277,7 +276,6 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
         option => !(option.id.toString() === id.toString())
       );
       return {
-        ...state,
         notificationOptions: newNotificationOptions,
       };
     });
@@ -295,10 +293,35 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
 
     this.setState(state => {
       return {
-        ...state,
         notificationOptions: [...state.notificationOptions, notificationOption],
       };
     });
+  };
+
+  handleEditNotificationOption = async (data: NotificationOptionsObject) => {
+    try {
+      const notificationOption: NotificationOptionsObject = await this.api.requestPromise(
+        '/users/me/notification-options/',
+        {
+          method: 'PUT',
+          data,
+        }
+      );
+      this.setState(state => {
+        // Replace the item in state
+        const newNotificationOptions = state.notificationOptions.map(option => {
+          if (option.id === data.id) {
+            return notificationOption;
+          }
+          return option;
+        });
+
+        return {notificationOptions: newNotificationOptions};
+      });
+      addSuccessMessage(t('Updated notification setting'));
+    } catch (err) {
+      addErrorMessage(t('Unable to update notification setting'));
+    }
   };
 
   renderBody() {
@@ -348,6 +371,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
           organizations={this.props.organizations}
           handleRemoveNotificationOption={this.handleRemoveNotificationOption}
           handleAddNotificationOption={this.handleAddNotificationOption}
+          handleEditNotificationOption={this.handleEditNotificationOption}
           entityType={entityType}
         />
       </Fragment>
