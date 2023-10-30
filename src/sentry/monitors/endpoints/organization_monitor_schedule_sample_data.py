@@ -10,6 +10,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.models.organization import Organization
 from sentry.monitors.schedule import SCHEDULE_INTERVAL_MAP
 
 
@@ -18,7 +19,7 @@ class OrganizationMonitorScheduleSampleDataEndpoint(OrganizationEndpoint):
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
     owner = ApiOwner.CRONS
 
-    def get(self, request: Request) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         num_ticks = int(request.GET.get("numTicks", 0))
         schedule_type = request.GET.get("scheduleType")
         cron_schedule = request.GET.get("cronSchedule")
