@@ -494,7 +494,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         return "{}/browse/{}".format(self.model.metadata["base_url"], key)
 
     def get_persisted_default_config_fields(self) -> Sequence[str]:
-        return ["project", "issuetype", "priority", "labels"]
+        return ["project", "issuetype", "labels"]
 
     def get_persisted_user_default_config_fields(self):
         return ["reporter"]
@@ -837,7 +837,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             if field["name"] == "priority":
                 # whenever priorities are available, put the available ones in the list.
                 # allowedValues for some reason doesn't pass enough info.
-                field["choices"] = self.make_choices(client.get_priorities())
+                field["choices"] = self.make_choices(client.get_priorities(project_id))
                 field["default"] = defaults.get("priority", "")
             elif field["name"] == "fixVersions":
                 field["choices"] = self.make_choices(client.get_versions(project_id))
@@ -978,6 +978,15 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             cleaned_data["issuetype"] = {"id": issue_type}
 
         try:
+            logger.info(
+                "jira_server.create_issue",
+                extra={
+                    "organization_id": self.organization_id,
+                    "integration_id": self.model.id,
+                    "jira_project": jira_project,
+                    "cleaned_data": cleaned_data,
+                },
+            )
             response = client.create_issue(cleaned_data)
         except Exception as e:
             self.raise_error(e)

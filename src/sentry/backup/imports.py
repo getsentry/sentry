@@ -25,7 +25,6 @@ from sentry.services.hybrid_cloud.import_export.model import (
     RpcPrimaryKeyMap,
 )
 from sentry.services.hybrid_cloud.import_export.service import ImportExportService
-from sentry.services.organization import should_use_control_provisioning
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.utils import json
@@ -57,7 +56,9 @@ def _import(
     """
     Imports core data for a Sentry installation.
 
-    It is generally preferable to avoid calling this function directly, as there are certain combinations of input parameters that should not be used together. Instead, use one of the other wrapper functions in this file, named `import_in_XXX_scope()`.
+    It is generally preferable to avoid calling this function directly, as there are certain
+    combinations of input parameters that should not be used together. Instead, use one of the other
+    wrapper functions in this file, named `import_in_XXX_scope()`.
     """
 
     # Import here to prevent circular module resolutions.
@@ -98,7 +99,7 @@ def _import(
     # wasteful - in the future, we should explore chunking strategies to enable a smaller memory
     # footprint when processing super large (>100MB) exports.
     content = (
-        decrypt_encrypted_tarball(src, decrypt_with)
+        decrypt_encrypted_tarball(src, flags.decrypt_using_gcp_kms, decrypt_with)
         if decrypt_with is not None
         else src.read().decode("utf-8")
     )
@@ -259,8 +260,7 @@ def _import(
     else:
         do_writes(pk_map)
 
-    if should_use_control_provisioning():
-        resolve_org_slugs_from_pk_map(pk_map)
+    resolve_org_slugs_from_pk_map(pk_map)
 
     if deferred_org_auth_tokens:
         do_write(pk_map, org_auth_token_model_name, deferred_org_auth_tokens)
@@ -275,9 +275,11 @@ def import_in_user_scope(
     printer=click.echo,
 ):
     """
-    Perform an import in the `User` scope, meaning that only models with `RelocationScope.User` will be imported from the provided `src` file.
+    Perform an import in the `User` scope, meaning that only models with `RelocationScope.User` will
+    be imported from the provided `src` file.
 
-    The `user_filter` argument allows imports to be filtered by username. If the argument is set to `None`, there is no filtering, meaning all encountered users are imported.
+    The `user_filter` argument allows imports to be filtered by username. If the argument is set to
+    `None`, there is no filtering, meaning all encountered users are imported.
     """
 
     # Import here to prevent circular module resolutions.
@@ -367,7 +369,8 @@ def import_in_global_scope(
     Perform an import in the `Global` scope, meaning that all models will be imported from the
     provided source file. Because a `Global` import is really only useful when restoring to a fresh
     Sentry instance, some behaviors in this scope are different from the others. In particular,
-    superuser privileges are not sanitized. This method can be thought of as a "pure" backup/restore, simply serializing and deserializing a (partial) snapshot of the database state.
+    superuser privileges are not sanitized. This method can be thought of as a "pure"
+    backup/restore, simply serializing and deserializing a (partial) snapshot of the database state.
     """
 
     return _import(

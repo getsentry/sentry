@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {Link} from 'react-router';
 
+import FileSize from 'sentry/components/fileSize';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
@@ -16,6 +17,7 @@ import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/render
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
 
 type Row = {
+  'avg(http.response_content_length)': number;
   'avg(span.self_time)': number;
   'spm()': number;
   transaction: string;
@@ -41,6 +43,11 @@ function ResourceSummaryTable() {
       width: COL_WIDTH_UNDEFINED,
       name: 'Avg Duration',
     },
+    {
+      key: 'avg(http.response_content_length)',
+      width: COL_WIDTH_UNDEFINED,
+      name: 'Avg Resource Size',
+    },
   ];
 
   const renderBodyCell = (col: Column, row: Row) => {
@@ -50,6 +57,9 @@ function ResourceSummaryTable() {
     }
     if (key === 'avg(span.self_time)') {
       return <DurationCell milliseconds={row[key]} />;
+    }
+    if (key === 'avg(http.response_content_length)') {
+      return <FileSize bytes={row[key]} />;
     }
     if (key === 'transaction') {
       return (

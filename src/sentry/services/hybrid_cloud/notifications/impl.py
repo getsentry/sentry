@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, List, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import Callable, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 from django.db import router, transaction
 from django.db.models import Q, QuerySet
@@ -264,6 +264,34 @@ class DatabaseBackedNotificationsService(NotificationsService):
             actor.id: {provider.value: value.value for provider, value in providers.items()}
             for actor, providers in participants.items()
         }
+
+    def get_users_for_weekly_reports(
+        self, *, organization_id: int, user_ids: List[int]
+    ) -> List[int]:
+        users = User.objects.filter(id__in=user_ids)
+        controller = NotificationController(
+            recipients=users,
+            organization_id=organization_id,
+            type=NotificationSettingEnum.REPORTS,
+        )
+        return controller.get_users_for_weekly_reports()
+
+    def get_notification_recipients(
+        self,
+        *,
+        recipients: Iterable[RpcActor],
+        type: NotificationSettingEnum,
+        project_ids: Optional[List[int]] = None,
+        organization_id: Optional[int] = None,
+        actor_type: Optional[ActorType] = None,
+    ) -> Mapping[ExternalProviders, set[RpcActor]]:
+        controller = NotificationController(
+            recipients=recipients,
+            organization_id=organization_id,
+            project_ids=project_ids,
+            type=type,
+        )
+        return controller.get_notification_recipients(type=type, actor_type=actor_type)
 
     class _NotificationSettingsQuery(
         FilterQueryDatabaseImpl[

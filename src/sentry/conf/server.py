@@ -1451,6 +1451,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:profiling-using-transactions": False,
     # Enabled for those orgs who participated in the profiling Beta program
     "organizations:profiling-beta": False,
+    # Enables production profiling in sentry browser application
+    "organizations:profiling-browser": False,
     # Enable stacktrace linking of multiple frames in profiles
     "organizations:profiling-stacktrace-links": False,
     # Enable global suspect functions in profiling
@@ -1660,6 +1662,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-database-view": False,
     # Enable removing the fallback for metrics compatibility
     "organizations:performance-remove-metrics-compatibility-fallback": False,
+    # Enable performance score calculation for transactions in relay
+    "organizations:performance-calculate-score-relay": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1709,8 +1713,12 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-test-endpoint": False,
     # Enable starfish dropdown on the webservice view for switching chart visualization
     "organizations:starfish-wsv-chart-dropdown": False,
-    # Enable browser starfish view
+    # Enable browser starfish webvitals module view
     "organizations:starfish-browser-webvitals": False,
+    # Enable browser starfish webvitals module pageoverview v2 view
+    "organizations:starfish-browser-webvitals-pageoverview-v2": False,
+    # Enable browser starfish webvitals module to use backend provided performance scores
+    "organizations:starfish-browser-webvitals-use-backend-scores": False,
     # Replace the footer Sentry logo with a Sentry pride logo
     "organizations:sentry-pride-logo-footer": False,
     # Enable Session Stats down to a minute resolution
@@ -1796,6 +1804,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:user-feedback-ingest": False,
     # Enable User Feedback v2 UI
     "organizations:user-feedback-ui": False,
+    # Enable User Feedback v1
+    "organizations:old-user-feedback": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -2591,6 +2601,9 @@ SENTRY_USE_CDC_DEV = False
 # This flag activates profiling backend in the development environment
 SENTRY_USE_PROFILING = False
 
+# This flag activates indexed spans backend in the development environment
+SENTRY_USE_SPANS = False
+
 # This flag activates consuming issue platform occurrence data in the development environment
 SENTRY_USE_ISSUE_OCCURRENCE = False
 
@@ -2773,6 +2786,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                 "REDIS_DB": "1",
                 "ENABLE_SENTRY_METRICS_DEV": "1" if settings.SENTRY_USE_METRICS_DEV else "",
                 "ENABLE_PROFILES_CONSUMER": "1" if settings.SENTRY_USE_PROFILING else "",
+                "ENABLE_SPANS_CONSUMER": "1" if settings.SENTRY_USE_SPANS else "",
                 "ENABLE_ISSUE_OCCURRENCE_CONSUMER": "1"
                 if settings.SENTRY_USE_ISSUE_OCCURRENCE
                 else "",
@@ -3779,12 +3793,9 @@ MAX_ENVIRONMENTS_PER_MONITOR = 1000
 # tests)
 SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
 
-# The project ID for SDK Crash Detection to save the detected SDK crashed to.
-# Currently, this is a single value, as the SDK Crash Detection feature only detects crashes for the Cocoa SDK.
-# Once we start detecting crashes for other SDKs, this will be a mapping of SDK name to project ID or something similar.
+# Settings for the SDK crash detection. These are deprecated and will be removed
+# in a subsequent PR.
 SDK_CRASH_DETECTION_PROJECT_ID: Optional[int] = None
-
-# The percentage of events to sample for SDK Crash Detection. 0.0 = 0%, 0.5 = 50% 1.0 = 100%.
 SDK_CRASH_DETECTION_SAMPLE_RATE = 0.0
 
 # The Redis cluster to use for monitoring the service / consumer health.

@@ -537,7 +537,7 @@ export function RageClickCountCell({replay, showDropdownFilters}: Props) {
       <Container>
         {replay.count_rage_clicks ? (
           <RageClickCount>
-            <IconCursorArrow size="sm" />
+            <IconCursorArrow size="sm" color="red300" />
             {replay.count_rage_clicks}
           </RageClickCount>
         ) : (
@@ -563,7 +563,7 @@ export function DeadClickCountCell({replay, showDropdownFilters}: Props) {
       <Container>
         {replay.count_dead_clicks ? (
           <DeadClickCount>
-            <IconCursorArrow size="sm" />
+            <IconCursorArrow size="sm" color="yellow300" />
             {replay.count_dead_clicks}
           </DeadClickCount>
         ) : (
@@ -589,7 +589,7 @@ export function ErrorCountCell({replay, showDropdownFilters}: Props) {
       <Container>
         {replay.count_errors ? (
           <ErrorCount>
-            <IconFire />
+            <IconFire color="red300" />
             {replay.count_errors}
           </ErrorCount>
         ) : (
@@ -653,21 +653,18 @@ const DeadClickCount = styled(Count)`
   display: flex;
   width: 40px;
   gap: ${space(0.5)};
-  color: ${p => p.theme.yellow300};
 `;
 
 const RageClickCount = styled(Count)`
   display: flex;
   width: 40px;
   gap: ${space(0.5)};
-  color: ${p => p.theme.red300};
 `;
 
 const ErrorCount = styled(Count)`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  color: ${p => p.theme.red400};
 `;
 
 const Time = styled('span')`

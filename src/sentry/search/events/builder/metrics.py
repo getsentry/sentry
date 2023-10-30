@@ -130,7 +130,11 @@ class MetricsQueryBuilder(QueryBuilder):
             return None
 
         try:
-            return OnDemandMetricSpec(field, self.query)
+            environment = None
+            if self.params.environments:
+                environment = self.params.environments[0].name
+
+            return OnDemandMetricSpec(field, self.query, environment)
         except Exception as e:
             sentry_sdk.capture_exception(e)
             return None
@@ -170,6 +174,7 @@ class MetricsQueryBuilder(QueryBuilder):
             raise InvalidSearchQuery(
                 "The on demand metric query requires a time range to be executed"
             )
+
         where = [
             Condition(
                 lhs=Column(QUERY_HASH_KEY),
@@ -177,16 +182,6 @@ class MetricsQueryBuilder(QueryBuilder):
                 rhs=spec.query_hash,
             ),
         ]
-
-        if self.params.environments:
-            environment = self.params.environments[0].name
-            where.append(
-                Condition(
-                    Column("environment"),
-                    Op.EQ,
-                    environment,
-                )
-            )
 
         return MetricsQuery(
             select=[MetricField(spec.op, spec.mri, alias=alias)],
