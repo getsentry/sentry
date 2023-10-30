@@ -651,6 +651,24 @@ class NotificationControllerTest(TestCase):
             }
         }
 
+    @with_feature("organizations:notification-settings-v2")
+    @with_feature("organizations:team-workflow-notifications")
+    def test_get_team_issue_alert_participants(self):
+        rpc_user = RpcActor.from_object(self.team)
+        link_team(self.team, self.integration, "#team-channel", "team_channel_id")
+        controller = NotificationController(
+            recipients=[self.team],
+            project_ids=[self.project.id],
+            organization_id=self.organization.id,
+            type=NotificationSettingEnum.ISSUE_ALERTS,
+        )
+        assert controller.get_participants() == {
+            rpc_user: {
+                ExternalProviders.SLACK: NotificationSettingsOptionEnum.ALWAYS,
+                ExternalProviders.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
+            }
+        }
+
     def test_get_notification_value_for_recipient_and_type(self):
         add_notification_setting_option(
             scope_type=NotificationScopeEnum.USER,

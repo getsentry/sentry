@@ -195,6 +195,7 @@ class SlackLinkTeamView(BaseView):
             )
 
         # Turn on notifications for all of a team's projects.
+        # TODO(jangjodi): Remove this once the flag is removed
         if not features.has("organizations:team-workflow-notifications", team.organization):
             notifications_service.update_settings(
                 external_provider=ExternalProviders.SLACK,

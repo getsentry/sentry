@@ -316,6 +316,7 @@ class NotificationController:
                 for provider_str in PERSONAL_NOTIFICATION_PROVIDERS:
                     provider = ExternalProviderEnum(provider_str)
                     if provider not in most_specific_recipient_providers[type]:
+                        # TODO(jangjodi): Remove this once the flag is removed
                         if recipient_is_team(recipient) and (not has_team_workflow):
                             most_specific_recipient_providers[type][
                                 provider
