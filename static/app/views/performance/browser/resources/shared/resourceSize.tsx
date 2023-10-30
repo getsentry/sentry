@@ -8,8 +8,7 @@ type Props = {
 
 function ResourceSize(props: Props) {
   const {bytes} = props;
-  const hasNoSize = bytes === 0;
-  if (hasNoSize) {
+  if (bytes === 0) {
     return <Fragment>--</Fragment>;
   }
 
