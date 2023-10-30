@@ -100,7 +100,7 @@ class SourceSerializer(serializers.Serializer):
             min_length=2,
             max_length=20,
             required=False,
-            help_text="Required for AppStoreConnect sources, invalid for all others.",
+            help_text="The [App Store Connect API Key](https://developer.apple.com/documentation/appstoreconnectapi/creating_api_keys_for_app_store_connect_api) ID. Note that the key must have the "Developer" role for Sentry to discover the app builds. Required for AppStoreConnect sources, invalid for all others.",
         ),
     )
     appconnectPrivateKey = serializers.CharField(
