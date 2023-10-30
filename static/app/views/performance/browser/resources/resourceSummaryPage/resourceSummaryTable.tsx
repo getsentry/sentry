@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {Link} from 'react-router';
 
+import FileSize from 'sentry/components/fileSize';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
@@ -56,6 +57,9 @@ function ResourceSummaryTable() {
     }
     if (key === 'avg(span.self_time)') {
       return <DurationCell milliseconds={row[key]} />;
+    }
+    if (key === 'avg(http.response_content_length)') {
+      return <FileSize bytes={row[key]} />;
     }
     if (key === 'transaction') {
       return (
