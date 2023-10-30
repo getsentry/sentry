@@ -31,6 +31,7 @@ type Props = RouteComponentProps<{integrationSlug: string; installationId?: stri
 
 type State = DeprecatedAsyncView['state'] & {
   installationData?: GitHubIntegrationInstallation;
+  installationDataLoading?: boolean;
   organization?: Organization;
   provider?: IntegrationProvider;
   selectedOrgSlug?: string;
@@ -135,9 +136,14 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
       let installationData = undefined;
       if (this.integrationSlug === 'github') {
         const {installationId} = this.props.params;
-        installationData = await this.controlSiloApi.requestPromise(
-          `/extensions/github/installation/${installationId}/`
-        );
+        try {
+          installationData = await this.controlSiloApi.requestPromise(
+            `/extensions/github/installation/${installationId}/`
+          );
+        } catch (_err) {
+          addErrorMessage(t('Failed to retrieve GitHub installation details'));
+        }
+        this.setState({installationDataLoading: false});
       }
 
       this.setState(
@@ -282,17 +288,21 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
   }
 
   renderCallout() {
-    const {installationData} = this.state;
+    const {installationData, installationDataLoading} = this.state;
 
     if (this.integrationSlug !== 'github') {
       return null;
     }
 
     if (!installationData) {
+      if (installationDataLoading !== false) {
+        return null;
+      }
+
       return (
         <Alert type="warning" showIcon>
           {t(
-            'We could not verify the authenticity of the installation request. We recommend to restart the installation process.'
+            'We could not verify the authenticity of the installation request. We recommend restarting the installation process.'
           )}
         </Alert>
       );
