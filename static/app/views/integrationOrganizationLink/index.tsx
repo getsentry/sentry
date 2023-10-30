@@ -53,7 +53,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
   State
 > {
   disableErrorReport = false;
-  controlSiloApi = new Client({baseUrl: generateBaseControlSiloUrl()});
+  controlSiloApi = new Client({baseUrl: generateBaseControlSiloUrl() + '/api/0'});
 
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['organizations', '/organizations/']];
@@ -123,9 +123,9 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
         Organization,
         {providers: IntegrationProvider[]},
       ] = await Promise.all([
-        this.controlSiloApi.requestPromise(`/api/0/organizations/${orgSlug}/`),
+        this.controlSiloApi.requestPromise(`/organizations/${orgSlug}/`),
         this.controlSiloApi.requestPromise(
-          `/api/0/organizations/${orgSlug}/config/integrations/?provider_key=${this.integrationSlug}`
+          `/organizations/${orgSlug}/config/integrations/?provider_key=${this.integrationSlug}`
         ),
       ]);
       // should never happen with a valid provider
@@ -137,8 +137,10 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
       if (this.integrationSlug === 'github') {
         const {installationId} = this.props.params;
         try {
+          // The API endpoint /extensions/github/installation is not prefixed with /api/0
+          // so we have to use this workaround.
           installationData = await this.controlSiloApi.requestPromise(
-            `/extensions/github/installation/${installationId}/`
+            `/../../extensions/github/installation/${installationId}/`
           );
         } catch (_err) {
           addErrorMessage(t('Failed to retrieve GitHub installation details'));
