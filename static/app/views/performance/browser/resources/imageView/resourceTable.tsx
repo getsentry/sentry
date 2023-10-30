@@ -14,6 +14,7 @@ import {ValidSort} from 'sentry/views/performance/browser/resources/imageView/ut
 import {useIndexedResourcesQuery} from 'sentry/views/performance/browser/resources/imageView/utils/useIndexedResourcesQuery';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
+import {WiderHovercard} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 
 const {SPAN_DESCRIPTION, SPAN_SELF_TIME, HTTP_RESPONSE_CONTENT_LENGTH} = SpanMetricsField;
@@ -59,9 +60,20 @@ function ResourceTable({sort}: Props) {
     const {key} = col;
     if (key === SPAN_DESCRIPTION) {
       return (
-        <Link to={`/performance/${row.project}:${row['transaction.id']}#span-${row.id}`}>
-          {row[key]}
-        </Link>
+        <WiderHovercard
+          position="right"
+          body={
+            <div style={{width: '100px'}}>
+              <img src={row[key]} />
+            </div>
+          }
+        >
+          <Link
+            to={`/performance/${row.project}:${row['transaction.id']}#span-${row.id}`}
+          >
+            {row[key]}
+          </Link>
+        </WiderHovercard>
       );
     }
     if (key === 'http.response_content_length') {

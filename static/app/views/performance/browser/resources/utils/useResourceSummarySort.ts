@@ -28,7 +28,7 @@ export function useResourceSummarySort(
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
-  field: SORTABLE_FIELDS[0],
+  field: SORTABLE_FIELDS[1],
 };
 
 function isAValidSort(sort: Sort): sort is ValidSort {

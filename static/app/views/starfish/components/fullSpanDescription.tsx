@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
@@ -8,7 +9,7 @@ import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatte
 
 const formatter = new SQLishFormatter();
 
-export function FullQueryDescription({group, shortDescription}: Props) {
+export function FullSpanDescription({group, shortDescription, language}: Props) {
   const {
     data: fullSpan,
     isLoading,
@@ -21,19 +22,32 @@ export function FullQueryDescription({group, shortDescription}: Props) {
     return null;
   }
 
-  return isLoading && isFetching ? (
-    <PaddedSpinner>
-      <LoadingIndicator mini hideMessage relative />
-    </PaddedSpinner>
-  ) : (
-    <CodeSnippet language="sql">
-      {formatter.toString(description, {maxLineLength: LINE_LENGTH})}
-    </CodeSnippet>
-  );
+  if (isLoading && isFetching) {
+    return (
+      <PaddedSpinner>
+        <LoadingIndicator mini hideMessage relative />
+      </PaddedSpinner>
+    );
+  }
+
+  if (language === 'sql') {
+    return (
+      <CodeSnippet language={language}>
+        {formatter.toString(description, {maxLineLength: LINE_LENGTH})}
+      </CodeSnippet>
+    );
+  }
+
+  if (language) {
+    return <CodeSnippet language={language}>{description}</CodeSnippet>;
+  }
+
+  return <Fragment>{description}</Fragment>;
 }
 
 interface Props {
   group?: string;
+  language?: 'sql' | 'http';
   shortDescription?: string;
 }
 

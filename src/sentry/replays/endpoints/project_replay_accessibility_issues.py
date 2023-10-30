@@ -82,43 +82,41 @@ def request_accessibility_issues(filenames: list[str]) -> Any:
     return {
         "meta": {"total": 1},
         "data": [
-            [
-                {
-                    "elements": [
-                        {
-                            "alternatives": [
-                                {
-                                    "id": "button-has-visible-text",
-                                    "message": "Element does not have inner text that is visible to screen readers",
-                                },
-                                {
-                                    "id": "aria-label",
-                                    "message": "aria-label attribute does not exist or is empty",
-                                },
-                                {
-                                    "id": "aria-labelledby",
-                                    "message": "aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty",
-                                },
-                                {
-                                    "id": "non-empty-title",
-                                    "message": "Element has no title attribute",
-                                },
-                                {
-                                    "id": "presentational-role",
-                                    "message": 'Element\'s default semantics were not overridden with role="none" or role="presentation"',
-                                },
-                            ],
-                            "element": '<button class="svelte-19ke1iv">',
-                            "target": ["button:nth-child(1)"],
-                        }
-                    ],
-                    "help_url": "https://dequeuniversity.com/rules/axe/4.8/button-name?application=playwright",
-                    "help": "Buttons must have discernible text",
-                    "id": "button-name",
-                    "impact": "critical",
-                    "timestamp": 1695967678108,
-                }
-            ]
+            {
+                "elements": [
+                    {
+                        "alternatives": [
+                            {
+                                "id": "button-has-visible-text",
+                                "message": "Element does not have inner text that is visible to screen readers",
+                            },
+                            {
+                                "id": "aria-label",
+                                "message": "aria-label attribute does not exist or is empty",
+                            },
+                            {
+                                "id": "aria-labelledby",
+                                "message": "aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty",
+                            },
+                            {
+                                "id": "non-empty-title",
+                                "message": "Element has no title attribute",
+                            },
+                            {
+                                "id": "presentational-role",
+                                "message": 'Element\'s default semantics were not overridden with role="none" or role="presentation"',
+                            },
+                        ],
+                        "element": '<button class="svelte-19ke1iv">',
+                        "target": ["button:nth-child(1)"],
+                    }
+                ],
+                "help_url": "https://dequeuniversity.com/rules/axe/4.8/button-name?application=playwright",
+                "help": "Buttons must have discernible text",
+                "id": "button-name",
+                "impact": "critical",
+                "timestamp": 1695967678108,
+            }
         ],
     }
     # TODO: When the service is deploy this should be the primary path.

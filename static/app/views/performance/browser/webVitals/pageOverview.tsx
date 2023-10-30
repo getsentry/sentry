@@ -79,7 +79,7 @@ export default function PageOverview() {
   // we should automatically default this webvital state to the respective webvital so the detail
   // panel in this page opens automatically.
   const [state, setState] = useState<{webVital: WebVitals | null; tag?: Tag}>({
-    webVital: null,
+    webVital: (location.query.webVital as WebVitals) ?? null,
     tag: undefined,
   });
 
