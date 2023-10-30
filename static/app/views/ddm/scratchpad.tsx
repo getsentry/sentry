@@ -36,9 +36,7 @@ export function MetricScratchpad() {
         />
       ))}
       <AddWidgetPanel onClick={addWidget}>
-        <Button priority="primary" icon={<IconAdd isCircled />}>
-          Add widget
-        </Button>
+        <Button icon={<IconAdd isCircled />}>Add widget</Button>
       </AddWidgetPanel>
     </Wrapper>
   );
@@ -55,18 +53,27 @@ const StyledMetricDashboard = styled('div')`
   @media (max-width: ${props => props.theme.breakpoints.xlarge}) {
     grid-template-columns: repeat(1, minmax(${MIN_WIDGET_WIDTH}px, 1fr));
   }
+  grid-auto-rows: 1fr;
 `;
 
 const StyledSingleWidgetWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(${MIN_WIDGET_WIDTH}px, 90%) minmax(180px, 10%);
+
+  @media (max-width: ${props => props.theme.breakpoints.xlarge}) {
+    grid-template-columns: repeat(1, minmax(${MIN_WIDGET_WIDTH}px, 1fr));
+  }
+
   gap: ${space(2)};
+
+  grid-auto-rows: 1fr;
 `;
 
 const AddWidgetPanel = styled(Panel)`
+  width: 100%;
+  height: 100%;
   margin-bottom: 0;
   padding: ${space(4)};
-  min-width: ${MIN_WIDGET_WIDTH};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   display: flex;
   justify-content: center;

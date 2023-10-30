@@ -343,7 +343,7 @@ export type Series = {
 const MetricWidgetPanel = styled(Panel)`
   padding-bottom: 0;
   margin-bottom: 0;
-  min-width: ${MIN_WIDGET_WIDTH};
+  min-width: ${MIN_WIDGET_WIDTH}px;
 `;
 
 const StyledMetricWidgetBody = styled('div')`
