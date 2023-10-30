@@ -98,7 +98,6 @@ const MOST_TIME_PERIODS: readonly TimePeriod[] = [
   TimePeriod.THREE_DAYS,
   TimePeriod.SEVEN_DAYS,
   TimePeriod.FOURTEEN_DAYS,
-  TimePeriod.THIRTY_DAYS,
 ];
 
 /**
@@ -122,9 +121,8 @@ const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> = {
     TimePeriod.THREE_DAYS,
     TimePeriod.SEVEN_DAYS,
     TimePeriod.FOURTEEN_DAYS,
-    TimePeriod.THIRTY_DAYS,
   ],
-  [TimeWindow.ONE_DAY]: [TimePeriod.THIRTY_DAYS],
+  [TimeWindow.ONE_DAY]: [TimePeriod.FOURTEEN_DAYS],
 };
 
 const TIME_WINDOW_TO_SESSION_INTERVAL = {
