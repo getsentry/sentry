@@ -99,9 +99,7 @@ export default function FeedbackItem({
                 feedbackEvent={eventData}
               />
             </ErrorBoundary>
-            <ErrorBoundary mini>
-              <FeedbackViewers feedbackItem={feedbackItem} />
-            </ErrorBoundary>
+
             <ErrorBoundary mini>
               <Button
                 onClick={() => {
@@ -136,6 +134,10 @@ export default function FeedbackItem({
           <ErrorBoundary mini>
             <TextCopyInput size="sm">{url?.value ?? t('URL not found')}</TextCopyInput>
           </ErrorBoundary>
+        </Section>
+
+        <Section title={t('Viewers')}>
+          <FeedbackViewers feedbackItem={feedbackItem} />
         </Section>
 
         {hasReplayId && replayId ? (

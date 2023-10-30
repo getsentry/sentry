@@ -10,7 +10,6 @@ import {
   getAssignedToDisplayName,
   getOwnerList,
 } from 'sentry/components/group/assignedTo';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconUser} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -85,16 +84,18 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
       owners={owners}
     >
       {({loading, isOpen, getActorProps}) => (
-        <Button data-test-id="assignee-selector" {...getActorProps({})}>
+        <StyledButton size="xs" data-test-id="assignee-selector" {...getActorProps({})}>
           <ActorWrapper>
             {loading ? (
-              <StyledLoadingIndicator mini size={24} />
+              <IconWrapper>
+                <IconUser size="xs" />
+              </IconWrapper>
             ) : feedbackIssue.assignedTo ? (
               <ActorAvatar
                 data-test-id="assigned-avatar"
                 actor={feedbackIssue.assignedTo}
                 hasTooltip={false}
-                size={24}
+                size={16}
               />
             ) : (
               <IconWrapper>
@@ -102,14 +103,13 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
               </IconWrapper>
             )}
             <ActorName>{getAssignedToDisplayName(feedbackIssue, true)}</ActorName>
+            <IconChevron
+              data-test-id="assigned-to-chevron-icon"
+              direction={isOpen ? 'up' : 'down'}
+              size="sm"
+            />
           </ActorWrapper>
-
-          <IconChevron
-            data-test-id="assigned-to-chevron-icon"
-            direction={isOpen ? 'up' : 'down'}
-            size="xs"
-          />
-        </Button>
+        </StyledButton>
       )}
     </AssigneeSelectorDropdown>
   );
@@ -117,11 +117,13 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
   return dropdown;
 }
 
+const StyledButton = styled(Button)``;
+
 const ActorWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
-  max-width: 85%;
+  gap: ${space(0.5)};
+  max-width: 150px;
   line-height: 1;
 `;
 
@@ -134,10 +136,4 @@ const ActorName = styled('div')`
   line-height: 1.2;
   ${p => p.theme.overflowEllipsis}
   font-size: ${p => p.theme.fontSizeSmall};
-`;
-
-const StyledLoadingIndicator = styled(LoadingIndicator)`
-  width: 24px;
-  height: 24px;
-  margin: 0 !important;
 `;

@@ -4,11 +4,13 @@ import styled from '@emotion/styled';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Tooltip} from 'sentry/components/tooltip';
+import {space} from 'sentry/styles/space';
 import {AvatarUser, Team} from 'sentry/types';
 
 type UserAvatarProps = React.ComponentProps<typeof UserAvatar>;
 
 type Props = {
+  alignLeft?: boolean;
   avatarSize?: number;
   className?: string;
   maxVisibleAvatars?: number;
@@ -28,6 +30,7 @@ function AvatarList({
   users = [],
   teams = [],
   renderTooltip,
+  alignLeft,
 }: Props) {
   const numTeams = teams.length;
   const numVisibleTeams = maxVisibleAvatars - numTeams > 0 ? numTeams : maxVisibleAvatars;
@@ -43,7 +46,7 @@ function AvatarList({
   }
 
   return (
-    <AvatarListWrapper className={className}>
+    <AvatarListWrapper className={className} alignLeft={alignLeft}>
       {!!numCollapsedAvatars && (
         <Tooltip title={`${numCollapsedAvatars} other ${typeAvatars}`}>
           <CollapsedAvatars size={avatarSize} data-test-id="avatarList-collapsedavatars">
@@ -78,9 +81,10 @@ function AvatarList({
 export default AvatarList;
 
 // used in releases list page to do some alignment
-export const AvatarListWrapper = styled('div')`
+export const AvatarListWrapper = styled('div')<{alignLeft?: boolean}>`
   display: flex;
-  flex-direction: row-reverse;
+  flex-direction: ${p => (p.alignLeft ? `p.row` : `p.row-reverse`)};
+  ${p => (p.alignLeft ? `margin-left: ${space(0.75)};` : null)}
 `;
 
 const AvatarStyle = p => css`
