@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import datetime
 import time
 import uuid
 import zipfile
 from io import BytesIO
+from typing import Any
 from unittest.mock import Mock
 
 import pytest
@@ -154,7 +157,7 @@ def test_feedbacks_spawn_save_event_feedback(
 ):
     project_id = default_project.id
     now = datetime.datetime.now()
-    event = {
+    event: dict[str, Any] = {
         "type": "feedback",
         "timestamp": now.isoformat(),
         "start_timestamp": now.isoformat(),
