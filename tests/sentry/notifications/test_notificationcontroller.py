@@ -1,4 +1,4 @@
-from sentry.hybridcloud.models.externalactorreplica import ExternalActorReplica
+from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notificationcontroller import NotificationController
@@ -9,9 +9,10 @@ from sentry.notifications.types import (
     NotificationSettingsOptionEnum,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
@@ -807,14 +808,14 @@ class NotificationControllerTest(TestCase):
         user2 = self.create_user()
         self.create_member(user=user1, organization=self.organization, role="member", teams=[team])
         self.create_member(user=user2, organization=self.organization, role="member", teams=[team])
-        ExternalActorReplica.objects.create(
-            externalactor_id=0,
-            team_id=team.id,
-            integration_id=self.integration.id,
-            organization_id=self.organization.id,
-            provider=0,
-            external_name="invalid-integration",
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            ExternalActor.objects.create(
+                team_id=team.id,
+                integration_id=self.integration.id,
+                organization_id=self.organization.id,
+                provider=0,
+                external_name="invalid-integration",
+            )
 
         controller = NotificationController(
             recipients=[team],
@@ -830,14 +831,14 @@ class NotificationControllerTest(TestCase):
         user2 = self.create_user()
         self.create_member(user=user1, organization=self.organization, role="member", teams=[team])
         self.create_member(user=user2, organization=self.organization, role="member", teams=[team])
-        ExternalActorReplica.objects.create(
-            externalactor_id=0,
-            team_id=team.id,
-            integration_id=self.integration.id,
-            organization_id=self.organization.id,
-            provider=110,
-            external_name="valid-integration",
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            ExternalActor.objects.create(
+                team_id=team.id,
+                integration_id=self.integration.id,
+                organization_id=self.organization.id,
+                provider=110,
+                external_name="valid-integration",
+            )
 
         controller = NotificationController(
             recipients=[team],
