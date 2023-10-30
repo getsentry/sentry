@@ -4,6 +4,7 @@ import {Button} from 'sentry/components/button';
 import {COUNTRY_CODE_TO_NAME_MAP} from 'sentry/data/countryCodesMap';
 import {space} from 'sentry/styles/space';
 import {Tag} from 'sentry/types';
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {useSlowestTagValuesQuery} from 'sentry/views/performance/browser/webVitals/utils/useSlowestTagValuesQuery';
@@ -15,7 +16,7 @@ type Props = {
   title?: string;
 };
 
-const LIMIT = 4;
+const LIMIT = 10;
 
 function toReadableValue(tag, tagValue) {
   if (tag === 'geo.country_code') {
@@ -25,21 +26,33 @@ function toReadableValue(tag, tagValue) {
   return tagValue;
 }
 
+function getPerformanceTotalScore(row: TableDataRow): number {
+  const score = calculatePerformanceScore({
+    lcp: row['p75(measurements.lcp)'] as number,
+    fcp: row['p75(measurements.fcp)'] as number,
+    cls: row['p75(measurements.cls)'] as number,
+    ttfb: row['p75(measurements.ttfb)'] as number,
+    fid: row['p75(measurements.fid)'] as number,
+  });
+
+  return score.totalScore;
+}
+
 export function PageOverviewFeaturedTagsList({transaction, tag, title, onClick}: Props) {
   const {data} = useSlowestTagValuesQuery({transaction, tag, limit: LIMIT});
   const tagValues = data?.data ?? [];
+
+  // Sort the tag values in asc order of total performance score
+  const sortedTagValues = tagValues.sort(
+    (a, b) => getPerformanceTotalScore(a) - getPerformanceTotalScore(b)
+  );
+
   return (
     <Container>
       <Title>{title ?? tag}</Title>
       <TagValuesContainer>
-        {tagValues.map((row, index) => {
-          const score = calculatePerformanceScore({
-            lcp: row['p75(measurements.lcp)'] as number,
-            fcp: row['p75(measurements.fcp)'] as number,
-            cls: row['p75(measurements.cls)'] as number,
-            ttfb: row['p75(measurements.ttfb)'] as number,
-            fid: row['p75(measurements.fid)'] as number,
-          });
+        {sortedTagValues.map((row, index) => {
+          const score = getPerformanceTotalScore(row);
           return (
             <RowContainer key={`${tag}:${index}`}>
               <TagValue>
@@ -51,7 +64,7 @@ export function PageOverviewFeaturedTagsList({transaction, tag, title, onClick}:
                 </TagButton>
               </TagValue>
               <Score>
-                <PerformanceBadge score={score.totalScore} />
+                <PerformanceBadge score={score} />
               </Score>
             </RowContainer>
           );

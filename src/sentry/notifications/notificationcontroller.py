@@ -156,13 +156,27 @@ class NotificationController:
             else Q()
         )
 
-        team_or_user_settings = Q(
-            (Q(user_id__in=user_ids) | Q(team_id__in=team_ids)),
-            scope_type=NotificationScopeEnum.USER.value,
-            scope_identifier__in=user_ids,
+        user_settings = (
+            Q(
+                Q(user_id__in=user_ids),
+                scope_type=NotificationScopeEnum.USER.value,
+                scope_identifier__in=user_ids,
+            )
+            if user_ids
+            else Q()
         )
 
-        return project_settings | org_settings | team_or_user_settings
+        team_settings = (
+            Q(
+                Q(team_id__in=team_ids),
+                scope_type=NotificationScopeEnum.TEAM.value,
+                scope_identifier__in=team_ids,
+            )
+            if team_ids
+            else Q()
+        )
+
+        return project_settings | org_settings | user_settings | team_settings
 
     def _filter_options(
         self,
@@ -239,7 +253,6 @@ class NotificationController:
             for type, default in get_type_defaults().items():
                 if type not in most_specific_recipient_options:
                     most_specific_recipient_options[type] = default
-
         return most_specific_setting_options
 
     def _get_layered_setting_providers(

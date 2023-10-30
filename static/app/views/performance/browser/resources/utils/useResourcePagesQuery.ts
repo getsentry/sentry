@@ -22,7 +22,7 @@ export const useResourcePagesQuery = () => {
   const fields = ['transaction', 'count()']; // count() is only here because an aggregation is required for the query to work
 
   const queryConditions = [
-    `${SPAN_OP}:${resourceFilters.type || 'resource.*'}`,
+    `${SPAN_OP}:${resourceFilters[SPAN_OP] || 'resource.*'}`,
     ...(spanDomain ? [`${SPAN_DOMAIN}:${spanDomain}`] : []),
   ]; // TODO: We will need to consider other ops
 

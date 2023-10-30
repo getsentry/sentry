@@ -2,15 +2,13 @@ import {Fragment, MouseEventHandler} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
-import SelectControl, {
-  ControlProps,
-} from 'sentry/components/forms/controls/selectControl';
 import SwitchButton from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import ResourceTable from 'sentry/views/performance/browser/resources/jsCssView/resourceTable';
-import {useResourceDomainsQuery} from 'sentry/views/performance/browser/resources/utils/useResourceDomansQuery';
+import DomainSelector from 'sentry/views/performance/browser/resources/shared/domainSelector';
+import SelectControlWithProps from 'sentry/views/performance/browser/resources/shared/selectControlWithProps';
 import {
   BrowserStarfishFields,
   useResourceModuleFilters,
@@ -18,8 +16,12 @@ import {
 import {useResourcePagesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcePagesQuery';
 import {useResourceSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 
-const {RESOURCE_TYPE, SPAN_DOMAIN, TRANSACTION, RESOURCE_RENDER_BLOCKING_STATUS} =
-  BrowserStarfishFields;
+const {
+  SPAN_OP: RESOURCE_TYPE,
+  SPAN_DOMAIN,
+  TRANSACTION,
+  RESOURCE_RENDER_BLOCKING_STATUS,
+} = BrowserStarfishFields;
 
 type Option = {
   label: string;
@@ -113,40 +115,6 @@ function PageSelector({value}: {value?: string}) {
       }}
     />
   );
-}
-
-function DomainSelector({value}: {value?: string}) {
-  const location = useLocation();
-  const {data} = useResourceDomainsQuery();
-
-  const options: Option[] = [
-    {value: '', label: 'All'},
-    ...data.map(domain => ({
-      value: domain,
-      label: domain,
-    })),
-  ];
-
-  return (
-    <SelectControlWithProps
-      inFieldLabel={`${t('Domain')}:`}
-      options={options}
-      value={value}
-      onChange={newValue => {
-        browserHistory.push({
-          ...location,
-          query: {
-            ...location.query,
-            [SPAN_DOMAIN]: newValue?.value,
-          },
-        });
-      }}
-    />
-  );
-}
-
-function SelectControlWithProps(props: ControlProps & {options: Option[]}) {
-  return <SelectControl {...props} />;
 }
 
 const SwitchContainer = styled('div')`

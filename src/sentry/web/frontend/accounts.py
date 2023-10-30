@@ -14,13 +14,14 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
 from sentry.models.lostpasswordhash import LostPasswordHash
-from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.project import Project
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.security import capture_security_activity
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
+from sentry.services.hybrid_cloud.notifications.service import notifications_service
 from sentry.signals import email_verified
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import auth
@@ -242,14 +243,13 @@ def email_unsubscribe_project(request, project_id):
 
     if request.method == "POST":
         if "cancel" not in request.POST:
-            with transaction.atomic(router.db_for_write(NotificationSetting)):
-                NotificationSetting.objects.update_settings(
-                    ExternalProviders.EMAIL,
-                    NotificationSettingTypes.ISSUE_ALERTS,
-                    NotificationSettingOptionValues.NEVER,
-                    user_id=request.user.id,
-                    project=project,
-                )
+            notifications_service.update_settings(
+                external_provider=ExternalProviders.EMAIL,
+                notification_type=NotificationSettingTypes.ISSUE_ALERTS,
+                setting_option=NotificationSettingOptionValues.NEVER,
+                actor=RpcActor.from_object(request.user),
+                project_id=project.id,
+            )
         return HttpResponseRedirect(auth.get_login_url())
 
     context = csrf(request)
