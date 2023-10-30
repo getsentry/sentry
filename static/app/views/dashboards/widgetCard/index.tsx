@@ -329,6 +329,7 @@ class WidgetCard extends Component<Props, State> {
                         title={widget.description}
                         containerDisplayMode="grid"
                         showOnlyOnOverflow
+                        isHoverable
                       >
                         <WidgetDescription>{widget.description}</WidgetDescription>
                       </Tooltip>
