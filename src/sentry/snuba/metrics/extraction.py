@@ -874,7 +874,7 @@ class OnDemandMetricSpec:
     def _query_str_for_hash(self) -> str:
         """Returns a hash of the query and field to be used as a unique identifier for the on-demand metric."""
         str_to_hash = f"{self._field_for_hash()};{self._query_for_hash()}"
-        if len(self.columns):
+        if self.columns:
             # For compatibility with existing deployed metrics, leave existing hash untouched unless conditions are now
             # included in the spec.
             return f"{str_to_hash};{self._columns_for_hash()}"
