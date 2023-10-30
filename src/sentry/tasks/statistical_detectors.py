@@ -255,9 +255,12 @@ def _detect_transaction_change_points(
             # which was originally intended to detect a gradual regression
             # for the trends use case. That does not apply here.
             "allow_midpoint": "0",
-            "trend_percentage()": 0.5,
-            "min_change()": 200_000_000,
-            "validate_tail_hours": 12,
+            # TODO: uncomment these thresholds below after the
+            # rollout is complete so that only severe regressions
+            # are promoted to issues.
+            # "trend_percentage()": 0.5,
+            # "min_change()": 200_000_000,
+            # "validate_tail_hours": 12,
         }
 
         try:
@@ -297,7 +300,7 @@ def _detect_transaction_trends(
         min_data_points=6,
         short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
         long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
-        threshold=0.1,
+        threshold=0.2,
     )
 
     detector_store = redis.TransactionDetectorStore()
@@ -724,7 +727,10 @@ def _detect_function_change_points(
         request = {
             "data": data,
             "sort": "-trend_percentage()",
-            "min_change()": 100_000_000,  # require a minimum 100ms increase (in ns)
+            # TODO: uncomment this threshold below after the
+            # rollout is complete so that only severe regressions
+            # are promoted to issues.
+            # "min_change()": 100_000_000,  # require a minimum 100ms increase (in ns)
             # Disable the fall back to use the midpoint as the breakpoint
             # which was originally intended to detect a gradual regression
             # for the trends use case. That does not apply here.

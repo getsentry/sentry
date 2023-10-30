@@ -111,7 +111,7 @@ rfc3339-validator==0.1.2
 rfc3986-validator==0.1.1
 rsa==4.8
 s3transfer==0.6.1
-sentry-arroyo==2.14.12
+sentry-arroyo==2.14.16
 sentry-kafka-schemas==0.1.32
 sentry-redis-tools==0.1.7
 sentry-relay==0.8.32
