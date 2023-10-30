@@ -391,7 +391,7 @@ def handle_group_owners(
                         if owner_source == OwnerRuleType.OWNERSHIP_RULE.value
                         else GroupOwnerType.CODEOWNERS.value
                     )
-                    user_id: float | int | str | None = None
+                    user_id = None
                     team_id = None
                     if owner_type is RpcUser:
                         user_id = owner_id
@@ -633,7 +633,7 @@ def post_process_group(
         multi_groups: Sequence[Tuple[GroupEvent, GroupState]] = [
             (group_events.get(gs.get("id")), gs)
             for gs in (group_states or ())
-            if gs.get("id") is not None
+            if gs.get("id") is not None and group_events.get(gs.get("id")) is not None
         ]
 
         group_jobs: Sequence[PostProcessJob] = [
@@ -711,7 +711,7 @@ def process_event(data: dict, group_id: Optional[int]) -> Event:
 
     # Re-bind node data to avoid renormalization. We only want to
     # renormalize when loading old data from the database.
-    event.data = EventDict(event.data, skip_renormalization=True)
+    event.data = EventDict(event.data, skip_renormalization=True)  # type: ignore  # NodeData uses EventDict as wrapper
 
     return event
 
@@ -726,13 +726,25 @@ def update_event_groups(event: Event, group_states: Optional[GroupStates] = None
     if event.group_id is not None and event.group:
         # deprecated event.group and event.group_id usage, kept here for backwards compatibility
         event.group, _ = get_group_with_redirect(event.group_id)
-        event.group_id = event.group.id
-        # We buffer updates to last_seen, assume its at least >= the event datetime
-        event.group.last_seen = max(event.datetime, event.group.last_seen)
+        if event.group:
+            event.group_id = event.group.id
+            # We buffer updates to last_seen, assume its at least >= the event datetime
+            event.group.last_seen = max(event.datetime, event.group.last_seen)
 
     # Re-bind Group since we're reading the Event object
     # from cache, which may contain a stale group and project
-    group_states = group_states or ([{"id": event.group_id}] if event.group_id else [])
+    group_states = group_states or (
+        [
+            {
+                "id": event.group_id,
+                "is_new": False,
+                "is_new_group_environment": False,
+                "is_regression": False,
+            }
+        ]
+        if event.group_id
+        else []
+    )
     rebound_groups = []
     for group_state in group_states:
         rebound_group = get_group_with_redirect(group_state["id"])[0]
