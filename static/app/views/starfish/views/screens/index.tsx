@@ -6,6 +6,7 @@ import Color from 'color';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {NewQuery} from 'sentry/types';
@@ -18,7 +19,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
@@ -134,7 +134,6 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   newQuery.orderby = orderby;
   const tableEventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
-  useSynchronizeCharts();
   const {
     data: topTransactionsData,
     isLoading: topTransactionsLoading,
@@ -198,7 +197,11 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   });
 
   if (isReleasesLoading) {
-    return <LoadingContainer />;
+    return (
+      <LoadingContainer>
+        <LoadingIndicator />
+      </LoadingContainer>
+    );
   }
 
   const transformedReleaseEvents: {

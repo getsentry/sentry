@@ -13,13 +13,11 @@ import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
-import {useReleases} from 'sentry/views/starfish/queries/useReleases';
+import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
 import {ViewsList} from 'sentry/views/starfish/views/mobileServiceView/viewsList';
@@ -35,14 +33,11 @@ const READABLE_YAXIS_LABELS = {
 
 export function MobileStarfishView() {
   const pageFilter = usePageFilters();
-  const location = useLocation();
-  const {data: releases, isLoading: isReleasesLoading} = useReleases();
-
-  const primaryRelease =
-    decodeScalar(location.query.primaryRelease) ?? releases?.[0]?.version ?? undefined;
-
-  const secondaryRelease =
-    decodeScalar(location.query.secondaryRelease) ?? releases?.[0]?.version ?? undefined;
+  const {
+    primaryRelease,
+    secondaryRelease,
+    isLoading: isReleasesLoading,
+  } = useReleaseSelection();
 
   const query = new MutableSearch(['event.type:transaction', 'transaction.op:ui.load']);
 
