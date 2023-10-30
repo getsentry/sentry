@@ -1001,10 +1001,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Option to disable performing schema validation on the indexer
+# Option to control sampling percentage of schema validation on the generic metrics pipeline
+# based on namespace.
 register(
-    "sentry-metrics.indexer.validate-schema",
-    default=True,
+    "sentry-metrics.indexer.generic-metrics.schema-validation-rules",
+    default={},  # empty dict means validate schema for all use cases
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
