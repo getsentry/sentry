@@ -228,7 +228,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
                 organization=team.organization, team_ids=[team.id]
             )
             assert len(external_actors) == 1
-    
+
     @responses.activate
     @with_feature("organizations:team-workflow-notifications")
     def test_message_includes_workflow(self):
@@ -241,7 +241,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
             f"The {self.team.slug} team will now receive issue alert and workflow notifications in the {external_actors[0].external_name} channel."
             in get_response_text(data)
         )
-    
+
     @responses.activate
     @with_feature("organizations:team-workflow-notifications")
     def test_link_team_v2(self):
@@ -270,7 +270,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
                 scope_type=NotificationScopeType.TEAM.value, team_id=self.team.id
             )
             assert len(team_settings) == 0
-            
+
 
 @region_silo_test(stable=True)
 class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):

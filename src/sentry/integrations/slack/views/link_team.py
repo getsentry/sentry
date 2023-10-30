@@ -191,8 +191,10 @@ class SlackLinkTeamView(BaseView):
                     "team_id": integration.external_id,
                 },
             )
-        
-        has_team_workflow = features.has("organizations:team-workflow-notifications", team.organization)
+
+        has_team_workflow = features.has(
+            "organizations:team-workflow-notifications", team.organization
+        )
         # Turn on notifications for all of a team's projects.
         # TODO(jangjodi): Remove this once the flag is removed
         if not has_team_workflow:
@@ -205,9 +207,7 @@ class SlackLinkTeamView(BaseView):
             )
         message = SUCCESS_LINKED_MESSAGE.format(
             slug=team.slug,
-            workflow_addon=" and workflow"
-            if has_team_workflow
-            else "",
+            workflow_addon=" and workflow" if has_team_workflow else "",
             channel_name=channel_name,
         )
         integration_service.send_message(
