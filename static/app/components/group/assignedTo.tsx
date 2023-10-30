@@ -64,7 +64,7 @@ type IssueOwner = {
   commits?: Commit[];
   rules?: Array<[string, string]> | null;
 };
-type EventOwners = {
+export type EventOwners = {
   owners: Actor[];
   rules: Rules;
 };
@@ -106,7 +106,7 @@ function getSuggestedReason(owner: IssueOwner) {
  *   rules:   [...]  # Project rules matched for this owner
  * ```
  */
-function getOwnerList(
+export function getOwnerList(
   committers: Committer[],
   eventOwners: EventOwners | null,
   assignedTo: Actor | null

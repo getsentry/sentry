@@ -18,43 +18,43 @@ interface Props {
 export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props) {
   const organization = useOrganization();
 
-  const dropdown = (
-    <AssigneeSelectorDropdown
-      organization={organization}
-      disabled={false}
-      id={feedbackIssue.id}
-      assignedTo={feedbackIssue.assignedTo}
-      onAssign={() => {}}
-    >
-      {({loading, isOpen, getActorProps}) => (
-        <Button data-test-id="assignee-selector" {...getActorProps({})}>
-          <ActorWrapper>
-            {loading ? (
-              <StyledLoadingIndicator mini size={24} />
-            ) : feedbackIssue.assignedTo ? (
-              <ActorAvatar
-                data-test-id="assigned-avatar"
-                actor={feedbackIssue.assignedTo}
-                hasTooltip={false}
-                size={24}
-              />
-            ) : (
-              <IconWrapper>
-                <IconUser size="xs" />
-              </IconWrapper>
-            )}
-            <ActorName>{getAssignedToDisplayName(feedbackIssue, true)}</ActorName>
-          </ActorWrapper>
+  const dropdown = null;
+  <AssigneeSelectorDropdown
+    organization={organization}
+    disabled={false}
+    id={feedbackIssue.id}
+    assignedTo={feedbackIssue.assignedTo}
+    onAssign={() => {}}
+  >
+    {({loading, isOpen, getActorProps}) => (
+      <Button data-test-id="assignee-selector" {...getActorProps({})}>
+        <ActorWrapper>
+          {loading ? (
+            <StyledLoadingIndicator mini size={24} />
+          ) : feedbackIssue.assignedTo ? (
+            <ActorAvatar
+              data-test-id="assigned-avatar"
+              actor={feedbackIssue.assignedTo}
+              hasTooltip={false}
+              size={24}
+            />
+          ) : (
+            <IconWrapper>
+              <IconUser size="xs" />
+            </IconWrapper>
+          )}
+          <ActorName>{getAssignedToDisplayName(feedbackIssue, true)}</ActorName>
+        </ActorWrapper>
 
-          <IconChevron
-            data-test-id="assigned-to-chevron-icon"
-            direction={isOpen ? 'up' : 'down'}
-            size="xs"
-          />
-        </Button>
-      )}
-    </AssigneeSelectorDropdown>
-  );
+        <IconChevron
+          data-test-id="assigned-to-chevron-icon"
+          direction={isOpen ? 'up' : 'down'}
+          size="xs"
+        />
+      </Button>
+    )}
+  </AssigneeSelectorDropdown>;
+
   return (
     <AssignedTo
       group={feedbackIssue}
