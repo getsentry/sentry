@@ -34,6 +34,31 @@ from sentry.utils import json
 
 
 class LayoutSerializer(serializers.Serializer):
+    """
+    Layout settings for the source. This is required for HTTP, GCS, and S3 sources and invalid for AppStoreConnect sources.
+    
+    **`type`** ***(string)*** - The layout of the folder structure. The options are:
+    - `native` - Platform-Specific (SymStore / GDB / LLVM)
+    - `symstore` - Microsoft SymStore
+    - `symstore_index2` - Microsoft SymStore (with index2.txt)
+    - `ssqp` - Microsoft SSQP
+    - `unified` - Unified Symbol Server Layout
+    - `debuginfod` - debuginfod
+    
+    **`casing`** ***(string)*** - The layout of the folder structure. The options are:
+    - `default` - Default (mixed case)
+    - `uppercase` - Uppercase
+    - `lowercase` - Lowercase
+    
+    ```json
+    {
+        "layout": {
+            "type": "native"
+            "casing": "default"
+        }
+    }
+    ```
+    """
     type = serializers.ChoiceField(
         choices=VALID_LAYOUTS, help_text="The source's layout type.", required=True
     )
