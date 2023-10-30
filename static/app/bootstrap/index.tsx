@@ -86,12 +86,16 @@ function preloadOrganizationData(config: Config) {
 
   const preloadPromises: Record<string, any> = {orgSlug: slug};
   window.__sentry_preload = preloadPromises;
-
-  preloadPromises.organization = promiseRequest(makeUrl('/?detailed=0'));
-  preloadPromises.projects = promiseRequest(
-    makeUrl('/projects/?all_projects=1&collapse=latestDeploys')
-  );
-  preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
+  try {
+    preloadPromises.organization = promiseRequest(makeUrl('/?detailed=0'));
+    preloadPromises.projects = promiseRequest(
+      makeUrl('/projects/?all_projects=1&collapse=latestDeploys')
+    );
+    preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
+  } catch (e) {
+    // eslint-disable-next-line
+    console.error(e);
+  }
 }
 
 /**
