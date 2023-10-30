@@ -8,6 +8,12 @@ import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
+import {
+  axisLabelFormatter,
+  getDurationUnit,
+  tooltipFormatter,
+} from 'sentry/utils/discover/charts';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {LoadingScreen} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 
@@ -88,6 +94,26 @@ export function ScreensBarChart({
             truncate: 14,
             axisLabel: {
               interval: 0,
+            },
+          }}
+          yAxis={{
+            axisLabel: {
+              formatter(value: number) {
+                return axisLabelFormatter(
+                  value,
+                  aggregateOutputType(chartOptions[selectedDisplay].yAxis),
+                  undefined,
+                  getDurationUnit(chartOptions[selectedDisplay].series ?? [])
+                );
+              },
+            },
+          }}
+          tooltip={{
+            valueFormatter: (value, _seriesName) => {
+              return tooltipFormatter(
+                value,
+                aggregateOutputType(chartOptions[selectedDisplay].yAxis)
+              );
             },
           }}
         />
