@@ -668,7 +668,6 @@ const SourceMapDebuggerButtonText = styled('span')`
 `;
 
 const SourceMapDebuggerModalButton = styled(Button)`
-  font-weight: normal;
   height: 20px;
   padding: 0 ${space(0.75)};
   font-size: ${p => p.theme.fontSizeSmall};
