@@ -654,11 +654,11 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
 TagsSpecsGenerator = Callable[[Project, Optional[Sequence[str]]], List[TagSpec]]
 
 
-def _get_threshold(arguments: Optional[Sequence[str]]) -> int:
+def _get_threshold(arguments: Optional[Sequence[str]]) -> float:
     if not arguments:
         raise Exception("Threshold parameter required.")
 
-    return int(arguments[0])
+    return float(arguments[0])
 
 
 def failure_tag_spec(_1: Project, _2: Optional[Sequence[str]]) -> List[TagSpec]:

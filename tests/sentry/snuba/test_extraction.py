@@ -410,6 +410,20 @@ def test_spec_apdex(_get_satisfactory_threshold_and_metric, default_project):
 
 
 @django_db_all
+@patch("sentry.snuba.metrics.extraction._get_satisfactory_threshold_and_metric")
+def test_spec_apdex_decimal(_get_satisfactory_threshold_and_metric, default_project):
+    _get_satisfactory_threshold_and_metric.return_value = 100, "transaction.duration"
+
+    spec = OnDemandMetricSpec("apdex(0.8)", "release:a")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "on_demand_apdex"
+    assert spec.condition == {"name": "event.release", "op": "eq", "value": "a"}
+    assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, ["0.8"])
+
+
+@django_db_all
 def test_spec_epm(default_project):
     spec = OnDemandMetricSpec("epm()", "transaction.duration:>1s")
 
