@@ -115,9 +115,19 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   setSpeed: (speed: number) => void;
 
   /**
+   * Set the timeline to the specific size
+   */
+  setTimelineSize: (size: number) => void;
+
+  /**
    * The speed for normal playback
    */
   speed: number;
+
+  /**
+   * Size of timeline as a percentage of the original size
+   */
+  timelineSize: number;
 
   /**
    * Start or stop playback
@@ -153,7 +163,9 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   setCurrentHoverTime: () => {},
   setCurrentTime: () => {},
   setSpeed: () => {},
+  setTimelineSize: () => {},
   speed: 1,
+  timelineSize: 300,
   togglePlayPause: () => {},
   toggleSkipInactive: () => {},
 });
@@ -220,6 +232,7 @@ export function Provider({
   const [buffer, setBufferTime] = useState({target: -1, previous: -1});
   const playTimer = useRef<number | undefined>(undefined);
   const didApplyInitialOffset = useRef(false);
+  const [timelineSize, setTimelineSize] = useState(300);
 
   const isFinished = replayerRef.current?.getCurrentTime() === finishedAtMS;
 
@@ -525,7 +538,9 @@ export function Provider({
         setCurrentHoverTime,
         setCurrentTime,
         setSpeed,
+        setTimelineSize,
         speed,
+        timelineSize,
         togglePlayPause,
         toggleSkipInactive,
         ...value,

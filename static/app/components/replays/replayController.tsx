@@ -146,7 +146,8 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
   );
 }
 
-function TimelineSizeBar({size, setSize}) {
+function TimelineSizeBar() {
+  const {timelineSize, setTimelineSize} = useReplayContext();
   return (
     <ButtonBar merged>
       <Button
@@ -154,7 +155,7 @@ function TimelineSizeBar({size, setSize}) {
         title={t('Zoom out')}
         icon={<IconSubtract size="xs" />}
         borderless
-        onClick={() => setSize(Math.max(size - 50, 100))}
+        onClick={() => setTimelineSize(Math.max(timelineSize - 50, 100))}
         aria-label={t('Zoom out')}
       />
       <Button
@@ -162,7 +163,7 @@ function TimelineSizeBar({size, setSize}) {
         title={t('Zoom in')}
         icon={<IconAdd size="xs" />}
         borderless
-        onClick={() => setSize(Math.min(size + 50, 1000))}
+        onClick={() => setTimelineSize(Math.min(timelineSize + 50, 1000))}
         aria-label={t('Zoom in')}
       />
     </ButtonBar>
@@ -180,7 +181,6 @@ function ReplayControls({
   const isFullscreen = useIsFullscreen();
   const {currentTime, replay} = useReplayContext();
   const durationMs = replay?.getDurationMs();
-  const [size, setSize] = useState(300);
 
   // If the browser supports going fullscreen or not. iPhone Safari won't do
   // it. https://caniuse.com/fullscreen
@@ -221,10 +221,10 @@ function ReplayControls({
           <TimeAndScrubberGrid isCompact={isCompact}>
             <Time style={{gridArea: 'currentTime'}}>{formatTime(currentTime)}</Time>
             <div style={{gridArea: 'timeline'}}>
-              <ReplayTimeline size={size} />
+              <ReplayTimeline />
             </div>
             <div style={{gridArea: 'timelineSize'}}>
-              <TimelineSizeBar size={size} setSize={setSize} />
+              <TimelineSizeBar />
             </div>
             <StyledScrubber
               style={{gridArea: 'scrubber'}}
