@@ -121,7 +121,7 @@ class GroupAssigneeManager(BaseManager):
             if new_assignee_type == "team":
                 team = Team.objects.get(id=new_assignee_id)
                 team_members = list(team.member_set.values_list("user_id", flat=True))
-                if new_assignee_id in team_members:
+                if previous_assignee.user_id in team_members:
                     return
 
             GroupSubscription.objects.filter(
