@@ -11,7 +11,6 @@ from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMappingUpdate,
 )
 from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
-from sentry.services.organization import should_use_control_provisioning
 from sentry.silo import unguarded_write
 
 
@@ -108,29 +107,27 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
             slug=update.slug,
             region_name=update.region_name,
             require_2fa=update.requires_2fa,
+            early_adopter=update.early_adopter,
+            allow_joinleave=update.allow_joinleave,
+            enhanced_privacy=update.enhanced_privacy,
+            disable_shared_issues=update.disable_shared_issues,
+            disable_new_visibility_features=update.disable_new_visibility_features,
+            require_email_verification=update.require_email_verification,
+            codecov_access=update.codecov_access,
         )
         if update.customer_id is not None:
             update_dict["customer_id"] = update.customer_id[0]
 
         with unguarded_write(using=router.db_for_write(OrganizationMapping)):
-            use_control_provisioning = should_use_control_provisioning()
-            if use_control_provisioning:
-                mapping_is_valid = self._check_organization_mapping_integrity(
-                    org_id=organization_id, update=update
-                )
-                if not mapping_is_valid:
-                    return
+            mapping_is_valid = self._check_organization_mapping_integrity(
+                org_id=organization_id, update=update
+            )
+            if not mapping_is_valid:
+                return
 
             OrganizationMapping.objects.update_or_create(
                 organization_id=organization_id, defaults=update_dict
             )
-
-            if not use_control_provisioning:
-                # If control provisioning is disabled, we have to manually write a slug
-                # reservation for the organization.
-                self._upsert_organization_slug_reservation_for_monolith(
-                    organization_id=organization_id, mapping_update=update
-                )
 
     def delete(self, organization_id: int) -> None:
         OrganizationMapping.objects.filter(organization_id=organization_id).delete()

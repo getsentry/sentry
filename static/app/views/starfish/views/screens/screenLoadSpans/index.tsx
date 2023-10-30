@@ -20,7 +20,10 @@ import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releas
 import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {ScreensView, YAxis} from 'sentry/views/starfish/views/screens';
+import {
+  ScreenCharts,
+  YAxis,
+} from 'sentry/views/starfish/views/screens/screenLoadSpans/charts';
 import {ScreenLoadSpansTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/table';
 import {ScreenMetricsRibbon} from 'sentry/views/starfish/views/screens/screenMetricsRibbon';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
@@ -63,6 +66,7 @@ function ScreenLoadSpans() {
   const {
     spanGroup,
     primaryRelease,
+    secondaryRelease,
     transaction: transactionName,
     spanDescription,
   } = location.query;
@@ -86,17 +90,20 @@ function ScreenLoadSpans() {
                     <DatePageFilter />
                   </PageFilterBar>
                   <ReleaseComparisonSelector />
-                  <ScreenMetricsRibbon />
                 </Container>
               </StarfishPageFiltersContainer>
-              <ScreensView
-                yAxes={[YAxis.COUNT, YAxis.TTID, YAxis.TTFD]}
+              <ScreenMetricsRibbon
+                additionalFilters={[`transaction:${transactionName}`]}
+              />
+              <ScreenCharts
+                yAxes={[YAxis.TTID, YAxis.TTFD]}
                 additionalFilters={[`transaction:${transactionName}`]}
                 chartHeight={120}
               />
               <ScreenLoadSpansTable
                 transaction={transactionName}
                 primaryRelease={primaryRelease}
+                secondaryRelease={secondaryRelease}
               />
               {spanGroup && (
                 <SampleList
@@ -129,6 +136,7 @@ const Container = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto;
   gap: ${space(2)};
+  padding-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-rows: auto;

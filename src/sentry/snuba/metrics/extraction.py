@@ -23,7 +23,13 @@ from django.utils.functional import cached_property
 from typing_extensions import NotRequired
 
 from sentry.api import event_search
-from sentry.api.event_search import AggregateFilter, ParenExpression, SearchFilter
+from sentry.api.event_search import (
+    AggregateFilter,
+    ParenExpression,
+    SearchFilter,
+    SearchKey,
+    SearchValue,
+)
 from sentry.constants import APDEX_THRESHOLD_DEFAULT, DataCategory
 from sentry.discover.arithmetic import is_equation
 from sentry.exceptions import InvalidSearchQuery
@@ -93,8 +99,8 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "transaction.op": "contexts.trace.op",
     "transaction.status": "contexts.trace.status",
     "http.status_code": "contexts.response.status_code",
-    "sdk.name": "contexts.sdk.name",
-    "sdk.version": "contexts.sdk.version",
+    "sdk.name": "sdk.name",
+    "sdk.version": "sdk.version",
     # Computed fields
     "transaction.duration": "duration",
     "release.build": "release.build",
@@ -648,11 +654,11 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
 TagsSpecsGenerator = Callable[[Project, Optional[Sequence[str]]], List[TagSpec]]
 
 
-def _get_threshold(arguments: Optional[Sequence[str]]) -> int:
+def _get_threshold(arguments: Optional[Sequence[str]]) -> float:
     if not arguments:
         raise Exception("Threshold parameter required.")
 
-    return int(arguments[0])
+    return float(arguments[0])
 
 
 def failure_tag_spec(_1: Project, _2: Optional[Sequence[str]]) -> List[TagSpec]:
@@ -813,9 +819,12 @@ class OnDemandMetricSpec:
     _metric_type: str
     _arguments: Sequence[str]
 
-    def __init__(self, field: str, query: str):
+    def __init__(self, field: str, query: str, environment: Optional[str] = None):
         self.field = field
         self.query = query
+        # For now, we just support the environment as extra, but in the future we might need more complex ways to
+        # combine extra values that are outside the query string.
+        self.environment = environment
         self._arguments = []
         self._eager_process()
 
@@ -946,6 +955,10 @@ class OnDemandMetricSpec:
 
             return aggregate_conditions
 
+        # We extend the parsed query with other conditions that we want to inject externally from the query. For now
+        # we support only the environment.
+        parsed_query = self._extend_parsed_query(parsed_query)
+
         # Third step is to generate the actual Relay rule that contains all rules nested.
         rule_condition = SearchQueryConverter(parsed_query.conditions).convert()
         if not aggregate_conditions:
@@ -958,6 +971,27 @@ class OnDemandMetricSpec:
         # In the other case, we can just flatten the conditions.
         rule_condition["inner"].append(aggregate_conditions)
         return rule_condition
+
+    def _extend_parsed_query(self, parsed_query_result: QueryParsingResult) -> QueryParsingResult:
+        conditions = cast(List[QueryToken], parsed_query_result.conditions)
+
+        new_conditions: List[QueryToken] = []
+        if self.environment is not None:
+            new_conditions.append(
+                SearchFilter(
+                    key=SearchKey(name="environment"),
+                    operator="=",
+                    value=SearchValue(raw_value=self.environment),
+                )
+            )
+            new_conditions.append("AND")
+
+        extended_conditions = new_conditions + conditions
+        return QueryParsingResult(
+            # This transformation is equivalent to the syntax "new_conditions AND conditions" where conditions can be
+            # in parentheses or not.
+            conditions=extended_conditions
+        )
 
     @staticmethod
     def _aggregate_conditions(parsed_field) -> Optional[RuleCondition]:
