@@ -2,22 +2,31 @@ import {useState} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {MONITOR_PATH, THRESHOLDS_PATH} from '../utils/constants';
 
 type Props = {
-  hasV2ReleaseUIEnabled: boolean;
   router: InjectedRouter;
+  hasV2ReleaseUIEnabled?: boolean;
+  newThresholdAction?: () => void;
+  newThresholdDisabled?: boolean;
 };
 
-function Header({router, hasV2ReleaseUIEnabled}: Props) {
+function Header({
+  router,
+  hasV2ReleaseUIEnabled = false,
+  newThresholdAction = () => {},
+  newThresholdDisabled = true,
+}: Props) {
   const [selected, setSelected] = useState(router.location.pathname);
 
   const location = router.location;
@@ -63,6 +72,25 @@ function Header({router, hasV2ReleaseUIEnabled}: Props) {
           />
         </Layout.Title>
       </Layout.HeaderContent>
+      {hasV2ReleaseUIEnabled && selected === THRESHOLDS_PATH && (
+        <Layout.HeaderActions>
+          <Tooltip
+            title="Select a single project from the project filters to create a threshold for"
+            position="bottom"
+            isHoverable
+            delay={SLOW_TOOLTIP_DELAY}
+          >
+            <Button
+              size="sm"
+              priority="primary"
+              onClick={newThresholdAction}
+              disabled={newThresholdDisabled}
+            >
+              <IconAdd isCircled /> &nbsp; {t('New Threshold')}
+            </Button>
+          </Tooltip>
+        </Layout.HeaderActions>
+      )}
       <StyledTabs value={selected} onChange={onTabSelect}>
         <TabList hideBorder>
           {tabs.map(({key, label, description, path}) => {

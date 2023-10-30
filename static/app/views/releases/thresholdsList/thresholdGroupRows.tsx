@@ -15,47 +15,52 @@ import {Environment, Project} from 'sentry/types';
 import {getExactDuration, parseLargestSuffix} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
 
-import {Threshold} from '../utils/types';
-
-const NEW_THRESHOLD_PREFIX = 'newthreshold';
+import {NEW_GROUP_PREFIX, NEW_THRESHOLD_PREFIX} from '../utils/constants';
+import {EditingThreshold, NewThresholdGroup, Threshold} from '../utils/types';
 
 type Props = {
-  columns: number;
   orgSlug: string;
   refetch: () => void;
   setError: (msg: string) => void;
-  thresholds: Threshold[];
-};
-
-type EditingThreshold = {
-  environment: Environment;
-  id: string;
-  project: Project;
-  threshold_type: string;
-  trigger_type: string;
-  value: number;
-  windowSuffix: moment.unitOfTime.DurationConstructor;
-  windowValue: number;
-  date_added?: string;
-  hasError?: boolean;
-  window_in_seconds?: number;
+  newGroup?: NewThresholdGroup;
+  onFormClose?: (id: string) => void;
+  thresholds?: Threshold[];
 };
 
 export function ThresholdGroupRows({
-  thresholds,
-  columns,
+  thresholds = [],
   orgSlug,
   refetch,
   setError,
+  newGroup,
+  onFormClose,
 }: Props) {
   const [editingThresholds, setEditingThresholds] = useState<{
     [key: string]: EditingThreshold;
-  }>({});
+  }>(() => {
+    const editingThreshold = {};
+    if (newGroup) {
+      const [windowValue, windowSuffix] = parseLargestSuffix(0);
+      const newGroupEdit = {
+        id: newGroup.id,
+        project: newGroup.project,
+        windowValue,
+        windowSuffix,
+        threshold_type: 'total_error_count',
+        trigger_type: 'over',
+        value: 0,
+        hasError: false,
+      };
+      editingThreshold[newGroup.id] = newGroupEdit;
+    }
+    return editingThreshold;
+  });
   const [newThresholdIterator, setNewThresholdIterator] = useState<number>(0); // used simply to initialize new threshold
   const api = useApi();
-  const project = thresholds[0].project;
-  const environment = thresholds[0].environment;
-  const defaultWindow = thresholds[0].window_in_seconds;
+  const initialProject =
+    (thresholds[0] && thresholds[0].project) || (newGroup && newGroup.project);
+  const initialEnv: Environment = thresholds[0] && thresholds[0].environment;
+  const initialWindow = thresholds[0] && thresholds[0].window_in_seconds;
 
   const thresholdsById: {[id: string]: Threshold} = useMemo(() => {
     const byId = {};
@@ -72,7 +77,15 @@ export function ThresholdGroupRows({
     ]);
   }, [thresholds, editingThresholds]);
 
-  const initializeNewThreshold = () => {
+  const initializeNewThreshold = (
+    project: Project | undefined,
+    environment: string | undefined = undefined,
+    defaultWindow: number = 0
+  ) => {
+    if (!project) {
+      setError('No project provided');
+      return;
+    }
     const thresholdId = `${NEW_THRESHOLD_PREFIX}-${newThresholdIterator}`;
     const [windowValue, windowSuffix] = parseLargestSuffix(defaultWindow);
     const newThreshold: EditingThreshold = {
@@ -98,6 +111,7 @@ export function ThresholdGroupRows({
     const [windowValue, windowSuffix] = parseLargestSuffix(threshold.window_in_seconds);
     updatedEditingThresholds[thresholdId] = {
       ...threshold,
+      environment: threshold.environment ? threshold.environment.name : '', // convert environment to string for editing
       windowValue,
       windowSuffix,
       hasError: false,
@@ -111,14 +125,17 @@ export function ThresholdGroupRows({
       const seconds = moment
         .duration(thresholdData.windowValue, thresholdData.windowSuffix)
         .as('seconds');
+      if (!thresholdData.project) {
+        setError('Project required');
+        return;
+      }
       const submitData = {
         ...thresholdData,
         window_in_seconds: seconds,
-        environment: thresholdData.environment.name, // api expects environment as a string
       };
       let path = `/projects/${orgSlug}/${thresholdData.project.slug}/release-thresholds/${id}/`;
       let method: APIRequestMethod = 'PUT';
-      if (id.includes(NEW_THRESHOLD_PREFIX)) {
+      if (id.includes(NEW_THRESHOLD_PREFIX) || id.includes(NEW_GROUP_PREFIX)) {
         path = `/projects/${orgSlug}/${thresholdData.project.slug}/release-thresholds/`;
         method = 'POST';
       }
@@ -130,6 +147,9 @@ export function ThresholdGroupRows({
         .then(() => {
           refetch();
           closeEditForm(id);
+          if (onFormClose) {
+            onFormClose(id);
+          }
         })
         .catch(_err => {
           setError('Issue saving threshold');
@@ -137,7 +157,6 @@ export function ThresholdGroupRows({
             const errorThreshold = {
               ...submitData,
               hasError: true,
-              environment: thresholdData.environment, // convert local state environment back to object
             };
             const updatedEditingThresholds = {...prevState};
             updatedEditingThresholds[id] = errorThreshold;
@@ -178,6 +197,9 @@ export function ThresholdGroupRows({
     const updatedEditingThresholds = {...editingThresholds};
     delete updatedEditingThresholds[thresholdId];
     setEditingThresholds(updatedEditingThresholds);
+    if (onFormClose) {
+      onFormClose(thresholdId);
+    }
   };
 
   const editThresholdState = (thresholdId, key, value) => {
@@ -189,9 +211,19 @@ export function ThresholdGroupRows({
   };
 
   return (
-    <StyledThresholdGroup columns={columns}>
+    <StyledThresholdGroup>
       {Array.from(thresholdIdSet).map((tId: string, idx: number) => {
         const threshold = editingThresholds[tId] || thresholdsById[tId];
+        let environmentName;
+        if (editingThresholds[tId]) {
+          // editing environment type is String
+          environmentName = editingThresholds[tId].environment;
+        } else {
+          // Threshold environment type is Environnment
+          environmentName = thresholdsById[tId].environment
+            ? thresholdsById[tId].environment.name
+            : '';
+        }
         return (
           <StyledRow
             key={threshold.id}
@@ -210,9 +242,25 @@ export function ThresholdGroupRows({
                 ''
               )}
             </FlexCenter>
-            <FlexCenter style={{borderBottom: 0}}>
-              {idx === 0 ? threshold.environment.name || 'None' : ''}
-            </FlexCenter>
+            {/* TODO: IF this is a new threshold - allow environment select */}
+            {newGroup ? (
+              <CompactSelect
+                style={{width: '100%'}}
+                value={threshold.environment}
+                onChange={selectedOption =>
+                  editThresholdState(threshold.id, 'environment', selectedOption.value)
+                }
+                options={newGroup.environments.map(env => ({
+                  value: env,
+                  textValue: env,
+                  label: env,
+                }))}
+              />
+            ) : (
+              <FlexCenter style={{borderBottom: 0}}>
+                {idx === 0 ? environmentName || 'None' : ''}
+              </FlexCenter>
+            )}
             {/* FOLLOWING COLUMNS ARE EDITABLE */}
             {editingThresholds[threshold.id] ? (
               <Fragment>
@@ -329,7 +377,10 @@ export function ThresholdGroupRows({
                   <Button size="xs" onClick={() => saveThreshold([threshold.id])}>
                     Save
                   </Button>
-                  {!threshold.id.includes(NEW_THRESHOLD_PREFIX) && (
+                  {!(
+                    threshold.id.includes(NEW_THRESHOLD_PREFIX) ||
+                    threshold.id.includes(NEW_GROUP_PREFIX)
+                  ) && (
                     <Button
                       aria-label={t('Delete threshold')}
                       borderless
@@ -359,21 +410,26 @@ export function ThresholdGroupRows({
           </StyledRow>
         );
       })}
-      <NewRowBtn
-        aria-label={t('Add new row')}
-        borderless
-        icon={<IconAdd color="activeText" isCircled />}
-        onClick={initializeNewThreshold}
-        size="xs"
-      />
+      {!newGroup && (
+        <NewRowBtn
+          aria-label={t('Add new row')}
+          borderless
+          icon={<IconAdd color="activeText" isCircled />}
+          onClick={() =>
+            initializeNewThreshold(
+              initialProject,
+              initialEnv && initialEnv.name,
+              initialWindow
+            )
+          }
+          size="xs"
+        />
+      )}
     </StyledThresholdGroup>
   );
 }
 
-type StyledThresholdGroupProps = {
-  columns: number;
-};
-const StyledThresholdGroup = styled('div')<StyledThresholdGroupProps>`
+const StyledThresholdGroup = styled('div')`
   display: contents;
 `;
 
