@@ -292,6 +292,13 @@ export function TraceTable() {
     },
   ];
 
+  const widgetsQuery = JSON.parse((location?.query?.widgets as string) ?? '[]');
+  const hasSelectedMris = widgetsQuery.filter(w => w.mri);
+
+  if (!hasSelectedMris.length) {
+    return null;
+  }
+
   return (
     <TraceTableWrapper>
       <Tooltip title={t('Coming soon. This is where you will see samples.')}>
@@ -329,6 +336,7 @@ const TraceTableWrapper = styled('div')`
   margin-top: ${space(3)};
   filter: blur(3px);
   width: 100%;
+  user-select: none;
   > span {
     width: 100%;
   }

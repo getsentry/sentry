@@ -59,6 +59,11 @@ const StyledMetricDashboard = styled('div')`
 const StyledSingleWidgetWrapper = styled('div')`
   display: grid;
   grid-template-columns: minmax(${MIN_WIDGET_WIDTH}px, 90%) minmax(180px, 10%);
+
+  @media (max-width: ${props => props.theme.breakpoints.xlarge}) {
+    grid-template-columns: repeat(1, minmax(${MIN_WIDGET_WIDTH}px, 1fr));
+  }
+
   gap: ${space(2)};
 
   grid-auto-rows: 1fr;
