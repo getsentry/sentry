@@ -315,9 +315,8 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
           }
           return option;
         });
-        return {
-          notificationOptions: newNotificationOptions,
-        };
+
+        return {notificationOptions: newNotificationOptions};
       });
       addSuccessMessage(t('Updated notification setting'));
     } catch (err) {
