@@ -569,7 +569,7 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
             continue
         heapq.heappush(regressions_by_project[payload.project_id], (score, payload))
 
-        while ratelimit >= 0 and len(regressions_by_project[payload.project_id]) >= ratelimit:
+        while ratelimit >= 0 and len(regressions_by_project[payload.project_id]) > ratelimit:
             heapq.heappop(regressions_by_project[payload.project_id])
 
     delay = 12  # hours

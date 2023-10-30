@@ -246,17 +246,14 @@ def test_detect_function_trends_query_timerange(functions_query, timestamp, proj
     assert params["end"] == datetime(2023, 8, 1, 11, 1, tzinfo=timezone.utc)
 
 
-@pytest.mark.parametrize(["ratelimit"], [pytest.param(-1) for i in range(-1, 3)])
 @mock.patch("sentry.tasks.statistical_detectors.query_transactions")
 @mock.patch("sentry.tasks.statistical_detectors.detect_transaction_change_points")
 @django_db_all
 def test_detect_transaction_trends(
     detect_transaction_change_points,
     query_transactions,
-    ratelimit,
     timestamp,
     project,
-    organization,
 ):
     n = 20
     timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
@@ -278,22 +275,93 @@ def test_detect_transaction_trends(
         {
             "statistical_detectors.enable": True,
             "statistical_detectors.enable.projects.performance": [project.id],
+        }
+    ), TaskRunner():
+        for ts in timestamps:
+            detect_transaction_trends([project.organization.id], [project.id], ts)
+    assert detect_transaction_change_points.apply_async.called
+
+
+@pytest.mark.parametrize(
+    ["ratelimit", "expected_calls"],
+    [(-1, 3), (0, 0), (1, 1), (2, 2), (3, 3)],
+)
+@mock.patch("sentry.tasks.statistical_detectors.query_transactions")
+@mock.patch("sentry.tasks.statistical_detectors.detect_transaction_change_points")
+@django_db_all
+def test_detect_transaction_trends_ratelimit(
+    detect_transaction_change_points,
+    query_transactions,
+    ratelimit,
+    expected_calls,
+    timestamp,
+    organization,
+    project,
+):
+    n = 20
+    timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
+
+    query_transactions.side_effect = [
+        [
+            DetectorPayload(
+                project_id=project.id,
+                group="/1",
+                count=100,
+                value=100 if i < n / 2 else 300,
+                timestamp=ts,
+            ),
+            DetectorPayload(
+                project_id=project.id,
+                group="/2",
+                count=100,
+                value=100 if i < n / 2 else 600,
+                timestamp=ts,
+            ),
+            DetectorPayload(
+                project_id=project.id,
+                group="/3",
+                count=100,
+                value=100 if i < n / 2 else 900,
+                timestamp=ts,
+            ),
+        ]
+        for i, ts in enumerate(timestamps)
+    ]
+
+    with override_options(
+        {
+            "statistical_detectors.enable": True,
+            "statistical_detectors.enable.projects.performance": [project.id],
             "statistical_detectors.ratelimit.ema": ratelimit,
         }
     ), TaskRunner():
         for ts in timestamps:
-            detect_transaction_trends([organization.id], [project.id], ts)
-    assert detect_transaction_change_points.apply_async.called == (ratelimit != 0)
+            detect_transaction_trends([project.organization.id], [project.id], ts)
+
+    delay = 12 * 60 * 60
+    calls = [
+        mock.call(
+            args=[[(project.id, "/3")], timestamp + timedelta(hours=2)],
+            countdown=delay,
+        ),
+        mock.call(
+            args=[[(project.id, "/2")], timestamp + timedelta(hours=3)],
+            countdown=delay,
+        ),
+        mock.call(
+            args=[[(project.id, "/1")], timestamp + timedelta(hours=5)],
+            countdown=delay,
+        ),
+    ][:expected_calls]
+    detect_transaction_change_points.apply_async.assert_has_calls(calls)
 
 
-@pytest.mark.parametrize(["ratelimit"], [pytest.param(-1) for i in range(-1, 3)])
 @mock.patch("sentry.tasks.statistical_detectors.query_functions")
 @mock.patch("sentry.tasks.statistical_detectors.detect_function_change_points")
 @django_db_all
 def test_detect_function_trends(
     detect_function_change_points,
     query_functions,
-    ratelimit,
     timestamp,
     project,
 ):
@@ -317,12 +385,84 @@ def test_detect_function_trends(
         {
             "statistical_detectors.enable": True,
             "statistical_detectors.enable.projects.profiling": [project.id],
+        }
+    ), TaskRunner():
+        for ts in timestamps:
+            detect_function_trends([project.id], ts)
+    assert detect_function_change_points.apply_async.called
+
+
+@pytest.mark.parametrize(
+    ["ratelimit", "expected_calls"],
+    [(-1, 3), (0, 0), (1, 1), (2, 2), (3, 3)],
+)
+@mock.patch("sentry.tasks.statistical_detectors.query_functions")
+@mock.patch("sentry.tasks.statistical_detectors.detect_function_change_points")
+@django_db_all
+def test_detect_function_trends_ratelimit(
+    detect_function_change_points,
+    query_functions,
+    ratelimit,
+    expected_calls,
+    timestamp,
+    project,
+):
+    n = 20
+    timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
+
+    query_functions.side_effect = [
+        [
+            DetectorPayload(
+                project_id=project.id,
+                group=1,
+                count=100,
+                value=100 if i < n / 2 else 300,
+                timestamp=ts,
+            ),
+            DetectorPayload(
+                project_id=project.id,
+                group=2,
+                count=100,
+                value=100 if i < n / 2 else 600,
+                timestamp=ts,
+            ),
+            DetectorPayload(
+                project_id=project.id,
+                group=3,
+                count=100,
+                value=100 if i < n / 2 else 900,
+                timestamp=ts,
+            ),
+        ]
+        for i, ts in enumerate(timestamps)
+    ]
+
+    with override_options(
+        {
+            "statistical_detectors.enable": True,
+            "statistical_detectors.enable.projects.profiling": [project.id],
             "statistical_detectors.ratelimit.ema": ratelimit,
         }
     ), TaskRunner():
         for ts in timestamps:
             detect_function_trends([project.id], ts)
-    assert detect_function_change_points.apply_async.called == (ratelimit != 0)
+
+    delay = 12 * 60 * 60
+    calls = [
+        mock.call(
+            args=[[(project.id, 3)], timestamp + timedelta(hours=2)],
+            countdown=delay,
+        ),
+        mock.call(
+            args=[[(project.id, 2)], timestamp + timedelta(hours=3)],
+            countdown=delay,
+        ),
+        mock.call(
+            args=[[(project.id, 1)], timestamp + timedelta(hours=5)],
+            countdown=delay,
+        ),
+    ][:expected_calls]
+    detect_function_change_points.apply_async.assert_has_calls(calls)
 
 
 @mock.patch("sentry.tasks.statistical_detectors.emit_function_regression_issue")
