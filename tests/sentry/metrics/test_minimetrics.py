@@ -286,6 +286,23 @@ def test_unit_is_correctly_propagated_for_gauge(sentry_sdk, unit, expected_unit)
     assert sentry_sdk.metrics.incr.call_args.kwargs == {**params, "unit": expected_unit}
 
 
+@pytest.mark.skipif(not have_minimetrics, reason="no minimetrics")
+@override_options(
+    {
+        "delightful_metrics.minimetrics_sample_rate": 1.0,
+    }
+)
+@patch("sentry.metrics.minimetrics.sentry_sdk")
+@pytest.mark.parametrize("unit,expected_unit", [(None, "none"), ("second", "second")])
+def test_unit_is_correctly_propagated_for_distribution(sentry_sdk, unit, expected_unit):
+    backend = MiniMetricsMetricsBackend(prefix="")
+
+    params = {"key": "sentrytest.unit", "value": 15.0, "tags": {"x": "bar"}, "unit": unit}
+
+    backend.distribution(**params)
+    assert sentry_sdk.metrics.distribution.call_args.kwargs == {**params, "unit": expected_unit}
+
+
 def test_did_you_remove_type_ignore():
     from importlib.metadata import version
 
