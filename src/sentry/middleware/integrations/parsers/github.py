@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Mapping
 
+from django.http import HttpResponse
+
 from sentry.integrations.github.webhook import (
     GitHubIntegrationsWebhookEndpoint,
     get_github_external_id,
@@ -41,10 +43,19 @@ class GithubRequestParser(BaseRequestParser):
         return Integration.objects.filter(external_id=external_id, provider=self.provider).first()
 
     def get_response(self):
-        if self.view_class == self.webhook_endpoint:
-            regions = self.get_regions_from_organizations()
-            if len(regions) == 0:
-                logger.info(f"{self.provider}.no_regions", extra={"path": self.request.path})
-                return self.get_response_from_control_silo()
-            return self.get_response_from_outbox_creation(regions=regions)
-        return self.get_response_from_control_silo()
+        if self.view_class != self.webhook_endpoint:
+            return self.get_response_from_control_silo()
+
+        try:
+            event = json.loads(self.request.body.decode(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return HttpResponse(status=400)
+
+        if event.get("installation") and event.get("action") == "created":
+            return self.get_response_from_control_silo()
+
+        regions = self.get_regions_from_organizations()
+        if len(regions) == 0:
+            logger.info(f"{self.provider}.no_regions", extra={"path": self.request.path})
+            return self.get_response_from_control_silo()
+        return self.get_response_from_outbox_creation(regions=regions)

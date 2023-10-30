@@ -2,7 +2,7 @@
 
 ## Background
 
-Hybrid Cloud requires running Sentry in two different instances which communicate with one another; Control and Region Silos. The integration authentication data (`Integration`, and `OrganizationIntegration` models) will be stored in the **Control Silo**, but the associated models integrations may affect will be stored in the **Region Silo** (e.g. `Repostitory`, `Commit`, `ExternalIssue`, `Organization`, etc.).
+Hybrid Cloud requires running Sentry in two different instances which communicate with one another; Control and Region Silos. The integration authentication data (`Integration`, and `OrganizationIntegration` models) will be stored in the **Control Silo**, but the associated models integrations may affect will be stored in the **Region Silo** (e.g. `Repository`, `Commit`, `ExternalIssue`, `Organization`, etc.).
 
 Incoming webhooks fired by integration providers notify us when changes occur in their system (e.g. someone assigns an issue in slack, or a PR resolving an issue is merged on GitHub). These are **always** received by the Control Silo, so we need parsers to intercept these requests to forward the data to the relevant silos.
 

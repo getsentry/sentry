@@ -384,6 +384,9 @@ class GitHubIntegrationProvider(IntegrationProvider):
             },
         }
 
+        if state.get("sender"):
+            integration["metadata"]["sender"] = state["sender"]
+
         if state.get("reinstall_id"):
             integration["reinstall_id"] = state["reinstall_id"]
 
@@ -470,5 +473,9 @@ class GitHubInstallationRedirect(PipelineView):
                     },
                     request=request,
                 )
+            else:
+                # OrganizationIntegration does not exist, but Integration does exist.
+                pipeline.bind_state("installation_id", request.GET["installation_id"])
+                return pipeline.next_step()
 
         return self.redirect(self.get_app_url())
