@@ -52,7 +52,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
   State
 > {
   disableErrorReport = false;
-  controlSiloApi = new Client({baseUrl: generateBaseControlSiloUrl() + '/api/0'});
+  controlSiloApi = new Client({baseUrl: generateBaseControlSiloUrl()});
 
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['organizations', '/organizations/']];
@@ -122,9 +122,9 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
         Organization,
         {providers: IntegrationProvider[]},
       ] = await Promise.all([
-        this.controlSiloApi.requestPromise(`/organizations/${orgSlug}/`),
+        this.controlSiloApi.requestPromise(`/api/0/organizations/${orgSlug}/`),
         this.controlSiloApi.requestPromise(
-          `/organizations/${orgSlug}/config/integrations/?provider_key=${this.integrationSlug}`
+          `/api/0/organizations/${orgSlug}/config/integrations/?provider_key=${this.integrationSlug}`
         ),
       ]);
       // should never happen with a valid provider
@@ -136,7 +136,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
       if (this.integrationSlug === 'github') {
         const {installationId} = this.props.params;
         installationData = await this.controlSiloApi.requestPromise(
-          `/../../extensions/github/installation/${installationId}/`
+          `/extensions/github/installation/${installationId}/`
         );
       }
 
