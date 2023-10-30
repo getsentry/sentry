@@ -15,7 +15,7 @@ import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import StrictClick from 'sentry/components/strictClick';
 import Tag from 'sentry/components/tag';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
-import {IconChevron, IconOpen, IconRefresh} from 'sentry/icons';
+import {IconChevron, IconFix, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
@@ -376,7 +376,7 @@ export class DeprecatedLine extends Component<Props, State> {
               <Fragment>
                 <SourceMapDebuggerModalButton
                   size="zero"
-                  priority="primary"
+                  priority="default"
                   title={t(
                     'Click to learn how to show the original source code for this stack frame.'
                   )}
@@ -409,12 +409,10 @@ export class DeprecatedLine extends Component<Props, State> {
                     );
                   }}
                 >
+                  <IconFix size="xs" />
                   <SourceMapDebuggerButtonText>
-                    {hasContextSource(data)
-                      ? t('Not your source code?')
-                      : t('No source code?')}
+                    {t('Unminify Code')}
                   </SourceMapDebuggerButtonText>
-                  <IconOpen size="xs" />
                 </SourceMapDebuggerModalButton>
               </Fragment>
             ) : null}
@@ -667,11 +665,10 @@ const ToggleButton = styled(Button)`
 `;
 
 const SourceMapDebuggerButtonText = styled('span')`
-  margin-right: ${space(0.5)};
+  margin-left: ${space(0.5)};
 `;
 
 const SourceMapDebuggerModalButton = styled(Button)`
-  font-weight: normal;
   height: 20px;
   padding: 0 ${space(0.75)};
   font-size: ${p => p.theme.fontSizeSmall};
