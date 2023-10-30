@@ -395,13 +395,19 @@ export function transformTransaction(
   return transaction;
 }
 
+export enum IntervalLineFormat {
+  DEFAULT = 'default',
+  REGRESSION_TIMESERIES = 'regression_timeseries',
+  REGRESSION_EPM = 'regression_epm',
+}
+
 export function getIntervalLine(
   theme: Theme,
   series: Series[],
   intervalRatio: number,
   label: boolean,
   transaction?: NormalizedTrendsTransaction,
-  useRegressionFormat?: boolean
+  format: IntervalLineFormat = IntervalLineFormat.DEFAULT
 ): LineChartSeries[] {
   if (!transaction || !series.length || !series[0].data || !series[0].data.length) {
     return [];
@@ -537,7 +543,7 @@ export function getIntervalLine(
   const additionalLineSeries = [previousPeriod, currentPeriod, periodDividingLine];
 
   // Apply new styles for statistical detector regression issue
-  if (useRegressionFormat) {
+  if (format === IntervalLineFormat.REGRESSION_TIMESERIES) {
     previousPeriod.markLine.label = {
       ...periodLineLabel,
       formatter: `Baseline ${getPerformanceDuration(
@@ -629,6 +635,11 @@ export function getIntervalLine(
         }) ?? {},
       data: [],
     });
+  } else if (format === IntervalLineFormat.REGRESSION_EPM) {
+    periodDividingLine.markLine.lineStyle = {
+      ...periodDividingLine.markLine.lineStyle,
+      color: theme.red300,
+    };
   }
 
   return additionalLineSeries;
