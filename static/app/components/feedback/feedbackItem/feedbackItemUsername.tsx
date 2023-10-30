@@ -6,8 +6,8 @@ import type {FeedbackEvent, FeedbackIssue} from 'sentry/utils/feedback/types';
 
 interface Props {
   detailDisplay: boolean;
-  feedbackEvent: FeedbackEvent | undefined;
   feedbackIssue: FeedbackIssue;
+  feedbackEvent?: FeedbackEvent | undefined;
 }
 
 export default function FeedbackItemUsername({
@@ -32,7 +32,7 @@ export default function FeedbackItemUsername({
     );
   }
 
-  return <strong>{email ?? name}</strong>;
+  return <strong>{email}</strong>;
 }
 
 const Purple = styled('span')`
