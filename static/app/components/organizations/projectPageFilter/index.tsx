@@ -336,11 +336,9 @@ export function ProjectPageFilter({
     // of the length of the longest slug. The project slugs take up to (longestSlugLength
     // * 0.6)em of horizontal space (each character occupies roughly 0.6em). We also need
     // to add 12em to account for padding, trailing buttons, and the checkbox.
-    return `${Math.max(
-      desynced ? 22 : 20,
-      Math.min(28, longestSlugLength * 0.6 + 12)
-    )}em`;
-  }, [options, desynced]);
+    const minWidthEm = 22;
+    return `${Math.max(minWidthEm, Math.min(28, longestSlugLength * 0.6 + 12))}em`;
+  }, [options]);
 
   const [stagedValue, setStagedValue] = useState<number[]>(value);
   const selectionLimitExceeded = useMemo(() => {
