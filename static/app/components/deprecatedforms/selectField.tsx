@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 
-import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
+import SelectControl, {
+  ControlProps,
+} from 'sentry/components/forms/controls/selectControl';
 import {defined} from 'sentry/utils';
 
 import {StyledForm} from './form';
@@ -111,7 +113,7 @@ export default class SelectField extends FormField<Props> {
     return (
       <StyledSelectControl
         creatable={creatable}
-        id={this.getId()}
+        inputId={this.getId()}
         choices={choices}
         options={options}
         placeholder={placeholder}

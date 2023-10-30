@@ -1,33 +1,17 @@
+from __future__ import annotations
+
 import os
 import socket
+from typing import Any, Callable, TypeVar
 from urllib.parse import urlparse
 
 import pytest
 from django.conf import settings
 
-_service_status = {}
+T = TypeVar("T", bound=Callable[..., Any])
 
 
-def snuba_is_available():
-    if "snuba" in _service_status:
-        return _service_status["snuba"]
-    try:
-        parsed = urlparse(settings.SENTRY_SNUBA)
-        with socket.create_connection((parsed.hostname, parsed.port), 1.0):
-            pass
-    except OSError:
-        _service_status["snuba"] = False
-    else:
-        _service_status["snuba"] = True
-    return _service_status["snuba"]
-
-
-requires_snuba = pytest.mark.skipif(
-    not snuba_is_available(), reason="requires snuba server running"
-)
-
-
-def is_arm64():
+def is_arm64() -> bool:
     return os.uname().machine == "arm64"
 
 
@@ -36,8 +20,8 @@ requires_not_arm64 = pytest.mark.skipif(
 )
 
 
-def xfail_if_not_postgres(reason):
-    def decorator(function):
+def xfail_if_not_postgres(reason: str) -> Callable[[T], T]:
+    def decorator(function: T) -> T:
         return pytest.mark.xfail(os.environ.get("TEST_SUITE") != "postgres", reason=reason)(
             function
         )
@@ -45,7 +29,7 @@ def xfail_if_not_postgres(reason):
     return decorator
 
 
-def skip_for_relay_store(reason):
+def skip_for_relay_store(reason: str) -> Callable[[T], T]:
     """
     Decorator factory will skip marked tests if Relay is enabled.
     A test decorated with @skip_for_relay_store("this test has been moved in relay")
@@ -55,24 +39,53 @@ def skip_for_relay_store(reason):
     Note: Eventually, when Relay becomes compulsory, tests marked with this decorator will be deleted.
     """
 
-    def decorator(function):
+    def decorator(function: T) -> T:
         return pytest.mark.skipif(settings.SENTRY_USE_RELAY, reason=reason)(function)
 
     return decorator
 
 
-def relay_is_available():
-    if "relay" in _service_status:
-        return _service_status["relay"]
+def _service_available(host: str, port: int) -> bool:
     try:
-        socket.create_connection(("127.0.0.1", settings.SENTRY_RELAY_PORT), 1.0)
+        with socket.create_connection((host, port), 1.0):
+            pass
     except OSError:
-        _service_status["relay"] = False
+        return False
     else:
-        _service_status["relay"] = True
-    return _service_status["relay"]
+        return True
 
 
-requires_relay = pytest.mark.skipif(
-    not relay_is_available(), reason="requires relay server running"
-)
+def _requires_service_message(name: str) -> str:
+    return f"requires '{name}' server running\n\t💡 Hint: run `sentry devservices up {name}`"
+
+
+@pytest.fixture(scope="session")
+def _requires_snuba() -> None:
+    parsed = urlparse(settings.SENTRY_SNUBA)
+    assert parsed.hostname is not None
+    assert parsed.port is not None
+    if not _service_available(parsed.hostname, parsed.port):
+        pytest.fail(_requires_service_message("snuba"))
+
+
+@pytest.fixture(scope="session")
+def _requires_kafka() -> None:
+    kafka_conf = settings.SENTRY_DEVSERVICES["kafka"](settings, {})
+    (port,) = kafka_conf["ports"].values()
+
+    if not _service_available("127.0.0.1", port):
+        pytest.fail(_requires_service_message("kafka"))
+
+
+@pytest.fixture(scope="session")
+def _requires_symbolicator() -> None:
+    symbolicator_conf = settings.SENTRY_DEVSERVICES["symbolicator"](settings, {})
+    (port,) = symbolicator_conf["ports"].values()
+
+    if not _service_available("127.0.0.1", port):
+        pytest.fail(_requires_service_message("symbolicator"))
+
+
+requires_snuba = pytest.mark.usefixtures("_requires_snuba")
+requires_symbolicator = pytest.mark.usefixtures("_requires_symbolicator")
+requires_kafka = pytest.mark.usefixtures("_requires_kafka")

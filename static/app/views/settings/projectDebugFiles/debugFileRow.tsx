@@ -3,20 +3,21 @@ import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
 import {Role} from 'sentry/components/acl/role';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
 import Tag from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
+import {Project} from 'sentry/types';
 import {DebugFile} from 'sentry/types/debugFiles';
 
-import {getFeatureTooltip, getFileType} from './utils';
+import {getFeatureTooltip, getPrettyFileType} from './utils';
 
 type Props = {
   debugFile: DebugFile;
@@ -24,30 +25,21 @@ type Props = {
   downloadUrl: string;
   onDelete: (id: string) => void;
   orgSlug: string;
+  project: Project;
   showDetails: boolean;
 };
 
-const DebugFileRow = ({
+function DebugFileRow({
   debugFile,
   showDetails,
   downloadUrl,
   downloadRole,
   onDelete,
   orgSlug,
-}: Props) => {
-  const {
-    id,
-    data,
-    debugId,
-    uuid,
-    size,
-    dateCreated,
-    objectName,
-    cpuName,
-    symbolType,
-    codeId,
-  } = debugFile;
-  const fileType = getFileType(debugFile);
+  project,
+}: Props) {
+  const {id, data, debugId, uuid, size, dateCreated, objectName, symbolType, codeId} =
+    debugFile;
   const {features} = data || {};
 
   return (
@@ -71,11 +63,7 @@ const DebugFileRow = ({
             : objectName}
         </Name>
         <Description>
-          <DescriptionText>
-            {symbolType === 'proguard' && cpuName === 'any'
-              ? t('proguard mapping')
-              : `${cpuName} (${symbolType}${fileType ? ` ${fileType}` : ''})`}
-          </DescriptionText>
+          <DescriptionText>{getPrettyFileType(debugFile)}</DescriptionText>
 
           {features && (
             <FeatureTags>
@@ -115,7 +103,7 @@ const DebugFileRow = ({
                 isHoverable
               >
                 <Button
-                  size="xsmall"
+                  size="xs"
                   icon={<IconDownload size="xs" />}
                   href={downloadUrl}
                   disabled={!hasRole}
@@ -125,7 +113,7 @@ const DebugFileRow = ({
               </Tooltip>
             )}
           </Role>
-          <Access access={['project:write']}>
+          <Access access={['project:write']} project={project}>
             {({hasAccess}) => (
               <Tooltip
                 disabled={hasAccess}
@@ -140,7 +128,7 @@ const DebugFileRow = ({
                   <Button
                     priority="danger"
                     icon={<IconDelete size="xs" />}
-                    size="xsmall"
+                    size="xs"
                     disabled={!hasAccess}
                     data-test-id="delete-dif"
                     aria-label={t('Delete')}
@@ -153,7 +141,7 @@ const DebugFileRow = ({
       </RightColumn>
     </Fragment>
   );
-};
+}
 
 const DescriptionText = styled('span')`
   display: inline-flex;

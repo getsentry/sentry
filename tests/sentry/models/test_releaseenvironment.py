@@ -2,10 +2,14 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models import Environment, Release, ReleaseEnvironment
-from sentry.testutils import TestCase
+from sentry.models.environment import Environment
+from sentry.models.release import Release
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class GetOrCreateTest(TestCase):
     def test_simple(self):
         project = self.create_project(name="foo")
@@ -13,9 +17,7 @@ class GetOrCreateTest(TestCase):
 
         release = Release.objects.create(organization_id=project.organization_id, version="abcdef")
         release.add_project(project)
-        env = Environment.objects.create(
-            project_id=project.id, organization_id=project.organization_id, name="prod"
-        )
+        env = Environment.objects.create(organization_id=project.organization_id, name="prod")
         relenv = ReleaseEnvironment.get_or_create(
             project=project, release=release, environment=env, datetime=datetime
         )

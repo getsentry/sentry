@@ -1,7 +1,9 @@
-from sentry.models import Broadcast, BroadcastSeen
-from sentry.testutils import APITestCase
+from sentry.models.broadcast import Broadcast, BroadcastSeen
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class BroadcastListTest(APITestCase):
     def test_simple(self):
         broadcast1 = Broadcast.objects.create(message="bar", is_active=True)
@@ -59,6 +61,7 @@ class BroadcastListTest(APITestCase):
         assert response.data[0]["id"] == str(broadcast1.id)
 
 
+@control_silo_test(stable=True)
 class BroadcastCreateTest(APITestCase):
     def test_basic_user(self):
         self.add_user_permission(user=self.user, permission="broadcasts.admin")
@@ -88,6 +91,7 @@ class BroadcastCreateTest(APITestCase):
         assert broadcast.link == "http://example.com"
 
 
+@control_silo_test(stable=True)
 class BroadcastUpdateTest(APITestCase):
     def test_simple(self):
         broadcast1 = Broadcast.objects.create(message="bar", is_active=True)

@@ -2,7 +2,8 @@ import {cloneElement, isValidElement} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import * as AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
-import {Organization} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import withOrganization from 'sentry/utils/withOrganization';
 import ProjectContext from 'sentry/views/projects/projectContext';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
@@ -11,34 +12,44 @@ import ProjectSettingsNavigation from 'sentry/views/settings/project/projectSett
 type Props = {
   children: React.ReactNode;
   organization: Organization;
-} & RouteComponentProps<{orgId: string; projectId: string}, {}>;
+} & RouteComponentProps<{projectId: string}, {}>;
 
-function ProjectSettingsLayout({
+type InnerProps = Props & {project: Project};
+
+function InnerProjectSettingsLayout({
   params,
+  routes,
+  project,
   organization,
   children,
-  routes,
   ...props
-}: Props) {
-  const {orgId, projectId} = params;
-
+}: InnerProps) {
+  // set analytics params for route based analytics
+  useRouteAnalyticsParams({
+    project_id: project.id,
+    project_platform: project.platform,
+  });
   return (
-    <ProjectContext orgId={orgId} projectId={projectId}>
+    <AppStoreConnectContext.Provider project={project} organization={organization}>
+      <SettingsLayout
+        params={params}
+        routes={routes}
+        {...props}
+        renderNavigation={() => <ProjectSettingsNavigation organization={organization} />}
+      >
+        {children && isValidElement(children)
+          ? cloneElement<any>(children, {organization, project})
+          : children}
+      </SettingsLayout>
+    </AppStoreConnectContext.Provider>
+  );
+}
+
+function ProjectSettingsLayout({organization, params, ...props}: Props) {
+  return (
+    <ProjectContext projectSlug={params.projectId}>
       {({project}) => (
-        <AppStoreConnectContext.Provider project={project} organization={organization}>
-          <SettingsLayout
-            params={params}
-            routes={routes}
-            {...props}
-            renderNavigation={() => (
-              <ProjectSettingsNavigation organization={organization} />
-            )}
-          >
-            {children && isValidElement(children)
-              ? cloneElement(children, {organization, project})
-              : children}
-          </SettingsLayout>
-        </AppStoreConnectContext.Provider>
+        <InnerProjectSettingsLayout {...{params, project, organization, ...props}} />
       )}
     </ProjectContext>
   );

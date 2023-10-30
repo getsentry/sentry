@@ -1,7 +1,6 @@
 import omit from 'lodash/omit';
 
-import AnnotatedText from 'sentry/components/events/meta/annotatedText';
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Highlight from 'sentry/components/highlight';
 import {BreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
 import {defined} from 'sentry/utils';
@@ -11,44 +10,37 @@ import Summary from './summary';
 type Props = {
   breadcrumb: BreadcrumbTypeDefault;
   searchTerm: string;
-  linkedEvent?: React.ReactElement;
+  meta?: Record<any, any>;
 };
 
-function Exception({breadcrumb, searchTerm, linkedEvent}: Props) {
+export function Exception({breadcrumb, searchTerm, meta}: Props) {
   const {data, message} = breadcrumb;
-  const dataValue = data?.value;
 
   return (
-    <Summary kvData={omit(data, ['type', 'value'])}>
-      {linkedEvent}
-      {data?.type && (
-        <AnnotatedText
-          value={
-            <strong>
-              <Highlight text={searchTerm}>{`${data.type}: `}</Highlight>
-            </strong>
-          }
-          meta={getMeta(data, 'type')}
-        />
+    <Summary kvData={!data ? data : omit(data, ['type', 'value'])} meta={meta}>
+      {meta?.type?.[''] ? (
+        <AnnotatedText value={data?.type} meta={meta?.type?.['']} />
+      ) : (
+        defined(data?.type) && (
+          <strong>
+            <Highlight text={searchTerm}>{`${data?.type}: `}</Highlight>
+          </strong>
+        )
       )}
-      {defined(dataValue) && (
-        <AnnotatedText
-          value={
-            <Highlight text={searchTerm}>
-              {breadcrumb?.message ? `${dataValue}. ` : dataValue}
-            </Highlight>
-          }
-          meta={getMeta(data, 'value')}
-        />
+      {meta?.data?.value?.[''] ? (
+        <AnnotatedText value={data?.value} meta={meta?.data?.value?.['']} />
+      ) : (
+        defined(data?.value) && (
+          <Highlight text={searchTerm}>
+            {breadcrumb?.message ? `${data?.value}. ` : data?.value}
+          </Highlight>
+        )
       )}
-      {message && (
-        <AnnotatedText
-          value={<Highlight text={searchTerm}>{message}</Highlight>}
-          meta={getMeta(breadcrumb, 'message')}
-        />
+      {meta?.message?.[''] ? (
+        <AnnotatedText value={message} meta={meta?.message?.['']} />
+      ) : (
+        defined(message) && <Highlight text={searchTerm}>{message}</Highlight>
       )}
     </Summary>
   );
 }
-
-export default Exception;

@@ -1,3 +1,5 @@
+import {ReactElement} from 'react';
+
 import {Organization, Project, Scope} from 'sentry/types';
 
 export type NavigationProps = {
@@ -23,7 +25,7 @@ export type NavigationItem = {
   /**
    * Returns the text of the badge to render next to the navigation.
    */
-  badge?: (opts: NavigationGroupProps) => string | number | null;
+  badge?: (opts: NavigationGroupProps) => string | number | null | ReactElement;
   /**
    * The description of the settings section. This will be used in search.
    */

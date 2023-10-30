@@ -2,9 +2,11 @@ import responses
 
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
-from sentry.models import Identity, IdentityStatus, OrganizationIntegration
-from sentry.testutils import TestCase
+from sentry.models.identity import Identity, IdentityStatus
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import add_identity, install_slack
+from sentry.testutils.silo import control_silo_test
 
 
 class SlackIntegrationLinkIdentityTestBase(TestCase):
@@ -28,6 +30,7 @@ class SlackIntegrationLinkIdentityTestBase(TestCase):
         )
 
 
+@control_silo_test(stable=True)
 class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
     @responses.activate
     def test_basic_flow(self):
@@ -74,6 +77,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         assert not Identity.objects.filter(external_id=external_id_2, user=user2).exists()
 
 
+@control_silo_test(stable=True)
 class SlackIntegrationUnlinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
     def setUp(self):
         super().setUp()
@@ -104,7 +108,8 @@ class SlackIntegrationUnlinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
     def test_user_with_multiple_organizations(self):
         # Create a second organization where the user is _not_ a member.
         OrganizationIntegration.objects.create(
-            organization=self.create_organization(name="Another Org"), integration=self.integration
+            organization_id=self.create_organization(name="Another Org").id,
+            integration=self.integration,
         )
 
         # Unlink identity of user.

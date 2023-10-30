@@ -2,17 +2,17 @@ import hmac
 import time
 from datetime import datetime
 from hashlib import sha256
-from typing import TYPE_CHECKING, Mapping
+from typing import TYPE_CHECKING, TypedDict
 
 if TYPE_CHECKING:
-    from sentry.models import OrganizationMember
+    from sentry.models.organizationmember import OrganizationMember
 
 
 ALLOWED_ROLES = ["admin", "manager", "owner"]
 
 
 def is_valid_role(org_member: "OrganizationMember") -> bool:
-    return org_member.role in ALLOWED_ROLES
+    return len(set(org_member.get_all_org_roles()) & set(ALLOWED_ROLES)) > 0
 
 
 def _encode_data(secret: str, data: bytes, timestamp: str) -> str:
@@ -20,7 +20,12 @@ def _encode_data(secret: str, data: bytes, timestamp: str) -> str:
     return "v0=" + hmac.new(secret.encode("utf-8"), req, sha256).hexdigest()
 
 
-def set_signing_secret(secret: str, data: bytes) -> Mapping[str, str]:
+class SigningSecretKwargs(TypedDict):
+    HTTP_X_SLACK_REQUEST_TIMESTAMP: str
+    HTTP_X_SLACK_SIGNATURE: str
+
+
+def set_signing_secret(secret: str, data: bytes) -> SigningSecretKwargs:
     """Note: this is currently only used in tests."""
     timestamp = str(int(time.mktime(datetime.utcnow().timetuple())))
     signature = _encode_data(secret, data, timestamp)

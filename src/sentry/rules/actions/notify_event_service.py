@@ -1,49 +1,44 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Generator, Mapping, Sequence
+from typing import Any, Generator, Optional, Sequence
 
 from django import forms
 
-from sentry import analytics
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.app_platform_event import AppPlatformEvent
 from sentry.api.serializers.models.incident import IncidentSerializer
-from sentry.constants import SentryAppInstallationStatus
-from sentry.eventstore.models import Event
-from sentry.incidents.models import (
-    INCIDENT_STATUS,
-    AlertRuleTriggerAction,
-    Incident,
-    IncidentStatus,
-)
+from sentry.eventstore.models import GroupEvent
+from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.models import SentryApp, SentryAppInstallation
 from sentry.plugins.base import plugins
 from sentry.rules import EventState
 from sentry.rules.actions.base import EventAction
-from sentry.rules.actions.services import PluginService, SentryAppService
+from sentry.rules.actions.services import PluginService
 from sentry.rules.base import CallbackFuture
+from sentry.services.hybrid_cloud.app import RpcSentryAppService, app_service
+from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.tasks.sentry_apps import notify_sentry_app
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.safe import safe_execute
-from sentry.utils.sentry_apps import send_and_save_webhook_request
 
 logger = logging.getLogger("sentry.integrations.sentry_app")
-PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS = ["PagerDuty", "Slack"]
+PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS = ["PagerDuty", "Slack", "Opsgenie"]
 
 
 def build_incident_attachment(
     incident: Incident,
     new_status: IncidentStatus,
-    metric_value: str | None = None,
-) -> Mapping[str, str]:
+    metric_value: int | None = None,
+    notification_uuid: str | None = None,
+) -> dict[str, str]:
     from sentry.api.serializers.rest_framework.base import (
         camel_to_snake_case,
         convert_dict_key_case,
     )
 
-    data = incident_attachment_info(incident, new_status, metric_value)
+    data = incident_attachment_info(incident, new_status, metric_value, notification_uuid)
     return {
         "metric_alert": convert_dict_key_case(
             serialize(incident, serializer=IncidentSerializer()), camel_to_snake_case
@@ -59,7 +54,8 @@ def send_incident_alert_notification(
     incident: Incident,
     new_status: IncidentStatus,
     metric_value: str | None = None,
-) -> None:
+    notification_uuid: str | None = None,
+) -> bool:
     """
     When a metric alert is triggered, send incident data to the SentryApp's webhook.
     :param action: The triggered `AlertRuleTriggerAction`.
@@ -68,51 +64,21 @@ def send_incident_alert_notification(
     fire. If not provided we'll attempt to calculate this ourselves.
     :return:
     """
-    sentry_app = action.sentry_app
-    organization = incident.organization
-    metrics.incr("notifications.sent", instance=sentry_app.slug, skip_internal=False)
-
-    try:
-        install = SentryAppInstallation.objects.get(
-            organization=organization.id,
-            sentry_app=sentry_app,
-            status=SentryAppInstallationStatus.INSTALLED,
-        )
-    except SentryAppInstallation.DoesNotExist:
-        logger.info(
-            "metric_alert_webhook.missing_installation",
-            extra={
-                "action": action.id,
-                "incident": incident.id,
-                "organization": organization.slug,
-                "sentry_app_id": sentry_app.id,
-            },
-        )
-        return None
-
-    app_platform_event = AppPlatformEvent(
-        resource="metric_alert",
-        action=INCIDENT_STATUS[new_status].lower(),
-        install=install,
-        data=build_incident_attachment(incident, new_status, metric_value),
+    organization = serialize_rpc_organization(incident.organization)
+    incident_attachment = build_incident_attachment(
+        incident, new_status, metric_value, notification_uuid
     )
 
-    # Can raise errors if client returns >= 400
-    send_and_save_webhook_request(
-        sentry_app,
-        app_platform_event,
+    success = integration_service.send_incident_alert_notification(
+        sentry_app_id=action.sentry_app_id,
+        action_id=action.id,
+        incident_id=incident.id,
+        organization=organization,
+        new_status=new_status.value,
+        incident_attachment_json=json.dumps(incident_attachment),
+        metric_value=metric_value,
     )
-
-    # On success, record analytic event for Metric Alert Rule UI Component
-    alert_rule_action_ui_component = find_alert_rule_action_ui_component(app_platform_event)
-
-    if alert_rule_action_ui_component:
-        analytics.record(
-            "alert_rule_ui_component_webhook.sent",
-            organization_id=organization.id,
-            sentry_app_id=sentry_app.id,
-            event=f"{app_platform_event.resource}.{app_platform_event.action}",
-        )
+    return success
 
 
 def find_alert_rule_action_ui_component(app_platform_event: AppPlatformEvent) -> bool:
@@ -137,7 +103,7 @@ def find_alert_rule_action_ui_component(app_platform_event: AppPlatformEvent) ->
     return bool(len(actions))
 
 
-class NotifyEventServiceForm(forms.Form):  # type: ignore
+class NotifyEventServiceForm(forms.Form):
     service = forms.ChoiceField(choices=())
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -171,7 +137,9 @@ class NotifyEventServiceAction(EventAction):
             return f"(Legacy) {title}"
         return title
 
-    def after(self, event: Event, state: EventState) -> Generator[CallbackFuture, None, None]:
+    def after(
+        self, event: GroupEvent, state: EventState, notification_uuid: Optional[str] = None
+    ) -> Generator[CallbackFuture, None, None]:
         service = self.get_option("service")
 
         extra = {"event_id": event.event_id}
@@ -180,11 +148,7 @@ class NotifyEventServiceAction(EventAction):
             return
 
         plugin = None
-        app = None
-        try:
-            app = SentryApp.objects.get(slug=service)
-        except SentryApp.DoesNotExist:
-            pass
+        app = app_service.get_sentry_app_by_slug(slug=service)
 
         if app:
             kwargs = {"sentry_app": app}
@@ -217,13 +181,8 @@ class NotifyEventServiceAction(EventAction):
             metrics.incr("notifications.sent", instance=plugin.slug, skip_internal=False)
             yield self.future(plugin.rule_notify)
 
-    def get_sentry_app_services(self) -> Sequence[SentryAppService]:
-        # excludes Sentry Apps that have Alert Rule UI Component in their schema
-        return [
-            SentryAppService(app)
-            for app in SentryApp.objects.get_alertable_sentry_apps(self.project.organization_id)
-            if not SentryAppService(app).has_alert_rule_action()
-        ]
+    def get_sentry_app_services(self) -> Sequence[RpcSentryAppService]:
+        return app_service.find_alertable_services(organization_id=self.project.organization_id)
 
     def get_plugins(self) -> Sequence[PluginService]:
         from sentry.plugins.bases.notify import NotificationPlugin

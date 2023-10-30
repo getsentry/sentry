@@ -2,15 +2,23 @@ from django.http.response import Http404
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.constants import ObjectStatus
-from sentry.models import Project, ProjectOption
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
 from sentry.plugins.base import plugins
 
 
+@region_silo_endpoint
 class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization) -> Response:
 
         """
@@ -76,7 +84,7 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
 
         # get the IDs of all projects for found project options and grab them from the DB
         project_id_set = {project_option.project_id for project_option in project_options}
-        projects = Project.objects.filter(id__in=project_id_set, status=ObjectStatus.VISIBLE)
+        projects = Project.objects.filter(id__in=project_id_set, status=ObjectStatus.ACTIVE)
 
         # create a key/value map of our projects
         project_map = {project.id: project for project in projects}

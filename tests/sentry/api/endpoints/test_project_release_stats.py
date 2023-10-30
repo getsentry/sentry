@@ -2,10 +2,15 @@ from datetime import datetime
 
 from django.urls import reverse
 
-from sentry.models import Release
-from sentry.testutils import APITestCase
+from sentry.models.release import Release
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
+@region_silo_test(stable=True)
 class ProjectReleaseStatsTest(APITestCase):
     def test_simple(self):
         """Minimal test to ensure code coverage of the endpoint"""

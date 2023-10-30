@@ -1,6 +1,12 @@
+from django.db import router
+
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators import Mediator, Param
-from sentry.models import ApiApplication, SentryApp
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.user import User
+from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
 from sentry.utils.cache import memoize
 
 
@@ -9,9 +15,10 @@ class Validator(Mediator):
     Validates general authorization params for all types of token exchanges.
     """
 
-    install = Param("sentry.models.SentryAppInstallation")
-    client_id = Param((str,))
-    user = Param("sentry.models.User")
+    install = Param(RpcSentryAppInstallation)
+    client_id = Param(str)
+    user = Param(User)
+    using = router.db_for_write(User)
 
     def call(self):
         self._validate_is_sentry_app_making_request()
@@ -28,7 +35,7 @@ class Validator(Mediator):
             raise APIUnauthorized
 
     def _validate_installation(self):
-        if self.install.sentry_app != self.sentry_app:
+        if self.install.sentry_app.id != self.sentry_app.id:
             raise APIUnauthorized
 
     @memoize

@@ -5,20 +5,31 @@ from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
 from sentry import analytics, features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppsBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
-from sentry.mediators.sentry_apps import Creator, InternalCreator
-from sentry.models import SentryApp
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.sentry_apps.apps import SentryAppCreator
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
 
+@control_silo_endpoint
 class SentryAppsEndpoint(SentryAppsBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.ISSUES
+
     def get(self, request: Request) -> Response:
         status = request.GET.get("status")
 
@@ -28,11 +39,25 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
         elif status == "unpublished":
             queryset = SentryApp.objects.filter(status=SentryAppStatus.UNPUBLISHED)
             if not is_active_superuser(request):
-                queryset = queryset.filter(owner__in=request.user.get_orgs())
+                queryset = queryset.filter(
+                    owner_id__in=[
+                        o.id
+                        for o in user_service.get_organizations(
+                            user_id=request.user.id, only_visible=True
+                        )
+                    ]
+                )
         elif status == "internal":
             queryset = SentryApp.objects.filter(status=SentryAppStatus.INTERNAL)
             if not is_active_superuser(request):
-                queryset = queryset.filter(owner__in=request.user.get_orgs())
+                queryset = queryset.filter(
+                    owner_id__in=[
+                        o.id
+                        for o in user_service.get_organizations(
+                            user_id=request.user.id, only_visible=True
+                        )
+                    ]
+                )
         else:
             if is_active_superuser(request):
                 queryset = SentryApp.objects.all()
@@ -84,16 +109,27 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
         serializer = SentryAppSerializer(data=data, access=request.access)
 
         if serializer.is_valid():
-            data["redirect_url"] = data["redirectUrl"]
-            data["webhook_url"] = data["webhookUrl"]
-            data["is_alertable"] = data["isAlertable"]
-            data["verify_install"] = data["verifyInstall"]
-            data["allowed_origins"] = data["allowedOrigins"]
-            data["is_internal"] = data.get("isInternal")
+            if data.get("isInternal"):
+                data["verifyInstall"] = False
+                data["author"] = data["author"] or organization.name
 
-            creator = InternalCreator if data.get("isInternal") else Creator
             try:
-                sentry_app = creator.run(request=request, **data)
+                sentry_app = SentryAppCreator(
+                    name=data["name"],
+                    author=data["author"],
+                    organization_id=organization.id,
+                    is_internal=data["isInternal"],
+                    scopes=data["scopes"],
+                    events=data["events"],
+                    webhook_url=data["webhookUrl"],
+                    redirect_url=data["redirectUrl"],
+                    is_alertable=data["isAlertable"],
+                    verify_install=data["verifyInstall"],
+                    schema=data["schema"],
+                    overview=data["overview"],
+                    allowed_origins=data["allowedOrigins"],
+                    popularity=data["popularity"],
+                ).run(user=request.user, request=request)
             except ValidationError as e:
                 # we generate and validate the slug here instead of the serializer since the slug never changes
                 return Response(e.detail, status=400)

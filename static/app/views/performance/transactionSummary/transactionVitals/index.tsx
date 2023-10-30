@@ -3,7 +3,8 @@ import {Location} from 'history';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {isAggregateField, WebVital} from 'sentry/utils/discover/fields';
+import {isAggregateField} from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -30,7 +31,7 @@ function TransactionVitals(props: Props) {
       location={location}
       organization={organization}
       projects={projects}
-      tab={Tab.WebVitals}
+      tab={Tab.WEB_VITALS}
       getDocumentTitle={getDocumentTitle}
       generateEventView={generateEventView}
       childComponent={VitalsContent}

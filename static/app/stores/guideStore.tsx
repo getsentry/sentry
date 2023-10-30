@@ -1,17 +1,15 @@
 import {browserHistory} from 'react-router';
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
-import OrganizationsActions from 'sentry/actions/organizationsActions';
 import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
 import {Guide, GuidesContent, GuidesServerData} from 'sentry/components/assistant/types';
-import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import {
-  cleanupActiveRefluxSubscriptions,
-  makeSafeRefluxStore,
-} from 'sentry/utils/makeSafeRefluxStore';
+import ModalStore from 'sentry/stores/modalStore';
+import {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
+
+import {CommonStoreDefinition} from './types';
 
 function guidePrioritySort(a: Guide, b: Guide) {
   const a_priority = a.priority ?? Number.MAX_SAFE_INTEGER;
@@ -57,6 +55,10 @@ export type GuideStoreState = {
    */
   orgSlug: string | null;
   /**
+   * Current Organization
+   */
+  organization: Organization | null;
+  /**
    * The previously shown guide
    */
   prevGuide: Guide | null;
@@ -70,20 +72,25 @@ const defaultState: GuideStoreState = {
   currentStep: 0,
   orgId: null,
   orgSlug: null,
+  organization: null,
   forceShow: false,
   prevGuide: null,
 };
 
-interface GuideStoreDefinition extends StoreDefinition {
+interface GuideStoreDefinition extends CommonStoreDefinition<GuideStoreState> {
   browserHistoryListener: null | (() => void);
-
   closeGuide(dismissed?: boolean): void;
+
   fetchSucceeded(data: GuidesServerData): void;
+  init(): void;
+  modalStoreListener: null | Function;
   nextStep(): void;
   recordCue(guide: string): void;
   registerAnchor(target: string): void;
+  setActiveOrganization(data: Organization): void;
   setForceHide(forceHide: boolean): void;
   state: GuideStoreState;
+  teardown(): void;
   toStep(step: number): void;
   unregisterAnchor(target: string): void;
   updatePrevGuide(nextGuide: Guide | null): void;
@@ -91,27 +98,44 @@ interface GuideStoreDefinition extends StoreDefinition {
 
 const storeConfig: GuideStoreDefinition = {
   state: defaultState,
-  unsubscribeListeners: [],
   browserHistoryListener: null,
+  modalStoreListener: null,
 
   init() {
-    this.state = defaultState;
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
 
-    this.unsubscribeListeners.push(
-      this.listenTo(OrganizationsActions.setActive, this.onSetActiveOrganization)
-    );
+    this.state = defaultState;
 
     window.addEventListener('load', this.onURLChange, false);
     this.browserHistoryListener = browserHistory.listen(() => this.onURLChange());
+
+    // Guides will show above modals, but are not interactable because
+    // of the focus trap, so we force them to be hidden while a modal is open.
+    this.modalStoreListener = ModalStore.listen(() => {
+      const isOpen = typeof ModalStore.getState().renderer === 'function';
+
+      if (isOpen) {
+        this.setForceHide(true);
+      } else {
+        this.setForceHide(false);
+      }
+    }, undefined);
   },
 
   teardown() {
-    cleanupActiveRefluxSubscriptions(this.unsubscribeListeners);
     window.removeEventListener('load', this.onURLChange);
 
     if (this.browserHistoryListener) {
       this.browserHistoryListener();
     }
+    if (this.modalStoreListener) {
+      this.modalStoreListener();
+    }
+  },
+
+  getState() {
+    return this.state;
   },
 
   onURLChange() {
@@ -119,9 +143,10 @@ const storeConfig: GuideStoreDefinition = {
     this.updateCurrentGuide();
   },
 
-  onSetActiveOrganization(data) {
+  setActiveOrganization(data: Organization) {
     this.state.orgId = data ? data.id : null;
     this.state.orgSlug = data ? data.slug : null;
+    this.state.organization = data ? data : null;
     this.updateCurrentGuide();
   },
 
@@ -196,14 +221,10 @@ const storeConfig: GuideStoreDefinition = {
       return;
     }
 
-    const data = {
+    trackAnalytics('assistant.guide_cued', {
+      organization: this.state.orgId,
       guide,
-      eventKey: 'assistant.guide_cued',
-      eventName: 'Assistant Guide Cued',
-      organization_id: this.state.orgId,
-      user_id: parseInt(user.id, 10),
-    };
-    trackAnalyticsEvent(data);
+    });
   },
 
   updatePrevGuide(nextGuide) {
@@ -242,7 +263,7 @@ const storeConfig: GuideStoreDefinition = {
         if (seen) {
           return false;
         }
-        if (user?.isSuperuser && !IS_ACCEPTANCE_TEST) {
+        if (user?.isSuperuser) {
           return true;
         }
         if (dateThreshold) {
@@ -275,10 +296,11 @@ const storeConfig: GuideStoreDefinition = {
         ? this.state.currentStep
         : 0;
     this.state.currentGuide = nextGuide;
+
     this.trigger(this.state);
     HookStore.get('callback:on-guide-update').map(cb => cb(nextGuide, {dismissed}));
   },
 };
 
-const GuideStore = createStore(makeSafeRefluxStore(storeConfig));
+const GuideStore = createStore(storeConfig);
 export default GuideStore;

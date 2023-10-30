@@ -1,16 +1,19 @@
-# TODO: We should make the API a class, and UDP/HTTP just inherit from it
-#       This will make it so we can more easily control logging with various
-#       metadata (rather than generic log messages which aren't useful).
+from __future__ import annotations
 
 import logging
 import re
 from time import time
 
 from sentry.attachments import attachment_cache
-from sentry.cache import default_cache
+from sentry.eventstore.processing import event_processing_store
+from sentry.ingest.consumer.processors import CACHE_TIMEOUT
 from sentry.tasks.store import preprocess_event, preprocess_event_from_reprocessing
-from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CANONICAL_TYPES
+
+# TODO: We should make the API a class, and UDP/HTTP just inherit from it
+#       This will make it so we can more easily control logging with various
+#       metadata (rather than generic log messages which aren't useful).
+
 
 _dist_re = re.compile(r"^[a-zA-Z0-9_.-]+$")
 logger = logging.getLogger("sentry.api")
@@ -19,15 +22,12 @@ logger = logging.getLogger("sentry.api")
 class APIError(Exception):
     http_status = 400
     msg = "Invalid request"
-    name = None
 
-    def __init__(self, msg=None, name=None):
+    def __init__(self, msg: str | None = None) -> None:
         if msg:
             self.msg = msg
-        if self.name:
-            self.name = name
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.msg or ""
 
 
@@ -58,15 +58,13 @@ def insert_data_to_database_legacy(
     if isinstance(data, CANONICAL_TYPES):
         data = dict(data.items())
 
-    cache_timeout = 3600
-    cache_key = cache_key_for_event(data)
-    default_cache.set(cache_key, data, cache_timeout)
+    cache_key = event_processing_store.store(data)
 
     # Attachments will be empty or None if the "event-attachments" feature
     # is turned off. For native crash reports it will still contain the
     # crash dump (e.g. minidump) so we can load it during processing.
     if attachments is not None:
-        attachment_cache.set(cache_key, attachments, cache_timeout)
+        attachment_cache.set(cache_key, attachments, cache_timeout=CACHE_TIMEOUT)
 
     task = from_reprocessing and preprocess_event_from_reprocessing or preprocess_event
     task.delay(cache_key=cache_key, start_time=start_time, event_id=data["event_id"])

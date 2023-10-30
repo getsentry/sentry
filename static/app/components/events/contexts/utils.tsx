@@ -1,27 +1,55 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
+import ContextData from 'sentry/components/contextData';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
-import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
+import {Event, KeyValueListData} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
+import {AppEventContext} from './app';
+import {BrowserEventContext} from './browser';
+import {DefaultContext} from './default';
+import {DeviceEventContext} from './device';
+import {GPUEventContext} from './gpu';
+import {MemoryInfoEventContext} from './memoryInfo';
+import {OperatingSystemEventContext} from './operatingSystem';
+import {ProfileEventContext} from './profile';
+import {ReduxContext} from './redux';
+import {RuntimeEventContext} from './runtime';
+import {StateEventContext} from './state';
+import {ThreadPoolInfoEventContext} from './threadPoolInfo';
+import {TraceEventContext} from './trace';
+import {UnityEventContext} from './unity';
+import {UserEventContext} from './user';
+
 const CONTEXT_TYPES = {
-  default: require('sentry/components/events/contexts/default').default,
-  app: require('sentry/components/events/contexts/app/app').default,
-  device: require('sentry/components/events/contexts/device/device').default,
-  os: require('sentry/components/events/contexts/operatingSystem/operatingSystem')
-    .default,
-  runtime: require('sentry/components/events/contexts/runtime/runtime').default,
-  browser: require('sentry/components/events/contexts/browser/browser').default,
-  user: require('sentry/components/events/contexts/user/user').default,
-  gpu: require('sentry/components/events/contexts/gpu/gpu').default,
-  trace: require('sentry/components/events/contexts/trace/trace').default,
+  default: DefaultContext,
+  app: AppEventContext,
+  device: DeviceEventContext,
+  memory_info: MemoryInfoEventContext,
+  browser: BrowserEventContext,
+  os: OperatingSystemEventContext,
+  unity: UnityEventContext,
+  runtime: RuntimeEventContext,
+  user: UserEventContext,
+  gpu: GPUEventContext,
+  trace: TraceEventContext,
+  threadpool_info: ThreadPoolInfoEventContext,
+  state: StateEventContext,
+  profile: ProfileEventContext,
+
   // 'redux.state' will be replaced with more generic context called 'state'
-  'redux.state': require('sentry/components/events/contexts/redux').default,
-  state: require('sentry/components/events/contexts/state').default,
+  'redux.state': ReduxContext,
+  // 'ThreadPool Info' will be replaced with 'threadpool_info' but
+  // we want to keep it here for now so it works for existing versions
+  'ThreadPool Info': ThreadPoolInfoEventContext,
+  // 'Memory Info' will be replaced with 'memory_info' but
+  // we want to keep it here for now so it works for existing versions
+  'Memory Info': MemoryInfoEventContext,
 };
 
 export function getContextComponent(type: string) {
@@ -71,36 +99,86 @@ export function getRelativeTimeFromEventDateCreated(
   );
 }
 
-// Typescript doesn't have types for DisplayNames yet and that's why the type assertion "any" is needed below.
-// There is currently an open PR that intends to introduce the types https://github.com/microsoft/TypeScript/pull/44022
-export function getFullLanguageDescription(locale: string) {
-  const sentryAppLanguageCode = ConfigStore.get('languageCode');
+export function getKnownData<Data, DataType>({
+  data,
+  knownDataTypes,
+  meta,
+  raw,
+  onGetKnownDataDetails,
+}: {
+  data: Data;
+  knownDataTypes: string[];
+  onGetKnownDataDetails: (props: {data: Data; type: DataType}) =>
+    | {
+        subject: string;
+        value?: React.ReactNode;
+      }
+    | undefined;
+  meta?: Record<any, any>;
+  raw?: boolean;
+}): KeyValueListData {
+  const filteredTypes = knownDataTypes.filter(knownDataType => {
+    if (
+      typeof data[knownDataType] !== 'number' &&
+      typeof data[knownDataType] !== 'boolean' &&
+      !data[knownDataType]
+    ) {
+      return !!meta?.[knownDataType];
+    }
+    return true;
+  });
 
-  const [languageAbbreviation, countryAbbreviation] = locale.includes('_')
-    ? locale.split('_')
-    : locale.split('-');
-
-  try {
-    const languageNames = new (Intl as any).DisplayNames(sentryAppLanguageCode, {
-      type: 'language',
-    });
-
-    const languageName = languageNames.of(languageAbbreviation);
-
-    if (countryAbbreviation) {
-      const regionNames = new (Intl as any).DisplayNames(sentryAppLanguageCode, {
-        type: 'region',
+  return filteredTypes
+    .map(type => {
+      const knownDataDetails = onGetKnownDataDetails({
+        data,
+        type: type as unknown as DataType,
       });
 
-      const countryName = regionNames.of(countryAbbreviation.toUpperCase());
+      if (!knownDataDetails) {
+        return null;
+      }
 
-      return `${languageName} (${countryName})`;
-    }
+      return {
+        key: type,
+        ...knownDataDetails,
+        value: raw ? (
+          knownDataDetails.value
+        ) : (
+          <ContextData
+            data={knownDataDetails.value}
+            meta={meta?.[type]}
+            withAnnotatedText
+          />
+        ),
+      };
+    })
+    .filter(defined);
+}
 
-    return languageName;
-  } catch {
-    return locale;
-  }
+export function getUnknownData({
+  allData,
+  knownKeys,
+  meta,
+}: {
+  allData: Record<string, any>;
+  knownKeys: string[];
+  meta?: NonNullable<Event['_meta']>[keyof Event['_meta']];
+}): KeyValueListData {
+  return Object.entries(allData)
+    .filter(
+      ([key]) =>
+        key !== 'type' &&
+        key !== 'title' &&
+        !knownKeys.includes(key) &&
+        (typeof allData[key] !== 'number' && !allData[key] ? !!meta?.[key]?.[''] : true)
+    )
+    .map(([key, value]) => ({
+      key,
+      value,
+      subject: startCase(key),
+      meta: meta?.[key]?.[''],
+    }));
 }
 
 const RelativeTime = styled('span')`

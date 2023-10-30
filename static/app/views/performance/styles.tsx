@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 export const GridCell = styled('div')`
   font-size: 14px;

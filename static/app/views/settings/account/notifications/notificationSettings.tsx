@@ -1,19 +1,22 @@
 import {Fragment} from 'react';
 
 import AlertLink from 'sentry/components/alertLink';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
-import {FieldObject} from 'sentry/components/forms/type';
+import {FieldObject} from 'sentry/components/forms/types';
 import Link from 'sentry/components/links/link';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import {
   CONFIRMATION_MESSAGE,
+  NOTIFICATION_FEATURE_MAP,
+  NOTIFICATION_SETTINGS_PATHNAMES,
   NOTIFICATION_SETTINGS_TYPES,
   NotificationSettingsObject,
   SELF_NOTIFICATION_SETTINGS_TYPES,
@@ -29,16 +32,16 @@ import {
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   organizations: Organization[];
 };
 
 type State = {
   legacyData: {[key: string]: string};
   notificationSettings: NotificationSettingsObject;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class NotificationSettings extends AsyncComponent<Props, State> {
+class NotificationSettings extends DeprecatedAsyncComponent<Props, State> {
   model = new FormModel();
 
   getDefaultState(): State {
@@ -49,16 +52,17 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     return [
-      ['notificationSettings', `/users/me/notification-settings/`],
+      ['notificationSettings', `/users/me/notification-settings/`, {v2: 'serializer'}],
       ['legacyData', '/users/me/notifications/'],
     ];
   }
 
   componentDidMount() {
+    super.componentDidMount();
     // only tied to a user
-    trackAdvancedAnalyticsEvent('notification_settings.index_page_viewed', {
+    trackAnalytics('notification_settings.index_page_viewed', {
       organization: null,
     });
   }
@@ -93,13 +97,19 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     return updatedNotificationSettings;
   };
 
+  checkFeatureFlag(flag: string) {
+    return this.props.organizations.some(org => org.features?.includes(flag));
+  }
+
   get notificationSettingsType() {
-    const hasFeatureFlag =
-      this.props.organizations.filter(org =>
-        org.features?.includes('slack-overage-notifications')
-      ).length > 0;
-    // filter out quotas if the feature flag isn't set
-    return NOTIFICATION_SETTINGS_TYPES.filter(type => type !== 'quota' || hasFeatureFlag);
+    // filter out notification settings if the feature flag isn't set
+    return NOTIFICATION_SETTINGS_TYPES.filter(type => {
+      const notificationFlag = NOTIFICATION_FEATURE_MAP[type];
+      if (notificationFlag) {
+        return this.checkFeatureFlag(notificationFlag);
+      }
+      return true;
+    });
   }
 
   getInitialData(): {[key: string]: string} {
@@ -135,7 +145,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
               &nbsp;
               <Link
                 data-test-id="fine-tuning"
-                to={`/settings/account/notifications/${notificationType}`}
+                to={`/settings/account/notifications/${NOTIFICATION_SETTINGS_PATHNAMES[notificationType]}`}
               >
                 Fine tune
               </Link>
@@ -156,9 +166,11 @@ class NotificationSettings extends AsyncComponent<Props, State> {
         fields.push(field);
       }
     }
+
     const legacyField = SELF_NOTIFICATION_SETTINGS_TYPES.map(
       type => NOTIFICATION_SETTING_FIELDS[type] as FieldObject
     );
+
     fields.push(...legacyField);
 
     const allFields = [...fields, ...endOfFields];
@@ -168,23 +180,20 @@ class NotificationSettings extends AsyncComponent<Props, State> {
 
   onFieldChange = (fieldName: string) => {
     if (SELF_NOTIFICATION_SETTINGS_TYPES.includes(fieldName)) {
-      const endpointDetails = {
-        apiEndpoint: '/users/me/notifications/',
-      };
-      this.model.setFormOptions({...this.model.options, ...endpointDetails});
+      this.model.setFormOptions({apiEndpoint: '/users/me/notifications/'});
     } else {
-      const endpointDetails = {
-        apiEndpoint: '/users/me/notification-settings/',
-      };
-      this.model.setFormOptions({...this.model.options, ...endpointDetails});
+      this.model.setFormOptions({apiEndpoint: '/users/me/notification-settings/'});
     }
   };
 
   renderBody() {
     return (
       <Fragment>
-        <SettingsPageHeader title="Notifications" />
-        <TextBlock>Personal notifications sent by email or an integration.</TextBlock>
+        <SentryDocumentTitle title={t('Notifications')} />
+        <SettingsPageHeader title={t('Notifications')} />
+        <TextBlock>
+          {t('Personal notifications sent by email or an integration.')}
+        </TextBlock>
         <Form
           model={this.model}
           saveOnBlur

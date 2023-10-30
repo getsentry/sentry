@@ -1,9 +1,10 @@
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
+import {CommonStoreDefinition} from 'sentry/stores/types';
 import {PlatformExternalIssue} from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-interface ExternalIssueStoreDefinition extends StoreDefinition {
+interface ExternalIssueStoreDefinition
+  extends CommonStoreDefinition<PlatformExternalIssue[]> {
   add(issue: PlatformExternalIssue): void;
   getInitialState(): PlatformExternalIssue[];
   load(items: PlatformExternalIssue[]): void;
@@ -11,7 +12,14 @@ interface ExternalIssueStoreDefinition extends StoreDefinition {
 
 const storeConfig: ExternalIssueStoreDefinition = {
   init() {
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
+
     this.items = [];
+  },
+
+  getState() {
+    return this.items;
   },
 
   getInitialState(): PlatformExternalIssue[] {
@@ -39,5 +47,5 @@ const storeConfig: ExternalIssueStoreDefinition = {
   },
 };
 
-const ExternalIssueStore = createStore(makeSafeRefluxStore(storeConfig));
+const ExternalIssueStore = createStore(storeConfig);
 export default ExternalIssueStore;

@@ -1,8 +1,7 @@
-import {css} from '@emotion/react';
+import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {growIn} from 'sentry/styles/animations';
-import {Theme} from 'sentry/utils/theme';
 
 interface CheckedProps extends React.InputHTMLAttributes<HTMLInputElement> {
   disabled?: boolean;
@@ -29,10 +28,12 @@ const Radio = styled('input')<CheckedProps>`
   align-items: center;
   justify-content: center;
   border: 1px solid ${p => p.theme.border};
-  box-shadow: inset ${p => p.theme.dropShadowLight};
+  box-shadow: inset ${p => p.theme.dropShadowMedium};
   background: none;
   appearance: none;
-  transition: border 0.1s, box-shadow 0.1s;
+  transition:
+    border 0.1s,
+    box-shadow 0.1s;
 
   /* TODO(bootstrap): Our bootstrap CSS adds this, we can remove when we remove that */
   margin: 0 !important;

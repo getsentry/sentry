@@ -1,9 +1,7 @@
 import {forwardRef} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 
-import theme from 'sentry/utils/theme';
-
-import SvgIcon, {SVGIconProps} from './svgIcon';
+import {SvgIcon, SVGIconProps} from './svgIcon';
 
 interface Props extends SVGIconProps {
   direction?: 'up' | 'right' | 'down' | 'left';
@@ -11,6 +9,8 @@ interface Props extends SVGIconProps {
 
 const IconSliders = forwardRef<SVGSVGElement, Props>(
   ({direction = 'up', ...props}, ref) => {
+    const theme = useTheme();
+
     return (
       <SvgIcon
         {...props}

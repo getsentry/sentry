@@ -2,8 +2,9 @@ import pytest
 import responses
 
 from sentry.coreapi import APIError
-from sentry.mediators.external_requests import SelectRequester
-from sentry.testutils import TestCase
+from sentry.mediators.external_requests.select_requester import SelectRequester
+from sentry.services.hybrid_cloud.app import app_service
+from sentry.testutils.cases import TestCase
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
@@ -19,9 +20,10 @@ class TestSelectRequester(TestCase):
             name="foo", organization=self.org, webhook_url="https://example.com", scopes=()
         )
 
-        self.install = self.create_sentry_app_installation(
+        self.orm_install = self.create_sentry_app_installation(
             slug="foo", organization=self.org, user=self.user
         )
+        self.install = app_service.get_many(filter=dict(installation_ids=[self.orm_install.id]))[0]
 
     @responses.activate
     def test_makes_request(self):
@@ -37,7 +39,9 @@ class TestSelectRequester(TestCase):
             content_type="application/json",
         )
 
-        result = SelectRequester.run(install=self.install, project=self.project, uri="/get-issues")
+        result = SelectRequester.run(
+            install=self.install, project_slug=self.project.slug, uri="/get-issues"
+        )
 
         assert result == {
             "choices": [["123", "An Issue"], ["456", "Another Issue"]],
@@ -68,7 +72,7 @@ class TestSelectRequester(TestCase):
         with pytest.raises(APIError):
             SelectRequester.run(
                 install=self.install,
-                project=self.project,
+                project_slug=self.project.slug,
                 group=self.group,
                 uri="/get-issues",
                 fields={},
@@ -86,7 +90,7 @@ class TestSelectRequester(TestCase):
         with pytest.raises(APIError):
             SelectRequester.run(
                 install=self.install,
-                project=self.project,
+                project_slug=self.project.slug,
                 group=self.group,
                 uri="/get-issues",
                 fields={},

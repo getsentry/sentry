@@ -1,20 +1,23 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
-import Input from 'sentry/components/forms/controls/input';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
-import Tooltip from 'sentry/components/tooltip';
+import EmptyMessage from 'sentry/components/emptyMessage';
+import Input from 'sentry/components/input';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import ConfirmHeader from 'sentry/views/settings/account/accountSecurity/components/confirmHeader';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-const U2fEnrolledDetails = props => {
+function U2fEnrolledDetails(props) {
   const {className, isEnrolled, devices, id, onRemoveU2fDevice, onRenameU2fDevice} =
     props;
 
@@ -44,20 +47,16 @@ const U2fEnrolledDetails = props => {
             />
           ))}
         <AddAnotherPanelItem>
-          <Button
-            type="button"
-            to="/settings/account/security/mfa/u2f/enroll/"
-            size="small"
-          >
+          <Button to="/settings/account/security/mfa/u2f/enroll/" size="sm">
             {t('Add Another Device')}
           </Button>
         </AddAnotherPanelItem>
       </PanelBody>
     </Panel>
   );
-};
+}
 
-const Device = props => {
+function Device(props) {
   const {device, isLastDevice, onRenameU2fDevice, onRemoveU2fDevice} = props;
   const [deviceName, setDeviceName] = useState(device.name);
   const [isEditing, setEditting] = useState(false);
@@ -70,7 +69,7 @@ const Device = props => {
           <FadedDateTime date={device.timestamp} />
         </DeviceInformation>
         <Actions>
-          <Button size="small" onClick={() => setEditting(true)}>
+          <Button size="sm" onClick={() => setEditting(true)}>
             {t('Rename Device')}
           </Button>
         </Actions>
@@ -82,12 +81,12 @@ const Device = props => {
               <Fragment>
                 <ConfirmHeader>{t('Do you want to remove U2F device?')}</ConfirmHeader>
                 <TextBlock>
-                  {t(`Are you sure you want to remove the U2F device "${device.name}"?`)}
+                  {t('Are you sure you want to remove the U2F device "%s"?', device.name)}
                 </TextBlock>
               </Fragment>
             }
           >
-            <Button size="small" priority="danger">
+            <Button size="sm" priority="danger">
               <Tooltip
                 disabled={!isLastDevice}
                 title={t('Can not remove last U2F device')}
@@ -116,7 +115,7 @@ const Device = props => {
       <Actions>
         <Button
           priority="primary"
-          size="small"
+          size="sm"
           onClick={() => {
             onRenameU2fDevice(device, deviceName);
             setEditting(false);
@@ -128,7 +127,7 @@ const Device = props => {
 
       <Actions>
         <Button
-          size="small"
+          size="sm"
           title="Cancel rename"
           onClick={() => {
             setDeviceName(device.name);
@@ -140,7 +139,7 @@ const Device = props => {
       </Actions>
     </DevicePanelItem>
   );
-};
+}
 
 const DeviceNameInput = styled(Input)`
   width: 50%;

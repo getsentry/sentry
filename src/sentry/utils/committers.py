@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import operator
 from collections import defaultdict
+from enum import Enum
 from functools import reduce
 from typing import (
     Any,
@@ -23,7 +24,14 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
 from sentry.api.serializers.models.release import Author
 from sentry.eventstore.models import Event
-from sentry.models import Commit, CommitFileChange, Group, Project, Release, ReleaseCommit
+from sentry.models.commit import Commit
+from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.group import Group
+from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.hashlib import hash_values
@@ -136,9 +144,22 @@ class AuthorCommitsSerialized(TypedDict):
     commits: Sequence[MutableMapping[str, Any]]
 
 
+class AuthorCommitsWithReleaseSerialized(TypedDict):
+    author: Author
+    commits: Sequence[MutableMapping[str, Any]]
+    release: Release
+
+
 class AnnotatedFrame(TypedDict):
     frame: str
     commits: Sequence[Tuple[Commit, int]]
+
+
+class SuspectCommitType(Enum):
+    """Used to distinguish old suspect commits from the newer commits obtained via the commit_context."""
+
+    RELEASE_COMMIT = "via commit in release"
+    INTEGRATION_COMMIT = "via SCM integration"
 
 
 def _get_committers(
@@ -258,12 +279,7 @@ def get_event_file_committers(
     # XXX(dcramer): frames may not define a filepath. For example, in Java its common
     # to only have a module name/path
     path_set = {
-        str(f)
-        for f in (
-            frame.get("munged_filename") or frame.get("filename") or frame.get("abs_path")
-            for frame in app_frames
-        )
-        if f
+        str(f) for f in (get_stacktrace_path_from_event_frame(frame) for frame in app_frames) if f
     }
 
     file_changes: Sequence[CommitFileChange] = (
@@ -278,7 +294,7 @@ def get_event_file_committers(
         {
             "frame": str(frame),
             "commits": commit_path_matches.get(
-                str(frame.get("munged_filename") or frame.get("filename") or frame.get("abs_path")),
+                str(get_stacktrace_path_from_event_frame(frame)),
                 [],
             ),
         }
@@ -295,44 +311,103 @@ def get_event_file_committers(
 def get_serialized_event_file_committers(
     project: Project, event: Event, frame_limit: int = 25
 ) -> Sequence[AuthorCommitsSerialized]:
-    event_frames = get_frame_paths(event)
-    sdk_name = get_sdk_name(event.data)
-    committers = get_event_file_committers(
-        project,
-        event.group_id,
-        event_frames,
-        event.platform,
-        frame_limit=frame_limit,
-        sdk_name=sdk_name,
-    )
-    commits = [commit for committer in committers for commit in committer["commits"]]
-    serialized_commits: Sequence[MutableMapping[str, Any]] = serialize(
-        [c for (c, score) in commits], serializer=CommitSerializer(exclude=["author"])
-    )
 
-    serialized_commits_by_id = {}
+    group_owners = GroupOwner.objects.filter(
+        group_id=event.group_id,
+        project=project,
+        organization_id=project.organization_id,
+        type=GroupOwnerType.SUSPECT_COMMIT.value,
+        context__isnull=False,
+    ).order_by("-date_added")
 
-    for (commit, score), serialized_commit in zip(commits, serialized_commits):
-        serialized_commit["score"] = score
-        serialized_commits_by_id[commit.id] = serialized_commit
+    if len(group_owners) > 0:
+        owner = next(filter(lambda go: go.context.get("commitId"), group_owners), None)
+        if not owner:
+            return []
+        commit = Commit.objects.get(id=owner.context.get("commitId"))
+        commit_author = commit.author
 
-    serialized_committers: List[AuthorCommitsSerialized] = []
-    for committer in committers:
-        commit_ids = [commit.id for (commit, _) in committer["commits"]]
-        commits_result = [serialized_commits_by_id[commit_id] for commit_id in commit_ids]
-        serialized_committers.append(
-            {"author": committer["author"], "commits": dedupe_commits(commits_result)}
+        if not commit_author:
+            return []
+
+        author = {"email": commit_author.email, "name": commit_author.name}
+        if owner.user_id is not None:
+            serialized_owners = user_service.serialize_many(filter={"user_ids": [owner.user_id]})
+            # No guarantee that just because the user_id is set that the value exists, so we still have to check
+            if serialized_owners:
+                author = serialized_owners[0]
+
+        return [
+            {
+                "author": author,
+                "commits": [
+                    serialize(
+                        commit,
+                        serializer=CommitSerializer(
+                            exclude=["author"],
+                            type=SuspectCommitType.INTEGRATION_COMMIT.value,
+                        ),
+                    )
+                ],
+            }
+        ]
+
+    # TODO(nisanthan): We create GroupOwner records for
+    # legacy Suspect Commits in process_suspect_commits task.
+    # We should refactor to query GroupOwner rather than recalculate.
+    # But we need to store the commitId and a way to differentiate
+    # if the Suspect Commit came from ReleaseCommits or CommitContext.
+    else:
+        event_frames = get_frame_paths(event)
+        sdk_name = get_sdk_name(event.data)
+        committers = get_event_file_committers(
+            project,
+            event.group_id,
+            event_frames,
+            event.platform,
+            frame_limit=frame_limit,
+            sdk_name=sdk_name,
+        )
+        commits = [commit for committer in committers for commit in committer["commits"]]
+        serialized_commits: Sequence[MutableMapping[str, Any]] = serialize(
+            [c for (c, score) in commits],
+            serializer=CommitSerializer(
+                exclude=["author"],
+                type=SuspectCommitType.RELEASE_COMMIT.value,
+            ),
         )
 
-    metrics.incr(
-        "feature.owners.has-committers",
-        instance="hit" if committers else "miss",
-        skip_internal=False,
-    )
-    return serialized_committers
+        serialized_commits_by_id = {}
+
+        for (commit, score), serialized_commit in zip(commits, serialized_commits):
+            serialized_commit["score"] = score
+            serialized_commits_by_id[commit.id] = serialized_commit
+
+        serialized_committers: List[AuthorCommitsSerialized] = []
+        for committer in committers:
+            commit_ids = [commit.id for (commit, _) in committer["commits"]]
+            commits_result = [serialized_commits_by_id[commit_id] for commit_id in commit_ids]
+            serialized_committers.append(
+                {"author": committer["author"], "commits": dedupe_commits(commits_result)}
+            )
+
+        metrics.incr(
+            "feature.owners.has-committers",
+            instance="hit" if committers else "miss",
+            skip_internal=False,
+        )
+        return serialized_committers
 
 
 def dedupe_commits(
     commits: Sequence[MutableMapping[str, Any]]
 ) -> Sequence[MutableMapping[str, Any]]:
     return list({c["id"]: c for c in commits}.values())
+
+
+def get_stacktrace_path_from_event_frame(frame: Mapping[str, Any]) -> str | None:
+    """
+    Returns the filepath from a stacktrace's frame.
+    frame: Event frame
+    """
+    return frame.get("munged_filename") or frame.get("filename") or frame.get("abs_path")

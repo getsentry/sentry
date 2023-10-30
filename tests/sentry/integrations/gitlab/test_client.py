@@ -4,10 +4,11 @@ from unittest import mock
 import pytest
 import responses
 
-from fixtures.gitlab import GitLabTestCase
+from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.models import Identity
+from sentry.models.identity import Identity
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 GITLAB_CODEOWNERS = {
@@ -17,12 +18,14 @@ GITLAB_CODEOWNERS = {
 }
 
 
+@control_silo_test(stable=True)
 class GitlabRefreshAuthTest(GitLabTestCase):
     get_user_should_succeed = True
 
     def setUp(self):
         super().setUp()
-        self.client = self.installation.get_client()
+        self.gitlab_client = self.installation.get_client()
+        self.gitlab_client.base_url = "https://example.gitlab.com/"
         self.request_data = {"id": "user_id"}
         self.request_url = "https://example.gitlab.com/api/v4/user"
         self.refresh_url = "https://example.gitlab.com/oauth/token"
@@ -34,14 +37,14 @@ class GitlabRefreshAuthTest(GitLabTestCase):
             "scope": "api",
         }
         self.repo = self.create_repo(name="Test-Org/foo", external_id=123)
-        self.original_identity_data = dict(self.client.identity.data)
+        self.original_identity_data = dict(self.gitlab_client.identity.data)
         self.gitlab_id = 123
 
     def tearDown(self):
         responses.reset()
 
     def make_users_request(self):
-        return self.client.get_user()
+        return self.gitlab_client.get_user()
 
     def add_refresh_auth(self, success=True):
         responses.add(
@@ -86,17 +89,17 @@ class GitlabRefreshAuthTest(GitLabTestCase):
         assert json.loads(responses_calls[2].response.text) == self.request_data
 
     def assert_identity_was_refreshed(self):
-        data = self.client.identity.data
+        data = self.gitlab_client.identity.data
         self.assert_data(data, self.refresh_response)
 
-        data = Identity.objects.get(id=self.client.identity.id).data
+        data = Identity.objects.get(id=self.gitlab_client.identity.id).data
         self.assert_data(data, self.refresh_response)
 
     def assert_identity_was_not_refreshed(self):
-        data = self.client.identity.data
+        data = self.gitlab_client.identity.data
         self.assert_data(data, self.original_identity_data)
 
-        data = Identity.objects.get(id=self.client.identity.id).data
+        data = Identity.objects.get(id=self.gitlab_client.identity.id).data
         self.assert_data(data, self.original_identity_data)
 
     @responses.activate
@@ -144,7 +147,7 @@ class GitlabRefreshAuthTest(GitLabTestCase):
             json={"text": 200},
         )
 
-        resp = self.client.check_file(self.repo, path, ref)
+        resp = self.gitlab_client.check_file(self.repo, path, ref)
         assert responses.calls[0].response.status_code == 200
         assert resp.status_code == 200
 
@@ -158,7 +161,7 @@ class GitlabRefreshAuthTest(GitLabTestCase):
             status=404,
         )
         with pytest.raises(ApiError):
-            self.client.check_file(self.repo, path, ref)
+            self.gitlab_client.check_file(self.repo, path, ref)
         assert responses.calls[0].response.status_code == 404
 
     @responses.activate
@@ -197,3 +200,61 @@ class GitlabRefreshAuthTest(GitLabTestCase):
         )
 
         assert result == GITLAB_CODEOWNERS
+
+    @responses.activate
+    def test_get_commit(self):
+        commit = "a" * 40
+        responses.add(
+            method=responses.GET,
+            url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/commits/{commit}",
+            json=json.loads(GET_COMMIT_RESPONSE),
+        )
+
+        resp = self.gitlab_client.get_commit(self.gitlab_id, commit)
+        assert resp == json.loads(GET_COMMIT_RESPONSE)
+
+    @responses.activate
+    def test_get_rate_limit_info_from_response(self):
+        """
+        When rate limit headers present, parse them and return a GitLabRateLimitInfo object
+        """
+        responses.add(
+            responses.GET,
+            self.request_url,
+            json={},
+            status=200,
+            adding_headers={
+                "RateLimit-Limit": "1000",
+                "RateLimit-Remaining": "999",
+                "RateLimit-Reset": "1372700873",
+                "RateLimit-Observed": "1",
+            },
+        )
+        resp = self.gitlab_client.get_user()
+
+        rate_limit_info = self.gitlab_client.get_rate_limit_info_from_response(resp)
+
+        assert rate_limit_info
+
+        assert rate_limit_info.limit == 1000
+        assert rate_limit_info.remaining == 999
+        assert rate_limit_info.used == 1
+        assert rate_limit_info.reset == 1372700873
+        assert rate_limit_info.next_window() == "17:47:53"
+
+    @responses.activate
+    def test_get_rate_limit_info_from_response_invalid(self):
+        """
+        When rate limit headers are not present, handle gracefully and return None
+        """
+        responses.add(
+            responses.GET,
+            self.request_url,
+            json={},
+            status=200,
+        )
+        resp = self.gitlab_client.get_user()
+
+        rate_limit_info = self.gitlab_client.get_rate_limit_info_from_response(resp)
+
+        assert not rate_limit_info

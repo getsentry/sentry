@@ -1,9 +1,10 @@
-import * as React from 'react';
+import {Component, isValidElement} from 'react';
 import {InjectedRouter} from 'react-router';
-import {withTheme} from '@emotion/react';
+import {Theme, withTheme} from '@emotion/react';
 import type {
   EChartsOption,
   LegendComponentOption,
+  LineSeriesOption,
   XAXisComponentOption,
   YAXisComponentOption,
 } from 'echarts';
@@ -19,35 +20,34 @@ import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {
-  getInterval,
-  processTableResults,
-  RELEASE_LINES_THRESHOLD,
-} from 'sentry/components/charts/utils';
-import {WorldMapChart, WorldMapChartProps} from 'sentry/components/charts/worldMapChart';
+import {getInterval, RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DateString, OrganizationSummary} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
-import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {
+  axisLabelFormatter,
+  axisLabelFormatterUsingAggregateOutputType,
+  tooltipFormatter,
+} from 'sentry/utils/discover/charts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {
   aggregateMultiPlotType,
+  aggregateOutputType,
+  AggregationOutputType,
   getEquation,
   isEquation,
 } from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeList} from 'sentry/utils/queryString';
-import {Theme} from 'sentry/utils/theme';
 
-import EventsGeoRequest from './eventsGeoRequest';
 import EventsRequest from './eventsRequest';
 
 type ChartComponent =
   | React.ComponentType<BarChartProps>
   | React.ComponentType<AreaChartProps>
-  | React.ComponentType<LineChartProps>
-  | React.ComponentType<WorldMapChartProps>;
+  | React.ComponentType<LineChartProps>;
 
 type ChartProps = {
   currentSeriesNames: string[];
@@ -60,6 +60,7 @@ type ChartProps = {
   timeseriesData: Series[];
   yAxis: string;
   zoomRenderProps: ZoomRenderProps;
+  additionalSeries?: LineSeriesOption[];
   chartComponent?: ChartComponent;
   chartOptions?: Omit<EChartsOption, 'xAxis' | 'yAxis'> & {
     xAxis?: XAXisComponentOption;
@@ -88,6 +89,7 @@ type ChartProps = {
   showDaily?: boolean;
   showLegend?: boolean;
   timeframe?: {end: number; start: number};
+  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   topEvents?: number;
 };
 
@@ -96,7 +98,7 @@ type State = {
   seriesSelection: Record<string, boolean>;
 };
 
-class Chart extends React.Component<ChartProps, State> {
+class Chart extends Component<ChartProps, State> {
   state: State = {
     seriesSelection: {},
     forceUpdate: false,
@@ -119,7 +121,8 @@ class Chart extends React.Component<ChartProps, State> {
       isEqual(this.props.timeseriesData, nextProps.timeseriesData) &&
       isEqual(this.props.releaseSeries, nextProps.releaseSeries) &&
       isEqual(this.props.previousTimeseriesData, nextProps.previousTimeseriesData) &&
-      isEqual(this.props.tableData, nextProps.tableData)
+      isEqual(this.props.tableData, nextProps.tableData) &&
+      isEqual(this.props.additionalSeries, nextProps.additionalSeries)
     ) {
       return false;
     }
@@ -192,33 +195,18 @@ class Chart extends React.Component<ChartProps, State> {
       height,
       timeframe,
       topEvents,
-      tableData,
-      fromDiscover,
+      timeseriesResultsTypes,
+      additionalSeries,
       ...props
     } = this.props;
     const {seriesSelection} = this.state;
 
-    let Component = this.getChartComponent();
-
-    if (Component === WorldMapChart) {
-      const {data, title} = processTableResults(tableData);
-      const tableSeries = [
-        {
-          seriesName: title,
-          data,
-        },
-      ];
-      return <WorldMapChart series={tableSeries} fromDiscover={fromDiscover} />;
-    }
-
-    Component = Component as Exclude<
-      ChartComponent,
-      React.ComponentType<WorldMapChartProps>
-    >;
+    const ChartComponent = this.getChartComponent();
 
     const data = [
       ...(currentSeriesNames.length > 0 ? currentSeriesNames : [t('Current')]),
       ...(previousSeriesNames.length > 0 ? previousSeriesNames : [t('Previous')]),
+      ...(additionalSeries ? additionalSeries.map(series => series.name as string) : []),
     ];
 
     const releasesLegend = t('Releases');
@@ -291,7 +279,19 @@ class Chart extends React.Component<ChartProps, State> {
       tooltip: {
         trigger: 'axis' as const,
         truncate: 80,
-        valueFormatter: (value: number) => tooltipFormatter(value, yAxis),
+        valueFormatter: (value: number, label?: string) => {
+          const aggregateName = label
+            ?.replace(/^previous /, '')
+            .split(':')
+            .pop()
+            ?.trim();
+          if (aggregateName) {
+            return timeseriesResultsTypes
+              ? tooltipFormatter(value, timeseriesResultsTypes[aggregateName])
+              : tooltipFormatter(value, aggregateOutputType(aggregateName));
+          }
+          return tooltipFormatter(value, 'number');
+        },
       },
       xAxis: timeframe
         ? {
@@ -302,15 +302,25 @@ class Chart extends React.Component<ChartProps, State> {
       yAxis: {
         axisLabel: {
           color: theme.chartLabel,
-          formatter: (value: number) => axisLabelFormatter(value, yAxis),
+          formatter: (value: number) => {
+            if (timeseriesResultsTypes) {
+              // Check to see if all series output types are the same. If not, then default to number.
+              const outputType =
+                new Set(Object.values(timeseriesResultsTypes)).size === 1
+                  ? timeseriesResultsTypes[yAxis]
+                  : 'number';
+              return axisLabelFormatterUsingAggregateOutputType(value, outputType);
+            }
+            return axisLabelFormatter(value, aggregateOutputType(yAxis));
+          },
         },
       },
       ...(chartOptionsProp ?? {}),
-      animation: typeof Component === typeof BarChart ? false : undefined,
+      animation: typeof ChartComponent === typeof BarChart ? false : undefined,
     };
 
     return (
-      <Component
+      <ChartComponent
         {...props}
         {...zoomRenderProps}
         {...chartOptions}
@@ -319,6 +329,7 @@ class Chart extends React.Component<ChartProps, State> {
         series={series}
         previousPeriod={previousSeries ? previousSeries : undefined}
         height={height}
+        additionalSeries={additionalSeries}
       />
     );
   }
@@ -354,6 +365,7 @@ export type EventsChartProps = {
    * The aggregate/metric to plot.
    */
   yAxis: string | string[];
+  additionalSeries?: LineSeriesOption[];
   /**
    * Markup for optional chart header
    */
@@ -367,6 +379,10 @@ export type EventsChartProps = {
    * Name of the series
    */
   currentSeriesName?: string;
+  /**
+   * Specifies the dataset to query from. Defaults to discover.
+   */
+  dataset?: DiscoverDatasets;
   /**
    * Don't show the previous period's data. Will automatically disable
    * when start/end are used.
@@ -389,6 +405,10 @@ export type EventsChartProps = {
    */
   interval?: string;
   /**
+   * Whether or not the request for processed baseline data has been resolved/terminated
+   */
+  loadingAdditionalSeries?: boolean;
+  /**
    * Order condition when showing topEvents
    */
   orderby?: string;
@@ -406,6 +426,7 @@ export type EventsChartProps = {
    */
   referrer?: string;
   releaseQueryExtra?: Query;
+  reloadingAdditionalSeries?: boolean;
   /**
    * Override the interval calculation and show daily results.
    */
@@ -451,10 +472,11 @@ type ChartDataProps = {
   tableData?: TableDataWithTitle[];
   timeframe?: {end: number; start: number};
   timeseriesData?: Series[];
+  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   topEvents?: number;
 };
 
-class EventsChart extends React.Component<EventsChartProps> {
+class EventsChart extends Component<EventsChartProps> {
   isStacked() {
     const {topEvents, yAxis} = this.props;
     return (
@@ -503,6 +525,10 @@ class EventsChart extends React.Component<EventsChartProps> {
       height,
       withoutZerofill,
       fromDiscover,
+      additionalSeries,
+      loadingAdditionalSeries,
+      reloadingAdditionalSeries,
+      dataset,
       ...props
     } = this.props;
 
@@ -513,7 +539,7 @@ class EventsChart extends React.Component<EventsChartProps> {
     const yAxisSeriesNames = yAxisArray.map(name => {
       let yAxisLabel = name && isEquation(name) ? getEquation(name) : name;
       if (yAxisLabel && yAxisLabel.length > 60) {
-        yAxisLabel = yAxisLabel.substr(0, 60) + '...';
+        yAxisLabel = yAxisLabel.substring(0, 60) + '...';
       }
       return yAxisLabel;
     });
@@ -536,6 +562,7 @@ class EventsChart extends React.Component<EventsChartProps> {
       previousTimeseriesData,
       timeframe,
       tableData,
+      timeseriesResultsTypes,
     }: ChartDataProps) => {
       if (errored) {
         return (
@@ -549,17 +576,17 @@ class EventsChart extends React.Component<EventsChartProps> {
       return (
         <TransitionChart
           loading={loading}
-          reloading={reloading}
+          reloading={reloading || !!reloadingAdditionalSeries}
           height={height ? `${height}px` : undefined}
         >
-          <TransparentLoadingMask visible={reloading} />
+          <TransparentLoadingMask visible={reloading || !!reloadingAdditionalSeries} />
 
-          {React.isValidElement(chartHeader) && chartHeader}
+          {isValidElement(chartHeader) && chartHeader}
 
           <ThemedChart
             zoomRenderProps={zoomRenderProps}
-            loading={loading}
-            reloading={reloading}
+            loading={loading || !!loadingAdditionalSeries}
+            reloading={reloading || !!reloadingAdditionalSeries}
             showLegend={showLegend}
             minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
             releaseSeries={releaseSeries || []}
@@ -568,6 +595,7 @@ class EventsChart extends React.Component<EventsChartProps> {
             currentSeriesNames={currentSeriesNames}
             previousSeriesNames={previousSeriesNames}
             seriesTransformer={seriesTransformer}
+            additionalSeries={additionalSeries}
             previousSeriesTransformer={previousSeriesTransformer}
             stacked={this.isStacked()}
             yAxis={yAxisArray[0]}
@@ -582,6 +610,7 @@ class EventsChart extends React.Component<EventsChartProps> {
             topEvents={topEvents}
             tableData={tableData ?? []}
             fromDiscover={fromDiscover}
+            timeseriesResultsTypes={timeseriesResultsTypes}
           />
         </TransitionChart>
       );
@@ -617,33 +646,6 @@ class EventsChart extends React.Component<EventsChartProps> {
         {...props}
       >
         {zoomRenderProps => {
-          if (chartComponent === WorldMapChart) {
-            return (
-              <EventsGeoRequest
-                api={api}
-                organization={organization}
-                yAxis={yAxis}
-                query={query}
-                orderby={orderby}
-                projects={projects}
-                period={period}
-                start={start}
-                end={end}
-                environments={environments}
-                referrer={props.referrer}
-              >
-                {({errored, loading, reloading, tableData}) =>
-                  chartImplementation({
-                    errored,
-                    loading,
-                    reloading,
-                    zoomRenderProps,
-                    tableData,
-                  })
-                }
-              </EventsGeoRequest>
-            );
-          }
           return (
             <EventsRequest
               {...props}
@@ -667,6 +669,7 @@ class EventsChart extends React.Component<EventsChartProps> {
               partial
               // Cannot do interpolation when stacking series
               withoutZerofill={withoutZerofill && !this.isStacked()}
+              dataset={dataset}
             >
               {eventData => {
                 return chartImplementation({

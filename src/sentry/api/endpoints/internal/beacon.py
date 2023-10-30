@@ -4,10 +4,11 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.tasks.beacon import send_beacon_metric
 
-logger = logging.getLogger("beacon")
+logger = logging.getLogger(__name__)
 
 # These is an arbitrarily picked limit for both the # of batched metrics supported,
 # as well as the size of the dict for each metric
@@ -36,7 +37,11 @@ class MetricsSerializer(serializers.Serializer):
         return attrs
 
 
+@control_silo_endpoint
 class InternalBeaconEndpoint(Endpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = ()
 
     def post(self, request: Request) -> Response:

@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {Field, JsonFormObject} from 'sentry/components/forms/type';
+import {Field, JsonFormObject} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 
@@ -12,7 +12,7 @@ const globHelpText = tct('Allows [link:glob pattern matching].', {
   link: <ExternalLink href="https://en.wikipedia.org/wiki/Glob_(programming)" />,
 });
 
-const getOptionsData = (data: object) => ({options: data});
+export const getOptionsData = (data: object) => ({options: data});
 
 const formGroups: JsonFormObject[] = [
   {

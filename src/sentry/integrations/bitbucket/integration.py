@@ -1,5 +1,9 @@
+from __future__ import annotations
+
+from typing import Any, List
+
 from django.utils.datastructures import OrderedSet
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,8 +17,11 @@ from sentry.integrations import (
 )
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
-from sentry.models import Repository
+from sentry.models.integrations.integration import Integration
+from sentry.models.repository import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri
@@ -54,6 +61,13 @@ FEATURES = [
         """,
         IntegrationFeatures.ISSUE_BASIC,
     ),
+    FeatureDescription(
+        """
+        Link your Sentry stack traces back to your Bitbucket source code with stack
+        trace linking.
+        """,
+        IntegrationFeatures.STACKTRACE_LINK,
+    ),
 ]
 
 metadata = IntegrationMetadata(
@@ -73,10 +87,10 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
     repo_search = True
 
     def get_client(self):
+        org_integration_id = self.org_integration.id if self.org_integration else None
         return BitbucketApiClient(
-            self.model.metadata["base_url"],
-            self.model.metadata["shared_secret"],
-            self.model.external_id,
+            integration=self.model,
+            org_integration_id=org_integration_id,
         )
 
     @property
@@ -95,8 +109,8 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
                 for repo in resp.get("values", [])
             ]
 
-        exact_query = f'name="{query}"'.encode()
-        fuzzy_query = f'name~"{query}"'.encode()
+        exact_query = f'name="{query}"'
+        fuzzy_query = f'name~"{query}"'
         exact_search_resp = self.get_client().search_repositories(username, exact_query)
         fuzzy_search_resp = self.get_client().search_repositories(username, fuzzy_query)
 
@@ -110,7 +124,7 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
 
         return [{"identifier": full_name, "name": full_name} for full_name in result]
 
-    def has_repo_access(self, repo):
+    def has_repo_access(self, repo: RpcRepository) -> bool:
         client = self.get_client()
         try:
             client.get_hooks(repo.config["name"])
@@ -118,9 +132,9 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
             return False
         return True
 
-    def get_unmigratable_repositories(self):
-        repos = Repository.objects.filter(
-            organization_id=self.organization_id, provider="bitbucket"
+    def get_unmigratable_repositories(self) -> List[RpcRepository]:
+        repos = repository_service.get_repositories(
+            organization_id=self.organization_id, providers=["bitbucket"]
         )
 
         accessible_repos = [r["identifier"] for r in self.get_repositories()]
@@ -130,6 +144,24 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
     def reinstall(self):
         self.reinstall_repositories()
 
+    def source_url_matches(self, url: str) -> bool:
+        return url.startswith(f'https://{self.model.metadata["domain_name"]}') or url.startswith(
+            "https://bitbucket.org",
+        )
+
+    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
+        return f"https://bitbucket.org/{repo.name}/src/{branch}/{filepath}"
+
+    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        url = url.replace(f"{repo.url}/src/", "")
+        branch, _, _ = url.partition("/")
+        return branch
+
+    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        url = url.replace(f"{repo.url}/src/", "")
+        _, _, source_path = url.partition("/")
+        return source_path
+
 
 class BitbucketIntegrationProvider(IntegrationProvider):
     key = "bitbucket"
@@ -137,7 +169,13 @@ class BitbucketIntegrationProvider(IntegrationProvider):
     metadata = metadata
     scopes = scopes
     integration_cls = BitbucketIntegration
-    features = frozenset([IntegrationFeatures.ISSUE_BASIC, IntegrationFeatures.COMMITS])
+    features = frozenset(
+        [
+            IntegrationFeatures.ISSUE_BASIC,
+            IntegrationFeatures.COMMITS,
+            IntegrationFeatures.STACKTRACE_LINK,
+        ]
+    )
 
     def get_pipeline_views(self):
         identity_pipeline_config = {"redirect_url": absolute_uri("/extensions/bitbucket/setup/")}
@@ -149,17 +187,22 @@ class BitbucketIntegrationProvider(IntegrationProvider):
         )
         return [identity_pipeline_view, VerifyInstallation()]
 
-    def post_install(self, integration, organization, extra=None):
-        repo_ids = Repository.objects.filter(
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
+    ) -> None:
+        repos = repository_service.get_repositories(
             organization_id=organization.id,
-            provider__in=["bitbucket", "integrations:bitbucket"],
-            integration_id__isnull=True,
-        ).values_list("id", flat=True)
+            providers=["bitbucket", "integrations:bitbucket"],
+            has_integration=False,
+        )
 
-        for repo_id in repo_ids:
+        for repo in repos:
             migrate_repo.apply_async(
                 kwargs={
-                    "repo_id": repo_id,
+                    "repo_id": repo.id,
                     "integration_id": integration.id,
                     "organization_id": organization.id,
                 }

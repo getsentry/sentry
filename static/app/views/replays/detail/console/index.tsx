@@ -1,135 +1,151 @@
-import {Fragment, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
+import {memo, useMemo, useRef, useState} from 'react';
+import {
+  AutoSizer,
+  CellMeasurer,
+  List as ReactVirtualizedList,
+  ListRowProps,
+} from 'react-virtualized';
 
-import CompactSelect from 'sentry/components/forms/compactSelect';
-import {Panel} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
+import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils';
-import SearchBar from 'sentry/components/searchBar';
+import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import type {BreadcrumbLevelType, BreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import ConsoleFilters from 'sentry/views/replays/detail/console/consoleFilters';
+import ConsoleLogRow from 'sentry/views/replays/detail/console/consoleLogRow';
+import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
+import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
+import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
-import ConsoleMessage from './consoleMessage';
-import {filterBreadcrumbs} from './utils';
+import useVirtualizedInspector from '../useVirtualizedInspector';
 
-interface Props {
-  breadcrumbs: BreadcrumbTypeDefault[];
-  startTimestamp: number;
-}
+// Ensure this object is created once as it is an input to
+// `useVirtualizedList`'s memoization
+const cellMeasurer = {
+  fixedWidth: true,
+  minHeight: 24,
+};
 
-const getDistinctLogLevels = (breadcrumbs: BreadcrumbTypeDefault[]) =>
-  Array.from(new Set<string>(breadcrumbs.map(breadcrumb => breadcrumb.level)));
+function Console() {
+  const {currentTime, currentHoverTime, replay} = useReplayContext();
+  const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
-function Console({breadcrumbs, startTimestamp = 0}: Props) {
-  const {currentHoverTime} = useReplayContext();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [logLevel, setLogLevel] = useState<BreadcrumbLevelType[]>([]);
-  const handleSearch = debounce(query => setSearchTerm(query), 150);
+  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() ?? 0;
+  const frames = replay?.getConsoleFrames();
 
-  const filteredBreadcrumbs = useMemo(
-    () => filterBreadcrumbs(breadcrumbs, searchTerm, logLevel),
-    [logLevel, searchTerm, breadcrumbs]
-  );
+  const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
 
-  const activeConsoleBounds = useMemo(() => {
-    if (filteredBreadcrumbs.length <= 0 || currentHoverTime === undefined) {
-      return [-1, -1];
-    }
+  const filterProps = useConsoleFilters({frames: frames || []});
+  const {expandPathsRef, searchTerm, logLevel, items, setSearchTerm} = filterProps;
+  const clearSearchTerm = () => setSearchTerm('');
 
-    let indexUpperBound = 0;
-    const finalBreadCrumbIndex = filteredBreadcrumbs.length - 1;
-    const finalBreadcrumbTimestamp =
-      filteredBreadcrumbs[finalBreadCrumbIndex].timestamp || '';
+  const listRef = useRef<ReactVirtualizedList>(null);
 
-    if (currentHoverTime >= relativeTimeInMs(finalBreadcrumbTimestamp, startTimestamp)) {
-      indexUpperBound = finalBreadCrumbIndex;
-    } else {
-      indexUpperBound =
-        filteredBreadcrumbs.findIndex(
-          breadcrumb =>
-            relativeTimeInMs(breadcrumb.timestamp || '', startTimestamp) >=
-            (currentHoverTime || 0)
-        ) - 1;
-    }
+  const deps = useMemo(() => [items], [items]);
+  const {cache, updateList} = useVirtualizedList({
+    cellMeasurer,
+    ref: listRef,
+    deps,
+  });
 
-    const activeMessageBoundary = showPlayerTime(
-      filteredBreadcrumbs[indexUpperBound]?.timestamp || '',
-      startTimestamp
+  const {handleDimensionChange} = useVirtualizedInspector({
+    cache,
+    listRef,
+    expandPathsRef,
+  });
+
+  const {
+    handleClick: onClickToJump,
+    onRowsRendered,
+    showJumpDownButton,
+    showJumpUpButton,
+  } = useJumpButtons({
+    currentTime,
+    frames: items,
+    isTable: false,
+    setScrollToRow,
+  });
+
+  const renderRow = ({index, key, style, parent}: ListRowProps) => {
+    const item = items[index];
+
+    return (
+      <CellMeasurer
+        cache={cache}
+        columnIndex={0}
+        // Set key based on filters, otherwise we can have odd expand/collapse state
+        // with <ObjectInspector> when filtering
+        key={`${searchTerm}-${logLevel.join(',')}-${key}`}
+        parent={parent}
+        rowIndex={index}
+      >
+        <ConsoleLogRow
+          currentHoverTime={currentHoverTime}
+          currentTime={currentTime}
+          expandPaths={Array.from(expandPathsRef.current?.get(index) || [])}
+          frame={item}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
+          index={index}
+          onClickTimestamp={onClickTimestamp}
+          onDimensionChange={handleDimensionChange}
+          startTimestampMs={startTimestampMs}
+          style={style}
+        />
+      </CellMeasurer>
     );
-
-    const indexLowerBound = filteredBreadcrumbs.findIndex(
-      breadcrumb =>
-        showPlayerTime(breadcrumb.timestamp || '', startTimestamp) ===
-        activeMessageBoundary
-    );
-
-    return [indexLowerBound, indexUpperBound];
-  }, [currentHoverTime, filteredBreadcrumbs, startTimestamp]);
+  };
 
   return (
-    <Fragment>
-      <ConsoleFilters>
-        <CompactSelect
-          triggerProps={{
-            prefix: t('Log Level'),
-          }}
-          multiple
-          options={getDistinctLogLevels(breadcrumbs).map(breadcrumbLogLevel => ({
-            value: breadcrumbLogLevel,
-            label: breadcrumbLogLevel,
-          }))}
-          onChange={selections =>
-            setLogLevel(selections.map(selection => selection.value))
-          }
-        />
-        <SearchBar onChange={handleSearch} placeholder={t('Search console logs...')} />
-      </ConsoleFilters>
-
-      {filteredBreadcrumbs.length > 0 ? (
-        <ConsoleTable>
-          {filteredBreadcrumbs.map((breadcrumb, i) => {
-            return (
-              <ConsoleMessage
-                isActive={i >= activeConsoleBounds[0] && i <= activeConsoleBounds[1]}
-                startTimestamp={startTimestamp}
-                key={i}
-                isLast={i === breadcrumbs.length - 1}
-                breadcrumb={breadcrumb}
+    <FluidHeight>
+      <ConsoleFilters frames={frames} {...filterProps} />
+      <TabItemContainer data-test-id="replay-details-console-tab">
+        {frames ? (
+          <AutoSizer onResize={updateList}>
+            {({width, height}) => (
+              <ReactVirtualizedList
+                deferredMeasurementCache={cache}
+                height={height}
+                noRowsRenderer={() => (
+                  <NoRowRenderer
+                    unfilteredItems={frames}
+                    clearSearchTerm={clearSearchTerm}
+                  >
+                    {t('No console logs recorded')}
+                  </NoRowRenderer>
+                )}
+                onRowsRendered={onRowsRendered}
+                onScroll={() => {
+                  if (scrollToRow !== undefined) {
+                    setScrollToRow(undefined);
+                  }
+                }}
+                overscanRowCount={5}
+                ref={listRef}
+                rowCount={items.length}
+                rowHeight={cache.rowHeight}
+                rowRenderer={renderRow}
+                scrollToIndex={scrollToRow}
+                width={width}
               />
-            );
-          })}
-        </ConsoleTable>
-      ) : (
-        <StyledEmptyMessage title={t('No results found.')} />
-      )}
-    </Fragment>
+            )}
+          </AutoSizer>
+        ) : (
+          <Placeholder height="100%" />
+        )}
+        {items?.length ? (
+          <JumpButtons
+            jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
+            onClick={onClickToJump}
+            tableHeaderHeight={0}
+          />
+        ) : null}
+      </TabItemContainer>
+    </FluidHeight>
   );
 }
 
-const ConsoleFilters = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  grid-template-columns: max-content 1fr;
-  margin-bottom: ${space(1)};
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    margin-top: ${space(1)};
-  }
-`;
-
-const StyledEmptyMessage = styled(EmptyMessage)`
-  align-items: center;
-`;
-
-const ConsoleTable = styled(Panel)`
-  display: grid;
-  grid-template-columns: max-content auto max-content;
-  width: 100%;
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: 0.8em;
-`;
-
-export default Console;
+export default memo(Console);

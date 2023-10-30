@@ -1,9 +1,10 @@
 import * as Sentry from '@sentry/react';
 
-import MemberActions from 'sentry/actions/memberActions';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
-import {Member} from 'sentry/types';
+import {Member, User} from 'sentry/types';
 
 function getMemberUser(member: Member) {
   return {
@@ -16,7 +17,7 @@ export async function fetchOrgMembers(
   api: Client,
   orgId: string,
   projectIds: string[] | null = null
-) {
+): Promise<Member[]> {
   const endpoint = `/organizations/${orgId}/users/`;
   const query = projectIds ? {project: projectIds} : {};
 
@@ -46,28 +47,27 @@ export async function fetchOrgMembers(
 
     return members;
   } catch (err) {
-    Sentry.setExtras({
-      resp: err,
-    });
-    Sentry.captureException(err);
+    addErrorMessage(t('Unable to load organization members'));
   }
 
   return [];
 }
 
-type IndexedMembersByProject = Record<string, Member['user'][]>;
+export type IndexedMembersByProject = Record<string, User[]>;
 
 /**
  * Convert a list of members with user & project data
  * into a object that maps project slugs : users in that project.
  */
 export function indexMembersByProject(members: Member[]): IndexedMembersByProject {
-  return members.reduce((acc, member) => {
+  return members.reduce<IndexedMembersByProject>((acc, member) => {
     for (const project of member.projects) {
       if (!acc.hasOwnProperty(project)) {
         acc[project] = [];
       }
-      acc[project].push(member.user);
+      if (member.user) {
+        acc[project].push(member.user);
+      }
     }
     return acc;
   }, {});
@@ -79,56 +79,28 @@ type UpdateMemberOptions = {
   orgId: string;
 };
 
-export async function updateMember(
-  api: Client,
-  {orgId, memberId, data}: UpdateMemberOptions
-) {
-  MemberActions.update(memberId, data);
-
-  const endpoint = `/organizations/${orgId}/members/${memberId}/`;
-  try {
-    const resp = await api.requestPromise(endpoint, {
-      method: 'PUT',
-      data,
-    });
-    MemberActions.updateSuccess(resp);
-    return resp;
-  } catch (err) {
-    MemberActions.updateError(err);
-    throw err;
-  }
+export function updateMember(api: Client, {orgId, memberId, data}: UpdateMemberOptions) {
+  return api.requestPromise(`/organizations/${orgId}/members/${memberId}/`, {
+    method: 'PUT',
+    data,
+  });
 }
 
 type ResendMemberInviteOptions = {
   memberId: string;
   orgId: string;
-  data?: object;
   regenerate?: boolean;
 };
 
-export async function resendMemberInvite(
+export function resendMemberInvite(
   api: Client,
-  {orgId, memberId, regenerate, data}: ResendMemberInviteOptions
+  {orgId, memberId, regenerate}: ResendMemberInviteOptions
 ) {
-  MemberActions.resendMemberInvite(orgId, data);
-
-  const endpoint = `/organizations/${orgId}/members/${memberId}/`;
-  try {
-    const resp = await api.requestPromise(endpoint, {
-      method: 'PUT',
-      data: {
-        regenerate,
-        reinvite: true,
-      },
-    });
-    MemberActions.resendMemberInviteSuccess(resp);
-    return resp;
-  } catch (err) {
-    MemberActions.resendMemberInviteError(err);
-    throw err;
-  }
-}
-
-export function getCurrentMember(api: Client, orgId: string) {
-  return api.requestPromise(`/organizations/${orgId}/members/me/`);
+  return api.requestPromise(`/organizations/${orgId}/members/${memberId}/`, {
+    method: 'PUT',
+    data: {
+      regenerate,
+      reinvite: true,
+    },
+  });
 }

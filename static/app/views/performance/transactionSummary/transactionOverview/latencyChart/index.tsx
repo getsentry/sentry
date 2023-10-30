@@ -15,12 +15,14 @@ type Props = ViewProps & {
   currentFilter: SpanOperationBreakdownFilter;
   location: Location;
   organization: OrganizationSummary;
+  queryExtras?: Record<string, string>;
+  totalCount?: number | null;
 };
 
 function LatencyChart({currentFilter, ...props}: Props) {
   const header = (
     <HeaderTitleLegend>
-      {currentFilter === SpanOperationBreakdownFilter.None
+      {currentFilter === SpanOperationBreakdownFilter.NONE
         ? t('Duration Distribution')
         : tct('Span Operation Distribution - [operationName]', {
             operationName: currentFilter,

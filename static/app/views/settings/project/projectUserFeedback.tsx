@@ -3,27 +3,34 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import Access from 'sentry/components/acl/access';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import formGroups from 'sentry/data/forms/userFeedback';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import AsyncView from 'sentry/views/asyncView';
+import withOrganization from 'sentry/utils/withOrganization';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type RouteParams = {
-  orgId: string;
   projectId: string;
 };
-type Props = RouteComponentProps<RouteParams, {}>;
+type Props = RouteComponentProps<RouteParams, {}> & {
+  organization: Organization;
+  project: Project;
+};
 
-class ProjectUserFeedbackSettings extends AsyncView<Props> {
+class ProjectUserFeedbackSettings extends DeprecatedAsyncView<Props> {
   submitTimeout: number | undefined = undefined;
 
   componentDidMount() {
+    super.componentDidMount();
+
     window.sentryEmbedCallback = function (embed) {
       // Mock the embed's submit xhr to always be successful
       // NOTE: this will not have errors if the form is empty
@@ -41,11 +48,12 @@ class ProjectUserFeedbackSettings extends AsyncView<Props> {
     window.sentryEmbedCallback = null;
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId, projectId} = this.props.params;
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
     return [
-      ['keyList', `/projects/${orgId}/${projectId}/keys/`],
-      ['project', `/projects/${orgId}/${projectId}/`],
+      ['keyList', `/projects/${organization.slug}/${projectId}/keys/`],
+      ['project', `/projects/${organization.slug}/${projectId}/`],
     ];
   }
 
@@ -62,11 +70,24 @@ class ProjectUserFeedbackSettings extends AsyncView<Props> {
   };
 
   renderBody() {
-    const {orgId, projectId} = this.props.params;
+    const {organization, project} = this.props;
+    const {projectId} = this.props.params;
 
     return (
       <div>
-        <SettingsPageHeader title={t('User Feedback')} />
+        <SettingsPageHeader
+          title={t('User Feedback')}
+          action={
+            <ButtonList>
+              <Button external href="https://docs.sentry.io/product/user-feedback/">
+                {t('Read the docs')}
+              </Button>
+              <Button priority="primary" onClick={this.handleClick}>
+                {t('Open the report dialog')}
+              </Button>
+            </ButtonList>
+          }
+        />
         <TextBlock>
           {t(
             `Don't rely on stack traces and graphs alone to understand
@@ -81,22 +102,16 @@ class ProjectUserFeedbackSettings extends AsyncView<Props> {
             the issue in Sentry.`
           )}
         </TextBlock>
-        <ButtonList>
-          <Button external href="https://docs.sentry.io/product/user-feedback/">
-            {t('Read the docs')}
-          </Button>
-          <Button priority="primary" onClick={this.handleClick}>
-            {t('Open the report dialog')}
-          </Button>
-        </ButtonList>
+
+        <PermissionAlert project={project} />
 
         <Form
           saveOnBlur
           apiMethod="PUT"
-          apiEndpoint={`/projects/${orgId}/${projectId}/`}
+          apiEndpoint={`/projects/${organization.slug}/${projectId}/`}
           initialData={this.state.project.options}
         >
-          <Access access={['project:write']}>
+          <Access access={['project:write']} project={project}>
             {({hasAccess}) => <JsonForm disabled={!hasAccess} forms={formGroups} />}
           </Access>
         </Form>
@@ -109,7 +124,6 @@ const ButtonList = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
   gap: ${space(1)};
-  margin-bottom: ${space(2)};
 `;
 
-export default ProjectUserFeedbackSettings;
+export default withOrganization(ProjectUserFeedbackSettings);

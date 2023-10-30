@@ -2,12 +2,12 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import Input from 'sentry/components/forms/controls/input';
-import SelectControl from 'sentry/components/forms/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
+import Input from 'sentry/components/input';
 import NumberDragControl from 'sentry/components/numberDragControl';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   AlertRuleComparisonType,
   AlertRuleThresholdType,
@@ -160,7 +160,8 @@ class ThresholdControl extends Component<Props, State> {
           {!hideControl && (
             <ThresholdContainer comparisonType={comparisonType}>
               <ThresholdInput>
-                <StyledInput
+                <Input
+                  size="md"
                   disabled={disabled}
                   name={`${type}Threshold`}
                   data-test-id={`${type}-threshold`}
@@ -239,11 +240,6 @@ const ThresholdContainer = styled('div')<{comparisonType: AlertRuleComparisonTyp
   display: flex;
   flex-direction: row;
   align-items: center;
-`;
-
-const StyledInput = styled(Input)`
-  /* Match the height of the select controls */
-  height: 40px;
 `;
 
 const ThresholdInput = styled('div')`

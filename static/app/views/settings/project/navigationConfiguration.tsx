@@ -48,8 +48,10 @@ export default function getConfiguration({
         },
         {
           path: `${pathPrefix}/ownership/`,
-          title: t('Issue Owners'),
-          description: t('Manage issue ownership rules for a project'),
+          title: organization?.features?.includes('streamline-targeting-context')
+            ? t('Ownership Rules')
+            : t('Issue Owners'),
+          description: t('Manage ownership rules for a project'),
         },
         {
           path: `${pathPrefix}/data-forwarding/`,
@@ -66,13 +68,6 @@ export default function getConfiguration({
           description: t(
             "Configure a project's inbound filters (e.g. browsers, messages)"
           ),
-        },
-        {
-          path: `${pathPrefix}/sampling/`,
-          title: t('Sampling'),
-          show: () => !!organization?.features?.includes('filters-and-sampling'),
-          description: t("Manage an organization's inbound data"),
-          badge: () => 'new',
         },
         {
           path: `${pathPrefix}/security-and-privacy/`,
@@ -123,13 +118,14 @@ export default function getConfiguration({
       name: t('SDK Setup'),
       items: [
         {
-          path: `${pathPrefix}/install/`,
-          title: t('Instrumentation'),
-        },
-        {
           path: `${pathPrefix}/keys/`,
           title: t('Client Keys (DSN)'),
           description: t("View and manage the project's client keys (DSN)"),
+        },
+        {
+          path: `${pathPrefix}/loader-script/`,
+          title: t('Loader Script'),
+          description: t("View and manage the project's Loader Script"),
         },
         {
           path: `${pathPrefix}/release-tracking/`,

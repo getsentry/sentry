@@ -1,27 +1,31 @@
-import React from 'react';
+import {memo, useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {divide, flattenSpans} from 'sentry/components/replays/utils';
-import Tooltip from 'sentry/components/tooltip';
-import {tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import type {ReplaySpan} from 'sentry/views/replays/types';
+import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
+import {divide, flattenFrames} from 'sentry/components/replays/utils';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {space} from 'sentry/styles/space';
+import toPercent from 'sentry/utils/number/toPercent';
+import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import type {SpanFrame} from 'sentry/utils/replays/types';
 
 type Props = {
   /**
    * Duration, in milliseconds, of the timeline
    */
-  duration: number;
+  durationMs: number;
 
   /**
    * The spans to render into the timeline
    */
-  spans: ReplaySpan[];
+  frames: SpanFrame[];
 
   /**
    * Timestamp when the timeline begins, in milliseconds
    */
-  startTimestamp: number;
+  startTimestampMs: number;
 
   /**
    * Extra classNames
@@ -29,36 +33,41 @@ type Props = {
   className?: string;
 };
 
-function ReplayTimelineEvents({className, duration, spans, startTimestamp}: Props) {
-  const flattenedSpans = flattenSpans(spans);
+function ReplayTimelineSpans({className, durationMs, frames, startTimestampMs}: Props) {
+  const flattened = flattenFrames(frames);
+  const {setActiveTab} = useActiveReplayTab();
+  const isDark = ConfigStore.get('theme') === 'dark';
 
-  const startMs = startTimestamp * 1000;
+  const handleClick = useCallback(() => setActiveTab(TabKey.NETWORK), [setActiveTab]);
+
   return (
-    <Spans className={className}>
-      {flattenedSpans.map((span, i) => {
-        const sinceStart = span.startTimestamp - startMs;
-        const startPct = divide(sinceStart, duration);
-        const widthPct = divide(span.duration, duration);
+    <Spans isDark={isDark} className={className}>
+      {flattened.map((span, i) => {
+        const sinceStart = span.startTimestamp - startTimestampMs;
+        const startPct = divide(sinceStart, durationMs);
+        const widthPct = divide(span.duration, durationMs);
 
-        const requestsCount = tn(
-          '%s network request',
-          '%s network requests',
-          span.spanCount
-        );
         return (
           <Tooltip
             key={i}
             title={
-              <React.Fragment>
-                {requestsCount}
-                <br />
-                {span.duration.toFixed(2)}ms
-              </React.Fragment>
+              <CountTooltipContent>
+                <dt>{t('Network Requests:')}</dt>
+                <dd>{span.frameCount}</dd>
+                <dt>{t('Duration:')}</dt>
+                <dd>{span.duration.toLocaleString()}ms</dd>
+              </CountTooltipContent>
             }
             skipWrapper
-            disableForVisualTest
+            position="bottom"
           >
-            <Span startPct={startPct} widthPct={widthPct} />
+            <Span
+              style={{
+                left: toPercent(startPct),
+                width: toPercent(widthPct),
+              }}
+              onClick={handleClick}
+            />
           </Tooltip>
         );
       })}
@@ -66,27 +75,30 @@ function ReplayTimelineEvents({className, duration, spans, startTimestamp}: Prop
   );
 }
 
-const Spans = styled('ul')`
+const Spans = styled('ul')<{isDark: boolean}>`
   /* Reset defaults for <ul> */
   list-style: none;
   margin: 0;
   padding: 0;
 
-  height: ${space(3)};
+  height: ${space(1.5)};
+  margin-bottom: ${space(0.5)};
   position: relative;
   pointer-events: none;
+
+  & > li {
+    background: ${p => (p.isDark ? p.theme.charts.colors[5] : p.theme.charts.colors[0])};
+  }
 `;
-// TODO(replay): sync colors like #865189 with chartPalette so there is consistency
-const Span = styled('li')<{startPct: number; widthPct: number}>`
+
+const Span = styled('li')`
+  cursor: pointer;
   display: block;
   position: absolute;
-  top: 0;
-  left: ${p => p.startPct * 100}%;
   min-width: 1px;
-  width: ${p => p.widthPct * 100}%;
   height: 100%;
-  background: #865189; /* plucked from static/app/constants/chartPalette.tsx */
+  border-radius: 2px;
   pointer-events: auto;
 `;
 
-export default React.memo(ReplayTimelineEvents);
+export default memo(ReplayTimelineSpans);

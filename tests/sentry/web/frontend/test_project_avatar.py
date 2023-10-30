@@ -2,11 +2,14 @@ from io import BytesIO
 
 from django.urls import reverse
 
-from sentry.models import File, ProjectAvatar
-from sentry.testutils import TestCase
+from sentry.models.avatars.project_avatar import ProjectAvatar
+from sentry.models.files.file import File
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.web.frontend.generic import FOREVER_CACHE
 
 
+@region_silo_test(stable=True)
 class ProjectAvatarTest(TestCase):
     def test_headers(self):
         project = self.create_project()

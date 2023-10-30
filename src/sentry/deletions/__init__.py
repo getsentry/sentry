@@ -10,7 +10,7 @@ because of a new relation or database failure.
 Celery Tasks
 ------------
 
-Every 15 minutes `sentry.tasks.deletion.run_scheduled_deletion()` runs. This task queries for jobs
+Every 15 minutes `sentry.tasks.deletion.run_scheduled_deletions()` runs. This task queries for jobs
 that were scheduled to be run in the past that are not already in progress. Tasks are spawned for
 each deletion that needs to be processed.
 
@@ -23,7 +23,7 @@ Scheduling Deletions
 The entrypoint into deletions for the majority of application code is via the ``ScheduledDeletion``
 model. This model lets you create deletion jobs that are run in the future.
 
->>> from sentry.models import ScheduledDeletion
+>>> from sentry.models.scheduledeltion import ScheduledDeletion
 >>> ScheduledDeletion.schedule(organization, days=1, hours=2)
 
 The above would schedule an organization to be deleted in 1 day and 2 hours.
@@ -80,6 +80,7 @@ descendants, such as Event, so it can more efficiently bulk delete rows.
 
 
 from .base import BulkModelDeletionTask, ModelDeletionTask, ModelRelation  # NOQA
+from .defaults.artifactbundle import ArtifactBundleDeletionTask
 from .manager import DeletionTaskManager
 
 default_manager = DeletionTaskManager(default_task=ModelDeletionTask)
@@ -89,6 +90,8 @@ def load_defaults():
     from sentry import models
     from sentry.discover.models import DiscoverSavedQuery
     from sentry.incidents.models import AlertRule
+    from sentry.models.commitfilechange import CommitFileChange
+    from sentry.monitors import models as monitor_models
 
     from . import defaults
 
@@ -100,7 +103,7 @@ def load_defaults():
     default_manager.register(models.ApiToken, BulkModelDeletionTask)
     default_manager.register(models.Commit, defaults.CommitDeletionTask)
     default_manager.register(models.CommitAuthor, defaults.CommitAuthorDeletionTask)
-    default_manager.register(models.CommitFileChange, BulkModelDeletionTask)
+    default_manager.register(CommitFileChange, BulkModelDeletionTask)
     default_manager.register(models.Deploy, BulkModelDeletionTask)
     default_manager.register(DiscoverSavedQuery, defaults.DiscoverSavedQueryDeletionTask)
     default_manager.register(models.Distribution, BulkModelDeletionTask)
@@ -124,11 +127,18 @@ def load_defaults():
     default_manager.register(models.GroupShare, BulkModelDeletionTask)
     default_manager.register(models.GroupSnooze, BulkModelDeletionTask)
     default_manager.register(models.GroupSubscription, BulkModelDeletionTask)
+    default_manager.register(monitor_models.Monitor, defaults.MonitorDeletionTask)
+    default_manager.register(
+        monitor_models.MonitorEnvironment, defaults.MonitorEnvironmentDeletionTask
+    )
     default_manager.register(models.Organization, defaults.OrganizationDeletionTask)
     default_manager.register(
         models.OrganizationIntegration, defaults.OrganizationIntegrationDeletionTask
     )
     default_manager.register(models.OrganizationMemberTeam, BulkModelDeletionTask)
+    default_manager.register(
+        models.PlatformExternalIssue, defaults.PlatformExternalIssueDeletionTask
+    )
     default_manager.register(models.Project, defaults.ProjectDeletionTask)
     default_manager.register(models.ProjectBookmark, BulkModelDeletionTask)
     default_manager.register(models.ProjectKey, BulkModelDeletionTask)
@@ -143,13 +153,24 @@ def load_defaults():
     default_manager.register(
         models.RepositoryProjectPathConfig, defaults.RepositoryProjectPathConfigDeletionTask
     )
+    default_manager.register(models.SentryApp, defaults.SentryAppDeletionTask)
+    default_manager.register(
+        models.SentryAppInstallation, defaults.SentryAppInstallationDeletionTask
+    )
+    default_manager.register(
+        models.SentryAppInstallationToken, defaults.SentryAppInstallationTokenDeletionTask
+    )
+    default_manager.register(models.ServiceHook, defaults.ServiceHookDeletionTask)
     default_manager.register(models.SavedSearch, BulkModelDeletionTask)
-    default_manager.register(models.SavedSearchUserDefault, BulkModelDeletionTask)
     default_manager.register(models.Team, defaults.TeamDeletionTask)
     default_manager.register(models.UserReport, BulkModelDeletionTask)
+    default_manager.register(models.ArtifactBundle, ArtifactBundleDeletionTask)
+    default_manager.register(models.Rule, defaults.RuleDeletionTask)
 
 
 load_defaults()
 
 get = default_manager.get
 register = default_manager.register
+exec_sync = default_manager.exec_sync
+exec_sync_many = default_manager.exec_sync_many

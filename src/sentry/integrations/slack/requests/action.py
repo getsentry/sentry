@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import Mapping, MutableMapping
+from typing import Any
 
 from rest_framework import status
 
 from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
-from sentry.models import Group
+from sentry.models.group import Group
 from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.json import JSONData
@@ -24,7 +24,7 @@ class SlackActionRequest(SlackRequest):
     def type(self) -> str:
         return str(self.data.get("type"))
 
-    @memoize  # type: ignore
+    @memoize
     def callback_data(self) -> JSONData:
         """
         We store certain data in ``callback_id`` as JSON. It's a bit hacky, but
@@ -36,7 +36,7 @@ class SlackActionRequest(SlackRequest):
             - orig_response_url: URL from the original message we received
             - is_message: did the original message have a 'message' type
         """
-        return json.loads(self.data.get("callback_id"))
+        return json.loads(self.data["callback_id"])
 
     def _validate_data(self) -> None:
         """
@@ -60,8 +60,8 @@ class SlackActionRequest(SlackRequest):
     def get_logging_data(
         self,
         group: Group | None = None,
-    ) -> Mapping[str, str | None]:
-        logging_data: MutableMapping[str, str | None] = {
+    ) -> dict[str, Any]:
+        logging_data: dict[str, Any] = {
             **self.logging_data,
             "response_url": self.response_url,
         }
@@ -75,3 +75,11 @@ class SlackActionRequest(SlackRequest):
             )
 
         return logging_data
+
+    def get_tags(self) -> set[str]:
+        attachments = self.data.get("original_message", {}).get("attachments", [{}])
+        tags = set()
+        for attachment in attachments:
+            for field in attachment.get("fields", []):
+                tags.add(field["title"])
+        return tags

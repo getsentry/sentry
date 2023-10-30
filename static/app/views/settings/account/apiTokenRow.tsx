@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
-import TextCopyInput from 'sentry/components/forms/textCopyInput';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
+import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {InternalAppApiToken} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
@@ -25,7 +25,6 @@ function ApiTokenRow({token, onRemove}: Props) {
           </TextCopyInput>
         </InputWrapper>
         <Button
-          size="small"
           onClick={() => onRemove(token)}
           icon={<IconSubtract isCircled size="xs" />}
         >

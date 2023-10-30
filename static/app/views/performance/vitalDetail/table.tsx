@@ -14,34 +14,29 @@ import Tag from 'sentry/components/tag';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView, {
-  EventData,
   EventsMetaType,
   isFieldSortable,
 } from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {
-  fieldAlignment,
-  getAggregateAlias,
-  Sort,
-  WebVital,
-} from 'sentry/utils/discover/fields';
+import {fieldAlignment, getAggregateAlias, Sort} from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
 import VitalsDetailsTableQuery, {
   TableData,
   TableDataRow,
 } from 'sentry/utils/performance/vitals/vitalsDetailsTableQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
-import {TableColumn} from 'sentry/views/eventsV2/table/types';
-
-import {DisplayModes} from '../transactionSummary/transactionOverview/charts';
+import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
+import {TableColumn} from 'sentry/views/discover/table/types';
 import {
+  DisplayModes,
   normalizeSearchConditionsWithTransactionName,
   TransactionFilterOptions,
   transactionSummaryRouteWithQuery,
-} from '../transactionSummary/utils';
-import {getSelectedProjectPlatforms} from '../utils';
+} from 'sentry/views/performance/transactionSummary/utils';
+
+import {getProjectID, getSelectedProjectPlatforms} from '../utils';
 
 import {
   getVitalDetailTableMehStatusFunction,
@@ -66,25 +61,6 @@ const getTableColumnTitle = (index: number, vitalName: WebVital) => {
   return titles[index];
 };
 
-export function getProjectID(
-  eventData: EventData,
-  projects: Project[]
-): string | undefined {
-  const projectSlug = (eventData?.project as string) || undefined;
-
-  if (typeof projectSlug === undefined) {
-    return undefined;
-  }
-
-  const project = projects.find(currentProject => currentProject.slug === projectSlug);
-
-  if (!project) {
-    return undefined;
-  }
-
-  return project.id;
-}
-
 type Props = {
   eventView: EventView;
   location: Location;
@@ -108,10 +84,8 @@ class Table extends Component<Props, State> {
     return (action: Actions, value: React.ReactText) => {
       const {eventView, location, organization} = this.props;
 
-      trackAnalyticsEvent({
-        eventKey: 'performance_views.overview.cellaction',
-        eventName: 'Performance Views: Cell Action Clicked',
-        organization_id: parseInt(organization.id, 10),
+      trackAnalytics('performance_views.overview.cellaction', {
+        organization,
         action,
       });
 
@@ -305,7 +279,7 @@ class Table extends Component<Props, State> {
           const star = (
             <IconStar
               key="keyTransaction"
-              color="yellow300"
+              color="yellow400"
               isSolid
               data-test-id="key-transaction-header"
             />
@@ -324,10 +298,9 @@ class Table extends Component<Props, State> {
 
   handleSummaryClick = () => {
     const {organization, projects, location} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.overview.navigate.summary',
-      eventName: 'Performance Views: Overview view summary',
-      organization_id: parseInt(organization.id, 10),
+
+    trackAnalytics('performance_views.overview.navigate.summary', {
+      organization,
       project_platforms: getSelectedProjectPlatforms(location, projects),
     });
   };

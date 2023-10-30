@@ -1,19 +1,20 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {BarChart} from 'sentry/components/charts/barChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
+import LoadingError from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import type {Organization, Project} from 'sentry/types';
 import {formatPercentage} from 'sentry/utils/formatters';
-import type {Color} from 'sentry/utils/theme';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {
@@ -23,219 +24,179 @@ import {
   sortSeriesByDay,
 } from './utils';
 
-type Props = AsyncComponent['props'] & {
+interface TeamUnresolvedIssuesProps extends DateTimeObject {
   organization: Organization;
   projects: Project[];
   teamSlug: string;
   environment?: string;
-} & DateTimeObject;
+}
 
 type UnresolvedCount = {unresolved: number};
 type ProjectReleaseCount = Record<string, Record<string, UnresolvedCount>>;
 
-type State = AsyncComponent['state'] & {
-  expandTable: boolean;
-  /** weekly selected date range */
-  periodIssues: ProjectReleaseCount | null;
-};
-
-class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
-  shouldRenderBadRequests = true;
-
-  getDefaultState(): State {
-    return {
-      ...super.getDefaultState(),
-      periodIssues: null,
-      expandTable: false,
-    };
-  }
-
-  getEndpoints() {
-    const {organization, start, end, period, utc, teamSlug, environment} = this.props;
-
-    const datetime = {start, end, period, utc};
-
-    const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [
-      [
-        'periodIssues',
-        `/teams/${organization.slug}/${teamSlug}/all-unresolved-issues/`,
-        {
-          query: {
-            ...normalizeDateTimeParams(datetime),
-            environment,
-          },
+export function TeamUnresolvedIssues({
+  organization,
+  teamSlug,
+  projects,
+  start,
+  end,
+  period,
+  utc,
+  environment,
+}: TeamUnresolvedIssuesProps) {
+  const {
+    data: periodIssues = {},
+    isLoading,
+    isError,
+    refetch,
+  } = useApiQuery<ProjectReleaseCount>(
+    [
+      `/teams/${organization.slug}/${teamSlug}/all-unresolved-issues/`,
+      {
+        query: {
+          ...normalizeDateTimeParams({start, end, period, utc}),
+          environment,
         },
-      ],
-    ];
+      },
+    ],
+    {staleTime: 0}
+  );
 
-    return endpoints;
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    const {teamSlug, start, end, period, utc, environment} = this.props;
-
-    if (
-      prevProps.start !== start ||
-      prevProps.end !== end ||
-      prevProps.period !== period ||
-      prevProps.utc !== utc ||
-      prevProps.environment !== environment ||
-      prevProps.teamSlug !== teamSlug
-    ) {
-      this.remountComponent();
-    }
-  }
-
-  getTotalUnresolved(projectId: number): number {
-    const {periodIssues} = this.state;
-
+  function getTotalUnresolved(projectId: number): number {
     const entries = Object.values(periodIssues?.[projectId] ?? {});
     const total = entries.reduce((acc, current) => acc + current.unresolved, 0);
 
     return Math.round(total / entries.length);
   }
 
-  handleExpandTable = () => {
-    this.setState({expandTable: true});
-  };
-
-  renderLoading() {
-    return this.renderBody();
+  const projectTotals: Record<
+    string,
+    {percentChange: number; periodAvg: number; projectId: string; today: number}
+  > = {};
+  for (const projectId of Object.keys(periodIssues)) {
+    const periodAvg = getTotalUnresolved(Number(projectId));
+    const projectPeriodEntries = Object.values(periodIssues?.[projectId] ?? {});
+    const today = projectPeriodEntries[projectPeriodEntries.length - 1]?.unresolved ?? 0;
+    const percentChange = (today - periodAvg) / periodAvg;
+    projectTotals[projectId] = {
+      projectId,
+      periodAvg,
+      today,
+      percentChange: Number.isNaN(percentChange) ? 0 : percentChange,
+    };
   }
 
-  renderBody() {
-    const {projects, period} = this.props;
-    const {loading} = this.state;
-    const periodIssues = this.state.periodIssues ?? {};
+  const sortedProjects = projects
+    .map(project => ({project, trend: projectTotals[project.id]?.percentChange ?? 0}))
+    .sort((a, b) => Math.abs(b.trend) - Math.abs(a.trend));
 
-    const projectTotals: Record<
-      string,
-      {percentChange: number; periodAvg: number; projectId: string; today: number}
-    > = {};
-    for (const projectId of Object.keys(periodIssues)) {
-      const periodAvg = this.getTotalUnresolved(Number(projectId));
-      const projectPeriodEntries = Object.values(periodIssues?.[projectId] ?? {});
-      const today =
-        projectPeriodEntries[projectPeriodEntries.length - 1]?.unresolved ?? 0;
-      const percentChange = Math.abs((today - periodAvg) / periodAvg);
-      projectTotals[projectId] = {
-        projectId,
-        periodAvg,
-        today,
-        percentChange: Number.isNaN(percentChange) ? 0 : percentChange,
-      };
+  const groupedProjects = groupByTrend(sortedProjects);
+
+  // All data will contain all pairs of [day, unresolved_count].
+  const allData = Object.values(periodIssues).flatMap(data =>
+    Object.entries(data).map(
+      ([bucket, {unresolved}]) => [bucket, unresolved] as [string, number]
+    )
+  );
+  // Total by day for all projects
+  const totalByDay = allData.reduce((acc, [bucket, unresolved]) => {
+    if (acc[bucket] === undefined) {
+      acc[bucket] = 0;
     }
+    acc[bucket] += unresolved;
+    return acc;
+  }, {});
 
-    const sortedProjects = projects
-      .map(project => ({project, trend: projectTotals[project.id]?.percentChange ?? 0}))
-      .sort((a, b) => Math.abs(b.trend) - Math.abs(a.trend));
+  const seriesData = sortSeriesByDay(convertDayValueObjectToSeries(totalByDay));
 
-    const groupedProjects = groupByTrend(sortedProjects);
-
-    // All data will contain all pairs of [day, unresolved_count].
-    const allData = Object.values(periodIssues).flatMap(data =>
-      Object.entries(data).map(
-        ([bucket, {unresolved}]) => [bucket, unresolved] as [string, number]
-      )
-    );
-    // Total by day for all projects
-    const totalByDay = allData.reduce((acc, [bucket, unresolved]) => {
-      if (acc[bucket] === undefined) {
-        acc[bucket] = 0;
-      }
-      acc[bucket] += unresolved;
-      return acc;
-    }, {});
-
-    const seriesData = sortSeriesByDay(convertDayValueObjectToSeries(totalByDay));
-
-    return (
-      <div>
-        <ChartWrapper>
-          {loading && <Placeholder height="200px" />}
-          {!loading && (
-            <BarChart
-              style={{height: 190}}
-              isGroupedByDate
-              useShortDate
-              legend={{right: 3, top: 0}}
-              yAxis={{minInterval: 1}}
-              xAxis={barAxisLabel(seriesData.length)}
-              series={[
-                {
-                  seriesName: t('Unresolved Issues'),
-                  silent: true,
-                  data: seriesData,
-                  barCategoryGap: '6%',
-                },
-              ]}
-            />
-          )}
-        </ChartWrapper>
-        <CollapsePanel items={groupedProjects.length}>
-          {({isExpanded, showMoreButton}) => (
-            <Fragment>
-              <StyledPanelTable
-                isEmpty={projects.length === 0}
-                isLoading={loading}
-                headers={[
-                  t('Project'),
-                  <RightAligned key="last">
-                    {tct('Last [period] Average', {period})}
-                  </RightAligned>,
-                  <RightAligned key="curr">{t('Today')}</RightAligned>,
-                  <RightAligned key="diff">{t('Change')}</RightAligned>,
-                ]}
-              >
-                {groupedProjects.map(({project}, idx) => {
-                  const totals = projectTotals[project.id] ?? {};
-
-                  if (idx >= COLLAPSE_COUNT && !isExpanded) {
-                    return null;
-                  }
-
-                  return (
-                    <Fragment key={project.id}>
-                      <ProjectBadgeContainer>
-                        <ProjectBadge avatarSize={18} project={project} />
-                      </ProjectBadgeContainer>
-
-                      <ScoreWrapper>{totals.periodAvg}</ScoreWrapper>
-                      <ScoreWrapper>{totals.today}</ScoreWrapper>
-                      <ScoreWrapper>
-                        <SubText
-                          color={
-                            totals.percentChange === 0
-                              ? 'gray300'
-                              : totals.percentChange > 0
-                              ? 'red300'
-                              : 'green300'
-                          }
-                        >
-                          {formatPercentage(
-                            Number.isNaN(totals.percentChange) ? 0 : totals.percentChange,
-                            0
-                          )}
-                          <PaddedIconArrow
-                            direction={totals.percentChange > 0 ? 'up' : 'down'}
-                            size="xs"
-                          />
-                        </SubText>
-                      </ScoreWrapper>
-                    </Fragment>
-                  );
-                })}
-              </StyledPanelTable>
-              {!loading && showMoreButton}
-            </Fragment>
-          )}
-        </CollapsePanel>
-      </div>
-    );
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
   }
-}
 
-export default TeamUnresolvedIssues;
+  return (
+    <div>
+      <ChartWrapper>
+        {isLoading && <Placeholder height="200px" />}
+        {!isLoading && (
+          <BarChart
+            style={{height: 190}}
+            isGroupedByDate
+            useShortDate
+            legend={{right: 3, top: 0}}
+            yAxis={{minInterval: 1}}
+            xAxis={barAxisLabel()}
+            series={[
+              {
+                seriesName: t('Unresolved Issues'),
+                silent: true,
+                data: seriesData,
+                barCategoryGap: '6%',
+              },
+            ]}
+          />
+        )}
+      </ChartWrapper>
+      <CollapsePanel items={groupedProjects.length}>
+        {({isExpanded, showMoreButton}) => (
+          <Fragment>
+            <StyledPanelTable
+              isEmpty={projects.length === 0}
+              isLoading={isLoading}
+              headers={[
+                t('Project'),
+                <RightAligned key="last">
+                  {tct('Last [period] Average', {period})}
+                </RightAligned>,
+                <RightAligned key="curr">{t('Today')}</RightAligned>,
+                <RightAligned key="diff">{t('Change')}</RightAligned>,
+              ]}
+            >
+              {groupedProjects.map(({project}, idx) => {
+                const totals = projectTotals[project.id] ?? {};
+
+                if (idx >= COLLAPSE_COUNT && !isExpanded) {
+                  return null;
+                }
+
+                return (
+                  <Fragment key={project.id}>
+                    <ProjectBadgeContainer>
+                      <ProjectBadge avatarSize={18} project={project} />
+                    </ProjectBadgeContainer>
+
+                    <ScoreWrapper>{totals.periodAvg}</ScoreWrapper>
+                    <ScoreWrapper>{totals.today}</ScoreWrapper>
+                    <ScoreWrapper>
+                      <SubText
+                        color={
+                          totals.percentChange === 0
+                            ? 'subText'
+                            : totals.percentChange > 0
+                            ? 'errorText'
+                            : 'successText'
+                        }
+                      >
+                        {formatPercentage(
+                          Number.isNaN(totals.percentChange) ? 0 : totals.percentChange,
+                          0
+                        )}
+                        <PaddedIconArrow
+                          direction={totals.percentChange > 0 ? 'up' : 'down'}
+                          size="xs"
+                        />
+                      </SubText>
+                    </ScoreWrapper>
+                  </Fragment>
+                );
+              })}
+            </StyledPanelTable>
+            {!isLoading && showMoreButton}
+          </Fragment>
+        )}
+      </CollapsePanel>
+    </div>
+  );
+}
 
 const ChartWrapper = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
@@ -270,6 +231,6 @@ const PaddedIconArrow = styled(IconArrow)`
   margin: 0 ${space(0.5)};
 `;
 
-const SubText = styled('div')<{color: Color}>`
+const SubText = styled('div')<{color: ColorOrAlias}>`
   color: ${p => p.theme[p.color]};
 `;

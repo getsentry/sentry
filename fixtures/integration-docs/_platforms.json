@@ -135,6 +135,12 @@
           "name": "AngularJS"
         },
         {
+          "link": "https://docs.sentry.io/platforms/javascript/guides/astro/",
+          "type": "framework",
+          "id": "javascript-astro",
+          "name": "Astro"
+        },
+        {
           "link": "https://docs.getsentry.com/clients/javascript/integrations/backbone/",
           "type": "framework",
           "id": "javascript-backbone",
@@ -181,6 +187,24 @@
           "type": "framework",
           "id": "javascript-vue",
           "name": "Vue"
+        },
+        {
+          "link": "https://docs.sentry.io/platforms/javascript/guides/remix/",
+          "type": "framework",
+          "id": "javascript-remix",
+          "name": "Remix"
+        },
+        {
+          "link": "https://docs.sentry.io/platforms/javascript/guides/svelte/",
+          "type": "framework",
+          "id": "javascript-svelte",
+          "name": "Svelte"
+        },
+        {
+          "link": "https://docs.sentry.io/platforms/javascript/guides/sveltekit/",
+          "type": "framework",
+          "id": "javascript-sveltekit",
+          "name": "SvelteKit"
         }
       ],
       "id": "javascript",
@@ -295,6 +319,18 @@
           "type": "framework",
           "id": "python-flask",
           "name": "Flask"
+        },
+        {
+          "link": "https://docs.getsentry.com/clients/python/integrations/starlette/",
+          "type": "framework",
+          "id": "python-starlette",
+          "name": "Starlette"
+        },
+        {
+          "link": "https://docs.getsentry.com/clients/python/integrations/fastapi/",
+          "type": "framework",
+          "id": "python-fastapi",
+          "name": "FastAPI"
         },
         {
           "link": "https://docs.getsentry.com/clients/python/integrations/pylons/",

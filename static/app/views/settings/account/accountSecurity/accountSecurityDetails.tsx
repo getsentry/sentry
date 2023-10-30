@@ -9,14 +9,14 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import DateTime from 'sentry/components/dateTime';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Authenticator, AuthenticatorDevice} from 'sentry/types';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import RecoveryCodes from 'sentry/views/settings/account/accountSecurity/components/recoveryCodes';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import U2fEnrolledDetails from 'sentry/views/settings/account/accountSecurity/components/u2fEnrolledDetails';
@@ -50,14 +50,14 @@ type Props = {
 
 type State = {
   authenticator: Authenticator | null;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class AccountSecurityDetails extends AsyncView<Props, State> {
+class AccountSecurityDetails extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     return t('Security');
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {params} = this.props;
     const {authId} = params;
 
@@ -134,7 +134,12 @@ class AccountSecurityDetails extends AsyncView<Props, State> {
           title={
             <Fragment>
               <span>{authenticator.name}</span>
-              <AuthenticatorStatus enabled={authenticator.isEnrolled} />
+              <AuthenticatorStatus
+                data-test-id={`auth-status-${
+                  authenticator.isEnrolled ? 'enabled' : 'disabled'
+                }`}
+                enabled={authenticator.isEnrolled}
+              />
             </Fragment>
           }
           action={

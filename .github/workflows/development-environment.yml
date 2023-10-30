@@ -7,80 +7,75 @@ on:
       - '.github/workflows/development-environment.yml'
       - 'requirements-*.txt'
       - '.python-version'
-      - '.github/actions/setup-python'
       - '.envrc'
       - 'Brewfile'
-      - 'scripts/*'
-      - 'tools/*'
+      - 'scripts/**'
+      - 'tools/**'
       - 'src/sentry/runner/commands/devserver.py'
       - 'src/sentry/runner/commands/devservices.py'
       - 'bin/load-mocks'
+
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+# hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
 
 jobs:
   # This workflow is optimized to test the dev env with dev services as fast as possible
   # The bootstrap workflow (see last workflow) tests the experience of first time engineers
   docker-setup:
     name: Docker set up
-    runs-on: macos-11
-    timeout-minutes: 30
+    runs-on: macos-13
+    timeout-minutes: 40
     env:
       # Make the environment more similar to what Mac defaults to
       SHELL: /bin/zsh
 
     steps:
       - name: Checkout sentry
-        uses: actions/checkout@v2
+        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
 
       - name: Set up
         id: info
         run: |
-          echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
+          echo "yarn-cache-dir=$(yarn cache dir)" >> "$GITHUB_OUTPUT"
 
       # Trick for unattended Docker installations
       # https://github.com/docker/for-mac/issues/2359#issuecomment-943131345
       # NOTE: This can sometimes take up to 10 minutes
       - name: Install Docker
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install -v --cask docker
+          # d4m 4.11+ never starts: https://github.com/docker/for-mac/issues/6450
+          curl -o /tmp/docker.rb https://raw.githubusercontent.com/Homebrew/homebrew-cask/fe866ec0765de141599745f03e215452db7f511b/Casks/docker.rb
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install -v --HEAD -s /tmp/docker.rb
           sudo /Applications/Docker.app/Contents/MacOS/Docker --unattended --install-privileged-components
           open -a /Applications/Docker.app --args --unattended --accept-license
 
-      - name: Install missing brew packages
-        run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install -v libxmlsec1
-
-      - name: Install volta
-        run: |
-          curl https://get.volta.sh | bash
+      - uses: getsentry/action-setup-volta@c52be2ea13cfdc084edb806e81958c13e445941e # v1.2.0
 
       # This handles Python's cache
-      - name: Setup Python & cache
-        uses: ./.github/actions/setup-python
-        # Remove this block when 3.8.13 becomes available in:
-        # https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
+      - uses: getsentry/action-setup-venv@9e3bbae3836b1b6f129955bf55a19e1d99a61c67 # v1.0.5
         with:
-          python-version: 3.8.12
-
-      - name: Cache (yarn)
-        uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
-        with:
-          path: ${{ steps.info.outputs.yarn-cache-dir }}
-          key: devenv-${{ runner.os }}-v1-yarn-${{ hashFiles('yarn.lock') }}
+          python-version: 3.8.16
+          cache-dependency-path: requirements-dev-frozen.txt
 
       # This tests starting up the dev services, loading mocks and pre-commit installation
       # This can take over 15 minutes
       - name: make bootstrap
-        run: |
-          export VOLTA_HOME="$HOME/.volta"
-          export PATH="$HOME/.volta/bin:$PATH"
-          python -m venv .venv
-          source .venv/bin/activate
-          make bootstrap
+        # GHA pythons are miscompiled and report macos 10.16
+        env:
+          SYSTEM_VERSION_COMPAT: 0
+        run: make bootstrap
 
   # The pyenv set up takes long, thus, separating it into its own
   pyenv-setup:
     name: pyenv set up
-    runs-on: macos-11
+    runs-on: macos-13
     timeout-minutes: 25
     env:
       # This is to support this code https://github.com/getsentry/sentry/blob/47b837a69c38e190a7555de81e6d7d216498b854/scripts/pyenv_setup.sh#L17-L40
@@ -88,7 +83,7 @@ jobs:
 
     steps:
       - name: Checkout sentry
-        uses: actions/checkout@v2
+        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
 
       - name: Install pyenv
         run: |
@@ -110,34 +105,17 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+      - uses: getsentry/action-setup-venv@9e3bbae3836b1b6f129955bf55a19e1d99a61c67 # v1.0.5
         with:
-          python-version: 3.8.12
-          cache: 'pip'
+          python-version: 3.8.16
           cache-dependency-path: |
-            requirements-dev-only-frozen.txt
-      - name: install dependencies
-        run: pip install -r requirements-dev-only-frozen.txt
+            requirements-dev.txt
+            requirements-dev-frozen.txt
+          install-cmd: pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
       - name: run tests
         run: make test-tools
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-
-  # We don't yet test the bootstrap step
-  # https://github.com/getsentry/bootstrap-sentry/blob/7af557be84920dd587e48613dbc308c937bc0e08/bootstrap.sh#L618-L619
-  bootstrap-script:
-    runs-on: macos-11
-    timeout-minutes: 40
-    env:
-      # Make the environment more similar to what Mac defaults to
-      SHELL: /bin/zsh
-
-    steps:
-      - name: Run bootstrap code
-        env:
-          STRAP_DEBUG: 1
-          # This ensures that the bootstrap code will test against this branch
-          CI_CHECKOUT_BRANCH: ${{ github.head_ref || github.sha }}
-        run: |
-          bash <(curl -s https://raw.githubusercontent.com/getsentry/bootstrap-sentry/main/bootstrap.sh)
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}

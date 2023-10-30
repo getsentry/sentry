@@ -1,50 +1,41 @@
+import type {BreadcrumbTransactionEvent} from 'sentry/components/events/interfaces/breadcrumbs/types';
+import {BreadcrumbMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {Organization} from 'sentry/types';
 import {BreadcrumbType, RawCrumb} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
 
-import Default from './default';
-import Exception from './exception';
-import Http from './http';
-import LinkedEvent from './linkedEvent';
+import {Default} from './default';
+import {Exception} from './exception';
+import {Http} from './http';
 
-type Props = Pick<React.ComponentProps<typeof LinkedEvent>, 'route' | 'router'> & {
+type Props = {
   breadcrumb: RawCrumb;
   event: Event;
   organization: Organization;
   searchTerm: string;
+  meta?: BreadcrumbMeta;
+  transactionEvents?: BreadcrumbTransactionEvent[];
 };
 
-function Data({breadcrumb, event, organization, searchTerm, route, router}: Props) {
+export function Data({
+  breadcrumb,
+  event,
+  organization,
+  searchTerm,
+  meta,
+  transactionEvents,
+}: Props) {
   const orgSlug = organization.slug;
 
-  const linkedEvent =
-    !!organization.features?.includes('breadcrumb-linked-event') &&
-    breadcrumb.event_id ? (
-      <LinkedEvent
-        orgSlug={orgSlug}
-        eventId={breadcrumb.event_id}
-        route={route}
-        router={router}
-      />
-    ) : undefined;
-
   if (breadcrumb.type === BreadcrumbType.HTTP) {
-    return (
-      <Http breadcrumb={breadcrumb} searchTerm={searchTerm} linkedEvent={linkedEvent} />
-    );
+    return <Http breadcrumb={breadcrumb} searchTerm={searchTerm} meta={meta} />;
   }
 
   if (
     breadcrumb.type === BreadcrumbType.WARNING ||
     breadcrumb.type === BreadcrumbType.ERROR
   ) {
-    return (
-      <Exception
-        breadcrumb={breadcrumb}
-        searchTerm={searchTerm}
-        linkedEvent={linkedEvent}
-      />
-    );
+    return <Exception breadcrumb={breadcrumb} searchTerm={searchTerm} meta={meta} />;
   }
 
   return (
@@ -53,9 +44,8 @@ function Data({breadcrumb, event, organization, searchTerm, route, router}: Prop
       orgSlug={orgSlug}
       breadcrumb={breadcrumb}
       searchTerm={searchTerm}
-      linkedEvent={linkedEvent}
+      meta={meta}
+      transactionEvents={transactionEvents}
     />
   );
 }
-
-export default Data;

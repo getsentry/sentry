@@ -1,0 +1,930 @@
+{
+  "event_id": "8198d867e4c84136a3588fa0a1a57e18",
+  "platform": "javascript",
+  "datetime": "2022-11-01T19:14:52.996900+00:00",
+  "tags": [
+    ["browser", "Chrome 107.0.0"],
+    ["browser.name", "Chrome"],
+    ["device", "Mac"],
+    ["device.family", "Mac"],
+    ["level", "info"],
+    ["os", "Mac OS X 10.15.7"],
+    ["os.name", "Mac OS X"],
+    ["transaction", "/organizations/:orgId/issues/"],
+    ["url", "https://sentry.io/organizations/sentry/issues/"]
+  ],
+  "culprit": "/organizations/:orgId/issues/",
+  "environment": "prod",
+  "location": "/organizations/:orgId/issues/",
+  "received": 1667330093.08279,
+  "request": {
+    "url": "https://sentry.io/organizations/sentry/issues/",
+    "headers": [
+      [
+        "User-Agent",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"
+      ]
+    ]
+  },
+  "sdk": {
+    "name": "sentry.javascript.react",
+    "version": "7.15.0",
+    "integrations": [
+      "InboundFilters",
+      "FunctionToString",
+      "TryCatch",
+      "Breadcrumbs",
+      "GlobalHandlers",
+      "LinkedErrors",
+      "Dedupe",
+      "HttpContext",
+      "ExtraErrorData",
+      "BrowserTracing"
+    ],
+    "packages": [{"name": "npm:@sentry/react", "version": "7.15.0"}]
+  },
+  "spans": [
+    {
+      "timestamp": 1667330086.2848,
+      "start_timestamp": 1667330086.2827,
+      "exclusive_time": 2.099991,
+      "description": "<OrganizationContextContainer>",
+      "op": "ui.react.mount",
+      "span_id": "8a469dc5c6c4dbd4",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "hash": "d81f30cfc3785478"
+    },
+    {
+      "timestamp": 1667330086.5292,
+      "start_timestamp": 1667330086.2861,
+      "exclusive_time": 243.100167,
+      "description": "GET /api/0/organizations/?member=1",
+      "op": "http.client",
+      "span_id": "b8ce6bbc7a6bb29f",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {"http.method": "GET", "type": "fetch", "url": "/api/0/organizations/?member=1"},
+      "hash": "cbc1d1c7a6500a75"
+    },
+    {
+      "timestamp": 1667330086.4261,
+      "start_timestamp": 1667330086.2911,
+      "exclusive_time": 134.99999,
+      "description": "GET /api/0/organizations/sentry/client-state/",
+      "op": "http.client",
+      "span_id": "81abe18d6de65766",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/client-state/"
+      },
+      "hash": "8d5b892af8f5784d"
+    },
+    {
+      "timestamp": 1667330086.5295,
+      "start_timestamp": 1667330086.3058,
+      "exclusive_time": 223.700046,
+      "description": "GET /api/0/subscriptions/sentry/",
+      "op": "http.client",
+      "span_id": "8252b556def01d1c",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {"http.method": "GET", "type": "fetch", "url": "/api/0/subscriptions/sentry/"},
+      "hash": "51a97bb49057facc"
+    },
+    {
+      "timestamp": 1667330086.4925,
+      "start_timestamp": 1667330086.3065,
+      "exclusive_time": 186.000108,
+      "description": "GET /api/0/organizations/sentry/broadcasts/",
+      "op": "http.client",
+      "span_id": "aa619733a70c5d15",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/broadcasts/"
+      },
+      "hash": "a1b34470e41ddd97"
+    },
+    {
+      "timestamp": 1667330086.3124,
+      "start_timestamp": 1667330086.3101,
+      "exclusive_time": 2.300024,
+      "description": "<IssueListOverview>",
+      "op": "ui.react.mount",
+      "span_id": "908c253ca76ac83c",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "hash": "530d2b028b19c71b"
+    },
+    {
+      "timestamp": 1667330086.3112,
+      "start_timestamp": 1667330086.3109,
+      "exclusive_time": 0.299931,
+      "description": "<LoadingIndicator>",
+      "op": "ui.react.mount",
+      "span_id": "b0759b34555a6aad",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "hash": "f93d7e6580639d76"
+    },
+    {
+      "timestamp": 1667330086.5291,
+      "start_timestamp": 1667330086.3114,
+      "exclusive_time": 217.700005,
+      "description": "GET /api/0/organizations/sentry/searches/",
+      "op": "http.client",
+      "span_id": "9f47d352a8907aac",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/searches/"
+      },
+      "hash": "66ba771639b7c0d6"
+    },
+    {
+      "timestamp": 1667330092.9969,
+      "start_timestamp": 1667330086.3118,
+      "exclusive_time": 6685.100078,
+      "description": "GET /api/0/organizations/sentry/tags/?statsPeriod=14d&use_cache=1",
+      "op": "http.client",
+      "span_id": "b4930fb7108ce7a1",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "cancelled",
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/tags/?statsPeriod=14d&use_cache=1"
+      },
+      "hash": "ae33a3ecac656ef3"
+    },
+    {
+      "timestamp": 1667330087.1583,
+      "start_timestamp": 1667330086.3121,
+      "exclusive_time": 846.199989,
+      "description": "GET /api/0/organizations/sentry/users/",
+      "op": "http.client",
+      "span_id": "8f1f77e10853820f",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/users/"
+      },
+      "hash": "679d11aab1658687"
+    },
+    {
+      "timestamp": 1667330086.5772,
+      "start_timestamp": 1667330086.5471,
+      "exclusive_time": 30.099868,
+      "description": "<IssueListOverview>",
+      "op": "ui.react.update",
+      "span_id": "97b3cf73b7c03596",
+      "parent_span_id": "908c253ca76ac83c",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "data": {"changedProps": ["savedSearches", "savedSearchLoading"]},
+      "hash": "530d2b028b19c71b"
+    },
+    {
+      "timestamp": 1667330086.5764,
+      "start_timestamp": 1667330086.5701,
+      "exclusive_time": 6.299972,
+      "description": "<LoadingIndicator>",
+      "op": "ui.react.mount",
+      "span_id": "af2f6d13fa8f8921",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "hash": "f93d7e6580639d76"
+    },
+    {
+      "timestamp": 1667330086.5703,
+      "start_timestamp": 1667330086.3112,
+      "exclusive_time": 259.100199,
+      "description": "<LoadingIndicator>",
+      "op": "ui.react.render",
+      "span_id": "8d4e5fc9393d6d94",
+      "parent_span_id": "b0759b34555a6aad",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "hash": "f93d7e6580639d76"
+    },
+    {
+      "timestamp": 1667330086.6718,
+      "start_timestamp": 1667330086.5761,
+      "exclusive_time": 95.699787,
+      "description": "GET /api/0/organizations/sentry/processingissues/",
+      "op": "http.client",
+      "span_id": "bf06cf268553aef6",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/processingissues/"
+      },
+      "hash": "d90b327be49a3442"
+    },
+    {
+      "timestamp": 1667330087.0166,
+      "start_timestamp": 1667330086.577,
+      "exclusive_time": 439.599991,
+      "description": "GET /api/0/organizations/sentry/issues/?collapse=stats&expand=owners&expand=inbox&limit=25&query=is%3Aunresolved&shortIdLookup=1&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "8d8722d2433d22b5",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/issues/?collapse=stats&expand=owners&expand=inbox&limit=25&query=is%3Aunresolved&shortIdLookup=1&statsPeriod=14d"
+      },
+      "hash": "b277c48e9d089b78"
+    },
+    {
+      "timestamp": 1667330086.5772,
+      "start_timestamp": 1667330086.5541,
+      "exclusive_time": 23.099899,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "9615cb58ffda53dc",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1667330086.5988,
+      "start_timestamp": 1667330086.5901,
+      "exclusive_time": 8.699894,
+      "description": "<OrganizationContextContainer>",
+      "op": "ui.react.update",
+      "span_id": "ad45d575ff3caa88",
+      "parent_span_id": "8a469dc5c6c4dbd4",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "data": {"changedProps": ["organizationsLoading", "organizations"]},
+      "hash": "d81f30cfc3785478"
+    },
+    {
+      "timestamp": 1667330086.7904,
+      "start_timestamp": 1667330086.7849,
+      "exclusive_time": 5.500078,
+      "description": "<IssueListOverview>",
+      "op": "ui.react.update",
+      "span_id": "b266649f69a56ebd",
+      "parent_span_id": "908c253ca76ac83c",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "data": {"changedProps": ["selection"]},
+      "hash": "530d2b028b19c71b"
+    },
+    {
+      "timestamp": 1667330086.8048,
+      "start_timestamp": 1667330086.7957,
+      "exclusive_time": 9.09996,
+      "description": "<IssueListOverview>",
+      "op": "ui.react.update",
+      "span_id": "82983065ab2c04e9",
+      "parent_span_id": "908c253ca76ac83c",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "data": {"changedProps": ["tags"]},
+      "hash": "530d2b028b19c71b"
+    },
+    {
+      "timestamp": 1667330087.7177,
+      "start_timestamp": 1667330087.0318,
+      "exclusive_time": 685.899973,
+      "description": "GET /api/0/organizations/sentry/issues-stats/?groups=3357551786&groups=3653952005&groups=3632201767&groups=3615922758&groups=1816441087&groups=2735845732&groups=2021019829&groups=3708674711&groups=3635082165&groups=1888630303&groups=2615251187&groups=3476760148&groups=3254685754&groups=2364324326&groups=3677909695&groups=1816441096&groups=3708657138&groups=3146776098&groups=3542232742&groups=2636653063&groups=2615489334&groups=3696257335&groups=3696257277&groups=3693916318&groups=3696257055&query=is%3Aunresolved&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "af0d375777af3c31",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/issues-stats/?groups=3357551786&groups=3653952005&groups=3632201767&groups=3615922758&groups=1816441087&groups=2735845732&groups=2021019829&groups=3708674711&groups=3635082165&groups=1888630303&groups=2615251187&groups=3476760148&groups=3254685754&groups=2364324326&groups=3677909695&groups=1816441096&groups=3708657138&groups=3146776098&groups=3542232742&groups=2636653063&groups=2615489334&groups=3696257335&groups=3696257277&groups=3693916318&groups=3696257055&query=is%3Aunresolved&statsPeriod=14d"
+      },
+      "hash": "503b4456ee900820"
+    },
+    {
+      "timestamp": 1667330087.4632,
+      "start_timestamp": 1667330087.0426,
+      "exclusive_time": 420.600176,
+      "description": "GET /api/0/organizations/sentry/issues-count/?query=is%3Aunresolved%20is%3Afor_review%20assigned_or_suggested%3A%5Bme%2C%20none%5D&query=is%3Aignored&query=is%3Areprocessing&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "bbfe8bc3204425db",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/issues-count/?query=is%3Aunresolved%20is%3Afor_review%20assigned_or_suggested%3A%5Bme%2C%20none%5D&query=is%3Aignored&query=is%3Areprocessing&statsPeriod=14d"
+      },
+      "hash": "545cb7f4994c77bd"
+    },
+    {
+      "timestamp": 1667330087.0933,
+      "start_timestamp": 1667330086.5764,
+      "exclusive_time": 516.900063,
+      "description": "<LoadingIndicator>",
+      "op": "ui.react.render",
+      "span_id": "b4d92ecc59276559",
+      "parent_span_id": "af2f6d13fa8f8921",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "hash": "f93d7e6580639d76"
+    },
+    {
+      "timestamp": 1667330087.3683,
+      "start_timestamp": 1667330087.1034,
+      "exclusive_time": 264.89997,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3357551786%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "ba198ace55bdb20f",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3357551786%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1667330087.9189,
+      "start_timestamp": 1667330087.104,
+      "exclusive_time": 814.899921,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3653952005%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "8a20c71faa0fb6a7",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3653952005%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1667330087.3722,
+      "start_timestamp": 1667330087.1044,
+      "exclusive_time": 267.800093,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3632201767%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "9269c825d935b33a",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3632201767%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1667330087.6783,
+      "start_timestamp": 1667330087.1049,
+      "exclusive_time": 573.40002,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3615922758%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "9ea82f759505e0f3",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3615922758%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1667330087.619,
+      "start_timestamp": 1667330087.1052,
+      "exclusive_time": 513.799906,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A1816441087%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "8c55019639e94ab3",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A1816441087%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1667330087.9192,
+      "start_timestamp": 1667330087.1054,
+      "exclusive_time": 813.799858,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A2735845732%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "9b86746e9cc7fbf0",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A2735845732%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1667330087.92,
+      "start_timestamp": 1667330087.1056,
+      "exclusive_time": 814.399958,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A2021019829%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "806aa31fe1874495",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A2021019829%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1667330087.936,
+      "start_timestamp": 1667330087.1058,
+      "exclusive_time": 830.200195,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3708674711%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "bf409b62d9c30197",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3708674711%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1667330087.9952,
+      "start_timestamp": 1667330087.106,
+      "exclusive_time": 889.199972,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3635082165%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "896ac7d28addb37f",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3635082165%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1667330088.0358,
+      "start_timestamp": 1667330087.1062,
+      "exclusive_time": 929.600001,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A1888630303%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "9c859aeaf6bfaea9",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A1888630303%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1667330088.0622,
+      "start_timestamp": 1667330087.1065,
+      "exclusive_time": 955.700159,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A2615251187%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "950d8f569bbe3d9e",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A2615251187%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1667330088.1993,
+      "start_timestamp": 1667330087.1066,
+      "exclusive_time": 1092.700004,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3476760148%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "b19a2811b457e87a",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3476760148%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1667330088.1787,
+      "start_timestamp": 1667330087.1069,
+      "exclusive_time": 1071.799994,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3254685754%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "b566d4ce5b46d4f0",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3254685754%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1667330088.2656,
+      "start_timestamp": 1667330087.1071,
+      "exclusive_time": 1158.499957,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A2364324326%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "b33e9da4441a4800",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A2364324326%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1667330088.3552,
+      "start_timestamp": 1667330087.1073,
+      "exclusive_time": 1247.900009,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3677909695%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "8b68818410aa45d8",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3677909695%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1667330088.3235,
+      "start_timestamp": 1667330087.1076,
+      "exclusive_time": 1215.899944,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A1816441096%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "8ac4e73b53fc2077",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A1816441096%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1667330088.4005,
+      "start_timestamp": 1667330087.1081,
+      "exclusive_time": 1292.400122,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3708657138%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "9fe4a1aff019e39e",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3708657138%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1667330088.4701,
+      "start_timestamp": 1667330087.1085,
+      "exclusive_time": 1361.599922,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3146776098%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "b29cd0c0cd85ae85",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3146776098%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1667330088.5634,
+      "start_timestamp": 1667330087.1087,
+      "exclusive_time": 1454.699993,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3542232742%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "b3ff0062caa3ea51",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3542232742%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1667330088.6106,
+      "start_timestamp": 1667330087.109,
+      "exclusive_time": 1501.600027,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A2636653063%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "a3fde2e38a66cc2c",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A2636653063%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1667330088.5925,
+      "start_timestamp": 1667330087.1091,
+      "exclusive_time": 1483.399868,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A2615489334%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "b78802cd80762f57",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A2615489334%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1667330088.657,
+      "start_timestamp": 1667330087.1094,
+      "exclusive_time": 1547.600031,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3696257335%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "9e2ea4d33b1c1bc6",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3696257335%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1667330088.7533,
+      "start_timestamp": 1667330087.1096,
+      "exclusive_time": 1643.699884,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3696257277%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "bb827dc7a11085f4",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3696257277%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1667330088.8777,
+      "start_timestamp": 1667330087.1099,
+      "exclusive_time": 1767.800093,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3693916318%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "a34089b08b6d0646",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3693916318%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1667330088.8689,
+      "start_timestamp": 1667330087.11,
+      "exclusive_time": 1758.900165,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3696257055%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "950801c0d7576650",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3696257055%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1667330087.1101,
+      "start_timestamp": 1667330087.0665,
+      "exclusive_time": 43.600082,
+      "description": "<IssueList-Body>",
+      "op": "ui.react.update",
+      "span_id": "a5f8997745b03570",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "hash": "f1caedb3639d1ee8"
+    },
+    {
+      "timestamp": 1667330087.1101,
+      "start_timestamp": 1667330087.061,
+      "exclusive_time": 49.099922,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "8cea6bf46cf3a13c",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1667330087.1349,
+      "start_timestamp": 1667330087.1181,
+      "exclusive_time": 16.800166,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "b4881d546625be43",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1667330087.1888,
+      "start_timestamp": 1667330087.1705,
+      "exclusive_time": 18.300056,
+      "description": "<IssueListOverview>",
+      "op": "ui.react.update",
+      "span_id": "9c3f12e4cc661b19",
+      "parent_span_id": "908c253ca76ac83c",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "data": {"changedProps": ["tags"]},
+      "hash": "530d2b028b19c71b"
+    },
+    {
+      "timestamp": 1667330087.2528,
+      "start_timestamp": 1667330087.2258,
+      "exclusive_time": 26.99995,
+      "description": "<IssueList-Body>",
+      "op": "ui.react.update",
+      "span_id": "85bc4a37aba0554b",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "hash": "f1caedb3639d1ee8"
+    },
+    {
+      "timestamp": 1667330087.2529,
+      "start_timestamp": 1667330087.2207,
+      "exclusive_time": 32.19986,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "b49928146fc35f1c",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1667330087.4917,
+      "start_timestamp": 1667330087.4721,
+      "exclusive_time": 19.599915,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "89686910585a5a7c",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1667330086.0807,
+      "start_timestamp": 1667330086.0807,
+      "exclusive_time": 0.0,
+      "description": "domContentLoadedEvent",
+      "op": "browser",
+      "span_id": "bd195128ff9e708c",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "hash": "b0e3ee8970392a6f"
+    },
+    {
+      "timestamp": 1667330086.6597,
+      "start_timestamp": 1667330086.6555,
+      "exclusive_time": 4.199981,
+      "description": "loadEvent",
+      "op": "browser",
+      "span_id": "b663931693d3019f",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "hash": "39e89edd65c7c22a"
+    },
+    {
+      "timestamp": 1667330085.8388,
+      "start_timestamp": 1667330085.8388,
+      "exclusive_time": 0.0,
+      "description": "connect",
+      "op": "browser",
+      "span_id": "8fae64eccbbb51c6",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "hash": "b640a0ce465fa2a4"
+    }
+  ],
+  "start_timestamp": 1667330085.6959,
+  "timestamp": 1667330092.9969,
+  "title": "/organizations/:orgId/issues/",
+  "transaction": "/organizations/:orgId/issues/",
+  "transaction_info": {"source": "route", "changes": [], "propagations": 41},
+  "type": "transaction",
+  "version": "7"
+}

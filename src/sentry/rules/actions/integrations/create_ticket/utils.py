@@ -6,9 +6,11 @@ from typing import Callable, Sequence
 from rest_framework.response import Response
 
 from sentry.constants import ObjectStatus
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.integrations import IntegrationInstallation
-from sentry.models import ExternalIssue, GroupLink, Integration
+from sentry.models.grouplink import GroupLink
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
 from sentry.types.rules import RuleFuture
 
 logger = logging.getLogger("sentry.rules")
@@ -17,7 +19,7 @@ logger = logging.getLogger("sentry.rules")
 def create_link(
     integration: Integration,
     installation: IntegrationInstallation,
-    event: Event,
+    event: GroupEvent,
     response: Response,
 ) -> None:
     """
@@ -49,7 +51,7 @@ def create_link(
 
 
 def build_description(
-    event: Event,
+    event: GroupEvent,
     rule_id: int,
     installation: IntegrationInstallation,
     generate_footer: Callable[[str], str],
@@ -66,7 +68,7 @@ def build_description(
     return description
 
 
-def create_issue(event: Event, futures: Sequence[RuleFuture]) -> None:
+def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
     """Create an issue for a given event"""
     organization = event.group.project.organization
 
@@ -81,15 +83,15 @@ def create_issue(event: Event, futures: Sequence[RuleFuture]) -> None:
             integration = Integration.objects.get(
                 id=integration_id,
                 provider=provider,
-                organizations=organization,
-                status=ObjectStatus.VISIBLE,
+                organizationintegration__organization_id=organization.id,
+                status=ObjectStatus.ACTIVE,
             )
         except Integration.DoesNotExist:
             # Integration removed, rule still active.
             return
 
         installation = integration.get_installation(organization.id)
-        data["title"] = event.title
+        data["title"] = installation.get_group_title(event.group, event)
         data["description"] = build_description(event, rule_id, installation, generate_footer)
 
         if data.get("dynamic_form_fields"):
@@ -106,4 +108,6 @@ def create_issue(event: Event, futures: Sequence[RuleFuture]) -> None:
             )
             return
         response = installation.create_issue(data)
-        create_link(integration, installation, event, response)
+
+        if not event.get_tag("sample_event") == "yes":
+            create_link(integration, installation, event, response)

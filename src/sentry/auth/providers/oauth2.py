@@ -1,12 +1,12 @@
 import abc
 import logging
+import secrets
 from time import time
 from typing import Any, Mapping
 from urllib.parse import parse_qsl, urlencode
-from uuid import uuid4
 
+from django.http import HttpResponse
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
@@ -46,18 +46,20 @@ class OAuth2Login(AuthView):
             "redirect_uri": redirect_uri,
         }
 
-    def dispatch(self, request: Request, helper) -> Response:
+    def dispatch(self, request: Request, helper) -> HttpResponse:
         if "code" in request.GET:
             return helper.next_step()
 
-        state = uuid4().hex
+        state = secrets.token_hex()
 
         params = self.get_authorize_params(state=state, redirect_uri=helper.get_redirect_url())
-        redirect_uri = f"{self.get_authorize_url()}?{urlencode(params)}"
+        authorization_url = f"{self.get_authorize_url()}?{urlencode(params)}"
 
         helper.bind_state("state", state)
+        if request.subdomain:
+            helper.bind_state("subdomain", request.subdomain)
 
-        return self.redirect(redirect_uri)
+        return self.redirect(authorization_url)
 
 
 class OAuth2Callback(AuthView):
@@ -92,7 +94,7 @@ class OAuth2Callback(AuthView):
             return dict(parse_qsl(body))
         return json.loads(body)
 
-    def dispatch(self, request: Request, helper) -> Response:
+    def dispatch(self, request: Request, helper) -> HttpResponse:
         error = request.GET.get("error")
         state = request.GET.get("state")
         code = request.GET.get("code")
@@ -121,14 +123,15 @@ class OAuth2Callback(AuthView):
 
 
 class OAuth2Provider(Provider, abc.ABC):
-    client_id = None
-    client_secret = None
+    is_partner = False
 
+    @abc.abstractmethod
     def get_client_id(self):
-        return self.client_id
+        raise NotImplementedError
 
+    @abc.abstractmethod
     def get_client_secret(self):
-        return self.client_secret
+        raise NotImplementedError
 
     def get_auth_pipeline(self):
         return [
@@ -138,7 +141,7 @@ class OAuth2Provider(Provider, abc.ABC):
 
     @abc.abstractmethod
     def get_refresh_token_url(self) -> str:
-        pass
+        raise NotImplementedError
 
     def get_refresh_token_params(self, refresh_token):
         return {
@@ -168,7 +171,7 @@ class OAuth2Provider(Provider, abc.ABC):
             'data': self.get_oauth_data(data),
         }
         """
-        pass
+        raise NotImplementedError
 
     def update_identity(self, new_data, current_data):
         # we want to maintain things like refresh_token that might not

@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
-import {AggregationKey, LooseFieldKey} from 'sentry/utils/discover/fields';
+import {AggregationKeyWithAlias, LooseFieldKey} from 'sentry/utils/discover/fields';
+import {AggregationKey} from 'sentry/utils/fields';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {
   AlertRuleComparisonType,
@@ -30,6 +31,7 @@ export const DEFAULT_TRANSACTION_AGGREGATE = 'p95(transaction.duration)';
 export const DATASET_EVENT_TYPE_FILTERS = {
   [Dataset.ERRORS]: 'event.type:error',
   [Dataset.TRANSACTIONS]: 'event.type:transaction',
+  [Dataset.GENERIC_METRICS]: 'event.type:transaction',
 } as const;
 
 export const DATASOURCE_EVENT_TYPE_FILTERS = {
@@ -40,7 +42,7 @@ export const DATASOURCE_EVENT_TYPE_FILTERS = {
 } as const;
 
 export type OptionConfig = {
-  aggregations: AggregationKey[];
+  aggregations: AggregationKeyWithAlias[];
   fields: LooseFieldKey[];
   measurementKeys?: string[];
 };
@@ -49,25 +51,25 @@ export type OptionConfig = {
  * Allowed error aggregations for alerts
  */
 export const errorFieldConfig: OptionConfig = {
-  aggregations: ['count', 'count_unique'],
+  aggregations: [AggregationKey.COUNT, AggregationKey.COUNT_UNIQUE],
   fields: ['user'],
 };
 
-const commonAggregations: AggregationKey[] = [
-  'avg',
-  'percentile',
-  'p50',
-  'p75',
-  'p95',
-  'p99',
-  'p100',
+const commonAggregations = [
+  AggregationKey.AVG,
+  AggregationKey.PERCENTILE,
+  AggregationKey.P50,
+  AggregationKey.P75,
+  AggregationKey.P95,
+  AggregationKey.P99,
+  AggregationKey.P100,
 ];
 
-const allAggregations: AggregationKey[] = [
+const allAggregations = [
   ...commonAggregations,
-  'failure_rate',
-  'apdex',
-  'count',
+  AggregationKey.FAILURE_RATE,
+  AggregationKey.APDEX,
+  AggregationKey.COUNT,
 ];
 
 export const DuplicateMetricFields: string[] = [

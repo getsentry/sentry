@@ -20,7 +20,7 @@ function withTags<P extends InjectedTagsProps>(WrappedComponent: React.Component
     static displayName = `withTags(${getDisplayName(WrappedComponent)})`;
 
     state: State = {
-      tags: TagStore.getAllTags(),
+      tags: TagStore.getState(),
     };
 
     componentWillUnmount() {

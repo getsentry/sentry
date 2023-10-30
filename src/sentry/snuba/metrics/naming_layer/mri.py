@@ -16,31 +16,43 @@ and so it is a private metric, whereas `SessionMRI.CRASH_FREE_RATE` has a corres
 `SessionMetricKey` with the same name i.e. `SessionMetricKey.CRASH_FREE_RATE` and hence is a public
 metric that is queryable by the API.
 """
-__all__ = ("SessionMRI", "TransactionMRI", "MRI_SCHEMA_REGEX", "MRI_EXPRESSION_REGEX")
+__all__ = (
+    "SessionMRI",
+    "TransactionMRI",
+    "SpanMRI",
+    "MRI_SCHEMA_REGEX",
+    "MRI_EXPRESSION_REGEX",
+    "ErrorsMRI",
+    "parse_mri",
+    "get_available_operations",
+)
 
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
+from typing import List, Optional
 
-from sentry.snuba.metrics.utils import OP_REGEX
+from sentry.snuba.metrics.utils import AVAILABLE_GENERIC_OPERATIONS, AVAILABLE_OPERATIONS, OP_REGEX
 
-NAMESPACE_REGEX = r"(transactions|errors|issues|sessions|alerts|custom)"
+NAMESPACE_REGEX = r"(transactions|errors|issues|sessions|alerts|custom|spans|escalating_issues)"
 ENTITY_TYPE_REGEX = r"(c|s|d|g|e)"
 # This regex allows for a string of words composed of small letters alphabet characters with
 # allowed the underscore character, optionally separated by a single dot
 MRI_NAME_REGEX = r"([a-z_]+(?:\.[a-z_]+)*)"
 # ToDo(ahmed): Add a better regex for unit portion for MRI
 MRI_SCHEMA_REGEX_STRING = rf"(?P<entity>{ENTITY_TYPE_REGEX}):(?P<namespace>{NAMESPACE_REGEX})/(?P<name>{MRI_NAME_REGEX})@(?P<unit>[\w.]*)"
-MRI_SCHEMA_REGEX = re.compile(MRI_SCHEMA_REGEX_STRING)
+MRI_SCHEMA_REGEX = re.compile(rf"^{MRI_SCHEMA_REGEX_STRING}$")
 MRI_EXPRESSION_REGEX = re.compile(rf"^{OP_REGEX}\(({MRI_SCHEMA_REGEX_STRING})\)$")
 
 
 class SessionMRI(Enum):
     # Ingested
-    SESSION = "c:sessions/session@none"
-    ERROR = "s:sessions/error@none"
-    USER = "s:sessions/user@none"
+    # Do *not* use these metrics in product queries. Use the derived metrics below instead.
+    # The raw metrics do not necessarily add up in intuitive ways. For example, `RAW_SESSION`
+    # double-counts crashed sessions.
+    RAW_SESSION = "c:sessions/session@none"
+    RAW_ERROR = "s:sessions/error@none"
+    RAW_USER = "s:sessions/user@none"
     RAW_DURATION = "d:sessions/duration@second"
 
     # Derived
@@ -52,6 +64,7 @@ class SessionMRI(Enum):
     ERRORED_ALL = "e:sessions/all_errored@none"
     CRASHED_AND_ABNORMAL = "e:sessions/crashed_abnormal@none"
     CRASHED = "e:sessions/crashed@none"
+    CRASH_FREE = "e:sessions/crash_free@none"
     ABNORMAL = "e:sessions/abnormal@none"
     CRASH_RATE = "e:sessions/crash_rate@ratio"
     CRASH_FREE_RATE = "e:sessions/crash_free_rate@ratio"
@@ -61,9 +74,14 @@ class SessionMRI(Enum):
     ERRORED_USER_ALL = "e:sessions/user.all_errored@none"
     CRASHED_AND_ABNORMAL_USER = "e:sessions/user.crashed_abnormal@none"
     CRASHED_USER = "e:sessions/user.crashed@none"
+    CRASH_FREE_USER = "e:sessions/user.crash_free@none"
     ABNORMAL_USER = "e:sessions/user.abnormal@none"
     CRASH_USER_RATE = "e:sessions/user.crash_rate@ratio"
     CRASH_FREE_USER_RATE = "e:sessions/user.crash_free_rate@ratio"
+    ANR_USER = "e:sessions/user.anr@none"
+    ANR_RATE = "e:sessions/user.anr_rate@ratio"
+    FOREGROUND_ANR_USER = "e:sessions/user.foreground_anr@none"
+    FOREGROUND_ANR_RATE = "e:sessions/user.foreground_anr_rate@ratio"
     DURATION = "d:sessions/duration.exited@second"
 
 
@@ -71,11 +89,12 @@ class TransactionMRI(Enum):
     # Ingested
     USER = "s:transactions/user@none"
     DURATION = "d:transactions/duration@millisecond"
+    COUNT_PER_ROOT_PROJECT = "c:transactions/count_per_root_project@none"
     MEASUREMENTS_FCP = "d:transactions/measurements.fcp@millisecond"
     MEASUREMENTS_LCP = "d:transactions/measurements.lcp@millisecond"
     MEASUREMENTS_APP_START_COLD = "d:transactions/measurements.app_start_cold@millisecond"
     MEASUREMENTS_APP_START_WARM = "d:transactions/measurements.app_start_warm@millisecond"
-    MEASUREMENTS_CLS = "d:transactions/measurements.cls@millisecond"
+    MEASUREMENTS_CLS = "d:transactions/measurements.cls@none"
     MEASUREMENTS_FID = "d:transactions/measurements.fid@millisecond"
     MEASUREMENTS_FP = "d:transactions/measurements.fp@millisecond"
     MEASUREMENTS_FRAMES_FROZEN = "d:transactions/measurements.frames_frozen@none"
@@ -83,27 +102,71 @@ class TransactionMRI(Enum):
     MEASUREMENTS_FRAMES_SLOW = "d:transactions/measurements.frames_slow@none"
     MEASUREMENTS_FRAMES_SLOW_RATE = "d:transactions/measurements.frames_slow_rate@ratio"
     MEASUREMENTS_FRAMES_TOTAL = "d:transactions/measurements.frames_total@none"
+    MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = (
+        "d:transactions/measurements.time_to_initial_display@millisecond"
+    )
+    MEASUREMENTS_TIME_TO_FULL_DISPLAY = (
+        "d:transactions/measurements.time_to_full_display@millisecond"
+    )
     MEASUREMENTS_STALL_COUNT = "d:transactions/measurements.stall_count@none"
     MEASUREMENTS_STALL_LONGEST_TIME = "d:transactions/measurements.stall_longest_time@millisecond"
-    MEASUREMENTS_STALL_PERCENTAGE = "d:transactions/measurements.stall_percentage@percent"
+    MEASUREMENTS_STALL_PERCENTAGE = "d:transactions/measurements.stall_percentage@ratio"
     MEASUREMENTS_STALL_TOTAL_TIME = "d:transactions/measurements.stall_total_time@millisecond"
     MEASUREMENTS_TTFB = "d:transactions/measurements.ttfb@millisecond"
     MEASUREMENTS_TTFB_REQUEST_TIME = "d:transactions/measurements.ttfb.requesttime@millisecond"
-    BREAKDOWNS_HTTP = "d:transactions/breakdowns.span_ops.http@millisecond"
-    BREAKDOWNS_DB = "d:transactions/breakdowns.span_ops.db@millisecond"
-    BREAKDOWNS_BROWSER = "d:transactions/breakdowns.span_ops.browser@millisecond"
-    BREAKDOWNS_RESOURCE = "d:transactions/breakdowns.span_ops.resource@millisecond"
+    BREAKDOWNS_HTTP = "d:transactions/breakdowns.span_ops.ops.http@millisecond"
+    BREAKDOWNS_DB = "d:transactions/breakdowns.span_ops.ops.db@millisecond"
+    BREAKDOWNS_BROWSER = "d:transactions/breakdowns.span_ops.ops.browser@millisecond"
+    BREAKDOWNS_RESOURCE = "d:transactions/breakdowns.span_ops.ops.resource@millisecond"
 
     # Derived
     ALL = "e:transactions/all@none"
     FAILURE_COUNT = "e:transactions/failure_count@none"
-    FAILURE_RATE = "e:transaction/failure_rate@ratio"
+    FAILURE_RATE = "e:transactions/failure_rate@ratio"
     SATISFIED = "e:transactions/satisfied@none"
     TOLERATED = "e:transactions/tolerated@none"
     APDEX = "e:transactions/apdex@ratio"
     MISERABLE_USER = "e:transactions/user.miserable@none"
     ALL_USER = "e:transactions/user.all@none"
     USER_MISERY = "e:transactions/user_misery@ratio"
+    TEAM_KEY_TRANSACTION = "e:transactions/team_key_transaction@none"
+    HTTP_ERROR_COUNT = "e:transactions/http_error_count@none"
+    HTTP_ERROR_RATE = "e:transactions/http_error_rate@ratio"
+
+    # Spans (might be moved to their own namespace soon)
+    SPAN_USER = "s:spans/user@none"
+    SPAN_DURATION = "d:spans/duration@millisecond"
+    SPAN_SELF_TIME = "d:spans/exclusive_time@millisecond"
+    SPAN_SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
+
+    COUNT_ON_DEMAND = "c:transactions/on_demand@none"
+    DIST_ON_DEMAND = "d:transactions/on_demand@none"
+    SET_ON_DEMAND = "s:transactions/on_demand@none"
+
+    # Less granular coarse metrics
+    DURATION_LIGHT = "d:transactions/duration_light@millisecond"
+
+
+class SpanMRI(Enum):
+    USER = "s:spans/user@none"
+    DURATION = "d:spans/duration@millisecond"
+    SELF_TIME = "d:spans/exclusive_time@millisecond"
+    SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
+    RESPONSE_CONTENT_LENGTH = "d:spans/http.response_content_length@byte"
+    DECODED_RESPONSE_CONTENT_LENGTH = "d:spans/http.decoded_response_content_length@byte"
+    RESPONSE_TRANSFER_SIZE = "d:spans/http.response_transfer_size@byte"
+
+    # Derived
+    ALL = "e:spans/all@none"
+    ALL_LIGHT = "e:spans_light/all@none"
+    HTTP_ERROR_COUNT = "e:spans/http_error_count@none"
+    HTTP_ERROR_RATE = "e:spans/http_error_rate@ratio"
+    HTTP_ERROR_COUNT_LIGHT = "e:spans/http_error_count_light@none"
+    HTTP_ERROR_RATE_LIGHT = "e:spans/http_error_rate_light@ratio"
+
+
+class ErrorsMRI(Enum):
+    EVENT_INGESTED = "c:escalating_issues/event_ingested@none"
 
 
 @dataclass
@@ -113,6 +176,10 @@ class ParsedMRI:
     name: str
     unit: str
 
+    @property
+    def mri_string(self) -> str:
+        return f"{self.entity}:{self.namespace}/{self.name}@{self.unit}"
+
 
 def parse_mri(mri_string: str) -> Optional[ParsedMRI]:
     """Parse a mri string to determine its entity, namespace, name and unit"""
@@ -121,3 +188,36 @@ def parse_mri(mri_string: str) -> Optional[ParsedMRI]:
         return None
 
     return ParsedMRI(**match.groupdict())
+
+
+def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
+    """A custom measurement won't use the custom namespace, but will be under the transaction namespace
+
+    This checks the namespace, and name to match what we expect first before iterating through the
+    members of the transaction MRI enum to make sure it isn't a standard measurement
+    """
+    return (
+        parsed_mri.namespace == "transactions"
+        and parsed_mri.name.startswith("measurements.")
+        and
+        # Iterate through the transaction MRI and check that this parsed_mri isn't in there
+        parsed_mri.mri_string not in [mri.value for mri in TransactionMRI.__members__.values()]
+    )
+
+
+def get_available_operations(parsed_mri: ParsedMRI) -> List[str]:
+    entity_name_suffixes = {
+        "c": "counters",
+        "s": "sets",
+        "d": "distributions",
+        "g": "gauges",
+    }
+
+    if parsed_mri.entity == "e":
+        return []
+    elif parsed_mri.namespace == "sessions":
+        entity_key = f"metrics_{entity_name_suffixes[parsed_mri.entity]}"
+        return AVAILABLE_OPERATIONS[entity_key]
+    else:
+        entity_key = f"generic_metrics_{entity_name_suffixes[parsed_mri.entity]}"
+        return AVAILABLE_GENERIC_OPERATIONS[entity_key]

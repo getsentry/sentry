@@ -1,20 +1,21 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
-import Alert, {AlertProps} from 'sentry/components/alert';
+import {Alert, AlertProps} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {ProjectSdkUpdates} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withSdkUpdates from 'sentry/utils/withSdkUpdates';
-
-import {SidebarPanelKey} from './sidebar/types';
-import Button from './button';
 
 interface InnerGlobalSdkSuggestionsProps extends AlertProps {
   className?: string;
@@ -37,17 +38,17 @@ function InnerGlobalSdkUpdateAlert(
       status: 'snoozed',
     });
 
-    trackAdvancedAnalyticsEvent('sdk_updates.snoozed', {organization});
+    trackAnalytics('sdk_updates.snoozed', {organization});
     setShowUpdateAlert(false);
   }, [api, organization]);
 
   const handleReviewUpdatesClick = useCallback(() => {
-    SidebarPanelStore.activatePanel(SidebarPanelKey.Broadcasts);
-    trackAdvancedAnalyticsEvent('sdk_updates.clicked', {organization});
-  }, []);
+    SidebarPanelStore.activatePanel(SidebarPanelKey.BROADCASTS);
+    trackAnalytics('sdk_updates.clicked', {organization});
+  }, [organization]);
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('sdk_updates.seen', {organization});
+    trackAnalytics('sdk_updates.seen', {organization});
 
     let isUnmounted = false;
 
@@ -65,7 +66,7 @@ function InnerGlobalSdkUpdateAlert(
     return () => {
       isUnmounted = true;
     };
-  }, []);
+  }, [api, organization]);
 
   if (!showUpdateAlert || !props.sdkUpdates?.length) {
     return null;
@@ -77,8 +78,8 @@ function InnerGlobalSdkUpdateAlert(
   const projectSpecificUpdates =
     selection?.projects?.length === 0 || selection?.projects[0] === ALL_ACCESS_PROJECTS
       ? props.sdkUpdates
-      : props.sdkUpdates.filter(update =>
-          selection?.projects?.includes(parseInt(update.projectId, 10))
+      : props.sdkUpdates.filter(
+          update => selection?.projects?.includes(parseInt(update.projectId, 10))
         );
 
   // Check if we have at least one suggestion out of the list of updates
@@ -92,20 +93,19 @@ function InnerGlobalSdkUpdateAlert(
       showIcon
       className={props.className}
       trailingItems={
-        <Fragment>
-          <Button
-            priority="link"
-            size="zero"
-            title={t('Dismiss for the next two weeks')}
-            onClick={handleSnoozePrompt}
-          >
-            {t('Remind me later')}
-          </Button>
-          <span>|</span>
-          <Button priority="link" size="zero" onClick={handleReviewUpdatesClick}>
+        <ButtonBar gap={2}>
+          <Button priority="link" size="xs" onClick={handleReviewUpdatesClick}>
             {t('Review updates')}
           </Button>
-        </Fragment>
+          <Button
+            aria-label={t('Remind me later')}
+            title={t('Dismiss for the next two weeks')}
+            priority="link"
+            size="xs"
+            icon={<IconClose />}
+            onClick={handleSnoozePrompt}
+          />
+        </ButtonBar>
       }
     >
       {t(
@@ -115,9 +115,6 @@ function InnerGlobalSdkUpdateAlert(
   );
 }
 
-const WithSdkUpdatesGlobalSdkUpdateAlert = withSdkUpdates(InnerGlobalSdkUpdateAlert);
+const GlobalSdkUpdateAlert = withSdkUpdates(InnerGlobalSdkUpdateAlert);
 
-export {
-  WithSdkUpdatesGlobalSdkUpdateAlert as GlobalSdkUpdateAlert,
-  InnerGlobalSdkUpdateAlert,
-};
+export {GlobalSdkUpdateAlert, InnerGlobalSdkUpdateAlert};

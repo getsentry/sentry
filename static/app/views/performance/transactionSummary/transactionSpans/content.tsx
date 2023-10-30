@@ -4,21 +4,22 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
-import DatePageFilter from 'sentry/components/datePageFilter';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/events/searchBar';
-import CompactSelect from 'sentry/components/forms/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -38,12 +39,12 @@ import {
 
 const ANALYTICS_VALUES = {
   spanOp: (organization: Organization, value: string | undefined) =>
-    trackAdvancedAnalyticsEvent('performance_views.spans.change_op', {
+    trackAnalytics('performance_views.spans.change_op', {
       organization,
       operation_name: value,
     }),
   sort: (organization: Organization, value: string | undefined) =>
-    trackAdvancedAnalyticsEvent('performance_views.spans.change_sort', {
+    trackAnalytics('performance_views.spans.change_sort', {
       organization,
       sort_column: value,
     }),
@@ -106,7 +107,6 @@ function SpansContent(props: Props) {
         <PageFilterBar condensed>
           <EnvironmentPageFilter />
           <DatePageFilter
-            alignDropdown="left"
             maxPickableDays={SPAN_RETENTION_DAYS}
             relativeOptions={SPAN_RELATIVE_PERIODS}
           />
@@ -133,7 +133,6 @@ function SpansContent(props: Props) {
         referrer="api.performance.transaction-spans"
         cursor="0:0:1"
         noPagination
-        useEvents
       >
         {({tableData}) => {
           const totals: SpansTotalValues | null =
@@ -150,16 +149,22 @@ function SpansContent(props: Props) {
             >
               {({suspectSpans, isLoading, pageLinks}) => (
                 <Fragment>
-                  <SuspectSpansTable
-                    location={location}
-                    organization={organization}
-                    transactionName={transactionName}
-                    project={projects.find(p => p.id === projectId)}
+                  <VisuallyCompleteWithData
+                    id="TransactionSpans-SuspectSpansTable"
+                    hasData={!!suspectSpans?.length}
                     isLoading={isLoading}
-                    suspectSpans={suspectSpans ?? []}
-                    totals={totals}
-                    sort={sort.field}
-                  />
+                  >
+                    <SuspectSpansTable
+                      location={location}
+                      organization={organization}
+                      transactionName={transactionName}
+                      project={projects.find(p => p.id === projectId)}
+                      isLoading={isLoading}
+                      suspectSpans={suspectSpans ?? []}
+                      totals={totals}
+                      sort={sort.field}
+                    />
+                  </VisuallyCompleteWithData>
                   <Pagination pageLinks={pageLinks ?? null} />
                 </Fragment>
               )}

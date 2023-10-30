@@ -1,0 +1,18 @@
+Hi there,
+
+    We found an issue with your {{ integration_name }} integration.</p><p>
+    To restore the connection, please follow the link below to view {{ integration_name }} in Sentry and reinstall.</p><p>
+
+
+
+View {{ integration_name }} integration by clicking the link below:
+
+    {{ integration_link }}
+
+If you need additional assistance, you can reach out to our support team at <a href=https://help.sentry.io/>help.sentry.io</a>.
+
+Happy fixing,
+
+Sentry
+
+You are receiving this email because you’re listed as an organization Owner.

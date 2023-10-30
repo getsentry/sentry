@@ -7,8 +7,12 @@ from packaging import version
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
-from sentry.sdk_updates import SdkIndexState, SdkSetupState, get_suggested_updates
+from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.sdk_updates import SdkIndexState, SdkSetupState, get_sdk_index, get_suggested_updates
 from sentry.snuba import discover
 from sentry.utils.numbers import format_grouped_length
 
@@ -61,7 +65,12 @@ def serialize(data, projects):
     return [update for update in updates_list if len(update["suggestions"]) > 0]
 
 
+@region_silo_endpoint
 class OrganizationSdkUpdatesEndpoint(OrganizationEventsEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization) -> Response:
         projects = self.get_projects(request, organization)
 
@@ -93,3 +102,24 @@ class OrganizationSdkUpdatesEndpoint(OrganizationEventsEndpointBase):
             )
 
         return Response(serialize(result["data"], projects))
+
+
+@region_silo_endpoint
+class OrganizationSdksEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+
+    def get(self, request: Request, organization) -> Response:
+        try:
+            sdks = get_sdk_index()
+
+            if len(sdks) == 0:
+                raise Exception("No SDKs found in index")
+
+            return Response(sdks)
+
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return Response({"detail": "Error occurred while fetching SDKs"}, status=500)

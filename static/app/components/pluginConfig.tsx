@@ -8,13 +8,18 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import Button from 'sentry/components/button';
+import {hasEveryAccess} from 'sentry/components/acl/access';
+import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelAlert from 'sentry/components/panels/panelAlert';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Plugin, Project} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
@@ -102,10 +107,11 @@ class PluginConfig extends Component<Props, State> {
   }
 
   render() {
-    const {data} = this.props;
+    const {data, organization, project} = this.props;
     // If passed via props, use that value instead of from `data`
     const enabled =
       typeof this.props.enabled !== 'undefined' ? this.props.enabled : data.enabled;
+    const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
 
     return (
       <Panel
@@ -119,16 +125,20 @@ class PluginConfig extends Component<Props, State> {
           </PluginName>
 
           {data.canDisable && enabled && (
-            <Actions>
+            <ButtonBar gap={1}>
               {data.isTestable && (
-                <TestPluginButton onClick={this.handleTestPlugin} size="small">
+                <Button onClick={this.handleTestPlugin} size="xs">
                   {t('Test Plugin')}
-                </TestPluginButton>
+                </Button>
               )}
-              <Button size="small" onClick={this.handleDisablePlugin}>
+              <Button
+                size="xs"
+                onClick={this.handleDisablePlugin}
+                disabled={!hasWriteAccess}
+              >
                 {t('Disable')}
               </Button>
-            </Actions>
+            </ButtonBar>
           )}
         </PanelHeader>
 
@@ -171,13 +181,6 @@ const PluginName = styled('div')`
 `;
 
 const StyledPluginIcon = styled(PluginIcon)`
-  margin-right: ${space(1)};
-`;
-
-const Actions = styled('div')`
-  display: flex;
-`;
-const TestPluginButton = styled(Button)`
   margin-right: ${space(1)};
 `;
 

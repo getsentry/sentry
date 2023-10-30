@@ -1,13 +1,12 @@
 import pick from 'lodash/pick';
 
 import {MetaType} from 'sentry/utils/discover/eventView';
-import {WebVital} from 'sentry/utils/discover/fields';
 import GenericDiscoverQuery, {
   DiscoverQueryPropsWithContext,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
+import {WebVital} from 'sentry/utils/fields';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
-import withApi from 'sentry/utils/withApi';
 
 export type TableDataRow = {
   [key: string]: React.ReactText;
@@ -66,4 +65,4 @@ function VitalsCardsDiscoverQuery(props: Props) {
   );
 }
 
-export default withApi(VitalsCardsDiscoverQuery);
+export default VitalsCardsDiscoverQuery;

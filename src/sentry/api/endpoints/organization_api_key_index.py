@@ -3,17 +3,27 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
-from sentry.api.bases.organization import OrganizationAdminPermission, OrganizationEndpoint
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import control_silo_endpoint
+from sentry.api.bases.organization import (
+    ControlSiloOrganizationEndpoint,
+    OrganizationAdminPermission,
+)
 from sentry.api.serializers import serialize
-from sentry.models import ApiKey
+from sentry.models.apikey import ApiKey
 
 DEFAULT_SCOPES = ["project:read", "event:read", "team:read", "org:read", "member:read"]
 
 
-class OrganizationApiKeyIndexEndpoint(OrganizationEndpoint):
+@control_silo_endpoint
+class OrganizationApiKeyIndexEndpoint(ControlSiloOrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationAdminPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization_context, organization) -> Response:
         """
         List an Organization's API Keys
         ```````````````````````````````````
@@ -21,11 +31,13 @@ class OrganizationApiKeyIndexEndpoint(OrganizationEndpoint):
         :pparam string organization_slug: the organization short name
         :auth: required
         """
-        queryset = sorted(ApiKey.objects.filter(organization=organization), key=lambda x: x.label)
+        queryset = sorted(
+            ApiKey.objects.filter(organization_id=organization.id), key=lambda x: x.label
+        )
 
         return Response(serialize(queryset, request.user))
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization_context, organization) -> Response:
         """
         Create an Organization API Key
         ```````````````````````````````````
@@ -33,7 +45,7 @@ class OrganizationApiKeyIndexEndpoint(OrganizationEndpoint):
         :pparam string organization_slug: the organization short name
         :auth: required
         """
-        key = ApiKey.objects.create(organization=organization, scope_list=DEFAULT_SCOPES)
+        key = ApiKey.objects.create(organization_id=organization.id, scope_list=DEFAULT_SCOPES)
 
         self.create_audit_entry(
             request,

@@ -2,22 +2,33 @@ import datetime
 from typing import Any, Dict, List, Optional, Sequence
 
 import sentry_sdk
-from django.db import transaction
+from django.db import router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
+from snuba_sdk import Request as SnubaRequest
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Column, Entity, Function, Query
 
 from sentry import eventstore, features
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.grouping.variants import ComponentVariant
-from sentry.models import Group, GroupHash
+from sentry.models.group import Group
+from sentry.models.grouphash import GroupHash
 from sentry.utils import snuba
 
 
+@region_silo_endpoint
 class GroupHashesSplitEndpoint(GroupEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, group) -> Response:
         """
         Return information on whether the group can be split up, has been split
@@ -156,10 +167,14 @@ def _get_full_hierarchical_hashes(group: Group, hash: str) -> Optional[Sequence[
             ]
         )
     )
-    request = Request(dataset="events", app_id="grouping", query=query)
-    data = snuba.raw_snql_query(request, referrer="group_split.get_full_hierarchical_hashes")[
-        "data"
-    ]
+
+    request = SnubaRequest(
+        dataset="events",
+        app_id="grouping",
+        query=query,
+        tenant_ids={"organization_id": group.project.organization_id},
+    )
+    data = snuba.raw_snql_query(request, "group_split.get_full_hierarchical_hashes")["data"]
     if not data:
         return None
 
@@ -197,7 +212,7 @@ def _unsplit_group(group: Group, hash: str, hierarchical_hashes: Optional[Sequen
         if grouphash.group_id == group.id:
             grouphash_to_delete = grouphash
 
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(GroupHash)):
         if grouphash_to_unsplit is not None:
             grouphash_to_unsplit.state = GroupHash.State.UNLOCKED
             grouphash_to_unsplit.save()
@@ -233,7 +248,7 @@ def _add_hash(
     last_seen,
     latest_event_id,
 ):
-    event = eventstore.get_event_by_id(group.project_id, latest_event_id, group_id=group.id)
+    event = eventstore.backend.get_event_by_id(group.project_id, latest_event_id, group_id=group.id)
 
     tree = {
         "parentId": parent_hash,
@@ -294,7 +309,7 @@ def _render_trees(group: Group, user):
     # or 1 otherwise.
     find_hash_expr = _construct_arraymax(
         [1]
-        + [  # type: ignore
+        + [
             Function("indexOf", [Column("hierarchical_hashes"), hash])
             for hash in materialized_hashes
         ]
@@ -383,10 +398,13 @@ def _render_trees(group: Group, user):
     )
 
     rv = []
-    request = Request(dataset="events", app_id="grouping", query=query)
-    for row in snuba.raw_snql_query(request, referrer="api.group_split.render_grouping_tree")[
-        "data"
-    ]:
+    request = SnubaRequest(
+        dataset="events",
+        app_id="grouping",
+        query=query,
+        tenant_ids={"organization_id": group.project.organization_id},
+    )
+    for row in snuba.raw_snql_query(request, "api.group_split.render_grouping_tree")["data"]:
         if len(row["hash_slice"]) == 0:
             hash = row["primary_hash"]
             parent_hash = child_hash = None

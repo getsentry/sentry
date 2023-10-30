@@ -1,5 +1,6 @@
 import {Component} from 'react';
-import {withTheme} from '@emotion/react';
+import {Theme, withTheme} from '@emotion/react';
+import {LineSeriesOption} from 'echarts';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -25,12 +26,11 @@ import {
   getSessionsInterval,
   initSessionsChart,
 } from 'sentry/utils/sessions';
-import {Theme} from 'sentry/utils/theme';
 import {getCrashFreePercent} from 'sentry/views/releases/utils';
 
 import {DisplayModes} from '../projectCharts';
 
-const omitIgnoredProps = (props: Props) =>
+const omitIgnoredProps = (props: ProjectSessionsChartRequestProps) =>
   omit(props, ['api', 'organization', 'children', 'selection.datetime.utc']);
 
 type ProjectSessionsChartRequestRenderProps = {
@@ -40,15 +40,18 @@ type ProjectSessionsChartRequestRenderProps = {
   reloading: boolean;
   timeseriesData: Series[];
   totalSessions: number | null;
+  additionalSeries?: LineSeriesOption[];
 };
 
-type Props = {
+export type ProjectSessionsChartRequestProps = {
   api: Client;
   children: (renderProps: ProjectSessionsChartRequestRenderProps) => React.ReactNode;
   displayMode:
     | DisplayModes.SESSIONS
     | DisplayModes.STABILITY
-    | DisplayModes.STABILITY_USERS;
+    | DisplayModes.STABILITY_USERS
+    | DisplayModes.ANR_RATE
+    | DisplayModes.FOREGROUND_ANR_RATE;
   onTotalValuesChange: (value: number | null) => void;
   organization: Organization;
   selection: PageFilters;
@@ -65,7 +68,10 @@ type State = {
   totalSessions: number | null;
 };
 
-class ProjectSessionsChartRequest extends Component<Props, State> {
+class ProjectSessionsChartRequest extends Component<
+  ProjectSessionsChartRequestProps,
+  State
+> {
   state: State = {
     reloading: false,
     errored: false,
@@ -78,7 +84,7 @@ class ProjectSessionsChartRequest extends Component<Props, State> {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps: Props) {
+  componentDidUpdate(prevProps: ProjectSessionsChartRequestProps) {
     if (!isEqual(omitIgnoredProps(this.props), omitIgnoredProps(prevProps))) {
       this.fetchData();
     }
@@ -113,9 +119,25 @@ class ProjectSessionsChartRequest extends Component<Props, State> {
 
     try {
       const queryParams = this.queryParams({shouldFetchWithPrevious});
-      const response: SessionApiResponse = await api.requestPromise(this.path, {
-        query: queryParams,
-      });
+      const requests = [
+        api.requestPromise(this.path, {
+          query: queryParams,
+        }),
+      ];
+      // for users, we need to make a separate request to get the total count in period
+      if (displayMode === DisplayModes.STABILITY_USERS) {
+        requests.push(
+          api.requestPromise(this.path, {
+            query: {
+              ...queryParams,
+              groupBy: undefined,
+              ...(shouldFetchWithPrevious ? {statsPeriod: datetime.period} : {}),
+            },
+          })
+        );
+      }
+      const [response, responseUsersTotal]: SessionApiResponse[] =
+        await Promise.all(requests);
 
       const filteredResponse = filterSessionsInTimeWindow(
         response,
@@ -123,12 +145,18 @@ class ProjectSessionsChartRequest extends Component<Props, State> {
         queryParams.end
       );
 
+      // totalSessions can't be used when we're talking about users
+      // users are a set and counting together buckets or statuses is not correct
+      // because one user can be present in multiple buckets/statuses
       const {timeseriesData, previousTimeseriesData, totalSessions} =
         displayMode === DisplayModes.SESSIONS
           ? this.transformSessionCountData(filteredResponse)
           : this.transformData(filteredResponse, {
               fetchedWithPrevious: shouldFetchWithPrevious,
             });
+      const totalUsers = responseUsersTotal?.groups[0].totals[this.field];
+      const totalNumber =
+        displayMode === DisplayModes.STABILITY_USERS ? totalUsers : totalSessions;
 
       if (this.unmounting) {
         return;
@@ -138,9 +166,9 @@ class ProjectSessionsChartRequest extends Component<Props, State> {
         reloading: false,
         timeseriesData,
         previousTimeseriesData,
-        totalSessions,
+        totalSessions: totalNumber,
       });
-      onTotalValuesChange(totalSessions);
+      onTotalValuesChange(totalNumber);
     } catch {
       addErrorMessage(t('Error loading chart data'));
       this.setState({

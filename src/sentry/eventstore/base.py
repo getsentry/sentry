@@ -1,12 +1,15 @@
 from copy import deepcopy
+from datetime import datetime
+from typing import Optional, Sequence
 
 import sentry_sdk
+from snuba_sdk import Condition
 
 from sentry import nodestore
+from sentry.eventstore.models import Event
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.utils.services import Service
-
-from .models import Event
 
 
 class Filter:
@@ -121,19 +124,33 @@ class EventStorage(Service):
         "create_event",
         "get_event_by_id",
         "get_events",
+        "get_events_snql",
         "get_unfetched_events",
-        "get_prev_event_id",
-        "get_next_event_id",
-        "get_earliest_event_id",
-        "get_latest_event_id",
+        "get_adjacent_event_ids",
         "bind_nodes",
+        "get_unfetched_transactions",
     )
 
     # The minimal list of columns we need to get from snuba to bootstrap an
     # event. If the client is planning on loading the entire event body from
     # nodestore anyway, we may as well only fetch the minimum from snuba to
     # avoid duplicated work.
-    minimal_columns = [Columns.EVENT_ID, Columns.GROUP_ID, Columns.PROJECT_ID, Columns.TIMESTAMP]
+    minimal_columns = {
+        Dataset.Events: [Columns.EVENT_ID, Columns.GROUP_ID, Columns.PROJECT_ID, Columns.TIMESTAMP],
+        Dataset.Transactions: [
+            Columns.EVENT_ID,
+            Columns.GROUP_IDS,
+            Columns.PROJECT_ID,
+            Columns.TIMESTAMP,
+        ],
+        Dataset.IssuePlatform: [
+            Columns.EVENT_ID,
+            Columns.GROUP_ID,
+            Columns.PROJECT_ID,
+            Columns.TIMESTAMP,
+            Columns.OCCURRENCE_ID,
+        ],
+    }
 
     def get_events(
         self,
@@ -142,6 +159,7 @@ class EventStorage(Service):
         limit=100,
         offset=0,
         referrer="eventstore.get_events",
+        tenant_ids=None,
     ):
         """
         Fetches a list of events given a set of criteria.
@@ -158,6 +176,22 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
+    def get_events_snql(
+        self,
+        organization_id: int,
+        group_id: int,
+        start: Optional[datetime],
+        end: Optional[datetime],
+        conditions: Sequence[Condition],
+        orderby: Sequence[str],
+        limit=100,
+        offset=0,
+        referrer="eventstore.get_events_snql",
+        dataset=Dataset.Events,
+        tenant_ids=None,
+    ):
+        raise NotImplementedError
+
     def get_unfetched_events(
         self,
         snuba_filter,
@@ -165,6 +199,7 @@ class EventStorage(Service):
         limit=100,
         offset=0,
         referrer="eventstore.get_unfetched_events",
+        tenant_ids=None,
     ):
         """
         Same as get_events but returns events without their node datas loaded.
@@ -184,7 +219,7 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_event_by_id(self, project_id, event_id, group_id=None):
+    def get_event_by_id(self, project_id, event_id, group_id=None, tenant_ids=None):
         """
         Gets a single event of any event type given a project_id and event_id.
         Returns None if an event cannot be found.
@@ -197,43 +232,10 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_next_event_id(self, event, snuba_filter):
+    def get_adjacent_event_ids(self, event, snuba_filter):
         """
-        Gets the next event given a current event and some conditions/filters.
-        Returns a tuple of (project_id, event_id)
-
-        Arguments:
-        event (Event): Event object
-        snuba_filter (Filter): Filter
-        """
-        raise NotImplementedError
-
-    def get_prev_event_id(self, event, snuba_filter):
-        """
-        Gets the previous event given a current event and some conditions/filters.
-        Returns a tuple of (project_id, event_id)
-
-        Arguments:
-        event (Event): Event object
-        snuba_filter (Filter): Filter
-        """
-        raise NotImplementedError
-
-    def get_earliest_event_id(self, event, snuba_filter):
-        """
-        Gets the earliest event given a current event and some conditions/filters.
-        Returns a tuple of (project_id, event_id)
-
-        Arguments:
-        event (Event): Event object
-        snuba_filter (Filter): Filter
-        """
-        raise NotImplementedError
-
-    def get_latest_event_id(self, event, snuba_filter):
-        """
-        Gets the latest event given a current event and some conditions/filters.
-        Returns a tuple of (project_id, event_id)
+        Gets the previous and next event IDs given a current event and some conditions/filters.
+        Returns a tuple of (project_id, event_id) for (prev_ids, next_ids)
 
         Arguments:
         event (Event): Event object
@@ -267,8 +269,36 @@ class EventStorage(Service):
             if not node_ids:
                 return
 
-            node_results = nodestore.get_multi(node_ids)
+            node_results = nodestore.backend.get_multi(node_ids)
 
             for item, node in object_node_list:
                 data = node_results.get(node.id) or {}
                 node.bind_data(data, ref=node.get_ref(item))
+
+    def get_unfetched_transactions(
+        self,
+        snuba_filter,
+        orderby=None,
+        limit=100,
+        offset=0,
+        referrer="eventstore.get_unfetched_transactions",
+        tenant_ids=None,
+    ):
+        """
+        Same as get_unfetched_events but returns transactions.
+        Only the event ID, projectID and timestamp field will be present without
+        an additional fetch to nodestore.
+
+        Used for fetching large volumes of transactions that do not need data
+        loaded from nodestore. Currently this is just used for transaction
+        data deletions where we just need the transactions IDs in order to
+        process the deletions.
+
+        Arguments:
+        snuba_filter (Filter): Filter
+        orderby (Sequence[str]): List of fields to order by - default ['-time', '-event_id']
+        limit (int): Query limit - default 100
+        offset (int): Query offset - default 0
+        referrer (string): Referrer - default "eventstore.get_unfetched_transactions"
+        """
+        raise NotImplementedError

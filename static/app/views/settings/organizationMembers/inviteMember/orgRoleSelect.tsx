@@ -1,7 +1,10 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
 import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
 import {OrgRole} from 'sentry/types';
@@ -36,7 +39,9 @@ class OrganizationRoleSelect extends Component<Props> {
 
     return (
       <Panel>
-        <PanelHeader>{t('Organization Role')}</PanelHeader>
+        <PanelHeader>
+          <div>{t('Organization Role')}</div>
+        </PanelHeader>
 
         <PanelBody>
           {roleList.map(role => {
@@ -54,7 +59,7 @@ class OrganizationRoleSelect extends Component<Props> {
                 <Label>
                   <Radio id={id} value={name} checked={id === roleSelected} readOnly />
                   <div style={{flex: 1, padding: '0 16px'}}>
-                    {name} {isRetired && t('(Deprecated)')}
+                    {name}
                     <TextBlock noMargin>
                       <div className="help-block">{desc}</div>
                     </TextBlock>

@@ -4,9 +4,12 @@ import responses
 from django.urls import reverse
 
 from fixtures.gitlab import GitLabTestCase
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
+@control_silo_test(stable=True)
 class GitlabSearchTest(GitLabTestCase):
     provider = "gitlab"
 
@@ -107,7 +110,6 @@ class GitlabSearchTest(GitLabTestCase):
             responses.GET,
             "https://example.gitlab.com/api/v4/groups/1/projects",
             callback=request_callback,
-            match_querystring=False,
         )
         resp = self.client.get(self.url, data={"field": "project", "query": "GetSentry"})
 
@@ -198,7 +200,10 @@ class GitlabSearchTest(GitLabTestCase):
 
     def test_missing_installation(self):
         # remove organization integration aka "uninstalling" installation
-        self.installation.org_integration.delete()
+        org_integration = OrganizationIntegration.objects.get(
+            id=self.installation.org_integration.id
+        )
+        org_integration.delete()
         resp = self.client.get(self.url, data={"field": "project", "query": "GetSentry"})
 
         assert resp.status_code == 404
@@ -212,6 +217,7 @@ class GitlabSearchTest(GitLabTestCase):
         )
         assert resp.status_code == 400
 
+    @responses.activate
     def test_projects_request_fails(self):
         responses.add(responses.GET, "https://example.gitlab.com/api/v4/projects", status=503)
         resp = self.client.get(self.url, data={"field": "project", "query": "GetSentry"})

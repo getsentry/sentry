@@ -1,7 +1,7 @@
 import moment from 'moment';
 
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
-import {DataCategory, IntervalPeriod} from 'sentry/types';
+import {DataCategoryInfo, IntervalPeriod} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 
 import {formatUsageWithUnits} from '../utils';
@@ -49,8 +49,8 @@ export function getDateFromUnixTimestamp(timestamp: number) {
 }
 
 export function getXAxisDates(
-  dateStart: string,
-  dateEnd: string,
+  dateStart: moment.MomentInput,
+  dateEnd: moment.MomentInput,
   dateUtc: boolean = false,
   interval: IntervalPeriod = '1d'
 ): string[] {
@@ -75,13 +75,9 @@ export function getXAxisDates(
   return range;
 }
 
-export function getTooltipFormatter(dataCategory: DataCategory) {
-  if (dataCategory === DataCategory.ATTACHMENTS) {
-    return (val: number = 0) =>
-      formatUsageWithUnits(val, DataCategory.ATTACHMENTS, {useUnitScaling: true});
-  }
-
-  return (val: number = 0) => val.toLocaleString();
+export function getTooltipFormatter(dataCategory: DataCategoryInfo['plural']) {
+  return (val: number = 0) =>
+    formatUsageWithUnits(val, dataCategory, {useUnitScaling: true});
 }
 
 const MAX_NUMBER_OF_LABELS = 10;

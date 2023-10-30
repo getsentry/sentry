@@ -11,9 +11,10 @@ class SlackIntegrationStatus(analytics.Event):
     type = "integrations.slack.status"
 
     attributes = (
+        analytics.Attribute("organization_id"),
         analytics.Attribute("status"),
         analytics.Attribute("resolve_type", required=False),
-        analytics.Attribute("actor_id", required=False),
+        analytics.Attribute("user_id", required=False),
     )
 
 
@@ -25,7 +26,11 @@ class SlackIntegrationNotificationSent(analytics.Event):
         analytics.Attribute("organization_id"),
         analytics.Attribute("project_id", required=False),
         analytics.Attribute("category"),
-        analytics.Attribute("actor_id"),
+        analytics.Attribute("actor_id", required=False),
+        analytics.Attribute("user_id", required=False),
+        analytics.Attribute("group_id", required=False),
+        analytics.Attribute("notification_uuid"),
+        analytics.Attribute("alert_id", required=False),
     )
 
 

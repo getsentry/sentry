@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import sentryLoader from 'sentry-images/sentry-loader.svg';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   children?: React.ReactNode;
@@ -37,7 +37,7 @@ const CircleBackground = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.surface300};
   border-radius: 50%;
 `;
 

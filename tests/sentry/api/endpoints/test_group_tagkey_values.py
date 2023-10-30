@@ -1,9 +1,14 @@
-from sentry.testutils import APITestCase, SnubaTestCase
+from unittest import mock
+
+from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 
 
-class GroupTagKeyValuesTest(APITestCase, SnubaTestCase):
-    def test_simple(self):
+@region_silo_test(stable=True)
+class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
+    @mock.patch("sentry.analytics.record")
+    def test_simple(self, mock_record):
         key, value = "foo", "bar"
 
         project = self.create_project()
@@ -24,6 +29,31 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
 
         assert response.data[0]["value"] == "bar"
+
+        mock_record.assert_called_with(
+            "eventuser_endpoint.request",
+            project_id=project.id,
+            endpoint="sentry.api.endpoints.group_tagkey_values.get",
+        )
+
+    def test_simple_perf(self):
+        key, value = "foo", "bar"
+        event = self.create_performance_issue(
+            tags=[[key, value]],
+            fingerprint="group1",
+            contexts={"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+        )
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{event.group.id}/tags/{key}/values/"
+
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+
+        assert response.data[0]["value"] == value
 
     def test_user_tag(self):
         project = self.create_project()

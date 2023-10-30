@@ -1,4 +1,4 @@
-from typing import Any, MutableMapping, Optional
+from typing import Any, Mapping, MutableMapping, Optional
 
 from django.db import IntegrityError
 from django.http import Http404
@@ -15,13 +15,20 @@ from sentry.api.validators.external_actor import (
     validate_integration_id,
 )
 from sentry.api.validators.integrations import validate_provider
-from sentry.models import ExternalActor, Organization, Team, User
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.organization import Organization
+from sentry.models.team import Team
+from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders, get_provider_choices
 
 AVAILABLE_PROVIDERS = {
     ExternalProviders.GITHUB,
+    ExternalProviders.GITHUB_ENTERPRISE,
     ExternalProviders.GITLAB,
     ExternalProviders.SLACK,
+    ExternalProviders.MSTEAMS,
     ExternalProviders.CUSTOM,
 }
 
@@ -31,7 +38,7 @@ STRICT_NAME_PROVIDERS = {
 }
 
 
-class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
+class ExternalActorSerializerBase(CamelSnakeModelSerializer):
     external_id = serializers.CharField(required=False, allow_null=True)
     external_name = serializers.CharField(required=True)
     provider = serializers.ChoiceField(choices=get_provider_choices(AVAILABLE_PROVIDERS))
@@ -58,15 +65,19 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
         provider = validate_provider(provider_name_option, available_providers=AVAILABLE_PROVIDERS)
         return int(provider.value)
 
-    def get_actor_id(self, validated_data: MutableMapping[str, Any]) -> int:
-        return int(validated_data.pop(self._actor_key).actor_id)
+    def get_actor_params(self, validated_data: MutableMapping[str, Any]) -> Mapping[str, int]:
+        actor_model = validated_data.pop(self._actor_key)
+        if isinstance(actor_model, Team):
+            return dict(team_id=actor_model.id)
+        else:
+            return dict(user_id=actor_model.id)
 
     def create(self, validated_data: MutableMapping[str, Any]) -> ExternalActor:
-        actor_id = self.get_actor_id(validated_data)
+        actor_params = self.get_actor_params(validated_data)
         return ExternalActor.objects.get_or_create(
             **validated_data,
-            actor_id=actor_id,
             organization=self.organization,
+            defaults=actor_params,
         )
 
     def update(
@@ -77,7 +88,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
             validated_data.pop("id")
 
         if self._actor_key in validated_data:
-            validated_data["actor_id"] = self.get_actor_id({**validated_data})
+            validated_data.update(self.get_actor_params({**validated_data}))
 
         for key, value in validated_data.items():
             setattr(self.instance, key, value)
@@ -95,15 +106,17 @@ class ExternalUserSerializer(ExternalActorSerializerBase):
 
     user_id = serializers.IntegerField(required=True)
 
-    def validate_user_id(self, user_id: int) -> User:
+    def validate_user_id(self, user_id: int) -> RpcUser:
         """Ensure that this user exists and that they belong to the organization."""
-
-        try:
-            return User.objects.get(
-                id=user_id, sentry_orgmember_set__organization=self.organization
+        if (
+            organization_service.check_membership_by_id(
+                user_id=user_id, organization_id=self.organization.id
             )
-        except User.DoesNotExist:
+            is None
+            or (user := user_service.get_user(user_id=user_id)) is None
+        ):
             raise serializers.ValidationError("This member does not exist.")
+        return user
 
     class Meta:
         model = ExternalActor

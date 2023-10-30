@@ -1,23 +1,41 @@
 from uuid import uuid4
 
+from django.db import router, transaction
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, features, roles
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import (
+    DEFAULT_SLUG_ERROR_MESSAGE,
+    DEFAULT_SLUG_PATTERN,
+    PreventNumericSlugMixin,
+    region_silo_endpoint,
+)
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSerializer as ModelTeamSerializer
-from sentry.models import ScheduledDeletion, Team, TeamStatus
+from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
+from sentry.models.scheduledeletion import RegionScheduledDeletion
+from sentry.models.team import Team, TeamStatus
 
 
-class TeamSerializer(serializers.ModelSerializer):
-    slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
+class TeamSerializer(CamelSnakeModelSerializer, PreventNumericSlugMixin):
+    slug = serializers.RegexField(
+        DEFAULT_SLUG_PATTERN,
+        max_length=50,
+        error_messages={"invalid": DEFAULT_SLUG_ERROR_MESSAGE},
+    )
+    org_role = serializers.ChoiceField(
+        choices=tuple(list(roles.get_choices()) + [("")]),
+        default="",
+    )
 
     class Meta:
         model = Team
-        fields = ("name", "slug")
+        fields = ("name", "slug", "org_role")
 
     def validate_slug(self, value):
         qs = Team.objects.filter(slug=value, organization=self.instance.organization).exclude(
@@ -25,10 +43,23 @@ class TeamSerializer(serializers.ModelSerializer):
         )
         if qs.exists():
             raise serializers.ValidationError(f'The slug "{value}" is already in use.')
+        super().validate_slug(value)
+        return value
+
+    def validate_org_role(self, value):
+        if value == "":
+            return None
         return value
 
 
+@region_silo_endpoint
 class TeamDetailsEndpoint(TeamEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, team) -> Response:
         """
         Retrieve a Team
@@ -72,18 +103,46 @@ class TeamDetailsEndpoint(TeamEndpoint):
         :param string name: the new name for the team.
         :param string slug: a new slug for the team.  It has to be unique
                             and available.
+        :param string orgRole: an organization role for the team. Only
+                               owners can set this value.
         :auth: required
         """
+        team_org_role = team.org_role
+        if team_org_role != request.data.get("orgRole"):
+            if not features.has("organizations:org-roles-for-teams", team.organization, actor=None):
+                # remove the org role, but other fields can still be set
+                del request.data["orgRole"]
+
+            if team.idp_provisioned:
+                return Response(
+                    {
+                        "detail": "This team is managed through your organization's identity provider."
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+            # users should not be able to set the role of a team to something higher than themselves
+            # only allow the top dog to do this so they can set the org_role to any role in the org
+            elif not request.access.has_scope("org:admin"):
+                return Response(
+                    {
+                        "detail": f"You must have the role of {roles.get_top_dog().id} to perform this action."
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
         serializer = TeamSerializer(team, data=request.data, partial=True)
         if serializer.is_valid():
             team = serializer.save()
 
+            data = team.get_audit_log_data()
+            data["old_org_role"] = team_org_role
             self.create_audit_entry(
                 request=request,
                 organization=team.organization,
                 target_object=team.id,
                 event=audit_log.get_event_id("TEAM_EDIT"),
-                data=team.get_audit_log_data(),
+                data=data,
             )
 
             return Response(serialize(team, request.user))
@@ -103,11 +162,11 @@ class TeamDetailsEndpoint(TeamEndpoint):
         """
         suffix = uuid4().hex
         new_slug = f"{team.slug}-{suffix}"[0:50]
-        updated = Team.objects.filter(id=team.id, status=TeamStatus.VISIBLE).update(
-            slug=new_slug, status=TeamStatus.PENDING_DELETION
-        )
-        if updated:
-            scheduled = ScheduledDeletion.schedule(team, days=0, actor=request.user)
+        try:
+            with transaction.atomic(router.db_for_write(Team)):
+                team = Team.objects.get(id=team.id, status=TeamStatus.ACTIVE)
+                team.update(slug=new_slug, status=TeamStatus.PENDING_DELETION)
+                scheduled = RegionScheduledDeletion.schedule(team, days=0, actor=request.user)
             self.create_audit_entry(
                 request=request,
                 organization=team.organization,
@@ -116,5 +175,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
                 data=team.get_audit_log_data(),
                 transaction_id=scheduled.id,
             )
+        except Team.DoesNotExist:
+            pass
 
         return Response(status=204)

@@ -5,16 +5,17 @@ import {Location} from 'history';
 import partition from 'lodash/partition';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import {Panel, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, Release} from 'sentry/types';
 
 import {ReleasesDisplayOption} from '../releasesDisplayOptions';
@@ -114,7 +115,10 @@ class ReleaseCard extends Component<Props> {
                 query: {project: getReleaseProjectId(release, selection)},
               }}
             >
-              <GuideAnchor disabled={!isTopRelease} target="release_version">
+              <GuideAnchor
+                disabled={!isTopRelease || projectsToShow.length > 1}
+                target="release_version"
+              >
                 <VersionWrapper>
                   <StyledVersion version={version} tooltipRawVersion anchor={false} />
                 </VersionWrapper>
@@ -126,7 +130,11 @@ class ReleaseCard extends Component<Props> {
           </ReleaseInfoHeader>
           <ReleaseInfoSubheader>
             {versionInfo?.package && (
-              <PackageName ellipsisDirection="left">{versionInfo.package}</PackageName>
+              <PackageName>
+                <TextOverflow ellipsisDirection="left">
+                  {versionInfo.package}
+                </TextOverflow>
+              </PackageName>
             )}
             <TimeSince date={lastDeploy?.dateFinished || dateCreated} />
             {lastDeploy?.dateFinished && ` \u007C ${lastDeploy.environment}`}
@@ -154,14 +162,14 @@ class ReleaseCard extends Component<Props> {
             <Collapsible
               expandButton={({onExpand, numberOfHiddenItems}) => (
                 <ExpandButtonWrapper>
-                  <Button priority="primary" size="xsmall" onClick={onExpand}>
+                  <Button priority="primary" size="xs" onClick={onExpand}>
                     {tct('Show [numberOfHiddenItems] More', {numberOfHiddenItems})}
                   </Button>
                 </ExpandButtonWrapper>
               )}
               collapseButton={({onCollapse}) => (
                 <CollapseButtonWrapper>
-                  <Button priority="primary" size="xsmall" onClick={onCollapse}>
+                  <Button priority="primary" size="xs" onClick={onCollapse}>
                     {t('Collapse')}
                   </Button>
                 </CollapseButtonWrapper>
@@ -240,9 +248,12 @@ const ReleaseInfoSubheader = styled('div')`
   color: ${p => p.theme.gray400};
 `;
 
-const PackageName = styled(TextOverflow)`
+const PackageName = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.textColor};
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
 
 const ReleaseProjects = styled('div')`

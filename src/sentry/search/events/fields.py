@@ -1,7 +1,7 @@
 import re
-from collections import defaultdict, namedtuple
-from copy import deepcopy
-from datetime import datetime
+from collections import namedtuple
+from copy import copy, deepcopy
+from datetime import datetime, timezone
 from typing import Any, List, Mapping, Match, NamedTuple, Optional, Sequence, Set, Tuple, Union
 
 import sentry_sdk
@@ -10,9 +10,10 @@ from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.models import Project, ProjectTeam, ProjectTransactionThreshold
+from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
+    ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
 )
 from sentry.search.events.constants import (
@@ -28,8 +29,6 @@ from sentry.search.events.constants import (
     MEASUREMENTS_FRAMES_FROZEN_RATE,
     MEASUREMENTS_FRAMES_SLOW_RATE,
     MEASUREMENTS_STALL_PERCENTAGE,
-    PROJECT_ALIAS,
-    PROJECT_NAME_ALIAS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
     PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
     PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
@@ -43,6 +42,7 @@ from sentry.search.events.constants import (
 from sentry.search.events.types import NormalizedArg, ParamsType
 from sentry.search.utils import InvalidQuery, parse_duration
 from sentry.utils.numbers import format_grouped_length
+from sentry.utils.sdk import set_measurement
 from sentry.utils.snuba import (
     SESSIONS_SNUBA_MAP,
     get_json_type,
@@ -127,6 +127,7 @@ def project_threshold_config_expression(organization_id, project_ids):
         "project_threshold.count.grouped",
         format_grouped_length(num_project_thresholds, [10, 100, 250, 500]),
     )
+    set_measurement("project_threshold.count", num_project_thresholds)
 
     num_transaction_thresholds = transaction_threshold_configs.count()
     sentry_sdk.set_tag("txn_threshold.count", num_transaction_thresholds)
@@ -134,6 +135,7 @@ def project_threshold_config_expression(organization_id, project_ids):
         "txn_threshold.count.grouped",
         format_grouped_length(num_transaction_thresholds, [10, 100, 250, 500]),
     )
+    set_measurement("txn_threshold.count", num_transaction_thresholds)
 
     if num_project_thresholds + num_transaction_thresholds == 0:
         return ["tuple", [f"'{DEFAULT_PROJECT_THRESHOLD_METRIC}'", DEFAULT_PROJECT_THRESHOLD]]
@@ -273,6 +275,7 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
     sentry_sdk.set_tag(
         "team_key_txns.count.grouped", format_grouped_length(count, [10, 100, 250, 500])
     )
+    set_measurement("team_key_txns.count", count)
 
     # There are no team key transactions marked, so hard code false into the query.
     if count == 0:
@@ -299,6 +302,16 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
     ]
 
 
+def normalize_count_if_condition(args: Mapping[str, str]) -> Union[float, str, int]:
+    """Ensures that the condition is compatible with the column type"""
+    column = args["column"]
+    condition = args["condition"]
+    if column in ARRAY_FIELDS and condition not in ["equals", "notEquals"]:
+        raise InvalidSearchQuery(f"{condition} is not supported by count_if for {column}")
+
+    return condition
+
+
 def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str, int]:
     """Ensures that the type of the third parameter is compatible with the first
     and cast the value if needed
@@ -306,7 +319,11 @@ def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str, int]:
     """
     column = args["column"]
     value = args["value"]
-    if column == "transaction.duration" or is_measurement(column) or is_span_op_breakdown(column):
+    if (
+        column == "transaction.duration"
+        or is_duration_measurement(column)
+        or is_span_op_breakdown(column)
+    ):
         duration_match = DURATION_PATTERN.match(value.strip("'"))
         if duration_match:
             try:
@@ -318,6 +335,12 @@ def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str, int]:
                 normalized_value = float(value.strip("'"))
             except Exception:
                 raise InvalidSearchQuery(f"{value} is not a valid value to compare with {column}")
+    # The non duration measurement
+    elif column == "measurements.cls":
+        try:
+            normalized_value = float(value)
+        except Exception:
+            raise InvalidSearchQuery(f"{value} is not a valid value to compare with {column}")
     elif column == "transaction.status":
         code = SPAN_STATUS_NAME_TO_CODE.get(value.strip("'"))
         if code is None:
@@ -326,8 +349,8 @@ def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str, int]:
             normalized_value = int(code)
         except Exception:
             raise InvalidSearchQuery(f"{value} is not a valid value for transaction.status")
-    # TODO: not supporting field aliases or arrays yet
-    elif column in FIELD_ALIASES or column in ARRAY_FIELDS:
+    # TODO: not supporting field aliases
+    elif column in FIELD_ALIASES:
         raise InvalidSearchQuery(f"{column} is not supported by count_if")
     else:
         normalized_value = value
@@ -365,7 +388,7 @@ FIELD_ALIASES = {
                 params.get("project_id"),
             ),
         ),
-        # the team key transaction field is intentially not added to the discover/fields list yet
+        # the team key transaction field is intentionally not added to the discover/fields list yet
         # because there needs to be some work on the front end to integrate this into discover
         PseudoField(
             TEAM_KEY_TRANSACTION_ALIAS,
@@ -488,253 +511,6 @@ def parse_arguments(function: str, columns: str) -> List[str]:
         args.append(columns[i:].strip())
 
     return [arg for arg in args if arg]
-
-
-def format_column_as_key(x):
-    if isinstance(x, list):
-        return tuple(format_column_as_key(y) for y in x)
-    return x
-
-
-def resolve_field_list(
-    fields,
-    snuba_filter,
-    auto_fields=True,
-    auto_aggregations=False,
-    functions_acl=None,
-    resolved_equations=None,
-):
-    """
-    Expand a list of fields based on aliases and aggregate functions.
-
-    Returns a dist of aggregations, selected_columns, and
-    groupby that can be merged into the result of get_snuba_query_args()
-    to build a more complete snuba query based on event search conventions.
-
-    Auto aggregates are aggregates that will be automatically added to the
-    list of aggregations when they're used in a condition. This is so that
-    they can be used in a condition without having to manually add the
-    aggregate to a field.
-    """
-    aggregations = []
-    aggregate_fields = defaultdict(set)
-    columns = []
-    groupby = []
-    project_key = ""
-    functions = {}
-
-    # If project is requested, we need to map ids to their names since snuba only has ids
-    if "project" in fields:
-        fields.remove("project")
-        project_key = "project"
-    # since project.name is more specific, if both are included use project.name instead of project
-    if PROJECT_NAME_ALIAS in fields:
-        fields.remove(PROJECT_NAME_ALIAS)
-        project_key = PROJECT_NAME_ALIAS
-    if project_key:
-        if "project.id" not in fields:
-            fields.append("project.id")
-
-    field = None
-    for field in fields:
-        if isinstance(field, str) and field.strip() == "":
-            continue
-        function = resolve_field(field, snuba_filter.params, functions_acl)
-        if function.column is not None and function.column not in columns:
-            columns.append(function.column)
-            if function.details is not None and isinstance(function.column, (list, tuple)):
-                functions[function.column[-1]] = function.details
-        elif function.aggregate is not None:
-            aggregations.append(function.aggregate)
-            if function.details is not None and isinstance(function.aggregate, (list, tuple)):
-                functions[function.aggregate[-1]] = function.details
-                if function.details.instance.redundant_grouping:
-                    aggregate_fields[format_column_as_key(function.aggregate[1])].add(field)
-
-    # Only auto aggregate when there's one other so the group by is not unexpectedly changed
-    if auto_aggregations and snuba_filter.having and len(aggregations) > 0 and field is not None:
-        for agg in snuba_filter.condition_aggregates:
-            if agg not in snuba_filter.aliases:
-                function = resolve_field(agg, snuba_filter.params, functions_acl)
-                if function.aggregate is not None and function.aggregate not in aggregations:
-                    aggregations.append(function.aggregate)
-                    if function.details is not None and isinstance(
-                        function.aggregate, (list, tuple)
-                    ):
-                        functions[function.aggregate[-1]] = function.details
-
-                        if function.details.instance.redundant_grouping:
-                            aggregate_fields[format_column_as_key(function.aggregate[1])].add(field)
-
-    check_aggregations = (
-        snuba_filter.having and len(aggregations) > 0 and snuba_filter.condition_aggregates
-    )
-    snuba_filter_condition_aggregates = (
-        set(snuba_filter.condition_aggregates) if check_aggregations else set()
-    )
-    for field in set(fields[:]).union(snuba_filter_condition_aggregates):
-        if isinstance(field, str) and field in {
-            "apdex()",
-            "count_miserable(user)",
-            "user_misery()",
-        }:
-            if PROJECT_THRESHOLD_CONFIG_ALIAS not in fields:
-                fields.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
-                function = resolve_field(
-                    PROJECT_THRESHOLD_CONFIG_ALIAS, snuba_filter.params, functions_acl
-                )
-                columns.append(function.column)
-                break
-
-    rollup = snuba_filter.rollup
-    if not rollup and auto_fields:
-        # Ensure fields we require to build a functioning interface
-        # are present. We don't add fields when using a rollup as the additional fields
-        # would be aggregated away.
-        if not aggregations and "id" not in columns:
-            columns.append("id")
-        if "id" in columns and "project.id" not in columns:
-            columns.append("project.id")
-            project_key = PROJECT_NAME_ALIAS
-
-    if project_key:
-        # Check to see if there's a condition on project ID already, to avoid unnecessary lookups
-        filtered_project_ids = None
-        if snuba_filter.conditions:
-            for cond in snuba_filter.conditions:
-                if cond[0] == "project_id":
-                    filtered_project_ids = [cond[2]] if cond[1] == "=" else cond[2]
-
-        project_ids = filtered_project_ids or snuba_filter.filter_keys.get("project_id", [])
-        projects = Project.objects.filter(id__in=project_ids).values("slug", "id")
-        # Clickhouse gets confused when the column contains a period
-        # This is specifically for project.name and should be removed once we can stop supporting it
-        if "." in project_key:
-            project_key = f"`{project_key}`"
-        columns.append(
-            [
-                "transform",
-                [
-                    # This is a workaround since having the column by itself currently is being treated as a function
-                    ["toString", ["project_id"]],
-                    ["array", ["'{}'".format(project["id"]) for project in projects]],
-                    ["array", ["'{}'".format(project["slug"]) for project in projects]],
-                    # Default case, what to do if a project id without a slug is found
-                    "''",
-                ],
-                project_key,
-            ]
-        )
-
-    if rollup and columns and not aggregations:
-        raise InvalidSearchQuery("You cannot use rollup without an aggregate field.")
-
-    orderby = snuba_filter.orderby
-    # Only sort if there are columns. When there are only aggregates there's no need to sort
-    if orderby and len(columns) > 0:
-        orderby = resolve_orderby(orderby, columns, aggregations, resolved_equations)
-    else:
-        orderby = None
-
-    # If aggregations are present all columns
-    # need to be added to the group by so that the query is valid.
-    if aggregations:
-        for column in columns:
-            is_iterable = isinstance(column, (list, tuple))
-            if is_iterable and column[0] == "transform":
-                # When there's a project transform, we already group by project_id
-                continue
-            elif is_iterable and column[2] not in FIELD_ALIASES:
-                groupby.append(column[2])
-            else:
-                column_key = format_column_as_key([column[:2]]) if is_iterable else column
-                if column_key in aggregate_fields:
-                    conflicting_functions = list(aggregate_fields[column_key])
-                    raise InvalidSearchQuery(
-                        "A single field cannot be used both inside and outside a function in the same query. To use {field} you must first remove the function(s): {function_msg}".format(
-                            field=column[2] if is_iterable else column,
-                            function_msg=", ".join(conflicting_functions[:2])
-                            + (
-                                f" and {len(conflicting_functions) - 2} more."
-                                if len(conflicting_functions) > 2
-                                else ""
-                            ),
-                        )
-                    )
-                groupby.append(column)
-
-    if resolved_equations:
-        columns += resolved_equations
-
-    return {
-        "selected_columns": columns,
-        "aggregations": aggregations,
-        "groupby": groupby,
-        "orderby": orderby,
-        "functions": functions,
-    }
-
-
-def resolve_orderby(orderby, fields, aggregations, equations):
-    """
-    We accept column names, aggregate functions, and aliases as order by
-    values. Aggregates and field aliases need to be resolve/validated.
-
-    TODO(mark) Once we're no longer using the dataset selection function
-    should allow all non-tag fields to be used as sort clauses, instead of only
-    those that are currently selected.
-    """
-    orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
-    if equations is not None:
-        equation_aliases = {equation[-1]: equation for equation in equations}
-    else:
-        equation_aliases = {}
-    validated = []
-    for column in orderby:
-        bare_column = column.lstrip("-")
-
-        if bare_column in fields:
-            validated.append(column)
-            continue
-
-        if equation_aliases and bare_column in equation_aliases:
-            equation = equation_aliases[bare_column]
-            prefix = "-" if column.startswith("-") else ""
-            # Drop alias because if prefix was included snuba thinks we're shadow aliasing
-            validated.append([prefix + equation[0], equation[1]])
-            continue
-
-        if is_function(bare_column):
-            bare_column = get_function_alias(bare_column)
-
-        found = [agg[2] for agg in aggregations if agg[2] == bare_column]
-        if found:
-            prefix = "-" if column.startswith("-") else ""
-            validated.append(prefix + bare_column)
-            continue
-
-        if (
-            bare_column in FIELD_ALIASES
-            and FIELD_ALIASES[bare_column].alias
-            and bare_column != PROJECT_ALIAS
-        ):
-            prefix = "-" if column.startswith("-") else ""
-            validated.append(prefix + FIELD_ALIASES[bare_column].alias)
-            continue
-
-        found = [
-            col[2]
-            for col in fields
-            if isinstance(col, (list, tuple)) and col[2].strip("`") == bare_column
-        ]
-        if found:
-            prefix = "-" if column.startswith("-") else ""
-            validated.append(prefix + bare_column)
-
-    if len(validated) == len(orderby):
-        return validated
-
-    raise InvalidSearchQuery("Cannot sort by a field that is not selected.")
 
 
 def resolve_field(field, params=None, functions_acl=None):
@@ -889,7 +665,7 @@ def get_function_alias(field: str) -> str:
     return get_function_alias_with_columns(function, columns)
 
 
-def get_function_alias_with_columns(function_name, columns) -> str:
+def get_function_alias_with_columns(function_name, columns, prefix=None) -> str:
     columns = re.sub(
         r"[^\w]",
         "_",
@@ -899,10 +675,18 @@ def get_function_alias_with_columns(function_name, columns) -> str:
             for col in columns
         ),
     )
-    return f"{function_name}_{columns}".rstrip("_")
+    alias = f"{function_name}_{columns}".rstrip("_")
+    if prefix:
+        alias = prefix + alias
+    return alias
 
 
-def get_json_meta_type(field_alias, snuba_type, function=None):
+def get_json_meta_type(field_alias, snuba_type, builder=None):
+    if builder:
+        function = builder.function_alias_map.get(field_alias)
+    else:
+        function = None
+
     alias_definition = FIELD_ALIASES.get(field_alias)
     if alias_definition and alias_definition.result_type is not None:
         return alias_definition.result_type
@@ -922,16 +706,12 @@ def get_json_meta_type(field_alias, snuba_type, function=None):
                 if result_type is not None:
                     return result_type
 
-    if (
-        "duration" in field_alias
-        or is_duration_measurement(field_alias)
-        or is_span_op_breakdown(field_alias)
-    ):
-        return "duration"
-    if is_measurement(field_alias):
-        return "number"
     if field_alias == "transaction.status":
         return "string"
+    # The builder will have Custom Measurement info etc.
+    field_type = builder.get_field_type(field_alias)
+    if field_type is not None:
+        return field_type
     return snuba_json
 
 
@@ -1164,6 +944,27 @@ class IntervalDefault(NumberRange):
         return int(interval)
 
 
+class TimestampArg(FunctionArg):
+    def __init__(self, name: str):
+        super().__init__(name)
+
+    def normalize(
+        self, value: str, params: ParamsType, combinator: Optional[Combinator]
+    ) -> Optional[float]:
+        if not params or not params.get("start") or not params.get("end"):
+            raise InvalidFunctionArgument("function called without date range")
+
+        try:
+            ts = datetime.fromtimestamp(int(value), tz=timezone.utc)
+        except (OverflowError, ValueError):
+            raise InvalidFunctionArgument(f"{value} is not a timestamp")
+
+        if ts < params["start"] or ts > params["end"]:
+            raise InvalidFunctionArgument("timestamp outside date range")
+
+        return ts
+
+
 class ColumnArg(FunctionArg):
     """Parent class to any function argument that should eventually resolve to a
     column
@@ -1273,7 +1074,14 @@ class NumericColumn(ColumnArg):
         "spans_exclusive_time",
     }
 
-    def __init__(self, name: str, allow_array_value: Optional[bool] = False, **kwargs):
+    def __init__(
+        self,
+        name: str,
+        allow_array_value: Optional[bool] = False,
+        spans: Optional[bool] = False,
+        **kwargs,
+    ):
+        self.spans = spans
         super().__init__(name, **kwargs)
         self.allow_array_value = allow_array_value
 
@@ -1281,6 +1089,10 @@ class NumericColumn(ColumnArg):
         # This method is written in this way so that `get_type` can always call
         # this even in child classes where `normalize` have been overridden.
 
+        # Shortcutting this for now
+        # TODO: handle different datasets better here
+        if self.spans and value in ["span.duration", "span.self_time"]:
+            return value
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column and is_measurement(value):
             return value
@@ -1500,7 +1312,7 @@ class DiscoverFunction:
 
     def alias_as(self, name):
         """Create a copy of this function to be used as an alias"""
-        alias = deepcopy(self)
+        alias = copy(self)
         alias.name = name
         return alias
 
@@ -2243,7 +2055,6 @@ FUNCTIONS = {
 for alias, name in FUNCTION_ALIASES.items():
     FUNCTIONS[alias] = FUNCTIONS[name].alias_as(alias)
 
-
 FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))
 
 
@@ -2274,6 +2085,7 @@ class SnQLFunction(DiscoverFunction):
     def __init__(self, *args, **kwargs) -> None:
         self.snql_aggregate = kwargs.pop("snql_aggregate", None)
         self.snql_column = kwargs.pop("snql_column", None)
+        self.requires_other_aggregates = kwargs.pop("requires_other_aggregates", False)
         super().__init__(*args, **kwargs)
 
     def validate(self) -> None:
@@ -2331,6 +2143,10 @@ class MetricArg(FunctionArg):
 
         return value
 
+    def get_type(self, value: str) -> str:
+        # Just a default
+        return "number"
+
 
 class MetricsFunction(SnQLFunction):
     """Metrics needs to differentiate between aggregate types so we can send queries to the right table"""
@@ -2339,6 +2155,8 @@ class MetricsFunction(SnQLFunction):
         self.snql_distribution = kwargs.pop("snql_distribution", None)
         self.snql_set = kwargs.pop("snql_set", None)
         self.snql_counter = kwargs.pop("snql_counter", None)
+        self.snql_metric_layer = kwargs.pop("snql_metric_layer", None)
+        self.is_percentile = kwargs.pop("is_percentile", False)
         super().__init__(*args, **kwargs)
 
     def validate(self) -> None:
@@ -2355,6 +2173,7 @@ class MetricsFunction(SnQLFunction):
                     self.snql_set is not None,
                     self.snql_counter is not None,
                     self.snql_column is not None,
+                    self.snql_metric_layer is not None,
                 ]
             )
             == 1
@@ -2373,5 +2192,5 @@ class MetricsFunction(SnQLFunction):
 
 class FunctionDetails(NamedTuple):
     field: str
-    instance: SnQLFunction
+    instance: DiscoverFunction
     arguments: Mapping[str, NormalizedArg]

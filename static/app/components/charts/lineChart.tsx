@@ -3,17 +3,17 @@ import type {LineSeriesOption} from 'echarts';
 import {Series} from 'sentry/types/echarts';
 
 import LineSeries from './series/lineSeries';
-import BaseChart from './baseChart';
+import BaseChart, {BaseChartProps} from './baseChart';
 
-type ChartProps = Omit<React.ComponentProps<typeof BaseChart>, 'css'>;
+export interface LineChartSeries
+  extends Series,
+    Omit<LineSeriesOption, 'data' | 'name' | 'color' | 'id' | 'areaStyle'> {
+  dataArray?: LineSeriesOption['data'];
+}
 
-export type LineChartSeries = Series &
-  Omit<LineSeriesOption, 'data' | 'name'> & {
-    dataArray?: LineSeriesOption['data'];
-  };
-
-export interface LineChartProps extends Omit<ChartProps, 'series'> {
+export interface LineChartProps extends Omit<BaseChartProps, 'series'> {
   series: LineChartSeries[];
+  additionalSeries?: LineSeriesOption[];
   seriesOptions?: LineSeriesOption;
 }
 

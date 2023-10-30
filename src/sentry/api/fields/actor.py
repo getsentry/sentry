@@ -1,9 +1,25 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from sentry.models import ActorTuple, OrganizationMember, Team, User
+from sentry.models.actor import ActorTuple
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.team import Team
+from sentry.models.user import User
+
+if TYPE_CHECKING:
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 
+@extend_schema_field(str)
 class ActorField(serializers.Field):
+    def __init__(self, *args, **kwds):
+        self.as_actor = kwds.pop("as_actor", False)
+        super().__init__(*args, **kwds)
+
     def to_representation(self, value):
         return value.get_actor_identifier()
 
@@ -18,7 +34,7 @@ class ActorField(serializers.Field):
                 "Could not parse actor. Format should be `type:id` where type is `team` or `user`."
             )
         try:
-            obj = actor.resolve()
+            obj: RpcUser | Team = actor.resolve()
         except (Team.DoesNotExist, User.DoesNotExist):
             raise serializers.ValidationError(f"{actor.type.__name__} does not exist")
 
@@ -27,7 +43,10 @@ class ActorField(serializers.Field):
                 raise serializers.ValidationError("Team is not a member of this organization")
         elif actor.type == User:
             if not OrganizationMember.objects.filter(
-                organization=self.context["organization"], user=obj
+                organization=self.context["organization"], user_id=obj.id
             ).exists():
                 raise serializers.ValidationError("User is not a member of this organization")
+
+        if self.as_actor:
+            return actor.resolve_to_actor()
         return actor

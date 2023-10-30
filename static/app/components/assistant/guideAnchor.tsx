@@ -12,20 +12,21 @@ import {
   unregisterAnchor,
 } from 'sentry/actionCreators/guides';
 import {Guide} from 'sentry/components/assistant/types';
-import Button from 'sentry/components/button';
-import {Body as HovercardBody, Hovercard} from 'sentry/components/hovercard';
+import {Button} from 'sentry/components/button';
+import {Hovercard} from 'sentry/components/hovercard';
 import {t, tct} from 'sentry/locale';
 import GuideStore, {GuideStoreState} from 'sentry/stores/guideStore';
-import space from 'sentry/styles/space';
-import theme from 'sentry/utils/theme';
+import {space} from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
 
 type Props = {
   target: string;
+  children?: React.ReactNode;
   /**
    * Hovercard renders the container
    */
   containerClassName?: string;
-  offset?: string;
+  offset?: number;
   /**
    * Trigger when the guide is completed (all steps have been clicked through)
    */
@@ -43,7 +44,9 @@ type Props = {
 
 type State = {
   active: boolean;
+  org: Organization | null;
   orgId: string | null;
+  orgSlug: string | null;
   step: number;
   currentGuide?: Guide;
 };
@@ -53,6 +56,8 @@ class BaseGuideAnchor extends Component<Props, State> {
     active: false,
     step: 0,
     orgId: null,
+    orgSlug: null,
+    org: null,
   };
 
   componentDidMount() {
@@ -96,6 +101,8 @@ class BaseGuideAnchor extends Component<Props, State> {
       currentGuide: data.currentGuide ?? undefined,
       step: data.currentStep,
       orgId: data.orgId,
+      orgSlug: data.orgSlug,
+      org: data.organization,
     });
   }
 
@@ -111,9 +118,9 @@ class BaseGuideAnchor extends Component<Props, State> {
     this.props.onStepComplete?.(e);
     this.props.onFinish?.(e);
 
-    const {currentGuide, orgId} = this.state;
+    const {currentGuide, orgId, orgSlug, org} = this.state;
     if (currentGuide) {
-      recordFinish(currentGuide.guide, orgId);
+      recordFinish(currentGuide.guide, orgId, orgSlug, org);
     }
     closeGuide();
   };
@@ -150,7 +157,7 @@ class BaseGuideAnchor extends Component<Props, State> {
 
     const dismissButton = (
       <DismissButton
-        size="small"
+        size="sm"
         translucentBorder
         href={href}
         onClick={this.handleDismiss}
@@ -171,7 +178,7 @@ class BaseGuideAnchor extends Component<Props, State> {
             {lastStep ? (
               <Fragment>
                 <StyledButton
-                  size="small"
+                  size="sm"
                   translucentBorder
                   to={to}
                   onClick={this.handleFinish}
@@ -184,7 +191,7 @@ class BaseGuideAnchor extends Component<Props, State> {
             ) : (
               <Fragment>
                 <StyledButton
-                  size="small"
+                  size="sm"
                   translucentBorder
                   onClick={this.handleNextStep}
                   to={to}
@@ -219,9 +226,9 @@ class BaseGuideAnchor extends Component<Props, State> {
 
     return (
       <StyledHovercard
-        show
+        forceVisible
         body={this.getHovercardBody()}
-        tipColor={theme.purple300}
+        tipColor="purple300"
         position={position}
         offset={offset}
         containerClassName={containerClassName}
@@ -264,6 +271,12 @@ const GuideContainer = styled('div')`
   background-color: ${p => p.theme.purple300};
   border-color: ${p => p.theme.purple300};
   color: ${p => p.theme.white};
+
+  a {
+    :hover {
+      color: ${p => p.theme.white};
+    }
+  }
 `;
 
 const GuideContent = styled('div')`
@@ -315,10 +328,5 @@ const StepCount = styled('div')`
 `;
 
 const StyledHovercard = styled(Hovercard)`
-  ${HovercardBody} {
-    background-color: ${theme.purple300};
-    margin: -1px;
-    border-radius: ${theme.borderRadius};
-    width: 300px;
-  }
+  background-color: ${p => p.theme.purple300};
 `;

@@ -1,13 +1,12 @@
 import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {Member, Organization, Project} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import Teams from 'sentry/utils/teams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import IssueEditor from 'sentry/views/alerts/rules/issue';
@@ -15,13 +14,13 @@ import MetricRulesEdit from 'sentry/views/alerts/rules/metric/edit';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 
 type RouteParams = {
-  orgId: string;
   projectId: string;
   ruleId: string;
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   hasMetricAlerts: boolean;
+  members: Member[] | undefined;
   organization: Organization;
   project: Project;
 };
@@ -37,7 +36,7 @@ class ProjectAlertsEditor extends Component<Props, State> {
 
   componentDidMount() {
     const {organization, project} = this.props;
-    trackAdvancedAnalyticsEvent('edit_alert_rule.viewed', {
+    trackAnalytics('edit_alert_rule.viewed', {
       organization,
       project_id: project.id,
       alert_type: this.getAlertType(),
@@ -60,7 +59,7 @@ class ProjectAlertsEditor extends Component<Props, State> {
   }
 
   render() {
-    const {hasMetricAlerts, location, organization, project, routes} = this.props;
+    const {hasMetricAlerts, organization, project, members} = this.props;
     const alertType = this.getAlertType();
 
     return (
@@ -76,51 +75,42 @@ class ProjectAlertsEditor extends Component<Props, State> {
               organization={organization}
               title={t('Edit Alert Rule')}
               projectSlug={project.slug}
-              routes={routes}
-              location={location}
             />
             <Layout.Title>{this.getTitle()}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
-        <EditConditionsBody>
-          <Layout.Main fullWidth>
-            <Teams provideUserTeams>
-              {({teams, initiallyLoaded}) =>
-                initiallyLoaded ? (
-                  <Fragment>
-                    {(!hasMetricAlerts || alertType === 'issue') && (
-                      <IssueEditor
-                        {...this.props}
-                        project={project}
-                        onChangeTitle={this.handleChangeTitle}
-                        userTeamIds={teams.map(({id}) => id)}
-                      />
-                    )}
-                    {hasMetricAlerts && alertType === AlertRuleType.METRIC && (
-                      <MetricRulesEdit
-                        {...this.props}
-                        project={project}
-                        onChangeTitle={this.handleChangeTitle}
-                        userTeamIds={teams.map(({id}) => id)}
-                      />
-                    )}
-                  </Fragment>
-                ) : (
-                  <LoadingIndicator />
-                )
-              }
-            </Teams>
-          </Layout.Main>
-        </EditConditionsBody>
+        <Layout.Body>
+          <Teams provideUserTeams>
+            {({teams, initiallyLoaded}) =>
+              initiallyLoaded ? (
+                <Fragment>
+                  {(!hasMetricAlerts || alertType === AlertRuleType.ISSUE) && (
+                    <IssueEditor
+                      {...this.props}
+                      project={project}
+                      onChangeTitle={this.handleChangeTitle}
+                      userTeamIds={teams.map(({id}) => id)}
+                      members={members}
+                    />
+                  )}
+                  {hasMetricAlerts && alertType === AlertRuleType.METRIC && (
+                    <MetricRulesEdit
+                      {...this.props}
+                      project={project}
+                      onChangeTitle={this.handleChangeTitle}
+                      userTeamIds={teams.map(({id}) => id)}
+                    />
+                  )}
+                </Fragment>
+              ) : (
+                <LoadingIndicator />
+              )
+            }
+          </Teams>
+        </Layout.Body>
       </Fragment>
     );
   }
 }
-
-const EditConditionsBody = styled(Layout.Body)`
-  *:not(img) {
-    max-width: 1000px;
-  }
-`;
 
 export default ProjectAlertsEditor;

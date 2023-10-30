@@ -1,4 +1,4 @@
-from django.conf.urls import url
+from django.urls import re_path
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -63,7 +63,7 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
 
     def get_group_urls(self):
         return super().get_group_urls() + [
-            url(
+            re_path(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
             )
@@ -138,7 +138,7 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
                 repo=self.get_option("repo", group.project), data=form_data
             )
         except Exception as e:
-            raise self.raise_error(e, identity=client.auth)
+            self.raise_error(e, identity=client.auth)
 
         return response["local_id"]
 
@@ -148,14 +148,14 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
         try:
             issue = client.get_issue(repo=repo, issue_id=form_data["issue_id"])
         except Exception as e:
-            raise self.raise_error(e, identity=client.auth)
+            self.raise_error(e, identity=client.auth)
 
         comment = form_data.get("comment")
         if comment:
             try:
                 client.create_comment(repo, issue["local_id"], {"content": comment})
             except Exception as e:
-                raise self.raise_error(e, identity=client.auth)
+                self.raise_error(e, identity=client.auth)
 
         return {"title": issue["title"]}
 
@@ -176,7 +176,7 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
         client = self.get_client(request.user)
 
         try:
-            response = client.search_issues(repo, query.encode("utf-8"))
+            response = client.search_issues(repo, query)
         except Exception as e:
             return Response(
                 {"error_type": "validation", "errors": [{"__all__": self.message_from_error(e)}]},

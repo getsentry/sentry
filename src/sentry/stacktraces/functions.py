@@ -1,5 +1,13 @@
-import re
+from __future__ import annotations
 
+import re
+from typing import Any
+from urllib.parse import urlparse
+
+from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
+
+from sentry.interfaces.stacktrace import Frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.safe import setdefault_path
 
@@ -268,7 +276,37 @@ def get_function_name_for_frame(frame, platform=None):
         return trim_function_name(rv, frame.get("platform") or platform)
 
 
-def set_in_app(frame, value):
+def get_source_link_for_frame(frame: Frame) -> str | None:
+    """If source_link points to a GitHub raw content link, process it so that
+    we can return the GitHub equivalent with the line number, and use it as a
+    stacktrace link. Otherwise, return the link as is.
+    """
+    source_link = getattr(frame, "source_link", None)
+
+    try:
+        URLValidator()(source_link)
+    except ValidationError:
+        return None
+
+    parse_result = urlparse(source_link)
+    if parse_result.netloc == "raw.githubusercontent.com":
+        path_parts = parse_result.path.split("/")
+        if path_parts[0] == "":
+            # the path starts with a "/" so the first element is empty string
+            del path_parts[0]
+
+        # at minimum, the path must have an author/org, a repo, and a file
+        if len(path_parts) >= 3:
+            source_link = "https://www.github.com/" + path_parts[0] + "/" + path_parts[1] + "/blob"
+            for remaining_part in path_parts[2:]:
+                source_link += "/" + remaining_part
+            if getattr(frame, "lineno", None):
+                source_link += "#L" + str(frame.lineno)
+    return source_link
+
+
+def set_in_app(frame: dict[str, Any], value: bool) -> None:
+    """Set the value of in_app in the frame to the given value."""
     orig_in_app = frame.get("in_app")
     if orig_in_app == value:
         return

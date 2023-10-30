@@ -287,6 +287,7 @@ table.table.key-value {
       word-break: break-word;
       padding: 8px 10px;
       font-size: 12px;
+      overflow: visible;
 
       .val-string:first-child {
         padding-left: 0;
@@ -510,54 +511,6 @@ table.table.key-value {
 }
 
 /**
-* Search
-* ============================================================================
-*/
-
-.search {
-  form {
-    display: block;
-    position: relative;
-  }
-
-  .search-input {
-    // Match the height of buttons adjacent to the search input.
-    height: 40px;
-    padding: 8px 34px 8px 37px;
-    font-size: 14px;
-    background: #fff;
-    transition: none;
-  }
-
-  &.disabled {
-    position: relative;
-
-    .search-input {
-      border: 1px solid lighten(@trim, 4);
-      background: @white-dark;
-      color: @gray-light;
-      box-shadow: none;
-    }
-
-    &:after {
-      display: block;
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-    }
-  }
-}
-
-// Sparkline grid
-
-.innerColumn(@columnSpan: 1) {
-  width: ((@gridColumnWidth) * @columnSpan) + (@gridGutterWidth * (@columnSpan - 1)) - 10;
-}
-
-/**
 * Box
 * ============================================================================
 */
@@ -567,7 +520,6 @@ table.table.key-value {
   border: 1px solid @trim;
   border-radius: 3px;
   margin: 0 0 20px;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
 
   .box-header {
     background: @white-dark;
@@ -1113,6 +1065,7 @@ header + .alert {
     > a {
       display: flex;
       align-items: center;
+      justify-content: center;
       padding: 0 0 10px;
       margin: 0;
       border: 0;

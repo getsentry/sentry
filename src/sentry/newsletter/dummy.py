@@ -1,6 +1,11 @@
+from __future__ import annotations
+
 from collections import defaultdict
+from typing import Any, Sequence
 
 from django.utils import timezone
+
+from sentry.models.user import User
 
 from .base import Newsletter
 
@@ -19,7 +24,7 @@ class NewsletterSubscription:
         unsubscribed_date=None,
         **kwargs,
     ):
-        from sentry.models import UserEmail
+        from sentry.models.useremail import UserEmail
 
         self.email = user.email or email
         self.list_id = list_id
@@ -65,8 +70,8 @@ class DummyNewsletter(Newsletter):
     store for tracking subscriptions, which means its not suitable for any real production use-case.
     """
 
-    def __init__(self, enabled=False):
-        self._subscriptions = defaultdict(dict)
+    def __init__(self, enabled: bool = False) -> None:
+        self._subscriptions: dict[User, dict[int, NewsletterSubscription]] = defaultdict(dict)
         self._enabled = enabled
 
     def enable(self):
@@ -81,10 +86,16 @@ class DummyNewsletter(Newsletter):
     def is_enabled(self):
         return self._enabled
 
-    def get_subscriptions(self, user):
+    def get_subscriptions(self, user: User):
         return {"subscriptions": list((self._subscriptions.get(user) or {}).values())}
 
-    def update_subscription(self, user, list_id=None, create=False, **kwargs):
+    def update_subscription(
+        self,
+        user: User,
+        list_id: int | None = None,
+        create: bool | None = False,
+        **kwargs: Any,
+    ) -> dict[int, NewsletterSubscription]:
         if not list_id:
             list_id = self.get_default_list_id()
 
@@ -96,7 +107,13 @@ class DummyNewsletter(Newsletter):
 
         return self._subscriptions[user]
 
-    def update_subscriptions(self, user, list_ids=None, create=False, **kwargs):
+    def update_subscriptions(
+        self,
+        user: User,
+        list_ids: Sequence[int] | None = None,
+        create: bool | None = False,
+        **kwargs: Any,
+    ):
         if not list_ids:
             list_ids = self.get_default_list_ids()
 
@@ -105,7 +122,7 @@ class DummyNewsletter(Newsletter):
 
         return self._subscriptions[user]
 
-    def optout_email(self, email, **kwargs):
+    def optout_email(self, email: str, **kwargs: Any) -> None:
         unsubscribe_date = timezone.now()
         for by_list in self._subscriptions.values():
             for subscription in by_list.values():

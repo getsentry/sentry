@@ -13,7 +13,7 @@ export function transformEventsRequestToVitals<T extends WidgetDataConstraint>(
     widgetProps.location.query
   );
 
-  const data = results.results ?? [];
+  const data = results.results ?? results.timeseriesData ?? [];
 
   const childData = {
     ...results,

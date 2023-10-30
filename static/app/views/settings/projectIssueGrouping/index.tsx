@@ -1,31 +1,33 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import ProjectActions from 'sentry/actions/projectActions';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {fields} from 'sentry/data/forms/projectIssueGrouping';
 import {t, tct} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {EventGroupingConfig, Organization, Project} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 import UpgradeGrouping from './upgradeGrouping';
 
-type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
+type Props = RouteComponentProps<{projectId: string}, {}> & {
   organization: Organization;
   project: Project;
 };
 
 type State = {
   groupingConfigs: EventGroupingConfig[] | null;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class ProjectIssueGrouping extends AsyncView<Props, State> {
+class ProjectIssueGrouping extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     const {projectId} = this.props.params;
 
@@ -39,22 +41,29 @@ class ProjectIssueGrouping extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {projectId, orgId} = this.props.params;
-    return [['groupingConfigs', `/projects/${orgId}/${projectId}/grouping-configs/`]];
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+    const {organization, project} = this.props;
+    return [
+      [
+        'groupingConfigs',
+        `/projects/${organization.slug}/${project.slug}/grouping-configs/`,
+      ],
+    ];
   }
 
   handleSubmit = (response: Project) => {
     // This will update our project context
-    ProjectActions.updateSuccess(response);
+    ProjectsStore.onUpdateSuccess(response);
   };
 
   renderBody() {
     const {groupingConfigs} = this.state;
     const {organization, project, params, location} = this.props;
-    const {orgId, projectId} = params;
-    const endpoint = `/projects/${orgId}/${projectId}/`;
-    const access = new Set(organization.access);
+    const endpoint = `/projects/${organization.slug}/${project.slug}/`;
+
+    const access = new Set(organization.access.concat(project.access));
+    const hasAccess = hasEveryAccess(['project:write'], {organization, project});
+
     const jsonFormProps = {
       additionalFieldProps: {
         organization,
@@ -62,7 +71,7 @@ class ProjectIssueGrouping extends AsyncView<Props, State> {
       },
       features: new Set(organization.features),
       access,
-      disabled: !access.has('project:write'),
+      disabled: !hasAccess,
     };
 
     return (
@@ -79,6 +88,8 @@ class ProjectIssueGrouping extends AsyncView<Props, State> {
             }
           )}
         </TextBlock>
+
+        <PermissionAlert project={project} />
 
         <Form
           saveOnBlur
@@ -111,6 +122,12 @@ class ProjectIssueGrouping extends AsyncView<Props, State> {
               ]}
             />
           </Feature>
+
+          <JsonForm
+            {...jsonFormProps}
+            title={t('Automatic Grouping Updates')}
+            fields={[fields.groupingAutoUpdate]}
+          />
 
           <UpgradeGrouping
             groupingConfigs={groupingConfigs ?? []}

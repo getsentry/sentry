@@ -1,17 +1,38 @@
+import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 
 import Table from '../../table';
-import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
+import {ProjectPerformanceType} from '../../utils';
 import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartRow';
 import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
 import {BasePerformanceViewProps} from './types';
 
 export function AllTransactionsView(props: BasePerformanceViewProps) {
+  const doubleChartRowCharts: PerformanceWidgetSetting[] = [];
+
+  if (
+    props.organization.features.includes('performance-new-trends') &&
+    canUseMetricsData(props.organization)
+  ) {
+    if (props.organization.features.includes('performance-database-view')) {
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_RELATED_ISSUES);
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_CHANGED);
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES);
+    } else {
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_CHANGED);
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_RELATED_ISSUES);
+    }
+  } else {
+    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_REGRESSED);
+    doubleChartRowCharts.push(PerformanceWidgetSetting.MOST_IMPROVED);
+  }
+
   return (
-    <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
+    <PerformanceDisplayProvider value={{performanceType: ProjectPerformanceType.ANY}}>
       <div data-test-id="all-transactions-view">
+        <DoubleChartRow {...props} allowedCharts={doubleChartRowCharts} />
         <TripleChartRow
           {...props}
           allowedCharts={[
@@ -23,14 +44,6 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
             PerformanceWidgetSetting.P75_DURATION_AREA,
             PerformanceWidgetSetting.P95_DURATION_AREA,
             PerformanceWidgetSetting.P99_DURATION_AREA,
-          ]}
-        />
-        <DoubleChartRow
-          {...props}
-          allowedCharts={[
-            PerformanceWidgetSetting.MOST_RELATED_ISSUES,
-            PerformanceWidgetSetting.MOST_IMPROVED,
-            PerformanceWidgetSetting.MOST_REGRESSED,
           ]}
         />
         <Table {...props} setError={usePageError().setPageError} />

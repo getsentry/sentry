@@ -21,10 +21,3 @@ class TeamsProjectsDocs(APIDocsTestCase):
         request = RequestFactory().get(self.url)
 
         self.validate_schema(request, response)
-
-    def test_post(self):
-        data = {"name": "foo"}
-        response = self.client.post(self.url, data)
-        request = RequestFactory().post(self.url, data)
-
-        self.validate_schema(request, response)

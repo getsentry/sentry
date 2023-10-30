@@ -1,0 +1,68 @@
+---
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (marked out of app by stack trace rule (path:**https://unpkg.com/** -app))
+            module*
+              "react-dom@16.13.1/umd/react-dom.production"
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+            function*
+              "unpkg"
+          frame (marked out of app by stack trace rule (path:**https://cdnjs.cloudflare.com/** -app))
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+            function*
+              "cdnjs"
+          frame (marked out of app by stack trace rule (path:**https://cdn.jsdelivr.net/** -app))
+            filename (ignored because frame points to a URL)
+              "jquery.min.js"
+            function*
+              "jsdelivr"
+          frame (marked out of app by stack trace rule (path:**https://esm.run/** -app))
+            filename (ignored because frame points to a URL)
+              "d3@7.6.1"
+            function* (trimmed javascript function)
+              "run"
+        type*
+          "Error"
+        value*
+          "bad"
+--------------------------------------------------------------------------
+system:
+  hash: "6ab78545e13144405fb21dadb9045b91"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame* (marked out of app by stack trace rule (path:**https://unpkg.com/** -app))
+            module*
+              "react-dom@16.13.1/umd/react-dom.production"
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+            function*
+              "unpkg"
+          frame* (marked out of app by stack trace rule (path:**https://cdnjs.cloudflare.com/** -app))
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+            function*
+              "cdnjs"
+          frame* (marked out of app by stack trace rule (path:**https://cdn.jsdelivr.net/** -app))
+            filename (ignored because frame points to a URL)
+              "jquery.min.js"
+            function*
+              "jsdelivr"
+          frame* (marked out of app by stack trace rule (path:**https://esm.run/** -app))
+            filename (ignored because frame points to a URL)
+              "d3@7.6.1"
+            function* (trimmed javascript function)
+              "run"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"

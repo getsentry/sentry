@@ -1,11 +1,27 @@
+from __future__ import annotations
+
 import logging
 import threading
 import weakref
 from contextlib import contextmanager
-from typing import Any, Generator, Generic, Mapping, MutableMapping, Optional, Sequence, Tuple
+from enum import IntEnum, auto
+from typing import (
+    Any,
+    Callable,
+    Collection,
+    Dict,
+    Generator,
+    Generic,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+)
 
 from django.conf import settings
-from django.db import router
+from django.db import models, router
 from django.db.models import Model
 from django.db.models.manager import BaseManager as DjangoBaseManager
 from django.db.models.signals import class_prepared, post_delete, post_init, post_save
@@ -13,6 +29,8 @@ from django.db.models.signals import class_prepared, post_delete, post_init, pos
 from sentry.db.models.manager import M, make_key
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.query import create_or_update
+from sentry.db.postgres.transactions import django_test_transaction_water_mark
+from sentry.silo import SiloLimit
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -21,6 +39,20 @@ logger = logging.getLogger("sentry")
 _local_cache = threading.local()
 _local_cache_generation = 0
 _local_cache_enabled = False
+
+
+def flush_manager_local_cache():
+    global _local_cache
+    _local_cache = threading.local()
+
+
+class ModelManagerTriggerCondition(IntEnum):
+    QUERY = auto()
+    SAVE = auto()
+    DELETE = auto()
+
+
+ModelManagerTriggerAction = Callable[[Type[Model]], None]
 
 
 class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  # type: ignore
@@ -40,6 +72,10 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         self.cache_ttl = kwargs.pop("cache_ttl", 60 * 5)
         self._cache_version: Optional[str] = kwargs.pop("cache_version", None)
         self.__local_cache = threading.local()
+
+        self._triggers: Dict[
+            object, Tuple[ModelManagerTriggerCondition, ModelManagerTriggerAction]
+        ] = {}
         super().__init__(*args, **kwargs)
 
     @staticmethod
@@ -67,17 +103,13 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
             _local_cache.cache = {}
             _local_cache.generation = gen
 
-        # Explicitly typing to satisfy mypy.
-        cache_: MutableMapping[str, Any] = _local_cache.cache
-        return cache_
+        return _local_cache.cache
 
     def _get_cache(self) -> MutableMapping[str, Any]:
         if not hasattr(self.__local_cache, "value"):
             self.__local_cache.value = weakref.WeakKeyDictionary()
 
-        # Explicitly typing to satisfy mypy.
-        cache_: MutableMapping[str, Any] = self.__local_cache.value
-        return cache_
+        return self.__local_cache.value
 
     def _set_cache(self, value: Any) -> None:
         self.__local_cache.value = value
@@ -182,6 +214,8 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
 
         self.__cache_state(instance)
 
+        self._execute_triggers(ModelManagerTriggerCondition.SAVE)
+
     def __post_delete(self, instance: M, **kwargs: Any) -> None:
         """
         Drops instance from all cache storages.
@@ -199,6 +233,8 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         cache.delete(
             key=self.__get_lookup_cache_key(**{pk_name: instance.pk}), version=self.cache_version
         )
+
+        self._execute_triggers(ModelManagerTriggerCondition.DELETE)
 
     def __get_lookup_cache_key(self, **kwargs: Any) -> str:
         return make_key(self.model, "modelcache", kwargs)
@@ -221,81 +257,86 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         class_prepared.connect(self.__class_prepared, sender=model)
 
     def get(self, *args: Any, **kwargs: Any) -> M:
-        # Explicitly typing to satisfy mypy.
-        model: M = super().get(*args, **kwargs)
-        return model
+        return super().get(*args, **kwargs)
 
-    def get_from_cache(self, use_replica: bool = False, **kwargs: Any) -> M:
+    @django_test_transaction_water_mark()
+    def get_from_cache(
+        self, use_replica: bool = settings.SENTRY_MODEL_CACHE_USE_REPLICA, **kwargs: Any
+    ) -> M:
         """
         Wrapper around QuerySet.get which supports caching of the
         intermediate value.  Callee is responsible for making sure
         the cache key is cleared on save.
         """
-        if not self.cache_fields or len(kwargs) > 1:
+        if not self.cache_fields:
+            raise ValueError("We cannot cache this query. Just hit the database.")
+
+        key, pk_name, value = self._get_cacheable_kv_from_kwargs(kwargs)
+        if key not in self.cache_fields and key != pk_name:
+            raise ValueError("We cannot cache this query. Just hit the database.")
+
+        cache_key = self.__get_lookup_cache_key(**{key: value})
+        local_cache = self._get_local_cache()
+
+        def validate_result(inst: Any) -> M:
+            if isinstance(inst, self.model) and (key != pk_name or int(value) == inst.pk):
+                return inst
+
+            if settings.DEBUG:
+                raise ValueError("Unexpected value type returned from cache")
+            logger.error("Cache response returned invalid value", extra={"instance": inst})
+            if local_cache is not None and cache_key in local_cache:
+                del local_cache[cache_key]
+            cache.delete(cache_key, version=self.cache_version)
+            return self.using_replica().get(**kwargs) if use_replica else self.get(**kwargs)
+
+        if local_cache is not None and cache_key in local_cache:
+            return validate_result(local_cache[cache_key])
+
+        retval = cache.get(cache_key, version=self.cache_version)
+        # If we don't have a hit in the django level cache, collect
+        # the result, and store it both in django and local caches.
+        if retval is None:
+            result = self.using_replica().get(**kwargs) if use_replica else self.get(**kwargs)
+            assert result
+            # Ensure we're pushing it into the cache
+            self.__post_save(instance=result)
+            if local_cache is not None:
+                local_cache[cache_key] = result
+            return validate_result(result)
+
+        # If we didn't look up by pk we need to hit the reffed
+        # key
+        if key != pk_name:
+            result = self.get_from_cache(**{pk_name: retval})
+            if local_cache is not None:
+                local_cache[cache_key] = result
+            return validate_result(result)
+
+        retval = validate_result(retval)
+
+        kwargs = {**kwargs, "replica": True} if use_replica else {**kwargs}
+        retval._state.db = router.db_for_read(self.model, **kwargs)
+
+        return retval
+
+    def _get_cacheable_kv_from_kwargs(self, kwargs: Mapping[str, Any]):
+        if not kwargs or len(kwargs) > 1:
             raise ValueError("We cannot cache this query. Just hit the database.")
 
         key, value = next(iter(kwargs.items()))
         pk_name = self.model._meta.pk.name
         if key == "pk":
             key = pk_name
-
         # We store everything by key references (vs instances)
         if isinstance(value, Model):
             value = value.pk
-
         # Kill __exact since it's the default behavior
         if key.endswith("__exact"):
             key = key.split("__exact", 1)[0]
+        return key, pk_name, value
 
-        if key in self.cache_fields or key == pk_name:
-            cache_key = self.__get_lookup_cache_key(**{key: value})
-            local_cache = self._get_local_cache()
-            if local_cache is not None:
-                result = local_cache.get(cache_key)
-                if result is not None:
-                    return result
-
-            retval = cache.get(cache_key, version=self.cache_version)
-            if retval is None:
-                result = self.using_replica().get(**kwargs) if use_replica else self.get(**kwargs)
-                # need to satisfy mypy
-                assert result
-                # Ensure we're pushing it into the cache
-                self.__post_save(instance=result)
-                if local_cache is not None:
-                    local_cache[cache_key] = result
-                return result
-
-            # If we didn't look up by pk we need to hit the reffed
-            # key
-            if key != pk_name:
-                result = self.get_from_cache(**{pk_name: retval})
-                if local_cache is not None:
-                    local_cache[cache_key] = result
-                return result
-
-            if not isinstance(retval, self.model):
-                if settings.DEBUG:
-                    raise ValueError("Unexpected value type returned from cache")
-                logger.error("Cache response returned invalid value %r", retval)
-                result = self.using_replica().get(**kwargs) if use_replica else self.get(**kwargs)
-
-            if key == pk_name and int(value) != retval.pk:
-                if settings.DEBUG:
-                    raise ValueError("Unexpected value returned from cache")
-                logger.error("Cache response returned invalid value %r", retval)
-                result = self.using_replica().get(**kwargs) if use_replica else self.get(**kwargs)
-
-            kwargs = {**kwargs, "replica": True} if use_replica else {**kwargs}
-            retval._state.db = router.db_for_read(self.model, **kwargs)
-
-            # Explicitly typing to satisfy mypy.
-            r: M = retval
-            return r
-        else:
-            raise ValueError("We cannot cache this query. Just hit the database.")
-
-    def get_many_from_cache(self, values: Sequence[str], key: str = "pk") -> Sequence[Any]:
+    def get_many_from_cache(self, values: Collection[str | int], key: str = "pk") -> Sequence[Any]:
         """
         Wrapper around `QuerySet.filter(pk__in=values)` which supports caching of
         the intermediate value.  Callee is responsible for making sure the
@@ -435,6 +476,101 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         Returns a new QuerySet object.  Subclasses can override this method to
         easily customize the behavior of the Manager.
         """
+
+        # TODO: This is a quick-and-dirty place to put the trigger hook that won't
+        #  work for all model classes, because some custom managers override
+        #  get_queryset without a `super` call.
+        self._execute_triggers(ModelManagerTriggerCondition.QUERY)
+
         if hasattr(self, "_hints"):
             return self._queryset_class(self.model, using=self._db, hints=self._hints)
         return self._queryset_class(self.model, using=self._db)
+
+    @contextmanager
+    def register_trigger(
+        self, condition: ModelManagerTriggerCondition, action: ModelManagerTriggerAction
+    ) -> Generator[None, None, None]:
+        """Register a callback for when an operation is executed inside the context.
+
+        There is no guarantee whether the action will be called before or after the
+        triggering operation is executed, nor whether it will or will not be called
+        if the triggering operation raises an exception.
+
+        Both the registration of the trigger and the execution of the action are NOT
+        THREADSAFE. This is intended for offline use in single-threaded contexts such
+        as pytest. We must add synchronization if we intend to adapt it for
+        production use.
+        """
+
+        key = object()
+        self._triggers[key] = (condition, action)
+        try:
+            yield
+        finally:
+            del self._triggers[key]
+
+    def _execute_triggers(self, condition: ModelManagerTriggerCondition) -> None:
+        for (next_condition, next_action) in self._triggers.values():
+            if condition == next_condition:
+                next_action(self.model)
+
+
+def create_silo_limited_copy(self: BaseManager[M], limit: SiloLimit) -> BaseManager[M]:
+    """Create a copy of this manager that enforces silo limitations."""
+
+    # Dynamically create a subclass of this manager's class, adding overrides.
+    cls = type(self)
+    overrides = {
+        "get_queryset": limit.create_override(cls.get_queryset),
+        "bulk_create": limit.create_override(cls.bulk_create),
+        "bulk_update": limit.create_override(cls.bulk_update),
+        "create": limit.create_override(cls.create),
+        "create_or_update": limit.create_override(cls.create_or_update)
+        if hasattr(cls, "create_or_update")
+        else None,
+        "get_or_create": limit.create_override(cls.get_or_create),
+        "post_delete": limit.create_override(cls.post_delete)
+        if hasattr(cls, "post_delete")
+        else None,
+        "select_for_update": limit.create_override(cls.select_for_update),
+        "update": limit.create_override(cls.update),
+        "update_or_create": limit.create_override(cls.update_or_create),
+        "get_from_cache": limit.create_override(cls.get_from_cache)
+        if hasattr(cls, "get_from_cache")
+        else None,
+        "get_many_from_cache": limit.create_override(cls.get_many_from_cache)
+        if hasattr(cls, "get_many_from_cache")
+        else None,
+    }
+    manager_subclass = type(cls.__name__, (cls,), overrides)
+    manager_instance = manager_subclass()
+
+    # Ordinarily a pointer to the model class is set after the class is defined,
+    # meaning we can't inherit it. Manually copy it over now.
+    manager_instance.model = self.model
+
+    # Copy over some more stuff that would be set in __init__
+    # (warning: this is brittle)
+    if hasattr(self, "cache_fields"):
+        manager_instance.cache_fields = self.cache_fields
+        manager_instance.cache_ttl = self.cache_ttl
+        manager_instance._cache_version = self._cache_version
+        manager_instance.__local_cache = threading.local()
+
+    # Dynamically extend and replace the queryset class. This will affect all
+    # queryset objects later returned from the new manager.
+    qs_cls = manager_instance._queryset_class
+    assert issubclass(qs_cls, BaseQuerySet) or issubclass(qs_cls, models.QuerySet)
+    queryset_overrides = {
+        "bulk_create": limit.create_override(qs_cls.bulk_create),
+        "bulk_update": limit.create_override(qs_cls.bulk_update),
+        "create": limit.create_override(qs_cls.create),
+        "delete": limit.create_override(qs_cls.delete),
+        "get_or_create": limit.create_override(qs_cls.get_or_create),
+        "update": limit.create_override(qs_cls.update),
+        "update_or_create": limit.create_override(qs_cls.update_or_create),
+    }
+    queryset_subclass = type(qs_cls.__name__, (qs_cls,), queryset_overrides)
+    manager_instance._queryset_class = queryset_subclass
+
+    return manager_instance

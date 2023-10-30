@@ -1,0 +1,24 @@
+---
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace
+        frame (marked out of app by stack trace rule (module:sun.* -app))
+          module* (removed codegen marker)
+            "sun.reflect.GeneratedSerializationConstructorAccessor<auto>"
+          function*
+            "invoke"
+--------------------------------------------------------------------------
+system:
+  hash: "07d1a8e5728b3c4c7aa8b8273fd0e753"
+  component:
+    system*
+      stacktrace*
+        frame* (marked out of app by stack trace rule (module:sun.* -app))
+          module* (removed codegen marker)
+            "sun.reflect.GeneratedSerializationConstructorAccessor<auto>"
+          function*
+            "invoke"

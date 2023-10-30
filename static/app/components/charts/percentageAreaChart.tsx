@@ -3,26 +3,28 @@ import type {LineSeriesOption} from 'echarts';
 import moment from 'moment';
 
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import toArray from 'sentry/utils/toArray';
 
 import AreaSeries from './series/areaSeries';
-import BaseChart from './baseChart';
+import BaseChart, {BaseChartProps} from './baseChart';
 
 const FILLER_NAME = '__filler';
 
-type ChartProps = Omit<React.ComponentProps<typeof BaseChart>, 'css'>;
-
-export type AreaChartSeries = Series & Omit<LineSeriesOption, 'data' | 'name'>;
+export interface AreaChartSeries
+  extends Series,
+    Omit<LineSeriesOption, 'data' | 'name' | 'color' | 'id' | 'areaStyle'> {
+  dataArray?: LineSeriesOption['data'];
+}
 
 type DefaultProps = {
   getDataItemName: ({name}: SeriesDataUnit) => SeriesDataUnit['name'];
   getValue: ({value}: SeriesDataUnit, total?: number) => number;
 };
 
-type Props = Omit<ChartProps, 'series'> &
-  DefaultProps & {
-    series: AreaChartSeries[];
-    stacked?: boolean;
-  };
+interface Props extends Omit<BaseChartProps, 'series'>, DefaultProps {
+  series: AreaChartSeries[];
+  stacked?: boolean;
+}
 
 /**
  * A stacked 100% column chart over time
@@ -70,7 +72,7 @@ export default class PercentageAreaChart extends Component<Props> {
         tooltip={{
           formatter: seriesParams => {
             // `seriesParams` can be an array or an object :/
-            const series = Array.isArray(seriesParams) ? seriesParams : [seriesParams];
+            const series = toArray(seriesParams);
 
             // Filter series that have 0 counts
             const date =
@@ -90,7 +92,7 @@ export default class PercentageAreaChart extends Component<Props> {
                 )
                 .join(''),
               '</div>',
-              `<div class="tooltip-date">${date}</div>`,
+              `<div class="tooltip-footer">${date}</div>`,
               '<div class="tooltip-arrow"></div>',
             ].join('');
           },
@@ -101,7 +103,6 @@ export default class PercentageAreaChart extends Component<Props> {
           type: 'value',
           interval: 25,
           splitNumber: 4,
-          data: [0, 25, 50, 100],
           axisLabel: {
             formatter: '{value}%',
           },

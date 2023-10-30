@@ -3,17 +3,17 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import ProjectActions from 'sentry/actions/projectActions';
 import Checkbox from 'sentry/components/checkbox';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
@@ -21,19 +21,19 @@ import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import DebugFileRow from './debugFileRow';
 import Sources from './sources';
 
-type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
+type Props = RouteComponentProps<{projectId: string}, {}> & {
   organization: Organization;
   project: Project;
 };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   debugFiles: DebugFile[] | null;
   project: Project;
   showDetails: boolean;
   builtinSymbolSources?: BuiltinSymbolSource[] | null;
 };
 
-class ProjectDebugSymbols extends AsyncView<Props, State> {
+class ProjectDebugSymbols extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     const {projectId} = this.props.params;
 
@@ -48,54 +48,46 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization, params, location} = this.props;
     const {builtinSymbolSources} = this.state || {};
-    const {orgId, projectId} = params;
     const {query} = location.query;
 
-    const endpoints: ReturnType<AsyncView['getEndpoints']> = [
+    const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
       [
         'debugFiles',
-        `/projects/${orgId}/${projectId}/files/dsyms/`,
+        `/projects/${organization.slug}/${params.projectId}/files/dsyms/`,
         {
-          query: {
-            query,
-            file_formats: [
-              'breakpad',
-              'macho',
-              'elf',
-              'pe',
-              'pdb',
-              'sourcebundle',
-              'wasm',
-              'bcsymbolmap',
-              'uuidmap',
-              'il2cpp',
-            ],
-          },
+          query: {query},
         },
       ],
     ];
 
     if (!builtinSymbolSources && organization.features.includes('symbol-sources')) {
-      endpoints.push(['builtinSymbolSources', '/builtin-symbol-sources/', {}]);
+      endpoints.push([
+        'builtinSymbolSources',
+        `/organizations/${organization.slug}/builtin-symbol-sources/`,
+        {},
+      ]);
     }
 
     return endpoints;
   }
 
   handleDelete = (id: string) => {
-    const {orgId, projectId} = this.props.params;
+    const {organization, params} = this.props;
 
     this.setState({
       loading: true,
     });
 
-    this.api.request(`/projects/${orgId}/${projectId}/files/dsyms/?id=${id}`, {
-      method: 'DELETE',
-      complete: () => this.fetchData(),
-    });
+    this.api.request(
+      `/projects/${organization.slug}/${params.projectId}/files/dsyms/?id=${id}`,
+      {
+        method: 'DELETE',
+        complete: () => this.fetchData(),
+      }
+    );
   };
 
   handleSearch = (query: string) => {
@@ -108,13 +100,12 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
   };
 
   async fetchProject() {
-    const {params} = this.props;
-    const {orgId, projectId} = params;
+    const {organization, params} = this.props;
     try {
       const updatedProject = await this.api.requestPromise(
-        `/projects/${orgId}/${projectId}/`
+        `/projects/${organization.slug}/${params.projectId}/`
       );
-      ProjectActions.updateSuccess(updatedProject);
+      ProjectsStore.onUpdateSuccess(updatedProject);
     } catch {
       addErrorMessage(t('An error occurred while fetching project data'));
     }
@@ -140,15 +131,14 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
 
   renderDebugFiles() {
     const {debugFiles, showDetails} = this.state;
-    const {organization, params} = this.props;
-    const {orgId, projectId} = params;
+    const {organization, params, project} = this.props;
 
     if (!debugFiles?.length) {
       return null;
     }
 
     return debugFiles.map(debugFile => {
-      const downloadUrl = `${this.api.baseUrl}/projects/${orgId}/${projectId}/files/dsyms/?id=${debugFile.id}`;
+      const downloadUrl = `${this.api.baseUrl}/projects/${organization.slug}/${params.projectId}/files/dsyms/?id=${debugFile.id}`;
 
       return (
         <DebugFileRow
@@ -159,6 +149,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
           onDelete={this.handleDelete}
           key={debugFile.id}
           orgSlug={organization.slug}
+          project={project}
         />
       );
     });
@@ -183,13 +174,13 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
 
         {organization.features.includes('symbol-sources') && (
           <Fragment>
-            <PermissionAlert />
+            <PermissionAlert project={project} />
 
             <Sources
               api={this.api}
               location={location}
               router={router}
-              projSlug={project.slug}
+              project={project}
               organization={organization}
               customRepositories={
                 (project.symbolSources
@@ -276,12 +267,10 @@ const Filters = styled('div')`
 const Label = styled('label')`
   font-weight: normal;
   display: flex;
+  align-items: center;
   margin-bottom: 0;
   white-space: nowrap;
-  input {
-    margin-top: 0;
-    margin-right: ${space(1)};
-  }
+  gap: ${space(1)};
 `;
 
 export default ProjectDebugSymbols;

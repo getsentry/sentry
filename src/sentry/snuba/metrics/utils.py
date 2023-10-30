@@ -1,3 +1,25 @@
+from __future__ import annotations
+
+import re
+from abc import ABC
+from datetime import datetime, timedelta, timezone
+from typing import (
+    Collection,
+    Dict,
+    Generator,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    TypedDict,
+    Union,
+    overload,
+)
+
+from sentry.snuba.dataset import EntityKey
+
 __all__ = (
     "MAX_POINTS",
     "GRANULARITY",
@@ -9,8 +31,10 @@ __all__ = (
     "MetricType",
     "OP_TO_SNUBA_FUNCTION",
     "AVAILABLE_OPERATIONS",
+    "AVAILABLE_GENERIC_OPERATIONS",
     "OPERATIONS_TO_ENTITY",
     "METRIC_TYPE_TO_ENTITY",
+    "FILTERABLE_TAGS",
     "FIELD_ALIAS_MAPPINGS",
     "Tag",
     "TagValue",
@@ -30,34 +54,21 @@ __all__ = (
     "UNALLOWED_TAGS",
     "combine_dictionary_of_list_values",
     "get_intervals",
+    "get_num_intervals",
+    "to_intervals",
     "OP_REGEX",
+    "CUSTOM_MEASUREMENT_DATASETS",
     "DATASET_COLUMNS",
+    "NON_RESOLVABLE_TAG_VALUES",
 )
 
-
-import re
-from abc import ABC
-from datetime import datetime, timedelta
-from typing import (
-    Collection,
-    Dict,
-    List,
-    Literal,
-    Mapping,
-    Optional,
-    Sequence,
-    Tuple,
-    TypedDict,
-    Union,
-)
-
-from sentry.snuba.dataset import EntityKey
 
 #: Max number of data points per time series:
 MAX_POINTS = 10000
 GRANULARITY = 24 * 60 * 60
 TS_COL_QUERY = "timestamp"
 TS_COL_GROUP = "bucketed_time"
+METRICS_LAYER_GRANULARITIES = [86400, 3600, 60]
 
 TAG_REGEX = re.compile(r"^([\w.]+)$")
 
@@ -74,30 +85,117 @@ MetricOperationType = Literal[
     "p90",
     "p95",
     "p99",
+    "p100",
+    "percentage",
     "histogram",
+    "rate",
+    "count_web_vitals",
+    "count_transaction_name",
+    "team_key_transaction",
+    "sum_if_column",
+    "uniq_if_column",
+    "min_timestamp",
+    "max_timestamp",
+    # Custom operations used for on demand derived metrics.
+    "on_demand_apdex",
+    "on_demand_epm",
+    "on_demand_eps",
+    "on_demand_failure_count",
+    "on_demand_failure_rate",
+    "on_demand_count_web_vitals",
+    "on_demand_user_misery",
 ]
-MetricUnit = Literal["seconds"]
+MetricUnit = Literal[
+    "nanosecond",
+    "microsecond",
+    "millisecond",
+    "second",
+    "minute",
+    "hour",
+    "day",
+    "week",
+    "bit",
+    "byte",
+    "kibibyte",
+    "mebibyte",
+    "gibibyte",
+    "tebibyte",
+    "pebibyte",
+    "exbibyte",
+    "kilobyte",
+    "megabyte",
+    "gigabyte",
+    "terabyte",
+    "petabyte",
+    "exabyte",
+]
 #: The type of metric, which determines the snuba entity to query
-MetricType = Literal["counter", "set", "distribution", "numeric"]
+MetricType = Literal[
+    "counter",
+    "set",
+    "distribution",
+    "numeric",
+    "generic_counter",
+    "generic_set",
+    "generic_distribution",
+]
 
-MetricEntity = Literal["metrics_counters", "metrics_sets", "metrics_distributions"]
+MetricEntity = Literal[
+    "metrics_counters",
+    "metrics_sets",
+    "metrics_distributions",
+    "generic_metrics_counters",
+    "generic_metrics_sets",
+    "generic_metrics_distributions",
+]
 
 OP_TO_SNUBA_FUNCTION = {
-    "metrics_counters": {"sum": "sumIf"},
+    "metrics_counters": {
+        "sum": "sumIf",
+        "min_timestamp": "minIf",
+        "max_timestamp": "maxIf",
+    },
     "metrics_distributions": {
         "avg": "avgIf",
         "count": "countIf",
         "max": "maxIf",
         "min": "minIf",
-        "p50": "quantilesIf(0.50)",  # TODO: Would be nice to use `quantile(0.50)` (singular) here, but snuba responds with an error
+        "p50": "quantilesIf(0.50)",
+        # TODO: Would be nice to use `quantile(0.50)` (singular) here, but snuba responds with an error
         "p75": "quantilesIf(0.75)",
         "p90": "quantilesIf(0.90)",
         "p95": "quantilesIf(0.95)",
         "p99": "quantilesIf(0.99)",
         "histogram": "histogramIf(250)",
+        "sum": "sumIf",
+        "min_timestamp": "minIf",
+        "max_timestamp": "maxIf",
     },
-    "metrics_sets": {"count_unique": "uniqIf"},
+    "metrics_sets": {
+        "count_unique": "uniqIf",
+        "min_timestamp": "minIf",
+        "max_timestamp": "maxIf",
+    },
 }
+GENERIC_OP_TO_SNUBA_FUNCTION = {
+    "generic_metrics_counters": OP_TO_SNUBA_FUNCTION["metrics_counters"],
+    "generic_metrics_distributions": OP_TO_SNUBA_FUNCTION["metrics_distributions"],
+    "generic_metrics_sets": OP_TO_SNUBA_FUNCTION["metrics_sets"],
+}
+
+# This set contains all the operations that require the "rhs" condition to be resolved
+# in a "MetricConditionField". This solution is the simplest one and doesn't require any
+# changes in the transformer, however it requires this list to be discovered and updated
+# in case new operations are added, which is not ideal but given the fact that we already
+# define operations in this file, it is not a deal-breaker.
+REQUIRES_RHS_CONDITION_RESOLUTION = {"transform_null_to_unparameterized"}
+
+
+def require_rhs_condition_resolution(op: MetricOperationType) -> bool:
+    """
+    Checks whether a given operation requires its right operand to be resolved.
+    """
+    return op in REQUIRES_RHS_CONDITION_RESOLUTION
 
 
 def generate_operation_regex():
@@ -112,22 +210,45 @@ def generate_operation_regex():
 
 OP_REGEX = generate_operation_regex()
 
-
 AVAILABLE_OPERATIONS = {
     type_: sorted(mapping.keys()) for type_, mapping in OP_TO_SNUBA_FUNCTION.items()
+}
+AVAILABLE_GENERIC_OPERATIONS = {
+    type_: sorted(mapping.keys()) for type_, mapping in GENERIC_OP_TO_SNUBA_FUNCTION.items()
 }
 OPERATIONS_TO_ENTITY = {
     op: entity for entity, operations in AVAILABLE_OPERATIONS.items() for op in operations
 }
+GENERIC_OPERATIONS_TO_ENTITY = {
+    op: entity for entity, operations in AVAILABLE_GENERIC_OPERATIONS.items() for op in operations
+}
 
-# ToDo add guages/summaries
+# ToDo add gauges/summaries
 METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
     "counter": EntityKey.MetricsCounters,
     "set": EntityKey.MetricsSets,
     "distribution": EntityKey.MetricsDistributions,
+    "generic_counter": EntityKey.GenericMetricsCounters,
+    "generic_set": EntityKey.GenericMetricsSets,
+    "generic_distribution": EntityKey.GenericMetricsDistributions,
 }
 
 FIELD_ALIAS_MAPPINGS = {"project": "project_id"}
+NON_RESOLVABLE_TAG_VALUES = (
+    {"team_key_transaction"} | set(FIELD_ALIAS_MAPPINGS.keys()) | set(FIELD_ALIAS_MAPPINGS.values())
+)
+FILTERABLE_TAGS = {
+    "tags[environment]",
+    "tags[transaction]",
+    "tags[transaction.op]",
+    "tags[transaction.status]",
+    "tags[browser.name]",
+    "tags[os.name]",
+    "tags[release]",
+    "tags[histogram_outlier]",
+    "tags[geo.country_code]",
+    "tags[http.status_code]",
+}
 
 
 class Tag(TypedDict):
@@ -144,6 +265,7 @@ class MetricMeta(TypedDict):
     type: MetricType
     operations: Collection[MetricOperationType]
     unit: Optional[MetricUnit]
+    mri: str
 
 
 class MetricMetaWithTagKeys(MetricMeta):
@@ -156,22 +278,46 @@ OPERATIONS_PERCENTILES = (
     "p90",
     "p95",
     "p99",
+    "p100",
 )
-
-# ToDo Dynamically generate this from OP_TO_SNUBA_FUNCTION
-OPERATIONS = (
-    "avg",
-    "count_unique",
-    "count",
-    "max",
-    "sum",
+DERIVED_OPERATIONS = (
     "histogram",
-) + OPERATIONS_PERCENTILES
+    "rate",
+    "count_web_vitals",
+    "count_transaction_name",
+    "team_key_transaction",
+    "transform_null_to_unparameterized",
+    "sum_if_column",
+    "uniq_if_column",
+    "min_timestamp",
+    "max_timestamp",
+    # Custom operations used for on demand derived metrics.
+    "on_demand_apdex",
+    "on_demand_epm",
+    "on_demand_eps",
+    "on_demand_failure_count",
+    "on_demand_failure_rate",
+    "on_demand_count_web_vitals",
+    "on_demand_user_misery",
+)
+OPERATIONS = (
+    (
+        "avg",
+        "count_unique",
+        "count",
+        "max",
+        "min",
+        "sum",
+    )
+    + OPERATIONS_PERCENTILES
+    + DERIVED_OPERATIONS
+)
 
 DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[float]]]]] = {
     "avg": None,
     "count_unique": 0,
     "count": 0,
+    "min": None,
     "max": None,
     "p50": None,
     "p75": None,
@@ -180,11 +326,17 @@ DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[flo
     "p99": None,
     "sum": 0,
     "percentage": None,
-    "histogram": [],
 }
-UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage", "users": "count"}
+UNIT_TO_TYPE = {
+    "sessions": "count",
+    "percentage": "percentage",
+    "users": "count",
+}
 UNALLOWED_TAGS = {"session.status"}
 DATASET_COLUMNS = {"project_id", "metric_id"}
+
+# Custom measurements are always extracted as a distribution
+CUSTOM_MEASUREMENT_DATASETS = {"generic_distribution"}
 
 
 def combine_dictionary_of_list_values(main_dict, other_dict):
@@ -228,9 +380,103 @@ class OrderByNotSupportedOverCompositeEntityException(NotSupportedOverCompositeE
     ...
 
 
-def get_intervals(start: datetime, end: datetime, granularity: int):
-    assert granularity > 0
-    delta = timedelta(seconds=granularity)
-    while start < end:
+@overload
+def to_intervals(start: None, end: datetime, interval_seconds: int) -> tuple[None, None, int]:
+    ...
+
+
+@overload
+def to_intervals(start: datetime, end: None, interval_seconds: int) -> tuple[None, None, int]:
+    ...
+
+
+@overload
+def to_intervals(start: None, end: None, interval_seconds: int) -> tuple[None, None, int]:
+    ...
+
+
+@overload
+def to_intervals(
+    start: datetime, end: datetime, interval_seconds: int
+) -> tuple[datetime, datetime, int]:
+    ...
+
+
+def to_intervals(
+    start: Optional[datetime], end: Optional[datetime], interval_seconds: int
+) -> tuple[datetime, datetime, int] | tuple[None, None, int]:
+    """
+    Given a `start` date, `end` date and an alignment interval in seconds returns the aligned start, end and
+    the number of total intervals in [start:end]
+
+    """
+    assert interval_seconds > 0
+
+    # horrible hack for backward compatibility
+    # TODO Try to fix this upstream
+    if start is None or end is None:
+        return None, None, 0
+
+    if start.tzinfo is None:
+        start.replace(tzinfo=timezone.utc)
+    if end.tzinfo is None:
+        end.replace(tzinfo=timezone.utc)
+
+    interval_start = int(start.timestamp() / interval_seconds) * interval_seconds
+    interval_end = end.timestamp()
+
+    seconds_to_cover = interval_end - interval_start
+
+    last_incomplete_interval = 0
+    if seconds_to_cover % interval_seconds != 0:
+        # we don't finish neatly at the end of interval, add another
+        # interval to cover the last incomplete period
+        last_incomplete_interval = 1
+
+    num_intervals = int(seconds_to_cover / interval_seconds) + last_incomplete_interval
+    # finally convert back to dates
+    adjusted_start = datetime.fromtimestamp(interval_start, timezone.utc)
+    adjusted_end = adjusted_start + timedelta(seconds=interval_seconds * num_intervals)
+    return adjusted_start, adjusted_end, num_intervals
+
+
+def get_num_intervals(
+    start: Optional[datetime],
+    end: Optional[datetime],
+    granularity: int,
+    interval: Optional[int] = None,
+) -> int:
+    """
+    Calculates the number of intervals from start to end.
+    If start==None then it calculates from the beginning of unix time (for backward compatibility with
+    MetricsQuery.calculate_intervals_len)
+    """
+
+    # legacy usage (if no start time assume beginning of Unix time)
+    if start is None:
+        start = datetime.fromtimestamp(0).replace(tzinfo=timezone.utc)
+
+    if interval is None:
+        interval = granularity
+
+    assert interval > 0
+
+    _start, _end, num_intervals = to_intervals(start, end, interval)
+    return num_intervals
+
+
+def get_intervals(
+    start: datetime, end: datetime, granularity: int, interval: Optional[int] = None
+) -> Generator[datetime, None, None]:
+    if interval is None:
+        interval = granularity
+
+    start, _end, num_intervals = to_intervals(start, end, interval)
+
+    interval_span = timedelta(seconds=interval)
+    idx = 0
+
+    while idx < num_intervals:
         yield start
-        start += delta
+        idx += 1
+        start += interval_span

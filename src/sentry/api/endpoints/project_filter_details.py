@@ -1,23 +1,52 @@
+from collections.abc import Iterable
+
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+)
+from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.ingest import inbound_filters
+from sentry.ingest.inbound_filters import FilterStatKeys, _LegacyBrowserFilterSerializer
 
 
+@extend_schema(tags=["Projects"])
+@region_silo_endpoint
 class ProjectFilterDetailsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "PUT": ApiPublishStatus.PUBLIC,
+    }
+
+    @extend_schema(
+        operation_id="Update an Inbound Data Filter",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+            ProjectParams.FILTER_ID,
+        ],
+        request=_LegacyBrowserFilterSerializer,
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=None,
+    )
     def put(self, request: Request, project, filter_id) -> Response:
         """
-        Update a filter
-
-        Update a project's filter.
-
-            {method} {path}
-
+        Update various inbound data filters for a project.
         """
-        current_filter = None
         for flt in inbound_filters.get_all_filter_specs():
             if flt.id == filter_id:
                 current_filter = flt
@@ -31,8 +60,12 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=400)
 
         current_state = inbound_filters.get_filter_state(filter_id, project)
+        if isinstance(current_state, list):
+            current_state = set(current_state)
 
         new_state = inbound_filters.set_filter_state(filter_id, project, serializer.validated_data)
+        if isinstance(new_state, list):
+            new_state = set(new_state)
         audit_log_state = audit_log.get_event_id("PROJECT_ENABLE")
 
         returned_state = None
@@ -52,13 +85,20 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             elif new_state == current_state:
                 returned_state = new_state
 
-        if filter_id in ("browser-extensions", "localhost", "web-crawlers"):
+        if filter_id in (
+            FilterStatKeys.BROWSER_EXTENSION,
+            FilterStatKeys.LOCALHOST,
+            FilterStatKeys.WEB_CRAWLER,
+            FilterStatKeys.HEALTH_CHECK,
+        ):
             returned_state = filter_id
             removed = current_state - new_state
 
             if removed == 1:
                 audit_log_state = audit_log.get_event_id("PROJECT_DISABLE")
 
+        if isinstance(returned_state, Iterable):
+            returned_state = list(returned_state)
         self.create_audit_entry(
             request=request,
             organization=project.organization,
@@ -67,4 +107,4 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             data={"state": returned_state},
         )
 
-        return Response(status=201)
+        return Response(status=204)

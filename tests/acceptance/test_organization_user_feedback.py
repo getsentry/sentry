@@ -1,8 +1,10 @@
 from django.utils import timezone
 
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 
 
+@no_silo_test(stable=True)
 class OrganizationUserFeedbackTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -21,14 +23,11 @@ class OrganizationUserFeedbackTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until('[data-test-id="user-feedback-list"]')
-        self.browser.snapshot("organization user feedback")
 
     def test_empty(self):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.snapshot("organization user feedback - empty")
 
     def test_no_access(self):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.snapshot("organization user feedback - no access")

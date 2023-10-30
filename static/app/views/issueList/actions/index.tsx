@@ -1,34 +1,37 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
 import {bulkDelete, bulkUpdate, mergeGroups} from 'sentry/actionCreators/group';
-import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
-import {alertStyles} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import Checkbox from 'sentry/components/checkbox';
-import {t, tct, tn} from 'sentry/locale';
+import {Sticky} from 'sentry/components/sticky';
+import {tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
-import space from 'sentry/styles/space';
-import {Group, Organization, PageFilters} from 'sentry/types';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
-import withApi from 'sentry/utils/withApi';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {space} from 'sentry/styles/space';
+import {Group, PageFilters} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import theme from 'sentry/utils/theme';
+import useApi from 'sentry/utils/useApi';
+import useMedia from 'sentry/utils/useMedia';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 
 import ActionSet from './actionSet';
 import Headers from './headers';
+import IssueListSortOptions from './sortOptions';
 import {BULK_LIMIT, BULK_LIMIT_STR, ConfirmAction} from './utils';
 
-type Props = {
+type IssueListActionsProps = {
   allResultsVisible: boolean;
-  api: Client;
-  displayCount: React.ReactNode;
   displayReprocessingActions: boolean;
   groupIds: string[];
   onDelete: () => void;
   onSelectStatsPeriod: (period: string) => void;
   onSortChange: (sort: string) => void;
-  organization: Organization;
   query: string;
   queryCount: number;
   selection: PageFilters;
@@ -38,101 +41,114 @@ type Props = {
   onMarkReviewed?: (itemIds: string[]) => void;
 };
 
-type State = {
-  allInQuerySelected: boolean;
-  anySelected: boolean;
-  multiSelected: boolean;
-  pageSelected: boolean;
-  selectedIds: Set<string>;
-  selectedProjectSlug?: string;
-};
+function IssueListActions({
+  allResultsVisible,
+  displayReprocessingActions,
+  groupIds,
+  onActionTaken,
+  onDelete,
+  onMarkReviewed,
+  onSelectStatsPeriod,
+  onSortChange,
+  queryCount,
+  query,
+  selection,
+  sort,
+  statsPeriod,
+}: IssueListActionsProps) {
+  const api = useApi();
+  const organization = useOrganization();
+  const {
+    pageSelected,
+    multiSelected,
+    anySelected,
+    allInQuerySelected,
+    selectedIdsSet,
+    selectedProjectSlug,
+    setAllInQuerySelected,
+  } = useSelectedGroupsState();
+  const [isSavedSearchesOpen] = useSyncedLocalStorageState(
+    SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
+    false
+  );
 
-class IssueListActions extends Component<Props, State> {
-  state: State = {
-    anySelected: false,
-    multiSelected: false, // more than one selected
-    pageSelected: false, // all on current page selected (e.g. 25)
-    allInQuerySelected: false, // all in current search query selected (e.g. 1000+)
-    selectedIds: new Set(),
-  };
+  const disableActions = useMedia(
+    `(max-width: ${
+      isSavedSearchesOpen ? theme.breakpoints.large : theme.breakpoints.small
+    })`
+  );
 
-  componentDidMount() {
-    this.handleSelectedGroupChange();
-  }
+  const numIssues = selectedIdsSet.size;
 
-  componentWillUnmount() {
-    callIfFunction(this.listener);
-  }
-
-  listener = SelectedGroupStore.listen(() => this.handleSelectedGroupChange(), undefined);
-
-  actionSelectedGroups(callback: (itemIds: string[] | undefined) => void) {
-    let selectedIds: string[] | undefined;
-
-    if (this.state.allInQuerySelected) {
-      selectedIds = undefined; // undefined means "all"
-    } else {
-      const itemIdSet = SelectedGroupStore.getSelectedIds();
-      selectedIds = this.props.groupIds.filter(itemId => itemIdSet.has(itemId));
-    }
+  function actionSelectedGroups(callback: (itemIds: string[] | undefined) => void) {
+    const selectedIds = allInQuerySelected
+      ? undefined // undefined means "all"
+      : groupIds.filter(itemId => selectedIdsSet.has(itemId));
 
     callback(selectedIds);
 
-    this.deselectAll();
-  }
-
-  deselectAll() {
     SelectedGroupStore.deselectAll();
-    this.setState({allInQuerySelected: false});
   }
 
-  // Handler for when `SelectedGroupStore` changes
-  handleSelectedGroupChange() {
-    const selected = SelectedGroupStore.getSelectedIds();
-    const projects = [...selected]
-      .map(id => GroupStore.get(id))
-      .filter((group): group is Group => !!(group && group.project))
-      .map(group => group.project.slug);
+  // TODO: Remove issue.category:error filter when merging/deleting performance issues is supported
+  // This silently avoids performance issues for bulk actions
+  const queryExcludingPerformanceIssues = `${query ?? ''} issue.category:error`;
 
-    const uniqProjects = uniq(projects);
-
-    // we only want selectedProjectSlug set if there is 1 project
-    // more or fewer should result in a null so that the action toolbar
-    // can behave correctly.
-    const selectedProjectSlug = uniqProjects.length === 1 ? uniqProjects[0] : undefined;
-
-    this.setState({
-      pageSelected: SelectedGroupStore.allSelected(),
-      multiSelected: SelectedGroupStore.multiSelected(),
-      anySelected: SelectedGroupStore.anySelected(),
-      allInQuerySelected: false, // any change resets
-      selectedIds: SelectedGroupStore.getSelectedIds(),
-      selectedProjectSlug,
+  function handleDelete() {
+    actionSelectedGroups(itemIds => {
+      bulkDelete(
+        api,
+        {
+          orgId: organization.slug,
+          itemIds,
+          query: queryExcludingPerformanceIssues,
+          project: selection.projects,
+          environment: selection.environments,
+          ...selection.datetime,
+        },
+        {
+          complete: () => {
+            onDelete();
+          },
+        }
+      );
     });
   }
 
-  handleSelectStatsPeriod = (period: string) => {
-    return this.props.onSelectStatsPeriod(period);
-  };
+  function handleMerge() {
+    actionSelectedGroups(itemIds => {
+      mergeGroups(
+        api,
+        {
+          orgId: organization.slug,
+          itemIds,
+          query: queryExcludingPerformanceIssues,
+          project: selection.projects,
+          environment: selection.environments,
+          ...selection.datetime,
+        },
+        {}
+      );
+    });
+  }
 
-  handleApplyToAll = () => {
-    this.setState({allInQuerySelected: true});
-  };
+  function handleUpdate(data?: any) {
+    if (data.status === 'ignored') {
+      const statusDetails = data.statusDetails.ignoreCount
+        ? 'ignoreCount'
+        : data.statusDetails.ignoreDuration
+        ? 'ignoreDuration'
+        : data.statusDetails.ignoreUserCount
+        ? 'ignoreUserCount'
+        : undefined;
+      trackAnalytics('issues_stream.archived', {
+        action_status_details: statusDetails,
+        action_substatus: data.substatus,
+        organization,
+      });
+    }
 
-  handleUpdate = (data?: any) => {
-    const {selection, api, organization, query, onMarkReviewed, onActionTaken} =
-      this.props;
-    const orgId = organization.slug;
-    const hasIssueListRemovalAction = organization.features.includes(
-      'issue-list-removal-action'
-    );
-
-    this.actionSelectedGroups(itemIds => {
-      // TODO(Kelly): remove once issue-list-removal-action feature is stable
-      if (!hasIssueListRemovalAction) {
-        addLoadingMessage(t('Saving changes\u2026'));
-      }
-
+    actionSelectedGroups(itemIds => {
       if (data?.inbox === false) {
         onMarkReviewed?.(itemIds ?? []);
       }
@@ -150,7 +166,7 @@ class IssueListActions extends Component<Props, State> {
       bulkUpdate(
         api,
         {
-          orgId,
+          orgId: organization.slug,
           itemIds,
           data,
           query,
@@ -158,144 +174,56 @@ class IssueListActions extends Component<Props, State> {
           ...projectConstraints,
           ...selection.datetime,
         },
-        {
-          complete: () => {
-            if (!hasIssueListRemovalAction) {
-              clearIndicators();
-            }
-          },
-        }
-      );
-    });
-  };
-
-  handleDelete = () => {
-    const {selection, api, organization, query, onDelete} = this.props;
-    const orgId = organization.slug;
-
-    this.actionSelectedGroups(itemIds => {
-      bulkDelete(
-        api,
-        {
-          orgId,
-          itemIds,
-          query,
-          project: selection.projects,
-          environment: selection.environments,
-          ...selection.datetime,
-        },
-        {
-          complete: () => {
-            onDelete();
-          },
-        }
-      );
-    });
-  };
-
-  handleMerge = () => {
-    const {selection, api, organization, query} = this.props;
-    const orgId = organization.slug;
-
-    this.actionSelectedGroups(itemIds => {
-      mergeGroups(
-        api,
-        {
-          orgId,
-          itemIds,
-          query,
-          project: selection.projects,
-          environment: selection.environments,
-          ...selection.datetime,
-        },
         {}
       );
     });
-  };
-
-  handleSelectAll() {
-    SelectedGroupStore.toggleSelectAll();
   }
 
-  shouldConfirm = (action: ConfirmAction) => {
-    const selectedItems = SelectedGroupStore.getSelectedIds();
-
-    switch (action) {
-      case ConfirmAction.RESOLVE:
-      case ConfirmAction.UNRESOLVE:
-      case ConfirmAction.IGNORE:
-      case ConfirmAction.UNBOOKMARK: {
-        const {pageSelected} = this.state;
-        return pageSelected && selectedItems.size > 1;
-      }
-      case ConfirmAction.BOOKMARK:
-        return selectedItems.size > 1;
-      case ConfirmAction.MERGE:
-      case ConfirmAction.DELETE:
-      default:
-        return true; // By default, should confirm ...
-    }
-  };
-  render() {
-    const {
-      allResultsVisible,
-      queryCount,
-      query,
-      statsPeriod,
-      selection,
-      organization,
-      displayReprocessingActions,
-    } = this.props;
-
-    const {
-      allInQuerySelected,
-      anySelected,
-      pageSelected,
-      selectedIds: issues,
-      multiSelected,
-      selectedProjectSlug,
-    } = this.state;
-
-    const numIssues = issues.size;
-
-    return (
-      <Sticky>
-        <StyledFlex>
+  return (
+    <StickyActions>
+      <ActionsBar>
+        {!disableActions && (
           <ActionsCheckbox isReprocessingQuery={displayReprocessingActions}>
             <Checkbox
-              onChange={this.handleSelectAll}
-              checked={pageSelected}
+              onChange={() => SelectedGroupStore.toggleSelectAll()}
+              checked={pageSelected || (anySelected ? 'indeterminate' : false)}
               disabled={displayReprocessingActions}
             />
           </ActionsCheckbox>
-          {!displayReprocessingActions && (
-            <ActionSet
-              sort={this.props.sort}
-              onSortChange={this.props.onSortChange}
-              orgSlug={organization.slug}
-              queryCount={queryCount}
-              query={query}
-              issues={issues}
-              allInQuerySelected={allInQuerySelected}
-              anySelected={anySelected}
-              multiSelected={multiSelected}
-              selectedProjectSlug={selectedProjectSlug}
-              onShouldConfirm={this.shouldConfirm}
-              onDelete={this.handleDelete}
-              onMerge={this.handleMerge}
-              onUpdate={this.handleUpdate}
-            />
-          )}
-          <Headers
-            onSelectStatsPeriod={this.handleSelectStatsPeriod}
-            anySelected={anySelected}
-            selection={selection}
-            statsPeriod={statsPeriod}
-            isReprocessingQuery={displayReprocessingActions}
-          />
-        </StyledFlex>
-        {!allResultsVisible && pageSelected && (
-          <SelectAllNotice>
+        )}
+        {!displayReprocessingActions && (
+          <HeaderButtonsWrapper>
+            {!disableActions && (
+              <ActionSet
+                queryCount={queryCount}
+                query={query}
+                issues={selectedIdsSet}
+                allInQuerySelected={allInQuerySelected}
+                anySelected={anySelected}
+                multiSelected={multiSelected}
+                selectedProjectSlug={selectedProjectSlug}
+                onShouldConfirm={action =>
+                  shouldConfirm(action, {pageSelected, selectedIdsSet})
+                }
+                onDelete={handleDelete}
+                onMerge={handleMerge}
+                onUpdate={handleUpdate}
+              />
+            )}
+            <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+          </HeaderButtonsWrapper>
+        )}
+        <Headers
+          onSelectStatsPeriod={onSelectStatsPeriod}
+          selection={selection}
+          statsPeriod={statsPeriod}
+          isReprocessingQuery={displayReprocessingActions}
+          isSavedSearchesOpen={isSavedSearchesOpen}
+        />
+      </ActionsBar>
+      {!allResultsVisible && pageSelected && (
+        <Alert type="warning" system>
+          <SelectAllNotice data-test-id="issue-list-select-all-notice">
             {allInQuerySelected ? (
               queryCount >= BULK_LIMIT ? (
                 tct(
@@ -316,7 +244,10 @@ class IssueListActions extends Component<Props, State> {
                   '%s issues on this page selected.',
                   numIssues
                 )}
-                <SelectAllLink onClick={this.handleApplyToAll}>
+                <SelectAllLink
+                  onClick={() => setAllInQuerySelected(true)}
+                  data-test-id="issue-list-select-all-notice-link"
+                >
                   {queryCount >= BULK_LIMIT
                     ? tct(
                         'Select the first [count] issues that match this search query.',
@@ -331,21 +262,80 @@ class IssueListActions extends Component<Props, State> {
               </Fragment>
             )}
           </SelectAllNotice>
-        )}
-      </Sticky>
-    );
+        </Alert>
+      )}
+    </StickyActions>
+  );
+}
+
+function useSelectedGroupsState() {
+  const [allInQuerySelected, setAllInQuerySelected] = useState(false);
+  const selectedIds = useLegacyStore(SelectedGroupStore);
+
+  const selected = SelectedGroupStore.getSelectedIds();
+  const projects = [...selected]
+    .map(id => GroupStore.get(id))
+    .filter((group): group is Group => !!(group && group.project))
+    .map(group => group.project.slug);
+
+  const uniqProjects = uniq(projects);
+  // we only want selectedProjectSlug set if there is 1 project
+  // more or fewer should result in a null so that the action toolbar
+  // can behave correctly.
+  const selectedProjectSlug = uniqProjects.length === 1 ? uniqProjects[0] : undefined;
+
+  const pageSelected = SelectedGroupStore.allSelected();
+  const multiSelected = SelectedGroupStore.multiSelected();
+  const anySelected = SelectedGroupStore.anySelected();
+  const selectedIdsSet = SelectedGroupStore.getSelectedIds();
+
+  useEffect(() => {
+    setAllInQuerySelected(false);
+  }, [selectedIds]);
+
+  return {
+    pageSelected,
+    multiSelected,
+    anySelected,
+    allInQuerySelected,
+    selectedIdsSet,
+    selectedProjectSlug,
+    setAllInQuerySelected,
+  };
+}
+
+function shouldConfirm(
+  action: ConfirmAction,
+  {pageSelected, selectedIdsSet}: {pageSelected: boolean; selectedIdsSet: Set<string>}
+) {
+  switch (action) {
+    case ConfirmAction.RESOLVE:
+    case ConfirmAction.UNRESOLVE:
+    case ConfirmAction.IGNORE:
+    case ConfirmAction.UNBOOKMARK: {
+      return pageSelected && selectedIdsSet.size > 1;
+    }
+    case ConfirmAction.BOOKMARK:
+      return selectedIdsSet.size > 1;
+    case ConfirmAction.MERGE:
+    case ConfirmAction.DELETE:
+    default:
+      return true; // By default, should confirm ...
   }
 }
 
-const Sticky = styled('div')`
-  position: sticky;
+const StickyActions = styled(Sticky)`
   z-index: ${p => p.theme.zIndex.issuesList.stickyHeader};
-  top: -1px;
+
+  /* Remove border radius from the action bar when stuck. Without this there is
+   * a small gap where color can peek through. */
+  &[data-stuck] > div {
+    border-radius: 0;
+  }
 `;
 
-const StyledFlex = styled('div')`
+const ActionsBar = styled('div')`
   display: flex;
-  box-sizing: border-box;
   min-height: 45px;
   padding-top: ${space(1)};
   padding-bottom: ${space(1)};
@@ -353,30 +343,35 @@ const StyledFlex = styled('div')`
   background: ${p => p.theme.backgroundSecondary};
   border: 1px solid ${p => p.theme.border};
   border-top: none;
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  border-radius: ${p => p.theme.panelBorderRadius} ${p => p.theme.panelBorderRadius} 0 0;
   margin: 0 -1px -1px;
 `;
 
 const ActionsCheckbox = styled('div')<{isReprocessingQuery: boolean}>`
+  display: flex;
+  align-items: center;
   padding-left: ${space(2)};
   margin-bottom: 1px;
-  & input[type='checkbox'] {
-    margin: 0;
-    display: block;
-  }
   ${p => p.isReprocessingQuery && 'flex: 1'};
 `;
 
+const HeaderButtonsWrapper = styled('div')`
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    width: 50%;
+  }
+  flex: 1;
+  margin: 0 ${space(1)};
+  display: grid;
+  gap: ${space(0.5)};
+  grid-auto-flow: column;
+  justify-content: flex-start;
+  white-space: nowrap;
+`;
+
 const SelectAllNotice = styled('div')`
-  ${p => alertStyles({theme: p.theme, type: 'warning', system: true, opaque: true})}
-  flex-direction: row;
+  display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  padding: ${space(0.5)} ${space(1.5)};
-  border-top-width: 1px;
-
-  text-align: center;
-  font-size: ${p => p.theme.fontSizeMedium};
 
   a:not([role='button']) {
     color: ${p => p.theme.linkColor};
@@ -390,4 +385,4 @@ const SelectAllLink = styled('a')`
 
 export {IssueListActions};
 
-export default withApi(IssueListActions);
+export default IssueListActions;

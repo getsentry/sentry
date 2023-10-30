@@ -3,11 +3,10 @@ import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Client} from 'sentry/api';
-import CircleIndicator from 'sentry/components/circleIndicator';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {IconDiamond} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {Config, Organization, Project} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
@@ -33,7 +32,6 @@ type Props = {
 
   disabled: boolean;
   fieldHelp: React.ReactNode;
-  hasAlertWizardV3: boolean;
   isCritical: boolean;
   onChange: (trigger: Trigger, changeObj: Partial<Trigger>) => void;
   onThresholdPeriodChange: (value: number) => void;
@@ -81,7 +79,6 @@ class TriggerFormItem extends PureComponent<Props> {
       isCritical,
       thresholdType,
       thresholdPeriod,
-      hasAlertWizardV3,
       hideControl,
       comparisonType,
       fieldHelp,
@@ -97,7 +94,6 @@ class TriggerFormItem extends PureComponent<Props> {
         help={fieldHelp}
         required={isCritical}
         error={error && error.alertThreshold}
-        hasAlertWizardV3={hasAlertWizardV3}
       >
         <ThresholdControl
           disabled={disabled}
@@ -130,7 +126,6 @@ type TriggerFormContainerProps = Omit<
   | 'triggerLabel'
   | 'placeholder'
 > & {
-  hasAlertWizardV3: boolean;
   onChange: (triggerIndex: number, trigger: Trigger, changeObj: Partial<Trigger>) => void;
   onResolveThresholdChange: (
     resolveThreshold: UnsavedMetricRule['resolveThreshold']
@@ -177,29 +172,15 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
   }
 
   getIndicator(type: AlertRuleTriggerType) {
-    const {hasAlertWizardV3} = this.props;
-
     if (type === AlertRuleTriggerType.CRITICAL) {
-      return hasAlertWizardV3 ? (
-        <StyledIconDiamond color="red300" size="sm" />
-      ) : (
-        <CriticalIndicator size={12} />
-      );
+      return <StyledIconDiamond color="errorText" size="sm" />;
     }
 
     if (type === AlertRuleTriggerType.WARNING) {
-      return hasAlertWizardV3 ? (
-        <StyledIconDiamond color="yellow300" size="sm" />
-      ) : (
-        <WarningIndicator size={12} />
-      );
+      return <StyledIconDiamond color="warningText" size="sm" />;
     }
 
-    return hasAlertWizardV3 ? (
-      <StyledIconDiamond color="green300" size="sm" />
-    ) : (
-      <ResolvedIndicator size={12} />
-    );
+    return <StyledIconDiamond color="successText" size="sm" />;
   }
 
   render() {
@@ -216,7 +197,6 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
       aggregate,
       resolveThreshold,
       projects,
-      hasAlertWizardV3,
       onThresholdTypeChange,
       onThresholdPeriodChange,
     } = this.props;
@@ -251,18 +231,7 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
               projects={projects}
               triggerIndex={index}
               isCritical={isCritical}
-              hasAlertWizardV3={hasAlertWizardV3}
-              fieldHelp={
-                hasAlertWizardV3
-                  ? null
-                  : tct(
-                      'The threshold[units] that will activate the [severity] status.',
-                      {
-                        severity: isCritical ? t('critical') : t('warning'),
-                        units: thresholdUnits ? ` (${thresholdUnits})` : '',
-                      }
-                    )
-              }
+              fieldHelp={null}
               triggerLabel={
                 <TriggerLabel>
                   {this.getIndicator(
@@ -304,14 +273,7 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
           projects={projects}
           triggerIndex={2}
           isCritical={false}
-          hasAlertWizardV3={hasAlertWizardV3}
-          fieldHelp={
-            hasAlertWizardV3
-              ? null
-              : tct('The threshold[units] that will activate the resolved status.', {
-                  units: thresholdUnits ? ` (${thresholdUnits})` : '',
-                })
-          }
+          fieldHelp={null}
           triggerLabel={
             <TriggerLabel>
               {this.getIndicator(AlertRuleTriggerType.RESOLVE)}
@@ -328,21 +290,6 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
   }
 }
 
-const CriticalIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.red300};
-  margin-right: ${space(1)};
-`;
-
-const WarningIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.yellow300};
-  margin-right: ${space(1)};
-`;
-
-const ResolvedIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.green300};
-  margin-right: ${space(1)};
-`;
-
 const TriggerLabel = styled('div')`
   display: flex;
   flex-direction: row;
@@ -353,7 +300,7 @@ const StyledIconDiamond = styled(IconDiamond)`
   margin-right: ${space(0.75)};
 `;
 
-const StyledField = styled(Field)<{hasAlertWizardV3: boolean}>`
+const StyledField = styled(FieldGroup)`
   & > label > div:first-child > span {
     display: flex;
     flex-direction: row;

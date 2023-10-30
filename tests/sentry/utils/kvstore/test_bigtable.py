@@ -1,38 +1,24 @@
+from __future__ import annotations
+
 import functools
 import os
 from typing import Optional
 
 import pytest
-from google.oauth2.credentials import Credentials
 
 from sentry.utils.kvstore.bigtable import BigtableKVStorage
 
 
-def get_credentials() -> Credentials:
+def create_store(request, compression: Optional[str] = None) -> BigtableKVStorage:
     if "BIGTABLE_EMULATOR_HOST" not in os.environ:
         pytest.skip(
             "Bigtable is not available, set BIGTABLE_EMULATOR_HOST environment variable to enable"
         )
-
-    # The bigtable emulator requires _something_ to be passed as credentials,
-    # even if they're totally bogus ones.
-    return Credentials.from_authorized_user_info(
-        {key: "invalid" for key in ["client_id", "refresh_token", "client_secret"]}
-    )
-
-
-credentials = pytest.fixture(get_credentials)
-
-
-def create_store(
-    request, credentials: Credentials, compression: Optional[str] = None
-) -> BigtableKVStorage:
     store = BigtableKVStorage(
         project="test",
         instance="test",
         table_name="test",
         compression=compression,
-        client_options={"credentials": credentials},
     )
     store.bootstrap()
     request.addfinalizer(store.destroy)
@@ -40,8 +26,8 @@ def create_store(
 
 
 @pytest.fixture
-def store_factory(request, credentials: Credentials):
-    return functools.partial(create_store, request, credentials)
+def store_factory(request):
+    return functools.partial(create_store, request)
 
 
 @pytest.mark.parametrize(
@@ -55,7 +41,7 @@ def store_factory(request, credentials: Credentials):
 )
 def test_compression_raw_values(
     compression: Optional[str],
-    flag: BigtableKVStorage.Flags,
+    flag: BigtableKVStorage.Flags | None,
     expected_prefix: bytes,
     request,
     store_factory,

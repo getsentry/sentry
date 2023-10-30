@@ -2,14 +2,22 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
 from sentry.api.validators.notifications import validate, validate_type_option
-from sentry.models import NotificationSetting, User
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.user import User
 
 
+@control_silo_endpoint
 class UserNotificationSettingsDetailsEndpoint(UserEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     """
     This Notification Settings endpoint is the generic way to interact with the
     NotificationSettings table via the API.
@@ -30,14 +38,14 @@ class UserNotificationSettingsDetailsEndpoint(UserEndpoint):
 
         type_option = validate_type_option(request.GET.get("type"))
 
-        return Response(
-            serialize(
-                user,
-                request.user,
-                NotificationSettingsSerializer(),
-                type=type_option,
-            ),
+        notification_preferences = serialize(
+            user,
+            request.user,
+            NotificationSettingsSerializer(),
+            type=type_option,
         )
+
+        return Response(notification_preferences)
 
     def put(self, request: Request, user: User) -> Response:
         """

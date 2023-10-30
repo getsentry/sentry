@@ -1,13 +1,15 @@
 from typing import Any, Iterable
 
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.db.models.signals import post_save
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
-    BoundedPositiveIntegerField,
+    BoundedBigIntegerField,
     FlexibleForeignKey,
     Model,
+    region_silo_only_model,
     sane_repr,
 )
 
@@ -19,12 +21,13 @@ class CommitFileChangeManager(BaseManager):
         return int(self.filter(commit__in=commits).values("filename").distinct().count())
 
 
+@region_silo_only_model
 class CommitFileChange(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedPositiveIntegerField(db_index=True)
+    organization_id = BoundedBigIntegerField(db_index=True)
     commit = FlexibleForeignKey("sentry.Commit")
-    filename = models.CharField(max_length=255)
+    filename = models.TextField()
     type = models.CharField(
         max_length=1, choices=(("A", "Added"), ("D", "Deleted"), ("M", "Modified"))
     )
@@ -60,7 +63,7 @@ def process_resource_change(instance, **kwargs):
                 kwargs={"commit_id": instance.commit_id}, countdown=60 * 5
             )
 
-    transaction.on_commit(_spawn_task)
+    transaction.on_commit(_spawn_task, router.db_for_write(CommitFileChange))
 
 
 post_save.connect(

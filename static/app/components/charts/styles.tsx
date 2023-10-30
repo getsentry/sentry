@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 export const SubHeading = styled('h3')`
   font-size: ${p => p.theme.fontSizeLarge};

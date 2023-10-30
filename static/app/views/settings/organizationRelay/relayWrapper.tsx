@@ -6,12 +6,12 @@ import omit from 'lodash/omit';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {Organization, Relay, RelayActivity} from 'sentry/types';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
@@ -25,14 +25,14 @@ const RELAY_DOCS_LINK = 'https://getsentry.github.io/relay/';
 
 type Props = {
   organization: Organization;
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
 type State = {
   relayActivities: Array<RelayActivity>;
   relays: Array<Relay>;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class RelayWrapper extends AsyncView<Props, State> {
+class RelayWrapper extends DeprecatedAsyncView<Props, State> {
   componentDidUpdate(prevProps: Props, prevState: State) {
     if (!isEqual(prevState.relays, this.state.relays)) {
       // Fetch fresh activities
@@ -54,7 +54,7 @@ class RelayWrapper extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     return [['relayActivities', `/organizations/${organization.slug}/relay_usage/`]];
   }
@@ -166,7 +166,7 @@ class RelayWrapper extends AsyncView<Props, State> {
                 disabled ? t('You do not have permission to register keys') : undefined
               }
               priority="primary"
-              size="small"
+              size="sm"
               icon={<IconAdd size="xs" isCircled />}
               onClick={this.handleOpenAddDialog}
               disabled={disabled}

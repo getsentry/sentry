@@ -1,5 +1,5 @@
 from sentry.api.serializers import serialize
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class DebugFileSerializerTest(TestCase):

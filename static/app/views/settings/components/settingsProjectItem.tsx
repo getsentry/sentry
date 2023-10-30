@@ -1,9 +1,8 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 
 type Props = {
@@ -12,16 +11,9 @@ type Props = {
 };
 
 function ProjectItem({project, organization}: Props) {
-  const [isBookmarked, setBookmarked] = useState(project.isBookmarked);
-
   return (
     <Wrapper>
-      <BookmarkStar
-        organization={organization}
-        project={project}
-        isBookmarked={isBookmarked}
-        onToggle={state => setBookmarked(state)}
-      />
+      <BookmarkStar organization={organization} project={project} />
       <ProjectBadge
         to={`/settings/${organization.slug}/projects/${project.slug}/`}
         avatarSize={18}

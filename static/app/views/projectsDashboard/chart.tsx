@@ -16,7 +16,7 @@ type Props = {
   transactionStats?: Project['transactionStats'];
 };
 
-const Chart = ({firstEvent, stats, transactionStats}: Props) => {
+function Chart({firstEvent, stats, transactionStats}: Props) {
   const series: BaseChartProps['series'] = [];
   const hasTransactions = transactionStats !== undefined;
 
@@ -141,7 +141,7 @@ const Chart = ({firstEvent, stats, transactionStats}: Props) => {
         fontFamily: theme.text.family,
         inside: true,
         lineHeight: 12,
-        formatter: (value: number) => axisLabelFormatter(value, 'count()', true),
+        formatter: (value: number) => axisLabelFormatter(value, 'number', true),
         textBorderColor: theme.backgroundSecondary,
         textBorderWidth: 1,
       },
@@ -165,6 +165,6 @@ const Chart = ({firstEvent, stats, transactionStats}: Props) => {
       {!firstEvent && <NoEvents seriesCount={series.length} />}
     </Fragment>
   );
-};
+}
 
 export default Chart;

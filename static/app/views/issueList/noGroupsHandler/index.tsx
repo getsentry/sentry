@@ -7,7 +7,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {DEFAULT_QUERY} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import {Query} from 'sentry/views/issueList/utils';
+import {FOR_REVIEW_QUERIES} from 'sentry/views/issueList/utils';
 
 import NoUnresolvedIssues from './noUnresolvedIssues';
 
@@ -73,12 +73,12 @@ class NoGroupsHandler extends Component<Props, State> {
 
     // If no projects are selected, then we must check every project the user is a
     // member of and make sure there are no first events for all of the projects
-    let firstEventQuery = {};
+    // Set project to -1 for all projects
+    // Do not pass a project id for "my projects"
+    let firstEventQuery: {project?: number[]} = {};
     const projectsQuery: {per_page: number; query?: string} = {per_page: 1};
 
-    if (!selectedProjectIds || !selectedProjectIds.length) {
-      firstEventQuery = {is_member: true};
-    } else {
+    if (selectedProjectIds?.length) {
       firstEventQuery = {project: selectedProjectIds};
       projectsQuery.query = selectedProjectIds.map(id => `id:${id}`).join(' ');
     }
@@ -121,12 +121,7 @@ class NoGroupsHandler extends Component<Props, State> {
 
     return (
       <Suspense fallback={<Placeholder height="260px" />}>
-        <ErrorRobot
-          org={organization}
-          project={project}
-          sampleIssueId={sampleIssueId}
-          gradient
-        />
+        <ErrorRobot org={organization} project={project} sampleIssueId={sampleIssueId} />
       </Suspense>
     );
   }
@@ -159,7 +154,7 @@ class NoGroupsHandler extends Component<Props, State> {
       );
     }
 
-    if (query === Query.FOR_REVIEW) {
+    if (FOR_REVIEW_QUERIES.includes(query || '')) {
       return (
         <NoUnresolvedIssues
           title={t('Well, would you look at that.')}

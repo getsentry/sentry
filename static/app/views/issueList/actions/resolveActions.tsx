@@ -1,27 +1,37 @@
-import ResolveActions from 'sentry/components/actions/resolve';
-import {Organization} from 'sentry/types';
+import ResolveActions, {ResolveActionsProps} from 'sentry/components/actions/resolve';
 
-import {ConfirmAction} from './utils';
+import {ConfirmAction, getConfirm, getLabel} from './utils';
 
 type Props = {
   anySelected: boolean;
   onShouldConfirm: (action: ConfirmAction) => boolean;
   onUpdate: (data?: any) => void;
-  orgSlug: Organization['slug'];
-  params: any;
+  params: Pick<
+    ResolveActionsProps,
+    | 'disabled'
+    | 'hasRelease'
+    | 'latestRelease'
+    | 'projectSlug'
+    | 'projectFetchError'
+    | 'multipleProjectsSelected'
+  > & {
+    confirm: ReturnType<typeof getConfirm>;
+    label: ReturnType<typeof getLabel>;
+    loadingProjects?: boolean;
+  };
 };
 
 function ResolveActionsContainer({
   params,
-  orgSlug,
   anySelected,
   onShouldConfirm,
   onUpdate,
 }: Props) {
   const {
-    hasReleases,
+    hasRelease,
+    multipleProjectsSelected,
     latestRelease,
-    projectId,
+    projectSlug,
     confirm,
     label,
     loadingProjects,
@@ -32,18 +42,18 @@ function ResolveActionsContainer({
   // projectId is null when 0 or >1 projects are selected.
   const resolveDisabled = Boolean(!anySelected || projectFetchError);
   const resolveDropdownDisabled = Boolean(
-    !anySelected || !projectId || loadingProjects || projectFetchError
+    !anySelected || !projectSlug || loadingProjects || projectFetchError
   );
 
   return (
     <ResolveActions
-      hasRelease={hasReleases}
+      hasRelease={hasRelease}
+      multipleProjectsSelected={multipleProjectsSelected}
       latestRelease={latestRelease}
-      orgSlug={orgSlug}
-      projectSlug={projectId}
+      projectSlug={projectSlug}
       onUpdate={onUpdate}
       shouldConfirm={onShouldConfirm(ConfirmAction.RESOLVE)}
-      confirmMessage={confirm('resolve', true)}
+      confirmMessage={confirm({action: ConfirmAction.RESOLVE, canBeUndone: true})}
       confirmLabel={label('resolve')}
       disabled={resolveDisabled}
       disableDropdown={resolveDropdownDisabled}

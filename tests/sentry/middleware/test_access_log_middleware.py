@@ -1,16 +1,18 @@
 import logging
 
 import pytest
-from django.conf.urls import url
 from django.test import override_settings
+from django.urls import re_path
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.models import ApiToken
+from sentry.models.apitoken import ApiToken
+from sentry.models.outbox import outbox_context
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test, region_silo_test
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -95,15 +97,15 @@ class MyOrganizationEndpoint(OrganizationEndpoint):
 
 
 urlpatterns = [
-    url(r"^/dummy$", DummyEndpoint.as_view(), name="dummy-endpoint"),
-    url(r"^/dummyfail$", DummyFailEndpoint.as_view(), name="dummy-fail-endpoint"),
-    url(r"^/dummyratelimit$", RateLimitedEndpoint.as_view(), name="ratelimit-endpoint"),
-    url(
+    re_path(r"^/dummy$", DummyEndpoint.as_view(), name="dummy-endpoint"),
+    re_path(r"^/dummyfail$", DummyFailEndpoint.as_view(), name="dummy-fail-endpoint"),
+    re_path(r"^/dummyratelimit$", RateLimitedEndpoint.as_view(), name="ratelimit-endpoint"),
+    re_path(
         r"^/dummyratelimitconcurrent$",
         ConcurrentRateLimitedEndpoint.as_view(),
         name="concurrent-ratelimit-endpoint",
     ),
-    url(
+    re_path(
         r"^(?P<organization_slug>[^\/]+)/stats_v2/$",
         MyOrganizationEndpoint.as_view(),
         name="sentry-api-0-organization-stats-v2",
@@ -170,6 +172,7 @@ class TestAccessLogConcurrentRateLimited(LogCaptureAPITestCase):
             assert int(self.captured_logs[i].remaining) < 20
 
 
+@control_silo_test
 class TestAccessLogSuccess(LogCaptureAPITestCase):
 
     endpoint = "dummy-endpoint"
@@ -180,16 +183,18 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
         self.login_as(user=self.create_user())
         self.get_success_response(extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"})
         self.assert_access_log_recorded()
-        assert self.captured_logs[0].token_type == "ApiToken"
+        assert self.captured_logs[0].token_type == "api_token"
 
 
 @override_settings(LOG_API_ACCESS=False)
+@control_silo_test(stable=True)
 class TestAccessLogSuccessNotLoggedInDev(LogCaptureAPITestCase):
 
     endpoint = "dummy-endpoint"
 
     def test_access_log_success(self):
-        token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
+        with outbox_context(flush=False):
+            token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
         self.login_as(user=self.create_user())
         self.get_success_response(extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"})
         assert len(self.captured_logs) == 0
@@ -203,6 +208,7 @@ class TestAccessLogFail(LogCaptureAPITestCase):
         self.assert_access_log_recorded()
 
 
+@region_silo_test
 class TestOrganizationIdPresent(LogCaptureAPITestCase):
     endpoint = "sentry-api-0-organization-stats-v2"
 

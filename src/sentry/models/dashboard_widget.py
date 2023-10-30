@@ -1,19 +1,25 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django.contrib.postgres.fields import ArrayField as DjangoArrayField
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     ArrayField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
+    region_silo_only_model,
     sane_repr,
 )
 from sentry.db.models.fields import JSONField
 
 
 class TypesClass:
-    TYPES = []
+    TYPES: list[tuple[int, str]]
 
     @classmethod
     def as_choices(cls):
@@ -54,7 +60,6 @@ class DashboardWidgetDisplayTypes(TypesClass):
     STACKED_AREA_CHART = 2
     BAR_CHART = 3
     TABLE = 4
-    WORLD_MAP = 5
     BIG_NUMBER = 6
     TOP_N = 7
     TYPES = [
@@ -63,19 +68,19 @@ class DashboardWidgetDisplayTypes(TypesClass):
         (STACKED_AREA_CHART, "stacked_area"),
         (BAR_CHART, "bar"),
         (TABLE, "table"),
-        (WORLD_MAP, "world_map"),
         (BIG_NUMBER, "big_number"),
         (TOP_N, "top_n"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
 
+@region_silo_only_model
 class DashboardWidgetQuery(Model):
     """
     A query in a dashboard widget.
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     widget = FlexibleForeignKey("sentry.DashboardWidget")
     name = models.CharField(max_length=255)
@@ -104,22 +109,25 @@ class DashboardWidgetQuery(Model):
     __repr__ = sane_repr("widget", "type", "name")
 
 
+@region_silo_only_model
 class DashboardWidget(Model):
     """
     A dashboard widget.
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     dashboard = FlexibleForeignKey("sentry.Dashboard")
     order = BoundedPositiveIntegerField()
     title = models.CharField(max_length=255)
+    description = models.CharField(max_length=255, null=True)
+    thresholds = JSONField(null=True)
     interval = models.CharField(max_length=10, null=True)
     display_type = BoundedPositiveIntegerField(choices=DashboardWidgetDisplayTypes.as_choices())
     date_added = models.DateTimeField(default=timezone.now)
     widget_type = BoundedPositiveIntegerField(choices=DashboardWidgetTypes.as_choices(), null=True)
     limit = models.IntegerField(null=True)
-    detail = JSONField(null=True)
+    detail: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
 
     class Meta:
         app_label = "sentry"

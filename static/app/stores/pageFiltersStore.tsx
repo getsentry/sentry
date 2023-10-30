@@ -1,11 +1,9 @@
 import isEqual from 'lodash/isEqual';
 import {createStore} from 'reflux';
 
-import PageFiltersActions from 'sentry/actions/pageFiltersActions';
 import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
 import {PageFilters, PinnedPageFilter} from 'sentry/types';
 import {isEqualWithDates} from 'sentry/utils/isEqualWithDates';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
 
@@ -23,6 +21,12 @@ interface CommonState {
    * The current page filter selection
    */
   selection: PageFilters;
+  /**
+   * Whether to save changes to local storage. This setting should be page-specific:
+   * most pages should have it on (default) and some, like Dashboard Details, need it
+   * off.
+   */
+  shouldPersist: boolean;
 }
 
 /**
@@ -46,13 +50,18 @@ interface PageFiltersStoreDefinition
   extends InternalDefinition,
     CommonStoreDefinition<State> {
   init(): void;
-  onInitializeUrlState(newSelection: PageFilters, pinned: Set<PinnedPageFilter>): void;
+  onInitializeUrlState(
+    newSelection: PageFilters,
+    pinned: Set<PinnedPageFilter>,
+    persist?: boolean
+  ): void;
   onReset(): void;
   pin(filter: PinnedPageFilter, pin: boolean): void;
   reset(selection?: PageFilters): void;
   updateDateTime(datetime: PageFilters['datetime']): void;
   updateDesyncedFilters(filters: Set<PinnedPageFilter>): void;
-  updateEnvironments(environments: string[]): void;
+  updateEnvironments(environments: string[] | null): void;
+  updatePersistence(shouldPersist: boolean): void;
   updateProjects(projects: PageFilters['projects'], environments: null | string[]): void;
 }
 
@@ -60,29 +69,14 @@ const storeConfig: PageFiltersStoreDefinition = {
   selection: getDefaultSelection(),
   pinnedFilters: new Set(),
   desyncedFilters: new Set(),
+  shouldPersist: true,
   hasInitialState: false,
-  unsubscribeListeners: [],
 
   init() {
-    this.reset(this.selection);
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
 
-    this.unsubscribeListeners.push(this.listenTo(PageFiltersActions.reset, this.onReset));
-    this.unsubscribeListeners.push(
-      this.listenTo(PageFiltersActions.initializeUrlState, this.onInitializeUrlState)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(PageFiltersActions.updateProjects, this.updateProjects)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(PageFiltersActions.updateDateTime, this.updateDateTime)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(PageFiltersActions.updateEnvironments, this.updateEnvironments)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(PageFiltersActions.updateDesyncedFilters, this.updateDesyncedFilters)
-    );
-    this.unsubscribeListeners.push(this.listenTo(PageFiltersActions.pin, this.pin));
+    this.reset(this.selection);
   },
 
   reset(selection) {
@@ -94,11 +88,12 @@ const storeConfig: PageFiltersStoreDefinition = {
   /**
    * Initializes the page filters store data
    */
-  onInitializeUrlState(newSelection, pinned) {
+  onInitializeUrlState(newSelection, pinned, persist = true) {
     this._isReady = true;
 
     this.selection = newSelection;
     this.pinnedFilters = pinned;
+    this.shouldPersist = persist;
     this.trigger(this.getState());
   },
 
@@ -107,12 +102,18 @@ const storeConfig: PageFiltersStoreDefinition = {
       selection: this.selection,
       pinnedFilters: this.pinnedFilters,
       desyncedFilters: this.desyncedFilters,
+      shouldPersist: this.shouldPersist,
       isReady: this._isReady,
     };
   },
 
   onReset() {
     this.reset();
+    this.trigger(this.getState());
+  },
+
+  updatePersistence(shouldPersist: boolean) {
+    this.shouldPersist = shouldPersist;
     this.trigger(this.getState());
   },
 
@@ -124,6 +125,12 @@ const storeConfig: PageFiltersStoreDefinition = {
   updateProjects(projects = [], environments = null) {
     if (isEqual(this.selection.projects, projects)) {
       return;
+    }
+
+    if (this.desyncedFilters.has('projects')) {
+      const newDesyncedFilters = new Set(this.desyncedFilters);
+      newDesyncedFilters.delete('projects');
+      this.desyncedFilters = newDesyncedFilters;
     }
 
     this.selection = {
@@ -139,6 +146,12 @@ const storeConfig: PageFiltersStoreDefinition = {
       return;
     }
 
+    if (this.desyncedFilters.has('datetime')) {
+      const newDesyncedFilters = new Set(this.desyncedFilters);
+      newDesyncedFilters.delete('datetime');
+      this.desyncedFilters = newDesyncedFilters;
+    }
+
     this.selection = {
       ...this.selection,
       datetime,
@@ -149,6 +162,12 @@ const storeConfig: PageFiltersStoreDefinition = {
   updateEnvironments(environments) {
     if (isEqual(this.selection.environments, environments)) {
       return;
+    }
+
+    if (this.desyncedFilters.has('environments')) {
+      const newDesyncedFilters = new Set(this.desyncedFilters);
+      newDesyncedFilters.delete('environments');
+      this.desyncedFilters = newDesyncedFilters;
     }
 
     this.selection = {
@@ -169,6 +188,5 @@ const storeConfig: PageFiltersStoreDefinition = {
   },
 };
 
-const PageFiltersStore = createStore(makeSafeRefluxStore(storeConfig));
-
+const PageFiltersStore = createStore(storeConfig);
 export default PageFiltersStore;

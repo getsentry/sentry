@@ -1,15 +1,15 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
-interface ListeItemProps extends React.HTMLAttributes<HTMLLIElement> {
+export interface ListItemProps extends React.HTMLAttributes<HTMLLIElement> {
   padding?: string;
   symbol?: React.ReactElement;
 }
 
 const ListItem = styled(
-  forwardRef<HTMLLIElement, ListeItemProps>(
+  forwardRef<HTMLLIElement, ListItemProps>(
     ({symbol, children, padding: _padding, ...props}, ref) => (
       <li ref={ref} role={props.onClick ? 'button' : undefined} {...props}>
         {symbol && <Symbol>{symbol}</Symbol>}

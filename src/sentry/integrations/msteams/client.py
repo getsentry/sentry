@@ -1,15 +1,25 @@
+from __future__ import annotations
+
 import time
 from urllib.parse import urlencode
 
+from requests import PreparedRequest
+
 from sentry import options
 from sentry.integrations.client import ApiClient
+from sentry.models.integrations import Integration
+from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
+from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
+from sentry.silo.base import SiloMode
 
 # five minutes which is industry standard clock skew tolerance
 CLOCK_SKEW = 60 * 5
 
 
-# MsTeamsAbstractClient abstract client does not handle setting the base url or auth token
-class MsTeamsAbstractClient(ApiClient):
+# MsTeamsClientMixin abstract client does not handle setting the base url or auth token
+class MsTeamsClientMixin:
     integration_name = "msteams"
     TEAM_URL = "/v3/teams/%s"
     CHANNEL_URL = "/v3/teams/%s/conversations"
@@ -18,36 +28,32 @@ class MsTeamsAbstractClient(ApiClient):
     CONVERSATION_URL = "/v3/conversations"
     MEMBER_URL = "/v3/conversations/%s/pagedmembers"
 
-    def request(self, method, path, data=None, params=None):
-        headers = {"Authorization": f"Bearer {self.access_token}"}
-        return self._request(method, path, headers=headers, data=data, params=params)
-
-    def get_team_info(self, team_id):
+    def get_team_info(self, team_id: str):
         return self.get(self.TEAM_URL % team_id)
 
-    def get_channel_list(self, team_id):
+    def get_channel_list(self, team_id: str):
         resp = self.get(self.CHANNEL_URL % team_id)
         return resp.get("conversations")
 
-    def get_member_list(self, team_id, continuation_token=None):
+    def get_member_list(self, team_id: str, continuation_token: str | None = None):
         url = self.MEMBER_URL % team_id
         params = {"pageSize": 500}
         if continuation_token:
             params["continuationToken"] = continuation_token
         return self.get(url, params=params)
 
-    def get_user_conversation_id(self, user_id, tenant_id):
+    def get_user_conversation_id(self, user_id: str, tenant_id: str):
         data = {"members": [{"id": user_id}], "channelData": {"tenant": {"id": tenant_id}}}
         resp = self.post(self.CONVERSATION_URL, data=data)
         return resp.get("id")
 
-    def send_message(self, conversation_id, data):
+    def send_message(self, conversation_id: str, data):
         return self.post(self.ACTIVITY_URL % conversation_id, data=data)
 
-    def update_message(self, conversation_id, activity_id, data):
+    def update_message(self, conversation_id: str, activity_id: str, data):
         return self.put(self.MESSAGE_URL % (conversation_id, activity_id), data=data)
 
-    def send_card(self, conversation_id, card):
+    def send_card(self, conversation_id: str, card):
         payload = {
             "type": "message",
             "attachments": [
@@ -56,7 +62,7 @@ class MsTeamsAbstractClient(ApiClient):
         }
         return self.send_message(conversation_id, payload)
 
-    def update_card(self, conversation_id, activity_id, card):
+    def update_card(self, conversation_id: str, activity_id: str, card):
         payload = {
             "type": "message",
             "attachments": [
@@ -68,18 +74,27 @@ class MsTeamsAbstractClient(ApiClient):
 
 # MsTeamsPreInstallClient is used with the access token and service url as arguments to the constructor
 # It will not handle token refreshing
-class MsTeamsPreInstallClient(MsTeamsAbstractClient):
-    def __init__(self, access_token, service_url):
+class MsTeamsPreInstallClient(ApiClient, MsTeamsClientMixin):
+    integration_name = "msteams"
+
+    def __init__(self, access_token: str, service_url: str):
         super().__init__()
         self.access_token = access_token
         self.base_url = service_url.rstrip("/")
 
+    def request(self, method, path, data=None, params=None):
+        headers = {"Authorization": f"Bearer {self.access_token}"}
+        return self._request(method, path, headers=headers, data=data, params=params)
+
 
 # MsTeamsClient is used with an existing integration object and handles token refreshing
-class MsTeamsClient(MsTeamsAbstractClient):
-    def __init__(self, integration):
-        super().__init__()
+class MsTeamsClient(IntegrationProxyClient, MsTeamsClientMixin):
+    integration_name = "msteams"
+
+    def __init__(self, integration: Integration | RpcIntegration):
         self.integration = integration
+        org_integration_id = infer_org_integration(integration_id=integration.id)
+        super().__init__(org_integration_id=org_integration_id)
 
     @property
     def metadata(self):
@@ -94,13 +109,28 @@ class MsTeamsClient(MsTeamsAbstractClient):
         access_token = self.metadata.get("access_token")
         expires_at = self.metadata.get("expires_at")
 
-        # if the token is expired, refresh it and save  it
-        if expires_at <= int(time.time()):
-            token_data = get_token_data()
-            access_token = token_data["access_token"]
-            self.metadata.update(token_data)
-            self.integration.save()
+        # We don't refresh the access token in region silos.
+        if SiloMode.get_current_mode() != SiloMode.REGION:
+            # if the token is expired, refresh it and save  it
+            if expires_at <= int(time.time()):
+                from copy import deepcopy
+
+                new_metadata = deepcopy(self.integration.metadata)
+
+                token_data = get_token_data()
+                access_token = token_data["access_token"]
+                new_metadata.update(token_data)
+
+                self.integration = integration_service.update_integration(
+                    integration_id=self.integration.id,
+                    metadata=new_metadata,
+                )
         return access_token
+
+    @control_silo_function
+    def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+        prepared_request.headers["Authorization"] = f"Bearer {self.access_token}"
+        return prepared_request
 
 
 # OAuthMsTeamsClient is used only for the exchanging the token

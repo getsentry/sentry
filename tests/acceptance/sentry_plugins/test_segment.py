@@ -1,6 +1,8 @@
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 
 
+@no_silo_test(stable=True)
 class SegmentTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -15,5 +17,4 @@ class SegmentTest(AcceptanceTestCase):
     def test_simple(self):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.snapshot("segment settings")
         assert self.browser.element_exists(".ref-plugin-config-segment")

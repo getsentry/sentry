@@ -1,10 +1,9 @@
 from rest_framework import serializers
 
-from sentry import tsdb
-from sentry.api.fields.multiplechoice import MultipleChoiceField
-from sentry.models import ProjectOption
+from sentry.models.options.project_option import ProjectOption
 from sentry.relay.utils import to_camel_case_name
 from sentry.signals import inbound_filter_toggled
+from sentry.tsdb.base import TSDBModel
 
 
 class FilterStatKeys:
@@ -24,19 +23,21 @@ class FilterStatKeys:
     CORS = "cors"
     DISCARDED_HASH = "discarded-hash"  # Not replicated in Relay
     CRASH_REPORT_LIMIT = "crash-report-limit"  # Not replicated in Relay
+    HEALTH_CHECK = "filtered-transaction"  # Ignore health-check transactions
 
 
 FILTER_STAT_KEYS_TO_VALUES = {
-    FilterStatKeys.IP_ADDRESS: tsdb.models.project_total_received_ip_address,
-    FilterStatKeys.RELEASE_VERSION: tsdb.models.project_total_received_release_version,
-    FilterStatKeys.ERROR_MESSAGE: tsdb.models.project_total_received_error_message,
-    FilterStatKeys.BROWSER_EXTENSION: tsdb.models.project_total_received_browser_extensions,
-    FilterStatKeys.LEGACY_BROWSER: tsdb.models.project_total_received_legacy_browsers,
-    FilterStatKeys.LOCALHOST: tsdb.models.project_total_received_localhost,
-    FilterStatKeys.WEB_CRAWLER: tsdb.models.project_total_received_web_crawlers,
-    FilterStatKeys.INVALID_CSP: tsdb.models.project_total_received_invalid_csp,
-    FilterStatKeys.CORS: tsdb.models.project_total_received_cors,
-    FilterStatKeys.DISCARDED_HASH: tsdb.models.project_total_received_discarded,
+    FilterStatKeys.IP_ADDRESS: TSDBModel.project_total_received_ip_address,
+    FilterStatKeys.RELEASE_VERSION: TSDBModel.project_total_received_release_version,
+    FilterStatKeys.ERROR_MESSAGE: TSDBModel.project_total_received_error_message,
+    FilterStatKeys.BROWSER_EXTENSION: TSDBModel.project_total_received_browser_extensions,
+    FilterStatKeys.LEGACY_BROWSER: TSDBModel.project_total_received_legacy_browsers,
+    FilterStatKeys.LOCALHOST: TSDBModel.project_total_received_localhost,
+    FilterStatKeys.WEB_CRAWLER: TSDBModel.project_total_received_web_crawlers,
+    FilterStatKeys.INVALID_CSP: TSDBModel.project_total_received_invalid_csp,
+    FilterStatKeys.CORS: TSDBModel.project_total_received_cors,
+    FilterStatKeys.DISCARDED_HASH: TSDBModel.project_total_received_discarded,
+    FilterStatKeys.HEALTH_CHECK: TSDBModel.project_total_healthcheck,
 }
 
 
@@ -46,7 +47,7 @@ class FilterTypes:
 
 
 def get_filter_key(flt):
-    return to_camel_case_name(flt.id.replace("-", "_"))
+    return to_camel_case_name(flt.config_name.replace("-", "_"))
 
 
 def get_all_filter_specs():
@@ -58,12 +59,15 @@ def get_all_filter_specs():
 
     :return: list of registered event filters
     """
-    return (
+    filters = [
         _localhost_filter,
         _browser_extensions_filter,
         _legacy_browsers_filter,
         _web_crawlers_filter,
-    )
+        _healthcheck_filter,
+    ]
+
+    return tuple(filters)  # returning tuple for backwards compatibility
 
 
 def set_filter_state(filter_id, project, state):
@@ -156,16 +160,25 @@ def _filter_from_filter_id(filter_id):
 
 
 class _FilterSerializer(serializers.Serializer):
-    active = serializers.BooleanField()
+    active = serializers.BooleanField(
+        help_text="Toggle the browser-extensions, localhost, filtered-transaction, or web-crawlers filter on or off.",
+        required=False,
+    )
 
 
 class _FilterSpec:
     """
     Data associated with a filter, it defines its name, id, default enable state and how its  state is serialized
     in the database
+
+    id: the id of the filter
+    name: name of the filter
+    description: short description
+    serializer_cls: class for filter serialization
+    config_name: the name under which it will be serialized in the config (if None id will be used)
     """
 
-    def __init__(self, id, name, description, serializer_cls=None):
+    def __init__(self, id, name, description, serializer_cls=None, config_name=None):
         self.id = id
         self.name = name
         self.description = description
@@ -173,6 +186,11 @@ class _FilterSpec:
             self.serializer_cls = _FilterSerializer
         else:
             self.serializer_cls = serializer_cls
+
+        if config_name is None:
+            self.config_name = id
+        else:
+            self.config_name = config_name
 
 
 def _get_filter_settings(project_config, flt):
@@ -200,9 +218,21 @@ _browser_extensions_filter = _FilterSpec(
 )
 
 
-class _LegacyBrowserFilterSerializer(serializers.Serializer):
-    active = serializers.BooleanField()
-    subfilters = MultipleChoiceField(
+class _LegacyBrowserFilterSerializer(_FilterSerializer):
+    subfilters = serializers.MultipleChoiceField(
+        help_text="""
+Specifies which legacy browser filters should be active. Anything excluded from the list will be
+disabled. The options are:
+- `ie_pre_9` - Internet Explorer Version 8 and lower
+- `ie9` - Internet Explorer Version 9
+- `ie10` - Internet Explorer Version 10
+- `ie11` - Internet Explorer Version 11
+- `safari_pre_6` - Safari Version 5 and lower
+- `opera_pre_15` - Opera Version 14 and lower
+- `opera_mini_pre_8` - Opera Mini Version 8 and lower
+- `android_pre_4` - Android Version 3 and lower
+- 'edge_pre_79' - Edge Version 18 and lower (non Chromium based)
+""",
         choices=[
             "ie_pre_9",
             "ie9",
@@ -212,7 +242,9 @@ class _LegacyBrowserFilterSerializer(serializers.Serializer):
             "android_pre_4",
             "safari_pre_6",
             "opera_mini_pre_8",
-        ]
+            "edge_pre_79",
+        ],
+        required=False,
     )
 
 
@@ -230,4 +262,13 @@ _web_crawlers_filter = _FilterSpec(
     name="Filter out known web crawlers",
     description="Some crawlers may execute pages in incompatible ways which then cause errors that"
     " are unlikely to be seen by a normal user.",
+)
+
+
+_healthcheck_filter = _FilterSpec(
+    id=FilterStatKeys.HEALTH_CHECK,
+    name="Filter out health check transactions",
+    description="Filter transactions that match most common naming patterns for health checks.",
+    serializer_cls=None,
+    config_name="ignoreTransactions",
 )

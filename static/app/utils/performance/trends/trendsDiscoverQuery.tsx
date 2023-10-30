@@ -3,7 +3,6 @@ import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import {
   TrendChangeType,
@@ -17,6 +16,7 @@ import {
   generateTrendFunctionAsString,
   getCurrentTrendFunction,
   getCurrentTrendParameter,
+  getTopTrendingEvents,
 } from 'sentry/views/performance/trends/utils';
 
 export type TrendsRequest = {
@@ -24,6 +24,7 @@ export type TrendsRequest = {
   projects: Project[];
   trendChangeType?: TrendChangeType;
   trendFunctionField?: TrendFunctionField;
+  withBreakpoint?: boolean;
 };
 
 type RequestProps = DiscoverQueryProps & TrendsRequest;
@@ -63,14 +64,24 @@ export function getTrendsRequestPayload(props: RequestProps) {
   apiPayload.trendType = eventView?.trendType || props.trendChangeType;
   apiPayload.interval = eventView?.interval;
   apiPayload.middle = eventView?.middle;
+
+  // This enables configuring the top event count for trend analysis
+  // It's not necessary to set top event count unless
+  // it's done for experimentation
+  const topEventsCountAsString = getTopTrendingEvents(props.location);
+  if (topEventsCountAsString) {
+    apiPayload.topEvents = parseInt(topEventsCountAsString, 10);
+  }
+
   return apiPayload;
 }
 
 function TrendsDiscoverQuery(props: Props) {
+  const route = props.withBreakpoint ? 'events-trends-statsv2' : 'events-trends-stats';
   return (
     <GenericDiscoverQuery<TrendsData, TrendsRequest>
       {...props}
-      route="events-trends-stats"
+      route={route}
       getRequestPayload={getTrendsRequestPayload}
     >
       {({tableData, ...rest}) => {
@@ -94,6 +105,6 @@ function EventsDiscoverQuery(props: EventProps) {
   );
 }
 
-export const TrendsEventsDiscoverQuery = withApi(withProjects(EventsDiscoverQuery));
+export const TrendsEventsDiscoverQuery = withProjects(EventsDiscoverQuery);
 
-export default withApi(withProjects(TrendsDiscoverQuery));
+export default withProjects(TrendsDiscoverQuery);

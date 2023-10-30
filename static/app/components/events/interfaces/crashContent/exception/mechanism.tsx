@@ -1,95 +1,112 @@
-import {Component} from 'react';
-import {css} from '@emotion/react';
+import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import forOwn from 'lodash/forOwn';
 import isNil from 'lodash/isNil';
 import isObject from 'lodash/isObject';
 
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Hovercard} from 'sentry/components/hovercard';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
-import {IconInfo, IconOpen} from 'sentry/icons';
+import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {StackTraceMechanism} from 'sentry/types/stacktrace';
 import {isUrl} from 'sentry/utils';
-import {Theme} from 'sentry/utils/theme';
 
 type Props = {
   data: StackTraceMechanism;
+  meta?: Record<any, any>;
 };
 
-class Mechanism extends Component<Props> {
-  render() {
-    const mechanism = this.props.data;
-    const {type, description, help_link, handled, meta = {}, data = {}} = mechanism;
-    const {errno, signal, mach_exception} = meta;
+export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
+  const {type, description, help_link, handled, source, meta = {}, data = {}} = mechanism;
 
-    const linkElement = help_link && isUrl(help_link) && (
-      <StyledExternalLink href={help_link}>
-        <IconOpen size="xs" />
-      </StyledExternalLink>
-    );
+  const {errno, signal, mach_exception} = meta;
 
-    const descriptionElement = description && (
-      <Hovercard
-        header={
-          <span>
-            <Details>{t('Details')}</Details> {linkElement}
-          </span>
-        }
-        body={description}
-      >
-        <StyledIconInfo size="14px" />
-      </Hovercard>
-    );
+  const linkElement = help_link && isUrl(help_link) && (
+    <StyledExternalLink href={help_link}>
+      <IconOpen size="xs" />
+    </StyledExternalLink>
+  );
 
-    const pills = [
-      <Pill key="mechanism" name="mechanism" value={type || 'unknown'}>
-        {descriptionElement || linkElement}
-      </Pill>,
-    ];
+  const typeName = type || 'unknown';
 
-    if (!isNil(handled)) {
-      pills.push(<Pill key="handled" name="handled" value={handled} />);
-    }
+  const pills = [
+    <Pill key="mechanism" name="mechanism">
+      {description ? (
+        <Hovercard
+          showUnderline
+          header={
+            <Details>
+              {t('Details')}
+              {linkElement}
+            </Details>
+          }
+          body={description}
+        >
+          {typeName}
+        </Hovercard>
+      ) : linkElement ? (
+        <Name>
+          {typeName}
+          {linkElement}
+        </Name>
+      ) : (
+        typeName
+      )}
+    </Pill>,
+  ];
 
-    if (errno) {
-      const value = errno.name || errno.number;
-      pills.push(<Pill key="errno" name="errno" value={value} />);
-    }
-
-    if (mach_exception) {
-      const value = mach_exception.name || mach_exception.exception;
-      pills.push(<Pill key="mach" name="mach exception" value={value} />);
-    }
-
-    if (signal) {
-      const code = signal.code_name || `${t('code')} ${signal.code}`;
-      const name = signal.name || signal.number;
-      const value = isNil(signal.code) ? name : `${name} (${code})`;
-      pills.push(<Pill key="signal" name="signal" value={value} />);
-    }
-
-    forOwn(data, (value, key) => {
-      if (!isObject(value)) {
-        pills.push(<Pill key={`data:${key}`} name={key} value={value} />);
-      }
-    });
-
-    return (
-      <Wrapper>
-        <StyledPills>{pills}</StyledPills>
-      </Wrapper>
-    );
+  if (!isNil(handled)) {
+    pills.push(<Pill key="handled" name="handled" value={handled} />);
   }
+
+  if (errno) {
+    const value = errno.name || errno.number;
+    pills.push(<Pill key="errno" name="errno" value={value} />);
+  }
+
+  if (mach_exception) {
+    const value = mach_exception.name || mach_exception.exception;
+    pills.push(<Pill key="mach" name="mach exception" value={value} />);
+  }
+
+  if (source) {
+    pills.push(<Pill key="source" name="source" value={source} />);
+  }
+
+  if (signal) {
+    const code = signal.code_name || `${t('code')} ${signal.code}`;
+    const name = signal.name || signal.number;
+    const value = isNil(signal.code) ? name : `${name} (${code})`;
+    pills.push(<Pill key="signal" name="signal" value={value} />);
+  }
+
+  forOwn(data, (value, key) => {
+    if (!isObject(value)) {
+      pills.push(
+        <Pill key={`data:${key}`} name={key}>
+          {mechanismMeta?.data?.[key]?.[''] && !value ? (
+            <AnnotatedText value={value} meta={mechanismMeta?.data?.[key]?.['']} />
+          ) : (
+            value
+          )}
+        </Pill>
+      );
+    }
+  });
+
+  return (
+    <Wrapper>
+      <StyledPills>{pills}</StyledPills>
+    </Wrapper>
+  );
 }
 
-export default Mechanism;
-
 const Wrapper = styled('div')`
-  margin: ${space(2)} 0;
+  margin: ${space(2)} 0 ${space(0.5)} 0;
 `;
 
 const iconStyle = (p: {theme: Theme}) => css`
@@ -105,8 +122,15 @@ const StyledExternalLink = styled(ExternalLink)`
   ${iconStyle};
 `;
 
-const Details = styled('span')`
-  margin-right: ${space(1)};
+const Name = styled('span')`
+  display: grid;
+  grid-template-columns: max-content max-content;
+  gap: ${space(0.5)};
+  align-items: center;
+`;
+
+const Details = styled(Name)`
+  gap: ${space(1)};
 `;
 
 const StyledPills = styled(Pills)`
@@ -116,9 +140,4 @@ const StyledPills = styled(Pills)`
     overflow: hidden;
     text-overflow: ellipsis;
   }
-`;
-
-const StyledIconInfo = styled(IconInfo)`
-  display: flex;
-  ${iconStyle};
 `;

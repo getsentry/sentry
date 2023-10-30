@@ -1,10 +1,10 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import {GroupingComponentListItem} from './groupingComponent';
 
@@ -49,12 +49,12 @@ class GroupingComponentFrames extends Component<Props, State> {
             return (
               <GroupingComponentListItem key={index}>
                 <ToggleCollapse
-                  size="small"
+                  size="sm"
                   priority="link"
-                  icon={<IconAdd size="8px" />}
+                  icon={<IconAdd legacySize="8px" />}
                   onClick={() => this.setState({collapsed: false})}
                 >
-                  {tct('show [numberOfFrames] similiar', {
+                  {tct('show [numberOfFrames] similar', {
                     numberOfFrames: items.length - maxVisibleItems,
                   })}
                 </ToggleCollapse>
@@ -68,12 +68,12 @@ class GroupingComponentFrames extends Component<Props, State> {
         {!collapsed && items.length > maxVisibleItems && (
           <GroupingComponentListItem>
             <ToggleCollapse
-              size="small"
+              size="sm"
               priority="link"
-              icon={<IconSubtract size="8px" />}
+              icon={<IconSubtract legacySize="8px" />}
               onClick={() => this.setState({collapsed: true})}
             >
-              {tct('collapse [numberOfFrames] similiar', {
+              {tct('collapse [numberOfFrames] similar', {
                 numberOfFrames: items.length - maxVisibleItems,
               })}
             </ToggleCollapse>

@@ -5,11 +5,21 @@ from django.db import connections, transaction
 from django.db.models.signals import post_migrate
 
 from sentry import options
-from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    FlexibleForeignKey,
+    Model,
+    get_model_if_available,
+    region_silo_only_model,
+    sane_repr,
+)
+from sentry.silo import SiloMode, unguarded_write
 
 
+@region_silo_only_model
 class Counter(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     project = FlexibleForeignKey("sentry.Project", unique=True)
     value = BoundedBigIntegerField()
@@ -40,6 +50,7 @@ def increment_project_counter(project, delta=1, using="default"):
     with transaction.atomic(using=using):
         cur = connections[using].cursor()
         try:
+            statement_timeout = None
             if settings.SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT:
                 # WARNING: This is not a proper fix and should be removed once
                 #          we have better way of generating next_short_id.
@@ -68,7 +79,7 @@ def increment_project_counter(project, delta=1, using="default"):
 
             project_counter = cur.fetchone()[0]
 
-            if settings.SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT:
+            if statement_timeout is not None:
                 cur.execute(
                     "set local statement_timeout = %s",
                     [statement_timeout],
@@ -86,13 +97,13 @@ def create_counter_function(app_config, using, **kwargs):
     if app_config and app_config.name != "sentry":
         return
 
-    try:
-        app_config.get_model("Counter")
-    except LookupError:
+    if not get_model_if_available(app_config, "Counter"):
         return
 
-    cursor = connections[using].cursor()
-    try:
+    if SiloMode.get_current_mode() == SiloMode.CONTROL:
+        return
+
+    with unguarded_write(using), connections[using].cursor() as cursor:
         cursor.execute(
             """
             create or replace function sentry_increment_project_counter(
@@ -119,8 +130,6 @@ def create_counter_function(app_config, using, **kwargs):
             $$ language plpgsql;
         """
         )
-    finally:
-        cursor.close()
 
 
 post_migrate.connect(create_counter_function, dispatch_uid="create_counter_function", weak=False)

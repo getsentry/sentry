@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import {IconWarning} from 'sentry/icons';
 import {tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {OrganizationSummary} from 'sentry/types';
 
 type Props = {

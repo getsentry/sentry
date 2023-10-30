@@ -84,6 +84,14 @@ section.org-login {
   &.vsts {
     background-image: url(~sentry-logos/logo-azure.svg);
   }
+
+  &.fly {
+    background-image: url(~sentry-logos/logo-fly.svg);
+  }
+
+  &.discord {
+    background-image: url(~sentry-logos/logo-discord.svg);
+  }
 }
 
 .btn-default > .provider-logo {
@@ -200,18 +208,18 @@ div.u2f-box {
 
   div.device-failed {
     display: none;
-    position: absolute;
-    top: 35%;
-    left: 50%;
+    position: relative;
     width: 100px;
+    height: 100px;
+
     text-align: center;
-    margin-left: -50px;
+    font-size: 46px;
+    font-weight: bold;
+    line-height: 100px;
+    color: @red;
     &:after {
       content: ':-(';
     }
-    font-size: 46px;
-    font-weight: bold;
-    color: @red;
   }
 
   div.inner {

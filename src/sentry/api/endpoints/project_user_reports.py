@@ -2,14 +2,17 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import DSNAuthentication
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.user_reports import user_reports_filter_to_unresolved
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import UserReportWithGroupSerializer, serialize
 from sentry.ingest.userreport import Conflict, save_userreport
-from sentry.models import Environment, ProjectKey, UserReport
+from sentry.models.environment import Environment
+from sentry.models.projectkey import ProjectKey
+from sentry.models.userreport import UserReport
 
 
 class UserReportSerializer(serializers.ModelSerializer):
@@ -18,7 +21,12 @@ class UserReportSerializer(serializers.ModelSerializer):
         fields = ("name", "email", "comments", "event_id")
 
 
+@region_silo_endpoint
 class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = ProjectEndpoint.authentication_classes + (DSNAuthentication,)
 
     def get(self, request: Request, project) -> Response:

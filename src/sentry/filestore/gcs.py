@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import mimetypes
 import os
 import posixpath
@@ -8,7 +10,8 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import File
 from django.core.files.storage import Storage
 from django.utils import timezone
-from django.utils.encoding import force_bytes, force_text, smart_str
+from django.utils.encoding import force_bytes, force_str, smart_str
+from google.api_core.exceptions import GatewayTimeout, ServiceUnavailable
 from google.auth.exceptions import RefreshError, TransportError
 from google.cloud.exceptions import NotFound
 from google.cloud.storage.blob import Blob
@@ -30,7 +33,7 @@ GCS_TIMEOUT = 6.0
 # _client cache is a 3-tuple of project_id, credentials, Client
 # this is so if any information changes under it, it invalidates
 # the cache. This scenario is possible since `options` are dynamic
-_client = None, None, None
+_client: tuple[None, None, None] | tuple[int, object, Client] = None, None, None
 
 
 def try_repeated(func):
@@ -56,7 +59,14 @@ def try_repeated(func):
             metrics_tags.update({"success": "1"})
             metrics.timing(metrics_key, idx, tags=metrics_tags)
             return result
-        except (DataCorruption, TransportError, RefreshError, RequestException) as e:
+        except (
+            DataCorruption,
+            TransportError,
+            RefreshError,
+            RequestException,
+            ServiceUnavailable,
+            GatewayTimeout,
+        ) as e:
             if idx >= GCS_RETRIES:
                 metrics_tags.update({"success": "0", "exception_class": e.__class__.__name__})
                 metrics.timing(metrics_key, idx, tags=metrics_tags)
@@ -106,9 +116,9 @@ def safe_join(base, *paths):
     Paths outside the base path indicate a possible security
     sensitive operation.
     """
-    base_path = force_text(base)
+    base_path = force_str(base)
     base_path = base_path.rstrip("/")
-    paths = [force_text(p) for p in paths]
+    paths = tuple(force_str(p) for p in paths)
 
     final_path = base_path + "/"
     for path in paths:
@@ -160,8 +170,10 @@ class GoogleCloudFile(File):
     def size(self):
         return self.blob.size
 
-    def _get_file(self):
+    @property
+    def file(self):
         def _try_download():
+            assert self._file is not None
             self.blob.download_to_file(self._file)
             self._file.seek(0)
 
@@ -175,10 +187,9 @@ class GoogleCloudFile(File):
                     try_repeated(_try_download)
         return self._file
 
-    def _set_file(self, value):
+    @file.setter
+    def file(self, value):
         self._file = value
-
-    file = property(_get_file, _set_file)
 
     def read(self, num_bytes=None):
         if "r" not in self._mode:

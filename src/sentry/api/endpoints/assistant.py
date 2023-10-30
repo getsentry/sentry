@@ -1,4 +1,5 @@
 from copy import deepcopy
+from enum import Enum
 
 from django.db import IntegrityError
 from django.http import HttpResponse
@@ -8,11 +9,18 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.assistant import manager
-from sentry.models import AssistantActivity
+from sentry.models.assistant import AssistantActivity
 
-VALID_STATUSES = frozenset(("viewed", "dismissed"))
+VALID_STATUSES = frozenset(("viewed", "dismissed", "restart"))
+
+
+class Status(Enum):
+    VIEWED = "viewed"
+    DISMISSED = "dismissed"
+    RESTART = "restart"
 
 
 class AssistantSerializer(serializers.Serializer):
@@ -46,14 +54,21 @@ class AssistantSerializer(serializers.Serializer):
         return attrs
 
 
+@control_silo_endpoint
 class AssistantEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (IsAuthenticated,)
 
     def get(self, request: Request) -> Response:
         """Return all the guides with a 'seen' attribute if it has been 'viewed' or 'dismissed'."""
         guide_map = deepcopy(manager.all())
         seen_ids = set(
-            AssistantActivity.objects.filter(user=request.user).values_list("guide_id", flat=True)
+            AssistantActivity.objects.filter(user_id=request.user.id).values_list(
+                "guide_id", flat=True
+            )
         )
 
         return Response([{"guide": key, "seen": id in seen_ids} for key, id in guide_map.items()])
@@ -64,7 +79,7 @@ class AssistantEndpoint(Endpoint):
         Request is of the form {
             'guide_id': <guide_id> - OR -
             'guide': guide key (e.g. 'issue'),
-            'status': 'viewed' / 'dismissed',
+            'status': 'viewed' / 'dismissed' / 'restart',
             'useful' (optional): true / false,
         }
         """
@@ -80,16 +95,21 @@ class AssistantEndpoint(Endpoint):
         useful = data.get("useful")
 
         fields = {}
-        if useful is not None:
-            fields["useful"] = useful
-        if status == "viewed":
-            fields["viewed_ts"] = timezone.now()
-        elif status == "dismissed":
-            fields["dismissed_ts"] = timezone.now()
+        if status == Status.RESTART.value:
+            AssistantActivity.objects.filter(user_id=request.user.id, guide_id=guide_id).delete()
+        else:
+            if useful is not None:
+                fields["useful"] = useful
+            if status == Status.VIEWED.value:
+                fields["viewed_ts"] = timezone.now()
+            elif status == Status.DISMISSED.value:
+                fields["dismissed_ts"] = timezone.now()
 
-        try:
-            AssistantActivity.objects.create(user=request.user, guide_id=guide_id, **fields)
-        except IntegrityError:
-            pass
+            try:
+                AssistantActivity.objects.create(
+                    user_id=request.user.id, guide_id=guide_id, **fields
+                )
+            except IntegrityError:
+                pass
 
         return HttpResponse(status=201)

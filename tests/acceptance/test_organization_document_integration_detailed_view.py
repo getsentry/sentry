@@ -1,6 +1,8 @@
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 
 
+@no_silo_test(stable=True)
 class OrganizationDocumentIntegrationDetailView(AcceptanceTestCase):
     """
     As a developer, I can view an document-based integration, and learn more about it with the linked resources.
@@ -21,5 +23,4 @@ class OrganizationDocumentIntegrationDetailView(AcceptanceTestCase):
 
     def test_view_doc(self):
         self.load_page(self.doc.slug)
-        self.browser.snapshot("integrations - document-based detail overview")
         assert self.browser.element_exists('[data-test-id="learn-more"]')

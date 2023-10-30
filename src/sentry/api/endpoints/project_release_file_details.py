@@ -8,15 +8,17 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
 from sentry.api.endpoints.project_release_files import pseudo_releasefile
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.release_file import decode_release_file_id
-from sentry.models import Release, ReleaseFile
 from sentry.models.distribution import Distribution
-from sentry.models.releasefile import delete_from_artifact_index, read_artifact_index
+from sentry.models.release import Release
+from sentry.models.releasefile import ReleaseFile, delete_from_artifact_index, read_artifact_index
 
 #: Cannot update release artifacts in release archives
 INVALID_UPDATE_MESSAGE = "Can only update release files with integer IDs"
@@ -190,7 +192,7 @@ class ReleaseFileDetailsMixin:
 
         file = releasefile.file
 
-        # TODO(dcramer): this doesnt handle a failure from file.deletefile() to
+        # TODO(dcramer): this doesnt handle a failure from file.delete() to
         # the actual deletion of the db row
         releasefile.delete()
         file.delete()
@@ -198,7 +200,13 @@ class ReleaseFileDetailsMixin:
         return Response(status=204)
 
 
+@region_silo_endpoint
 class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project, version, file_id) -> Response:

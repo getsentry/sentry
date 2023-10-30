@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import enum
-from typing import Any, Callable, Mapping, NamedTuple, Pattern
+from typing import Any, Callable, Mapping, NamedTuple, Optional, Pattern, Protocol
 
 from django.http.request import HttpRequest
 
-from sentry.models import Integration, User
+from sentry.models.integrations.integration import Integration
+from sentry.models.user import User
 
 UnfurledUrl = Mapping[Any, Any]
-ArgsMapper = Callable[[str, Mapping[str, str]], Mapping[str, Any]]
+ArgsMapper = Callable[[str, Mapping[str, Optional[str]]], Mapping[str, Any]]
 
 
 class LinkType(enum.Enum):
@@ -22,10 +23,21 @@ class UnfurlableUrl(NamedTuple):
     args: Mapping[str, Any]
 
 
+class HandlerCallable(Protocol):
+    def __call__(
+        self,
+        request: HttpRequest,
+        integration: Integration,
+        links: list[UnfurlableUrl],
+        user: User | None = None,
+    ) -> UnfurledUrl:
+        ...
+
+
 class Handler(NamedTuple):
-    matcher: Pattern[Any]
+    matcher: list[Pattern[Any]]
     arg_mapper: ArgsMapper
-    fn: Callable[[HttpRequest, Integration, list[UnfurlableUrl], User | None], UnfurledUrl]
+    fn: HandlerCallable
 
 
 def make_type_coercer(type_map: Mapping[str, type]) -> ArgsMapper:
@@ -34,7 +46,7 @@ def make_type_coercer(type_map: Mapping[str, type]) -> ArgsMapper:
     coerce given arguments into those types.
     """
 
-    def type_coercer(url: str, args: Mapping[str, str]) -> Mapping[str, Any]:
+    def type_coercer(url: str, args: Mapping[str, str | None]) -> Mapping[str, Any]:
         return {k: type_map[k](v) if v is not None else None for k, v in args.items()}
 
     return type_coercer
@@ -53,7 +65,8 @@ link_handlers = {
 
 def match_link(link: str) -> tuple[LinkType | None, Mapping[str, Any] | None]:
     for link_type, handler in link_handlers.items():
-        match = handler.matcher.match(link)
+        match = next(filter(bool, map(lambda matcher: matcher.match(link), handler.matcher)), None)
+
         if not match:
             continue
 

@@ -1,26 +1,29 @@
-from abc import ABC, abstractmethod
 from typing import Any, Dict
 
-from django.http import StreamingHttpResponse
+from django.http import HttpResponse
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.bases import NoProjects
-from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
+
+# from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Organization
-from sentry.utils.profiling import (
-    get_from_profiling_service,
-    parse_profile_filters,
-    proxy_profiling_service,
+from sentry.models.organization import Organization
+from sentry.profiles.flamegraph import (
+    get_profile_ids,
+    get_profile_ids_with_spans,
+    get_profiles_with_function,
 )
+from sentry.profiles.utils import parse_profile_filters, proxy_profiling_service
 
 
-class OrganizationProfilingBaseEndpoint(OrganizationEndpoint):  # type: ignore
-    private = True
+class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):
+    owner = ApiOwner.PROFILING
 
     def get_profiling_params(self, request: Request, organization: Organization) -> Dict[str, Any]:
         try:
@@ -28,80 +31,18 @@ class OrganizationProfilingBaseEndpoint(OrganizationEndpoint):  # type: ignore
         except InvalidSearchQuery as err:
             raise ParseError(detail=str(err))
 
-        params.update(
-            {
-                key: value.isoformat() if key in {"start", "end"} else value
-                for key, value in self.get_filter_params(request, organization).items()
-            }
-        )
+        params.update(self.get_filter_params(request, organization))
 
         return params
 
 
-class OrganizationProfilingPaginatedBaseEndpoint(OrganizationProfilingBaseEndpoint, ABC):
-    profiling_feature = "organizations:profiling"
-
-    @abstractmethod
-    def get_data_fn(self, organization: Organization, kwargs: Dict[str, Any]) -> Any:
-        raise NotImplementedError
-
-    def get(self, request: Request, organization: Organization) -> Response:
-        if not features.has(self.profiling_feature, organization, actor=request.user):
-            return Response(status=404)
-
-        try:
-            params = self.get_profiling_params(request, organization)
-        except NoProjects:
-            return Response([])
-
-        kwargs = {"params": params}
-        if "Accept-Encoding" in request.headers:
-            kwargs["headers"] = {"Accept-Encoding": request.headers.get("Accept-Encoding")}
-
-        return self.paginate(
-            request,
-            paginator=GenericOffsetPaginator(data_fn=self.get_data_fn(organization, kwargs)),
-            default_per_page=50,
-            max_per_page=500,
-        )
-
-
-class OrganizationProfilingTransactionsEndpoint(OrganizationProfilingPaginatedBaseEndpoint):
-    def get_data_fn(self, organization: Organization, kwargs: Dict[str, Any]) -> Any:
-        def data_fn(offset: int, limit: int) -> Any:
-            kwargs["params"]["offset"] = offset
-            kwargs["params"]["limit"] = limit
-
-            response = get_from_profiling_service(
-                "GET",
-                f"/organizations/{organization.id}/transactions",
-                **kwargs,
-            )
-
-            return response.json().get("transactions", [])
-
-        return data_fn
-
-
-class OrganizationProfilingProfilesEndpoint(OrganizationProfilingPaginatedBaseEndpoint):
-    def get_data_fn(self, organization: Organization, kwargs: Dict[str, Any]) -> Any:
-        def data_fn(offset: int, limit: int) -> Any:
-            kwargs["params"]["offset"] = offset
-            kwargs["params"]["limit"] = limit
-
-            response = get_from_profiling_service(
-                "GET",
-                f"/organizations/{organization.id}/profiles",
-                **kwargs,
-            )
-
-            return response.json().get("profiles", [])
-
-        return data_fn
-
-
+@region_silo_endpoint
 class OrganizationProfilingFiltersEndpoint(OrganizationProfilingBaseEndpoint):
-    def get(self, request: Request, organization: Organization) -> StreamingHttpResponse:
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
+    def get(self, request: Request, organization: Organization) -> HttpResponse:
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
 
@@ -111,7 +52,44 @@ class OrganizationProfilingFiltersEndpoint(OrganizationProfilingBaseEndpoint):
             return Response([])
 
         kwargs = {"params": params}
-        if "Accept-Encoding" in request.headers:
-            kwargs["headers"] = {"Accept-Encoding": request.headers.get("Accept-Encoding")}
 
         return proxy_profiling_service("GET", f"/organizations/{organization.id}/filters", **kwargs)
+
+
+@region_silo_endpoint
+class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
+    def get(self, request: Request, organization: Organization) -> HttpResponse:
+        if not features.has("organizations:profiling", organization, actor=request.user):
+            return Response(status=404)
+
+        params = self.get_snuba_params(request, organization, check_global_views=False)
+        project_ids = params["project_id"]
+        if len(project_ids) > 1:
+            raise ParseError(detail="You cannot get a flamegraph from multiple projects.")
+
+        span_group = request.query_params.get("spans.group", None)
+        if span_group is not None:
+            profile_ids = get_profile_ids_with_spans(
+                organization.id,
+                project_ids[0],
+                params,
+                span_group,
+            )
+        elif "fingerprint" in request.query_params:
+            function_fingerprint = int(request.query_params["fingerprint"])
+            profile_ids = get_profiles_with_function(
+                organization.id, project_ids[0], function_fingerprint, params
+            )
+        else:
+            profile_ids = get_profile_ids(params, request.query_params.get("query", None))
+
+        kwargs: Dict[str, Any] = {
+            "method": "POST",
+            "path": f"/organizations/{organization.id}/projects/{project_ids[0]}/flamegraph",
+            "json_data": profile_ids,
+        }
+        return proxy_profiling_service(**kwargs)

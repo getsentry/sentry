@@ -1,125 +1,161 @@
-import {Fragment, useState} from 'react';
+import {Fragment, ReactEventHandler, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {Role} from 'sentry/components/acl/role';
-import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import DropdownLink from 'sentry/components/dropdownLink';
+import {openConfirmModal} from 'sentry/components/confirm';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
-import {IconEllipsis} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {EventAttachment, Organization, Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-
-import DataSection from '../dataSection';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelFooter from 'sentry/components/panels/panelFooter';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import {IconChevron, IconEllipsis} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {Event, EventAttachment, Organization, Project} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 import ImageVisualization from './imageVisualization';
-import Modal, {modalCss} from './modal';
 
 type Props = {
-  event: Event;
+  eventId: Event['id'];
   onDelete: (attachmentId: EventAttachment['id']) => void;
+  openVisualizationModal: (eventAttachment: EventAttachment, downloadUrl: string) => void;
   organization: Organization;
   projectSlug: Project['slug'];
   screenshot: EventAttachment;
+  screenshotInFocus: number;
+  totalScreenshots: number;
+  onNext?: ReactEventHandler;
+  onPrevious?: ReactEventHandler;
+  onlyRenderScreenshot?: boolean;
 };
 
-function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Props) {
+function Screenshot({
+  eventId,
+  organization,
+  screenshot,
+  screenshotInFocus,
+  onNext,
+  onPrevious,
+  totalScreenshots,
+  projectSlug,
+  onlyRenderScreenshot,
+  onDelete,
+  openVisualizationModal,
+}: Props) {
   const orgSlug = organization.slug;
   const [loadingImage, setLoadingImage] = useState(true);
 
-  function handleOpenVisualizationModal(
-    eventAttachment: EventAttachment,
-    downloadUrl: string
-  ) {
-    openModal(
-      modalProps => (
-        <Modal
-          {...modalProps}
-          event={event}
-          orgSlug={orgSlug}
-          projectSlug={projectSlug}
-          eventAttachment={eventAttachment}
-          downloadUrl={downloadUrl}
-          onDelete={() => onDelete(eventAttachment.id)}
-        />
-      ),
-      {modalCss}
-    );
+  function handleDelete(screenshotAttachmentId: string) {
+    trackAnalytics('issue_details.issue_tab.screenshot_dropdown_deleted', {
+      organization,
+    });
+    onDelete(screenshotAttachmentId);
   }
 
   function renderContent(screenshotAttachment: EventAttachment) {
-    const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${event.id}/attachments/${screenshotAttachment.id}/`;
+    const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${screenshotAttachment.id}/`;
 
     return (
       <Fragment>
-        <StyledPanelBody
-          onClick={() =>
-            handleOpenVisualizationModal(
-              screenshotAttachment,
-              `${downloadUrl}?download=1`
-            )
-          }
-        >
-          <StyledImageVisualization
-            attachment={screenshotAttachment}
-            orgId={orgSlug}
-            projectId={projectSlug}
-            event={event}
-            onLoad={() => setLoadingImage(false)}
-            onError={() => setLoadingImage(false)}
-          />
-          {loadingImage && <StyledLoadingIndicator mini />}
-        </StyledPanelBody>
-        <StyledPanelFooter>
-          <StyledButtonbar gap={1}>
+        {totalScreenshots > 1 && (
+          <StyledPanelHeader lightText>
             <Button
-              size="xsmall"
-              onClick={() =>
-                handleOpenVisualizationModal(
-                  screenshotAttachment,
-                  `${downloadUrl}?download=1`
-                )
-              }
-            >
-              {t('View screenshot')}
-            </Button>
-            <DropdownLink
-              caret={false}
-              customTitle={
-                <Button
-                  aria-label={t('Actions')}
-                  size="xsmall"
-                  icon={<IconEllipsis size="xs" />}
-                />
-              }
-              anchorRight
-            >
-              <MenuItemActionLink
-                shouldConfirm={false}
-                title={t('Download')}
-                href={`${downloadUrl}?download=1`}
+              disabled={screenshotInFocus === 0}
+              aria-label={t('Previous Screenshot')}
+              onClick={onPrevious}
+              icon={<IconChevron direction="left" size="xs" />}
+              size="xs"
+            />
+            {tct('[currentScreenshot] of [totalScreenshots]', {
+              currentScreenshot: screenshotInFocus + 1,
+              totalScreenshots,
+            })}
+            <Button
+              disabled={screenshotInFocus + 1 === totalScreenshots}
+              aria-label={t('Next Screenshot')}
+              onClick={onNext}
+              icon={<IconChevron direction="right" size="xs" />}
+              size="xs"
+            />
+          </StyledPanelHeader>
+        )}
+        <StyledPanelBody hasHeader={totalScreenshots > 1}>
+          {loadingImage && (
+            <StyledLoadingIndicator>
+              <LoadingIndicator mini />
+            </StyledLoadingIndicator>
+          )}
+          <StyledImageWrapper
+            onClick={() =>
+              openVisualizationModal(screenshotAttachment, `${downloadUrl}?download=1`)
+            }
+          >
+            <StyledImageVisualization
+              attachment={screenshotAttachment}
+              orgId={orgSlug}
+              projectSlug={projectSlug}
+              eventId={eventId}
+              onLoad={() => setLoadingImage(false)}
+              onError={() => setLoadingImage(false)}
+            />
+          </StyledImageWrapper>
+        </StyledPanelBody>
+        {!onlyRenderScreenshot && (
+          <StyledPanelFooter>
+            <ButtonBar gap={1}>
+              <Button
+                size="xs"
+                onClick={() =>
+                  openVisualizationModal(
+                    screenshotAttachment,
+                    `${downloadUrl}?download=1`
+                  )
+                }
               >
-                {t('Download')}
-              </MenuItemActionLink>
-              <MenuItemActionLink
-                shouldConfirm
-                title={t('Delete')}
-                onAction={() => onDelete(screenshotAttachment.id)}
-                header={t(
-                  'This image was captured around the time that the event occurred.'
-                )}
-                message={t('Are you sure you wish to delete this image?')}
-              >
-                {t('Delete')}
-              </MenuItemActionLink>
-            </DropdownLink>
-          </StyledButtonbar>
-        </StyledPanelFooter>
+                {t('View screenshot')}
+              </Button>
+              <DropdownMenu
+                position="bottom"
+                offset={4}
+                triggerProps={{
+                  showChevron: false,
+                  icon: <IconEllipsis size="xs" />,
+                  'aria-label': t('More screenshot actions'),
+                }}
+                size="xs"
+                items={[
+                  {
+                    key: 'download',
+                    label: t('Download'),
+                    onAction: () => {
+                      window.location.assign(`${downloadUrl}?download=1`);
+                      trackAnalytics(
+                        'issue_details.issue_tab.screenshot_dropdown_download',
+                        {organization}
+                      );
+                    },
+                  },
+                  {
+                    key: 'delete',
+                    label: t('Delete'),
+                    onAction: () =>
+                      openConfirmModal({
+                        header: t('Delete this image?'),
+                        message: t(
+                          'This image was captured around the time that the event occurred. Are you sure you want to delete this image?'
+                        ),
+                        onConfirm: () => handleDelete(screenshotAttachment.id),
+                      }),
+                  },
+                ]}
+              />
+            </ButtonBar>
+          </StyledPanelFooter>
+        )}
       </Fragment>
     );
   }
@@ -131,16 +167,7 @@ function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Pr
           return null;
         }
 
-        return (
-          <DataSection
-            title={t('Screenshot')}
-            description={t(
-              'This image was captured around the time that the event occurred.'
-            )}
-          >
-            <StyledPanel>{renderContent(screenshot)}</StyledPanel>
-          </DataSection>
-        );
+        return <StyledPanel>{renderContent(screenshot)}</StyledPanel>;
       }}
     </Role>
   );
@@ -163,19 +190,37 @@ const StyledPanel = styled(Panel)`
   }
 `;
 
-const StyledPanelBody = styled(PanelBody)`
+const StyledPanelHeader = styled(PanelHeader)`
+  padding: ${space(1)};
+  width: 100%;
   border: 1px solid ${p => p.theme.border};
+  border-bottom: 0;
   border-top-left-radius: ${p => p.theme.borderRadius};
   border-top-right-radius: ${p => p.theme.borderRadius};
+  display: flex;
+  justify-content: space-between;
+  text-transform: none;
+  background: ${p => p.theme.background};
+`;
+
+const StyledPanelBody = styled(PanelBody)<{hasHeader: boolean}>`
+  border: 1px solid ${p => p.theme.border};
   width: 100%;
   min-height: 48px;
   overflow: hidden;
-  cursor: pointer;
   position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   flex: 1;
+
+  ${p =>
+    !p.hasHeader &&
+    `
+  border-top-left-radius: ${p.theme.borderRadius};
+  border-top-right-radius: ${p.theme.borderRadius};
+  `}
 `;
 
 const StyledPanelFooter = styled(PanelFooter)`
@@ -187,19 +232,22 @@ const StyledPanelFooter = styled(PanelFooter)`
   border-bottom-right-radius: ${p => p.theme.borderRadius};
 `;
 
-const StyledLoadingIndicator = styled(LoadingIndicator)`
+const StyledLoadingIndicator = styled('div')`
   position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+`;
+
+const StyledImageWrapper = styled('div')`
+  :hover {
+    cursor: pointer;
+  }
 `;
 
 const StyledImageVisualization = styled(ImageVisualization)`
   width: 100%;
   z-index: 1;
   border: 0;
-`;
-
-const StyledButtonbar = styled(ButtonBar)`
-  justify-content: space-between;
-  .dropdown {
-    height: 24px;
-  }
 `;

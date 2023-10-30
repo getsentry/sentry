@@ -4,12 +4,10 @@ import {
   getAttachmentUrl,
   ViewerProps,
 } from 'sentry/components/events/attachmentViewers/utils';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 
 type Props = Omit<ViewerProps, 'attachment'> & {
-  attachment: Omit<ViewerProps['attachment'], 'event_id'> & {
-    event_id?: string;
-  };
+  attachment: ViewerProps['attachment'];
   onError?: React.ReactEventHandler<HTMLImageElement>;
   onLoad?: React.ReactEventHandler<HTMLImageElement>;
 };
@@ -17,7 +15,12 @@ type Props = Omit<ViewerProps, 'attachment'> & {
 function ImageViewer({className, onLoad, onError, ...props}: Props) {
   return (
     <Container className={className}>
-      <img src={getAttachmentUrl(props, true)} onLoad={onLoad} onError={onError} />
+      <img
+        data-test-id="image-viewer"
+        src={getAttachmentUrl(props, true)}
+        onLoad={onLoad}
+        onError={onError}
+      />
     </Container>
   );
 }

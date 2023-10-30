@@ -1,15 +1,24 @@
 from datetime import timedelta
 
 from django.contrib.auth.models import AnonymousUser
+from django.contrib.sessions.backends.base import SessionBase
 from django.http import HttpRequest
 from django.urls import reverse
 
 import sentry.utils.auth
-from sentry.models import User
-from sentry.testutils import TestCase
-from sentry.utils.auth import EmailAuthBackend, SsoSession, get_login_redirect, login
+from sentry.models.user import User
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import control_silo_test
+from sentry.utils.auth import (
+    EmailAuthBackend,
+    SsoSession,
+    construct_link_with_query,
+    get_login_redirect,
+    login,
+)
 
 
+@control_silo_test(stable=True)
 class EmailAuthBackendTest(TestCase):
     def setUp(self):
         self.user = User(username="foo", email="baz@example.com")
@@ -24,9 +33,19 @@ class EmailAuthBackendTest(TestCase):
         result = self.backend.authenticate(HttpRequest(), username="foo", password="bar")
         self.assertEqual(result, self.user)
 
+    def test_can_authenticate_with_username_case_insensitive(self):
+        result = self.backend.authenticate(HttpRequest(), username="FOO", password="bar")
+        self.assertEqual(result, self.user)
+
     def test_can_authenticate_with_email(self):
         result = self.backend.authenticate(
             HttpRequest(), username="baz@example.com", password="bar"
+        )
+        self.assertEqual(result, self.user)
+
+    def test_can_authenticate_with_email_case_insensitive(self):
+        result = self.backend.authenticate(
+            HttpRequest(), username="BAZ@example.com", password="bar"
         )
         self.assertEqual(result, self.user)
 
@@ -35,12 +54,13 @@ class EmailAuthBackendTest(TestCase):
         self.assertEqual(result, None)
 
 
+@control_silo_test(stable=True)
 class GetLoginRedirectTest(TestCase):
     def make_request(self, next=None):
         request = HttpRequest()
         request.META["SERVER_NAME"] = "testserver"
         request.META["SERVER_PORT"] = "80"
-        request.session = {}
+        request.session = SessionBase()
         request.user = self.user
         if next:
             request.session["_next"] = next
@@ -50,6 +70,55 @@ class GetLoginRedirectTest(TestCase):
         result = get_login_redirect(self.make_request("http://example.com"))
         assert result == reverse("sentry-login")
 
+        result = get_login_redirect(self.make_request("ftp://testserver"))
+        assert result == reverse("sentry-login")
+
+    def test_next(self):
+        result = get_login_redirect(self.make_request("http://testserver/foobar/"))
+        assert result == "http://testserver/foobar/"
+
+        result = get_login_redirect(self.make_request("ftp://testserver/foobar/"))
+        assert result == reverse("sentry-login")
+
+        request = self.make_request("/foobar/")
+        request.subdomain = "orgslug"
+        result = get_login_redirect(request)
+        assert result == "http://orgslug.testserver/foobar/"
+
+        request = self.make_request("http://testserver/foobar/")
+        request.subdomain = "orgslug"
+        result = get_login_redirect(request)
+        assert result == "http://testserver/foobar/"
+
+        request = self.make_request("ftp://testserver/foobar/")
+        request.subdomain = "orgslug"
+        result = get_login_redirect(request)
+        assert result == f"http://orgslug.testserver{reverse('sentry-login')}"
+
+    def test_after_2fa(self):
+        request = self.make_request()
+        request.session["_after_2fa"] = "http://testserver/foobar/"
+        result = get_login_redirect(request)
+        assert result == "http://testserver/foobar/"
+
+        request = self.make_request()
+        request.subdomain = "orgslug"
+        request.session["_after_2fa"] = "/foobar/"
+        result = get_login_redirect(request)
+        assert result == "http://orgslug.testserver/foobar/"
+
+    def test_pending_2fa(self):
+        request = self.make_request()
+        request.session["_pending_2fa"] = [1234, 1234, 1234]
+        result = get_login_redirect(request)
+        assert result == reverse("sentry-2fa-dialog")
+
+        request = self.make_request()
+        request.subdomain = "orgslug"
+        request.session["_pending_2fa"] = [1234, 1234, 1234]
+        result = get_login_redirect(request)
+        assert result == f"http://orgslug.testserver{reverse('sentry-2fa-dialog')}"
+
     def test_login_uses_default(self):
         result = get_login_redirect(self.make_request(reverse("sentry-login")))
         assert result == reverse("sentry-login")
@@ -58,7 +127,13 @@ class GetLoginRedirectTest(TestCase):
         result = get_login_redirect(self.make_request())
         assert result == reverse("sentry-login")
 
+        request = self.make_request()
+        request.subdomain = "orgslug"
+        result = get_login_redirect(request)
+        assert result == f"http://orgslug.testserver{reverse('sentry-login')}"
 
+
+@control_silo_test(stable=True)
 class LoginTest(TestCase):
     def make_request(self, next=None):
         request = HttpRequest()
@@ -95,9 +170,25 @@ class LoginTest(TestCase):
 def test_sso_expiry_default():
     value = sentry.utils.auth._sso_expiry_from_env(None)
     # make sure no accidental changes affect sso timeout
-    assert value == timedelta(hours=20)
+    assert value == timedelta(days=7)
 
 
 def test_sso_expiry_from_env():
     value = sentry.utils.auth._sso_expiry_from_env("20")
     assert value == timedelta(seconds=20)
+
+
+def test_construct_link_with_query():
+    # testing basic query param construction
+    path = "foobar"
+    query_params = {"biz": "baz"}
+    expected_path = "foobar?biz=baz"
+
+    assert construct_link_with_query(path=path, query_params=query_params) == expected_path
+
+    # testing no excess '?' appended if query params are empty
+    path = "foobar"
+    query_params = {}
+    expected_path = "foobar"
+
+    assert construct_link_with_query(path=path, query_params=query_params) == expected_path

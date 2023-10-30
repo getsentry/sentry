@@ -2,11 +2,12 @@ from urllib.parse import urlencode
 
 from django import template
 from django.urls import reverse
-from django.utils.safestring import mark_safe
 
-from sentry import options
-from sentry.models import User, UserAvatar
+from sentry.models.avatars.user_avatar import UserAvatar
+from sentry.models.user import User
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils.avatar import get_email_avatar, get_gravatar_url, get_letter_avatar
+from sentry.utils.http import absolute_uri
 
 register = template.Library()
 
@@ -21,7 +22,7 @@ def gravatar_url(context, email, size, default="mm"):
 
 @register.simple_tag(takes_context=True)
 def letter_avatar_svg(context, display_name, identifier, size=None):
-    return mark_safe(get_letter_avatar(display_name, identifier, size=size))
+    return get_letter_avatar(display_name, identifier, size=size)
 
 
 @register.simple_tag(takes_context=True)
@@ -33,20 +34,20 @@ def profile_photo_url(context, user_id, size=None):
     url = reverse("sentry-user-avatar-url", args=[avatar.ident])
     if size:
         url += "?" + urlencode({"s": size})
-    return options.get("system.url-prefix") + url
+    return absolute_uri(url)
 
 
 # Don't use this in any situations where you're rendering more
 # than 1-2 avatars. It will make a request for every user!
 @register.simple_tag(takes_context=True)
 def email_avatar(context, display_name, identifier, size=None, try_gravatar=True):
-    return mark_safe(get_email_avatar(display_name, identifier, size, try_gravatar))
+    return get_email_avatar(display_name, identifier, size, try_gravatar)
 
 
 @register.inclusion_tag("sentry/partial/avatar.html")
 def avatar(user, size=36):
     # user can be User or OrganizationMember
-    if isinstance(user, User):
+    if isinstance(user, User) or isinstance(user, RpcUser):
         user_id = user.id
         email = user.email
     else:
@@ -67,7 +68,7 @@ def avatar(user, size=36):
 @register.inclusion_tag("sentry/partial/avatar.html")
 def avatar_for_email(user, size=36):
     # user can be User or OrganizationMember
-    if isinstance(user, User):
+    if isinstance(user, User) or isinstance(user, RpcUser):
         user_id = user.id
         email = user.email
     else:

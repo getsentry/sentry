@@ -1,5 +1,9 @@
+import logging
+
 from sentry.api.serializers import Serializer, register
 from sentry.incidents.models import AlertRuleTriggerAction
+
+logger = logging.getLogger(__name__)
 
 
 @register(AlertRuleTriggerAction)
@@ -20,6 +24,15 @@ class AlertRuleTriggerActionSerializer(Serializer):
             return "Send a Microsoft Teams notification to " + action.target_display
         elif action.type == action.Type.SENTRY_APP.value:
             return "Send a notification via " + action.target_display
+        elif action.type == action.Type.OPSGENIE.value:
+            return "Send an Opsgenie notification to " + action.target_display
+        elif action.type == action.Type.DISCORD.value:
+            if not action.target_display:
+                logger.info(
+                    "discord.action.description.no.channel",
+                    extra={"target_identifier": action.target_identifier},
+                )
+            return f"Send a Discord notification to {action.target_display or ''}"
 
     def get_identifier_from_action(self, action):
         if action.type in [
@@ -27,7 +40,9 @@ class AlertRuleTriggerActionSerializer(Serializer):
             AlertRuleTriggerAction.Type.SENTRY_APP.value,
         ]:
             return int(action.target_identifier)
-
+        if action.type == AlertRuleTriggerAction.Type.OPSGENIE.value:
+            # return team ID: opsgenie team IDs are strings
+            return action.target_identifier
         # if an input_channel_id is provided, we flip these to display properly
         return (
             action.target_display if action.target_display is not None else action.target_identifier

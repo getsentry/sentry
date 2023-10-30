@@ -4,12 +4,12 @@ import memoize from 'lodash/memoize';
 
 import AutoComplete from 'sentry/components/autoComplete';
 import DropdownBubble from 'sentry/components/dropdownBubble';
-import Input from 'sentry/components/forms/controls/input';
+import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
-import autoCompleteFilter from './autoCompleteFilter';
+import defaultAutoCompleteFilter from './autoCompleteFilter';
 import List from './list';
 import {Item, ItemsBeforeFilter} from './types';
 
@@ -36,6 +36,11 @@ type Props = {
    * Dropdown menu alignment.
    */
   alignMenu?: 'left' | 'right';
+  /**
+   * Optionally provide a custom implementation for filtering result items
+   * Useful if you want to show items that don't strictly match the input value
+   */
+  autoCompleteFilter?: typeof defaultAutoCompleteFilter;
   /**
    * Should menu visually lock to a direction (so we don't display a rounded corner)
    */
@@ -115,6 +120,11 @@ type Props = {
   inputProps?: {style: React.CSSProperties};
 
   /**
+   * Used to control the input value (optional)
+   */
+  inputValue?: string;
+
+  /**
    * Used to control dropdown state (optional)
    */
   isOpen?: boolean;
@@ -156,6 +166,11 @@ type Props = {
   onClose?: () => void;
 
   /**
+   * Callback for when the input value changes
+   */
+  onInputValueChange?: (value: string) => void;
+
+  /**
    * Callback for when dropdown menu opens
    */
   onOpen?: (event?: React.MouseEvent) => void;
@@ -191,6 +206,7 @@ type Props = {
 >;
 
 function Menu({
+  autoCompleteFilter = defaultAutoCompleteFilter,
   maxHeight = 300,
   emptyMessage = t('No items'),
   searchPlaceholder = t('Filter search'),
@@ -240,11 +256,11 @@ function Menu({
   // emptyHidesInput is set to true.
   const showInput = !hideInput && (hasItems || !emptyHidesInput);
 
-  // Only redefine the autocomplete function if our items list has chagned.
+  // Only redefine the autocomplete function if our items list has changed.
   // This avoids producing a new array on every call.
   const stableItemFilter = useCallback(
     (filterValueOrInput: string) => autoCompleteFilter(items, filterValueOrInput),
-    [items]
+    [autoCompleteFilter, items]
   );
 
   // Memoize the filterValueOrInput to the stableItemFilter so that we get the
@@ -295,7 +311,7 @@ function Menu({
           !busy && !busyItemsStillVisible && filterValueOrInput && !hasResults;
 
         // When virtualization is turned on, we need to pass in the number of
-        // selecteable items for arrow-key limits
+        // selectable items for arrow-key limits
         const itemCount = virtualizedHeight
           ? autoCompleteResults.filter(i => !i.groupLabel).length
           : undefined;
@@ -329,7 +345,6 @@ function Menu({
                 {...{style, css, blendCorner, detached, alignMenu, minWidth}}
               >
                 <DropdownMainContent minWidth={minWidth}>
-                  {itemsLoading && <LoadingIndicator mini />}
                   {showInput && (
                     <InputWrapper>
                       <StyledInput
@@ -358,9 +373,10 @@ function Menu({
                           {noResultsMessage ?? `${emptyMessage} ${t('found')}`}
                         </EmptyMessage>
                       )}
-                      {busy && (
+                      {(itemsLoading || busy) && (
                         <BusyMessage>
-                          <EmptyMessage>{t('Searching\u2026')}</EmptyMessage>
+                          {itemsLoading && <LoadingIndicator mini />}
+                          {busy && <EmptyMessage>{t('Searching\u2026')}</EmptyMessage>}
                         </BusyMessage>
                       )}
                       {!busy && (
@@ -402,6 +418,7 @@ export default Menu;
 const StyledInput = styled(Input)`
   flex: 1;
   border: 1px solid transparent;
+  border-radius: calc(${p => p.theme.panelBorderRadius} - 1px);
   &,
   &:focus,
   &:active,
@@ -456,7 +473,8 @@ const DropdownMainContent = styled('div')<{minWidth: number}>`
 const InputWrapper = styled('div')`
   display: flex;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
-  border-radius: ${p => `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
+  border-radius: ${p =>
+    `calc(${p.theme.panelBorderRadius} - 1px) calc(${p.theme.panelBorderRadius} - 1px) 0 0`};
   align-items: center;
 `;
 
@@ -483,5 +501,6 @@ const ItemList = styled('div')<{maxHeight: NonNullable<Props['maxHeight']>}>`
 const BusyMessage = styled('div')`
   display: flex;
   justify-content: center;
-  padding: ${space(1)};
+  align-items: center;
+  padding: ${space(3)} ${space(1)};
 `;

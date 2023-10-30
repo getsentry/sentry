@@ -2,10 +2,10 @@ import {createFilter} from 'react-select';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {Field} from 'sentry/components/forms/type';
+import {Field} from 'sentry/components/forms/types';
 import platforms from 'sentry/data/platforms';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import slugify from 'sentry/utils/slugify';
@@ -39,6 +39,14 @@ const ORG_DISABLED_REASON = t(
   "This option is enforced by your organization's settings and cannot be customized per-project."
 );
 
+const PlatformWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+const StyledPlatformIcon = styled(PlatformIcon)`
+  margin-right: ${space(1)};
+`;
+
 export const fields: Record<string, Field> = {
   name: {
     name: 'name',
@@ -64,14 +72,15 @@ export const fields: Record<string, Field> = {
     name: 'platform',
     type: 'select',
     label: t('Platform'),
-    choices: () =>
-      platforms.map(({id, name}) => [
-        id,
+    options: platforms.map(({id, name}) => ({
+      value: id,
+      label: (
         <PlatformWrapper key={id}>
           <StyledPlatformIcon platform={id} />
           {name}
-        </PlatformWrapper>,
-      ]),
+        </PlatformWrapper>
+      ),
+    })),
     help: t('The primary platform for this project'),
     filterOption: createFilter({
       stringify: option => {
@@ -113,10 +122,9 @@ export const fields: Record<string, Field> = {
     },
     saveOnBlur: false,
     saveMessage: tct(
-      '[Caution]: Enabling auto resolve will immediately resolve anything that has ' +
-        'not been seen within this period of time. There is no undo!',
+      '[strong:Caution]: Enabling auto resolve will immediately resolve anything that has not been seen within this period of time. There is no undo!',
       {
-        Caution: <strong>Caution</strong>,
+        strong: <strong />,
       }
     ),
     saveMessageAlertType: 'warning',
@@ -130,7 +138,9 @@ export const fields: Record<string, Field> = {
     rows: 1,
     placeholder: t('https://example.com or example.com'),
     label: t('Allowed Domains'),
-    help: t('Separate multiple entries with a newline'),
+    help: t(
+      'Examples: https://example.com, *, *.example.com, *:80. Separate multiple entries with a newline'
+    ),
     getValue: val => extractMultilineFields(val),
     setValue: val => convertMultilineFieldValue(val),
   },
@@ -170,11 +180,3 @@ export const fields: Record<string, Field> = {
     help: t('Outbound requests will verify TLS (sometimes known as SSL) connections'),
   },
 };
-
-const PlatformWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-const StyledPlatformIcon = styled(PlatformIcon)`
-  margin-right: ${space(1)};
-`;

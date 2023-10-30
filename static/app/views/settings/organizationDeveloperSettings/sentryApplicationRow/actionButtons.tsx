@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ConfirmDelete from 'sentry/components/confirmDelete';
 import {IconDelete, IconStats, IconUpgrade} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, SentryApp} from 'sentry/types';
 
 type Props = {
@@ -20,7 +20,7 @@ type Props = {
   onPublish?: () => void;
 };
 
-const ActionButtons = ({
+function ActionButtons({
   org,
   app,
   showPublish,
@@ -29,10 +29,10 @@ const ActionButtons = ({
   onDelete,
   disablePublishReason,
   disableDeleteReason,
-}: Props) => {
+}: Props) {
   const appDashboardButton = (
     <StyledButton
-      size="xsmall"
+      size="xs"
       icon={<IconStats />}
       to={`/settings/${org.slug}/developer-settings/${app.slug}/dashboard/`}
     >
@@ -45,7 +45,7 @@ const ActionButtons = ({
       disabled={!!disablePublishReason}
       title={disablePublishReason}
       icon={<IconUpgrade />}
-      size="xsmall"
+      size="xs"
       onClick={onPublish}
     >
       {t('Publish')}
@@ -53,15 +53,15 @@ const ActionButtons = ({
   ) : null;
 
   const deleteConfirmMessage = t(
-    `Deleting ${app.slug} will also delete any and all of its installations. \
-         This is a permanent action. Do you wish to continue?`
+    `Deleting %s will also delete any and all of its installations. This is a permanent action. Do you wish to continue?`,
+    app.slug
   );
   const deleteButton = showDelete ? (
     disableDeleteReason ? (
       <StyledButton
         disabled
         title={disableDeleteReason}
-        size="xsmall"
+        size="xs"
         icon={<IconDelete />}
         aria-label="Delete"
       />
@@ -73,7 +73,7 @@ const ActionButtons = ({
           priority="danger"
           onConfirm={() => onDelete(app)}
         >
-          <StyledButton size="xsmall" icon={<IconDelete />} aria-label="Delete" />
+          <StyledButton size="xs" icon={<IconDelete />} aria-label="Delete" />
         </ConfirmDelete>
       )
     )
@@ -86,7 +86,7 @@ const ActionButtons = ({
       {deleteButton}
     </ButtonHolder>
   );
-};
+}
 
 const ButtonHolder = styled('div')`
   flex-direction: row;

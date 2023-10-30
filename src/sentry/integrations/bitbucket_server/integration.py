@@ -1,14 +1,17 @@
+from __future__ import annotations
+
 import logging
+from typing import Any
 from urllib.parse import urlparse
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from django import forms
 from django.core.validators import URLValidator
-from django.utils.translation import ugettext_lazy as _
+from django.http import HttpResponse
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.integrations import (
     FeatureDescription,
@@ -18,14 +21,17 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import RepositoryMixin
-from sentry.models import Identity, Repository
+from sentry.models.identity import Identity
+from sentry.models.integrations.integration import Integration
 from sentry.pipeline import PipelineView
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.repository import repository_service
+from sentry.services.hybrid_cloud.repository.model import RpcRepository
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
-from sentry.utils.compat import filter
 from sentry.web.helpers import render_to_response
 
-from .client import BitbucketServer, BitbucketServerSetupClient
+from .client import BitbucketServerClient, BitbucketServerSetupClient
 from .repository import BitbucketServerRepositoryProvider
 
 logger = logging.getLogger("sentry.integrations.bitbucket_server")
@@ -130,7 +136,7 @@ class InstallationConfigView(PipelineView):
     Collect the OAuth client credentials from the user.
     """
 
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -155,7 +161,7 @@ class OAuthLoginView(PipelineView):
     """
 
     @csrf_exempt
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
         if "oauth_token" in request.GET:
             return pipeline.next_step()
 
@@ -196,7 +202,7 @@ class OAuthCallbackView(PipelineView):
     """
 
     @csrf_exempt
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
         config = pipeline.fetch_state("installation_data")
         client = BitbucketServerSetupClient(
             config.get("url"),
@@ -234,10 +240,10 @@ class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
             except Identity.DoesNotExist:
                 raise IntegrationError("Identity not found.")
 
-        return BitbucketServer(
-            self.model.metadata["base_url"],
-            self.default_identity.data,
-            self.model.metadata["verify_ssl"],
+        return BitbucketServerClient(
+            integration=self.model,
+            identity_id=self.org_integration.default_auth_id,
+            org_integration_id=self.org_integration.id,
         )
 
     @property
@@ -261,8 +267,7 @@ class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
                 for repo in resp.get("values", [])
             ]
 
-        full_query = (query).encode("utf-8")
-        resp = self.get_client().search_repositories(full_query)
+        resp = self.get_client().search_repositories(query)
 
         return [
             {
@@ -274,7 +279,7 @@ class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
             for repo in resp.get("values", [])
         ]
 
-    def has_repo_access(self, repo):
+    def has_repo_access(self, repo: RpcRepository) -> bool:
         """
         We can assume user always has repo access, since the Bitbucket API is limiting the results based on the REPO_ADMIN permission
         """
@@ -282,13 +287,13 @@ class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
         return True
 
     def get_unmigratable_repositories(self):
-        repos = Repository.objects.filter(
-            organization_id=self.organization_id, provider="bitbucket_server"
+        repos = repository_service.get_repositories(
+            organization_id=self.organization_id, providers=["bitbucket_server"]
         )
 
         accessible_repos = [r["identifier"] for r in self.get_repositories()]
 
-        return filter(lambda repo: repo.name not in accessible_repos, repos)
+        return list(filter(lambda repo: repo.name not in accessible_repos, repos))
 
     def reinstall(self):
         self.reinstall_repositories()
@@ -300,24 +305,28 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = BitbucketServerIntegration
     needs_default_identity = True
-    can_add = True
     features = frozenset([IntegrationFeatures.COMMITS])
     setup_dialog_config = {"width": 1030, "height": 1000}
 
     def get_pipeline_views(self):
         return [InstallationConfigView(), OAuthLoginView(), OAuthCallbackView()]
 
-    def post_install(self, integration, organization, extra=None):
-        repo_ids = Repository.objects.filter(
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
+    ) -> None:
+        repos = repository_service.get_repositories(
             organization_id=organization.id,
-            provider__in=["bitbucket_server", "integrations:bitbucket_server"],
-            integration_id__isnull=True,
-        ).values_list("id", flat=True)
+            providers=["bitbucket_server", "integrations:bitbucket_server"],
+            has_integration=False,
+        )
 
-        for repo_id in repo_ids:
+        for repo in repos:
             migrate_repo.apply_async(
                 kwargs={
-                    "repo_id": repo_id,
+                    "repo_id": repo.id,
                     "integration_id": integration.id,
                     "organization_id": organization.id,
                 }

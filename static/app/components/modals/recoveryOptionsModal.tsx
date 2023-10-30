@@ -1,30 +1,30 @@
 import {Fragment} from 'react';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
-import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Authenticator} from 'sentry/types';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type Props = AsyncComponent['props'] &
+type Props = DeprecatedAsyncComponent['props'] &
   ModalRenderProps & {
     authenticatorName: string;
   };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   authenticators: Authenticator[] | null;
   skipSms: boolean;
 };
 
-class RecoveryOptionsModal extends AsyncComponent<Props, State> {
+class RecoveryOptionsModal extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState() {
     return {...super.getDefaultState(), skipSms: false};
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     return [['authenticators', '/users/me/authenticators/']];
   }
 
@@ -44,7 +44,8 @@ class RecoveryOptionsModal extends AsyncComponent<Props, State> {
       {}
     );
     const recoveryEnrolled = recovery && recovery.isEnrolled;
-    const displaySmsPrompt = sms && !sms.isEnrolled && !skipSms;
+    const displaySmsPrompt =
+      sms && !sms.isEnrolled && !skipSms && !sms.disallowNewEnrollment;
 
     return (
       <Fragment>

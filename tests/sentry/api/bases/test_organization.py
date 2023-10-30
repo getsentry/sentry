@@ -1,27 +1,38 @@
 from datetime import timedelta
+from functools import cached_property
 from unittest import mock
 
 import pytest
+from django.contrib.auth.models import AnonymousUser
+from django.contrib.sessions.backends.base import SessionBase
 from django.db.models import F
 from django.test import RequestFactory
 from django.utils import timezone
-from exam import fixture
-from freezegun import freeze_time
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import (
     MemberDisabledOverLimit,
     ResourceDoesNotExist,
+    SsoRequired,
     SuperuserRequired,
     TwoFactorRequired,
 )
 from sentry.api.utils import MAX_STATS_PERIOD
 from sentry.auth.access import NoAccess, from_request
-from sentry.auth.authenticators import TotpInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG
-from sentry.models import ApiKey, Organization, OrganizationMember
-from sentry.testutils import TestCase
+from sentry.models.apikey import ApiKey
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.silo import SiloMode
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 class MockSuperUser:
@@ -35,14 +46,35 @@ class OrganizationPermissionBase(TestCase):
         self.org = self.create_organization()
         super().setUp()
 
-    def has_object_perm(self, method, obj, auth=None, user=None, is_superuser=None):
+    def has_object_perm(self, method, obj, auth=None, user=None, is_superuser=None) -> bool:
+        result_with_org_rpc = None
+        result_with_org_context_rpc = None
+        if isinstance(obj, Organization):
+            organization_context = organization_service.get_organization_by_id(
+                id=obj.id, user_id=user.id if user else None
+            )
+            assert organization_context is not None
+            result_with_org_context_rpc = self.has_object_perm(
+                method, organization_context, auth, user, is_superuser
+            )
+            result_with_org_rpc = self.has_object_perm(
+                method, organization_context.organization, auth, user, is_superuser
+            )
         perm = OrganizationPermission()
+        if user is not None:
+            user = user_service.get_user(user.id)  # Replace with region silo APIUser
         request = self.make_request(user=user, auth=auth, method=method)
         if is_superuser:
             request.superuser.set_logged_in(request.user)
-        return perm.has_permission(request, None) and perm.has_object_permission(request, None, obj)
+        result_with_obj = perm.has_permission(
+            request=request, view=None
+        ) and perm.has_object_permission(request=request, view=None, organization=obj)
+        if result_with_org_rpc is not None:
+            return bool(result_with_obj and result_with_org_rpc and result_with_org_context_rpc)
+        return result_with_obj
 
 
+@region_silo_test(stable=True)
 class OrganizationPermissionTest(OrganizationPermissionBase):
     def org_require_2fa(self):
         self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
@@ -63,25 +95,30 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
         assert not self.has_object_perm("POST", self.org, user=user)
 
     def test_api_key_with_org_access(self):
-        key = ApiKey.objects.create(organization=self.org, scope_list=["org:read"])
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            key = ApiKey.objects.create(organization_id=self.org.id, scope_list=["org:read"])
         assert self.has_object_perm("GET", self.org, auth=key)
 
     def test_api_key_without_org_access(self):
-        key = ApiKey.objects.create(
-            organization=self.create_organization(), scope_list=["org:read"]
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            key = ApiKey.objects.create(
+                organization_id=self.create_organization().id, scope_list=["org:read"]
+            )
         assert not self.has_object_perm("GET", self.org, auth=key)
 
     def test_api_key_without_access(self):
-        key = ApiKey.objects.create(organization=self.org)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            key = ApiKey.objects.create(organization_id=self.org.id)
         assert not self.has_object_perm("GET", self.org, auth=key)
 
     def test_api_key_with_wrong_access(self):
-        key = ApiKey.objects.create(organization=self.org, scope_list=["team:read"])
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            key = ApiKey.objects.create(organization_id=self.org.id, scope_list=["team:read"])
         assert not self.has_object_perm("GET", self.org, auth=key)
 
     def test_api_key_with_wrong_access_for_method(self):
-        key = ApiKey.objects.create(organization=self.org, scope_list=["org:read"])
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            key = ApiKey.objects.create(organization_id=self.org.id, scope_list=["org:read"])
         assert not self.has_object_perm("PUT", self.org, auth=key)
 
     def test_org_requires_2fa_with_superuser(self):
@@ -94,7 +131,8 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
         user = self.create_user()
         self.create_member(user=user, organization=self.org, role="member")
 
-        TotpInterface().enroll(user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            TotpInterface().enroll(user)
         assert self.has_object_perm("GET", self.org, user=user)
 
     def test_org_requires_2fa_with_unenrolled_user(self):
@@ -112,8 +150,7 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
         with pytest.raises(SuperuserRequired):
             assert self.has_object_perm("GET", self.org, user=user)
 
-    @mock.patch("sentry.api.utils.get_cached_organization_member")
-    def test_member_limit_error(self, mock_get_org_member):
+    def test_member_limit_error(self):
         user = self.create_user()
         self.create_member(
             user=user,
@@ -132,10 +169,8 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
                 "extra": {"next": f"/organizations/{self.org.slug}/disabled-member/"},
             }
         }
-        assert mock_get_org_member.call_count == 1
 
-    @mock.patch("sentry.api.utils.get_cached_organization_member")
-    def test_member_limit_with_superuser(self, mock_get_org_member):
+    def test_member_limit_with_superuser(self):
         user = self.create_user(is_superuser=True)
         self.create_member(
             user=user,
@@ -144,35 +179,46 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
             flags=OrganizationMember.flags["member-limit:restricted"],
         )
         assert self.has_object_perm("GET", self.org, user=user, is_superuser=True)
-        assert mock_get_org_member.call_count == 0
 
-    @mock.patch("sentry.api.utils.get_cached_organization_member")
-    def test_member_limit_sentry_app(self, mock_get_org_member):
+    def test_member_limit_sentry_app(self):
         app = self.create_internal_integration(
             name="integration", organization=self.org, scopes=("org:admin",)
         )
         assert self.has_object_perm("GET", self.org, user=app.proxy_user)
-        assert mock_get_org_member.call_count == 0
+
+    def test_sso_required(self):
+        user = self.create_user()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            auth_provider = AuthProvider.objects.create(
+                organization_id=self.org.id, provider="dummy"
+            )
+            AuthIdentity.objects.create(auth_provider=auth_provider, user=user)
+        self.create_member(user=user, organization=self.org, role="member")
+
+        with pytest.raises(SsoRequired):
+            assert self.has_object_perm("GET", self.org, user=user)
+        with pytest.raises(SsoRequired):
+            assert not self.has_object_perm("POST", self.org, user=user)
 
 
 class BaseOrganizationEndpointTest(TestCase):
-    @fixture
+    @cached_property
     def endpoint(self):
         return OrganizationEndpoint()
 
-    @fixture
+    @cached_property
     def user(self):
         return self.create_user("tester@test.com")
 
-    @fixture
+    @cached_property
     def member(self):
         return self.create_user("member@test.com")
 
-    @fixture
+    @cached_property
     def owner(self):
         return self.create_user("owner@test.com")
 
-    @fixture
+    @cached_property
     def org(self):
         org = self.create_organization("test", self.owner)
         org.flags.allow_joinleave = False
@@ -181,7 +227,7 @@ class BaseOrganizationEndpointTest(TestCase):
 
     def build_request(self, user=None, active_superuser=False, **params):
         request = RequestFactory().get("/", params)
-        request.session = {}
+        request.session = SessionBase()
         if active_superuser:
             request.superuser = MockSuperUser()
         if user is None:
@@ -191,6 +237,7 @@ class BaseOrganizationEndpointTest(TestCase):
         return request
 
 
+@region_silo_test(stable=True)
 class GetProjectIdsTest(BaseOrganizationEndpointTest):
     def setUp(self):
         self.team_1 = self.create_team(organization=self.org)
@@ -289,12 +336,12 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
 
     def test_none_user(self):
         request = RequestFactory().get("/")
-        request.session = {}
+        request.session = SessionBase()
         request.access = NoAccess()
         result = self.endpoint.get_projects(request, self.org)
         assert [] == result
 
-        request.user = None
+        request.user = AnonymousUser()
         result = self.endpoint.get_projects(request, self.org)
         assert [] == result
 
@@ -321,8 +368,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
     ):
         project_slugs = [""]
         request = self.build_request(projectSlug=project_slugs)
-        mock_project_ids = set()
-        mock_get_project_ids_unchecked.return_value = mock_project_ids
+        mock_get_project_ids_unchecked.return_value = set()
 
         self.endpoint.get_projects(
             request,
@@ -331,7 +377,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
 
         mock_get_project_ids_unchecked.assert_called_with(request)
         mock__get_projects_by_id.assert_called_with(
-            mock_project_ids,
+            set(),
             request,
             self.org,
             False,
@@ -386,7 +432,14 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
             False,
         )
 
+    def test_get_projects_by_slugs_no_projects_with_slug(self):
+        project_slugs = ["hello"]
+        request = self.build_request(projectSlug=project_slugs)
 
+        assert not self.endpoint.get_projects(request, self.org)
+
+
+@region_silo_test(stable=True)
 class GetEnvironmentsTest(BaseOrganizationEndpointTest):
     def setUp(self):
         self.project = self.create_project(organization=self.org)
@@ -414,6 +467,7 @@ class GetEnvironmentsTest(BaseOrganizationEndpointTest):
             self.run_test([self.env_1, self.env_2], ["fake", self.env_2.name])
 
 
+@region_silo_test(stable=True)
 class GetFilterParamsTest(BaseOrganizationEndpointTest):
     def setUp(self):
         self.team_1 = self.create_team(organization=self.org)

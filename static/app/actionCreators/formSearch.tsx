@@ -1,7 +1,7 @@
 import flatMap from 'lodash/flatMap';
 import flatten from 'lodash/flatten';
 
-import {Field, JsonFormObject} from 'sentry/components/forms/type';
+import {Field, JsonFormObject} from 'sentry/components/forms/types';
 import FormSearchStore, {FormSearchField} from 'sentry/stores/formSearchStore';
 
 type Params = {
@@ -13,7 +13,7 @@ type Params = {
  * Creates a list of objects to be injected by a search source
  *
  * @param route The route a form field belongs on
- * @param formGroups An array of `FormGroup: {title: String, fields: [Field]}`
+ * @param formGroups An array of `FormGroup: {title: string, fields: [Field]}`
  * @param fields An object whose key is field name and value is a `Field`
  */
 const createSearchMap = ({
@@ -41,7 +41,7 @@ const createSearchMap = ({
 export function loadSearchMap() {
   // Load all form configuration files via webpack that export a named `route`
   // as well as either `fields` or `formGroups`
-  const context = require.context('../data/forms', true, /\.[tj]sx?$/);
+  const context = require.context('../data/forms', true, /\.tsx?$/);
 
   // Get a list of all form fields defined in `../data/forms`
   const allFormFields = flatten(

@@ -1,9 +1,14 @@
+from django.db import router
 from django.urls import reverse
 from rest_framework import status
 
-from sentry.models import Project, ProjectStatus, SentryAppInstallationToken
+from sentry.constants import ObjectStatus
 from sentry.models.apitoken import ApiToken
-from sentry.testutils import APITestCase
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
+from sentry.silo import unguarded_write
+from sentry.testutils.cases import APITestCase
 
 
 class ProjectsListTest(APITestCase):
@@ -27,7 +32,8 @@ class ProjectsListTest(APITestCase):
         assert response.data[0]["organization"]["id"] == str(org.id)
 
     def test_show_all_with_superuser(self):
-        Project.objects.all().delete()
+        with unguarded_write(using=router.db_for_write(Project)):
+            Project.objects.all().delete()
 
         user = self.create_user(is_superuser=True)
 
@@ -42,7 +48,8 @@ class ProjectsListTest(APITestCase):
         assert len(response.data) == 2
 
     def test_show_all_without_superuser(self):
-        Project.objects.all().delete()
+        with unguarded_write(using=router.db_for_write(Project)):
+            Project.objects.all().delete()
 
         user = self.create_user(is_superuser=False)
 
@@ -56,14 +63,32 @@ class ProjectsListTest(APITestCase):
         response = self.get_success_response()
         assert len(response.data) == 0
 
+    def test_filter_by_org_id(self):
+        user = self.create_user(is_superuser=True)
+        org = self.create_organization()
+        team = self.create_team(organization=org, members=[user])
+        project = self.create_project(teams=[team])
+        org2 = self.create_organization()
+        team2 = self.create_team(organization=org2, members=[user])
+        self.create_project(teams=[team2])
+
+        self.login_as(user=user, superuser=False)
+
+        response = self.get_success_response(qs_params={"organizationId": str(org.id)})
+        assert len(response.data) == 1
+
+        assert response.data[0]["id"] == str(project.id)
+        assert response.data[0]["organization"]["id"] == str(org.id)
+
     def test_status_filter(self):
-        Project.objects.all().delete()
+        with unguarded_write(using=router.db_for_write(Project)):
+            Project.objects.all().delete()
 
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org, members=[user])
         project1 = self.create_project(teams=[team])
-        project2 = self.create_project(teams=[team], status=ProjectStatus.PENDING_DELETION)
+        project2 = self.create_project(teams=[team], status=ObjectStatus.PENDING_DELETION)
 
         self.login_as(user=user)
 
@@ -76,7 +101,8 @@ class ProjectsListTest(APITestCase):
         assert response.data[0]["id"] == str(project2.id)
 
     def test_query_filter(self):
-        Project.objects.all().delete()
+        with unguarded_write(using=router.db_for_write(Project)):
+            Project.objects.all().delete()
 
         user = self.create_user()
         org = self.create_organization()
@@ -94,7 +120,8 @@ class ProjectsListTest(APITestCase):
         assert len(response.data) == 0
 
     def test_slug_query(self):
-        Project.objects.all().delete()
+        with unguarded_write(using=router.db_for_write(Project)):
+            Project.objects.all().delete()
 
         user = self.create_user()
         org = self.create_organization()
@@ -111,8 +138,29 @@ class ProjectsListTest(APITestCase):
         response = self.get_success_response(qs_params={"query": "slug:baz"})
         assert len(response.data) == 0
 
+    def test_dsn_filter(self):
+        with unguarded_write(using=router.db_for_write(Project)):
+            Project.objects.all().delete()
+
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org, members=[user])
+        project1 = self.create_project(teams=[team])
+        key = ProjectKey.objects.get_or_create(project=project1)[0]
+        self.create_project(teams=[team])
+
+        self.login_as(user=user)
+
+        response = self.get_success_response(qs_params={"query": f"dsn:{key.public_key}"})
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(project1.id)
+
+        response = self.get_success_response(qs_params={"query": "dsn:nope"})
+        assert len(response.data) == 0
+
     def test_id_query(self):
-        Project.objects.all().delete()
+        with unguarded_write(using=router.db_for_write(Project)):
+            Project.objects.all().delete()
 
         user = self.create_user()
         org = self.create_organization()

@@ -2,9 +2,13 @@ import responses
 
 from fixtures.vercel import SECRET
 from sentry.constants import ObjectStatus
-from sentry.models import Integration, OrganizationIntegration
-from sentry.testutils import APITestCase
+from sentry.integrations.vercel import VercelClient
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.scheduledeletion import ScheduledDeletion
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
+from sentry.testutils.silo import control_silo_test
 
 PRIMARY_UNINSTALL_RESPONSE = """{
     "configurationId": "my_config_id",
@@ -25,7 +29,8 @@ USERID_UNINSTALL_RESPONSE = """{
 }"""
 
 # response payload to POST, instead of DELETE
-POST_DELETE_RESPONSE = """{
+# Old Vercel response
+POST_DELETE_RESPONSE_OLD = """{
         "type": "integration-configuration-removed",
         "payload": {
             "configuration": {
@@ -35,6 +40,23 @@ POST_DELETE_RESPONSE = """{
         },
         "teamId": "vercel_team_id",
         "userId": "vercel_user_id"
+}"""
+
+# New Vercel response
+POST_DELETE_RESPONSE_NEW = """{
+        "type": "integration-configuration.removed",
+        "payload": {
+            "configuration": {
+                "id": "my_config_id",
+                "projects": ["project_id1"]
+            },
+            "team": {
+                "id": "vercel_team_id"
+            },
+            "user": {
+                "id": "vercel_user_id"
+            }
+        }
 }"""
 
 
@@ -68,11 +90,11 @@ class VercelUninstallTest(APITestCase):
             "userId": "vercel_user_id"
         }"""
 
-    def test_uninstall(self):
+    def test_uninstall_old(self):
         with override_options({"vercel.client-secret": SECRET}):
             response = self.client.post(
                 path=self.url,
-                data=POST_DELETE_RESPONSE,
+                data=POST_DELETE_RESPONSE_OLD,
                 content_type="application/json",
                 HTTP_X_VERCEL_SIGNATURE="9fe7776332998c90980cc537b24b196f37e17c99",
             )
@@ -83,7 +105,23 @@ class VercelUninstallTest(APITestCase):
                 integration_id=self.integration.id, organization_id=self.organization.id
             ).exists()
 
+    def test_uninstall_new(self):
+        with override_options({"vercel.client-secret": SECRET}):
+            response = self.client.post(
+                path=self.url,
+                data=POST_DELETE_RESPONSE_NEW,
+                content_type="application/json",
+                HTTP_X_VERCEL_SIGNATURE="83d53d644f6504de716eea275039e8bddd870be5",
+            )
 
+            assert response.status_code == 204
+            assert not Integration.objects.filter(id=self.integration.id).exists()
+            assert not OrganizationIntegration.objects.filter(
+                integration_id=self.integration.id, organization_id=self.organization.id
+            ).exists()
+
+
+@control_silo_test(stable=True)
 class VercelUninstallWithConfigurationsTest(APITestCase):
     def setUp(self):
         self.url = "/extensions/vercel/delete/"
@@ -233,9 +271,10 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
         """
         self.login_as(self.user)
         with self.tasks():
+            config_id = "my_config_id"
             responses.add(
                 responses.DELETE,
-                "https://api.vercel.com/v1/integrations/configuration/my_config_id",
+                f"{VercelClient.base_url}{VercelClient.UNINSTALL % config_id}",
                 json={},
             )
             path = (
@@ -248,7 +287,7 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
             len(
                 OrganizationIntegration.objects.filter(
                     integration=self.integration,
-                    status=ObjectStatus.VISIBLE,
+                    status=ObjectStatus.ACTIVE,
                 )
             )
             == 1
@@ -277,9 +316,10 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
         }
 
         with self.tasks():
+            config_id = "my_config_id2"
             responses.add(
                 responses.DELETE,
-                "https://api.vercel.com/v1/integrations/configuration/my_config_id2",
+                f"{VercelClient.base_url}{VercelClient.UNINSTALL % config_id}",
                 json={},
             )
             path = (
@@ -292,7 +332,7 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
             len(
                 OrganizationIntegration.objects.filter(
                     integration=self.integration,
-                    status=ObjectStatus.VISIBLE,
+                    status=ObjectStatus.ACTIVE,
                 )
             )
             == 0
@@ -305,3 +345,49 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
         )
         assert response.status_code == 204
         assert not Integration.objects.filter(id=self.integration.id).exists()
+
+    @responses.activate
+    def test_uninstall_from_sentry_error(self):
+        """
+        Test that if we uninstall from Sentry and fail to remove the integration using Vercel's
+        delete integration endpoint, we continue and delete the integration in Sentry.
+        """
+        org = self.create_organization(owner=self.user)
+        metadata = {
+            "access_token": "my_access_token",
+            "installation_id": "my_config_id",
+            "installation_type": "user",
+            "webhook_id": "my_webhook_id",
+            "configurations": {
+                "my_config_id": {
+                    "access_token": "my_access_token",
+                    "webhook_id": "my_webhook_id",
+                    "organization_id": org.id,
+                }
+            },
+        }
+        integration = Integration.objects.create(
+            provider="vercel",
+            external_id="vercel_user_id",
+            name="My Vercel Team",
+            metadata=metadata,
+        )
+        integration.add_organization(org)
+        oi = OrganizationIntegration.objects.get(integration=integration)
+
+        self.login_as(self.user)
+        with self.tasks():
+            config_id = "my_config_id"
+            responses.add(
+                responses.DELETE,
+                f"{VercelClient.base_url}{VercelClient.UNINSTALL % config_id}",
+                json={"error": {"message": "You don't have permission to access this resource."}},
+                status=403,
+            )
+            path = f"/api/0/organizations/{org.slug}/integrations/{integration.id}/"
+            response = self.client.delete(path, format="json")
+
+        assert response.status_code == 204
+        assert ScheduledDeletion.objects.filter(
+            model_name="OrganizationIntegration", object_id=oi.id
+        ).exists()

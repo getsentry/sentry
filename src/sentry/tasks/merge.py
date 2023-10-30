@@ -3,9 +3,10 @@ import logging
 from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
 
-from sentry import eventstream, similarity
-from sentry.app import tsdb
+from sentry import eventstream, similarity, tsdb
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, track_group_async_operation
+from sentry.tsdb.base import TSDBModel
 
 logger = logging.getLogger("sentry.merge")
 delete_logger = logging.getLogger("sentry.deletions.async")
@@ -19,6 +20,7 @@ EXTRA_MERGE_MODELS = []
     queue="merge",
     default_retry_delay=60 * 5,
     max_retries=None,
+    silo_mode=SiloMode.REGION,
 )
 @track_group_async_operation
 def merge_groups(
@@ -30,21 +32,18 @@ def merge_groups(
     **kwargs,
 ):
     # TODO(mattrobenolt): Write tests for all of this
-    from sentry.models import (
-        Activity,
-        Environment,
-        EventAttachment,
-        Group,
-        GroupAssignee,
-        GroupEnvironment,
-        GroupHash,
-        GroupMeta,
-        GroupRedirect,
-        GroupRuleStatus,
-        GroupSubscription,
-        UserReport,
-        get_group_with_redirect,
-    )
+    from sentry.models.activity import Activity
+    from sentry.models.environment import Environment
+    from sentry.models.eventattachment import EventAttachment
+    from sentry.models.group import Group, get_group_with_redirect
+    from sentry.models.groupassignee import GroupAssignee
+    from sentry.models.groupenvironment import GroupEnvironment
+    from sentry.models.grouphash import GroupHash
+    from sentry.models.groupmeta import GroupMeta
+    from sentry.models.groupredirect import GroupRedirect
+    from sentry.models.grouprulestatus import GroupRuleStatus
+    from sentry.models.groupsubscription import GroupSubscription
+    from sentry.models.userreport import UserReport
 
     if not (from_object_ids and to_object_id):
         logger.error("group.malformed.missing_params", extra={"transaction_id": transaction_id})
@@ -117,7 +116,7 @@ def merge_groups(
                 Environment.objects.filter(projects=group.project).values_list("id", flat=True)
             )
 
-            for model in [tsdb.models.group]:
+            for model in [TSDBModel.group]:
                 tsdb.merge(
                     model,
                     new_group.id,
@@ -127,7 +126,7 @@ def merge_groups(
                     else None,
                 )
 
-            for model in [tsdb.models.users_affected_by_group]:
+            for model in [TSDBModel.users_affected_by_group]:
                 tsdb.merge_distinct_counts(
                     model,
                     new_group.id,
@@ -138,8 +137,8 @@ def merge_groups(
                 )
 
             for model in [
-                tsdb.models.frequent_releases_by_group,
-                tsdb.models.frequent_environments_by_group,
+                TSDBModel.frequent_releases_by_group,
+                TSDBModel.frequent_environments_by_group,
             ]:
                 tsdb.merge_frequencies(
                     model,
@@ -152,7 +151,7 @@ def merge_groups(
 
             previous_group_id = group.id
 
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(GroupRedirect)):
                 GroupRedirect.create_for_group(group, new_group)
                 group.delete()
             delete_logger.info(
@@ -190,11 +189,11 @@ def merge_groups(
         )
     elif eventstream_state:
         # All `from_object_ids` have been merged!
-        eventstream.end_merge(eventstream_state)
+        eventstream.backend.end_merge(eventstream_state)
 
 
 def _get_event_environment(event, project, cache):
-    from sentry.models import Environment
+    from sentry.models.environment import Environment
 
     environment_name = event.get_tag("environment")
 

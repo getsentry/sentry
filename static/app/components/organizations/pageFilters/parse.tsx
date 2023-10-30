@@ -6,6 +6,7 @@ import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
 import {IntervalPeriod, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import toArray from 'sentry/utils/toArray';
 
 import {PageFiltersState} from './types';
 
@@ -71,7 +72,7 @@ function getStatsPeriodValue(maybe: ParamValue) {
  *
  * [0]: https://gist.github.com/asafge/0b13c5066d06ae9a4446
  */
-function normalizeDateTimeString(input: Date | SingleParamValue) {
+export function normalizeDateTimeString(input: Date | SingleParamValue) {
   if (!input) {
     return undefined;
   }
@@ -138,7 +139,7 @@ function getProject(maybe: ParamValue) {
   return isNaN(projectFromQueryIdInt) ? [] : [projectFromQueryIdInt];
 }
 
-/*
+/**
  * Normalizes a string or string[] into the environment list parameter
  */
 function getEnvironment(maybe: ParamValue) {
@@ -146,11 +147,7 @@ function getEnvironment(maybe: ParamValue) {
     return undefined;
   }
 
-  if (Array.isArray(maybe)) {
-    return maybe;
-  }
-
-  return [maybe];
+  return toArray(maybe);
 }
 
 type InputParams = {

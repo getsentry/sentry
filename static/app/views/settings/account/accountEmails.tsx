@@ -4,31 +4,34 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {RequestOptions} from 'sentry/api';
 import AlertLink from 'sentry/components/alertLink';
-import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import Form from 'sentry/components/forms/form';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import Form, {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
 import Tag from 'sentry/components/tag';
 import accountEmailsFields from 'sentry/data/forms/accountEmails';
 import {IconDelete, IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {UserEmail} from 'sentry/types';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 const ENDPOINT = '/users/me/emails/';
 
-type Props = AsyncView['props'];
+type Props = DeprecatedAsyncView['props'];
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   emails: UserEmail[];
 };
 
-class AccountEmails extends AsyncView<Props, State> {
+class AccountEmails extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     return t('Emails');
   }
@@ -37,7 +40,7 @@ class AccountEmails extends AsyncView<Props, State> {
     return [];
   }
 
-  handleSubmitSuccess: Form['props']['onSubmitSuccess'] = (_change, model, id) => {
+  handleSubmitSuccess: FormProps['onSubmitSuccess'] = (_change, model, id) => {
     if (id === undefined) {
       return;
     }
@@ -70,8 +73,8 @@ class AccountEmails extends AsyncView<Props, State> {
 
 export default AccountEmails;
 
-export class EmailAddresses extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+export class EmailAddresses extends DeprecatedAsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['emails', ENDPOINT]];
   }
   doApiCall(endpoint: string, requestParams: RequestOptions) {
@@ -158,7 +161,7 @@ type EmailRowProps = {
   onSetPrimary?: (email: string, e: React.MouseEvent) => void;
 };
 
-const EmailRow = ({
+function EmailRow({
   email,
   onRemove,
   onVerify,
@@ -166,37 +169,39 @@ const EmailRow = ({
   isVerified,
   isPrimary,
   hideRemove,
-}: EmailRowProps) => (
-  <EmailItem>
-    <EmailTags>
-      {email}
-      {!isVerified && <Tag type="warning">{t('Unverified')}</Tag>}
-      {isPrimary && <Tag type="success">{t('Primary')}</Tag>}
-    </EmailTags>
-    <ButtonBar gap={1}>
-      {!isPrimary && isVerified && (
-        <Button size="small" onClick={e => onSetPrimary?.(email, e)}>
-          {t('Set as primary')}
-        </Button>
-      )}
-      {!isVerified && (
-        <Button size="small" onClick={e => onVerify(email, e)}>
-          {t('Resend verification')}
-        </Button>
-      )}
-      {!hideRemove && !isPrimary && (
-        <Button
-          aria-label={t('Remove email')}
-          data-test-id="remove"
-          priority="danger"
-          size="small"
-          icon={<IconDelete />}
-          onClick={e => onRemove(email, e)}
-        />
-      )}
-    </ButtonBar>
-  </EmailItem>
-);
+}: EmailRowProps) {
+  return (
+    <EmailItem>
+      <EmailTags>
+        {email}
+        {!isVerified && <Tag type="warning">{t('Unverified')}</Tag>}
+        {isPrimary && <Tag type="success">{t('Primary')}</Tag>}
+      </EmailTags>
+      <ButtonBar gap={1}>
+        {!isPrimary && isVerified && (
+          <Button size="sm" onClick={e => onSetPrimary?.(email, e)}>
+            {t('Set as primary')}
+          </Button>
+        )}
+        {!isVerified && (
+          <Button size="sm" onClick={e => onVerify(email, e)}>
+            {t('Resend verification')}
+          </Button>
+        )}
+        {!hideRemove && !isPrimary && (
+          <Button
+            aria-label={t('Remove email')}
+            data-test-id="remove"
+            priority="danger"
+            size="sm"
+            icon={<IconDelete />}
+            onClick={e => onRemove(email, e)}
+          />
+        )}
+      </ButtonBar>
+    </EmailItem>
+  );
+}
 
 const EmailTags = styled('div')`
   display: grid;

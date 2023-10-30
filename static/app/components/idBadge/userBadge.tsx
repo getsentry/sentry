@@ -1,26 +1,26 @@
 import styled from '@emotion/styled';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {AvatarUser} from 'sentry/types';
 
-type Props = {
-  avatarSize?: UserAvatar['props']['size'];
+export interface UserBadgeProps {
+  avatarSize?: React.ComponentProps<typeof UserAvatar>['size'];
   className?: string;
-  displayEmail?: string;
+  displayEmail?: React.ReactNode | string;
   displayName?: React.ReactNode;
   hideEmail?: boolean;
   user?: AvatarUser;
-};
+}
 
-const UserBadge = ({
+function UserBadge({
   avatarSize = 24,
   hideEmail = false,
   displayName,
   displayEmail,
   user,
   className,
-}: Props) => {
+}: UserBadgeProps) {
   const title =
     displayName ||
     (user &&
@@ -31,6 +31,7 @@ const UserBadge = ({
         // Because this can be used to render EventUser models, or User *interface*
         // objects from serialized Event models. we try both ipAddress and ip_address.
         user.ip_address ||
+        user.ip ||
         user.id));
 
   return (
@@ -42,7 +43,7 @@ const UserBadge = ({
       </StyledNameAndEmail>
     </StyledUserBadge>
   );
-};
+}
 
 const StyledUserBadge = styled('div')`
   display: flex;

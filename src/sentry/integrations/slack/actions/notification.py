@@ -1,17 +1,18 @@
 from __future__ import annotations
 
-from typing import Any, Generator, Sequence
+from typing import Any, Generator, Optional, Sequence
 
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.integrations.slack.utils import get_channel_id
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
 from sentry.rules import EventState
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
+from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.rules import RuleFuture
 from sentry.utils import json, metrics
@@ -32,24 +33,36 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 "type": "choice",
                 "choices": [(i.id, i.name) for i in self.get_integrations()],
             },
-            "channel": {"type": "string", "placeholder": "i.e #critical, Jane Schmidt"},
-            "channel_id": {"type": "string", "placeholder": "i.e. CA2FRA079 or UA1J9RTE1"},
-            "tags": {"type": "string", "placeholder": "i.e environment,user,my_tag"},
+            "channel": {"type": "string", "placeholder": "e.g., #critical, Jane Schmidt"},
+            "channel_id": {"type": "string", "placeholder": "e.g., CA2FRA079 or UA1J9RTE1"},
+            "tags": {"type": "string", "placeholder": "e.g., environment,user,my_tag"},
         }
 
-    def after(self, event: Event, state: EventState) -> Generator[CallbackFuture, None, None]:
+    def after(
+        self, event: GroupEvent, state: EventState, notification_uuid: Optional[str] = None
+    ) -> Generator[CallbackFuture, None, None]:
         channel = self.get_option("channel_id")
         tags = set(self.get_tags_list())
 
-        try:
-            integration = self.get_integration()
-        except Integration.DoesNotExist:
+        i = self.get_integration()
+        if not i:
             # Integration removed, rule still active.
             return
 
-        def send_notification(event: Event, futures: Sequence[RuleFuture]) -> None:
+        # integration is captured in a closure, type assert the None case is handled.
+        integration: RpcIntegration = i
+
+        def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             rules = [f.rule for f in futures]
-            attachments = [build_group_attachment(event.group, event=event, tags=tags, rules=rules)]
+            attachments = [
+                build_group_attachment(
+                    event.group,
+                    event=event,
+                    tags=tags,
+                    rules=rules,
+                    notification_uuid=notification_uuid,
+                )
+            ]
             # getsentry might add a billing related attachment
             additional_attachment = get_additional_attachment(
                 integration, self.project.organization
@@ -58,13 +71,12 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 attachments.append(additional_attachment)
 
             payload = {
-                "token": integration.metadata["access_token"],
                 "channel": channel,
                 "link_names": 1,
                 "attachments": json.dumps(attachments),
             }
 
-            client = SlackClient()
+            client = SlackClient(integration_id=integration.id)
             try:
                 client.post("/chat.postMessage", data=payload, timeout=5)
             except ApiError as e:
@@ -77,6 +89,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                         "channel_name": self.get_option("channel"),
                     },
                 )
+            rule = rules[0] if rules else None
+            self.record_notification_sent(event, channel, rule, notification_uuid)
 
         key = f"slack:{integration.id}:{channel}"
 

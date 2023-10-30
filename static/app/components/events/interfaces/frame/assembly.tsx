@@ -1,10 +1,7 @@
 import styled from '@emotion/styled';
 
-import TextCopyInput from 'sentry/components/forms/textCopyInput';
-import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import theme from 'sentry/utils/theme';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   culture?: string;
@@ -14,7 +11,7 @@ type Props = {
   version?: string;
 };
 
-function Assembly({name, version, culture, publicKeyToken, filePath}: Props) {
+function Assembly({name, version, culture, publicKeyToken}: Props) {
   return (
     <AssemblyWrapper>
       <AssemblyInfo>
@@ -25,22 +22,19 @@ function Assembly({name, version, culture, publicKeyToken, filePath}: Props) {
         <Caption>{t('Version')}:</Caption>
         {version || '-'}
       </AssemblyInfo>
-      <AssemblyInfo>
-        <Caption>{t('Culture')}:</Caption>
-        {culture || '-'}
-      </AssemblyInfo>
-      <AssemblyInfo>
-        <Caption>PublicKeyToken:</Caption>
-        {publicKeyToken || '-'}
-      </AssemblyInfo>
 
-      {filePath && (
-        <FilePathInfo>
-          <Caption>{t('Path')}:</Caption>
-          <Tooltip title={filePath}>
-            <TextCopyInput rtl>{filePath}</TextCopyInput>
-          </Tooltip>
-        </FilePathInfo>
+      {culture && (
+        <AssemblyInfo>
+          <Caption>{t('Culture')}:</Caption>
+          {culture}
+        </AssemblyInfo>
+      )}
+
+      {publicKeyToken && (
+        <AssemblyInfo>
+          <Caption>PublicKeyToken:</Caption>
+          {publicKeyToken}
+        </AssemblyInfo>
       )}
     </AssemblyWrapper>
   );
@@ -53,42 +47,18 @@ const AssemblyWrapper = styled('div')`
   color: ${p => p.theme.textColor};
   text-align: center;
   position: relative;
-  padding: 0 ${space(3)} 0 ${space(3)};
+  padding: ${space(0.25)} ${space(3)};
 `;
 
 const AssemblyInfo = styled('div')`
-  margin-right: 15px;
-  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  margin-right: ${space(2)};
 `;
 
 const Caption = styled('span')`
   margin-right: 5px;
   font-weight: bold;
-`;
-
-const FilePathInfo = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-bottom: 5px;
-  input {
-    width: 300px;
-    height: 20px;
-    padding-top: 0;
-    padding-bottom: 0;
-    line-height: 1.5;
-    @media (max-width: ${theme.breakpoints.medium}) {
-      width: auto;
-    }
-  }
-  button {
-    min-height: 20px;
-    height: 20px;
-    padding: ${space(1)};
-  }
-  svg {
-    width: 11px;
-    height: 11px;
-  }
 `;
 
 export {Assembly};

@@ -1,8 +1,8 @@
 import {memo} from 'react';
+import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
-import {Theme} from 'sentry/utils/theme';
+import {space} from 'sentry/styles/space';
 
 type PillType = 'positive' | 'negative' | 'error';
 
@@ -114,8 +114,7 @@ const PillName = styled('span')`
 
 const PillValue = styled(PillName)`
   border-left: 1px solid ${p => p.theme.border};
-  border-radius: ${p =>
-    `0 ${p.theme.button.borderRadius} ${p.theme.button.borderRadius} 0`};
+  border-radius: ${p => `0 ${p.theme.borderRadius} ${p.theme.borderRadius} 0`};
   max-width: 100%;
   display: flex;
   align-items: center;
@@ -144,8 +143,8 @@ const StyledPill = styled('li')<{type?: PillType}>`
   white-space: nowrap;
   margin: 0 ${space(1)} ${space(1)} 0;
   display: flex;
-  border-radius: ${p => p.theme.button.borderRadius};
-  box-shadow: ${p => p.theme.dropShadowLightest};
+  border-radius: ${p => p.theme.borderRadius};
+  box-shadow: ${p => p.theme.dropShadowLight};
   line-height: 1.2;
   max-width: 100%;
   :last-child {

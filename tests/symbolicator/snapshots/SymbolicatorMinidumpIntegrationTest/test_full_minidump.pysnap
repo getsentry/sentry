@@ -1,5 +1,5 @@
 ---
-created: '2022-03-28T11:44:28.487657Z'
+created: '2022-07-28T11:39:57.532761Z'
 creator: sentry
 source: tests/symbolicator/test_minidump_full.py
 ---
@@ -14,6 +14,21 @@ contexts:
 debug_meta:
   images:
   - arch: x86
+    candidates:
+    - debug:
+        status: ok
+      download:
+        features:
+          has_debug_info: true
+          has_sources: false
+          has_symbols: true
+          has_unwind_info: true
+        status: ok
+      location: sentry://project_debug_file/x
+      source: sentry:project
+      source_name: Sentry
+      unwind:
+        status: ok
     code_file: C:\projects\breakpad-tools\windows\Release\crash.exe
     code_id: 5ab380779000
     debug_file: C:\projects\breakpad-tools\windows\Release\crash.pdb
@@ -168,7 +183,12 @@ debug_meta:
     image_size: 266240
     type: pe
     unwind_status: unused
-  - code_file: C:\Windows\System32\kernel32.dll
+  - candidates:
+    - download:
+        status: notfound
+      source: sentry:project
+      source_name: Sentry
+    code_file: C:\Windows\System32\kernel32.dll
     code_id: 590285e9e0000
     debug_file: wkernel32.pdb
     debug_id: d3474559-96f7-47d6-bf43-c176b2171e68-1
@@ -238,7 +258,12 @@ debug_meta:
     image_size: 1708032
     type: pe
     unwind_status: unused
-  - code_file: C:\Windows\System32\ntdll.dll
+  - candidates:
+    - download:
+        status: notfound
+      source: sentry:project
+      source_name: Sentry
+    code_file: C:\Windows\System32\ntdll.dll
     code_id: 59b0d8f3183000
     debug_file: wntdll.pdb
     debug_id: 971f98e5-ce60-41ff-b2d7-235bbeb34578-1

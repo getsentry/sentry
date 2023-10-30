@@ -1,20 +1,21 @@
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {t} from 'sentry/locale';
-import {DataCategory, Organization} from 'sentry/types';
+import {DataCategoryInfo, Organization, Outcome} from 'sentry/types';
 
-import {Outcome, UsageSeries} from './types';
+import {UsageSeries} from './types';
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 
 type Props = {
-  dataCategory: DataCategory;
+  dataCategory: DataCategoryInfo['plural'];
   organization: Organization;
-} & AsyncComponent['props'];
+  projectIds: number[];
+} & DeprecatedAsyncComponent['props'];
 
 type State = {
   orgStats: UsageSeries | undefined;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
 /**
  * Making 1 extra API call to display this number isn't very efficient.
@@ -26,8 +27,15 @@ type State = {
  * We're going with this approach for simplicity sake. By keeping the range
  * as small as possible, this call is quite fast.
  */
-class UsageStatsPerMin extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+class UsageStatsPerMin extends DeprecatedAsyncComponent<Props, State> {
+  componentDidUpdate(prevProps: Props) {
+    const {projectIds} = this.props;
+    if (prevProps.projectIds !== projectIds) {
+      this.reloadData();
+    }
+  }
+
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     return [['orgStats', this.endpointPath, {query: this.endpointQuery}]];
   }
 
@@ -37,10 +45,12 @@ class UsageStatsPerMin extends AsyncComponent<Props, State> {
   }
 
   get endpointQuery() {
+    const {projectIds} = this.props;
     return {
       statsPeriod: '5m', // Any value <1h will return current hour's data
       interval: '1m',
       groupBy: ['category', 'outcome'],
+      project: projectIds,
       field: ['sum(quantity)'],
     };
   }

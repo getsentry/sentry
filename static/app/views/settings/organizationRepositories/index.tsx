@@ -3,22 +3,25 @@ import {RouteComponentProps} from 'react-router';
 
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import {Repository} from 'sentry/types';
+import {Organization, Repository} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import AsyncView from 'sentry/views/asyncView';
+import withOrganization from 'sentry/utils/withOrganization';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import OrganizationRepositories from './organizationRepositories';
 
-type Props = RouteComponentProps<{orgId: string}, {}> & AsyncView['props'];
+type Props = RouteComponentProps<{}, {}> & {
+  organization: Organization;
+} & DeprecatedAsyncView['props'];
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   itemList: Repository[] | null;
 };
 
-export default class OrganizationRepositoriesContainer extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId} = this.props.params;
-    return [['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}]];
+class OrganizationRepositoriesContainer extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+    const {organization} = this.props;
+    return [['itemList', `/organizations/${organization.slug}/repos/`]];
   }
 
   // Callback used by child component to signal state change
@@ -33,8 +36,8 @@ export default class OrganizationRepositoriesContainer extends AsyncView<Props, 
   };
 
   getTitle() {
-    const {orgId} = this.props.params;
-    return routeTitleGen(t('Repositories'), orgId, false);
+    const {organization} = this.props;
+    return routeTitleGen(t('Repositories'), organization.slug, false);
   }
 
   renderBody() {
@@ -54,3 +57,5 @@ export default class OrganizationRepositoriesContainer extends AsyncView<Props, 
     );
   }
 }
+
+export default withOrganization(OrganizationRepositoriesContainer);

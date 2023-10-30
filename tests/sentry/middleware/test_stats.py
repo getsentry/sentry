@@ -1,15 +1,14 @@
-from unittest.mock import patch
+from functools import cached_property
+from unittest.mock import Mock, patch, sentinel
 
 from django.test import RequestFactory, override_settings
-from exam import fixture
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.middleware.ratelimit import RatelimitMiddleware
 from sentry.middleware.stats import RequestTimingMiddleware, add_request_metric_tags
-from sentry.testutils import TestCase
-from sentry.testutils.helpers.faux import Mock
+from sentry.testutils.cases import TestCase
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -24,8 +23,11 @@ class RateLimitedEndpoint(Endpoint):
 
 
 class RequestTimingMiddlewareTest(TestCase):
-    middleware = fixture(RequestTimingMiddleware)
-    factory = fixture(RequestFactory)
+    middleware = cached_property(RequestTimingMiddleware)
+
+    @cached_property
+    def factory(self):
+        return RequestFactory()
 
     @patch("sentry.utils.metrics.incr")
     def test_records_default_api_metrics(self, incr):
@@ -50,7 +52,7 @@ class RequestTimingMiddlewareTest(TestCase):
     @patch("sentry.utils.metrics.incr")
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_records_default_api_metrics_with_rate_limit_type(self, incr):
-        rate_limit_middleware = RatelimitMiddleware(None)
+        rate_limit_middleware = RatelimitMiddleware(sentinel.callback)
         test_endpoint = RateLimitedEndpoint.as_view()
         request = self.factory.get("/")
         request._view_path = "/"

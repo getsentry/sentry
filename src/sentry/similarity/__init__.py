@@ -15,10 +15,8 @@ from sentry.similarity.features import (
     MessageFeature,
     get_application_chunks,
 )
-from sentry.similarity.featuresv2 import GroupingBasedFeatureSet
 from sentry.similarity.signatures import MinHashSignatureBuilder
 from sentry.utils import redis
-from sentry.utils.compat import map
 from sentry.utils.datastructures import BidirectionalMapping
 from sentry.utils.iterators import shingle
 
@@ -26,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 def text_shingle(n, value):
-    return map("".join, shingle(n, value))
+    return ["".join(part) for part in shingle(n, value)]
 
 
 class FrameEncodingError(ValueError):
@@ -110,27 +108,13 @@ features = FeatureSet(
     expected_encoding_errors=(FrameEncodingError,),
 )
 
-features2 = GroupingBasedFeatureSet(
-    _make_index_backend(
-        getattr(settings, "SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER", None)
-        or getattr(settings, "SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER", None)
-        or "similarity",
-        namespace="sim:2",
-    )
-)
-
 
 def _build_dispatcher(methodname):
-    # TODO: Delete when features2 supersedes features.
     v1_method = getattr(features, methodname)
-    v2_method = getattr(features2, methodname)
 
     def inner(project, *args, **kwargs):
         if project is None or feature_flags.has("projects:similarity-indexing", project):
             v1_method(*args, **kwargs)
-
-        if project is None or feature_flags.has("projects:similarity-indexing-v2", project):
-            v2_method(*args, **kwargs)
 
     inner.__name__ = methodname
 

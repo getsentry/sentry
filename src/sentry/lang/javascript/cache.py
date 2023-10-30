@@ -1,4 +1,4 @@
-from symbolic import SourceView
+from symbolic.sourcemap import SourceView
 
 from sentry.utils.strings import codec_lookup
 

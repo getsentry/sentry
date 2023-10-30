@@ -40,12 +40,21 @@ class ProjectPluginRow extends PureComponent<Props> {
   };
 
   render() {
-    const {id, name, slug, version, author, hasConfiguration, enabled, canDisable} =
-      this.props;
+    const {
+      id,
+      name,
+      slug,
+      version,
+      author,
+      hasConfiguration,
+      enabled,
+      canDisable,
+      project,
+    } = this.props;
 
     const configureUrl = recreateRoute(id, this.props);
     return (
-      <Access access={['project:write']}>
+      <Access access={['project:write']} project={project}>
         {({hasAccess}) => {
           const LinkOrSpan = hasAccess ? Link : 'span';
 

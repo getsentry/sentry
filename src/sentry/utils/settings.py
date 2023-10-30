@@ -44,11 +44,8 @@ class ConfigurationError(ValueError):
         )
 
 
-def is_self_hosted():
+def is_self_hosted() -> bool:
     # Backcompat for rename to support old consumers, particularly single-tenant.
     from django.conf import settings
 
-    try:
-        return settings.SENTRY_SELF_HOSTED
-    except AttributeError:
-        return settings.SENTRY_ONPREMISE
+    return settings.SENTRY_SELF_HOSTED

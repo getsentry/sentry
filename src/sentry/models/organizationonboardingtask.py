@@ -1,16 +1,21 @@
+from __future__ import annotations
+
 from django.conf import settings
 from django.core.cache import cache
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     JSONField,
     Model,
+    region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
 class OnboardingTask:
@@ -27,6 +32,7 @@ class OnboardingTask:
     FIRST_TRANSACTION = 11
     METRIC_ALERT = 12
     INTEGRATIONS = 13
+    SESSION_REPLAY = 14
 
 
 class OnboardingTaskStatus:
@@ -58,7 +64,7 @@ class OrganizationOnboardingTaskManager(BaseManager):
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
         if cache.get(cache_key) is None:
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(OrganizationOnboardingTask)):
                     self.create(organization_id=organization_id, task=task, **kwargs)
                     return True
             except IntegrityError:
@@ -70,12 +76,44 @@ class OrganizationOnboardingTaskManager(BaseManager):
         return False
 
 
-class OrganizationOnboardingTask(Model):
+class AbstractOnboardingTask(Model):
+    """
+    An abstract onboarding task that can be subclassed. This abstract model exists so that the Sandbox can create a subclass
+    which allows for the creation of tasks that are unique to users instead of organizations.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    STATUS_CHOICES = (
+        (OnboardingTaskStatus.COMPLETE, "complete"),
+        (OnboardingTaskStatus.PENDING, "pending"),
+        (OnboardingTaskStatus.SKIPPED, "skipped"),
+    )
+
+    STATUS_KEY_MAP = dict(STATUS_CHOICES)
+    STATUS_LOOKUP_BY_KEY = {v: k for k, v in STATUS_CHOICES}
+
+    organization = FlexibleForeignKey("sentry.Organization")
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    status = BoundedPositiveIntegerField(choices=[(k, str(v)) for k, v in STATUS_CHOICES])
+    completion_seen = models.DateTimeField(null=True)
+    date_completed = models.DateTimeField(default=timezone.now)
+    project = FlexibleForeignKey("sentry.Project", db_constraint=False, null=True)
+    data = JSONField()  # INVITE_MEMBER { invited_member: user.id }
+
+    # fields for typing
+    TASK_LOOKUP_BY_KEY: dict[str, int]
+    SKIPPABLE_TASKS: frozenset[int]
+
+    class Meta:
+        abstract = True
+
+
+@region_silo_only_model
+class OrganizationOnboardingTask(AbstractOnboardingTask):
     """
     Onboarding tasks walk new Sentry orgs through basic features of Sentry.
     """
-
-    __include_in_export__ = False
 
     TASK_CHOICES = (
         (OnboardingTask.FIRST_PROJECT, "create_project"),
@@ -91,12 +129,7 @@ class OrganizationOnboardingTask(Model):
         (OnboardingTask.FIRST_TRANSACTION, "setup_transactions"),
         (OnboardingTask.METRIC_ALERT, "setup_metric_alert_rules"),
         (OnboardingTask.INTEGRATIONS, "setup_integrations"),
-    )
-
-    STATUS_CHOICES = (
-        (OnboardingTaskStatus.COMPLETE, "complete"),
-        (OnboardingTaskStatus.PENDING, "pending"),
-        (OnboardingTaskStatus.SKIPPED, "skipped"),
+        (OnboardingTask.SESSION_REPLAY, "setup_session_replay"),
     )
 
     # Used in the API to map IDs to string keys. This keeps things
@@ -104,8 +137,7 @@ class OrganizationOnboardingTask(Model):
     TASK_KEY_MAP = dict(TASK_CHOICES)
     TASK_LOOKUP_BY_KEY = {v: k for k, v in TASK_CHOICES}
 
-    STATUS_KEY_MAP = dict(STATUS_CHOICES)
-    STATUS_LOOKUP_BY_KEY = {v: k for k, v in STATUS_CHOICES}
+    task = BoundedPositiveIntegerField(choices=[(k, str(v)) for k, v in TASK_CHOICES])
 
     # Tasks which must be completed for the onboarding to be considered
     # complete.
@@ -123,6 +155,7 @@ class OrganizationOnboardingTask(Model):
             OnboardingTask.FIRST_TRANSACTION,
             OnboardingTask.METRIC_ALERT,
             OnboardingTask.INTEGRATIONS,
+            OnboardingTask.SESSION_REPLAY,
         ]
     )
 
@@ -139,19 +172,9 @@ class OrganizationOnboardingTask(Model):
             OnboardingTask.FIRST_TRANSACTION,
             OnboardingTask.METRIC_ALERT,
             OnboardingTask.INTEGRATIONS,
+            OnboardingTask.SESSION_REPLAY,
         ]
     )
-
-    organization = FlexibleForeignKey("sentry.Organization")
-    user = FlexibleForeignKey(
-        settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL
-    )  # user that completed
-    task = BoundedPositiveIntegerField(choices=[(k, str(v)) for k, v in TASK_CHOICES])
-    status = BoundedPositiveIntegerField(choices=[(k, str(v)) for k, v in STATUS_CHOICES])
-    completion_seen = models.DateTimeField(null=True)
-    date_completed = models.DateTimeField(default=timezone.now)
-    project = FlexibleForeignKey("sentry.Project", db_constraint=False, null=True)
-    data = JSONField()  # INVITE_MEMBER { invited_member: user.id }
 
     objects = OrganizationOnboardingTaskManager()
 

@@ -1,49 +1,51 @@
 import styled from '@emotion/styled';
 
-import AnnotatedText from 'sentry/components/events/meta/annotatedText';
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
-import generateClassName from './generateClassName';
 import Item from './item';
-
-type Props = {
-  data: Data;
-  unknownTitle: string;
-};
+import {ContextItemProps} from './types';
+import {generateIconName} from './utils';
 
 type Data = {
   name: string;
   version?: string;
 };
 
-const ContextSummaryGeneric = ({data, unknownTitle}: Props) => {
+type Props = ContextItemProps<Data, any>;
+
+export function ContextSummaryGeneric({
+  data,
+  unknownTitle,
+  omitUnknownVersion = false,
+  meta,
+}: Props) {
   if (Object.keys(data).length === 0) {
-    return <ContextSummaryNoSummary title={unknownTitle} />;
+    return <ContextSummaryNoSummary title={unknownTitle ?? t('Unknown')} />;
   }
 
-  const renderValue = (key: keyof Data) => {
-    const meta = getMeta(data, key);
-    return <AnnotatedText value={data[key]} meta={meta} />;
-  };
-
-  const className = generateClassName(data.name, data.version);
-
   return (
-    <Item className={className} icon={<span className="context-item-icon" />}>
-      <h3>{renderValue('name')}</h3>
-      <TextOverflow isParagraph>
-        <Subject>{t('Version:')}</Subject>
-        {!data.version ? t('Unknown') : renderValue('version')}
-      </TextOverflow>
+    <Item icon={generateIconName(data.name, data.version)}>
+      <h3>
+        <AnnotatedText value={data.name} meta={meta.name?.['']} />
+      </h3>
+      {(data.version || !omitUnknownVersion) && (
+        <TextOverflow isParagraph>
+          <Subject>{t('Version:')}</Subject>
+          {!defined(data.version) ? (
+            t('Unknown')
+          ) : (
+            <AnnotatedText value={data.version} meta={meta.version?.['']} />
+          )}
+        </TextOverflow>
+      )}
     </Item>
   );
-};
-
-export default ContextSummaryGeneric;
+}
 
 const Subject = styled('strong')`
   margin-right: ${space(0.5)};

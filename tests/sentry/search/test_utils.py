@@ -1,12 +1,15 @@
 from datetime import datetime, timedelta
-from unittest import mock
 
 import pytest
 from django.utils import timezone
 
-from sentry.models import EventUser, GroupStatus, Release, Team, User
+from sentry.models.eventuser import EventUser
+from sentry.models.group import GroupStatus
+from sentry.models.release import Release
+from sentry.models.team import Team
 from sentry.search.base import ANY
 from sentry.search.utils import (
+    DEVICE_CLASS,
     InvalidQuery,
     convert_user_tag_to_query,
     get_latest_release,
@@ -15,7 +18,12 @@ from sentry.search.utils import (
     parse_query,
     tokenize_query,
 )
-from sentry.testutils import TestCase
+from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import control_silo_test, region_silo_test
 
 
 def test_get_numeric_field_value():
@@ -42,57 +50,57 @@ def test_get_numeric_field_value():
 
 class TestParseDuration(TestCase):
     def test_ms(self):
-        assert parse_duration(123, "ms") == 123
+        assert parse_duration("123", "ms") == 123
 
     def test_sec(self):
-        assert parse_duration(456, "s") == 456000
+        assert parse_duration("456", "s") == 456000
 
     def test_minutes(self):
-        assert parse_duration(789, "min") == 789 * 60 * 1000
-        assert parse_duration(789, "m") == 789 * 60 * 1000
+        assert parse_duration("789", "min") == 789 * 60 * 1000
+        assert parse_duration("789", "m") == 789 * 60 * 1000
 
     def test_hours(self):
-        assert parse_duration(234, "hr") == 234 * 60 * 60 * 1000
-        assert parse_duration(234, "h") == 234 * 60 * 60 * 1000
+        assert parse_duration("234", "hr") == 234 * 60 * 60 * 1000
+        assert parse_duration("234", "h") == 234 * 60 * 60 * 1000
 
     def test_days(self):
-        assert parse_duration(567, "day") == 567 * 24 * 60 * 60 * 1000
-        assert parse_duration(567, "d") == 567 * 24 * 60 * 60 * 1000
+        assert parse_duration("567", "day") == 567 * 24 * 60 * 60 * 1000
+        assert parse_duration("567", "d") == 567 * 24 * 60 * 60 * 1000
 
     def test_weeks(self):
-        assert parse_duration(890, "wk") == 890 * 7 * 24 * 60 * 60 * 1000
-        assert parse_duration(890, "w") == 890 * 7 * 24 * 60 * 60 * 1000
+        assert parse_duration("890", "wk") == 890 * 7 * 24 * 60 * 60 * 1000
+        assert parse_duration("890", "w") == 890 * 7 * 24 * 60 * 60 * 1000
 
     def test_errors(self):
         with pytest.raises(InvalidQuery):
             parse_duration("test", "ms")
 
         with pytest.raises(InvalidQuery):
-            parse_duration(123, "test")
+            parse_duration("123", "test")
 
     def test_large_durations(self):
         max_duration = 999999999 * 24 * 60 * 60 * 1000
-        assert parse_duration(999999999, "d") == max_duration
-        assert parse_duration(999999999 * 24, "h") == max_duration
-        assert parse_duration(999999999 * 24 * 60, "m") == max_duration
-        assert parse_duration(999999999 * 24 * 60 * 60, "s") == max_duration
-        assert parse_duration(999999999 * 24 * 60 * 60 * 1000, "ms") == max_duration
+        assert parse_duration("999999999", "d") == max_duration
+        assert parse_duration(str(999999999 * 24), "h") == max_duration
+        assert parse_duration(str(999999999 * 24 * 60), "m") == max_duration
+        assert parse_duration(str(999999999 * 24 * 60 * 60), "s") == max_duration
+        assert parse_duration(str(999999999 * 24 * 60 * 60 * 1000), "ms") == max_duration
 
     def test_overflow_durations(self):
         with pytest.raises(InvalidQuery):
-            assert parse_duration(999999999 + 1, "d")
+            assert parse_duration(str(999999999 + 1), "d")
 
         with pytest.raises(InvalidQuery):
-            assert parse_duration((999999999 + 1) * 24, "h")
+            assert parse_duration(str((999999999 + 1) * 24), "h")
 
         with pytest.raises(InvalidQuery):
-            assert parse_duration((999999999 + 1) * 24 * 60 + 1, "m")
+            assert parse_duration(str((999999999 + 1) * 24 * 60 + 1), "m")
 
         with pytest.raises(InvalidQuery):
-            assert parse_duration((999999999 + 1) * 24 * 60 * 60 + 1, "s")
+            assert parse_duration(str((999999999 + 1) * 24 * 60 * 60 + 1), "s")
 
         with pytest.raises(InvalidQuery):
-            assert parse_duration((999999999 + 1) * 24 * 60 * 60 * 1000 + 1, "ms")
+            assert parse_duration(str((999999999 + 1) * 24 * 60 * 60 * 1000 + 1), "ms")
 
 
 def test_tokenize_query_only_keyed_fields():
@@ -129,9 +137,20 @@ def test_get_numeric_field_value_invalid():
         get_numeric_field_value("foo", ">=1k")
 
 
+@region_silo_test(stable=True)
 class ParseQueryTest(TestCase):
+    @property
+    def rpc_user(self):
+        return user_service.get_user(user_id=self.user.id)
+
+    @property
+    def current_rpc_user(self):
+        # This doesn't include useremails. Used in filters
+        # where the current user is passed back
+        return serialize_rpc_user(self.user)
+
     def parse_query(self, query):
-        return parse_query([self.project], query, self.user, None)
+        return parse_query([self.project], query, self.user, [])
 
     def test_simple(self):
         result = self.parse_query("foo bar")
@@ -162,58 +181,51 @@ class ParseQueryTest(TestCase):
         assert result == {"tags": {"foo-bar": "foobar"}, "query": ""}
 
     # TODO: update docs to include minutes, days, and weeks suffixes
-    @mock.patch("django.utils.timezone.now")
-    def test_age_tag_negative_value(self, now):
-        start = datetime(2016, 1, 1, tzinfo=timezone.utc)
-        now.return_value = start
+    @freeze_time("2016-01-01")
+    def test_age_tag_negative_value(self):
+        start = datetime.now(timezone.utc)
         expected = start - timedelta(hours=12)
         result = self.parse_query("age:-12h")
         assert result == {"tags": {}, "query": "", "age_from": expected, "age_from_inclusive": True}
 
-    @mock.patch("django.utils.timezone.now")
-    def test_age_tag_positive_value(self, now):
-        start = datetime(2016, 1, 1, tzinfo=timezone.utc)
-        now.return_value = start
+    @freeze_time("2016-01-01")
+    def test_age_tag_positive_value(self):
+        start = datetime.now(timezone.utc)
         expected = start - timedelta(hours=12)
         result = self.parse_query("age:+12h")
         assert result == {"tags": {}, "query": "", "age_to": expected, "age_to_inclusive": True}
 
-    @mock.patch("django.utils.timezone.now")
-    def test_age_tag_weeks(self, now):
-        start = datetime(2016, 1, 1, tzinfo=timezone.utc)
-        now.return_value = start
+    @freeze_time("2016-01-01")
+    def test_age_tag_weeks(self):
+        start = datetime.now(timezone.utc)
         expected = start - timedelta(days=35)
         result = self.parse_query("age:+5w")
         assert result == {"tags": {}, "query": "", "age_to": expected, "age_to_inclusive": True}
 
-    @mock.patch("django.utils.timezone.now")
-    def test_age_tag_days(self, now):
-        start = datetime(2016, 1, 1, tzinfo=timezone.utc)
-        now.return_value = start
+    @freeze_time("2016-01-01")
+    def test_age_tag_days(self):
+        start = datetime.now(timezone.utc)
         expected = start - timedelta(days=10)
         result = self.parse_query("age:+10d")
         assert result == {"tags": {}, "query": "", "age_to": expected, "age_to_inclusive": True}
 
-    @mock.patch("django.utils.timezone.now")
-    def test_age_tag_hours(self, now):
-        start = datetime(2016, 1, 1, tzinfo=timezone.utc)
-        now.return_value = start
+    @freeze_time("2016-01-01")
+    def test_age_tag_hours(self):
+        start = datetime.now(timezone.utc)
         expected = start - timedelta(hours=10)
         result = self.parse_query("age:+10h")
         assert result == {"tags": {}, "query": "", "age_to": expected, "age_to_inclusive": True}
 
-    @mock.patch("django.utils.timezone.now")
-    def test_age_tag_minutes(self, now):
-        start = datetime(2016, 1, 1, tzinfo=timezone.utc)
-        now.return_value = start
+    @freeze_time("2016-01-01")
+    def test_age_tag_minutes(self):
+        start = datetime.now(timezone.utc)
         expected = start - timedelta(minutes=30)
         result = self.parse_query("age:+30m")
         assert result == {"tags": {}, "query": "", "age_to": expected, "age_to_inclusive": True}
 
-    @mock.patch("django.utils.timezone.now")
-    def test_two_age_tags(self, now):
-        start = datetime(2016, 1, 1, tzinfo=timezone.utc)
-        now.return_value = start
+    @freeze_time("2016-01-01")
+    def test_two_age_tags(self):
+        start = datetime.now(timezone.utc)
         expected_to = start - timedelta(hours=12)
         expected_from = start - timedelta(hours=24)
         result = self.parse_query("age:+12h age:-24h")
@@ -339,7 +351,7 @@ class ParseQueryTest(TestCase):
 
     def test_assigned_me(self):
         result = self.parse_query("assigned:me")
-        assert result == {"assigned_to": self.user, "tags": {}, "query": ""}
+        assert result == {"assigned_to": self.current_rpc_user, "tags": {}, "query": ""}
 
     def test_assigned_none(self):
         result = self.parse_query("assigned:none")
@@ -347,11 +359,11 @@ class ParseQueryTest(TestCase):
 
     def test_assigned_email(self):
         result = self.parse_query(f"assigned:{self.user.email}")
-        assert result == {"assigned_to": self.user, "tags": {}, "query": ""}
+        assert result == {"assigned_to": self.rpc_user, "tags": {}, "query": ""}
 
     def test_assigned_unknown_user(self):
         result = self.parse_query("assigned:fake@example.com")
-        assert isinstance(result["assigned_to"], User)
+        assert isinstance(result["assigned_to"], RpcUser)
         assert result["assigned_to"].id == 0
 
     def test_assigned_valid_team(self):
@@ -371,11 +383,11 @@ class ParseQueryTest(TestCase):
 
     def test_bookmarks_me(self):
         result = self.parse_query("bookmarks:me")
-        assert result == {"bookmarked_by": self.user, "tags": {}, "query": ""}
+        assert result == {"bookmarked_by": self.current_rpc_user, "tags": {}, "query": ""}
 
     def test_bookmarks_email(self):
         result = self.parse_query(f"bookmarks:{self.user.email}")
-        assert result == {"bookmarked_by": self.user, "tags": {}, "query": ""}
+        assert result == {"bookmarked_by": self.rpc_user, "tags": {}, "query": ""}
 
     def test_bookmarks_unknown_user(self):
         result = self.parse_query("bookmarks:fake@example.com")
@@ -505,6 +517,24 @@ class ParseQueryTest(TestCase):
         assert result["date_to"] == datetime(2016, 1, 2, tzinfo=timezone.utc)
         assert result["date_to_inclusive"] is False
 
+    def test_date_range_with_timezone(self):
+        result = self.parse_query(
+            "event.timestamp:>2016-01-01T10:00:00-03:00 event.timestamp:<2016-01-02T10:00:00+02:00"
+        )
+        assert result["date_from"] == datetime(2016, 1, 1, 13, 0, 0, tzinfo=timezone.utc)
+        assert result["date_from_inclusive"] is False
+        assert result["date_to"] == datetime(2016, 1, 2, 8, 0, tzinfo=timezone.utc)
+        assert result["date_to_inclusive"] is False
+
+    def test_date_range_with_z_timezone(self):
+        result = self.parse_query(
+            "event.timestamp:>2016-01-01T10:00:00Z event.timestamp:<2016-01-02T10:00:00Z"
+        )
+        assert result["date_from"] == datetime(2016, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+        assert result["date_from_inclusive"] is False
+        assert result["date_to"] == datetime(2016, 1, 2, 10, 0, tzinfo=timezone.utc)
+        assert result["date_to_inclusive"] is False
+
     def test_date_range_inclusive(self):
         result = self.parse_query("event.timestamp:>=2016-01-01 event.timestamp:<=2016-01-02")
         assert result["date_from"] == datetime(2016, 1, 1, tzinfo=timezone.utc)
@@ -523,6 +553,14 @@ class ParseQueryTest(TestCase):
     def test_date_approx_precise(self):
         date_value = datetime(2016, 1, 1, tzinfo=timezone.utc)
         result = self.parse_query("event.timestamp:2016-01-01T00:00:00")
+        assert result["date_from"] == date_value - timedelta(minutes=5)
+        assert result["date_from_inclusive"]
+        assert result["date_to"] == date_value + timedelta(minutes=6)
+        assert not result["date_to_inclusive"]
+
+    def test_date_approx_precise_with_timezone(self):
+        date_value = datetime(2016, 1, 1, 5, 0, 0, tzinfo=timezone.utc)
+        result = self.parse_query("event.timestamp:2016-01-01T00:00:00-05:00")
         assert result["date_from"] == date_value - timedelta(minutes=5)
         assert result["date_from_inclusive"]
         assert result["date_to"] == date_value + timedelta(minutes=6)
@@ -567,7 +605,7 @@ class ParseQueryTest(TestCase):
 
     def test_assigned_or_suggested_me(self):
         result = self.parse_query("assigned_or_suggested:me")
-        assert result == {"assigned_or_suggested": self.user, "tags": {}, "query": ""}
+        assert result == {"assigned_or_suggested": self.current_rpc_user, "tags": {}, "query": ""}
 
     def test_assigned_or_suggested_none(self):
         result = self.parse_query("assigned_or_suggested:none")
@@ -579,11 +617,11 @@ class ParseQueryTest(TestCase):
 
     def test_owner_email(self):
         result = self.parse_query(f"assigned_or_suggested:{self.user.email}")
-        assert result == {"assigned_or_suggested": self.user, "tags": {}, "query": ""}
+        assert result == {"assigned_or_suggested": self.rpc_user, "tags": {}, "query": ""}
 
     def test_assigned_or_suggested_unknown_user(self):
         result = self.parse_query("assigned_or_suggested:fake@example.com")
-        assert isinstance(result["assigned_or_suggested"], User)
+        assert isinstance(result["assigned_or_suggested"], RpcUser)
         assert result["assigned_or_suggested"].id == 0
 
     def test_owner_valid_team(self):
@@ -602,6 +640,7 @@ class ParseQueryTest(TestCase):
         assert result["assigned_or_suggested"].id == 0
 
 
+@region_silo_test(stable=True)
 class GetLatestReleaseTest(TestCase):
     def test(self):
         with pytest.raises(Release.DoesNotExist):
@@ -687,6 +726,7 @@ class GetLatestReleaseTest(TestCase):
         ]
 
 
+@control_silo_test(stable=True)
 class ConvertUserTagTest(TestCase):
     def test_simple_user_tag(self):
         assert convert_user_tag_to_query("user", "id:123456") == 'user.id:"123456"'
@@ -699,3 +739,14 @@ class ConvertUserTagTest(TestCase):
 
     def test_non_user_tag(self):
         assert convert_user_tag_to_query("user", 'fake:123"456') is None
+
+
+def test_valid_device_class_mapping():
+    assert set(DEVICE_CLASS.keys()) == {"low", "medium", "high"}, "Only 3 possible classes"
+
+    # should all be integers
+    device_classes = {key: {int(value) for value in values} for key, values in DEVICE_CLASS.items()}
+
+    assert all(
+        0 not in values for values in device_classes.values()
+    ), "`0` is not a valid classes as it represents unclassified"

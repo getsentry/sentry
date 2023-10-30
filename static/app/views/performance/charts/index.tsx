@@ -8,7 +8,7 @@ import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
@@ -43,7 +43,7 @@ class Container extends Component<Props> {
   }
 
   render() {
-    const {api, organization, location, eventView, router} = this.props;
+    const {api, organization, location, eventView} = this.props;
 
     // construct request parameters for fetching chart data
     const globalSelection = eventView.getPageFilters();
@@ -115,7 +115,6 @@ class Container extends Component<Props> {
                       <Chart
                         data={results}
                         loading={loading || reloading}
-                        router={router}
                         statsPeriod={globalSelection.datetime.period}
                         start={start}
                         end={end}

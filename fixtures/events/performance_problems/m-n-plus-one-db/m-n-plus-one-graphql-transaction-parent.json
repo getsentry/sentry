@@ -1,0 +1,490 @@
+{
+  "event_id": "3818ae4f54ba4fa6ac6f68c9e32793c4",
+  "project": 4504141171785728,
+  "release": null,
+  "dist": null,
+  "platform": "node",
+  "message": "",
+  "datetime": "2022-11-11T16:50:13.731710+00:00",
+  "tags": [
+    ["browser", "Chrome 107.0.0"],
+    ["browser.name", "Chrome"],
+    ["client_os", "Mac OS X 10.15.7"],
+    ["client_os.name", "Mac OS X"],
+    ["environment", "production"],
+    ["http.status_code", "200"],
+    ["level", "info"],
+    ["os", "macOS 12.5.1"],
+    ["os.name", "macOS"],
+    ["runtime", "node v16.13.1"],
+    ["runtime.name", "node"],
+    ["transaction", "POST /graphql"],
+    ["url", "http://localhost/graphql"]
+  ],
+  "_meta": {
+    "request": {"data": {"": {"rem": [["@password:filter", "s", 0, 10]], "len": 188}}}
+  },
+  "_metrics": {"bytes.ingested.event": 13865, "bytes.stored.event": 18329},
+  "breadcrumbs": {
+    "values": []
+  },
+  "breakdowns": {
+    "span_ops": {
+      "ops.db": {"value": 46.455146, "unit": "millisecond"},
+      "total.time": {"value": 141.48307, "unit": "millisecond"}
+    }
+  },
+  "contexts": {
+    "app": {
+      "app_start_time": "2022-11-11T16:39:50.987Z",
+      "app_memory": 83312640,
+      "type": "app"
+    },
+    "browser": {"name": "Chrome", "version": "107.0.0", "type": "browser"},
+    "client_os": {"name": "Mac OS X", "version": "10.15.7", "type": "os"},
+    "culture": {"locale": "en-CA", "timezone": "America/Toronto", "type": "culture"},
+    "device": {
+      "arch": "arm64",
+      "memory_size": 34359738368,
+      "free_memory": 103956480,
+      "boot_time": "2022-11-03T14:23:07.278Z",
+      "processor_count": 10,
+      "cpu_description": "Apple M1 Pro",
+      "processor_frequency": 24,
+      "type": "device"
+    },
+    "os": {
+      "name": "macOS",
+      "version": "12.5.1",
+      "build": "21G83",
+      "kernel_version": "21.6.0",
+      "type": "os"
+    },
+    "runtime": {"name": "node", "version": "v16.13.1", "type": "runtime"},
+    "trace": {
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "span_id": "8cb557cde6cf049d",
+      "timestamp": 1668185413.729943,
+      "start_timestamp": 1668185413.682071,
+      "exclusive_time": 0.71621,
+      "client_sample_rate": 1.0,
+      "description": "execute",
+      "op": "graphql.execute",
+      "hash": "ec0cd3cb91fe82b9",
+      "type": "trace"
+    }
+  },
+  "culprit": "POST /graphql",
+  "environment": "production",
+  "grouping_config": {
+    "enhancements": "eJybzDRxY3J-bm5-npWRgaGlroGxrpHxBABcYgcZ",
+    "id": "newstyle:2019-10-29"
+  },
+  "hashes": [],
+  "ingest_path": [
+    {"version": "22.10.0", "public_key": "XE7QiyuNlja9PZ7I9qJlwQotzecWrUIN91BAO7Q5R38"}
+  ],
+  "key_id": "2706066",
+  "level": "info",
+  "location": "POST /graphql",
+  "logger": "",
+  "metadata": {"location": "POST /graphql", "title": "POST /graphql"},
+  "nodestore_insert": 1668185417.23467,
+  "received": 1668185414.04859,
+  "request": {
+    "url": "http://localhost/graphql",
+    "method": "POST",
+    "data": "[Filtered]",
+    "headers": [
+      ["Accept", "*/*"],
+      ["Accept-Encoding", "gzip, deflate, br"],
+      ["Accept-Language", "en-US,en;q=0.9"],
+      ["Connection", "keep-alive"],
+      ["Content-Length", "188"],
+      ["Content-Type", "application/json"],
+      ["Host", "localhost:4000"],
+      ["Origin", "http://localhost:4000"],
+      ["Referer", "http://localhost:4000/graphql"],
+      [
+        "Sec-Ch-Ua",
+        "\"Google Chrome\";v=\"107\", \"Chromium\";v=\"107\", \"Not=A?Brand\";v=\"24\""
+      ],
+      ["Sec-Ch-Ua-Mobile", "?0"],
+      ["Sec-Ch-Ua-Platform", "\"macOS\""],
+      ["Sec-Fetch-Dest", "empty"],
+      ["Sec-Fetch-Mode", "cors"],
+      ["Sec-Fetch-Site", "same-origin"],
+      [
+        "User-Agent",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"
+      ]
+    ],
+    "inferred_content_type": "application/json"
+  },
+  "sdk": {
+    "name": "sentry.javascript.node",
+    "version": "7.19.0",
+    "integrations": [
+      "InboundFilters",
+      "FunctionToString",
+      "Console",
+      "Http",
+      "OnUncaughtException",
+      "OnUnhandledRejection",
+      "ContextLines",
+      "Context",
+      "Modules",
+      "RequestData",
+      "LinkedErrors",
+      "Postgres",
+      "Express",
+      "Apollo",
+      "GraphQL"
+    ],
+    "packages": [{"name": "npm:@sentry/node", "version": "7.19.0"}]
+  },
+  "span_grouping_config": {"id": "default:2022-10-27"},
+  "spans": [
+    {
+      "timestamp": 1668185413.690526,
+      "start_timestamp": 1668185413.682359,
+      "exclusive_time": 8.167028,
+      "description": "Query.libraries",
+      "op": "graphql.resolve",
+      "span_id": "b25491eae8f23566",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "9c3d2cb6bb1c8cdd"
+    },
+    {
+      "timestamp": 1668185413.690426,
+      "start_timestamp": 1668185413.682709,
+      "exclusive_time": 7.717133,
+      "description": "SELECT id, branch FROM libraries",
+      "op": "db",
+      "span_id": "bc8a89755d50bf77",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "434042176b5c9d3c"
+    },
+    {
+      "timestamp": 1668185413.694664,
+      "start_timestamp": 1668185413.690787,
+      "exclusive_time": 3.876925,
+      "description": "Library.books",
+      "op": "graphql.resolve",
+      "span_id": "951433ef5f9cefcd",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "5fde10c6f804ea55"
+    },
+    {
+      "timestamp": 1668185413.694613,
+      "start_timestamp": 1668185413.690947,
+      "exclusive_time": 3.665924,
+      "description": "SELECT id, title FROM books INNER JOIN library_books lb ON book_id = id WHERE library_id = $1",
+      "op": "db",
+      "span_id": "a2b6b5a22a97ebb4",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "02d2b6df06d197ea"
+    },
+    {
+      "timestamp": 1668185413.698841,
+      "start_timestamp": 1668185413.691387,
+      "exclusive_time": 7.454156,
+      "description": "Library.books",
+      "op": "graphql.resolve",
+      "span_id": "8ae47ce8d841ee83",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "5fde10c6f804ea55"
+    },
+    {
+      "timestamp": 1668185413.698791,
+      "start_timestamp": 1668185413.691473,
+      "exclusive_time": 7.31802,
+      "description": "SELECT id, title FROM books INNER JOIN library_books lb ON book_id = id WHERE library_id = $1",
+      "op": "db",
+      "span_id": "b2455c39e599cb99",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "02d2b6df06d197ea"
+    },
+    {
+      "timestamp": 1668185413.708066,
+      "start_timestamp": 1668185413.69487,
+      "exclusive_time": 13.195991,
+      "description": "Book.authors",
+      "op": "graphql.resolve",
+      "span_id": "9c5049407f37a364",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "a109ff3ef40f7fb3"
+    },
+    {
+      "timestamp": 1668185413.708022,
+      "start_timestamp": 1668185413.695119,
+      "exclusive_time": 12.903213,
+      "description": "SELECT id, name FROM authors INNER JOIN book_authors ON author_id = id WHERE book_id = $1",
+      "op": "db",
+      "span_id": "ad1453eb469473f5",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "360e4df6dbdee5ca"
+    },
+    {
+      "timestamp": 1668185413.709823,
+      "start_timestamp": 1668185413.69535,
+      "exclusive_time": 14.472962,
+      "description": "Book.authors",
+      "op": "graphql.resolve",
+      "span_id": "9ac8fee795f25a28",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "a109ff3ef40f7fb3"
+    },
+    {
+      "timestamp": 1668185413.709774,
+      "start_timestamp": 1668185413.695506,
+      "exclusive_time": 14.267922,
+      "description": "SELECT id, name FROM authors INNER JOIN book_authors ON author_id = id WHERE book_id = $1",
+      "op": "db",
+      "span_id": "aacda642ff6787c0",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "360e4df6dbdee5ca"
+    },
+    {
+      "timestamp": 1668185413.711433,
+      "start_timestamp": 1668185413.69573,
+      "exclusive_time": 15.702963,
+      "description": "Book.authors",
+      "op": "graphql.resolve",
+      "span_id": "b231fb2367a40bb2",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "a109ff3ef40f7fb3"
+    },
+    {
+      "timestamp": 1668185413.711384,
+      "start_timestamp": 1668185413.695973,
+      "exclusive_time": 15.411138,
+      "description": "SELECT id, name FROM authors INNER JOIN book_authors ON author_id = id WHERE book_id = $1",
+      "op": "db",
+      "span_id": "9abcfbac864d1b09",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "360e4df6dbdee5ca"
+    },
+    {
+      "timestamp": 1668185413.712804,
+      "start_timestamp": 1668185413.696227,
+      "exclusive_time": 16.577006,
+      "description": "Book.authors",
+      "op": "graphql.resolve",
+      "span_id": "a4acb0c08f6c5392",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "a109ff3ef40f7fb3"
+    },
+    {
+      "timestamp": 1668185413.712754,
+      "start_timestamp": 1668185413.696362,
+      "exclusive_time": 16.391993,
+      "description": "SELECT id, name FROM authors INNER JOIN book_authors ON author_id = id WHERE book_id = $1",
+      "op": "db",
+      "span_id": "a1dbea4273c7a8cf",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "360e4df6dbdee5ca"
+    },
+    {
+      "timestamp": 1668185413.719214,
+      "start_timestamp": 1668185413.696503,
+      "exclusive_time": 22.711039,
+      "description": "Book.authors",
+      "op": "graphql.resolve",
+      "span_id": "b8467be28b0edef0",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "a109ff3ef40f7fb3"
+    },
+    {
+      "timestamp": 1668185413.718475,
+      "start_timestamp": 1668185413.696634,
+      "exclusive_time": 21.841049,
+      "description": "SELECT id, name FROM authors INNER JOIN book_authors ON author_id = id WHERE book_id = $1",
+      "op": "db",
+      "span_id": "9677584719fa33f9",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "360e4df6dbdee5ca"
+    },
+    {
+      "timestamp": 1668185413.720369,
+      "start_timestamp": 1668185413.696774,
+      "exclusive_time": 23.595095,
+      "description": "Book.authors",
+      "op": "graphql.resolve",
+      "span_id": "8c6aa95b24d15772",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "a109ff3ef40f7fb3"
+    },
+    {
+      "timestamp": 1668185413.720309,
+      "start_timestamp": 1668185413.6969,
+      "exclusive_time": 23.409129,
+      "description": "SELECT id, name FROM authors INNER JOIN book_authors ON author_id = id WHERE book_id = $1",
+      "op": "db",
+      "span_id": "be7d04a1731d5d10",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "360e4df6dbdee5ca"
+    },
+    {
+      "timestamp": 1668185413.723042,
+      "start_timestamp": 1668185413.701103,
+      "exclusive_time": 21.939039,
+      "description": "Book.authors",
+      "op": "graphql.resolve",
+      "span_id": "baa57006cb44092a",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "a109ff3ef40f7fb3"
+    },
+    {
+      "timestamp": 1668185413.722968,
+      "start_timestamp": 1668185413.701386,
+      "exclusive_time": 21.582127,
+      "description": "SELECT id, name FROM authors INNER JOIN book_authors ON author_id = id WHERE book_id = $1",
+      "op": "db",
+      "span_id": "a383cd625dff4809",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "360e4df6dbdee5ca"
+    },
+    {
+      "timestamp": 1668185413.723968,
+      "start_timestamp": 1668185413.702842,
+      "exclusive_time": 21.126032,
+      "description": "Book.authors",
+      "op": "graphql.resolve",
+      "span_id": "9c48fda36f28cb0a",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "a109ff3ef40f7fb3"
+    },
+    {
+      "timestamp": 1668185413.723923,
+      "start_timestamp": 1668185413.703402,
+      "exclusive_time": 20.520925,
+      "description": "SELECT id, name FROM authors INNER JOIN book_authors ON author_id = id WHERE book_id = $1",
+      "op": "db",
+      "span_id": "82253694a3a68c93",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "360e4df6dbdee5ca"
+    },
+    {
+      "timestamp": 1668185413.725554,
+      "start_timestamp": 1668185413.705511,
+      "exclusive_time": 20.042896,
+      "description": "Book.authors",
+      "op": "graphql.resolve",
+      "span_id": "8831cccebb865893",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "a109ff3ef40f7fb3"
+    },
+    {
+      "timestamp": 1668185413.725527,
+      "start_timestamp": 1668185413.705885,
+      "exclusive_time": 19.642115,
+      "description": "SELECT id, name FROM authors INNER JOIN book_authors ON author_id = id WHERE book_id = $1",
+      "op": "db",
+      "span_id": "a2339eabb5c4cf07",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "360e4df6dbdee5ca"
+    },
+    {
+      "timestamp": 1668185413.726588,
+      "start_timestamp": 1668185413.70607,
+      "exclusive_time": 20.518064,
+      "description": "Book.authors",
+      "op": "graphql.resolve",
+      "span_id": "8ea362c64d8b9fd9",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "a109ff3ef40f7fb3"
+    },
+    {
+      "timestamp": 1668185413.726553,
+      "start_timestamp": 1668185413.706279,
+      "exclusive_time": 20.273924,
+      "description": "SELECT id, name FROM authors INNER JOIN book_authors ON author_id = id WHERE book_id = $1",
+      "op": "db",
+      "span_id": "b8f8a99b783f7b48",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "360e4df6dbdee5ca"
+    },
+    {
+      "timestamp": 1668185413.728283,
+      "start_timestamp": 1668185413.706457,
+      "exclusive_time": 21.826029,
+      "description": "Book.authors",
+      "op": "graphql.resolve",
+      "span_id": "87a6041001b4e8f6",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "a109ff3ef40f7fb3"
+    },
+    {
+      "timestamp": 1668185413.728231,
+      "start_timestamp": 1668185413.706584,
+      "exclusive_time": 21.646977,
+      "description": "SELECT id, name FROM authors INNER JOIN book_authors ON author_id = id WHERE book_id = $1",
+      "op": "db",
+      "span_id": "ab99c67643fd85cf",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "360e4df6dbdee5ca"
+    },
+    {
+      "timestamp": 1668185413.729776,
+      "start_timestamp": 1668185413.706718,
+      "exclusive_time": 23.057938,
+      "description": "Book.authors",
+      "op": "graphql.resolve",
+      "span_id": "a96783f2f544024a",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "a109ff3ef40f7fb3"
+    },
+    {
+      "timestamp": 1668185413.829685,
+      "start_timestamp": 1668185413.707292,
+      "exclusive_time": 22.392989,
+      "description": "SELECT id, name FROM authors INNER JOIN book_authors ON author_id = id WHERE book_id = $1",
+      "op": "db",
+      "span_id": "8e110c4aa54e4aa0",
+      "parent_span_id": "8cb557cde6cf049d",
+      "trace_id": "ef2c7de0382f4a60bff816c083570bb5",
+      "hash": "360e4df6dbdee5ca"
+    }
+  ],
+  "start_timestamp": 1668185413.677727,
+  "timestamp": 1668185413.73171,
+  "title": "POST /graphql",
+  "transaction": "POST /graphql",
+  "transaction_info": {
+    "source": "route",
+    "changes": [{"source": "url", "propagations": 0, "timestamp": 1668185413.679132}],
+    "propagations": 0
+  },
+  "type": "transaction",
+  "version": "7"
+}

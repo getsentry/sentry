@@ -1,13 +1,13 @@
 from datetime import timedelta
 
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.incident import DetailedIncidentSerializer
 from sentry.incidents.logic import subscribe_to_incident
-from sentry.snuba.models import QueryDatasets
-from sentry.testutils import TestCase
+from sentry.snuba.dataset import Dataset
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 
 class IncidentSerializerTest(TestCase):
@@ -36,7 +36,7 @@ class DetailedIncidentSerializerTest(TestCase):
         serializer = DetailedIncidentSerializer()
         result = serialize(incident, serializer=serializer, user=self.user)
         assert not result["isSubscribed"]
-        subscribe_to_incident(incident, self.user)
+        subscribe_to_incident(incident, self.user.id)
         result = serialize(incident, serializer=serializer, user=self.user)
         assert result["isSubscribed"]
 
@@ -60,7 +60,7 @@ class DetailedIncidentSerializerTest(TestCase):
 
     def test_transaction_alert_rule(self):
         query = "test query"
-        alert_rule = self.create_alert_rule(dataset=QueryDatasets.TRANSACTIONS, query=query)
+        alert_rule = self.create_alert_rule(dataset=Dataset.Transactions, query=query)
         incident = self.create_incident(alert_rule=alert_rule)
 
         serializer = DetailedIncidentSerializer()

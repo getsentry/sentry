@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import {ButtonProps, StyledButton} from 'sentry/components/button';
-import space, {ValidSize} from 'sentry/styles/space';
+import {space, ValidSize} from 'sentry/styles/space';
 
 type ButtonBarProps = {
   children: React.ReactNode;
@@ -128,5 +128,4 @@ const ButtonGrid = styled('div')<{gap: ValidSize; merged: boolean}>`
   ${p => p.merged && MergedStyles}
 `;
 
-export {ButtonGrid, MergedStyles};
 export default ButtonBar;

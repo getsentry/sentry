@@ -1,7 +1,6 @@
-import {css, Global} from '@emotion/react';
+import {css, Global, Theme} from '@emotion/react';
 
-import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
-import {Theme} from 'sentry/utils/theme';
+import {prismStyles} from 'sentry/styles/prism';
 
 const styles = (theme: Theme, isDark: boolean) => css`
   body {
@@ -39,11 +38,15 @@ const styles = (theme: Theme, isDark: boolean) => css`
 
   pre {
     background-color: ${theme.backgroundSecondary};
+    white-space: pre-wrap;
+    overflow-x: auto;
   }
 
   code {
     background-color: transparent;
   }
+
+  ${prismStyles(theme)}
 
   /**
    * See https://web.dev/prefers-reduced-motion/
@@ -61,15 +64,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
       transition-delay: 0s !important;
     }
   }
-
-  ${IS_ACCEPTANCE_TEST
-    ? css`
-        input,
-        select {
-          caret-color: transparent;
-        }
-      `
-    : ''}
 
   /* Override css in LESS files here as we want to manually control dark mode for now */
   ${isDark
@@ -135,10 +129,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .traceback {
           border-color: ${theme.border};
 
-          ol.context > li {
-            color: ${theme.subText};
-          }
-
           &.in-app-traceback {
             .frame {
               &.leads-to-app {
@@ -171,6 +161,13 @@ const styles = (theme: Theme, isDark: boolean) => css`
             }
             .context {
               background: ${theme.background};
+
+              table.key-value {
+                border-color: ${theme.border};
+                td {
+                  border-color: ${theme.border} !important;
+                }
+              }
             }
           }
         }
@@ -195,10 +192,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .nav-header a.help-link,
         .nav-header span.help-link a {
           color: ${theme.subText};
-        }
-        .search .search-input {
-          background: ${theme.background};
-          color: ${theme.formText};
         }
 
         /* Global Selection header date picker */
@@ -230,17 +223,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
             border-top-color: ${theme.background};
           }
         }
-        .context-summary .context-item.darwin .context-item-icon,
-        .context-summary .context-item.ios .context-item-icon,
-        .context-summary .context-item.macos .context-item-icon,
-        .context-summary .context-item.tvos .context-item-icon,
-        .context-summary .context-item.mac-os-x .context-item-icon,
-        .context-summary .context-item.mac .context-item-icon,
-        .context-summary .context-item.apple .context-item-icon,
-        .context-summary .context-item.watchos .context-item-icon {
-          filter: invert(100%);
-          opacity: 0.8;
-        }
       `
     : ''}
 `;
@@ -248,8 +230,8 @@ const styles = (theme: Theme, isDark: boolean) => css`
 /**
  * Renders an emotion global styles injection component
  */
-const GlobalStyles = ({theme, isDark}: {isDark: boolean; theme: Theme}) => (
-  <Global styles={styles(theme, isDark)} />
-);
+function GlobalStyles({theme, isDark}: {isDark: boolean; theme: Theme}) {
+  return <Global styles={styles(theme, isDark)} />;
+}
 
 export default GlobalStyles;

@@ -1,20 +1,30 @@
+from __future__ import annotations
+
 import functools
 import logging
 import os
-import random
 import re
 import time
-from collections import OrderedDict, namedtuple
+from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from hashlib import sha1
-from operator import itemgetter
-from typing import Any, Callable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 from urllib.parse import urlparse
 
-import pytz
 import sentry_sdk
 import urllib3
 from dateutil.parser import parse as parse_datetime
@@ -24,21 +34,18 @@ from sentry_sdk import Hub
 from snuba_sdk import Request
 from snuba_sdk.legacy import json_to_snql
 
-from sentry.models import (
-    Environment,
-    Group,
-    GroupRelease,
-    Organization,
-    Project,
-    ProjectKey,
-    Release,
-    ReleaseProject,
-)
+from sentry.models.environment import Environment
+from sentry.models.group import Group
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
+from sentry.models.release import Release, ReleaseProject
 from sentry.net.http import connection_from_url
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
+from sentry.snuba.referrer import validate_referrer
 from sentry.utils import json, metrics
-from sentry.utils.compat import map
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 
 logger = logging.getLogger(__name__)
@@ -68,6 +75,8 @@ OVERRIDE_OPTIONS = {
 
 # Show the snuba query params and the corresponding sql or errors in the server logs
 SNUBA_INFO = os.environ.get("SENTRY_SNUBA_INFO", "false").lower() in ("true", "1")
+if SNUBA_INFO:
+    import sqlparse
 
 # There are several cases here where we support both a top level column name and
 # a tag with the same name. Existing search patterns expect to refer to the tag,
@@ -82,6 +91,41 @@ TRANSACTIONS_SNUBA_MAP = {
     if col.value.transaction_name is not None
 }
 
+ISSUE_PLATFORM_MAP = {
+    col.value.alias: col.value.issue_platform_name
+    for col in Columns
+    if col.value.issue_platform_name is not None
+}
+
+SPAN_COLUMN_MAP = {
+    # These are deprecated, keeping them for now while we migrate the frontend
+    "action": "action",
+    "description": "description",
+    "domain": "domain",
+    "group": "group",
+    "module": "module",
+    "id": "span_id",
+    "parent_span": "parent_span_id",
+    "platform": "platform",
+    "project": "project_id",
+    "span.action": "action",
+    "span.description": "description",
+    "span.domain": "domain",
+    "span.duration": "duration",
+    "span.group": "group",
+    "span.group_raw": "group_raw",
+    "span.module": "module",
+    "span.op": "op",
+    "span.self_time": "exclusive_time",
+    "span.status": "span_status",
+    "timestamp": "timestamp",
+    "trace": "trace_id",
+    "transaction": "segment_name",
+    "transaction.id": "transaction_id",
+    "transaction.op": "transaction_op",
+    "user": "user",
+}
+
 SESSIONS_FIELD_LIST = [
     "release",
     "sessions",
@@ -91,9 +135,17 @@ SESSIONS_FIELD_LIST = [
     "project_id",
     "org_id",
     "environment",
+    "session.status",
+    "users_errored",
+    "users_abnormal",
+    "sessions_errored",
+    "sessions_abnormal",
+    "duration_quantiles",
+    "duration_avg",
 ]
 
 SESSIONS_SNUBA_MAP = {column: column for column in SESSIONS_FIELD_LIST}
+SESSIONS_SNUBA_MAP.update({"timestamp": "started"})
 
 # This maps the public column aliases to the discover dataset column names.
 # Longer term we would like to not expose the transactions dataset directly
@@ -114,12 +166,16 @@ METRICS_COLUMN_MAP = {
 }
 
 
-DATASETS = {
+DATASETS: Dict[Dataset, Dict[str, str]] = {
     Dataset.Events: SENTRY_SNUBA_MAP,
     Dataset.Transactions: TRANSACTIONS_SNUBA_MAP,
     Dataset.Discover: DISCOVER_COLUMN_MAP,
     Dataset.Sessions: SESSIONS_SNUBA_MAP,
     Dataset.Metrics: METRICS_COLUMN_MAP,
+    Dataset.PerformanceMetrics: METRICS_COLUMN_MAP,
+    Dataset.SpansIndexed: SPAN_COLUMN_MAP,
+    Dataset.IssuePlatform: ISSUE_PLATFORM_MAP,
+    Dataset.Replays: {},
 }
 
 # Store the internal field names to save work later on.
@@ -130,6 +186,8 @@ DATASET_FIELDS = {
     Dataset.Transactions: list(TRANSACTIONS_SNUBA_MAP.values()),
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
     Dataset.Sessions: SESSIONS_FIELD_LIST,
+    Dataset.IssuePlatform: list(ISSUE_PLATFORM_MAP.values()),
+    Dataset.SpansIndexed: list(SPAN_COLUMN_MAP.values()),
 }
 
 SNUBA_OR = "or"
@@ -340,7 +398,7 @@ _snuba_pool = connection_from_url(
         # automatically retry most requests. Some of our POSTs and all of our DELETEs
         # do cause mutations, but we have other things in place to handle duplicate
         # mutations.
-        method_whitelist={"GET", "POST", "DELETE"},
+        allowed_methods={"GET", "POST", "DELETE"},
     ),
     timeout=settings.SENTRY_SNUBA_TIMEOUT,
     maxsize=10,
@@ -359,13 +417,18 @@ def to_naive_timestamp(value):
     return (value - epoch_naive).total_seconds()
 
 
+def to_start_of_hour(dt: datetime) -> datetime:
+    """This is a function that mimics toStartOfHour from Clickhouse"""
+    return dt.replace(minute=0, second=0, microsecond=0).isoformat()
+
+
 def get_snuba_column_name(name, dataset=Dataset.Events):
     """
     Get corresponding Snuba column name from Sentry snuba map, if not found
     the column is assumed to be a tag. If name is falsy or name is a quoted literal
     (e.g. "'name'"), leave unchanged.
     """
-    no_conversion = {"group_id", "project_id", "start", "end"}
+    no_conversion = {"group_id", "group_ids", "project_id", "start", "end"}
 
     if name in no_conversion:
         return name
@@ -428,6 +491,26 @@ def get_arrayjoin(column):
         return match.groups()[0]
 
 
+def get_organization_id_from_project_ids(project_ids: Sequence[int]) -> int:
+    # any project will do, as they should all be from the same organization
+    try:
+        # Most of the time the project should exist, so get from cache to keep it fast
+        organization_id = Project.objects.get_from_cache(pk=project_ids[0]).organization_id
+    except Project.DoesNotExist:
+        # But in the case the first project doesn't exist, grab the first non deleted project
+        project = Project.objects.filter(pk__in=project_ids).values("organization_id").first()
+        if project is None:
+            raise UnqualifiedQueryError("All project_ids from the filter no longer exist")
+        organization_id = project.get("organization_id")
+
+    return organization_id
+
+
+def infer_project_ids_from_related_models(filter_keys: Mapping[str, Sequence[int]]) -> List[int]:
+    ids = [set(get_related_project_ids(k, filter_keys[k])) for k in filter_keys]
+    return list(set.union(*ids))
+
+
 def get_query_params_to_update_for_projects(query_params, with_org=False):
     """
     Get the project ID and query params that need to be updated for project
@@ -439,11 +522,7 @@ def get_query_params_to_update_for_projects(query_params, with_org=False):
     elif query_params.filter_keys:
         # Otherwise infer the project_ids from any related models
         with timer("get_related_project_ids"):
-            ids = [
-                get_related_project_ids(k, query_params.filter_keys[k])
-                for k in query_params.filter_keys
-            ]
-            project_ids = list(set.union(*map(set, ids)))
+            project_ids = infer_project_ids_from_related_models(query_params.filter_keys)
     elif query_params.conditions:
         project_ids = []
         for cond in query_params.conditions:
@@ -457,16 +536,7 @@ def get_query_params_to_update_for_projects(query_params, with_org=False):
             "No project_id filter, or none could be inferred from other filters."
         )
 
-    # any project will do, as they should all be from the same organization
-    try:
-        # Most of the time the project should exist, so get from cache to keep it fast
-        organization_id = Project.objects.get_from_cache(pk=project_ids[0]).organization_id
-    except Project.DoesNotExist:
-        # But in the case the first project doesn't exist, grab the first non deleted project
-        project = Project.objects.filter(pk__in=project_ids).values("organization_id").first()
-        if project is None:
-            raise UnqualifiedQueryError("All project_ids from the filter no longer exist")
-        organization_id = project.get("organization_id")
+    organization_id = get_organization_id_from_project_ids(project_ids)
 
     params = {"project": project_ids}
     if with_org:
@@ -502,14 +572,50 @@ def get_query_params_to_update_for_organizations(query_params):
     return organization_id, {"organization": organization_id}
 
 
-def _prepare_query_params(query_params):
-    kwargs = deepcopy(query_params.kwargs)
-    query_params_conditions = deepcopy(query_params.conditions)
+def _prepare_start_end(
+    start: Optional[datetime],
+    end: Optional[datetime],
+    organization_id: int,
+    group_ids: Optional[Sequence[int]],
+) -> Tuple[datetime, datetime]:
+    if not start:
+        start = datetime(2008, 5, 8)
+    if not end:
+        end = datetime.utcnow() + timedelta(seconds=1)
 
     # convert to naive UTC datetimes, as Snuba only deals in UTC
     # and this avoids offset-naive and offset-aware issues
-    start = naiveify_datetime(query_params.start)
-    end = naiveify_datetime(query_params.end)
+    start = naiveify_datetime(start)
+    end = naiveify_datetime(end)
+
+    expired, start = outside_retention_with_modified_start(
+        start, end, Organization(organization_id)
+    )
+    if expired:
+        raise QueryOutsideRetentionError("Invalid date range. Please try a more recent date range.")
+
+    # if `shrink_time_window` pushed `start` after `end` it means the user queried
+    # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
+    # wouldn't return any results anyway
+    new_start = shrink_time_window(group_ids, start)
+
+    # TODO (alexh) this is a quick emergency fix for an occasion where a search
+    # results in only 1 django candidate, which is then passed to snuba to
+    # check and we raised because of it. Remove this once we figure out why the
+    # candidate was returned from django at all if it existed only outside the
+    # time range of the query
+    if new_start <= end:
+        start = new_start
+
+    if start > end:
+        raise QueryOutsideGroupActivityError
+
+    return start, end
+
+
+def _prepare_query_params(query_params: SnubaQueryParams, referrer: str | None = None):
+    kwargs = deepcopy(query_params.kwargs)
+    query_params_conditions = deepcopy(query_params.conditions)
 
     with timer("get_snuba_map"):
         forward, reverse = get_snuba_translators(
@@ -521,6 +627,8 @@ def _prepare_query_params(query_params):
         Dataset.Discover,
         Dataset.Sessions,
         Dataset.Transactions,
+        Dataset.Replays,
+        Dataset.IssuePlatform,
     ]:
         (organization_id, params_to_update) = get_query_params_to_update_for_projects(
             query_params, with_org=query_params.dataset == Dataset.Sessions
@@ -543,27 +651,12 @@ def _prepare_query_params(query_params):
             else:
                 query_params_conditions.append((col, "IN", keys))
 
-    expired, start = outside_retention_with_modified_start(
-        start, end, Organization(organization_id)
+    start, end = _prepare_start_end(
+        query_params.start,
+        query_params.end,
+        organization_id,
+        query_params.filter_keys.get("group_id"),
     )
-    if expired:
-        raise QueryOutsideRetentionError("Invalid date range. Please try a more recent date range.")
-
-    # if `shrink_time_window` pushed `start` after `end` it means the user queried
-    # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
-    # wouldn't return any results anyway
-    new_start = shrink_time_window(query_params.filter_keys.get("group_id"), start)
-
-    # TODO (alexh) this is a quick emergency fix for an occasion where a search
-    # results in only 1 django candidate, which is then passed to snuba to
-    # check and we raised because of it. Remove this once we figure out why the
-    # candidate was returned from django at all if it existed only outside the
-    # time range of the query
-    if new_start <= end:
-        start = new_start
-
-    if start > end:
-        raise QueryOutsideGroupActivityError
 
     kwargs.update(
         {
@@ -577,6 +670,10 @@ def _prepare_query_params(query_params):
         }
     )
     kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
+    if referrer:
+        kwargs["tenant_ids"] = kwargs["tenant_ids"] if "tenant_ids" in kwargs else dict()
+        kwargs["tenant_ids"]["referrer"] = referrer
 
     kwargs.update(OVERRIDE_OPTIONS)
     return kwargs, forward, reverse
@@ -661,6 +758,11 @@ def raw_query(
     Sends a query to snuba.  See `SnubaQueryParams` docstring for param
     descriptions.
     """
+
+    if referrer:
+        kwargs["tenant_ids"] = kwargs.get("tenant_ids") or dict()
+        kwargs["tenant_ids"]["referrer"] = referrer
+
     snuba_params = SnubaQueryParams(
         dataset=dataset,
         start=start,
@@ -692,6 +794,13 @@ def raw_snql_query(
     # other functions do here. It does not add any automatic conditions, format
     # results, nothing. Use at your own risk.
     metrics.incr("snql.sdk.api", tags={"referrer": referrer or "unknown"})
+    if "consistent" in OVERRIDE_OPTIONS:
+        request.flags.consistent = OVERRIDE_OPTIONS["consistent"]
+
+    if referrer:
+        request.tenant_ids = request.tenant_ids or dict()
+        request.tenant_ids["referrer"] = referrer
+
     params: SnubaQueryBody = (request, lambda x: x, lambda x: x)
     return _apply_cache_and_build_results([params], referrer=referrer, use_cache=use_cache)[0]
 
@@ -705,6 +814,15 @@ def bulk_snql_query(
     # other functions do here. It does not add any automatic conditions, format
     # results, nothing. Use at your own risk.
     metrics.incr("snql.sdk.api", tags={"referrer": referrer or "unknown"})
+    if "consistent" in OVERRIDE_OPTIONS:
+        for request in requests:
+            request.flags.consistent = OVERRIDE_OPTIONS["consistent"]
+
+    for request in requests:
+        if referrer:
+            request.tenant_ids = request.tenant_ids or dict()
+            request.tenant_ids["referrer"] = referrer
+
     params: SnubaQuery = [(request, lambda x: x, lambda x: x) for request in requests]
     return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
 
@@ -713,7 +831,7 @@ def get_cache_key(query: SnubaQuery) -> str:
     if isinstance(query, Request):
         hashable = str(query)
     else:
-        hashable = json.dumps(query, sort_keys=True)
+        hashable = json.dumps(query)
 
     # sqc - Snuba Query Cache
     return f"sqc:{sha1(hashable.encode('utf-8')).hexdigest()}"
@@ -724,7 +842,7 @@ def bulk_raw_query(
     referrer: Optional[str] = None,
     use_cache: Optional[bool] = False,
 ) -> ResultSet:
-    params = map(_prepare_query_params, snuba_param_list)
+    params = [_prepare_query_params(param, referrer) for param in snuba_param_list]
     return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
 
 
@@ -734,9 +852,9 @@ def _apply_cache_and_build_results(
     use_cache: Optional[bool] = False,
 ) -> ResultSet:
     headers = {}
+    validate_referrer(referrer)
     if referrer:
         headers["referer"] = referrer
-
     # Store the original position of the query so that we can maintain the order
     query_param_list = list(enumerate(snuba_param_list))
 
@@ -759,7 +877,7 @@ def _apply_cache_and_build_results(
         to_query = [(query_pos, query_params, None) for query_pos, query_params in query_param_list]
 
     if to_query:
-        query_results = _bulk_snuba_query(map(itemgetter(1), to_query), headers)
+        query_results = _bulk_snuba_query([item[1] for item in to_query], headers)
         for result, (query_pos, _, cache_key) in zip(query_results, to_query):
             if cache_key:
                 cache.set(cache_key, json.dumps(result), settings.SENTRY_SNUBA_CACHE_TTL_SECONDS)
@@ -768,7 +886,7 @@ def _apply_cache_and_build_results(
     # Sort so that we get the results back in the original param list order
     results.sort()
     # Drop the sort order val
-    return map(itemgetter(1), results)
+    return [result[1] for result in results]
 
 
 def _bulk_snuba_query(
@@ -793,37 +911,24 @@ def _bulk_snuba_query(
         if isinstance(snuba_param_list[0][0], Request):
             query_fn = _snql_query
 
+        parent_api: str = "<missing>"
         with sentry_sdk.configure_scope() as scope:
             if scope.transaction:
-                # XXX(evanh): There seems to be a bug where the parent API is attributed to
-                # the wrong referrer. For one example of this, log a warning so I can capture
-                # the stack trace and try to figure out if this is a bug or not.
                 parent_api = scope.transaction.name
-                referrer = headers.get("referer", "<unknown>")
-                if (
-                    referrer == "tsdb-modelid:500"
-                    and parent_api
-                    != "/api/0/projects/{organization_slug}/{project_slug}/keys/{key_id}/stats/"
-                    and random.random() < 0.1
-                ):
-                    span.set_tag("parent_api_mismatch", f"{referrer}||{parent_api}")
-                    sentry_sdk.set_tag("parent_api_mismatch", f"{referrer}||{parent_api}")
-                    logger.warning(
-                        "unthreaded referrer attributed to incorrect parent api",
-                        stack_info=True,
-                        extra={"parent_api": parent_api},
-                    )
 
         if len(snuba_param_list) > 1:
             query_results = list(
                 _query_thread_pool.map(
                     query_fn,
-                    [(params, Hub(Hub.current), headers) for params in snuba_param_list],
+                    [
+                        (params, Hub(Hub.current), headers, parent_api)
+                        for params in snuba_param_list
+                    ],
                 )
             )
         else:
             # No need to submit to the thread pool if we're just performing a single query
-            query_results = [query_fn((snuba_param_list[0], Hub(Hub.current), headers))]
+            query_results = [query_fn((snuba_param_list[0], Hub(Hub.current), headers, parent_api))]
 
     results = []
     for response, _, reverse in query_results:
@@ -831,18 +936,21 @@ def _bulk_snuba_query(
             body = json.loads(response.data)
             if SNUBA_INFO:
                 if "sql" in body:
-                    logger.info(
-                        "{}.sql: {}".format(headers.get("referer", "<unknown>"), body["sql"])
+                    print(  # NOQA: only prints when an env variable is set
+                        "{}.sql:\n {}".format(
+                            headers.get("referer", "<unknown>"),
+                            sqlparse.format(body["sql"], reindent_aligned=True),
+                        )
                     )
                 if "error" in body:
-                    logger.info(
+                    print(  # NOQA: only prints when an env variable is set
                         "{}.err: {}".format(headers.get("referer", "<unknown>"), body["error"])
                     )
         except ValueError:
             if response.status != 200:
-                logger.error("snuba.query.invalid-json")
+                logger.exception("snuba.query.invalid-json", extra={"response.data": response.data})
                 raise SnubaError("Failed to parse snuba error response")
-            raise UnexpectedResponseError(f"Could not decode JSON response: {response.data}")
+            raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
 
         if response.status != 200:
             if body.get("error"):
@@ -870,11 +978,16 @@ def _bulk_snuba_query(
 RawResult = Tuple[urllib3.response.HTTPResponse, Callable[[Any], Any], Callable[[Any], Any]]
 
 
-def _snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
+def _snql_query(
+    params: tuple[
+        tuple[SnubaQuery, Callable[[Any], Any], Callable[[Any], Any]], Hub, Mapping[str, str], str
+    ]
+) -> RawResult:
     # Eventually we can get rid of this wrapper, but for now it's cleaner to unwrap
     # the params here than in the calling function.
-    query_data, thread_hub, headers = params
+    query_data, thread_hub, headers, parent_api = params
     request, forward, reverse = query_data
+    request.parent_api = parent_api
     assert isinstance(request, Request)
     try:
         return _raw_snql_query(request, thread_hub, headers), forward, reverse
@@ -882,14 +995,15 @@ def _snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
         raise SnubaError(err)
 
 
-def _legacy_snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
+def _legacy_snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str], str]) -> RawResult:
     # Convert the JSON query to SnQL and run it
-    query_data, thread_hub, headers = params
+    query_data, thread_hub, headers, parent_api = params
     query_params, forward, reverse = query_data
 
     try:
         snql_entity = query_params["dataset"]
         request = json_to_snql(query_params, snql_entity)
+        request.parent_api = parent_api
         result = _raw_snql_query(request, Hub(thread_hub), headers)
     except urllib3.exceptions.HTTPError as err:
         raise SnubaError(err)
@@ -904,7 +1018,11 @@ def _raw_snql_query(
     with thread_hub, timer("snql_query"):
         referrer = headers.get("referer", "<unknown>")
         if SNUBA_INFO:
-            logger.info(f"{referrer}.body: {request}")
+            import pprint
+
+            print(  # NOQA: only prints when an env variable is set
+                f"{referrer}.body:\n {pprint.pformat(request.to_dict())}"
+            )
             request.flags.debug = True
 
         with thread_hub.start_span(op="snuba_snql.validation", description=referrer) as span:
@@ -953,9 +1071,9 @@ def query(
         )
     except (QueryOutsideRetentionError, QueryOutsideGroupActivityError):
         if totals:
-            return OrderedDict(), {}
+            return {}, {}
         else:
-            return OrderedDict()
+            return {}
 
     # Validate and scrub response, and translate snuba keys back to IDs
     aggregate_names = [a[2] for a in aggregations]
@@ -989,10 +1107,10 @@ def nest_groups(data, groups, aggregate_cols):
             return {c: data[0][c] for c in aggregate_cols} if data else None
     else:
         g, rest = groups[0], groups[1:]
-        inter = OrderedDict()
+        inter = {}
         for d in data:
             inter.setdefault(d[g], []).append(d)
-        return OrderedDict((k, nest_groups(v, rest, aggregate_cols)) for k, v in inter.items())
+        return {k: nest_groups(v, rest, aggregate_cols) for k, v in inter.items()}
 
 
 def resolve_column(dataset) -> Callable[[str], str]:
@@ -1006,7 +1124,7 @@ def resolve_column(dataset) -> Callable[[str], str]:
 
         # Some dataset specific logic:
         if dataset == Dataset.Discover:
-            if isinstance(col, (list, tuple)) or col == "project_id":
+            if isinstance(col, (list, tuple)) or col in ("project_id", "group_id"):
                 return col
         else:
             if (
@@ -1045,6 +1163,15 @@ def resolve_condition(cond, column_resolver):
                                        current dataset.
     """
     index = get_function_index(cond)
+
+    def _passthrough_arg(arg):
+        if isinstance(arg, str):
+            return f"'{arg}'"
+        elif isinstance(arg, datetime):
+            return f"'{arg.isoformat()}'"
+        else:
+            return arg
+
     # IN/NOT IN conditions are detected as a function but aren't really.
     if index is not None and cond[index] not in ("IN", "NOT IN"):
         if cond[index] in FUNCTION_TO_OPERATOR:
@@ -1056,12 +1183,7 @@ def resolve_condition(cond, column_resolver):
                     else:
                         func_args[i] = column_resolver(arg)
                 else:
-                    if isinstance(arg, str):
-                        func_args[i] = f"'{arg}'"
-                    elif isinstance(arg, datetime):
-                        func_args[i] = f"'{arg.isoformat()}'"
-                    else:
-                        func_args[i] = arg
+                    func_args[i] = _passthrough_arg(arg)
 
             cond[index + 1] = func_args
             return cond
@@ -1069,10 +1191,13 @@ def resolve_condition(cond, column_resolver):
         func_args = cond[index + 1]
         for (i, arg) in enumerate(func_args):
             # Nested function
-            if isinstance(arg, (list, tuple)):
-                func_args[i] = resolve_condition(arg, column_resolver)
-            else:
-                func_args[i] = column_resolver(arg)
+            try:
+                if isinstance(arg, (list, tuple)):
+                    func_args[i] = resolve_condition(arg, column_resolver)
+                else:
+                    func_args[i] = column_resolver(arg)
+            except AttributeError:
+                func_args[i] = _passthrough_arg(arg)
         cond[index + 1] = func_args
         return cond
 
@@ -1108,7 +1233,26 @@ def aliased_query(**kwargs):
         return _aliased_query_impl(**kwargs)
 
 
-def _aliased_query_impl(
+def _aliased_query_impl(**kwargs):
+    return raw_query(**aliased_query_params(**kwargs))
+
+
+def resolve_conditions(
+    conditions: Optional[Sequence[Any]], column_resolver: Callable[[str], str]
+) -> Optional[Sequence[Any]]:
+    if conditions is None:
+        return conditions
+
+    replacement_conditions = []
+    for condition in conditions:
+        replacement = resolve_condition(deepcopy(condition), column_resolver)
+        if replacement:
+            replacement_conditions.append(replacement)
+
+    return replacement_conditions
+
+
+def aliased_query_params(
     start=None,
     end=None,
     groupby=None,
@@ -1122,7 +1266,7 @@ def _aliased_query_impl(
     orderby=None,
     condition_resolver=None,
     **kwargs,
-):
+) -> Mapping[str, Any]:
     if dataset is None:
         raise ValueError("A dataset is required, and is no longer automatically detected.")
 
@@ -1146,10 +1290,9 @@ def _aliased_query_impl(
             if condition_resolver
             else resolve_func
         )
-        for (i, condition) in enumerate(conditions):
-            replacement = resolve_condition(condition, column_resolver)
-            conditions[i] = replacement
-        conditions = [c for c in conditions if c]
+        resolved_conditions = resolve_conditions(conditions, column_resolver)
+    else:
+        resolved_conditions = conditions
 
     if orderby:
         # Don't mutate in case we have a default order passed.
@@ -1161,11 +1304,11 @@ def _aliased_query_impl(
             updated_order.append("{}{}".format("-" if order.startswith("-") else "", order_field))
         orderby = updated_order
 
-    return raw_query(
+    return dict(
         start=start,
         end=end,
         groupby=groupby,
-        conditions=conditions,
+        conditions=resolved_conditions,
         aggregations=aggregations,
         selected_columns=selected_columns,
         filter_keys=filter_keys,
@@ -1173,6 +1316,7 @@ def _aliased_query_impl(
         having=having,
         dataset=dataset,
         orderby=orderby,
+        condition_resolver=condition_resolver,
         **kwargs,
     )
 
@@ -1188,109 +1332,6 @@ def resolve_complex_column(col, resolve_func, ignored):
             resolve_complex_column(args[i], resolve_func, ignored)
         elif isinstance(args[i], str) and args[i] not in ignored:
             args[i] = resolve_func(args[i])
-
-
-def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None):
-    resolved = snuba_filter.clone()
-    translated_columns = {}
-    derived_columns = set()
-    aggregations = resolved.aggregations
-
-    if function_translations:
-        for snuba_name, sentry_name in function_translations.items():
-            derived_columns.add(snuba_name)
-            translated_columns[snuba_name] = sentry_name
-
-    selected_columns = resolved.selected_columns
-    aggregation_aliases = [aggregation[-1] for aggregation in aggregations]
-    if selected_columns:
-        for (idx, col) in enumerate(selected_columns):
-            if isinstance(col, (list, tuple)):
-                if len(col) == 3:
-                    # Add the name from columns, and remove project backticks so its not treated as a new col
-                    derived_columns.add(col[2].strip("`"))
-                # Equations use aggregation aliases as arguments, and we don't want those resolved since they'll resolve
-                # as tags instead
-                resolve_complex_column(col, resolve_func, aggregation_aliases)
-            else:
-                name = resolve_func(col)
-                selected_columns[idx] = name
-                translated_columns[name] = col
-
-        resolved.selected_columns = selected_columns
-
-    groupby = resolved.groupby
-    if groupby:
-        for (idx, col) in enumerate(groupby):
-            name = col
-            if isinstance(col, (list, tuple)):
-                if len(col) == 3:
-                    name = col[2]
-            elif col not in derived_columns:
-                name = resolve_func(col)
-
-            groupby[idx] = name
-        resolved.groupby = groupby
-
-    # need to get derived_columns first, so that they don't get resolved as functions
-    derived_columns = derived_columns.union([aggregation[2] for aggregation in aggregations])
-    for aggregation in aggregations or []:
-        if isinstance(aggregation[1], str):
-            aggregation[1] = resolve_func(aggregation[1])
-        elif isinstance(aggregation[1], (set, tuple, list)):
-            formatted = []
-            for argument in aggregation[1]:
-                # The aggregation has another function call as its parameter
-                func_index = get_function_index(argument)
-                if func_index is not None:
-                    # Resolve the columns on the nested function, and add a wrapping
-                    # list to become a valid query expression.
-                    resolved_args = []
-                    for col in argument[1]:
-                        if col is None or isinstance(col, float):
-                            resolved_args.append(col)
-                        elif isinstance(col, list):
-                            resolve_complex_column(col, resolve_func, aggregation_aliases)
-                            resolved_args.append(col)
-                        else:
-                            resolved_args.append(resolve_func(col))
-                    formatted.append([argument[0], resolved_args])
-                else:
-                    # Parameter is a list of fields.
-                    formatted.append(
-                        resolve_func(argument)
-                        if not isinstance(argument, (set, tuple, list))
-                        and argument not in derived_columns
-                        else argument
-                    )
-            aggregation[1] = formatted
-    resolved.aggregations = aggregations
-
-    conditions = resolved.conditions
-    if conditions:
-        for (i, condition) in enumerate(conditions):
-            replacement = resolve_condition(condition, resolve_func)
-            conditions[i] = replacement
-        resolved.conditions = [c for c in conditions if c]
-
-    orderby = resolved.orderby
-    if orderby:
-        orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
-        resolved_orderby = []
-
-        for field_with_order in orderby:
-            if isinstance(field_with_order, str):
-                field = field_with_order.lstrip("-")
-                resolved_orderby.append(
-                    "{}{}".format(
-                        "-" if field_with_order.startswith("-") else "",
-                        field if field in derived_columns else resolve_func(field),
-                    )
-                )
-            else:
-                resolved_orderby.append(field_with_order)
-        resolved.orderby = resolved_orderby
-    return resolved, translated_columns
 
 
 JSON_TYPE_MAP = {
@@ -1421,9 +1462,9 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
                 else row
             )(col, rev_map)
 
-        if fwd:
+        if fwd is not None:
             forward = compose(forward, fwd)
-        if rev:
+        if rev is not None:
             reverse = compose(reverse, rev)
 
     # Extra reverse translator for time column.
@@ -1486,7 +1527,7 @@ def shrink_time_window(issues, start):
 
 
 def naiveify_datetime(dt):
-    return dt if not dt.tzinfo else dt.astimezone(pytz.utc).replace(tzinfo=None)
+    return dt if not dt.tzinfo else dt.astimezone(timezone.utc).replace(tzinfo=None)
 
 
 def quantize_time(time, key_hash, duration=300):
@@ -1534,8 +1575,30 @@ def is_duration_measurement(key):
         "measurements.fid",
         "measurements.ttfb",
         "measurements.ttfb.requesttime",
+        "measurements.time_to_initial_display",
+        "measurements.time_to_full_display",
         "measurements.app_start_cold",
         "measurements.app_start_warm",
+        "measurements.time_to_full_display",
+        "measurements.time_to_initial_display",
+    ]
+
+
+def is_percentage_measurement(key):
+    return key in [
+        "measurements.frames_slow_rate",
+        "measurements.frames_frozen_rate",
+        "measurements.stall_percentage",
+    ]
+
+
+def is_numeric_measurement(key):
+    return key in [
+        "measurements.cls",
+        "measurements.frames_frozen",
+        "measurements.frames_slow",
+        "measurements.frames_total",
+        "measurements.stall_count",
     ]
 
 

@@ -1,39 +1,43 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {ExceptionType, Group, PlatformType, Project} from 'sentry/types';
+import {ExceptionType, Group, PlatformKey, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
+import {StackType, StackView} from 'sentry/types/stacktrace';
 
-import Content from './content';
+import {Content} from './content';
 import RawContent from './rawContent';
 
 type Props = {
   event: Event;
   hasHierarchicalGrouping: boolean;
   newestFirst: boolean;
-  platform: PlatformType;
-  projectId: Project['id'];
-  stackType: STACK_TYPE;
+  platform: PlatformKey;
+  projectSlug: Project['slug'];
+  stackType: StackType;
   groupingCurrentLevel?: Group['metadata']['current_level'];
-  stackView?: STACK_VIEW;
+  meta?: Record<any, any>;
+  stackView?: StackView;
+  threadId?: number;
 } & Pick<ExceptionType, 'values'>;
 
-function Exception({
+export function ExceptionContent({
   stackView,
   stackType,
-  projectId,
+  projectSlug,
   values,
   event,
   newestFirst,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
   platform = 'other',
+  meta,
+  threadId,
 }: Props) {
   return (
     <ErrorBoundary mini>
-      {stackView === STACK_VIEW.RAW ? (
+      {stackView === StackView.RAW ? (
         <RawContent
           eventId={event.id}
-          projectId={projectId}
+          projectSlug={projectSlug}
           type={stackType}
           values={values}
           platform={platform}
@@ -44,14 +48,15 @@ function Exception({
           stackView={stackView}
           values={values}
           platform={platform}
+          projectSlug={projectSlug}
           newestFirst={newestFirst}
           event={event}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
           groupingCurrentLevel={groupingCurrentLevel}
+          meta={meta}
+          threadId={threadId}
         />
       )}
     </ErrorBoundary>
   );
 }
-
-export default Exception;

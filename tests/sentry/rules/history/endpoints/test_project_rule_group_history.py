@@ -1,16 +1,19 @@
-from datetime import datetime
-
-import freezegun
-import pytz
+from datetime import datetime, timezone
 
 from sentry.api.serializers import serialize
-from sentry.models import Rule, RuleFireHistory
+from sentry.models.rule import Rule
+from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.base import RuleGroupHistory
 from sentry.rules.history.endpoints.project_rule_group_history import RuleGroupHistorySerializer
-from sentry.testutils import APITestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
+@region_silo_test(stable=True)
 class RuleGroupHistorySerializerTest(TestCase):
     def test(self):
         current_date = datetime.now()
@@ -21,11 +24,13 @@ class RuleGroupHistorySerializerTest(TestCase):
                 "group": serialize(self.group, self.user),
                 "count": group_history.count,
                 "lastTriggered": current_date,
+                "eventId": None,
             }
         ]
 
 
-@freezegun.freeze_time()
+@region_silo_test(stable=True)
+@freeze_time()
 class ProjectRuleGroupHistoryIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-group-history-index"
 
@@ -56,7 +61,7 @@ class ProjectRuleGroupHistoryIndexEndpointTest(APITestCase):
             start=iso_format(before_now(days=6)),
             end=iso_format(before_now(days=0)),
         )
-        base_triggered_date = before_now(days=1).replace(tzinfo=pytz.UTC)
+        base_triggered_date = before_now(days=1).replace(tzinfo=timezone.utc)
         assert resp.data == serialize(
             [
                 RuleGroupHistory(self.group, 3, base_triggered_date),
@@ -93,3 +98,16 @@ class ProjectRuleGroupHistoryIndexEndpointTest(APITestCase):
             self.user,
             RuleGroupHistorySerializer(),
         )
+
+    def test_invalid_dates(self):
+        rule = Rule.objects.create(project=self.project)
+
+        self.login_as(self.user)
+        resp = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            rule.id,
+            start=iso_format(before_now(days=0)),
+            end=iso_format(before_now(days=6)),
+        )
+        assert resp.status_code == 400

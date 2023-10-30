@@ -1,11 +1,14 @@
 import sentry_sdk
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import F
 from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -18,6 +21,7 @@ READ_FEATURE = "organizations:dashboards-basic"
 
 
 class OrganizationDashboardBase(OrganizationEndpoint):
+    owner = ApiOwner.DISCOVER_N_DASHBOARDS
     permission_classes = (OrganizationDashboardsPermission,)
 
     def convert_args(self, request: Request, organization_slug, dashboard_id, *args, **kwargs):
@@ -38,7 +42,14 @@ class OrganizationDashboardBase(OrganizationEndpoint):
         return Dashboard.objects.get(id=dashboard_id, organization_id=organization.id)
 
 
+@region_silo_endpoint
 class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization, dashboard) -> Response:
         """
         Retrieve an Organization's Dashboard
@@ -117,13 +128,14 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
                 "organization": organization,
                 "request": request,
                 "projects": self.get_projects(request, organization),
+                "environment": self.request.GET.getlist("environment"),
             },
         )
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(DashboardTombstone)):
                 serializer.save()
                 if tombstone:
                     DashboardTombstone.objects.get_or_create(
@@ -135,7 +147,12 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         return self.respond(serialize(serializer.instance, request.user), status=200)
 
 
+@region_silo_endpoint
 class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     def post(self, request: Request, organization, dashboard) -> Response:
         """
         Update last_visited and increment visits counter

@@ -1,22 +1,27 @@
 import logging
 
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 
 from sentry import eventstore
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.grouping.api import GroupingConfigNotFound
+from sentry.grouping.variants import PerformanceProblemVariant
 from sentry.utils import json, metrics
+from sentry.utils.performance_issues.performance_detection import EventPerformanceProblem
 
 logger = logging.getLogger(__name__)
 
 
-from rest_framework.request import Request
-from rest_framework.response import Response
-
-
+@region_silo_endpoint
 class EventGroupingInfoEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project, event_id) -> Response:
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
+    def get(self, request: HttpRequest, project, event_id) -> HttpResponse:
         """
         Returns the grouping information for an event
         `````````````````````````````````````````````
@@ -24,7 +29,7 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
         This endpoint returns a JSON dump of the metadata that went into the
         grouping algorithm.
         """
-        event = eventstore.get_event_by_id(project.id, event_id)
+        event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             raise ResourceDoesNotExist
 
@@ -37,9 +42,26 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
         hashes = event.get_hashes()
 
         try:
-            variants = event.get_grouping_variants(
-                force_config=config_name, normalize_stacktraces=True
-            )
+            if event.get_event_type() == "transaction":
+                # Transactions events are grouped using performance detection. They
+                # are not subject to grouping configs, and the only relevant
+                # grouping variant is `PerformanceProblemVariant`.
+
+                problems = EventPerformanceProblem.fetch_multi([(event, h) for h in hashes.hashes])
+
+                # Create a variant for every problem associated with the event
+                # TODO: Generate more unique keys, in case this event has more than
+                # one problem of a given type
+                variants = {
+                    problem.problem.type.slug: PerformanceProblemVariant(problem)
+                    for problem in problems
+                    if problem
+                }
+            else:
+                variants = event.get_grouping_variants(
+                    force_config=config_name, normalize_stacktraces=True
+                )
+
         except GroupingConfigNotFound:
             raise ResourceDoesNotExist(detail="Unknown grouping config")
 

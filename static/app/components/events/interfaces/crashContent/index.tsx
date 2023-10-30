@@ -1,14 +1,14 @@
-import {ExceptionType, ExceptionValue, PlatformType} from 'sentry/types';
+import {ExceptionType, ExceptionValue, PlatformKey} from 'sentry/types';
 
-import Exception from './exception';
-import Stacktrace from './stackTrace';
+import {ExceptionContent} from './exception';
+import {StackTraceContent} from './stackTrace';
 
-type ExceptionProps = React.ComponentProps<typeof Exception>;
+type ExceptionProps = React.ComponentProps<typeof ExceptionContent>;
 type Props = Pick<
   ExceptionProps,
   | 'stackType'
   | 'stackView'
-  | 'projectId'
+  | 'projectSlug'
   | 'event'
   | 'newestFirst'
   | 'groupingCurrentLevel'
@@ -18,25 +18,25 @@ type Props = Pick<
   stacktrace?: ExceptionValue['stacktrace'];
 };
 
-function CrashContent({
+export function CrashContent({
   event,
   stackView,
   stackType,
   newestFirst,
-  projectId,
+  projectSlug,
   groupingCurrentLevel,
   hasHierarchicalGrouping,
   exception,
   stacktrace,
 }: Props) {
-  const platform = (event.platform ?? 'other') as PlatformType;
+  const platform = (event.platform ?? 'other') as PlatformKey;
 
   if (exception) {
     return (
-      <Exception
+      <ExceptionContent
         stackType={stackType}
         stackView={stackView}
-        projectId={projectId}
+        projectSlug={projectSlug}
         newestFirst={newestFirst}
         event={event}
         platform={platform}
@@ -49,7 +49,7 @@ function CrashContent({
 
   if (stacktrace) {
     return (
-      <Stacktrace
+      <StackTraceContent
         stacktrace={stacktrace}
         stackView={stackView}
         newestFirst={newestFirst}
@@ -63,5 +63,3 @@ function CrashContent({
 
   return null;
 }
-
-export default CrashContent;

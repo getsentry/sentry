@@ -2,9 +2,12 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
-from sentry.models import Commit, ReleaseCommit
+from sentry.models.commit import Commit
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class ProjectReleaseCommitsListDocsTest(APIDocsTestCase):
     def setUp(self):
         project = self.create_project(name="foo")

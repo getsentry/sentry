@@ -5,9 +5,11 @@ from sentry.api.serializers.models.alert_rule import (
 )
 from sentry.incidents.logic import create_alert_rule_trigger
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType
-from sentry.models import Rule
+from sentry.models.rule import Rule
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
-from sentry.testutils import APITestCase, TestCase
+from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.silo import region_silo_test
 
 NOT_SET = object()
 
@@ -24,6 +26,7 @@ class BaseAlertRuleSerializerTest:
         assert result["id"] == str(alert_rule.id)
         assert result["organizationId"] == str(alert_rule.organization_id)
         assert result["name"] == alert_rule.name
+        assert result["queryType"] == alert_rule.snuba_query.type
         assert result["dataset"] == alert_rule.snuba_query.dataset
         assert result["query"] == alert_rule.snuba_query.query
         assert result["aggregate"] == alert_rule.snuba_query.aggregate
@@ -36,11 +39,13 @@ class BaseAlertRuleSerializerTest:
         assert result["thresholdPeriod"] == alert_rule.threshold_period
         assert result["projects"] == alert_rule_projects
         assert result["includeAllProjects"] == alert_rule.include_all_projects
-        if alert_rule.created_by:
+        if alert_rule.created_by_id:
+            created_by = user_service.get_user(user_id=alert_rule.created_by_id)
+            assert created_by is not None
             assert result["createdBy"] == {
-                "id": alert_rule.created_by.id,
-                "name": alert_rule.created_by.get_display_name(),
-                "email": alert_rule.created_by.email,
+                "id": alert_rule.created_by_id,
+                "name": created_by.get_display_name(),
+                "email": created_by.email,
             }
         else:
             assert result["createdBy"] is None
@@ -98,6 +103,7 @@ class BaseAlertRuleSerializerTest:
         return rule
 
 
+@region_silo_test(stable=True)
 class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
     def test_simple(self):
         alert_rule = self.create_alert_rule()
@@ -129,7 +135,7 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         alert_rule = self.create_alert_rule(environment=self.environment, user=user)
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result)
-        assert alert_rule.created_by == user
+        assert alert_rule.created_by_id == user.id
 
     def test_owner(self):
         user = self.create_user("foo@example.com")
@@ -153,6 +159,7 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         self.assert_alert_rule_serialized(alert_rule, result, resolve_threshold=10)
 
 
+@region_silo_test(stable=True)
 class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
     def test_simple(self):
         projects = [self.project, self.create_project()]
@@ -191,6 +198,7 @@ class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         assert result[1]["triggers"] == []
 
 
+@region_silo_test(stable=True)
 class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestCase):
     def test_combined_serializer(self):
         projects = [self.project, self.create_project()]
@@ -212,4 +220,32 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
 
         self.assert_alert_rule_serialized(alert_rule, result[0])
         assert result[1]["id"] == str(issue_rule.id)
+        assert result[1]["status"] == "active"
+        assert not result[1]["snooze"]
+        self.assert_alert_rule_serialized(other_alert_rule, result[2])
+
+    def test_alert_snoozed(self):
+        projects = [self.project, self.create_project()]
+        alert_rule = self.create_alert_rule(projects=projects)
+        issue_rule = self.create_issue_alert_rule(
+            data={
+                "project": self.project,
+                "name": "Issue Rule Test",
+                "conditions": [],
+                "actions": [],
+                "actionMatch": "all",
+            }
+        )
+        self.snooze_rule(owner_id=self.user.id, alert_rule=alert_rule)
+        other_alert_rule = self.create_alert_rule()
+
+        result = serialize(
+            [alert_rule, issue_rule, other_alert_rule], serializer=CombinedRuleSerializer()
+        )
+
+        self.assert_alert_rule_serialized(alert_rule, result[0])
+        assert result[0]["snooze"]
+        assert result[1]["id"] == str(issue_rule.id)
+        assert result[1]["status"] == "active"
+        assert not result[1]["snooze"]
         self.assert_alert_rule_serialized(other_alert_rule, result[2])

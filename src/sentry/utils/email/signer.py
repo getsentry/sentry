@@ -1,9 +1,13 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django.core.signing import BadSignature, Signer
 from django.utils.crypto import constant_time_compare
-from django.utils.encoding import force_str, force_text
+from django.utils.encoding import force_str
 
 
-class _CaseInsensitiveSigner(Signer):  # type: ignore
+class _CaseInsensitiveSigner(Signer):
     """
     Generate a signature that is comprised of only lowercase letters.
 
@@ -17,10 +21,12 @@ class _CaseInsensitiveSigner(Signer):  # type: ignore
     and sends the value as all lowercase.
     """
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        kwargs.setdefault("algorithm", "sha1")
+        super().__init__(*args, **kwargs)
+
     def signature(self, value: str) -> str:
-        # Explicitly typing to satisfy mypy.
-        sig: str = super().signature(value)
-        return sig.lower()
+        return super().signature(value).lower()
 
     def unsign(self, signed_value: str) -> str:
         # This `unsign` is identical to subclass except for the lower-casing
@@ -32,6 +38,4 @@ class _CaseInsensitiveSigner(Signer):  # type: ignore
         if not constant_time_compare(sig.lower(), self.signature(value)):
             raise BadSignature(f'Signature "{sig}" does not match')
 
-        # Explicitly typing to satisfy mypy.
-        val: str = force_text(value)
-        return val
+        return force_str(value)

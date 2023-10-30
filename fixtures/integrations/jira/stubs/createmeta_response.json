@@ -24,9 +24,7 @@
               "hasDefaultValue": false,
               "key": "summary",
               "name": "Summary",
-              "operations": [
-                "set"
-              ],
+              "operations": ["set"],
               "required": true,
               "schema": {
                 "system": "summary",
@@ -37,9 +35,7 @@
               "hasDefaultValue": false,
               "key": "description",
               "name": "Description",
-              "operations": [
-                "set"
-              ],
+              "operations": ["set"],
               "required": false,
               "schema": {
                 "system": "description",
@@ -51,9 +47,7 @@
               "name": "Issue Type",
               "key": "issuetype",
               "hasDefaultValue": false,
-              "operations": [
-                "set"
-              ]
+              "operations": ["set"]
             },
             "labels": {
               "required": false,
@@ -67,31 +61,29 @@
             },
             "project": {
               "allowedValues": [
-               {
-                "avatarUrls": {
-                  "48x48": "http://www.example.com/jira/secure/projectavatar?pid=10000&avatarId=10011",
-                  "24x24": "http://www.example.com/jira/secure/projectavatar?size=small&pid=10000&avatarId=10011",
-                  "16x16": "http://www.example.com/jira/secure/projectavatar?size=xsmall&pid=10000&avatarId=10011",
-                  "32x32": "http://www.example.com/jira/secure/projectavatar?size=medium&pid=10000&avatarId=10011"
-                },
-                "id": "10000",
-                "key": "EX",
-                "name": "Example Project",
-                "projectTypeKey": "software",
-                "self": "https://hellboi.atlassian.net/rest/api/2/project/10000",
-                "simplified": false
-               }
+                {
+                  "avatarUrls": {
+                    "48x48": "http://www.example.com/jira/secure/projectavatar?pid=10000&avatarId=10011",
+                    "24x24": "http://www.example.com/jira/secure/projectavatar?size=small&pid=10000&avatarId=10011",
+                    "16x16": "http://www.example.com/jira/secure/projectavatar?size=xsmall&pid=10000&avatarId=10011",
+                    "32x32": "http://www.example.com/jira/secure/projectavatar?size=medium&pid=10000&avatarId=10011"
+                  },
+                  "id": "10000",
+                  "key": "EX",
+                  "name": "Example Project",
+                  "projectTypeKey": "software",
+                  "self": "https://hellboi.atlassian.net/rest/api/2/project/10000",
+                  "simplified": false
+                }
               ],
               "hasDefaultValue": false,
               "key": "project",
               "name": "Project",
-              "operations": [
-               "set"
-              ],
+              "operations": ["set"],
               "required": true,
               "schema": {
-               "system": "project",
-               "type": "project"
+                "system": "project",
+                "type": "project"
               }
             },
             "customfield_10200": {
@@ -126,9 +118,7 @@
               ]
             },
             "customfield_10400": {
-              "operations": [
-                "set"
-              ],
+              "operations": ["set"],
               "name": "Epic Link",
               "required": false,
               "hasDefaultValue": false,
@@ -140,9 +130,7 @@
               }
             },
             "customfield_10500": {
-              "operations": [
-                "set"
-              ],
+              "operations": ["set"],
               "name": "Sprint",
               "required": false,
               "hasDefaultValue": false,
@@ -155,9 +143,7 @@
               }
             },
             "parent": {
-              "operations": [
-                "set"
-              ],
+              "operations": ["set"],
               "name": "Parent",
               "required": false,
               "hasDefaultValue": false,
@@ -168,9 +154,7 @@
               }
             },
             "reporter": {
-              "operations": [
-                "set"
-              ],
+              "operations": ["set"],
               "name": "Reporter",
               "required": true,
               "autoCompleteUrl": "https://saifelse.atlassian.net/rest/api/2/user/search?query=",

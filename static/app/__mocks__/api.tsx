@@ -7,14 +7,15 @@ const RealApi: typeof ApiNamespace = jest.requireActual('sentry/api');
 export class Request {}
 
 export const initApiClientErrorHandling = RealApi.initApiClientErrorHandling;
+export const hasProjectBeenRenamed = RealApi.hasProjectBeenRenamed;
 
-const respond = (isAsync: boolean, fn?: Function, ...args: any[]): void => {
+const respond = (asyncDelay: AsyncDelay, fn?: Function, ...args: any[]): void => {
   if (!fn) {
     return;
   }
 
-  if (isAsync) {
-    setTimeout(() => fn(...args), 1);
+  if (asyncDelay !== undefined) {
+    setTimeout(() => fn(...args), asyncDelay);
     return;
   }
 
@@ -30,7 +31,8 @@ interface MatchCallable {
   (url: string, options: ApiNamespace.RequestOptions): boolean;
 }
 
-type ResponseType = ApiNamespace.ResponseMeta & {
+type AsyncDelay = undefined | number;
+interface ResponseType extends ApiNamespace.ResponseMeta {
   body: any;
   callCount: 0;
   headers: Record<string, string>;
@@ -38,7 +40,17 @@ type ResponseType = ApiNamespace.ResponseMeta & {
   method: string;
   statusCode: number;
   url: string;
-};
+  /**
+   * Whether to return mocked api responses directly, or with a setTimeout delay.
+   *
+   * Set to `null` to disable the async delay
+   * Set to a `number` which will be the amount of time (ms) for the delay
+   *
+   * This will override `MockApiClient.asyncDelay` for this request.
+   */
+  asyncDelay?: AsyncDelay;
+  query?: Record<string, string | number | boolean | string[] | number[]>;
+}
 
 type MockResponse = [resp: ResponseType, mock: jest.Mock];
 
@@ -55,10 +67,42 @@ function compareRecord(want: Record<string, any>, check: Record<string, any>): b
   return true;
 }
 
+afterEach(() => {
+  // if any errors are caught we console.error them
+  const errors = Object.values(Client.errors);
+  if (errors.length > 0) {
+    for (const err of errors) {
+      // eslint-disable-next-line no-console
+      console.error(err);
+    }
+    Client.errors = {};
+  }
+
+  // Mock responses are removed between tests
+  Client.clearMockResponses();
+});
+
 class Client implements ApiNamespace.Client {
+  activeRequests: Record<string, ApiNamespace.Request> = {};
+  baseUrl = '';
+  // uses the default client json headers. Sadly, we cannot refernce the real client
+  // because it will cause a circular dependency and explode, hence the copy/paste
+  headers = {
+    Accept: 'application/json; charset=utf-8',
+    'Content-Type': 'application/json',
+  };
+
   static mockResponses: MockResponse[] = [];
 
-  static mockAsync = false;
+  /**
+   * Whether to return mocked api responses directly, or with a setTimeout delay.
+   *
+   * Set to `null` to disable the async delay
+   * Set to a `number` which will be the amount of time (ms) for the delay
+   *
+   * This is the global/default value. `addMockResponse` can override per request.
+   */
+  static asyncDelay: AsyncDelay = undefined;
 
   static clearMockResponses() {
     Client.mockResponses = [];
@@ -107,32 +151,9 @@ class Client implements ApiNamespace.Client {
         callCount: 0,
         match: [],
         ...response,
+        asyncDelay: response.asyncDelay ?? Client.asyncDelay,
         headers: response.headers ?? {},
         getResponseHeader: (key: string) => response.headers?.[key] ?? null,
-        rawResponse: {
-          headers: new Headers(),
-          ok: true,
-          redirected: false,
-          status: 200,
-          statusText: 'OK',
-          url: 'http://localhost',
-          bodyUsed: false,
-          body: {
-            locked: false,
-            cancel: jest.fn(),
-            getReader: jest.fn(),
-            pipeThrough: jest.fn(),
-            pipeTo: jest.fn(),
-            tee: jest.fn(),
-          },
-          blob: jest.fn(),
-          arrayBuffer: jest.fn(),
-          json: jest.fn(),
-          text: jest.fn(),
-          formData: jest.fn(),
-          clone: jest.fn(),
-          type: 'basic',
-        },
       },
       mock,
     ]);
@@ -152,9 +173,6 @@ class Client implements ApiNamespace.Client {
     });
   }
 
-  activeRequests: Record<string, ApiNamespace.Request> = {};
-  baseUrl = '';
-
   uniqueId() {
     return '123';
   }
@@ -163,19 +181,23 @@ class Client implements ApiNamespace.Client {
    * In the real client, this clears in-flight responses. It's NOT
    * clearMockResponses. You probably don't want to call this from a test.
    */
-  clear() {}
+  clear() {
+    Object.values(this.activeRequests).forEach(r => r.cancel());
+  }
 
   wrapCallback<T extends any[]>(
     _id: string,
     func: FunctionCallback<T> | undefined,
     _cleanup: boolean = false
   ) {
+    const asyncDelay = Client.asyncDelay;
+
     return (...args: T) => {
       // @ts-expect-error
       if (RealApi.hasProjectBeenRenamed(...args)) {
         return;
       }
-      respond(Client.mockAsync, func, ...args);
+      respond(asyncDelay, func, ...args);
     };
   }
 
@@ -199,33 +221,31 @@ class Client implements ApiNamespace.Client {
     });
   }
 
-  // XXX(ts): We type the return type for requestPromise and request as `any`. Typically these woul
+  static errors: Record<string, Error> = {};
 
+  // XXX(ts): We type the return type for requestPromise and request as `any`. Typically these woul
   request(url: string, options: Readonly<ApiNamespace.RequestOptions> = {}): any {
     const [response, mock] = Client.findMockResponse(url, options) || [
       undefined,
       undefined,
     ];
-
     if (!response || !mock) {
+      const methodAndUrl = `${options.method || 'GET'} ${url}`;
       // Endpoints need to be mocked
-      const err = new Error(
-        `No mocked response found for request: ${options.method || 'GET'} ${url}`
-      );
+      const err = new Error(`No mocked response found for request: ${methodAndUrl}`);
 
       // Mutate stack to drop frames since test file so that we know where in the test
       // this needs to be mocked
       const lines = err.stack?.split('\n');
-      const startIndex = lines?.findIndex(line => line.includes('tests/js/spec'));
+      const startIndex = lines?.findIndex(line => line.includes('.spec.'));
       err.stack = ['\n', lines?.[0], ...(lines?.slice(startIndex) ?? [])].join('\n');
 
       // Throwing an error here does not do what we want it to do....
       // Because we are mocking an API client, we generally catch errors to show
       // user-friendly error messages, this means in tests this error gets gobbled
-      // up and developer frustration ensues. Use `setTimeout` to get around this
-      setTimeout(() => {
-        throw err;
-      });
+      // up and developer frustration ensues.
+      // We track the errors on a static member and warn afterEach test.
+      Client.errors[methodAndUrl] = err;
     } else {
       // has mocked response
 
@@ -235,7 +255,7 @@ class Client implements ApiNamespace.Client {
       const body =
         typeof response.body === 'function' ? response.body(url, options) : response.body;
 
-      if (![200, 202].includes(response.statusCode)) {
+      if (response.statusCode >= 300) {
         response.callCount++;
 
         const errorResponse = Object.assign(
@@ -266,7 +286,7 @@ class Client implements ApiNamespace.Client {
       } else {
         response.callCount++;
         respond(
-          Client.mockAsync,
+          response.asyncDelay,
           options.success,
           body,
           {},
@@ -279,7 +299,7 @@ class Client implements ApiNamespace.Client {
       }
     }
 
-    respond(Client.mockAsync, options.complete);
+    respond(response?.asyncDelay, options.complete);
   }
 
   handleRequestError = RealApi.Client.prototype.handleRequestError;

@@ -1,10 +1,15 @@
+from __future__ import annotations
+
+from typing import Any
 from unittest import TestCase
 
-from sentry.eventtypes import ErrorEvent
+from sentry.eventtypes.error import ErrorEvent
+from sentry.testutils.silo import region_silo_test
 
 
-class ErrorEventTest(TestCase):
-    def test_get_metadata(self):
+@region_silo_test(stable=True)
+class GetMetadataTest(TestCase):
+    def test_simple(self):
         inst = ErrorEvent()
         data = {"exception": {"values": [{"type": "Exception", "value": "Foo"}]}}
         assert inst.get_metadata(data) == {
@@ -13,16 +18,18 @@ class ErrorEventTest(TestCase):
             "display_title_with_tree_label": False,
         }
 
-    def test_get_metadata_none(self):
+    def test_no_exception_type_or_value(self):
         inst = ErrorEvent()
-        data = {"exception": {"values": [{"type": None, "value": None, "stacktrace": {}}]}}
+        data: dict[str, dict[str, Any]] = {
+            "exception": {"values": [{"type": None, "value": None, "stacktrace": {}}]}
+        }
         assert inst.get_metadata(data) == {
             "type": "Error",
             "value": "",
             "display_title_with_tree_label": False,
         }
 
-    def test_get_metadata_function(self):
+    def test_pulls_top_function(self):
         inst = ErrorEvent()
         data = {
             "platform": "native",
@@ -47,7 +54,7 @@ class ErrorEventTest(TestCase):
             "display_title_with_tree_label": True,  # native!
         }
 
-    def test_get_metadata_function_none_frame(self):
+    def test_none_frame(self):
         inst = ErrorEvent()
         data = {"exception": {"values": [{"stacktrace": {"frames": [None]}}]}}
         assert inst.get_metadata(data) == {
@@ -56,17 +63,53 @@ class ErrorEventTest(TestCase):
             "display_title_with_tree_label": False,
         }
 
-    def test_get_title_none_value(self):
+    def test_multiple_exceptions_default(self):
+        inst = ErrorEvent()
+        data = {
+            "exception": {
+                "values": [
+                    {"type": "Exception", "value": "Bar"},
+                    {"type": "Exception", "value": "Foo"},
+                ]
+            }
+        }
+        assert inst.get_metadata(data) == {
+            "type": "Exception",
+            "value": "Foo",
+            "display_title_with_tree_label": False,
+        }
+
+    def test_multiple_exceptions_main_indicated(self):
+        inst = ErrorEvent()
+        data = {
+            "main_exception_id": 1,
+            "exception": {
+                "values": [
+                    {"type": "Exception", "value": "Bar", "mechanism": {"exception_id": 1}},
+                    {"type": "Exception", "value": "Foo", "mechanism": {"exception_id": 0}},
+                ]
+            },
+        }
+        assert inst.get_metadata(data) == {
+            "type": "Exception",
+            "value": "Bar",
+            "display_title_with_tree_label": False,
+        }
+
+
+@region_silo_test(stable=True)
+class GetTitleTest(TestCase):
+    def test_none_value(self):
         inst = ErrorEvent()
         result = inst.get_title({"type": "Error", "value": None})
         assert result == "Error"
 
-    def test_get_title_eliminates_values_with_newline(self):
+    def test_trims_value_at_newline(self):
         inst = ErrorEvent()
         result = inst.get_title({"type": "Error", "value": "foo\nbar"})
         assert result == "Error: foo"
 
-    def test_get_title_handles_empty_value(self):
+    def test_handles_empty_value(self):
         inst = ErrorEvent()
         result = inst.get_title({"type": "Error", "value": ""})
         assert result == "Error"

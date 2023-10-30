@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from datetime import timezone
+from typing import Any, Mapping, Sequence
 from urllib.parse import urlparse
 
 from django import forms
-from django.utils.translation import ugettext_lazy as _
+from django.http import HttpResponse
+from django.utils.translation import gettext_lazy as _
+from isodate import parse_datetime
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.identity.gitlab import get_oauth_data, get_user_info
 from sentry.identity.gitlab.provider import GitlabIdentityProvider
@@ -18,14 +21,16 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import RepositoryMixin
-from sentry.models import Repository
+from sentry.integrations.mixins.commit_context import CommitContextMixin
+from sentry.models.identity import Identity
+from sentry.models.repository import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
-from .client import GitLabApiClient, GitLabSetupClient
+from .client import GitLabProxyApiClient, GitlabProxySetupClient
 from .issues import GitlabIssueBasic
 from .repository import GitlabRepositoryProvider
 
@@ -86,7 +91,9 @@ metadata = IntegrationMetadata(
 )
 
 
-class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMixin):
+class GitlabIntegration(
+    IntegrationInstallation, GitlabIssueBasic, RepositoryMixin, CommitContextMixin
+):
     repo_search = True
     codeowners_locations = ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]
 
@@ -99,15 +106,21 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
 
     def get_client(self):
         if self.default_identity is None:
-            self.default_identity = self.get_default_identity()
+            try:
+                self.default_identity = self.get_default_identity()
+            except Identity.DoesNotExist:
+                raise IntegrationError("Identity not found.")
 
-        return GitLabApiClient(self)
+        return GitLabProxyApiClient(self)
 
     def get_repositories(self, query=None):
         # Note: gitlab projects are the same things as repos everywhere else
         group = self.get_group_id()
         resp = self.get_client().search_projects(group, query)
         return [{"identifier": repo["id"], "name": repo["name_with_namespace"]} for repo in resp]
+
+    def source_url_matches(self, url: str) -> bool:
+        return url.startswith("https://{}".format(self.model.metadata["domain_name"]))
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
         base_url = self.model.metadata["base_url"]
@@ -116,6 +129,18 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
         # Must format the url ourselves since `check_file` is a head request
         # "https://gitlab.com/gitlab-org/gitlab/blob/master/README.md"
         return f"{base_url}/{repo_name}/blob/{branch}/{filepath}"
+
+    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        url = url.replace(f"{repo.url}/-/blob/", "")
+        url = url.replace(f"{repo.url}/blob/", "")
+        branch, _, _ = url.partition("/")
+        return branch
+
+    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        url = url.replace(f"{repo.url}/-/blob/", "")
+        url = url.replace(f"{repo.url}/blob/", "")
+        _, _, source_path = url.partition("/")
+        return source_path
 
     def search_projects(self, query):
         client = self.get_client()
@@ -138,6 +163,49 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
             return data["message"]
         if "error" in data:
             return data["error"]
+
+    def get_commit_context(
+        self, repo: Repository, filepath: str, ref: str, event_frame: Mapping[str, Any]
+    ) -> Mapping[str, str] | None:
+        """
+        Returns the latest commit that altered the line from the event frame if it exists.
+        """
+        lineno = event_frame.get("lineno", 0)
+        if not lineno:
+            return None
+        try:
+            blame_range: Sequence[Mapping[str, Any]] | None = self.get_blame_for_file(
+                repo, filepath, ref, lineno
+            )
+            if blame_range is None:
+                return None
+        except ApiError as e:
+            raise e
+
+        try:
+            commit = max(
+                (blame for blame in blame_range if blame.get("commit", {}).get("committed_date")),
+                key=lambda blame: parse_datetime(blame.get("commit", {}).get("committed_date")),
+            )
+        except (ValueError, IndexError):
+            return None
+
+        commitInfo = commit.get("commit")
+        if not commitInfo:
+            return None
+        else:
+            # TODO(nisanthan): Use dateutil.parser.isoparse once on python 3.11
+            committed_date = parse_datetime(commitInfo.get("committed_date")).astimezone(
+                timezone.utc
+            )
+
+            return {
+                "commitId": commitInfo.get("id"),
+                "committedDate": committed_date,
+                "commitMessage": commitInfo.get("message"),
+                "commitAuthorName": commitInfo.get("committer_name"),
+                "commitAuthorEmail": commitInfo.get("committer_email"),
+            }
 
 
 class InstallationForm(forms.Form):
@@ -209,7 +277,7 @@ class InstallationForm(forms.Form):
 
 
 class InstallationConfigView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
         if "goback" in request.GET:
             pipeline.state.step_index = 0
             return pipeline.current_step()
@@ -251,13 +319,13 @@ class InstallationConfigView(PipelineView):
 
 
 class InstallationGuideView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
         if "completed_installation_guide" in request.GET:
             return pipeline.next_step()
         return render_to_response(
             template="sentry/integrations/gitlab-config.html",
             context={
-                "next_url": f'{absolute_uri("extensions/gitlab/setup/")}?completed_installation_guide',
+                "next_url": f'{absolute_uri("/extensions/gitlab/setup/")}?completed_installation_guide',
                 "setup_values": [
                     {"label": "Name", "value": "Sentry"},
                     {"label": "Redirect URI", "value": absolute_uri("/extensions/gitlab/setup/")},
@@ -308,8 +376,10 @@ class GitlabIntegrationProvider(IntegrationProvider):
         )
 
     def get_group_info(self, access_token, installation_data):
-        client = GitLabSetupClient(
-            installation_data["url"], access_token, installation_data["verify_ssl"]
+        client = GitlabProxySetupClient(
+            base_url=installation_data["url"],
+            access_token=access_token,
+            verify_ssl=installation_data["verify_ssl"],
         )
         try:
             resp = client.get_group(installation_data["group"])

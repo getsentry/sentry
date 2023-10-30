@@ -1,7 +1,10 @@
+import {Fragment} from 'react';
 import capitalize from 'lodash/capitalize';
 
+import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct, tn} from 'sentry/locale';
+import {IgnoredStatusDetails, Organization} from 'sentry/types';
 
 import ExtraDescription from './extraDescription';
 
@@ -38,38 +41,96 @@ function getBulkConfirmMessage(action: string, queryCount: number) {
   );
 }
 
-export function getConfirm(
-  numIssues: number,
-  allInQuerySelected: boolean,
-  query: string,
-  queryCount: number
-) {
-  return function (action: ConfirmAction | string, canBeUndone: boolean, append = '') {
+function PerformanceIssueAlert({
+  allInQuerySelected,
+  children,
+}: {
+  allInQuerySelected: boolean;
+  children: string;
+}) {
+  if (!allInQuerySelected) {
+    return null;
+  }
+
+  return (
+    <Alert type="info" showIcon>
+      {children}
+    </Alert>
+  );
+}
+
+export function getConfirm({
+  numIssues,
+  allInQuerySelected,
+  query,
+  queryCount,
+  organization,
+}: {
+  allInQuerySelected: boolean;
+  numIssues: number;
+  organization: Organization;
+  query: string;
+  queryCount: number;
+}) {
+  return function ({
+    action,
+    canBeUndone,
+    append = '',
+  }: {
+    action: ConfirmAction;
+    canBeUndone: boolean;
+    append?: string;
+  }) {
+    const actionText =
+      action === ConfirmAction.IGNORE &&
+      organization.features.includes('escalating-issues')
+        ? t('archive')
+        : action;
     const question = allInQuerySelected
-      ? getBulkConfirmMessage(`${action}${append}`, queryCount)
+      ? getBulkConfirmMessage(`${actionText}${append}`, queryCount)
       : tn(
-          `Are you sure you want to ${action} this %s issue${append}?`,
-          `Are you sure you want to ${action} these %s issues${append}?`,
-          numIssues
+          // Use sprintf argument swapping since the number value must come
+          // first. See https://github.com/alexei/sprintf.js#argument-swapping
+          `Are you sure you want to %2$s this %s issue%3$s?`,
+          `Are you sure you want to %2$s these %s issues%3$s?`,
+          numIssues,
+          actionText,
+          append
         );
 
-    let message;
+    let message: React.ReactNode;
     switch (action) {
       case ConfirmAction.DELETE:
-        message = tct(
-          'Bulk deletion is only recommended for junk data. To clear your stream, consider resolving or ignoring. [link:When should I delete events?]',
-          {
-            link: (
-              <ExternalLink href="https://help.sentry.io/account/billing/when-should-i-delete-events/" />
-            ),
-          }
+        message = (
+          <Fragment>
+            <p>
+              {tct(
+                'Bulk deletion is only recommended for junk data. To clear your stream, consider resolving or ignoring. [link:When should I delete events?]',
+                {
+                  link: (
+                    <ExternalLink href="https://help.sentry.io/account/billing/when-should-i-delete-events/" />
+                  ),
+                }
+              )}
+            </p>
+            <PerformanceIssueAlert allInQuerySelected={allInQuerySelected}>
+              {t('Deleting performance issues is not yet supported and will be skipped.')}
+            </PerformanceIssueAlert>
+          </Fragment>
         );
         break;
       case ConfirmAction.MERGE:
-        message = t('Note that unmerging is currently an experimental feature.');
+        message = (
+          <Fragment>
+            <p>{t('Note that unmerging is currently an experimental feature.')}</p>
+            <PerformanceIssueAlert allInQuerySelected={allInQuerySelected}>
+              {t('Merging performance issues is not yet supported and will be skipped.')}
+            </PerformanceIssueAlert>
+          </Fragment>
+        );
         break;
       default:
-        message = t('This action cannot be undone.');
+        message = !canBeUndone ? <p>{t('This action cannot be undone.')}</p> : null;
     }
 
     return (
@@ -82,7 +143,7 @@ export function getConfirm(
           query={query}
           queryCount={queryCount}
         />
-        {!canBeUndone && <p>{message}</p>}
+        {message}
       </div>
     );
   };
@@ -92,13 +153,17 @@ export function getLabel(numIssues: number, allInQuerySelected: boolean) {
   return function (action: string, append = '') {
     const capitalized = capitalize(action);
     const text = allInQuerySelected
-      ? t(`Bulk ${action} issues`)
-      : tn(
-          `${capitalized} %s selected issue`,
-          `${capitalized} %s selected issues`,
-          numIssues
-        );
+      ? t('Bulk %s issues', action)
+      : // Use sprintf argument swapping to put the capitalized string first. See
+        // https://github.com/alexei/sprintf.js#argument-swapping
+        tn(`%2$s %s selected issue`, `%2$s %s selected issues`, numIssues, capitalized);
 
     return text + append;
   };
+}
+
+export function performanceIssuesSupportsIgnoreAction(
+  statusDetails: IgnoredStatusDetails
+) {
+  return !(statusDetails.ignoreWindow || statusDetails.ignoreUserWindow);
 }

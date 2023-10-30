@@ -20,20 +20,6 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
     feature_descriptions = [
         FeatureDescription(
             """
-            Track commits and releases (learn more
-            [here](https://docs.sentry.io/learn/releases/))
-            """,
-            IntegrationFeatures.COMMITS,
-        ),
-        FeatureDescription(
-            """
-            Resolve Sentry issues via GitLab commits and merge requests by
-            including `Fixes PROJ-ID` in the message
-            """,
-            IntegrationFeatures.COMMITS,
-        ),
-        FeatureDescription(
-            """
             Create GitLab issues from Sentry
             """,
             IntegrationFeatures.ISSUE_BASIC,
@@ -109,7 +95,7 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
         try:
             response = client.list_project_members(repo)
         except ApiError as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
         users = tuple((u["id"], u["username"]) for u in response)
 
         return (("", "(Unassigned)"),) + users
@@ -139,7 +125,7 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
                 },
             )
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         return response["iid"]
 
@@ -149,14 +135,14 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
         try:
             issue = client.get_issue(repo=repo, issue_id=form_data["issue_id"])
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         comment = form_data.get("comment")
         if comment:
             try:
                 client.create_note(repo=repo, issue_iid=issue["iid"], data={"body": comment})
             except Exception as e:
-                raise self.raise_error(e)
+                self.raise_error(e)
 
         return {"title": issue["title"]}
 
@@ -220,5 +206,5 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
         try:
             client.get_project(repo)
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
         return config

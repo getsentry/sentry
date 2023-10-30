@@ -1,22 +1,29 @@
-import {Component, Fragment} from 'react';
-import styled from '@emotion/styled';
+import {
+  Fragment,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {Observer} from 'mobx-react';
 
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
-import Field, {FieldProps} from 'sentry/components/forms/field';
-import FieldControl from 'sentry/components/forms/field/fieldControl';
-import FieldErrorReason from 'sentry/components/forms/field/fieldErrorReason';
-import FormContext from 'sentry/components/forms/formContext';
-import FormFieldControlState from 'sentry/components/forms/formField/controlState';
-import FormModel, {MockModel} from 'sentry/components/forms/model';
-import ReturnButton from 'sentry/components/forms/returnButton';
+import type {AlertProps} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
-import {FieldValue} from '../type';
+import FieldGroup from '../fieldGroup';
+import FieldControl from '../fieldGroup/fieldControl';
+import {FieldGroupProps} from '../fieldGroup/types';
+import FormContext from '../formContext';
+import FormModel, {MockModel} from '../model';
+import {FieldValue} from '../types';
+
+import FormFieldControlState from './controlState';
 
 /**
  * Some fields don't need to implement their own onChange handlers, in
@@ -40,7 +47,13 @@ const getValueFromEvent = (valueOrEvent?: FieldValue | MouseEvent, e?: MouseEven
 
 // !!Warning!! - the order of these props matters, as they are checked in order that they appear.
 // One instance of a test that relies on this order is accountDetails.spec.tsx.
-const propsToObserve = ['help', 'highlighted', 'inline', 'visible', 'disabled'] as const;
+const propsToObserve = [
+  'help',
+  'highlighted',
+  'inline',
+  'visible',
+  'disabled',
+] satisfies Array<keyof FormFieldProps>;
 
 interface FormFieldPropModel extends FormFieldProps {
   model: FormModel;
@@ -49,32 +62,37 @@ interface FormFieldPropModel extends FormFieldProps {
 type ObservedFn<_P, T> = (props: FormFieldPropModel) => T;
 type ObservedFnOrValue<P, T> = T | ObservedFn<P, T>;
 
+type ObserverdPropNames = (typeof propsToObserve)[number];
+
 type ObservedPropResolver = [
-  typeof propsToObserve[number],
-  () => ResolvedObservableProps[typeof propsToObserve[number]]
+  ObserverdPropNames,
+  () => ResolvedObservableProps[ObserverdPropNames],
 ];
 
 /**
  * Construct the type for properties that may be given observed functions
  */
 interface ObservableProps {
-  disabled?: ObservedFnOrValue<{}, FieldProps['disabled']>;
-  help?: ObservedFnOrValue<{}, FieldProps['help']>;
-  highlighted?: ObservedFnOrValue<{}, FieldProps['highlighted']>;
-  inline?: ObservedFnOrValue<{}, FieldProps['inline']>;
-  visible?: ObservedFnOrValue<{}, FieldProps['visible']>;
+  disabled?: ObservedFnOrValue<{}, FieldGroupProps['disabled']>;
+  help?: ObservedFnOrValue<{}, FieldGroupProps['help']>;
+  highlighted?: ObservedFnOrValue<{}, FieldGroupProps['highlighted']>;
+  inline?: ObservedFnOrValue<{}, FieldGroupProps['inline']>;
+  visible?: ObservedFnOrValue<{}, FieldGroupProps['visible']>;
 }
 
 /**
  * The same ObservableProps, once they have been resolved
  */
 interface ResolvedObservableProps {
-  disabled?: FieldProps['disabled'];
-  help?: FieldProps['help'];
-  highlighted?: FieldProps['highlighted'];
-  inline?: FieldProps['inline'];
-  visible?: FieldProps['visible'];
+  disabled?: FieldGroupProps['disabled'];
+  help?: FieldGroupProps['help'];
+  highlighted?: FieldGroupProps['highlighted'];
+  inline?: FieldGroupProps['inline'];
+  visible?: FieldGroupProps['visible'];
 }
+
+// XXX(epurkhiser): Many of these props are duplicated in form types. The forms
+// interfaces need some serious consolidation
 
 interface BaseProps {
   /**
@@ -112,13 +130,13 @@ interface BaseProps {
   /**
    * The alert type to use when saveOnBlur is false
    */
-  saveMessageAlertType?: React.ComponentProps<typeof Alert>['type'];
-
+  saveMessageAlertType?: AlertProps['type'];
   /**
    * When the field is blurred should it automatically persist its value into
    * the model. Will show a confirm button 'save' otherwise.
    */
   saveOnBlur?: boolean;
+
   /**
    * A function producing an optional component with extra information.
    */
@@ -126,25 +144,31 @@ interface BaseProps {
     props: PassthroughProps & {value: FieldValue; error?: string}
   ) => React.ReactNode;
   /**
+   * Used in the form model to transform the value
+   */
+  setValue?: (value: FieldValue, props?: any) => any;
+  /**
    * Extra styles to apply to the field
    */
   style?: React.CSSProperties;
   /**
    * Transform input when a value is set to the model.
    */
-  transformInput?: (value: any) => any; // used in prettyFormString
+  transformInput?: (value: any) => any;
+  // used in prettyFormString
+  validate?: Function;
 }
 
 export interface FormFieldProps
   extends BaseProps,
     ObservableProps,
-    Omit<FieldProps, keyof ResolvedObservableProps | 'children'> {}
+    Omit<FieldGroupProps, keyof ResolvedObservableProps | 'children'> {}
 
 /**
  * ResolvedProps do NOT include props which may be given functions that are
  * reacted on. Resolved props are used inside of makeField.
  */
-type ResolvedProps = BaseProps & FieldProps;
+type ResolvedProps = BaseProps & FieldGroupProps;
 
 type PassthroughProps = Omit<
   ResolvedProps,
@@ -160,234 +184,220 @@ type PassthroughProps = Omit<
   | 'defaultValue'
 >;
 
-class FormField extends Component<FormFieldProps> {
-  static defaultProps = {
-    hideErrorMessage: false,
-    flexibleControlStateSize: false,
-  };
+function FormField(props: FormFieldProps) {
+  const initialProps = useRef(props);
 
-  componentDidMount() {
-    // Tell model about this field's props
-    this.getModel().setFieldDescriptor(this.props.name, this.props);
+  const {name, onBlur, onChange, onKeyDown} = props;
+
+  const context = useContext(FormContext);
+  const inputRef = useRef<HTMLElement>();
+
+  const [model] = useState<FormModel>(
+    // XXX: MockModel doesn't fully implement the FormModel interface
+    () => context.form ?? (new MockModel(props) as any)
+  );
+
+  // XXX(epurkhiser): This is a ***HUGE*** hack.
+  //
+  // When this was a class component it would re-create the MockModel every
+  // time and inject the new props into it. Now that it's  a FC we cannot just
+  // re-create the mockModel every time as it will invalidate many use*
+  // dependnecies.
+  //
+  // We get around this by just updating the mock model props every render so
+  // anything calling `getValue` or `getError` will have the latest controlled
+  // values.
+  //
+  // TODO(epurkhiser): IN the future you should not be able to use anything
+  // wrapping FormField without it being wrapped in a Form. There's just too
+  // many things that break.
+  if (context.form === undefined) {
+    (model as any).props = props;
   }
 
-  componentWillUnmount() {
-    this.getModel().removeField(this.props.name);
-  }
-
-  static contextType = FormContext;
-
-  getError() {
-    return this.getModel().getError(this.props.name);
-  }
-
-  getId() {
-    return sanitizeQuerySelector(this.props.name);
-  }
-
-  getModel(): FormModel {
-    return this.context.form !== undefined
-      ? this.context.form
-      : new MockModel(this.props);
-  }
-
-  input: HTMLElement | null = null;
-
-  /**
-   * Attempts to autofocus input field if field's name is in url hash.
-   *
-   * The ref must be forwared for this to work.
-   */
-  handleInputMount = (node: HTMLElement | null) => {
-    if (node && !this.input) {
-      // TODO(mark) Clean this up. FormContext could include the location
-      const hash = window.location?.hash;
-
-      if (!hash) {
-        return;
-      }
-
-      if (hash !== `#${this.props.name}`) {
-        return;
-      }
-
-      // Not all form fields have this (e.g. Select fields)
-      if (typeof node.focus === 'function') {
-        node.focus();
-      }
-    }
-
-    this.input = node;
-  };
+  // Register field within the model
+  useEffect(() => {
+    model.setFieldDescriptor(name, initialProps.current);
+    return () => model.removeField(name);
+  }, [model, name]);
 
   /**
    * Update field value in form model
    */
-  handleChange = (...args) => {
-    const {name, onChange} = this.props;
-    const {value, event} = getValueFromEvent(...args);
-    const model = this.getModel();
-
-    if (onChange) {
-      onChange(value, event);
-    }
-
-    model.setValue(name, value);
-  };
+  const handleChange = useCallback(
+    (...args) => {
+      const {value, event} = getValueFromEvent(...args);
+      onChange?.(value, event);
+      model.setValue(name, value);
+    },
+    [model, onChange, name]
+  );
 
   /**
    * Notify model of a field being blurred
    */
-  handleBlur = (...args) => {
-    const {name, onBlur} = this.props;
-    const {value, event} = getValueFromEvent(...args);
-    const model = this.getModel();
+  const handleBlur = useCallback(
+    (...args) => {
+      const {value, event} = getValueFromEvent(...args);
 
-    if (onBlur) {
-      onBlur(value, event);
-    }
-
-    // Always call this, so model can decide what to do
-    model.handleBlurField(name, value);
-  };
+      onBlur?.(value, event);
+      // Always call this, so model can decide what to do
+      model.handleBlurField(name, value);
+    },
+    [model, onBlur, name]
+  );
 
   /**
    * Handle keydown to trigger a save on Enter
    */
-  handleKeyDown = (...args) => {
-    const {onKeyDown, name} = this.props;
-    const {value, event} = getValueFromEvent(...args);
-    const model = this.getModel();
+  const handleKeyDown = useCallback(
+    (...args) => {
+      const {value, event} = getValueFromEvent(...args);
 
-    if (event.key === 'Enter') {
-      model.handleBlurField(name, value);
-    }
+      if (event.key === 'Enter') {
+        model.handleBlurField(name, value);
+      }
 
-    if (onKeyDown) {
-      onKeyDown(value, event);
-    }
-  };
+      onKeyDown?.(value, event);
+    },
+    [model, onKeyDown, name]
+  );
 
   /**
    * Handle saving an individual field via UI button
    */
-  handleSaveField = () => {
-    const {name} = this.props;
-    const model = this.getModel();
+  const handleSaveField = useCallback(
+    () => model.handleSaveField(name, model.getValue(name)),
+    [model, name]
+  );
 
-    model.handleSaveField(name, model.getValue(name));
-  };
+  const handleCancelField = useCallback(
+    () => model.handleCancelSaveField(name),
+    [model, name]
+  );
 
-  handleCancelField = () => {
-    const {name} = this.props;
-    const model = this.getModel();
+  /**
+   * Attempts to autofocus input field if field's name is in url hash.
+   *
+   * The ref must be forwarded for this to work.
+   */
+  const handleInputMount = useCallback(
+    (node: HTMLElement | null) => {
+      if (node && !inputRef.current) {
+        // TODO(mark) Clean this up. FormContext could include the location
+        const hash = window.location?.hash;
 
-    model.handleCancelSaveField(name);
-  };
+        if (!hash) {
+          return;
+        }
 
-  render() {
-    const {
-      className,
-      name,
-      hideErrorMessage,
-      flexibleControlStateSize,
-      saveOnBlur,
-      saveMessage,
-      saveMessageAlertType,
-      selectionInfoFunction,
-      hideControlState,
+        if (hash !== `#${name}`) {
+          return;
+        }
 
-      // Don't pass `defaultValue` down to input fields, will be handled in
-      // form model
-      defaultValue: _defaultValue,
-      ...otherProps
-    } = this.props;
-    const id = this.getId();
-    const model = this.getModel();
-    const saveOnBlurFieldOverride = typeof saveOnBlur !== 'undefined' && !saveOnBlur;
+        // Not all form fields have this (e.g. Select fields)
+        if (typeof node.focus === 'function') {
+          node.focus();
+        }
+      }
 
-    const makeField = (resolvedObservedProps?: ResolvedObservableProps) => {
-      const props = {...otherProps, ...resolvedObservedProps} as PassthroughProps;
+      inputRef.current = node ?? undefined;
+    },
+    [name]
+  );
+
+  const id = useMemo(() => sanitizeQuerySelector(name), [name]);
+
+  const makeField = useCallback(
+    (resolvedObservedProps?: ResolvedObservableProps) => {
+      const {
+        className,
+        hideErrorMessage,
+        flexibleControlStateSize,
+        saveMessage,
+        saveMessageAlertType,
+        selectionInfoFunction,
+        hideControlState,
+        // Don't pass `defaultValue` down to input fields, will be handled in
+        // form model
+        defaultValue: _defaultValue,
+        ...otherProps
+      } = props;
+
+      const fieldProps = {...otherProps, ...resolvedObservedProps} as PassthroughProps;
+
+      const saveOnBlurFieldOverride =
+        typeof props.saveOnBlur !== 'undefined' && !props.saveOnBlur;
 
       return (
         <Fragment>
-          <Field
+          <FieldGroup
             id={id}
             className={className}
             flexibleControlStateSize={flexibleControlStateSize}
-            {...props}
+            {...fieldProps}
           >
-            {({alignRight, inline, disabled, disabledReason}) => (
+            {({alignRight, disabled, inline}) => (
               <FieldControl
-                disabled={disabled}
-                disabledReason={disabledReason}
                 inline={inline}
                 alignRight={alignRight}
                 flexibleControlStateSize={flexibleControlStateSize}
                 hideControlState={hideControlState}
-                controlState={<FormFieldControlState model={model} name={name} />}
-                errorState={
-                  <Observer>
-                    {() => {
-                      const error = this.getError();
-                      const shouldShowErrorMessage = error && !hideErrorMessage;
-                      if (!shouldShowErrorMessage) {
-                        return null;
-                      }
-                      return <FieldErrorReason>{error}</FieldErrorReason>;
-                    }}
-                  </Observer>
+                controlState={
+                  <FormFieldControlState
+                    model={model}
+                    name={name}
+                    hideErrorMessage={hideErrorMessage}
+                  />
                 }
               >
                 <Observer>
                   {() => {
-                    const error = this.getError();
+                    const error = model.getError(name);
                     const value = model.getValue(name);
-                    const showReturnButton = model.getFieldState(
-                      name,
-                      'showReturnButton'
-                    );
 
                     return (
                       <Fragment>
-                        {this.props.children({
-                          ref: this.handleInputMount,
-                          ...props,
+                        {props.children({
+                          ref: handleInputMount,
+                          ...fieldProps,
                           model,
                           name,
                           id,
-                          onKeyDown: this.handleKeyDown,
-                          onChange: this.handleChange,
-                          onBlur: this.handleBlur,
+                          onKeyDown: handleKeyDown,
+                          onChange: handleChange,
+                          onBlur: handleBlur,
                           // Fixes react warnings about input switching from controlled to uncontrolled
                           // So force to empty string for null values
                           value: value === null ? '' : value,
                           error,
                           disabled,
                           initialData: model.initialData,
+                          'aria-describedby': `${id}_help`,
                         })}
-                        {showReturnButton && <StyledReturnButton />}
                       </Fragment>
                     );
                   }}
                 </Observer>
               </FieldControl>
             )}
-          </Field>
+          </FieldGroup>
           {selectionInfoFunction && (
             <Observer>
               {() => {
-                const error = this.getError();
+                const error = model.getError(name);
                 const value = model.getValue(name);
 
                 const isVisible =
-                  typeof props.visible === 'function'
-                    ? props.visible({...this.props, ...props} as ResolvedProps)
+                  typeof fieldProps.visible === 'function'
+                    ? fieldProps.visible({...props, ...fieldProps} as ResolvedProps)
                     : true;
 
                 return (
                   <Fragment>
-                    {isVisible ? selectionInfoFunction({...props, error, value}) : null}
+                    {isVisible
+                      ? selectionInfoFunction({...fieldProps, error, value})
+                      : null}
                   </Fragment>
                 );
               }}
@@ -408,21 +418,17 @@ class FormField extends Component<FormFieldProps> {
                     type={saveMessageAlertType}
                     trailingItems={
                       <Fragment>
-                        <Button onClick={this.handleCancelField} size="xsmall">
+                        <Button onClick={handleCancelField} size="xs">
                           {t('Cancel')}
                         </Button>
-                        <Button
-                          priority="primary"
-                          size="xsmall"
-                          onClick={this.handleSaveField}
-                        >
+                        <Button priority="primary" size="xs" onClick={handleSaveField}>
                           {t('Save')}
                         </Button>
                       </Fragment>
                     }
                   >
                     {typeof saveMessage === 'function'
-                      ? saveMessage({...props, value})
+                      ? saveMessage({...fieldProps, value})
                       : saveMessage}
                   </PanelAlert>
                 );
@@ -431,41 +437,45 @@ class FormField extends Component<FormFieldProps> {
           )}
         </Fragment>
       );
-    };
+    },
+    [
+      handleBlur,
+      handleCancelField,
+      handleChange,
+      handleInputMount,
+      handleKeyDown,
+      handleSaveField,
+      id,
+      model,
+      name,
+      props,
+    ]
+  );
 
-    const observedProps = propsToObserve
-      .filter(p => typeof this.props[p] === 'function')
-      .map<ObservedPropResolver>(p => [
-        p,
-        () => (this.props[p] as ObservedFn<{}, any>)({...this.props, model}),
-      ]);
+  const observedProps = propsToObserve
+    .filter(p => typeof props[p] === 'function')
+    .map<ObservedPropResolver>(p => [
+      p,
+      () => (props[p] as ObservedFn<{}, any>)({...props, model}),
+    ]);
 
-    // This field has no properties that require observation to compute their
-    // value, this field is static and will not be re-rendered.
-    if (observedProps.length === 0) {
-      return makeField();
-    }
-
-    const resolveObservedProps = (
-      props: ResolvedObservableProps,
-      [propName, resolve]: ObservedPropResolver
-    ) => ({
-      ...props,
-      [propName]: resolve(),
-    });
-
-    return (
-      <Observer>
-        {() => makeField(observedProps.reduce(resolveObservedProps, {}))}
-      </Observer>
-    );
+  // This field has no properties that require observation to compute their
+  // value, this field is static and will not be re-rendered.
+  if (observedProps.length === 0) {
+    return makeField();
   }
+
+  const resolveObservedProps = (
+    resolvedProps: ResolvedObservableProps,
+    [propName, resolve]: ObservedPropResolver
+  ) => ({
+    ...resolvedProps,
+    [propName]: resolve(),
+  });
+
+  return (
+    <Observer>{() => makeField(observedProps.reduce(resolveObservedProps, {}))}</Observer>
+  );
 }
 
 export default FormField;
-
-const StyledReturnButton = styled(ReturnButton)`
-  position: absolute;
-  right: 0;
-  top: 0;
-`;

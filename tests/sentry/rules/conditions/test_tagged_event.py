@@ -1,7 +1,13 @@
-from sentry.rules.conditions.tagged_event import MatchType, TaggedEventCondition
+from sentry.rules.conditions.tagged_event import TaggedEventCondition
+from sentry.rules.match import MatchType
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
+@region_silo_test(stable=True)
 class TaggedEventConditionTest(RuleTestCase):
     rule_cls = TaggedEventCondition
 

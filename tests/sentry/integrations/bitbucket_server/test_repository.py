@@ -1,9 +1,9 @@
 import datetime
+from datetime import timezone
+from functools import cached_property
 
 import pytest
 import responses
-from django.utils import timezone
-from exam import fixture
 
 from fixtures.bitbucket_server import (
     COMMIT_CHANGELIST_EXAMPLE,
@@ -17,38 +17,44 @@ from fixtures.bitbucket_server import (
     REPO,
 )
 from sentry.integrations.bitbucket_server.repository import BitbucketServerRepositoryProvider
-from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, Repository
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.integrations.integration import Integration
+from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils import APITestCase
+from sentry.silo import SiloMode
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
+@region_silo_test(stable=True)
 class BitbucketServerRepositoryProviderTest(APITestCase):
-    @fixture
+    @cached_property
     def integration(self):
-        integration = Integration.objects.create(
-            provider="bitbucket_server",
-            name="Example Bitbucket",
-            metadata={"verify_ssl": False, "base_url": "https://bitbucket.example.com"},
-        )
-        identity_provider = IdentityProvider.objects.create(
-            external_id="bitbucket.example.com:sentry-test", type="bitbucket_server"
-        )
-        identity = Identity.objects.create(
-            idp=identity_provider,
-            user=self.user,
-            scopes=(),
-            status=IdentityStatus.VALID,
-            data={
-                "consumer_key": "sentry-test",
-                "private_key": EXAMPLE_PRIVATE_KEY,
-                "access_token": "access-token",
-                "access_token_secret": "access-token-secret",
-            },
-        )
-        integration.add_organization(self.organization, self.user, default_auth_id=identity.id)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(
+                provider="bitbucket_server",
+                name="Example Bitbucket",
+                metadata={"verify_ssl": False, "base_url": "https://bitbucket.example.com"},
+            )
+            identity_provider = IdentityProvider.objects.create(
+                external_id="bitbucket.example.com:sentry-test", type="bitbucket_server"
+            )
+            identity = Identity.objects.create(
+                idp=identity_provider,
+                user=self.user,
+                scopes=(),
+                status=IdentityStatus.VALID,
+                data={
+                    "consumer_key": "sentry-test",
+                    "private_key": EXAMPLE_PRIVATE_KEY,
+                    "access_token": "access-token",
+                    "access_token_secret": "access-token-secret",
+                },
+            )
+            integration.add_organization(self.organization, self.user, default_auth_id=identity.id)
         return integration
 
-    @fixture
+    @cached_property
     def provider(self):
         return BitbucketServerRepositoryProvider("bitbucket_server")
 
@@ -64,7 +70,11 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
             provider="bitbucket_server",
             name="sentryuser/newsdiffs",
             organization_id=self.organization.id,
-            config={"name": "sentryuser/newsdiffs", "project": "sentryuser", "repo": "newsdiffs"},
+            config={
+                "name": "sentryuser/newsdiffs",
+                "project": "sentryuser",
+                "repo": "newsdiffs",
+            },
             integration_id=self.integration.id,
         )
 
@@ -106,7 +116,11 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
             provider="bitbucket_server",
             name="sentryuser/newsdiffs",
             organization_id=self.organization.id,
-            config={"name": "sentryuser/newsdiffs", "project": "sentryuser", "repo": "newsdiffs"},
+            config={
+                "name": "sentryuser/newsdiffs",
+                "project": "sentryuser",
+                "repo": "newsdiffs",
+            },
             integration_id=self.integration.id,
         )
 

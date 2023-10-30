@@ -42,30 +42,17 @@ export type Span = {
   queue_label?: string;
 };
 
-type Percentiles = {
-  p50: number;
+export type SuspectFunction = {
+  count: number;
+  examples: string[];
+  fingerprint: number;
+  name: string;
   p75: number;
-  p90: number;
   p95: number;
   p99: number;
-};
-
-export type FunctionCall = {
-  duration_ns: Percentiles;
-  frequency: Percentiles;
-  image: string;
-  key: string;
-  line: number;
-  main_thread_percent: number;
-  path: string;
-  profile_id_to_thread_id: Record<string, number>;
-  profile_ids: string[];
-  symbol: string;
-  transaction_names: string[];
-};
-
-export type VersionedFunctionCalls = {
-  Versions: Record<string, {FunctionCalls: FunctionCall[]}>;
+  package: string;
+  sum: number;
+  worst: string;
 };
 
 export type ProfileTransaction = {

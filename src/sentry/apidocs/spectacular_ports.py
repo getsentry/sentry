@@ -1,9 +1,37 @@
-# type: ignore
+# Copyright © 2011-present, Encode OSS Ltd.
+# Copyright © 2019-present, T. Franzel <tfranzel@gmail.com>, Cashlink Technologies GmbH.
+
+# All rights reserved.
+
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+
+# * Neither the name of the copyright holder nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import collections
 import inspect
 import typing
-from collections import OrderedDict, defaultdict
+from collections import defaultdict
 from enum import Enum
 from typing import Any, Literal, Union
 from typing import get_type_hints as _get_type_hints
@@ -17,7 +45,7 @@ from drf_spectacular.plumbing import (
     is_basic_type,
 )
 from drf_spectacular.types import OpenApiTypes
-from typing_extensions import _TypedDictMeta
+from typing_extensions import _TypedDictMeta  # type: ignore[attr-defined]
 
 from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 
@@ -47,6 +75,13 @@ def get_type_hints(hint, **kwargs):
         # try to resolve a circular import from TYPE_CHECKING imports
         reload_module_with_type_checking_enabled(hint.__module__)
         return _get_type_hints(hint, **kwargs)
+    except TypeError:
+        raise UnableToProceedError(
+            f"""Unable to resolve type hints for {hint}.
+            Please use types imported from `typing` instead of the types enabled
+            by PEP585 (`from __future__ import annotations`).
+            e.g. instead of list[str], please use List[str]."""
+        )
 
 
 def _get_type_hint_origin(hint):
@@ -65,7 +100,7 @@ def resolve_type_hint(hint) -> Any:
         if get_type_hints(hint):
             properties = {k: resolve_type_hint(v) for k, v in get_type_hints(hint).items()}
         else:
-            properties = {k: build_basic_type(OpenApiTypes.ANY) for k in hint._fields}
+            properties = {k: build_basic_type(OpenApiTypes.ANY) for k in hint._fields}  # type: ignore[attr-defined]
         return build_object_type(properties=properties, required=properties.keys())
     elif origin is list or hint is list:
         return build_array_type(
@@ -77,7 +112,7 @@ def resolve_type_hint(hint) -> Any:
             max_length=len(args),
             min_length=len(args),
         )
-    elif origin is dict or origin is defaultdict or origin is OrderedDict:
+    elif origin is dict or origin is defaultdict:
         schema = build_basic_type(OpenApiTypes.OBJECT)
         if args and args[1] is not typing.Any:
             schema["additionalProperties"] = resolve_type_hint(args[1])
@@ -110,7 +145,7 @@ def resolve_type_hint(hint) -> Any:
             required=[h for h in hint.__required_keys__ if h not in excluded_fields],
         )
     elif origin is Union:
-        type_args = [arg for arg in args if arg is not type(None)]  # noqa: E721
+        type_args = [arg for arg in args if arg is not type(None)]
         if len(type_args) > 1:
             schema = {"oneOf": [resolve_type_hint(arg) for arg in type_args]}
         else:
@@ -120,7 +155,7 @@ def resolve_type_hint(hint) -> Any:
         return schema
     elif origin is collections.abc.Iterable:
         return build_array_type(resolve_type_hint(args[0]))
-    elif isinstance(hint, typing._TypedDictMeta):
+    elif isinstance(hint, typing._TypedDictMeta):  # type: ignore[attr-defined]
         raise UnableToProceedError("Wrong TypedDict class, please use typing_extensions.TypedDict")
     else:
         raise UnableToProceedError(hint)

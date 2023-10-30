@@ -12,23 +12,36 @@ type Props = {
  * Icon Renderer for SentryAppComponents with UI
  * (e.g. Issue Linking, Stacktrace Linking)
  */
-const SentryAppComponentIcon = ({sentryAppComponent: {sentryApp}}: Props) => {
-  const selectedAvatar = sentryApp?.avatars?.find(({color}) => color === false);
+function SentryAppComponentIcon({sentryAppComponent}: Props) {
+  const selectedAvatar = sentryAppComponent.sentryApp?.avatars?.find(
+    ({color}) => color === false
+  );
   const isDefault = selectedAvatar?.avatarType !== 'upload';
+  const isDisabled = sentryAppComponent.error;
   return (
     <SentryAppAvatarWrapper
       isDark={ConfigStore.get('theme') === 'dark'}
       isDefault={isDefault}
+      isDisabled={isDisabled}
     >
-      <SentryAppAvatar sentryApp={sentryApp} size={20} isColor={false} />
+      <SentryAppAvatar
+        sentryApp={sentryAppComponent.sentryApp}
+        size={20}
+        isColor={false}
+      />
     </SentryAppAvatarWrapper>
   );
-};
+}
 
 export default SentryAppComponentIcon;
 
-const SentryAppAvatarWrapper = styled('span')<{isDark: boolean; isDefault: boolean}>`
-  color: ${({isDark}) => (isDark ? 'white' : 'black')};
+const SentryAppAvatarWrapper = styled('span')<{
+  isDark: boolean;
+  isDefault: boolean;
+  isDisabled?: boolean;
+}>`
+  color: ${({isDark, isDisabled, theme}) =>
+    isDisabled ? theme.disabled : isDark ? 'white' : 'black'};
   filter: ${p => (p.isDark && !p.isDefault ? 'invert(1)' : 'invert(0)')};
   line-height: 0;
   flex-shrink: 0;

@@ -1,24 +1,21 @@
 import styled from '@emotion/styled';
 
-import AnnotatedText from 'sentry/components/events/meta/annotatedText';
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Meta} from 'sentry/types';
+import {defined} from 'sentry/utils';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
-import generateClassName from './generateClassName';
 import Item from './item';
-
-type Props = {
-  data: Data;
-};
+import {ContextItemProps} from './types';
+import {generateIconName} from './utils';
 
 type Data = {
-  name: string;
+  name: string | boolean;
   kernel_version?: string;
-  version?: string;
+  version?: string | boolean;
 };
 
 type VersionElement = {
@@ -27,30 +24,27 @@ type VersionElement = {
   meta?: Meta;
 };
 
-const ContextSummaryOS = ({data}: Props) => {
-  if (Object.keys(data).length === 0 || !data.name) {
+type Props = ContextItemProps<Data, 'os' | 'client_os'>;
+
+export function ContextSummaryOS({data, meta}: Props) {
+  if (Object.keys(data).length === 0) {
     return <ContextSummaryNoSummary title={t('Unknown OS')} />;
   }
 
-  const renderName = () => {
-    const meta = getMeta(data, 'name');
-    return <AnnotatedText value={data.name} meta={meta} />;
-  };
-
   const getVersionElement = (): VersionElement => {
-    if (data.version) {
+    if (defined(data.version) && typeof data.version === 'string') {
       return {
         subject: t('Version:'),
         value: data.version,
-        meta: getMeta(data, 'version'),
+        meta: meta.version?.[''],
       };
     }
 
-    if (data.kernel_version) {
+    if (defined(data.kernel_version)) {
       return {
         subject: t('Kernel:'),
         value: data.kernel_version,
-        meta: getMeta(data, 'kernel_version'),
+        meta: meta.kernel_version?.[''],
       };
     }
 
@@ -61,20 +55,19 @@ const ContextSummaryOS = ({data}: Props) => {
   };
 
   const versionElement = getVersionElement();
-  const className = generateClassName(data.name);
 
   return (
-    <Item className={className} icon={<span className="context-item-icon" />}>
-      <h3>{renderName()}</h3>
+    <Item icon={generateIconName(data.name)}>
+      <h3>
+        <AnnotatedText value={data.name} meta={meta.name?.['']} />
+      </h3>
       <TextOverflow isParagraph data-test-id="context-sub-title">
         <Subject>{versionElement.subject}</Subject>
         <AnnotatedText value={versionElement.value} meta={versionElement.meta} />
       </TextOverflow>
     </Item>
   );
-};
-
-export default ContextSummaryOS;
+}
 
 const Subject = styled('strong')`
   margin-right: ${space(0.5)};

@@ -1,7 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import uniqBy from 'lodash/uniqBy';
 
-import ProjectActions from 'sentry/actions/projectActions';
 import {Client} from 'sentry/api';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -140,7 +139,7 @@ async function fetchProjects(
 }
 
 /**
- * Provides projects from the ProjectStore
+ * Provides projects from the ProjectsStore
  *
  * This hook also provides a way to select specific project slugs, and search
  * (type-ahead) for more projects that may not be in the project store.
@@ -193,7 +192,7 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
       return;
     }
 
-    setState({...state, fetching: true});
+    setState(prev => ({...prev, fetching: true}));
     try {
       const {results, hasMore, nextCursor} = await fetchProjects(api, orgId, {
         slugs: slugsToLoad,
@@ -201,24 +200,24 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
       });
 
       const fetchedProjects = uniqBy([...store.projects, ...results], ({slug}) => slug);
-      ProjectActions.loadProjects(fetchedProjects);
+      ProjectsStore.loadInitialData(fetchedProjects);
 
-      setState({
-        ...state,
+      setState(prev => ({
+        ...prev,
         hasMore,
         fetching: false,
         initiallyLoaded: true,
         nextCursor,
-      });
+      }));
     } catch (err) {
       console.error(err); // eslint-disable-line no-console
 
-      setState({
-        ...state,
+      setState(prev => ({
+        ...prev,
         fetching: false,
         initiallyLoaded: !store.loading,
         fetchError: err,
-      });
+      }));
     }
   }
 
@@ -236,7 +235,7 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
       return;
     }
 
-    setState({...state, fetching: true});
+    setState(prev => ({...prev, fetching: true}));
 
     try {
       api.clear();
@@ -251,20 +250,20 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
 
       // Only update the store if we have more items
       if (fetchedProjects.length > store.projects.length) {
-        ProjectActions.loadProjects(fetchedProjects);
+        ProjectsStore.loadInitialData(fetchedProjects);
       }
 
-      setState({
-        ...state,
+      setState(prev => ({
+        ...prev,
         hasMore,
         fetching: false,
         lastSearch: search,
         nextCursor,
-      });
+      }));
     } catch (err) {
       console.error(err); // eslint-disable-line no-console
 
-      setState({...state, fetching: false, fetchError: err});
+      setState(prev => ({...prev, fetching: false, fetchError: err}));
     }
   }
 
@@ -288,7 +287,7 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
       return;
     }
 
-    setState({...state, initiallyLoaded: storeLoaded});
+    setState(prev => ({...prev, initiallyLoaded: storeLoaded}));
   }, [store.loading]);
 
   const {initiallyLoaded, fetching, fetchError, hasMore} = state;

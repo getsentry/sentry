@@ -2,10 +2,10 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {GroupingConfigItem} from 'sentry/components/events/groupingInfo';
-import {Field} from 'sentry/components/forms/type';
+import {Field} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import marked from 'sentry/utils/marked';
 
 // Export route to make these forms searchable by label/help
@@ -159,6 +159,23 @@ stack.function:mylibrary_* +app`}
     saveMessage: t(
       'Changing the expiration date will affect how many new issues are created.'
     ),
+  },
+  groupingAutoUpdate: {
+    name: 'groupingAutoUpdate',
+    type: 'boolean',
+    label: t('Automatically Update Grouping'),
+    saveOnBlur: false,
+    help: t(
+      'When enabled projects will in the future automatically update to the latest grouping algorithm. Right now this setting does nothing.'
+    ),
+    saveMessage: ({value}) =>
+      value
+        ? t(
+            'Enabling automatic upgrading will take effect on the next incoming event once auto updating has been rolled out.'
+          )
+        : t(
+            'Disabling auto updates will cause you to no longer receive improvements to the grouping algorithm.'
+          ),
   },
 };
 

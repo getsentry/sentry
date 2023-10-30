@@ -8,11 +8,11 @@ type Props = {
   sentryApp?: AvatarSentryApp;
 } & BaseAvatar['props'];
 
-const SentryAppAvatar = ({isColor = true, sentryApp, isDefault, ...props}: Props) => {
+function SentryAppAvatar({isColor = true, sentryApp, isDefault, ...props}: Props) {
   const avatarDetails = sentryApp?.avatars?.find(({color}) => color === isColor);
   const defaultSentryAppAvatar = (
     <IconGeneric
-      size={`${props.size}`}
+      legacySize={`${props.size}`}
       className={props.className}
       data-test-id="default-sentry-app-avatar"
     />
@@ -21,16 +21,18 @@ const SentryAppAvatar = ({isColor = true, sentryApp, isDefault, ...props}: Props
   if (isDefault || !avatarDetails || avatarDetails.avatarType === 'default') {
     return defaultSentryAppAvatar;
   }
+  const {sentryUrl} = window.__initialData?.links ?? {};
   return (
     <BaseAvatar
       {...props}
       type="upload"
       uploadPath="sentry-app-avatar"
       uploadId={avatarDetails?.avatarUuid}
+      uploadDomain={sentryUrl}
       title={sentryApp?.name}
       backupAvatar={defaultSentryAppAvatar}
     />
   );
-};
+}
 
 export default SentryAppAvatar;

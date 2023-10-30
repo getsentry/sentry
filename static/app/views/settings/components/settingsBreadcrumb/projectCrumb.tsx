@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
@@ -13,18 +13,15 @@ import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcr
 import findFirstRouteWithoutRouteParam from 'sentry/views/settings/components/settingsBreadcrumb/findFirstRouteWithoutRouteParam';
 import MenuItem from 'sentry/views/settings/components/settingsBreadcrumb/menuItem';
 
-import {RouteWithName} from './types';
 import {CrumbLink} from '.';
 
 type Props = RouteComponentProps<{projectId?: string}, {}> & {
   organization: Organization;
   project: Project;
   projects: Project[];
-  route: RouteWithName;
-  routes: RouteWithName[];
 };
 
-const ProjectCrumb = ({
+function ProjectCrumb({
   organization: latestOrganization,
   project: latestProject,
   projects,
@@ -32,7 +29,7 @@ const ProjectCrumb = ({
   routes,
   route,
   ...props
-}: Props) => {
+}: Props) {
   const handleSelect = (item: {value: string}) => {
     // We have to make exceptions for routes like "Project Alerts Rule Edit" or "Client Key Details"
     // Since these models are project specific, we need to traverse up a route when switching projects
@@ -100,7 +97,7 @@ const ProjectCrumb = ({
       {...props}
     />
   );
-};
+}
 
 export {ProjectCrumb};
 export default withProjects(withLatestContext(ProjectCrumb));

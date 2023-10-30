@@ -1,9 +1,11 @@
 from django.urls import reverse
 
-from sentry.models import ApiToken
-from sentry.testutils import APITestCase
+from sentry.models.apitoken import ApiToken
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class SentryInternalAppTokenCreationTest(APITestCase):
     def setUp(self):
         self.user = self.create_user(email="boop@example.com")
@@ -78,6 +80,6 @@ class SentryInternalAppTokenCreationTest(APITestCase):
         )
 
         self.login_as(user=self.user)
-        response = self.client.post(url, format="json")
+        response = self.client.delete(url, format="json")
 
         assert response.status_code == 404

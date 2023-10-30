@@ -1,28 +1,37 @@
-import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import InboxShortId from 'sentry/components/group/inboxBadges/shortId';
+import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
+import IssueReplayCount from 'sentry/components/group/issueReplayCount';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChat} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {Group} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import type {Group, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
+import withOrganization from 'sentry/utils/withOrganization';
 
-type Props = WithRouterProps<{orgId: string}> & {
+type Props = {
   data: Event | Group;
+  organization: Organization;
   showAssignee?: boolean;
   showInboxTime?: boolean;
 };
 
-function EventOrGroupExtraDetails({data, showAssignee, params, showInboxTime}: Props) {
+function EventOrGroupExtraDetails({
+  data,
+  showAssignee,
+  showInboxTime,
+  organization,
+}: Props) {
   const {
     id,
     lastSeen,
@@ -37,13 +46,24 @@ function EventOrGroupExtraDetails({data, showAssignee, params, showInboxTime}: P
     lifetime,
     isUnhandled,
     inbox,
+    status,
+    substatus,
   } = data as Group;
 
-  const issuesPath = `/organizations/${params.orgId}/issues/`;
+  const issuesPath = `/organizations/${organization.slug}/issues/`;
+
+  const showReplayCount =
+    organization.features.includes('session-replay') && projectCanLinkToReplay(project);
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
 
   return (
     <GroupExtra>
-      {inbox && <InboxReason inbox={inbox} showDateAdded={showInboxTime} />}
+      {!hasEscalatingIssuesUi && inbox && (
+        <InboxReason inbox={inbox} showDateAdded={showInboxTime} />
+      )}
+      {hasEscalatingIssuesUi && (
+        <GroupStatusBadge status={status} substatus={substatus} />
+      )}
       {shortId && (
         <InboxShortId
           shortId={shortId}
@@ -68,11 +88,14 @@ function EventOrGroupExtraDetails({data, showAssignee, params, showInboxTime}: P
         <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
           <IconChat
             size="xs"
-            color={subscriptionDetails?.reason === 'mentioned' ? 'green300' : undefined}
+            color={
+              subscriptionDetails?.reason === 'mentioned' ? 'successText' : undefined
+            }
           />
           <span>{numComments}</span>
         </CommentsLink>
       )}
+      {showReplayCount && <IssueReplayCount groupId={id} />}
       {logger && (
         <LoggerAnnotation>
           <GlobalSelectionLink
@@ -152,4 +175,4 @@ const LoggerAnnotation = styled(AnnotationNoMargin)`
   color: ${p => p.theme.textColor};
 `;
 
-export default withRouter(EventOrGroupExtraDetails);
+export default withOrganization(EventOrGroupExtraDetails);

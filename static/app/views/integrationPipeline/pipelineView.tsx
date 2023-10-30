@@ -1,14 +1,14 @@
 import {useEffect} from 'react';
 
 import Indicators from 'sentry/components/indicators';
-import ThemeAndStyleProvider from 'sentry/components/themeAndStyleProvider';
+import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 
 import AwsLambdaCloudformation from './awsLambdaCloudformation';
 import AwsLambdaFailureDetails from './awsLambdaFailureDetails';
 import AwsLambdaFunctionSelect from './awsLambdaFunctionSelect';
 import AwsLambdaProjectSelect from './awsLambdaProjectSelect';
 
-const pipelineMapper: Record<string, [React.ElementType, string]> = {
+const pipelineMapper: Record<string, [React.ComponentType<any>, string]> = {
   awsLambdaProjectSelect: [AwsLambdaProjectSelect, 'AWS Lambda Select Project'],
   awsLambdaFunctionSelect: [AwsLambdaFunctionSelect, 'AWS Lambda Select Lambdas'],
   awsLambdaCloudformation: [AwsLambdaCloudformation, 'AWS Lambda Create Cloudformation'],

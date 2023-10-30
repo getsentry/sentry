@@ -1,61 +1,64 @@
-import EventDataSection from 'sentry/components/events/eventDataSection';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import Annotated from 'sentry/components/events/meta/annotated';
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {t} from 'sentry/locale';
+import {EntryType, Event} from 'sentry/types';
 import {objectIsEmpty} from 'sentry/utils';
 
 type Props = {
   data: {
-    formatted: string;
-    params?: Record<string, any> | any[];
+    formatted: string | null;
+    params?: Record<string, any> | any[] | null;
   };
+  event: Event;
 };
 
-const Message = ({data}: Props) => {
-  const renderParams = () => {
-    const params = data?.params;
+function renderParams(params: Props['data']['params'], meta: any) {
+  if (!params || objectIsEmpty(params)) {
+    return null;
+  }
 
-    if (!params || objectIsEmpty(params)) {
-      return null;
-    }
+  // NB: Always render params, regardless of whether they appear in the
+  // formatted string due to structured logging frameworks, like Serilog. They
+  // only format some parameters into the formatted string, but we want to
+  // display all of them.
 
-    // NB: Always render params, regardless of whether they appear in the
-    // formatted string due to structured logging frameworks, like Serilog. They
-    // only format some parameters into the formatted string, but we want to
-    // display all of them.
+  if (Array.isArray(params)) {
+    const arrayData = params.map((value, i) => {
+      const key = `#${i}`;
+      return {
+        key,
+        value,
+        subject: key,
+        meta: meta?.data?.params?.[i]?.[''],
+      };
+    });
 
-    if (Array.isArray(params)) {
-      const arrayData = params.map((value, i) => {
-        const key = `#${i}`;
-        return {
-          key,
-          value,
-          subject: key,
-        };
-      });
+    return <KeyValueList data={arrayData} shouldSort={false} isContextData />;
+  }
 
-      return <KeyValueList data={arrayData} isSorted={false} isContextData />;
-    }
+  const objectData = Object.entries(params).map(([key, value]) => ({
+    key,
+    value,
+    subject: key,
+    meta: meta?.data?.params?.[key]?.[''],
+  }));
 
-    const objectData = Object.entries(params).map(([key, value]) => ({
-      key,
-      value,
-      subject: key,
-      meta: getMeta(params, key),
-    }));
+  return <KeyValueList data={objectData} shouldSort={false} isContextData />;
+}
 
-    return <KeyValueList data={objectData} isSorted={false} isContextData />;
-  };
+export function Message({data, event}: Props) {
+  const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.MESSAGE);
+  const meta = event?._meta?.entries?.[entryIndex] ?? {};
 
   return (
     <EventDataSection type="message" title={t('Message')}>
-      <Annotated object={data} objectKey="formatted">
-        {value => <pre className="plain">{value}</pre>}
-      </Annotated>
-      {renderParams()}
+      {meta?.data?.formatted?.[''] ? (
+        <AnnotatedText value={data.formatted} meta={meta?.data?.formatted?.['']} />
+      ) : (
+        <pre className="plain">{data.formatted}</pre>
+      )}
+      {renderParams(data.params, meta)}
     </EventDataSection>
   );
-};
-
-export default Message;
+}

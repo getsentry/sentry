@@ -1,11 +1,16 @@
 from unittest.mock import patch
 
 from sentry import eventstore, eventstream
-from sentry.models import Group, GroupEnvironment, GroupMeta, GroupRedirect, UserReport
+from sentry.models.group import Group
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.groupmeta import GroupMeta
+from sentry.models.groupredirect import GroupRedirect
+from sentry.models.userreport import UserReport
 from sentry.similarity import _make_index_backend
 from sentry.tasks.merge import merge_groups
-from sentry.testutils import TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import redis
 
 # Use the default redis client as a cluster client in the similarity index
@@ -13,8 +18,9 @@ index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
 
 
 @patch("sentry.similarity.features.index", new=index)
-class MergeGroupTest(TestCase):
-    @patch("sentry.tasks.merge.eventstream")
+@region_silo_test
+class MergeGroupTest(TestCase, SnubaTestCase):
+    @patch("sentry.eventstream.backend")
     def test_merge_calls_eventstream(self, mock_eventstream):
         group1 = self.create_group(self.project)
         group2 = self.create_group(self.project)
@@ -70,17 +76,17 @@ class MergeGroupTest(TestCase):
         group2 = event2.group
 
         with self.tasks():
-            eventstream_state = eventstream.start_merge(project.id, [group1.id], group2.id)
+            eventstream_state = eventstream.backend.start_merge(project.id, [group1.id], group2.id)
             merge_groups([group1.id], group2.id)
-            eventstream.end_merge(eventstream_state)
+            eventstream.backend.end_merge(eventstream_state)
 
         assert not Group.objects.filter(id=group1.id).exists()
 
-        event1 = eventstore.get_event_by_id(project.id, event1.event_id)
+        event1 = eventstore.backend.get_event_by_id(project.id, event1.event_id)
         assert event1.group_id == group2.id
         assert event1.data["extra"]["foo"] == "bar"
 
-        event2 = eventstore.get_event_by_id(project.id, event2.event_id)
+        event2 = eventstore.backend.get_event_by_id(project.id, event2.event_id)
         assert event2.group_id == group2.id
         assert event2.data["extra"]["foo"] == "baz"
 

@@ -1,12 +1,13 @@
+from datetime import timezone
 from unittest.mock import patch
 
-import pytz
 from django.db.models import F
 
 from fixtures.page_objects.base import BasePage
-from sentry.models import Project
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.models.project import Project
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
 FEATURE_NAMES = (
@@ -15,6 +16,7 @@ FEATURE_NAMES = (
 )
 
 
+@no_silo_test(stable=True)
 class PerformanceLandingTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -31,9 +33,9 @@ class PerformanceLandingTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_with_data(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
 
-        event = load_data("transaction", timestamp=before_now(minutes=1))
+        event = load_data("transaction", timestamp=before_now(minutes=10))
         self.store_event(data=event, project_id=self.project.id)
         self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
 
@@ -46,4 +48,27 @@ class PerformanceLandingTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until_not(
                 '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
             )
-            self.browser.snapshot("performance landing - with data")
+
+    @patch("django.utils.timezone.now")
+    def test_with_data_and_new_widget_designs(self, mock_now):
+        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
+
+        event = load_data("transaction", timestamp=before_now(minutes=10))
+        self.store_event(data=event, project_id=self.project.id)
+        self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
+
+        FEATURES = (
+            "organizations:discover-basic",
+            "organizations:performance-view",
+            "organizations:performance-new-widget-designs",
+        )
+
+        with self.feature(FEATURES):
+            self.browser.get(self.path)
+            self.page.wait_until_loaded()
+
+            # This test is flakey in that we sometimes load this page before the event is processed
+            # depend on pytest-retry to reload the page
+            self.browser.wait_until_not(
+                '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
+            )

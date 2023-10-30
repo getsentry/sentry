@@ -9,20 +9,22 @@ from zipfile import ZipFile
 import pytest
 
 from sentry import options
-from sentry.models import ReleaseFile
 from sentry.models.distribution import Distribution
-from sentry.models.file import File
+from sentry.models.files.file import File
 from sentry.models.releasefile import (
     ARTIFACT_INDEX_FILENAME,
+    ReleaseFile,
     _ArtifactIndexGuard,
     delete_from_artifact_index,
     read_artifact_index,
     update_artifact_index,
 )
-from sentry.testutils import TestCase, TransactionTestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
+@region_silo_test(stable=True)
 class ReleaseFileTestCase(TestCase):
     def test_normalize(self):
         n = ReleaseFile.normalize
@@ -237,6 +239,7 @@ class ReleaseArchiveTestCase(TestCase):
         self.create_release_file(file=file_)
 
         index = read_artifact_index(self.release, None)
+        assert index is not None
         assert file_.checksum == index["files"]["fake://foo"]["sha1"]
 
 
@@ -267,7 +270,9 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
             thread.join()
 
         # Without locking, only key "123" would survive:
-        assert read_artifact_index(release, dist)["files"].keys() == {"foo", "123"}
+        index = read_artifact_index(release, dist)
+        assert index is not None
+        assert index["files"].keys() == {"foo", "123"}
 
         # Only one `File` was created:
         assert File.objects.filter(name=ARTIFACT_INDEX_FILENAME).count() == 1
@@ -285,7 +290,9 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
             thread.join()
 
         # Without locking, the delete would be surpassed by the slow update:
-        assert read_artifact_index(release, dist)["files"].keys() == {"123", "abc"}
+        index = read_artifact_index(release, dist)
+        assert index is not None
+        assert index["files"].keys() == {"123", "abc"}
 
     def test_lock_existing(self):
         release = self.release
@@ -304,7 +311,9 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
             thread.join()
 
         # Without locking, only keys "0", "123" would survive:
-        assert read_artifact_index(release, dist)["files"].keys() == {"0", "foo", "123"}
+        index = read_artifact_index(release, dist)
+        assert index is not None
+        assert index["files"].keys() == {"0", "foo", "123"}
 
         def delete():
             sleep(2 * self.tick)
@@ -319,4 +328,6 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
             thread.join()
 
         # Without locking, the delete would be surpassed by the slow update:
-        assert read_artifact_index(release, dist)["files"].keys() == {"0", "123", "abc"}
+        index = read_artifact_index(release, dist)
+        assert index is not None
+        assert index["files"].keys() == {"0", "123", "abc"}

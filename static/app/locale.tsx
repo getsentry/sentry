@@ -6,6 +6,7 @@ import isString from 'lodash/isString';
 import {sprintf} from 'sprintf-js';
 
 import localStorage from 'sentry/utils/localStorage';
+import toArray from 'sentry/utils/toArray';
 
 const markerStyles = {
   background: '#ff801790',
@@ -41,6 +42,7 @@ export function toggleLocaleDebug() {
  * Global Jed locale object loaded with translations via setLocale
  */
 let i18n: Jed | null = null;
+const staticTranslations = new Set<string>();
 
 /**
  * Set the current application locale.
@@ -49,7 +51,7 @@ let i18n: Jed | null = null;
  * translation functions, as this mutates a singleton translation object used
  * to lookup translations at runtime.
  */
-export function setLocale(translations: any) {
+export function setLocale(translations: any): Jed {
   i18n = new Jed({
     domain: 'sentry',
     missing_key_callback: () => {},
@@ -72,12 +74,19 @@ function getClient(): Jed | null {
     // If this happens, it could mean that an import was added/changed where
     // locale initialization does not happen soon enough.
     const warning = new Error('Locale not set, defaulting to English');
-    console.error(warning); // eslint-disable-line no-console
     Sentry.captureException(warning);
     return setLocale(DEFAULT_LOCALE_DATA);
   }
 
   return i18n;
+}
+
+export function isStaticString(formatString: string): boolean {
+  if (formatString.trim() === '') {
+    return false;
+  }
+
+  return staticTranslations.has(formatString);
 }
 
 /**
@@ -114,7 +123,7 @@ function formatForReact(formatString: string, args: FormatArg[]): React.ReactNod
       // array with two items in.
       match[2] = null;
       match[1] = 1;
-      nodes.push(<span key={idx++}>{sprintf.format([match], [null, arg])}</span>);
+      nodes.push(<Fragment key={idx++}>{sprintf.format([match], [null, arg])}</Fragment>);
     }
   });
 
@@ -182,7 +191,7 @@ export function parseComponentTemplate(template: string): ParsedTemplate {
 
     // eslint-disable-next-line no-cond-assign
     while ((match = regex.exec(template)) !== null) {
-      const substr = template.substr(pos, match.index - pos);
+      const substr = template.substring(pos, match.index);
       if (substr !== '') {
         buf.push(substr);
       }
@@ -209,7 +218,7 @@ export function parseComponentTemplate(template: string): ParsedTemplate {
 
     let endPos = regex.lastIndex;
     if (!satisfied) {
-      const rest = template.substr(pos);
+      const rest = template.substring(pos);
       if (rest) {
         buf.push(rest);
       }
@@ -241,7 +250,7 @@ export function renderTemplate(
 
     for (const item of group) {
       if (isString(item)) {
-        children.push(<span key={idx++}>{item}</span>);
+        children.push(<Fragment key={idx++}>{item}</Fragment>);
       } else {
         children.push(renderGroup(item.group));
       }
@@ -249,10 +258,10 @@ export function renderTemplate(
 
     // In case we cannot find our component, we call back to an empty
     // span so that stuff shows up at least.
-    let reference = components[groupKey] ?? <span key={idx++} />;
+    let reference = components[groupKey] ?? <Fragment key={idx++} />;
 
     if (!isValidElement(reference)) {
-      reference = <span key={idx++}>{reference}</span>;
+      reference = <Fragment key={idx++}>{reference}</Fragment>;
     }
 
     const element = reference as React.ReactElement;
@@ -271,9 +280,9 @@ export function renderTemplate(
  * NOTE: This is a no-op and will return the node if LOCALE_DEBUG is not
  * currently enabled. See setLocaleDebug and toggleLocaleDebug.
  */
-function mark(node: React.ReactNode): string {
+function mark<T extends React.ReactNode>(node: T): T {
   if (!LOCALE_DEBUG) {
-    return node as string;
+    return node;
   }
 
   // TODO(epurkhiser): Explain why we manually create a react node and assign
@@ -281,19 +290,19 @@ function mark(node: React.ReactNode): string {
   // require some understanding of reacts internal types.
   const proxy = {
     $$typeof: Symbol.for('react.element'),
-    type: 'span',
+    type: Symbol.for('react.fragment'),
     key: null,
     ref: null,
     props: {
       style: markerStyles,
-      children: Array.isArray(node) ? node : [node],
+      children: toArray(node),
     },
     _owner: null,
     _store: {},
   };
 
   proxy.toString = () => '✅' + node + '✅';
-  return proxy as unknown as string;
+  return proxy as T;
 }
 
 /**
@@ -324,13 +333,14 @@ export function gettext(string: string, ...args: FormatArg[]): string {
   const val: string = getClient().gettext(string);
 
   if (args.length === 0) {
+    staticTranslations.add(val);
     return mark(val);
   }
 
   // XXX(ts): It IS possible to use gettext in such a way that it will return a
   // React.ReactNodeArray, however we currently rarely (if at all) use it in
   // this way, and usually just expect strings back.
-  return mark(format(val, args));
+  return mark(format(val, args) as string);
 }
 
 /**
@@ -349,9 +359,16 @@ export function ngettext(singular: string, plural: string, ...args: FormatArg[])
   if (args.length > 0) {
     countArg = Math.abs(args[0] as number) || 0;
 
-    // `toLocaleString` will render `999` as `"999"` but `9999` as `"9,999"`. This means that any call with `tn` or `ngettext` cannot use `%d` in the codebase but has to use `%s`.
-    // This means a string is always being passed in as an argument, but `sprintf-js` implicitly coerces strings that can be parsed as integers into an integer.
-    // This would break under any locale that used different formatting and other undesirable behaviors.
+    // `toLocaleString` will render `999` as `"999"` but `9999` as `"9,999"`.
+    // This means that any call with `tn` or `ngettext` cannot use `%d` in the
+    // codebase but has to use `%s`.
+    //
+    // This means a string is always being passed in as an argument, but
+    // `sprintf-js` implicitly coerces strings that can be parsed as integers
+    // into an integer.
+    //
+    // This would break under any locale that used different formatting and
+    // other undesirable behaviors.
     if ((singular + plural).includes('%d')) {
       // eslint-disable-next-line no-console
       console.error(new Error('You should not use %d within tn(), use %s instead'));
@@ -383,9 +400,9 @@ export function ngettext(singular: string, plural: string, ...args: FormatArg[])
 export function gettextComponentTemplate(
   template: string,
   components: ComponentMap
-): string {
+): JSX.Element {
   const parsedTemplate = parseComponentTemplate(getClient().gettext(template));
-  return mark(renderTemplate(parsedTemplate, components));
+  return mark(renderTemplate(parsedTemplate, components) as JSX.Element);
 }
 
 /**

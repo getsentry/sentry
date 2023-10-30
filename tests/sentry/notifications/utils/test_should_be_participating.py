@@ -1,8 +1,10 @@
-from unittest import TestCase
-
-from sentry.models import GroupSubscription, User
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.helpers import should_be_participating, where_should_be_participating
 from sentry.notifications.types import NotificationScopeType, NotificationSettingOptionValues
+from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.silo import SiloMode
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
@@ -50,9 +52,11 @@ class ShouldBeParticipatingTest(TestCase):
         assert not value
 
 
+@control_silo_test(stable=True)
 class WhereShouldBeParticipatingTest(TestCase):
     def setUp(self) -> None:
-        self.user = User(id=1)
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.user = RpcActor.from_orm_user(self.create_user())
 
     def test_where_should_be_participating(self):
         subscription = GroupSubscription(is_active=True)

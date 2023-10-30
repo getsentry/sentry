@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import html
 import re
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Mapping
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -9,9 +11,12 @@ from django.http.request import HttpRequest, QueryDict
 
 from sentry import features
 from sentry.incidents.charts import build_metric_alert_chart
-from sentry.incidents.models import AlertRule, Incident, User
+from sentry.incidents.models import AlertRule, Incident
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
-from sentry.models import Integration, Organization
+from sentry.models.integrations.integration import Integration
+from sentry.models.organization import Organization
+from sentry.models.user import User
+from sentry.services.hybrid_cloud.integration import integration_service
 
 from . import Handler, UnfurlableUrl, UnfurledUrl, make_type_coercer
 
@@ -30,8 +35,8 @@ map_incident_args = make_type_coercer(
 def unfurl_metric_alerts(
     request: HttpRequest,
     integration: Integration,
-    links: List[UnfurlableUrl],
-    user: Optional["User"] = None,
+    links: list[UnfurlableUrl],
+    user: User | None = None,
 ) -> UnfurledUrl:
     alert_filter_query = Q()
     incident_filter_query = Q()
@@ -49,14 +54,19 @@ def unfurl_metric_alerts(
         else:
             alert_filter_query |= Q(id=alert_rule_id, organization__slug=org_slug)
 
-    all_integration_orgs = integration.organizations.all()
+    org_integrations = integration_service.get_organization_integrations(
+        integration_id=integration.id
+    )
+    organizations = Organization.objects.filter(
+        id__in=[oi.organization_id for oi in org_integrations]
+    )
     alert_rule_map = {
         rule.id: rule
         for rule in AlertRule.objects.filter(
             alert_filter_query,
             # Filter by integration organization here as well to make sure that
             # we have permission to access these incidents.
-            organization__in=all_integration_orgs,
+            organization_id__in=[org.id for org in organizations],
         )
     }
 
@@ -71,11 +81,11 @@ def unfurl_metric_alerts(
                 incident_filter_query,
                 # Filter by integration organization here as well to make sure that
                 # we have permission to access these incidents.
-                organization__in=all_integration_orgs,
+                organization_id__in=organizations,
             )
         }
 
-    orgs_by_slug: Dict[str, Organization] = {org.slug: org for org in all_integration_orgs}
+    orgs_by_slug: dict[str, Organization] = {org.slug: org for org in organizations}
 
     result = {}
     for link in links:
@@ -112,7 +122,7 @@ def unfurl_metric_alerts(
     return result
 
 
-def map_metric_alert_query_args(url: str, args: Mapping[str, str]) -> Mapping[str, Any]:
+def map_metric_alert_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[str, Any]:
     """Extracts selected incident id and some query parameters"""
 
     # Slack uses HTML escaped ampersands in its Event Links, when need
@@ -125,15 +135,20 @@ def map_metric_alert_query_args(url: str, args: Mapping[str, str]) -> Mapping[st
     start = params.get("start", None)
     end = params.get("end", None)
 
-    return map_incident_args(
-        url, {**args, "incident_id": incident_id, "period": period, "start": start, "end": end}
-    )
+    data = {**args, "incident_id": incident_id, "period": period, "start": start, "end": end}
+    return map_incident_args(url, data)
 
 
-handler: Handler = Handler(
+metric_alerts_link_regex = re.compile(
+    r"^https?\://(?#url_prefix)[^/]+/organizations/(?P<org_slug>[^/]+)/alerts/rules/details/(?P<alert_rule_id>\d+)"
+)
+
+customer_domain_metric_alerts_link_regex = re.compile(
+    r"^https?\://(?P<org_slug>[^/]+?)\.(?#url_prefix)[^/]+/alerts/rules/details/(?P<alert_rule_id>\d+)"
+)
+
+handler = Handler(
     fn=unfurl_metric_alerts,
-    matcher=re.compile(
-        r"^https?\://[^/]+/organizations/(?P<org_slug>[^/]+)/alerts/rules/details/(?P<alert_rule_id>\d+)"
-    ),
+    matcher=[metric_alerts_link_regex, customer_domain_metric_alerts_link_regex],
     arg_mapper=map_metric_alert_query_args,
 )

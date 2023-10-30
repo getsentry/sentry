@@ -1,18 +1,26 @@
 from rest_framework import status
 from rest_framework.request import Request
 
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.organization import (
+    OrganizationEndpoint,
+    OrganizationIntegrationsLoosePermission,
+)
 from sentry.api.validators.project_codeowners import validate_codeowners_associations
 from sentry.constants import ObjectStatus
-from sentry.models import Organization, Project, ProjectCodeOwners
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.services.hybrid_cloud.integration import integration_service
 
 
-class OrganizationCodeOwnersAssociationsPermission(OrganizationPermission):
-    scope_map = {"GET": ["org:integrations"]}
-
-
+@region_silo_endpoint
 class OrganizationCodeOwnersAssociationsEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationCodeOwnersAssociationsPermission,)
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+    permission_classes = (OrganizationIntegrationsLoosePermission,)
 
     def get(self, request: Request, organization: Organization):
         """
@@ -21,13 +29,19 @@ class OrganizationCodeOwnersAssociationsEndpoint(OrganizationEndpoint):
         """
         projects = Project.objects.filter(
             organization=organization,
-            status=ObjectStatus.VISIBLE,
+            status=ObjectStatus.ACTIVE,
         )
         project_code_owners = ProjectCodeOwners.objects.filter(project__in=projects)
         provider = request.GET.get("provider")
         if provider:
+            org_integrations = integration_service.get_organization_integrations(
+                providers=[provider],
+                organization_ids=[pco.project.organization_id for pco in project_code_owners],
+            )
             project_code_owners = project_code_owners.filter(
-                repository_project_path_config__organization_integration__integration__provider=provider
+                repository_project_path_config__organization_integration_id__in={
+                    oi.id for oi in org_integrations
+                }
             )
         result = {}
         for pco in project_code_owners:

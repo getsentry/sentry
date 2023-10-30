@@ -1,14 +1,14 @@
+import {Theme, useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import type {BarChartSeries} from 'sentry/components/charts/barChart';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import Count from 'sentry/components/count';
+import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
-import {Group, Release, TimeseriesValue} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {Group, Release, TimeseriesValue} from 'sentry/types';
+import {getFormattedDate} from 'sentry/utils/dates';
 import {formatVersion} from 'sentry/utils/formatters';
-import theme from 'sentry/utils/theme';
-
-import SidebarSection from './sidebarSection';
-
-type Markers = React.ComponentProps<typeof MiniBarChart>['markers'];
 
 /**
  * Stats are provided indexed by statsPeriod strings.
@@ -29,9 +29,99 @@ interface Props {
   releaseStats?: StatsGroup;
 }
 
+type Marker = {
+  color: string;
+  displayValue: string | number | Date;
+  name: string;
+  value: string | number | Date;
+};
+
+export function getGroupReleaseChartMarkers(
+  theme: Theme,
+  stats: TimeseriesValue[],
+  firstSeen?: string,
+  lastSeen?: string
+): BarChartSeries['markPoint'] {
+  const markers: Marker[] = [];
+  // Get the timestamp of the first point.
+  const firstGraphTime = stats[0][0] * 1000;
+
+  const firstSeenX = new Date(firstSeen ?? 0).getTime();
+  const lastSeenX = new Date(lastSeen ?? 0).getTime();
+  const difference = lastSeenX - firstSeenX;
+  const oneHourMs = 1000 * 60 * 60;
+
+  if (
+    firstSeen &&
+    stats.length > 2 &&
+    firstSeenX >= firstGraphTime &&
+    // Don't show first seen if the markers are too close together
+    difference > oneHourMs
+  ) {
+    // Find the first bucket that would contain our first seen event
+    const firstBucket = stats.findIndex(([time]) => time * 1000 > firstSeenX);
+
+    let bucketStart: number | undefined;
+    if (firstBucket > 0) {
+      // The size of the data interval in ms
+      const halfBucketSize = ((stats[1][0] - stats[0][0]) * 1000) / 2;
+      // Display the marker in front of the first bucket
+      bucketStart = stats[firstBucket - 1][0] * 1000 - halfBucketSize;
+    }
+
+    markers.push({
+      name: t('First seen'),
+      value: bucketStart ?? firstSeenX,
+      displayValue: firstSeenX,
+      color: theme.pink300,
+    });
+  }
+
+  if (lastSeen && lastSeenX >= firstGraphTime) {
+    markers.push({
+      name: t('Last seen'),
+      value: lastSeenX,
+      displayValue: lastSeenX,
+      color: theme.green300,
+    });
+  }
+
+  const markerTooltip = {
+    show: true,
+    trigger: 'item',
+    formatter: ({data}) => {
+      const time = getFormattedDate(data.displayValue, 'MMM D, YYYY LT', {
+        local: true,
+      });
+      return [
+        '<div class="tooltip-series">',
+        `<div><span class="tooltip-label"><strong>${data.name}</strong></span></div>`,
+        '</div>',
+        `<div class="tooltip-footer">${time}</div>`,
+        '</div>',
+        '<div class="tooltip-arrow"></div>',
+      ].join('');
+    },
+  };
+
+  return {
+    data: markers.map(marker => ({
+      name: marker.name,
+      coord: [marker.value, 0],
+      tooltip: markerTooltip,
+      displayValue: marker.displayValue,
+      symbol: 'circle',
+      symbolSize: 8,
+      itemStyle: {
+        color: marker.color,
+        borderColor: theme.background,
+      },
+    })),
+  };
+}
+
 function GroupReleaseChart(props: Props) {
   const {
-    className,
     group,
     lastSeen,
     firstSeen,
@@ -43,6 +133,7 @@ function GroupReleaseChart(props: Props) {
     environmentStats,
     title,
   } = props;
+  const theme = useTheme();
 
   const stats = group.stats[statsPeriod];
   const environmentPeriodStats = environmentStats?.[statsPeriod];
@@ -50,7 +141,7 @@ function GroupReleaseChart(props: Props) {
     return null;
   }
 
-  const series: Series[] = [];
+  const series: BarChartSeries[] = [];
 
   if (environment) {
     // Add all events.
@@ -68,9 +159,6 @@ function GroupReleaseChart(props: Props) {
     })),
   });
 
-  // Get the timestamp of the first point.
-  const firstTime = series[0].data[0].value;
-
   if (release && releaseStats) {
     series.push({
       seriesName: t('Events in release %s', formatVersion(release.version)),
@@ -81,48 +169,40 @@ function GroupReleaseChart(props: Props) {
     });
   }
 
-  const markers: Markers = [];
-  if (firstSeen) {
-    const firstSeenX = new Date(firstSeen).getTime();
-    if (firstSeenX >= firstTime) {
-      markers.push({
-        name: t('First seen'),
-        value: firstSeenX,
-        color: theme.pink300,
-      });
-    }
-  }
-
-  if (lastSeen) {
-    const lastSeenX = new Date(lastSeen).getTime();
-    if (lastSeenX >= firstTime) {
-      markers.push({
-        name: t('Last seen'),
-        value: lastSeenX,
-        color: theme.green300,
-      });
-    }
-  }
-
   const totalSeries =
     environment && environmentStats ? environmentStats[statsPeriod] : stats;
   const totalEvents = totalSeries.reduce((acc, current) => acc + current[1], 0);
+  series[0].markPoint = getGroupReleaseChartMarkers(theme, stats, firstSeen, lastSeen);
 
   return (
-    <SidebarSection secondary title={title} className={className}>
-      <div>
-        <Count value={totalEvents} />
-      </div>
-      <MiniBarChart
-        isGroupedByDate
-        showTimeInTooltip
-        height={42}
-        colors={environment ? undefined : [theme.purple300, theme.purple300]}
-        series={series}
-        markers={markers}
-      />
-    </SidebarSection>
+    <SidebarSection.Wrap>
+      <SidebarSection.Title>{title}</SidebarSection.Title>
+      <SidebarSection.Content>
+        <EventNumber>
+          <Count value={totalEvents} />
+        </EventNumber>
+        <MiniBarChart
+          isGroupedByDate
+          showTimeInTooltip
+          showMarkLineLabel
+          height={42}
+          colors={environment ? undefined : [theme.purple300, theme.purple300]}
+          series={series}
+          grid={{
+            top: 6,
+            bottom: 4,
+            left: 4,
+            right: 4,
+          }}
+        />
+      </SidebarSection.Content>
+    </SidebarSection.Wrap>
   );
 }
+
+const EventNumber = styled('div')`
+  line-height: 1;
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+`;
 
 export default GroupReleaseChart;

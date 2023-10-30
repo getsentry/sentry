@@ -4,7 +4,9 @@
 import fs from 'fs';
 import path from 'path';
 
+import {WebpackReactSourcemapsPlugin} from '@acemarke/react-prod-sourcemaps';
 import CompressionPlugin from 'compression-webpack-plugin';
+import CopyPlugin from 'copy-webpack-plugin';
 import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
 import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
@@ -38,7 +40,6 @@ const {env} = process;
 env.NODE_ENV = env.NODE_ENV ?? 'development';
 const IS_PRODUCTION = env.NODE_ENV === 'production';
 const IS_TEST = env.NODE_ENV === 'test' || !!env.TEST_SUITE;
-const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
 
 // This is used to stop rendering dynamic content for tests/snapshots
 // We want it in the case where we are running tests and it is in CI,
@@ -56,6 +57,7 @@ const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
 const WEBPACK_MODE: Configuration['mode'] = IS_PRODUCTION ? 'production' : 'development';
+const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 
 // Environment variables that are used by other tooling and should
 // not be user configurable.
@@ -75,6 +77,7 @@ const HAS_WEBPACK_DEV_SERVER_CONFIG =
 const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
 const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
+const SHOULD_LAZY_LOAD = DEV_MODE && !!env.SENTRY_UI_LAZY_LOAD;
 
 // Deploy previews are built using vercel. We can check if we're in vercel's
 // build process by checking the existence of the PULL_REQUEST env var.
@@ -300,6 +303,12 @@ const appConfig: Configuration = {
     ],
   },
   plugins: [
+    /**
+     * Adds build time measurement instrumentation, which will be reported back
+     * to sentry
+     */
+    new SentryInstrumentation(),
+
     // Do not bundle moment's locale files as we will lazy load them using
     // dynamic imports in the application code
     new webpack.IgnorePlugin({
@@ -343,12 +352,6 @@ const appConfig: Configuration = {
      */
     new FixStyleOnlyEntriesPlugin({verbose: false}),
 
-    /**
-     * Adds build time measurement instrumentation, which will be reported back
-     * to sentry
-     */
-    new SentryInstrumentation(),
-
     ...(SHOULD_FORK_TS
       ? [
           new ForkTsCheckerWebpackPlugin({
@@ -357,9 +360,9 @@ const appConfig: Configuration = {
               configOverwrite: {
                 compilerOptions: {incremental: true},
               },
-              memoryLimit: 3072,
             },
             devServer: false,
+            // memorylimit is configured in package.json
           }),
         ]
       : []),
@@ -382,6 +385,36 @@ const appConfig: Configuration = {
       /moment\/locale/,
       new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
     ),
+
+    /**
+     * Copies file logo-sentry.svg to the dist/entrypoints directory so that it can be accessed by
+     * the backend
+     */
+    new CopyPlugin({
+      patterns: [
+        {
+          from: path.join(staticPrefix, 'images/logo-sentry.svg'),
+          to: 'entrypoints/logo-sentry.svg',
+          toType: 'file',
+        },
+        // Add robots.txt when deploying in preview mode so public previews do
+        // not get indexed by bots.
+        ...(IS_DEPLOY_PREVIEW
+          ? [
+              {
+                from: path.join(staticPrefix, 'robots-dev.txt'),
+                to: 'robots.txt',
+                toType: 'file' as const,
+              },
+            ]
+          : []),
+      ],
+    }),
+
+    WebpackReactSourcemapsPlugin({
+      mode: IS_PRODUCTION ? 'strict' : undefined,
+      debug: false,
+    }),
   ],
 
   resolve: {
@@ -419,6 +452,7 @@ const appConfig: Configuration = {
     extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.less'],
   },
   output: {
+    crossOriginLoading: 'anonymous',
     clean: true, // Clean the output directory before emit.
     path: distPath,
     publicPath: '',
@@ -449,7 +483,14 @@ const appConfig: Configuration = {
   devtool: IS_PRODUCTION ? 'source-map' : 'eval-cheap-module-source-map',
 };
 
-if (IS_TEST || IS_ACCEPTANCE_TEST || IS_STORYBOOK) {
+if (IS_TEST) {
+  appConfig.resolve!.alias!['sentry-fixture'] = path.join(
+    __dirname,
+    'fixtures',
+    'js-stubs'
+  );
+}
+if (IS_TEST || IS_ACCEPTANCE_TEST) {
   appConfig.resolve!.alias!['integration-docs-platforms'] = path.join(
     __dirname,
     'fixtures/integration-docs/_platforms.json'
@@ -481,15 +522,31 @@ if (
     if (IS_UI_DEV_ONLY) {
       appConfig.output = {};
     }
+
+    if (SHOULD_LAZY_LOAD) {
+      appConfig.experiments = {
+        lazyCompilation: {
+          // enable lazy compilation for dynamic imports
+          imports: true,
+          // disable lazy compilation for entries
+          entries: false,
+        },
+      };
+    }
   }
 
   appConfig.devServer = {
     headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Credentials': 'true',
+      'Document-Policy': 'js-profiling',
     },
-    // Required for getsentry
-    allowedHosts: 'all',
+    // Cover the various environments we use (vercel, getsentry-dev, localhost)
+    allowedHosts: [
+      '.sentry.dev',
+      '.dev.getsentry.net',
+      '.localhost',
+      '127.0.0.1',
+      '.docker.internal',
+    ],
     static: {
       directory: './src/sentry/static/sentry',
       watch: true,
@@ -508,8 +565,36 @@ if (
 
   if (!IS_UI_DEV_ONLY) {
     // This proxies to local backend server
-    const backendAddress = `http://localhost:${SENTRY_BACKEND_PORT}/`;
+    const backendAddress = `http://127.0.0.1:${SENTRY_BACKEND_PORT}/`;
     const relayAddress = 'http://127.0.0.1:7899';
+
+    // If we're running siloed servers we also need to proxy
+    // those requests to the right server.
+    let controlSiloProxy = {};
+    if (CONTROL_SILO_PORT) {
+      // TODO(hybridcloud) We also need to use this URL pattern
+      // list to select contro/region when making API requests in non-proxied
+      // environments (like production). We'll likely need a way to consolidate this
+      // with the configuration api.Client uses.
+      const controlSiloAddress = `http://127.0.0.1:${CONTROL_SILO_PORT}`;
+      controlSiloProxy = {
+        '/auth/**': controlSiloAddress,
+        '/account/**': controlSiloAddress,
+        '/api/0/users/**': controlSiloAddress,
+        '/api/0/api-tokens/**': controlSiloAddress,
+        '/api/0/sentry-apps/**': controlSiloAddress,
+        '/api/0/organizations/*/audit-logs/**': controlSiloAddress,
+        '/api/0/organizations/*/broadcasts/**': controlSiloAddress,
+        '/api/0/organizations/*/integrations/**': controlSiloAddress,
+        '/api/0/organizations/*/config/integrations/**': controlSiloAddress,
+        '/api/0/organizations/*/sentry-apps/**': controlSiloAddress,
+        '/api/0/organizations/*/sentry-app-installations/**': controlSiloAddress,
+        '/api/0/api-authorizations/**': controlSiloAddress,
+        '/api/0/api-applications/**': controlSiloAddress,
+        '/api/0/doc-integrations/**': controlSiloAddress,
+        '/api/0/assistant/**': controlSiloAddress,
+      };
+    }
 
     appConfig.devServer = {
       ...appConfig.devServer,
@@ -519,6 +604,7 @@ if (
       },
       // syntax for matching is using https://www.npmjs.com/package/micromatch
       proxy: {
+        ...controlSiloProxy,
         '/api/store/**': relayAddress,
         '/api/{1..9}*({0..9})/**': relayAddress,
         '/api/0/relays/outcomes/': relayAddress,
@@ -539,6 +625,26 @@ if (
 //
 // Various sentry pages still rely on django to serve html views.
 if (IS_UI_DEV_ONLY) {
+  // XXX: If you change this also change its sibiling in:
+  // - static/index.ejs
+  // - static/app/utils/extractSlug.tsx
+  const KNOWN_DOMAINS =
+    /(?:\.?)((?:localhost|dev\.getsentry\.net|sentry\.dev)(?:\:\d*)?)$/;
+
+  const extractSlug = (hostname: string) => {
+    const match = hostname.match(KNOWN_DOMAINS);
+    if (!match) {
+      return null;
+    }
+
+    const [
+      matchedExpression, // Expression includes optional leading `.`
+    ] = match;
+
+    const [slug] = hostname.replace(matchedExpression, '').split('.');
+    return slug;
+  };
+
   // Try and load certificates from mkcert if available. Use $ yarn mkcert-localhost
   const certPath = path.join(__dirname, 'config');
   const httpsOptions = !fs.existsSync(path.join(certPath, 'localhost.pem'))
@@ -555,17 +661,56 @@ if (IS_UI_DEV_ONLY) {
       type: 'https',
       options: httpsOptions,
     },
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Credentials': 'true',
+      'Document-Policy': 'js-profiling',
+    },
     static: {
       publicPath: '/_assets/',
     },
     proxy: [
       {
-        context: ['/api/', '/avatar/', '/organization-avatar/'],
+        context: ['/api/', '/avatar/', '/organization-avatar/', '/extensions/'],
         target: 'https://sentry.io',
         secure: false,
         changeOrigin: true,
         headers: {
           Referer: 'https://sentry.io/',
+          'Document-Policy': 'js-profiling',
+        },
+        cookieDomainRewrite: {'.sentry.io': 'localhost'},
+        router: ({hostname}) => {
+          const orgSlug = extractSlug(hostname);
+          return orgSlug ? `https://${orgSlug}.sentry.io` : 'https://sentry.io';
+        },
+      },
+      {
+        // Handle dev-ui region silo requests.
+        // Normally regions act as subdomains, but doing so in dev-ui
+        // would result in requests bypassing webpack proxy and being sent
+        // directly to region servers. These requests would fail because of CORS.
+        // Instead Client prefixes region requests with `/region/$name` which
+        // we rewrite in the proxy.
+        context: ['/region/'],
+        target: 'https://us.sentry.io',
+        secure: false,
+        changeOrigin: true,
+        headers: {
+          Referer: 'https://sentry.io/',
+          'Document-Policy': 'js-profiling',
+        },
+        cookieDomainRewrite: {'.sentry.io': 'localhost'},
+        pathRewrite: {
+          '^/region/[^/]*': '',
+        },
+        router: req => {
+          const regionPathPattern = /^\/region\/([^\/]+)/;
+          const regionname = req.path.match(regionPathPattern);
+          if (regionname) {
+            return `https://${regionname[1]}.sentry.io`;
+          }
+          return 'https://sentry.io';
         },
       },
     ],
@@ -578,7 +723,7 @@ if (IS_UI_DEV_ONLY) {
   };
 }
 
-if (IS_UI_DEV_ONLY || IS_DEPLOY_PREVIEW) {
+if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
   appConfig.output!.publicPath = '/_assets/';
 
   /**
@@ -591,13 +736,16 @@ if (IS_UI_DEV_ONLY || IS_DEPLOY_PREVIEW) {
     new HtmlWebpackPlugin({
       // Local dev vs vercel slightly differs...
       ...(IS_UI_DEV_ONLY
-        ? {devServer: `https://localhost:${SENTRY_WEBPACK_PROXY_PORT}`}
+        ? {devServer: `https://127.0.0.1:${SENTRY_WEBPACK_PROXY_PORT}`}
         : {}),
       favicon: path.resolve(sentryDjangoAppPath, 'images', 'favicon_dev.png'),
       template: path.resolve(staticPrefix, 'index.ejs'),
       mobile: true,
       excludeChunks: ['pipeline'],
       title: 'Sentry',
+      window: {
+        __SENTRY_DEV_UI: true,
+      },
     })
   );
 }

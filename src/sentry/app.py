@@ -1,28 +1,34 @@
-from threading import local
+from __future__ import annotations
 
-from sentry.utils import redis
-from sentry.utils.locking.backends.redis import RedisLockBackend
-from sentry.utils.locking.manager import LockManager
+from threading import local
+from typing import Any, List
+
+from django.http.request import HttpRequest
 
 
 class State(local):
-    request = None
-    data = {}
+    request: HttpRequest | None = None
+    request_stack: List[HttpRequest] | None = None
+    data: dict[str, Any] = {}
+
+    def clear(self) -> None:
+        self.request = None
+        self.request_stack = None
 
 
 env = State()
 
-
-# COMPAT
-from sentry import search, tsdb  # NOQA
 from sentry.utils.sdk import RavenShim
-
-from .buffer import backend as buffer  # NOQA
-from .digests import backend as digests  # NOQA
-from .nodestore import backend as nodestore  # NOQA
-from .quotas import backend as quotas  # NOQA
-from .ratelimits import backend as ratelimiter  # NOQA
 
 raven = client = RavenShim()
 
-locks = LockManager(RedisLockBackend(redis.clusters.get("default")))
+
+# These are backwards incompatible imports that should no longer be used.
+# They will be removed to reduce the size of the import graph
+from sentry import search, tsdb  # NOQA
+from sentry.buffer import backend as buffer  # NOQA
+from sentry.digests import backend as digests  # NOQA
+from sentry.locks import locks  # NOQA
+from sentry.nodestore import backend as nodestore  # NOQA
+from sentry.quotas import backend as quotas  # NOQA
+from sentry.ratelimits import backend as ratelimiter  # NOQA

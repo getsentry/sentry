@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {QRCodeCanvas} from 'qrcode.react';
 
@@ -10,28 +10,30 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openRecoveryOptions} from 'sentry/actionCreators/modal';
 import {fetchOrganizationByMember} from 'sentry/actionCreators/organizations';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import Field from 'sentry/components/forms/field';
-import Form from 'sentry/components/forms/form';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
+import Form, {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
-import TextCopyInput from 'sentry/components/forms/textCopyInput';
-import {FieldObject} from 'sentry/components/forms/type';
-import {PanelItem} from 'sentry/components/panels';
+import {FieldObject} from 'sentry/components/forms/types';
+import PanelItem from 'sentry/components/panels/panelItem';
+import TextCopyInput from 'sentry/components/textCopyInput';
 import U2fsign from 'sentry/components/u2f/u2fsign';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Authenticator} from 'sentry/types';
 import getPendingInvite from 'sentry/utils/getPendingInvite';
-import AsyncView from 'sentry/views/asyncView';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type getFieldsOpts = {
+type GetFieldsOpts = {
   authenticator: Authenticator;
   /**
    * Flag to track if totp has been sent
@@ -60,7 +62,7 @@ const getFields = ({
   sendingCode,
   onSmsReset,
   onU2fTap,
-}: getFieldsOpts): null | FieldObject[] => {
+}: GetFieldsOpts): null | FieldObject[] => {
   const {form} = authenticator;
 
   if (!form) {
@@ -71,13 +73,17 @@ const getFields = ({
     return [
       () => (
         <CodeContainer key="qrcode">
-          <StyledQRCode value={authenticator.qrcode} size={228} />
+          <StyledQRCode
+            aria-label={t('Enrollment QR Code')}
+            value={authenticator.qrcode}
+            size={228}
+          />
         </CodeContainer>
       ),
       () => (
-        <Field key="secret" label={t('Authenticator secret')}>
+        <FieldGroup key="secret" label={t('Authenticator secret')}>
           <TextCopyInput>{authenticator.secret ?? ''}</TextCopyInput>
-        </Field>
+        </FieldGroup>
       ),
       ...form,
       () => (
@@ -130,9 +136,9 @@ const getFields = ({
   return null;
 };
 
-type Props = AsyncView['props'] & WithRouterProps<{authId: string}, {}> & {};
+type Props = DeprecatedAsyncView['props'] & WithRouterProps<{authId: string}, {}> & {};
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   authenticator: Authenticator | null;
   hasSentCode: boolean;
   sendingCode: boolean;
@@ -143,7 +149,7 @@ type PendingInvite = ReturnType<typeof getPendingInvite>;
 /**
  * Renders necessary forms in order to enroll user in 2fa
  */
-class AccountSecurityEnroll extends AsyncView<Props, State> {
+class AccountSecurityEnroll extends DeprecatedAsyncView<Props, State> {
   formModel = new FormModel();
 
   getTitle() {
@@ -162,7 +168,7 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
     return `${this.authenticatorEndpoint}enroll/`;
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const errorHandler = (err: any) => {
       const alreadyEnrolled =
         err &&
@@ -183,6 +189,7 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     this.pendingInvitation = getPendingInvite();
   }
 
@@ -291,7 +298,7 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
     this.handleEnrollSuccess();
   };
 
-  handleSubmit: Form['props']['onSubmit'] = data => {
+  handleSubmit: FormProps['onSubmit'] = data => {
     const id = this.state.authenticator?.id;
 
     if (id === 'totp') {
@@ -310,10 +317,14 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
     // the organization when completing 2fa enrollment. We should reload the
     // organization context in that case to assign them to the org.
     if (this.pendingInvitation) {
-      await fetchOrganizationByMember(this.pendingInvitation.memberId.toString(), {
-        addOrg: true,
-        fetchOrgDetails: true,
-      });
+      await fetchOrganizationByMember(
+        this.api,
+        this.pendingInvitation.memberId.toString(),
+        {
+          addOrg: true,
+          fetchOrgDetails: true,
+        }
+      );
     }
 
     this.props.router.push('/settings/account/security/');
@@ -379,6 +390,8 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
           }, {})
       : {};
 
+    const isActive = authenticator.isEnrolled || authenticator.status === 'rotation';
+
     return (
       <Fragment>
         <SettingsPageHeader
@@ -386,8 +399,14 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
             <Fragment>
               <span>{authenticator.name}</span>
               <CircleIndicator
+                role="status"
+                aria-label={
+                  isActive
+                    ? t('Authentication Method Active')
+                    : t('Authentication Method Inactive')
+                }
+                enabled={isActive}
                 css={{marginLeft: 6}}
-                enabled={authenticator.isEnrolled || authenticator.status === 'rotation'}
               />
             </Fragment>
           }
@@ -439,4 +458,4 @@ const StyledQRCode = styled(QRCodeCanvas)`
   padding: ${space(2)};
 `;
 
-export default withRouter(AccountSecurityEnroll);
+export default withSentryRouter(AccountSecurityEnroll);

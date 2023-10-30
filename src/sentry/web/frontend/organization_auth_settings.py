@@ -1,20 +1,28 @@
+from __future__ import annotations
+
 from django import forms
 from django.contrib import messages
-from django.db import transaction
+from django.db import router, transaction
 from django.db.models import F
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponseRedirect
+from django.http.response import HttpResponse, HttpResponseBadRequest, HttpResponseBase
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 
 from sentry import audit_log, features, roles
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
-from sentry.models import AuthProvider, OrganizationMember, User
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.plugins.base import Response
+from sentry.services.hybrid_cloud.auth import RpcAuthProvider, auth_service
+from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
 from sentry.utils.http import absolute_uri
-from sentry.web.frontend.base import OrganizationView
+from sentry.web.frontend.base import OrganizationView, region_silo_view
 
 ERR_NO_SSO = _("The SSO feature is not enabled for this organization.")
 
@@ -27,12 +35,14 @@ OK_REMINDERS_SENT = _(
 
 def auth_provider_settings_form(provider, auth_provider, organization, request):
     class AuthProviderSettingsForm(forms.Form):
+        disabled = provider.is_partner
         require_link = forms.BooleanField(
             label=_("Require SSO"),
             help_text=_(
                 "Require members use a valid linked SSO account to access this organization"
             ),
             required=False,
+            disabled=disabled,
         )
 
         enable_scim = (
@@ -40,8 +50,9 @@ def auth_provider_settings_form(provider, auth_provider, organization, request):
                 label=_("Enable SCIM"),
                 help_text=_("Enable SCIM to manage Memberships and Teams via your Provider"),
                 required=False,
+                disabled=disabled,
             )
-            if provider.can_use_scim(organization, request.user)
+            if provider.can_use_scim(organization.id, request.user)
             else None
         )
 
@@ -51,13 +62,14 @@ def auth_provider_settings_form(provider, auth_provider, organization, request):
             help_text=_(
                 "The default role new members will receive when logging in for the first time."
             ),
+            disabled=disabled,
         )
 
     initial = {
         "require_link": not auth_provider.flags.allow_unlinked,
         "default_role": organization.default_role,
     }
-    if provider.can_use_scim(organization, request.user):
+    if provider.can_use_scim(organization.id, request.user):
         initial["enable_scim"] = bool(auth_provider.flags.scim_enabled)
 
     form = AuthProviderSettingsForm(
@@ -67,39 +79,52 @@ def auth_provider_settings_form(provider, auth_provider, organization, request):
     return form
 
 
+@region_silo_view
 class OrganizationAuthSettingsView(OrganizationView):
     # We restrict auth settings to org:write as it allows a non-owner to
     # escalate members to own by disabling the default role.
     required_scope = "org:write"
 
-    def _disable_provider(self, request: Request, organization, auth_provider):
-        self.create_audit_entry(
-            request,
-            organization=organization,
-            target_object=auth_provider.id,
-            event=audit_log.get_event_id("SSO_DISABLE"),
-            data=auth_provider.get_audit_log_data(),
-        )
+    def _disable_provider(
+        self, request: Request, organization: RpcOrganization, auth_provider: RpcAuthProvider
+    ):
+        with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
+            self.create_audit_entry(
+                request,
+                organization=organization,
+                target_object=auth_provider.id,
+                event=audit_log.get_event_id("SSO_DISABLE"),
+                data=auth_provider.get_audit_log_data(),
+            )
 
-        OrganizationMember.objects.filter(organization=organization).update(
-            flags=F("flags")
-            .bitand(~OrganizationMember.flags["sso:linked"])
-            .bitand(~OrganizationMember.flags["sso:invalid"])
-        )
+            OrganizationMember.objects.filter(organization_id=organization.id).update(
+                flags=F("flags")
+                .bitand(~OrganizationMember.flags["sso:linked"])
+                .bitand(~OrganizationMember.flags["sso:invalid"])
+            )
 
-        user_ids = OrganizationMember.objects.filter(organization=organization).values("user")
-        User.objects.filter(id__in=user_ids).update(is_managed=False)
+            RegionOutbox(
+                shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+                shard_identifier=organization.id,
+                category=OutboxCategory.DISABLE_AUTH_PROVIDER,
+                object_identifier=auth_provider.id,
+            ).save()
+            transaction.on_commit(
+                lambda: email_unlink_notifications.delay(
+                    organization.id, request.user.id, auth_provider.provider
+                ),
+                router.db_for_write(OrganizationMember),
+            )
 
-        email_unlink_notifications.delay(organization.id, request.user.id, auth_provider.provider)
-
-        if auth_provider.flags.scim_enabled:
-            auth_provider.disable_scim(request.user)
-        auth_provider.delete()
-
-    def handle_existing_provider(self, request: Request, organization, auth_provider):
+    def handle_existing_provider(
+        self, request: Request, organization: RpcOrganization, auth_provider: RpcAuthProvider
+    ):
         provider = auth_provider.get_provider()
 
         if request.method == "POST":
+            if provider.is_partner:
+                return HttpResponse("Can't disable partner authentication provider", status=405)
+
             op = request.POST.get("op")
             if op == "disable":
                 self._disable_provider(request, organization, auth_provider)
@@ -121,19 +146,18 @@ class OrganizationAuthSettingsView(OrganizationView):
         form = auth_provider_settings_form(provider, auth_provider, organization, request)
 
         if form.is_valid():
-            auth_provider.flags.allow_unlinked = not form.cleaned_data["require_link"]
-
+            allow_unlinked = not form.cleaned_data["require_link"]
             form_scim_enabled = form.cleaned_data.get("enable_scim", False)
-            if auth_provider.flags.scim_enabled != form_scim_enabled:
-                if form_scim_enabled:
-                    auth_provider.enable_scim(request.user)
-                else:
-                    auth_provider.disable_scim(request.user)
+            auth_service.change_scim(
+                provider_id=auth_provider.id,
+                user_id=request.user.id,
+                enabled=form_scim_enabled,
+                allow_unlinked=allow_unlinked,
+            )
 
-            auth_provider.save()
-
-            organization.default_role = form.cleaned_data["default_role"]
-            organization.save()
+            organization = organization_service.update_default_role(
+                organization_id=organization.id, default_role=form.cleaned_data["default_role"]
+            )
 
             if form.initial != form.cleaned_data:
                 changed_data = {}
@@ -164,41 +188,41 @@ class OrganizationAuthSettingsView(OrganizationView):
             )
 
         pending_links_count = OrganizationMember.objects.filter(
-            organization=organization,
+            organization_id=organization.id,
             flags=F("flags").bitand(~OrganizationMember.flags["sso:linked"]),
         ).count()
 
         context = {
             "form": form,
             "pending_links_count": pending_links_count,
-            "login_url": absolute_uri(organization.get_url()),
+            "login_url": organization.absolute_url(Organization.get_url(organization.slug)),
+            "settings_url": organization.absolute_url(
+                reverse("sentry-organization-settings", args=[organization.slug])
+            ),
             "auth_provider": auth_provider,
             "provider_name": provider.name,
             "scim_api_token": auth_provider.get_scim_token(),
-            "scim_url": auth_provider.get_scim_url(),
+            "scim_url": get_scim_url(auth_provider, organization),
             "content": response,
+            "disabled": provider.is_partner,
         }
 
         return self.respond("sentry/organization-auth-provider-settings.html", context)
 
-    @transaction.atomic
-    def handle(self, request: Request, organization) -> Response:
-        try:
-            auth_provider = AuthProvider.objects.get(organization=organization)
-        except AuthProvider.DoesNotExist:
-            pass
-        else:
+    def handle(self, request: Request, organization: RpcOrganization) -> HttpResponseBase:  # type: ignore[override]
+        provider = auth_service.get_auth_provider(organization_id=organization.id)
+        if provider:
             # if the org has SSO set up already, allow them to modify the existing provider
             # regardless if the feature flag is set up. This allows orgs who might no longer
             # have the SSO feature to be able to turn it off
             return self.handle_existing_provider(
-                request=request, organization=organization, auth_provider=auth_provider
+                request=request, organization=organization, auth_provider=provider
             )
 
         if request.method == "POST":
             provider_key = request.POST.get("provider")
-            if not manager.exists(provider_key):
-                raise ValueError(f"Provider not found: {provider_key}")
+            if provider_key is None or not manager.exists(provider_key):
+                return HttpResponseBadRequest()
 
             helper = AuthHelper(
                 request=request,
@@ -221,4 +245,15 @@ class OrganizationAuthSettingsView(OrganizationView):
             return helper.current_step()
 
         # Otherwise user is in bad state since frontend/react should handle this case
-        return HttpResponseRedirect(organization.get_url())
+        return HttpResponseRedirect(Organization.get_url(organization.slug))
+
+
+def get_scim_url(
+    auth_provider: AuthProvider | RpcAuthProvider, organization: Organization | RpcOrganization
+) -> str | None:
+    if auth_provider.flags.scim_enabled:
+        # the SCIM protocol doesn't use trailing slashes in URLs
+        return absolute_uri(f"api/0/organizations/{organization.slug}/scim/v2")
+
+    else:
+        return None

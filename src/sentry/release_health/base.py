@@ -6,6 +6,7 @@ from enum import Enum
 from typing import (
     TYPE_CHECKING,
     Any,
+    Collection,
     Literal,
     Mapping,
     Optional,
@@ -46,6 +47,8 @@ SessionsQueryFunction = Literal[
     "crash_rate(user)",
     "crash_free_rate(session)",
     "crash_free_rate(user)",
+    "anr_rate()",
+    "foreground_anr_rate()",
 ]
 
 GroupByFieldName = Literal[
@@ -358,7 +361,7 @@ class ReleaseHealthBackend(Service):
 
     def check_has_health_data(
         self,
-        projects_list: Sequence[ProjectOrRelease],
+        projects_list: Collection[ProjectOrRelease],
         now: Optional[datetime] = None,
     ) -> Set[ProjectOrRelease]:
         """
@@ -411,6 +414,7 @@ class ReleaseHealthBackend(Service):
         now: Optional[datetime] = None,
     ) -> Sequence[CrashFreeBreakdown]:
         """Get stats about crash free sessions and stats for the last 1, 2, 7, 14 and 30 days"""
+        raise NotImplementedError
 
     def get_changed_project_release_model_adoptions(
         self,

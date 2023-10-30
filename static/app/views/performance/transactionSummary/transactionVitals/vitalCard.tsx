@@ -1,22 +1,23 @@
 import {Component} from 'react';
-import {withTheme} from '@emotion/react';
+import {Theme, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import throttle from 'lodash/throttle';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {BarChart, BarChartSeries} from 'sentry/components/charts/barChart';
 import BarChartZoom from 'sentry/components/charts/barChartZoom';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
-import {getAggregateAlias, WebVital} from 'sentry/utils/discover/fields';
+import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
 import {formatAbbreviatedNumber, formatFloat, getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {DataFilter, HistogramData} from 'sentry/utils/performance/histogram/types';
@@ -26,7 +27,6 @@ import {
 } from 'sentry/utils/performance/histogram/utils';
 import {Vital} from 'sentry/utils/performance/vitals/types';
 import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
-import {Theme} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
@@ -118,11 +118,8 @@ class VitalCard extends Component<Props, State> {
   trackOpenInDiscoverClicked = () => {
     const {organization} = this.props;
     const {vitalDetails: vital} = this.props;
-
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.vitals.open_in_discover',
-      eventName: 'Performance Views: Open vitals in discover',
-      organization_id: organization.id,
+    trackAnalytics('performance_views.vitals.open_in_discover', {
+      organization,
       vital: vital.slug,
     });
   };
@@ -130,11 +127,8 @@ class VitalCard extends Component<Props, State> {
   trackOpenAllEventsClicked = () => {
     const {organization} = this.props;
     const {vitalDetails: vital} = this.props;
-
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.vitals.open_all_events',
-      eventName: 'Performance Views: Open vitals in all events',
-      organization_id: organization.id,
+    trackAnalytics('performance_views.vitals.open_all_events', {
+      organization,
       vital: vital.slug,
     });
   };
@@ -219,20 +213,20 @@ class VitalCard extends Component<Props, State> {
         <Description>{description}</Description>
         <div>
           <Button
-            size="xsmall"
+            size="xs"
             to={newEventView
               .withColumns([{kind: 'field', field: column}])
               .withSorts([{kind: 'desc', field: column}])
               .getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
                 showTransactions:
                   dataFilter === 'all'
-                    ? EventsDisplayFilterName.p100
-                    : EventsDisplayFilterName.p75,
+                    ? EventsDisplayFilterName.P100
+                    : EventsDisplayFilterName.P75,
                 webVital: column as WebVital,
               })}
             onClick={this.trackOpenAllEventsClicked}
           >
-            {t('View All Events')}
+            {t('View Sampled Events')}
           </Button>
         </div>
       </CardSummary>
@@ -300,7 +294,7 @@ class VitalCard extends Component<Props, State> {
       max,
       axisLabel: {
         color: theme.chartLabel,
-        formatter: formatAbbreviatedNumber,
+        formatter: (value: string | number) => formatAbbreviatedNumber(value),
       },
     };
 

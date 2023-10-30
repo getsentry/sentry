@@ -1,5 +1,6 @@
 import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
-import {DataCategory} from 'sentry/types';
+import {DATA_CATEGORY_INFO} from 'sentry/constants';
+import {DataCategoryInfo} from 'sentry/types';
 import {formatBytesBase10} from 'sentry/utils';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 
@@ -27,10 +28,10 @@ type FormatOptions = {
  */
 export function formatUsageWithUnits(
   usageQuantity: number = 0,
-  dataCategory: DataCategory,
+  dataCategory: DataCategoryInfo['plural'],
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
 ) {
-  if (dataCategory !== DataCategory.ATTACHMENTS) {
+  if (dataCategory !== DATA_CATEGORY_INFO.attachment.plural) {
     return options.isAbbreviated
       ? abbreviateUsageNumber(usageQuantity)
       : usageQuantity.toLocaleString();
@@ -49,10 +50,12 @@ export function formatUsageWithUnits(
 /**
  * Good default for "formatUsageWithUnits"
  */
-export function getFormatUsageOptions(dataCategory: DataCategory): FormatOptions {
+export function getFormatUsageOptions(
+  dataCategory: DataCategoryInfo['plural']
+): FormatOptions {
   return {
-    isAbbreviated: dataCategory !== DataCategory.ATTACHMENTS,
-    useUnitScaling: dataCategory === DataCategory.ATTACHMENTS,
+    isAbbreviated: dataCategory !== DATA_CATEGORY_INFO.attachment.plural,
+    useUnitScaling: dataCategory === DATA_CATEGORY_INFO.attachment.plural,
   };
 }
 
@@ -101,4 +104,35 @@ export function isDisplayUtc(datetime: DateTimeObject): boolean {
   const interval = getSeriesApiInterval(datetime);
   const hours = parsePeriodToHours(interval);
   return hours >= 24;
+}
+
+/**
+ * HACK(dlee): client-side pagination
+ */
+export function getOffsetFromCursor(cursor?: string) {
+  const offset = Number(cursor?.split(':')[1]);
+  return isNaN(offset) ? 0 : offset;
+}
+
+/**
+ * HACK(dlee): client-side pagination
+ */
+export function getPaginationPageLink({
+  numRows,
+  pageSize,
+  offset,
+}: {
+  numRows: number;
+  offset: number;
+  pageSize: number;
+}) {
+  const prevOffset = offset - pageSize;
+  const nextOffset = offset + pageSize;
+
+  return `<link>; rel="previous"; results="${prevOffset >= 0}"; cursor="0:${Math.max(
+    0,
+    prevOffset
+  )}:1", <link>; rel="next"; results="${
+    nextOffset < numRows
+  }"; cursor="0:${nextOffset}:0"`;
 }

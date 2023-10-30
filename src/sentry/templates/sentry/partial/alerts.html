@@ -1,6 +1,39 @@
 {% load sentry_helpers %}
 {% load sentry_assets %}
 
+{% block css %}
+{% if show_login_banner %}
+<style type="text/css">
+  .alert-banner {
+    background: rgb(255, 219, 74);
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+    display: flex;
+    justify-content: center;
+    border-radius: 4px;
+    margin-bottom: 4px;
+  }
+  .alert-message {
+    margin-left: 1rem;
+    margin-right: 1rem;
+    line-height: 1.5;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: left;
+    flex-grow: 1;
+    font-size: 16px;
+    font-family: Rubik;
+  }
+  @media only screen and (max-width: 1025px) {
+    .alert-banner {
+      display: none;
+    }
+  }
+</style>
+{% endif %}
+{% endblock %}
+
 <div id="blk_alerts" class="messages-container"></div>
 <div id="blk_indicators"></div>
 
@@ -26,6 +59,7 @@
 </script>
 {% endscript %}
 
+
 {% if messages %}
   <div id="messages" class="messages-container">
     {% for message in messages %}
@@ -39,5 +73,15 @@
           </div>
       {% endwith %}
     {% endfor %}
+  </div>
+{% elif show_login_banner %}
+  <div class="alert-banner">
+    <div class="alert-message">
+      {% if banner_choice == 0 %}
+      Discover all our latest product releases at Sentry Launch Week coming Nov 13-17. &nbsp<a target="_blank" href="https://sentry.io/events/launch-week/?utm_medium=banner&utm_source=sentry-app&utm_campaign=login-launch-week&utm_content=login-banner&utm_term=">Register now</a>.
+      {% elif banner_choice == 1 %}
+      Discover all our latest product releases at Sentry Launch Week coming Nov 13-17. &nbsp<a target="_blank" href="https://sentry.io/events/launch-week/?utm_medium=banner&utm_source=sentry-app&utm_campaign=login-launch-week&utm_content=login-banner&utm_term=">Register now</a>.
+      {% endif %}
+    </div>
   </div>
 {% endif %}

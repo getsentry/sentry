@@ -1,6 +1,8 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
 from sentry.incidents.logic import subscribe_to_incident, unsubscribe_from_incident
 
@@ -16,7 +18,12 @@ class IncidentSubscriptionPermission(IncidentPermission):
     ]
 
 
+@region_silo_endpoint
 class OrganizationIncidentSubscriptionIndexEndpoint(IncidentEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (IncidentSubscriptionPermission,)
 
     def post(self, request: Request, organization, incident) -> Response:
@@ -28,7 +35,7 @@ class OrganizationIncidentSubscriptionIndexEndpoint(IncidentEndpoint):
         :auth: required
         """
 
-        subscribe_to_incident(incident, request.user)
+        subscribe_to_incident(incident, request.user.id)
         return Response({}, status=201)
 
     def delete(self, request: Request, organization, incident) -> Response:
@@ -39,5 +46,5 @@ class OrganizationIncidentSubscriptionIndexEndpoint(IncidentEndpoint):
         no-op.
         :auth: required
         """
-        unsubscribe_from_incident(incident, request.user)
+        unsubscribe_from_incident(incident, request.user.id)
         return Response({}, status=200)

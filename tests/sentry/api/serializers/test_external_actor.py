@@ -4,31 +4,45 @@ from sentry.api.bases.external_actor import (
     ExternalUserSerializer,
 )
 from sentry.api.serializers import serialize
-from sentry.models import ExternalActor, Integration
-from sentry.testutils import TestCase
+from sentry.models.actor import Actor, get_actor_id_for_user
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.integrations.integration import Integration
+from sentry.silo import SiloMode
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders, get_provider_name
 
 
+@region_silo_test(stable=True)
 class ExternalActorSerializerTest(TestCase):
     def setUp(self):
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
-        self.integration = Integration.objects.create(
-            provider="slack",
-            name="Team A",
-            external_id="TXXXXXXX1",
-            metadata={
-                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "installation_type": "born_as_bot",
-            },
-        )
-        self.org_integration = self.integration.add_organization(self.organization, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(
+                provider="slack",
+                name="Team A",
+                external_id="TXXXXXXX1",
+                metadata={
+                    "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                    "installation_type": "born_as_bot",
+                },
+            )
+            self.org_integration = self.integration.add_organization(self.organization, self.user)
+
+    def test_idempotent_actor(self):
+        actor_id = get_actor_id_for_user(self.user)
+        other_actor_id = get_actor_id_for_user(self.user)
+        assert other_actor_id == actor_id
+
+        get_actor_id_for_user(self.user)
+        assert Actor.objects.filter(user_id=self.user.id).count() == 1
 
     def test_user(self):
         external_actor, _ = ExternalActor.objects.get_or_create(
-            actor_id=self.user.actor_id,
+            user_id=self.user.id,
             organization=self.organization,
-            integration=self.integration,
+            integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,
             external_name="Marcos",
             external_id="Gaeta",
@@ -46,9 +60,9 @@ class ExternalActorSerializerTest(TestCase):
         team = self.create_team(organization=self.organization, members=[self.user])
 
         external_actor, _ = ExternalActor.objects.get_or_create(
-            actor_id=team.actor_id,
+            team_id=team.id,
             organization=self.organization,
-            integration=self.integration,
+            integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,
             external_name="Marcos",
             external_id="Gaeta",

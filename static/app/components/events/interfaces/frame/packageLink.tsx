@@ -1,10 +1,9 @@
-import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
-import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'sentry/components/stacktracePreview';
-import Tooltip from 'sentry/components/tooltip';
-import space from 'sentry/styles/space';
+import {Tooltip} from 'sentry/components/tooltip';
+import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
 type Props = {
@@ -19,52 +18,47 @@ type Props = {
   isHoverPreviewed?: boolean;
 };
 
-class PackageLink extends Component<Props> {
-  handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
-    const {isClickable, onClick} = this.props;
-
+function PackageLink({
+  children,
+  includeSystemFrames,
+  isClickable,
+  isHoverPreviewed,
+  onClick,
+  packagePath,
+  withLeadHint,
+}) {
+  const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (isClickable) {
       onClick(event);
     }
   };
 
-  render() {
-    const {
-      packagePath,
-      isClickable,
-      withLeadHint,
-      children,
-      includeSystemFrames,
-      isHoverPreviewed,
-    } = this.props;
-
-    return (
-      <Package
-        onClick={this.handleClick}
-        isClickable={isClickable}
-        withLeadHint={withLeadHint}
-        includeSystemFrames={includeSystemFrames}
-      >
-        {defined(packagePath) ? (
-          <Tooltip
-            title={packagePath}
-            delay={isHoverPreviewed ? STACKTRACE_PREVIEW_TOOLTIP_DELAY : undefined}
+  return (
+    <Package
+      onClick={handleClick}
+      isClickable={isClickable}
+      withLeadHint={withLeadHint}
+      includeSystemFrames={includeSystemFrames}
+    >
+      {defined(packagePath) ? (
+        <Tooltip
+          title={packagePath}
+          delay={isHoverPreviewed ? SLOW_TOOLTIP_DELAY : undefined}
+        >
+          <PackageName
+            isClickable={isClickable}
+            withLeadHint={withLeadHint}
+            includeSystemFrames={includeSystemFrames}
           >
-            <PackageName
-              isClickable={isClickable}
-              withLeadHint={withLeadHint}
-              includeSystemFrames={includeSystemFrames}
-            >
-              {trimPackage(packagePath)}
-            </PackageName>
-          </Tooltip>
-        ) : (
-          <span>{'<unknown>'}</span>
-        )}
-        {children}
-      </Package>
-    );
-  }
+            {trimPackage(packagePath)}
+          </PackageName>
+        </Tooltip>
+      ) : (
+        <span>{'<unknown>'}</span>
+      )}
+      {children}
+    </Package>
+  );
 }
 
 export const Package = styled('a')<Partial<Props>>`

@@ -5,7 +5,7 @@ import tempfile
 from typing import Any, Sequence
 
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
+from django.core.mail import EmailMessage
 from django.core.mail.backends.base import BaseEmailBackend
 
 from sentry import options
@@ -28,7 +28,7 @@ def get_mail_backend() -> Backend:
         return backend
 
 
-class PreviewBackend(BaseEmailBackend):  # type: ignore
+class PreviewBackend(BaseEmailBackend):
     """
     Email backend that can be used in local development to open messages in the
     local mail client as they are sent.
@@ -36,17 +36,13 @@ class PreviewBackend(BaseEmailBackend):  # type: ignore
     Probably only works on OS X.
     """
 
-    def send_messages(self, email_messages: Sequence[EmailMultiAlternatives]) -> int:
+    def send_messages(self, email_messages: Sequence[EmailMessage]) -> int:
         for message in email_messages:
             content = bytes(message.message())
-            preview = tempfile.NamedTemporaryFile(
+            with tempfile.NamedTemporaryFile(
                 delete=False, prefix="sentry-email-preview-", suffix=".eml"
-            )
-            try:
+            ) as preview:
                 preview.write(content)
-                preview.flush()
-            finally:
-                preview.close()
 
             subprocess.check_call(("open", preview.name))
 

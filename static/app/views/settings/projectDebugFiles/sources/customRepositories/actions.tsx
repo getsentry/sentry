@@ -1,16 +1,16 @@
-import React, {Fragment} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ActionButton from 'sentry/components/actions/button';
 import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ConfirmDelete from 'sentry/components/confirmDelete';
 import DropdownLink from 'sentry/components/dropdownLink';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {CustomRepoType} from 'sentry/types/debugFiles';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -94,7 +94,7 @@ function Actions({
         }
         disabled={actionsDisabled}
       >
-        <ActionBtn disabled={actionsDisabled} onClick={onEdit} size="small">
+        <ActionBtn disabled={actionsDisabled} onClick={onEdit} size="sm">
           {t('Configure')}
         </ActionBtn>
       </ButtonTooltip>
@@ -112,12 +112,12 @@ function Actions({
           }
           disabled={actionsDisabled}
         >
-          <ActionBtn size="small" disabled>
+          <ActionBtn size="sm" disabled>
             {t('Delete')}
           </ActionBtn>
         </ButtonTooltip>
       ) : (
-        renderConfirmDelete(<ActionBtn size="small">{t('Delete')}</ActionBtn>)
+        renderConfirmDelete(<ActionBtn size="sm">{t('Delete')}</ActionBtn>)
       )}
       <DropDownWrapper>
         <DropdownLink
@@ -141,12 +141,8 @@ function Actions({
           }
           anchorRight
         >
-          <MenuItemActionLink title={t('Configure')} onClick={onEdit}>
-            {t('Configure')}
-          </MenuItemActionLink>
-          {renderConfirmDelete(
-            <MenuItemActionLink title={t('Delete')}>{t('Delete')}</MenuItemActionLink>
-          )}
+          <MenuItemActionLink onClick={onEdit}>{t('Configure')}</MenuItemActionLink>
+          {renderConfirmDelete(<MenuItemActionLink>{t('Delete')}</MenuItemActionLink>)}
         </DropdownLink>
       </DropDownWrapper>
     </StyledButtonBar>

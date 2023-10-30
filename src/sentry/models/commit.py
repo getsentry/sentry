@@ -3,21 +3,24 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from django.db import models
+from django.db.models.query import QuerySet
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
+    BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    QuerySet,
+    region_silo_only_model,
     sane_repr,
 )
 from sentry.utils.cache import memoize
 from sentry.utils.groupreference import find_referenced_groups
 
 if TYPE_CHECKING:
-    from sentry.models import Release
+    from sentry.models.release import Release
 
 
 class CommitManager(BaseManager):
@@ -29,12 +32,13 @@ class CommitManager(BaseManager):
         )
 
 
+@region_silo_only_model
 class Commit(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedPositiveIntegerField(db_index=True)
+    organization_id = BoundedBigIntegerField(db_index=True)
     repository_id = BoundedPositiveIntegerField()
-    key = models.CharField(max_length=64)
+    key = models.CharField(max_length=64, db_index=True)
     date_added = models.DateTimeField(default=timezone.now)
     # all commit metadata must be optional, as it may not be available
     # when the initial commit object is referenced (and thus created)

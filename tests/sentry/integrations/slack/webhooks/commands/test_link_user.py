@@ -7,11 +7,15 @@ from sentry.integrations.slack.views.unlink_identity import (
 )
 from sentry.integrations.slack.webhooks.base import NOT_LINKED_MESSAGE
 from sentry.testutils.helpers import get_response_text
+from sentry.testutils.silo import control_silo_test, region_silo_test
 from sentry.utils import json
 from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
 
 
-class SlackCommandsLinkUserTest(SlackCommandsTest):
+@control_silo_test(stable=True)
+class SlackLinkIdentityViewTest(SlackCommandsTest):
+    """Slack Linking Views are returned on Control Silo"""
+
     @responses.activate
     def test_link_user_identity(self):
         linking_url = build_linking_url(
@@ -25,6 +29,12 @@ class SlackCommandsLinkUserTest(SlackCommandsTest):
         data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
         assert SUCCESS_LINKED_MESSAGE in get_response_text(data)
 
+
+@region_silo_test(stable=True)
+class SlackCommandsLinkUserTest(SlackCommandsTest):
+    """Slash commands results are generated on Region Silo"""
+
+    @responses.activate
     def test_link_command(self):
         data = self.send_slack_message("link")
         assert "Link your Slack identity" in get_response_text(data)
@@ -35,7 +45,10 @@ class SlackCommandsLinkUserTest(SlackCommandsTest):
         assert "You are already linked as" in get_response_text(data)
 
 
-class SlackCommandsUnlinkUserTest(SlackCommandsTest):
+@control_silo_test(stable=True)
+class SlackUnlinkIdentityViewTest(SlackCommandsTest):
+    """Slack Linking Views are returned on Control Silo"""
+
     @responses.activate
     def test_unlink_user_identity(self):
         self.link_user()
@@ -53,6 +66,11 @@ class SlackCommandsUnlinkUserTest(SlackCommandsTest):
         assert len(responses.calls) >= 1
         data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
         assert SUCCESS_UNLINKED_MESSAGE in get_response_text(data)
+
+
+@region_silo_test(stable=True)
+class SlackCommandsUnlinkUserTest(SlackCommandsTest):
+    """Slash commands results are generated on Region Silo"""
 
     def test_unlink_command(self):
         self.link_user()

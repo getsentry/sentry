@@ -6,7 +6,8 @@
       {
         "type": "freeText",
         "value": "percentage(transaction.duration, transaction.duration):>..500%",
-        "quoted": false
+        "quoted": false,
+        "invalid": null
       },
       {"type": "spaces", "value": ""}
     ]

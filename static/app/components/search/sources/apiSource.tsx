@@ -1,9 +1,10 @@
 import {Component} from 'react';
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 
+import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {Client, ResponseMeta} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {
@@ -22,6 +23,8 @@ import {defined} from 'sentry/utils';
 import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import {singleLineRenderer as markedSingleLine} from 'sentry/utils/marked';
 import withLatestContext from 'sentry/utils/withLatestContext';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import {ChildProps, Result, ResultItem} from './types';
 import {strGetFn} from './utils';
@@ -61,7 +64,7 @@ async function createOrganizationResults(
 }
 async function createProjectResults(
   projectsPromise: Promise<Project[]>,
-  orgId: string
+  orgId?: string
 ): Promise<ResultItem[]> {
   const projects = (await projectsPromise) || [];
   return flatten(
@@ -100,7 +103,7 @@ async function createProjectResults(
 }
 async function createTeamResults(
   teamsPromise: Promise<Team[]>,
-  orgId: string
+  orgId?: string
 ): Promise<ResultItem[]> {
   const teams = (await teamsPromise) || [];
   return teams.map(team => ({
@@ -115,7 +118,7 @@ async function createTeamResults(
 
 async function createMemberResults(
   membersPromise: Promise<Member[]>,
-  orgId: string
+  orgId?: string
 ): Promise<ResultItem[]> {
   const members = (await membersPromise) || [];
   return members.map(member => ({
@@ -130,7 +133,7 @@ async function createMemberResults(
 
 async function createPluginResults(
   pluginsPromise: Promise<PluginWithProjectList[]>,
-  orgId: string
+  orgId?: string
 ): Promise<ResultItem[]> {
   const plugins = (await pluginsPromise) || [];
   return plugins
@@ -156,7 +159,7 @@ async function createPluginResults(
 
 async function createIntegrationResults(
   integrationsPromise: Promise<{providers: IntegrationProvider[]}>,
-  orgId: string
+  orgId?: string
 ): Promise<ResultItem[]> {
   const {providers} = (await integrationsPromise) || {};
   return (
@@ -182,7 +185,7 @@ async function createIntegrationResults(
 
 async function createSentryAppResults(
   sentryAppPromise: Promise<SentryApp[]>,
-  orgId: string
+  orgId?: string
 ): Promise<ResultItem[]> {
   const sentryApps = (await sentryAppPromise) || [];
   return sentryApps.map(sentryApp => ({
@@ -203,7 +206,7 @@ async function createSentryAppResults(
 
 async function createDocIntegrationResults(
   docIntegrationPromise: Promise<DocIntegration[]>,
-  orgId: string
+  orgId?: string
 ): Promise<ResultItem[]> {
   const docIntegrations = (await docIntegrationPromise) || [];
   return docIntegrations.map(docIntegration => ({
@@ -269,13 +272,13 @@ async function createEventIdLookupResult(
   };
 }
 
-type Props = WithRouterProps<{orgId: string}> & {
+type Props = WithRouterProps<{}> & {
   children: (props: ChildProps) => React.ReactElement;
-  organization: Organization;
   /**
    * search term
    */
   query: string;
+  organization?: Organization;
   /**
    * fuse.js options
    */
@@ -314,7 +317,7 @@ class ApiSource extends Component<Props, State> {
     // Otherwise it'd be constant :spinning_loading_wheel:
     if (
       (nextProps.query.length <= 2 &&
-        nextProps.query.substr(0, 2) !== this.props.query.substr(0, 2)) ||
+        nextProps.query.substring(0, 2) !== this.props.query.substring(0, 2)) ||
       // Also trigger a search if next query value satisfies an eventid/shortid query
       shouldSearchShortIds(nextProps.query) ||
       shouldSearchEventIds(nextProps.query)
@@ -328,9 +331,10 @@ class ApiSource extends Component<Props, State> {
 
   // Debounced method to handle querying all API endpoints (when necessary)
   doSearch = debounce((query: string) => {
-    const {params, organization} = this.props;
-    const orgId = (params && params.orgId) || (organization && organization.slug);
-    let searchUrls = ['/organizations/'];
+    const {organization} = this.props;
+    const orgId = organization?.slug;
+
+    let searchUrls: string[] = [];
     let directUrls: (string | null)[] = [];
 
     // Only run these queries when we have an org in context
@@ -351,21 +355,23 @@ class ApiSource extends Component<Props, State> {
         shouldSearchEventIds(query) ? `/organizations/${orgId}/eventids/${query}/` : null,
       ];
     }
-
-    const searchRequests = searchUrls.map(url =>
-      this.api
-        .requestPromise(url, {
-          query: {
-            query,
-          },
-        })
-        .then(
-          resp => resp,
-          err => {
-            this.handleRequestError(err, {orgId, url});
-            return null;
-          }
-        )
+    let searchRequests = [fetchOrganizations(this.api, {query})];
+    searchRequests = searchRequests.concat(
+      searchUrls.map(url =>
+        this.api
+          .requestPromise(url, {
+            query: {
+              query,
+            },
+          })
+          .then(
+            resp => resp,
+            err => {
+              this.handleRequestError(err, {orgId, url});
+              return null;
+            }
+          )
+      )
     );
 
     const directRequests = directUrls.map(url => {
@@ -390,15 +396,16 @@ class ApiSource extends Component<Props, State> {
   }, 150);
 
   handleRequestError = (err: ResponseMeta, {url, orgId}) => {
-    Sentry.withScope(scope => {
-      scope.setExtra(
-        'url',
-        url.replace(`/organizations/${orgId}/`, '/organizations/:orgId/')
-      );
-      Sentry.captureException(
-        new Error(`API Source Failed: ${err?.responseJSON?.detail}`)
-      );
-    });
+    if (err && err.status !== 401 && err.status !== 403) {
+      Sentry.withScope(scope => {
+        scope.setExtra(
+          'url',
+          url.replace(`/organizations/${orgId}/`, '/organizations/:orgId/')
+        );
+        scope.setFingerprint(['api-source-failed']);
+        Sentry.captureException(err);
+      });
+    }
   };
 
   // Handles a list of search request promises, and then updates state with response objects
@@ -455,9 +462,10 @@ class ApiSource extends Component<Props, State> {
   }
 
   // Process API requests that create result objects that should be searchable
-  async getSearchableResults(requests) {
-    const {params, organization} = this.props;
-    const orgId = (params && params.orgId) || (organization && organization.slug);
+  async getSearchableResults(requests: Promise<any>[]) {
+    const {organization} = this.props;
+    const orgId = organization?.slug;
+
     const [
       organizations,
       projects,
@@ -516,4 +524,4 @@ class ApiSource extends Component<Props, State> {
 }
 
 export {ApiSource};
-export default withLatestContext(withRouter(ApiSource));
+export default withLatestContext(withSentryRouter(ApiSource));

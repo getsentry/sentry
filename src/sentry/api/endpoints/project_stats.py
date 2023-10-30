@@ -2,14 +2,21 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tsdb
-from sentry.api.base import EnvironmentMixin, StatsMixin
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import EnvironmentMixin, StatsMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
-from sentry.models import Environment
+from sentry.models.environment import Environment
+from sentry.tsdb.base import TSDBModel
 
 
+@region_silo_endpoint
 class ProjectStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, project) -> Response:
         """
         Retrieve Event Counts for a Project
@@ -39,13 +46,13 @@ class ProjectStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
         stat = request.GET.get("stat", "received")
         query_kwargs = {}
         if stat == "received":
-            stat_model = tsdb.models.project_total_received
+            stat_model = TSDBModel.project_total_received
         elif stat == "rejected":
-            stat_model = tsdb.models.project_total_rejected
+            stat_model = TSDBModel.project_total_rejected
         elif stat == "blacklisted":
-            stat_model = tsdb.models.project_total_blacklisted
+            stat_model = TSDBModel.project_total_blacklisted
         elif stat == "generated":
-            stat_model = tsdb.models.project
+            stat_model = TSDBModel.project
             try:
                 query_kwargs["environment_id"] = self._get_environment_id_from_request(
                     request, project.organization_id
@@ -53,7 +60,7 @@ class ProjectStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
             except Environment.DoesNotExist:
                 raise ResourceDoesNotExist
         elif stat == "forwarded":
-            stat_model = tsdb.models.project_total_forwarded
+            stat_model = TSDBModel.project_total_forwarded
         else:
             try:
                 stat_model = FILTER_STAT_KEYS_TO_VALUES[stat]
@@ -61,7 +68,10 @@ class ProjectStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
                 raise ValueError("Invalid stat: %s" % stat)
 
         data = tsdb.get_range(
-            model=stat_model, keys=[project.id], **self._parse_args(request, **query_kwargs)
+            model=stat_model,
+            keys=[project.id],
+            **self._parse_args(request, **query_kwargs),
+            tenant_ids={"organization_id": project.organization_id},
         )[project.id]
 
         return Response(data)

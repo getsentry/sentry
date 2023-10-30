@@ -1,24 +1,40 @@
+import re
 from unittest import mock
 
+import jwt
 import responses
+from django.test import override_settings
+from requests import PreparedRequest, Request
+from responses.matchers import header_matcher, query_string_matcher
 
-from sentry.integrations.jira.client import JiraCloud
-from sentry.models import Integration
-from sentry.testutils import TestCase
+from sentry.integrations.jira.client import JiraCloudClient
+from sentry.integrations.utils.atlassian_connect import get_query_hash
+from sentry.models.integrations.integration import Integration
+from sentry.silo.base import SiloMode
+from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
-
-class StubJiraCloud(JiraCloud):
-    def request_hook(self, *args, **kwargs):
-        r = super().request_hook(*args, **kwargs)
-        r["params"]["jwt"] = "my-jwt-token"
-        return r
+mock_jwt = "my-jwt-token"
+control_address = "http://controlserver"
+secret = "hush-hush-im-invisible"
 
 
+def mock_authorize_request(prepared_request: PreparedRequest):
+    prepared_request.headers["Authorization"] = f"JWT {mock_jwt}"
+    return prepared_request
+
+
+@override_settings(
+    SENTRY_SUBNET_SECRET=secret,
+    SENTRY_CONTROL_ADDRESS=control_address,
+)
+@control_silo_test(stable=True)
 class JiraClientTest(TestCase):
-    @mock.patch("sentry.integrations.jira.integration.JiraCloud", new=StubJiraCloud)
     def setUp(self):
-        integration = Integration.objects.create(
+        self.integration = Integration.objects.create(
             provider="jira",
             name="Jira Cloud",
             metadata={
@@ -28,34 +44,125 @@ class JiraClientTest(TestCase):
                 "domain_name": "example.atlassian.net",
             },
         )
-        integration.add_organization(self.organization, self.user)
-        install = integration.get_installation(self.organization.id)
-        self.client = install.get_client()
+        self.integration.add_organization(self.organization, self.user)
+        install = self.integration.get_installation(self.organization.id)
+        self.jira_client = install.get_client()
 
     @responses.activate
-    def test_get_field_autocomplete_for_non_customfield(self):
+    @mock.patch(
+        "sentry.integrations.jira.integration.JiraCloudClient.authorize_request",
+        side_effect=mock_authorize_request,
+    )
+    def test_get_field_autocomplete_for_non_customfield(self, mock_authorize):
         body = {"results": [{"value": "ISSUE-1", "displayName": "My Issue (ISSUE-1)"}]}
         responses.add(
             method=responses.GET,
-            url="https://example.atlassian.net/rest/api/2/jql/autocompletedata/suggestions?fieldName=my_field&fieldValue=abc&jwt=my-jwt-token",
+            url="https://example.atlassian.net/rest/api/2/jql/autocompletedata/suggestions",
+            match=[
+                query_string_matcher("fieldName=my_field&fieldValue=abc"),
+                header_matcher({"Authorization": f"JWT {mock_jwt}"}),
+            ],
             body=json.dumps(body),
             status=200,
             content_type="application/json",
-            match_querystring=True,
         )
-        res = self.client.get_field_autocomplete("my_field", "abc")
+        res = self.jira_client.get_field_autocomplete("my_field", "abc")
         assert res == body
 
     @responses.activate
-    def test_get_field_autocomplete_for_customfield(self):
+    @mock.patch(
+        "sentry.integrations.jira.integration.JiraCloudClient.authorize_request",
+        side_effect=mock_authorize_request,
+    )
+    def test_get_field_autocomplete_for_customfield(self, mock_authorize):
         body = {"results": [{"value": "ISSUE-1", "displayName": "My Issue (ISSUE-1)"}]}
         responses.add(
             method=responses.GET,
-            url="https://example.atlassian.net/rest/api/2/jql/autocompletedata/suggestions?fieldName=cf[0123]&fieldValue=abc&jwt=my-jwt-token",
+            url="https://example.atlassian.net/rest/api/2/jql/autocompletedata/suggestions",
+            match=[
+                query_string_matcher("fieldName=cf[0123]&fieldValue=abc"),
+                header_matcher({"Authorization": f"JWT {mock_jwt}"}),
+            ],
             body=json.dumps(body),
             status=200,
             content_type="application/json",
-            match_querystring=True,
         )
-        res = self.client.get_field_autocomplete("customfield_0123", "abc")
+        res = self.jira_client.get_field_autocomplete("customfield_0123", "abc")
         assert res == body
+
+    @freeze_time("2023-01-01 01:01:01")
+    def test_authorize_request(self):
+        method = "GET"
+        params = {"query": "1", "user": "me"}
+        request = Request(
+            method=method,
+            url=f"{self.jira_client.base_url}{self.jira_client.SERVER_INFO_URL}",
+            params=params,
+        ).prepare()
+        self.jira_client.authorize_request(prepared_request=request)
+
+        raw_jwt = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ0ZXN0c2VydmVyLmppcmEiLCJpYXQiOjE2NzI1MzQ4NjEsImV4cCI6MTY3MjUzNTE2MSwicXNoIjoiZGU5NTIwMTA2NDBhYjJjZmQyMDYyNzgxYjU0ZTk0Yjc4ZmNlMTY3MzEwMDZkYjdkZWVhZmZjZWI0MjVmZTI0MiJ9.tydfCeXBICtX_xtgsOEiDJFmVPo6MmaAh1Bojouprjc"
+        assert request.headers["Authorization"] == f"JWT {raw_jwt}"
+        decoded_jwt = jwt.decode(
+            raw_jwt,
+            key=self.integration.metadata["shared_secret"],
+            algorithms=["HS256"],
+        )
+        assert decoded_jwt == {
+            "exp": 1672535161,
+            "iat": 1672534861,
+            "iss": "testserver.jira",
+            "qsh": get_query_hash(
+                uri=self.jira_client.SERVER_INFO_URL, method=method, query_params=params
+            ),
+        }
+
+    @responses.activate
+    def test_integration_proxy_is_active(self):
+        class JiraCloudProxyTestClient(JiraCloudClient):
+            _use_proxy_url_for_tests = True
+
+            def assert_proxy_request(self, request, is_proxy=True):
+                assert (PROXY_BASE_PATH in request.url) == is_proxy
+                assert (PROXY_OI_HEADER in request.headers) == is_proxy
+                assert (PROXY_SIGNATURE_HEADER in request.headers) == is_proxy
+                assert ("Authorization" in request.headers) != is_proxy
+                if is_proxy:
+                    assert request.headers[PROXY_OI_HEADER] is not None
+
+        responses.add(
+            method=responses.GET,
+            # Use regex to create responses both from proxy and integration
+            url=re.compile(rf"\S+{self.jira_client.SERVER_INFO_URL}$"),
+            json={"ok": True},
+            status=200,
+        )
+
+        with override_settings(SILO_MODE=SiloMode.MONOLITH):
+            client = JiraCloudProxyTestClient(integration=self.integration, verify_ssl=True)
+            client.get_server_info()
+            request = responses.calls[0].request
+
+            assert client.SERVER_INFO_URL in request.url
+            assert client.base_url in request.url
+            client.assert_proxy_request(request, is_proxy=False)
+
+        responses.calls.reset()
+        with override_settings(SILO_MODE=SiloMode.CONTROL):
+            client = JiraCloudProxyTestClient(integration=self.integration, verify_ssl=True)
+            client.get_server_info()
+            request = responses.calls[0].request
+
+            assert client.SERVER_INFO_URL in request.url
+            assert client.base_url in request.url
+            client.assert_proxy_request(request, is_proxy=False)
+
+        responses.calls.reset()
+        with override_settings(SILO_MODE=SiloMode.REGION):
+            client = JiraCloudProxyTestClient(integration=self.integration, verify_ssl=True)
+            client.get_server_info()
+            request = responses.calls[0].request
+
+            assert client.SERVER_INFO_URL in request.url
+            assert client.base_url not in request.url
+            client.assert_proxy_request(request, is_proxy=True)

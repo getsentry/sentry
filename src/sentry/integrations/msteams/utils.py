@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import enum
 import logging
 
-from sentry.incidents.models import IncidentStatus
-from sentry.models import Integration
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
+from sentry.models.integrations.integration import Integration
+from sentry.services.hybrid_cloud.integration import integration_service
 
 from .client import MsTeamsClient, MsTeamsPreInstallClient, get_token_data
 
@@ -31,13 +33,36 @@ def channel_filter(channel, name):
         return name.lower() == "general"
 
 
+def get_user_conversation_id(integration: Integration, user_id: str) -> str:
+    """
+    Get the user_conversation_id even if `integration.metadata.tenant_id` is not set.
+    """
+    client = MsTeamsClient(integration)
+
+    tenant_id = integration.metadata.get("tenant_id")
+
+    if not tenant_id:
+        # This is definitely an integration of `integration.metadata.installation_type` == `team`,
+        # so use the `integration.external_id` (team_id) to get the tenant_id.
+        members = client.get_member_list(integration.external_id).get("members")
+        tenant_id = members[0].get("tenantId")
+
+    conversation_id = client.get_user_conversation_id(user_id, tenant_id)
+
+    return conversation_id
+
+
 def get_channel_id(organization, integration_id, name):
-    try:
-        integration = Integration.objects.get(
-            provider="msteams", organizations=organization, id=integration_id
-        )
-    except Integration.DoesNotExist:
+    integrations = integration_service.get_integrations(
+        providers=["msteams"],
+        organization_id=organization.id,
+        integration_ids=[integration_id],
+    )
+    if not integrations:
         return None
+
+    assert len(integrations) == 1, "Found multiple msteams integrations for org!"
+    integration = integrations[0]
 
     team_id = integration.external_id
     client = MsTeamsClient(integration)
@@ -71,17 +96,25 @@ def get_channel_id(organization, integration_id, name):
     return None
 
 
-def send_incident_alert_notification(action, incident, metric_value, new_status: IncidentStatus):
+def send_incident_alert_notification(
+    action: AlertRuleTriggerAction,
+    incident: Incident,
+    metric_value: int | None,
+    new_status: IncidentStatus,
+    notification_uuid: str | None = None,
+) -> bool:
     from .card_builder import build_incident_attachment
 
-    channel = action.target_identifier
-    integration = action.integration
-    attachment = build_incident_attachment(incident, new_status, metric_value)
-    client = MsTeamsClient(integration)
-    try:
-        client.send_card(channel, attachment)
-    except ApiError as e:
-        logger.info("rule.fail.msteams_post", extra={"error": str(e)})
+    if action.target_identifier is None:
+        raise ValueError("Can't send without `target_identifier`")
+
+    attachment = build_incident_attachment(incident, new_status, metric_value, notification_uuid)
+    success = integration_service.send_msteams_incident_alert_notification(
+        integration_id=action.integration_id,
+        channel=action.target_identifier,
+        attachment=attachment,
+    )
+    return success
 
 
 def get_preinstall_client(service_url):

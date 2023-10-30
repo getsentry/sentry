@@ -40,7 +40,7 @@ class JiraClient(ApiClient):
 
     def request(self, method, path, data=None, params=None):
         if self.username and self.password:
-            auth = self.username.encode("utf8"), self.password.encode("utf8")
+            auth = self.username, self.password
         else:
             auth = None
         return self._request(method, path, data=data, params=params, auth=auth)

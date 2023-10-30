@@ -2,8 +2,10 @@ from time import time
 
 from sentry.api.serializers import serialize
 from sentry.http import safe_urlopen
-from sentry.models import ServiceHook
-from sentry.tasks.base import instrumented_task
+from sentry.models.servicehook import ServiceHook
+from sentry.silo import SiloMode
+from sentry.tasks.base import instrumented_task, retry
+from sentry.tsdb.base import TSDBModel
 from sentry.utils import json
 
 
@@ -25,8 +27,12 @@ def get_payload_v0(event):
 
 
 @instrumented_task(
-    name="sentry.tasks.process_service_hook", default_retry_delay=60 * 5, max_retries=5
+    name="sentry.tasks.process_service_hook",
+    default_retry_delay=60 * 5,
+    max_retries=5,
+    silo_mode=SiloMode.REGION,
 )
+@retry
 def process_service_hook(servicehook_id, event, **kwargs):
     try:
         servicehook = ServiceHook.objects.get(id=servicehook_id)
@@ -40,7 +46,7 @@ def process_service_hook(servicehook_id, event, **kwargs):
 
     from sentry import tsdb
 
-    tsdb.incr(tsdb.models.servicehook_fired, servicehook.id)
+    tsdb.incr(TSDBModel.servicehook_fired, servicehook.id)
 
     headers = {
         "Content-Type": "application/json",

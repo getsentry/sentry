@@ -1,7 +1,10 @@
 from unittest import mock
 
-from sentry.models import AuthIdentity, AuthProvider, Identity, IdentityProvider
-from sentry.testutils import APITestCase
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.models.identity import Identity, IdentityProvider
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test
 from social_auth.models import UserSocialAuth
 
 
@@ -14,7 +17,7 @@ class UserIdentityConfigTest(APITestCase):
         self.google_idp = IdentityProvider.objects.create(type="google", external_id="C", config={})
 
         self.org_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
+            organization_id=self.organization.id, provider="dummy"
         )
 
         self.login_as(self.user)
@@ -25,6 +28,7 @@ def mock_is_login_provider_effect(provider_key: str) -> bool:
     return provider_key in ("github", "vsts", "google")
 
 
+@control_silo_test(stable=True)
 class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
     endpoint = "sentry-api-0-user-identity-config"
     method = "get"
@@ -148,6 +152,7 @@ class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
         assert identity["status"] == "needed_for_org_auth"
 
 
+@control_silo_test(stable=True)
 class UserIdentityConfigDetailsEndpointGetTest(UserIdentityConfigTest):
     endpoint = "sentry-api-0-user-identity-config-details"
     method = "get"
@@ -190,6 +195,7 @@ class UserIdentityConfigDetailsEndpointGetTest(UserIdentityConfigTest):
         )
 
 
+@control_silo_test(stable=True)
 class UserIdentityConfigDetailsEndpointDeleteTest(UserIdentityConfigTest):
     endpoint = "sentry-api-0-user-identity-config-details"
     method = "delete"

@@ -1,5 +1,6 @@
-import {cloneElement, Fragment, isValidElement} from 'react';
+import {cloneElement, isValidElement} from 'react';
 
+import NoProjectMessage from 'sentry/components/noProjectMessage';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
@@ -12,13 +13,13 @@ function AlertsContainer({children}: Props) {
 
   const content =
     children && isValidElement(children)
-      ? cloneElement(children, {
+      ? cloneElement<any>(children, {
           organization,
           hasMetricAlerts,
         })
       : children;
 
-  return <Fragment>{content}</Fragment>;
+  return <NoProjectMessage organization={organization}>{content}</NoProjectMessage>;
 }
 
 export default AlertsContainer;

@@ -1,9 +1,11 @@
-import responses
-from exam import fixture
+from functools import cached_property
 
-from sentry.models import Rule
+import responses
+
+from sentry.interfaces.base import Interface
+from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
-from sentry.testutils import PluginTestCase
+from sentry.testutils.cases import PluginTestCase
 from sentry.utils import json
 from sentry_plugins.victorops.plugin import VictorOpsPlugin
 
@@ -13,11 +15,7 @@ SUCCESS = """{
 }"""
 
 
-class UnicodeTestInterface:
-    def __init__(self, title, body):
-        self.title = title
-        self.body = body
-
+class UnicodeTestInterface(Interface):
     def to_string(self, event):
         return self.body
 
@@ -26,7 +24,7 @@ class UnicodeTestInterface:
 
 
 class VictorOpsPluginTest(PluginTestCase):
-    @fixture
+    @cached_property
     def plugin(self):
         return VictorOpsPlugin()
 
@@ -70,6 +68,7 @@ class VictorOpsPluginTest(PluginTestCase):
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
         group = event.group
 
         rule = Rule.objects.create(project=self.project, label="my rule")
@@ -99,7 +98,9 @@ class VictorOpsPluginTest(PluginTestCase):
             project_id=self.project.id,
         )
         event.interfaces = {
-            "Message": UnicodeTestInterface("abcd\xde\xb4", "\xdc\xea\x80\x80abcd\xde\xb4")
+            "Message": UnicodeTestInterface(
+                title="abcd\xde\xb4", body="\xdc\xea\x80\x80abcd\xde\xb4"
+            )
         }
 
         description = self.plugin.build_description(event)

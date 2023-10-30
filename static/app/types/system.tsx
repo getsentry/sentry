@@ -1,7 +1,7 @@
+import {Theme} from '@emotion/react';
 import type {FocusTrap} from 'focus-trap';
 
-import type exportGlobals from 'sentry/bootstrap/exportGlobals';
-import {Theme} from 'sentry/utils/theme';
+import type {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
 
 import type {User} from './user';
 
@@ -27,7 +27,7 @@ export type OnSentryInitConfiguration =
     }
   | {
       name: 'onReady';
-      onReady: (globals: typeof exportGlobals) => void;
+      onReady: (globals: typeof exportedGlobals) => void;
     };
 
 declare global {
@@ -73,13 +73,6 @@ declare global {
      * Assets public location
      */
     __sentryGlobalStaticPrefix: string;
-    /**
-     * This is used for testing purposes as an interem while we translate tests
-     * to React Testing Library.
-     *
-     * See the useLegacyStore hook for more unformation about this.
-     */
-    _legacyStoreHookUpdate: (update: () => void) => void;
     // typing currently used for demo add on
     // TODO: improve typing
     SentryApp?: {
@@ -92,6 +85,11 @@ declare global {
       };
     };
     /**
+     * Is the UI running as dev-ui proxy.
+     * Used by webpack-devserver + html-webpack
+     */
+    __SENTRY_DEV_UI?: boolean;
+    /**
      * Sentrys version string
      */
     __SENTRY__VERSION?: string;
@@ -101,44 +99,73 @@ declare global {
      */
     adblockSuspected?: boolean;
     /**
-     * The CSRF cookie ised on the backend
+     * The CSRF cookie used on the backend
      */
     csrfCookieName?: string;
-
     sentryEmbedCallback?: ((embed: any) => void) | null;
+    /**
+     * The domain of which the superuser cookie is set onto.
+     */
+    superUserCookieDomain?: string;
+    /**
+     * The superuser cookie used on the backend
+     */
+    superUserCookieName?: string;
   }
 }
 
+interface Region {
+  name: string;
+  url: string;
+}
+interface CustomerDomain {
+  organizationUrl: string | undefined;
+  sentryUrl: string;
+  subdomain: string;
+}
 export interface Config {
   apmSampling: number;
   csrfCookieName: string;
+  customerDomain: CustomerDomain | null;
   demoMode: boolean;
+  disableU2FForSUForm: boolean;
   distPrefix: string;
   dsn: string;
   enableAnalytics: boolean;
   features: Set<string>;
   gravatarBaseUrl: string;
   invitesEnabled: boolean;
-
   isAuthenticated: boolean;
+
   // Maintain isOnPremise key for backcompat (plugins?).
   isOnPremise: boolean;
   isSelfHosted: boolean;
   languageCode: string;
   lastOrganization: string | null;
+  links: {
+    organizationUrl: string | undefined;
+    regionUrl: string | undefined;
+    sentryUrl: string;
+    superuserUrl?: string;
+  };
   /**
    * This comes from django (django.contrib.messages)
    */
   messages: {level: keyof Theme['alert']; message: string}[];
   needsUpgrade: boolean;
-
   privacyUrl: string | null;
+  // The list of regions the current user has memberships in.
+  regions: Region[];
   sentryConfig: {
+    allowUrls: string[];
     dsn: string;
     release: string;
-    whitelistUrls: string[];
+    tracePropagationTargets: string[];
+    profilesSampleRate?: number;
   };
   singleOrganization: boolean;
+  superUserCookieDomain: string | null;
+  superUserCookieName: string;
   supportEmail: string;
   termsUrl: string | null;
   theme: 'light' | 'dark';

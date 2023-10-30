@@ -1,16 +1,18 @@
-from unittest.mock import call, patch
+from unittest.mock import patch
 
 from sentry.api.serializers.base import serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.coreapi import APIError
-from sentry.models import SentryApp
-from sentry.testutils import APITestCase
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
 def get_sentry_app_avatars(sentry_app: SentryApp):
     return [serialize(avatar) for avatar in sentry_app.avatar.all()]
 
 
+@control_silo_test(stable=True)
 class SentryAppComponentsTest(APITestCase):
     endpoint = "sentry-api-0-sentry-app-components"
 
@@ -37,6 +39,7 @@ class SentryAppComponentsTest(APITestCase):
             "uuid": str(self.component.uuid),
             "type": "issue-link",
             "schema": self.component.schema,
+            "error": False,
             "sentryApp": {
                 "uuid": self.sentry_app.uuid,
                 "slug": self.sentry_app.slug,
@@ -46,8 +49,9 @@ class SentryAppComponentsTest(APITestCase):
         }
 
 
+@control_silo_test(stable=True)
 class OrganizationSentryAppComponentsTest(APITestCase):
-    endpoint = "sentry-api-0-org-sentry-app-components"
+    endpoint = "sentry-api-0-organization-sentry-app-components"
 
     def setUp(self):
         self.user = self.create_user()
@@ -80,13 +84,13 @@ class OrganizationSentryAppComponentsTest(APITestCase):
             status=SentryAppInstallationStatus.PENDING,
         )
 
-        self.component1 = self.sentry_app1.components.first()
-        self.component2 = self.sentry_app2.components.first()
-        self.component3 = self.sentry_app3.components.first()
+        self.component1 = self.sentry_app1.components.order_by("pk").first()
+        self.component2 = self.sentry_app2.components.order_by("pk").first()
+        self.component3 = self.sentry_app3.components.order_by("pk").first()
 
         self.login_as(user=self.user)
 
-    @patch("sentry.mediators.sentry_app_components.Preparer.run")
+    @patch("sentry.sentry_apps.SentryAppComponentPreparer.run")
     def test_retrieves_all_components_for_installed_apps(self, run):
         response = self.get_success_response(
             self.org.slug, qs_params={"projectId": self.project.id}
@@ -99,6 +103,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
             "uuid": str(self.component1.uuid),
             "type": "issue-link",
             "schema": self.component1.schema,
+            "error": False,
             "sentryApp": {
                 "uuid": self.sentry_app1.uuid,
                 "slug": self.sentry_app1.slug,
@@ -111,6 +116,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
             "uuid": str(self.component2.uuid),
             "type": "issue-link",
             "schema": self.component2.schema,
+            "error": False,
             "sentryApp": {
                 "uuid": self.sentry_app2.uuid,
                 "slug": self.sentry_app2.slug,
@@ -119,24 +125,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
             },
         }
 
-    @patch("sentry.mediators.sentry_app_components.Preparer.run")
-    def test_project_not_owned_by_org(self, run):
-        org = self.create_organization(owner=self.create_user())
-        project = self.create_project(organization=org)
-
-        response = self.get_response(self.org.slug, qs_params={"projectId": project.id})
-
-        assert response.status_code == 404
-        assert response.data == []
-
-    @patch("sentry.mediators.sentry_app_components.Preparer.run")
-    def test_project_missing(self, run):
-        response = self.get_response(self.org.slug)
-
-        assert response.status_code == 400
-        assert response.data[0] == "Required parameter 'projectId' is missing"
-
-    @patch("sentry.mediators.sentry_app_components.Preparer.run")
+    @patch("sentry.sentry_apps.SentryAppComponentPreparer.run")
     def test_filter_by_type(self, run):
         sentry_app = self.create_sentry_app(schema={"elements": [{"type": "alert-rule"}]})
 
@@ -153,6 +142,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "uuid": str(component.uuid),
                 "type": "alert-rule",
                 "schema": component.schema,
+                "error": False,
                 "sentryApp": {
                     "uuid": sentry_app.uuid,
                     "slug": sentry_app.slug,
@@ -162,18 +152,13 @@ class OrganizationSentryAppComponentsTest(APITestCase):
             }
         ]
 
-    @patch("sentry.mediators.sentry_app_components.Preparer.run")
+    @patch("sentry.sentry_apps.SentryAppComponentPreparer.run")
     def test_prepares_each_component(self, run):
         self.get_success_response(self.org.slug, qs_params={"projectId": self.project.id})
 
-        calls = [
-            call(component=self.component1, install=self.install1, project=self.project),
-            call(component=self.component2, install=self.install2, project=self.project),
-        ]
+        assert run.call_count == 2
 
-        run.assert_has_calls(calls, any_order=True)
-
-    @patch("sentry.mediators.sentry_app_components.Preparer.run")
+    @patch("sentry.sentry_apps.SentryAppComponentPreparer.run")
     def test_component_prep_errors_are_isolated(self, run):
         run.side_effect = [APIError(), self.component2]
 
@@ -181,18 +166,33 @@ class OrganizationSentryAppComponentsTest(APITestCase):
             self.org.slug, qs_params={"projectId": self.project.id}
         )
 
-        # Does not include self.component1 data, because it raised an exception
+        # self.component1 data contains an error, because it raised an exception
         # during preparation.
-        assert response.data == [
+        expected = [
+            {
+                "uuid": str(self.component1.uuid),
+                "type": self.component1.type,
+                "schema": self.component1.schema,
+                "error": True,
+                "sentryApp": {
+                    "uuid": self.sentry_app1.uuid,
+                    "slug": self.sentry_app1.slug,
+                    "name": self.sentry_app1.name,
+                    "avatars": get_sentry_app_avatars(self.sentry_app1),
+                },
+            },
             {
                 "uuid": str(self.component2.uuid),
                 "type": self.component2.type,
                 "schema": self.component2.schema,
+                "error": False,
                 "sentryApp": {
                     "uuid": self.sentry_app2.uuid,
                     "slug": self.sentry_app2.slug,
                     "name": self.sentry_app2.name,
                     "avatars": get_sentry_app_avatars(self.sentry_app2),
                 },
-            }
+            },
         ]
+
+        assert response.data == expected

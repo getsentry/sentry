@@ -1,26 +1,21 @@
 import re
 import uuid
-from contextlib import contextmanager
+from unittest import mock
 
 from django.test import override_settings
 from django.urls import reverse
 from sentry_relay.auth import generate_key_pair
 
+from sentry.auth import system
 from sentry.models.relay import Relay
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json, safe
 
 
 # Note this is duplicated in test_relay_publickeys (maybe put in a common utils)
-@contextmanager
 def disable_internal_networks():
-    from sentry.auth import system
-
-    old_internal_networks = system.INTERNAL_NETWORKS
-    system.INTERNAL_NETWORKS = ()
-    yield
-    # restore INTERNAL NETWORKS
-    system.INTERNAL_NETWORKS = old_internal_networks
+    return mock.patch.object(system, "INTERNAL_NETWORKS", ())
 
 
 def _get_all_keys(config):
@@ -31,6 +26,7 @@ def _get_all_keys(config):
                 yield key
 
 
+@region_silo_test(stable=True)
 class RelayProjectIdsEndpointTest(APITestCase):
     _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")
 

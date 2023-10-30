@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 
-import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
+import SelectControl, {
+  ControlProps,
+} from 'sentry/components/forms/controls/selectControl';
 import {MemberRole} from 'sentry/types';
 
 type OptionType = {
@@ -17,7 +19,7 @@ type Props = Omit<ControlProps<OptionType>, 'onChange' | 'value'> & {
    * Narrower type than SelectControl because there is no empty value
    */
   onChange?: (value: OptionType) => void;
-  value?: string;
+  value?: string | null;
 };
 
 function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
@@ -28,9 +30,9 @@ function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
           ({
             value: r.id,
             label: r.name,
-            disabled: disableUnallowed && !r.allowed,
+            disabled: (disableUnallowed && !r.allowed) || r.isRetired,
             details: <Details>{r.desc}</Details>,
-          } as OptionType)
+          }) as OptionType
       )}
       showDividers
       {...props}

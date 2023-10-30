@@ -1,14 +1,22 @@
 import unittest
-from datetime import datetime
+from datetime import datetime, timezone
 
-import pytz
 from django.urls import reverse
 
-from sentry.api.endpoints.project_release_details import ReleaseSerializer
+from sentry.api.serializers.rest_framework.release import ReleaseSerializer
 from sentry.constants import MAX_VERSION_LENGTH
-from sentry.models import Activity, File, Release, ReleaseCommit, ReleaseFile, ReleaseProject
-from sentry.testutils import APITestCase
+from sentry.models.activity import Activity
+from sentry.models.files.file import File
+from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.release import Release, ReleaseProject
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releasefile import ReleaseFile
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
+
+pytestmark = [requires_snuba]
 
 
 class ReleaseDetailsTest(APITestCase):
@@ -157,6 +165,44 @@ class UpdateReleaseDetailsTest(APITestCase):
         )
         assert activity.exists()
 
+    def test_org_auth_token(self):
+        project = self.create_project(name="foo")
+        project2 = self.create_project(name="bar", organization=project.organization)
+
+        good_token_str = generate_token(project.organization.slug, "")
+        OrgAuthToken.objects.create(
+            organization_id=project.organization.id,
+            name="token 1",
+            token_hashed=hash_token(good_token_str),
+            token_last_characters="ABCD",
+            scope_list=["org:ci"],
+            date_last_used=None,
+        )
+
+        release = Release.objects.create(organization_id=project.organization_id, version="1")
+        release.add_project(project)
+        release.add_project(project2)
+
+        url = reverse(
+            "sentry-api-0-project-release-details",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+                "version": release.version,
+            },
+        )
+        response = self.client.put(
+            url,
+            data={"ref": "master"},
+            HTTP_AUTHORIZATION=f"Bearer {good_token_str}",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["version"] == release.version
+
+        release = Release.objects.get(id=release.id)
+        assert release.ref == "master"
+
 
 class ReleaseDeleteTest(APITestCase):
     def test_simple(self):
@@ -237,7 +283,7 @@ class ReleaseSerializerTest(unittest.TestCase):
         result = serializer.validated_data
         assert result["ref"] == self.ref
         assert result["url"] == self.url
-        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=pytz.UTC)
+        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=timezone.utc)
         assert result["commits"] == self.commits
 
     def test_fields_not_required(self):

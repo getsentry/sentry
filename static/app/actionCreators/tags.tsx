@@ -1,5 +1,6 @@
 import {Query} from 'history';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
@@ -26,10 +27,13 @@ function tagFetchSuccess(tags: Tag[] | undefined) {
 /**
  * Load an organization's tags based on a global selection value.
  */
-export function loadOrganizationTags(api: Client, orgId: string, selection: PageFilters) {
+export function loadOrganizationTags(
+  api: Client,
+  orgSlug: string,
+  selection: PageFilters
+): Promise<void> {
   TagStore.reset();
 
-  const url = `/organizations/${orgId}/tags/`;
   const query: Query = selection.datetime
     ? {...normalizeDateTimeParams(selection.datetime)}
     : {};
@@ -38,14 +42,16 @@ export function loadOrganizationTags(api: Client, orgId: string, selection: Page
   if (selection.projects) {
     query.project = selection.projects.map(String);
   }
-  const promise = api.requestPromise(url, {
-    method: 'GET',
-    query,
-  });
 
-  promise.then(tagFetchSuccess);
-
-  return promise;
+  return api
+    .requestPromise(`/organizations/${orgSlug}/tags/`, {
+      method: 'GET',
+      query,
+    })
+    .then(tagFetchSuccess)
+    .catch(() => {
+      addErrorMessage(t('Unable to load tags'));
+    });
 }
 
 /**
@@ -78,17 +84,30 @@ export function fetchOrganizationTags(
  * Fetch tag values for an organization.
  * The `projectIds` argument can be used to subset projects.
  */
-export function fetchTagValues(
-  api: Client,
-  orgId: string,
-  tagKey: string,
-  search: string | null = null,
-  projectIds: string[] | null = null,
-  endpointParams: Query | null = null,
-  includeTransactions = false,
-  includeSessions = false
-) {
-  const url = `/organizations/${orgId}/tags/${tagKey}/values/`;
+export function fetchTagValues({
+  api,
+  orgSlug,
+  tagKey,
+  endpointParams,
+  includeReplays,
+  includeSessions,
+  includeTransactions,
+  projectIds,
+  search,
+  sort,
+}: {
+  api: Client;
+  orgSlug: string;
+  tagKey: string;
+  endpointParams?: Query;
+  includeReplays?: boolean;
+  includeSessions?: boolean;
+  includeTransactions?: boolean;
+  projectIds?: string[];
+  search?: string;
+  sort?: string;
+}) {
+  const url = `/organizations/${orgSlug}/tags/${tagKey}/values/`;
 
   const query: Query = {};
   if (search) {
@@ -108,12 +127,21 @@ export function fetchTagValues(
       query.statsPeriod = endpointParams.statsPeriod;
     }
   }
+
   if (includeTransactions) {
     query.includeTransactions = '1';
   }
 
   if (includeSessions) {
     query.includeSessions = '1';
+  }
+
+  if (includeReplays) {
+    query.includeReplays = '1';
+  }
+
+  if (sort) {
+    query.sort = sort;
   }
 
   return api.requestPromise(url, {

@@ -14,13 +14,13 @@ from sentry.utils import json
 @override_options({"post-process-forwarder:rapidjson": False})
 def test_get_task_kwargs_for_message_invalid_payload():
     with pytest.raises(InvalidPayload):
-        get_task_kwargs_for_message('{"format": "invalid"}')
+        get_task_kwargs_for_message(b'{"format": "invalid"}')
 
 
 @override_options({"post-process-forwarder:rapidjson": False})
 def test_get_task_kwargs_for_message_invalid_version():
     with pytest.raises(InvalidVersion):
-        get_task_kwargs_for_message(json.dumps([0, "insert", {}]))
+        get_task_kwargs_for_message(json.dumps([0, "insert", {}]).encode())
 
 
 @pytest.mark.django_db
@@ -39,11 +39,18 @@ def test_get_task_kwargs_for_message_version_1():
         },
         "extra": {},
         "primary_hash": "49f68a5c8493ec2c0bf489821c21fc3b",
+        "occurrence_id": "123456",
     }
 
-    task_state = {"is_new": True, "is_regression": False, "is_new_group_environment": True}
+    task_state = {
+        "is_new": True,
+        "is_regression": False,
+        "is_new_group_environment": True,
+        "queue": "post_process_errors",
+    }
 
-    kwargs = get_task_kwargs_for_message(json.dumps([1, "insert", event_data, task_state]))
+    kwargs = get_task_kwargs_for_message(json.dumps([1, "insert", event_data, task_state]).encode())
+    assert kwargs is not None
     assert kwargs.pop("project_id") == 1
     assert kwargs.pop("event_id") == "00000000000010008080808080808080"
     assert kwargs.pop("group_id") == 2
@@ -52,6 +59,9 @@ def test_get_task_kwargs_for_message_version_1():
     assert kwargs.pop("is_new") is True
     assert kwargs.pop("is_regression") is False
     assert kwargs.pop("is_new_group_environment") is True
+    assert kwargs.pop("group_states") is None
+    assert kwargs.pop("queue") == "post_process_errors"
+    assert kwargs.pop("occurrence_id") == "123456"
 
     assert not kwargs, f"unexpected values remaining: {kwargs!r}"
 
@@ -59,19 +69,20 @@ def test_get_task_kwargs_for_message_version_1():
 @override_options({"post-process-forwarder:rapidjson": False})
 def test_get_task_kwargs_for_message_version_1_skip_consume():
     assert (
-        get_task_kwargs_for_message(json.dumps([1, "insert", {}, {"skip_consume": True}])) is None
+        get_task_kwargs_for_message(json.dumps([1, "insert", {}, {"skip_consume": True}]).encode())
+        is None
     )
 
 
 @override_options({"post-process-forwarder:rapidjson": False})
 def test_get_task_kwargs_for_message_version_1_unsupported_operation():
-    assert get_task_kwargs_for_message(json.dumps([1, "delete", {}])) is None
+    assert get_task_kwargs_for_message(json.dumps([1, "delete", {}]).encode()) is None
 
 
 @override_options({"post-process-forwarder:rapidjson": False})
 def test_get_task_kwargs_for_message_version_1_unexpected_operation():
     with pytest.raises(UnexpectedOperation):
-        get_task_kwargs_for_message(json.dumps([1, "invalid", {}, {}]))
+        get_task_kwargs_for_message(json.dumps([1, "invalid", {}, {}]).encode())
 
 
 @pytest.mark.django_db
@@ -86,9 +97,12 @@ def test_get_task_kwargs_for_message_version_1_kafka_headers():
         ("version", b"2"),
         ("operation", b"insert"),
         ("skip_consume", b"0"),
+        ("queue", b"post_process_errors"),
+        ("occurrence_id", b"1234"),
     ]
 
     kwargs = get_task_kwargs_for_message_from_headers(kafka_headers)
+    assert kwargs is not None
     assert kwargs["project_id"] == 1
     assert kwargs["event_id"] == "00000000000010008080808080808080"
     assert kwargs["group_id"] is None
@@ -96,3 +110,5 @@ def test_get_task_kwargs_for_message_version_1_kafka_headers():
     assert kwargs["is_new"] is True
     assert kwargs["is_regression"] is False
     assert kwargs["is_new_group_environment"] is True
+    assert kwargs["queue"] == "post_process_errors"
+    assert kwargs["occurrence_id"] == "1234"

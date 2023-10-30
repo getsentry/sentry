@@ -4,18 +4,24 @@ from functools import partial, update_wrapper
 from django.contrib import messages
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as login_user
-from django.db import transaction
+from django.db import router, transaction
 from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.template.context_processors import csrf
 from django.urls import reverse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
-from sentry.models import Authenticator, LostPasswordHash, NotificationSetting, Project, UserEmail
+from sentry.models.lostpasswordhash import LostPasswordHash
+from sentry.models.project import Project
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.security import capture_security_activity
+from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
+from sentry.services.hybrid_cloud.notifications.service import notifications_service
 from sentry.signals import email_verified
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import auth
@@ -37,15 +43,15 @@ def login_redirect(request):
 
 
 def expired(request, user):
-    password_hash = LostPasswordHash.for_user(user)
-    password_hash.send_email(request)
+    hash = lost_password_hash_service.get_or_create(user_id=user.id).hash
+    LostPasswordHash.send_email(user, hash, request)
 
-    context = {"email": password_hash.user.email}
+    context = {"email": user.email}
     return render_to_response(get_template("recover", "expired"), context, request)
 
 
 def recover(request):
-    from sentry.app import ratelimiter
+    from sentry import ratelimits as ratelimiter
 
     extra = {
         "ip_address": request.META["REMOTE_ADDR"],
@@ -73,8 +79,8 @@ def recover(request):
     if form.is_valid():
         email = form.cleaned_data["user"]
         if email:
-            password_hash = LostPasswordHash.for_user(email)
-            password_hash.send_email(request)
+            password_hash = lost_password_hash_service.get_or_create(user_id=email.id)
+            LostPasswordHash.send_email(email, password_hash.hash, request)
 
             extra["passwordhash_id"] = password_hash.id
             extra["user_id"] = password_hash.user_id
@@ -106,9 +112,9 @@ def recover_confirm(request, user_id, hash, mode="recover"):
         return render_to_response(get_template(mode, "failure"), {}, request)
 
     if request.method == "POST":
-        form = ChangePasswordRecoverForm(request.POST)
+        form = ChangePasswordRecoverForm(request.POST, user=user)
         if form.is_valid():
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(User)):
                 user.set_password(form.cleaned_data["password"])
                 user.refresh_session_nonce(request)
                 user.save()
@@ -118,7 +124,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
 
                 # Only log the user in if there is no two-factor on the
                 # account.
-                if not Authenticator.objects.user_has_2fa(user):
+                if not user.has_2fa():
                     login_user(request, user)
 
                 password_hash.delete()
@@ -133,7 +139,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
 
             return login_redirect(request)
     else:
-        form = ChangePasswordRecoverForm()
+        form = ChangePasswordRecoverForm(user=user)
 
     return render_to_response(get_template(mode, "confirm"), {"form": form}, request)
 
@@ -146,7 +152,7 @@ set_password_confirm = update_wrapper(set_password_confirm, recover)
 @login_required
 @require_http_methods(["POST"])
 def start_confirm_email(request):
-    from sentry.app import ratelimiter
+    from sentry import ratelimits as ratelimiter
 
     if ratelimiter.is_limited(
         f"auth:confirm-email:{request.user.id}",
@@ -162,7 +168,7 @@ def start_confirm_email(request):
     if "primary-email" in request.POST:
         email = request.POST.get("email")
         try:
-            email_to_send = UserEmail.objects.get(user=request.user, email=email)
+            email_to_send = UserEmail.objects.get(user_id=request.user.id, email=email)
         except UserEmail.DoesNotExist:
             msg = _("There was an error confirming your email.")
             level = messages.ERROR
@@ -226,7 +232,6 @@ def confirm_email(request, user_id, hash):
 @csrf_protect
 @never_cache
 @signed_auth_required
-@transaction.atomic
 def email_unsubscribe_project(request, project_id):
     # For now we only support getting here from the signed link.
     if not request.user_from_signed_request:
@@ -238,12 +243,12 @@ def email_unsubscribe_project(request, project_id):
 
     if request.method == "POST":
         if "cancel" not in request.POST:
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.NEVER,
-                user=request.user,
-                project=project,
+            notifications_service.update_settings(
+                external_provider=ExternalProviders.EMAIL,
+                notification_type=NotificationSettingTypes.ISSUE_ALERTS,
+                setting_option=NotificationSettingOptionValues.NEVER,
+                actor=RpcActor.from_object(request.user),
+                project_id=project.id,
             )
         return HttpResponseRedirect(auth.get_login_url())
 

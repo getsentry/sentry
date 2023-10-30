@@ -1,19 +1,17 @@
 import logging
 from typing import Sequence
 
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.db.models import F, Q
 from django.utils import timezone
 from sentry_sdk import capture_exception
 
-from sentry.models import (
-    Environment,
-    Project,
-    Release,
-    ReleaseEnvironment,
-    ReleaseProjectEnvironment,
-    ReleaseStatus,
-)
+from sentry.models.environment import Environment
+from sentry.models.project import Project
+from sentry.models.release import Release, ReleaseStatus
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.release_health import release_monitor
 from sentry.release_health.release_monitor.base import Totals
 from sentry.tasks.base import instrumented_task
@@ -22,7 +20,7 @@ from sentry.utils import metrics
 CHUNK_SIZE = 1000
 MAX_SECONDS = 60
 
-logger = logging.getLogger("tasks.releasemonitor")
+logger = logging.getLogger("sentry.tasks.releasemonitor")
 
 
 @instrumented_task(
@@ -30,7 +28,7 @@ logger = logging.getLogger("tasks.releasemonitor")
     queue="releasemonitor",
     default_retry_delay=5,
     max_retries=5,
-)  # type: ignore
+)
 def monitor_release_adoption(**kwargs) -> None:
     metrics.incr("sentry.tasks.monitor_release_adoption.start", sample_rate=1.0)
     with metrics.timer(
@@ -45,7 +43,7 @@ def monitor_release_adoption(**kwargs) -> None:
     queue="releasemonitor",
     default_retry_delay=5,
     max_retries=5,
-)  # type: ignore
+)
 def process_projects_with_sessions(org_id, project_ids) -> None:
     # Takes a single org id and a list of project ids
 
@@ -74,6 +72,10 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
             for environment, environment_totals in project_totals.items():
                 total_releases = len(environment_totals["releases"])
                 for release_version in environment_totals["releases"]:
+                    # Ignore versions that were saved with an empty string
+                    if not Release.is_valid_version(release_version):
+                        continue
+
                     threshold = 0.1 / total_releases
                     if (
                         environment
@@ -121,19 +123,29 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
                                     release = Release.objects.get(
                                         organization_id=org_id, version=release_version
                                     )
+                                except ValidationError:
+                                    release = None
+                                    logger.exception(
+                                        "sentry.tasks.process_projects_with_sessions.creating_rpe.ValidationError",
+                                        extra={
+                                            "org_id": org_id,
+                                            "release_version": release_version,
+                                        },
+                                    )
 
-                                release.add_project(Project.objects.get(id=project_id))
+                                if release:
+                                    release.add_project(Project.objects.get(id=project_id))
 
-                                ReleaseEnvironment.objects.get_or_create(
-                                    environment=env, organization_id=org_id, release=release
-                                )
+                                    ReleaseEnvironment.objects.get_or_create(
+                                        environment=env, organization_id=org_id, release=release
+                                    )
 
-                                rpe = ReleaseProjectEnvironment.objects.create(
-                                    project_id=project_id,
-                                    release_id=release.id,
-                                    environment=env,
-                                    adopted=timezone.now(),
-                                )
+                                    rpe = ReleaseProjectEnvironment.objects.create(
+                                        project_id=project_id,
+                                        release_id=release.id,
+                                        environment=env,
+                                        adopted=timezone.now(),
+                                    )
                             except (
                                 Project.DoesNotExist,
                                 Environment.DoesNotExist,

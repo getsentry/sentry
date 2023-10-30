@@ -1,16 +1,21 @@
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
 import {ProjectSdkUpdates} from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+
+import {CommonStoreDefinition} from './types';
+
+/**
+ * Org slug mapping to SDK updates
+ */
+type State = Map<string, ProjectSdkUpdates[]>;
 
 type InternalDefinition = {
-  /**
-   * Org slug mapping to SDK updates
-   */
-  orgSdkUpdates: Map<string, ProjectSdkUpdates[]>;
+  orgSdkUpdates: State;
 };
 
-interface SdkUpdatesStoreDefinition extends StoreDefinition, InternalDefinition {
+interface SdkUpdatesStoreDefinition
+  extends CommonStoreDefinition<State>,
+    InternalDefinition {
   getUpdates(orgSlug: string): ProjectSdkUpdates[] | undefined;
   isSdkUpdatesLoaded(orgSlug: string): boolean;
   loadSuccess(orgSlug: string, data: ProjectSdkUpdates[]): void;
@@ -18,7 +23,11 @@ interface SdkUpdatesStoreDefinition extends StoreDefinition, InternalDefinition 
 
 const storeConfig: SdkUpdatesStoreDefinition = {
   orgSdkUpdates: new Map(),
-  unsubscribeListeners: [],
+
+  init() {
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
+  },
 
   loadSuccess(orgSlug, data) {
     this.orgSdkUpdates.set(orgSlug, data);
@@ -32,7 +41,11 @@ const storeConfig: SdkUpdatesStoreDefinition = {
   isSdkUpdatesLoaded(orgSlug) {
     return this.orgSdkUpdates.has(orgSlug);
   },
+
+  getState() {
+    return this.orgSdkUpdates;
+  },
 };
 
-const SdkUpdatesStore = createStore(makeSafeRefluxStore(storeConfig));
+const SdkUpdatesStore = createStore(storeConfig);
 export default SdkUpdatesStore;

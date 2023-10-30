@@ -1,12 +1,12 @@
-from collections import OrderedDict
 from functools import reduce
 from operator import or_
 
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import MAX_EMAIL_FIELD_LENGTH
-from sentry.db.models import BoundedPositiveIntegerField, Model, sane_repr
+from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
 from sentry.utils.datastructures import BidirectionalMapping
 from sentry.utils.hashlib import md5_text
 
@@ -14,16 +14,20 @@ from sentry.utils.hashlib import md5_text
 # when used in hashing and determining uniqueness. If you change the order
 # you will break stuff.
 KEYWORD_MAP = BidirectionalMapping(
-    OrderedDict(
-        (("ident", "id"), ("username", "username"), ("email", "email"), ("ip_address", "ip"))
-    )
+    {
+        "ident": "id",
+        "username": "username",
+        "email": "email",
+        "ip_address": "ip",
+    }
 )
 
 
+@region_silo_only_model
 class EventUser(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
-    project_id = BoundedPositiveIntegerField(db_index=True)
+    project_id = BoundedBigIntegerField(db_index=True)
     hash = models.CharField(max_length=32)
     ident = models.CharField(max_length=128, null=True)
     email = models.EmailField(null=True, max_length=MAX_EMAIL_FIELD_LENGTH)
@@ -38,7 +42,6 @@ class EventUser(Model):
         unique_together = (("project_id", "ident"), ("project_id", "hash"))
         index_together = (
             ("project_id", "email"),
-            ("project_id", "username"),
             ("project_id", "ip_address"),
         )
 
@@ -101,7 +104,8 @@ class EventUser(Model):
         return self.name or self.email or self.username
 
     def find_similar_users(self, user):
-        from sentry.models import OrganizationMemberTeam, Project
+        from sentry.models.organizationmemberteam import OrganizationMemberTeam
+        from sentry.models.project import Project
 
         # limit to only teams user has opted into
         project_ids = list(

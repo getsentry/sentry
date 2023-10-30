@@ -1,10 +1,13 @@
+import {forwardRef} from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
+import PanelProvider from 'sentry/utils/panelProvider';
 import SettingsHeader from 'sentry/views/settings/components/settingsHeader';
 
-type Params = {
+interface DropdownBubbleProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
    * Menu alignment
    */
@@ -25,14 +28,12 @@ type Params = {
    * The width of the menu
    */
   width?: string;
-};
-
-type ParamsWithTheme = Params & {theme: Theme};
+}
 
 /**
  * If `blendCorner` is false, then we apply border-radius to all corners
  *
- * Otherwise apply radius to opposite side of `alignMenu` *unles it is fixed width*
+ * Otherwise apply radius to opposite side of `alignMenu` *unless it is fixed width*
  */
 const getMenuBorderRadius = ({
   blendWithActor,
@@ -41,8 +42,8 @@ const getMenuBorderRadius = ({
   alignMenu,
   width,
   theme,
-}: ParamsWithTheme) => {
-  const radius = theme.borderRadius;
+}: DropdownBubbleProps & {theme: Theme}) => {
+  const radius = theme.panelBorderRadius;
   if (!blendCorner || detached) {
     return css`
       border-radius: ${radius};
@@ -62,7 +63,16 @@ const getMenuBorderRadius = ({
   `;
 };
 
-const DropdownBubble = styled('div')<Params>`
+const DropdownBubble = styled(
+  forwardRef<HTMLDivElement, DropdownBubbleProps>(
+    ({children, ...props}, forwardedRef) => (
+      <div ref={forwardedRef} {...props}>
+        <PanelProvider>{children}</PanelProvider>
+      </div>
+    )
+  ),
+  {shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop)}
+)`
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
   border: 1px solid ${p => p.theme.border};
@@ -81,7 +91,7 @@ const DropdownBubble = styled('div')<Params>`
   `
       : `
     top: calc(100% - 1px);
-    box-shadow: ${p.theme.dropShadowLight};
+    box-shadow: ${p.theme.dropShadowMedium};
   `};
 
   ${getMenuBorderRadius};
@@ -90,7 +100,7 @@ const DropdownBubble = styled('div')<Params>`
    * below dropdown actor button's zindex */
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu};
 
-  ${/* sc-selector */ SettingsHeader} & {
+  ${SettingsHeader} & {
     z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu + 2};
   }
 `;

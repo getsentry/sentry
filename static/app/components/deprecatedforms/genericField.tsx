@@ -53,18 +53,18 @@ interface FormData {
 type Props = {
   config: Config | SelectFieldConfig | AsyncSelectFieldConfig;
   formData: FormData;
-  formState: typeof FormState[keyof typeof FormState];
+  formState: (typeof FormState)[keyof typeof FormState];
   onChange: FormField['props']['onChange'];
   formErrors?: object;
 };
 
-const GenericField = ({
+function GenericField({
   config,
   formData = {},
   formErrors = {},
   formState,
   onChange,
-}: Props) => {
+}: Props) {
   const required = defined(config.required) ? config.required : true;
   const fieldProps = {
     ...config,
@@ -121,6 +121,6 @@ const GenericField = ({
     default:
       return null;
   }
-};
+}
 
 export default GenericField;

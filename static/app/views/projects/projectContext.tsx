@@ -1,18 +1,20 @@
-import {Component, createRef} from 'react';
-import DocumentTitle from 'react-document-title';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {setActiveProject} from 'sentry/actionCreators/projects';
 import {Client} from 'sentry/api';
+import Alert from 'sentry/components/alert';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project, User} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -32,9 +34,8 @@ type Props = {
   api: Client;
   children: ((props: ChildFuncProps) => React.ReactNode) | React.ReactNode;
   loadingProjects: boolean;
-  orgId: string;
   organization: Organization;
-  projectId: string;
+  projectSlug: string;
   projects: Project[];
   /**
    * If true, this will not change `state.loading` during `fetchData` phase
@@ -89,8 +90,8 @@ class ProjectContext extends Component<Props, State> {
     }
   }
 
-  componentWillReceiveProps(nextProps: Props) {
-    if (nextProps.projectId === this.props.projectId) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
+    if (nextProps.projectSlug === this.props.projectSlug) {
       return;
     }
 
@@ -99,8 +100,8 @@ class ProjectContext extends Component<Props, State> {
     }
   }
 
-  componentDidUpdate(prevProps: Props, prevState: State) {
-    if (prevProps.projectId !== this.props.projectId) {
+  componentDidUpdate(prevProps: Props, _prevState: State) {
+    if (prevProps.projectSlug !== this.props.projectSlug) {
       this.fetchData();
     }
 
@@ -114,23 +115,6 @@ class ProjectContext extends Component<Props, State> {
     if (prevProps.projects.length !== this.props.projects.length) {
       this.fetchData();
     }
-
-    // Call forceUpdate() on <DocumentTitle/> if either project or organization
-    // state has changed. This is because <DocumentTitle/>'s shouldComponentUpdate()
-    // returns false unless props differ; meaning context changes for project/org
-    // do NOT trigger renders for <DocumentTitle/> OR any subchildren. The end result
-    // being that child elements that listen for context changes on project/org will
-    // NOT update (without this hack).
-    // See: https://github.com/gaearon/react-document-title/issues/35
-
-    // intentionally shallow comparing references
-    if (prevState.project !== this.state.project) {
-      const docTitle = this.docTitleRef.current;
-      if (!docTitle) {
-        return;
-      }
-      docTitle.forceUpdate();
-    }
   }
 
   componentWillUnmount() {
@@ -138,15 +122,13 @@ class ProjectContext extends Component<Props, State> {
     this.unsubscribeProjects();
   }
 
-  docTitleRef = createRef<DocumentTitle>();
-
   unsubscribeProjects = ProjectsStore.listen(
     (projectIds: Set<string>) => this.onProjectChange(projectIds),
     undefined
   );
 
   unsubscribeMembers = MemberListStore.listen(
-    (memberList: typeof MemberListStore['state']) => this.setState({memberList}),
+    ({members}: typeof MemberListStore.state) => this.setState({memberList: members}),
     undefined
   );
 
@@ -171,13 +153,12 @@ class ProjectContext extends Component<Props, State> {
   }
 
   identifyProject() {
-    const {projects, projectId} = this.props;
-    const projectSlug = projectId;
+    const {projects, projectSlug} = this.props;
     return projects.find(({slug}) => slug === projectSlug) || null;
   }
 
   async fetchData() {
-    const {orgId, projectId, skipReload} = this.props;
+    const {organization, projectSlug, skipReload} = this.props;
     // we fetch core access/information from the global organization data
     const activeProject = this.identifyProject();
     const hasAccess = activeProject && activeProject.hasAccess;
@@ -192,7 +173,7 @@ class ProjectContext extends Component<Props, State> {
     if (activeProject && hasAccess) {
       setActiveProject(null);
       const projectRequest = this.props.api.requestPromise(
-        `/projects/${orgId}/${projectId}/`
+        `/projects/${organization.slug}/${projectSlug}/`
       );
 
       try {
@@ -214,7 +195,7 @@ class ProjectContext extends Component<Props, State> {
         });
       }
 
-      fetchOrgMembers(this.props.api, orgId, [activeProject.id]);
+      fetchOrgMembers(this.props.api, organization.slug, [activeProject.id]);
 
       return;
     }
@@ -234,7 +215,9 @@ class ProjectContext extends Component<Props, State> {
     // *does not exist* or the project has not yet been added to the store.
     // Either way, make a request to check for existence of the project.
     try {
-      await this.props.api.requestPromise(`/projects/${orgId}/${projectId}/`);
+      await this.props.api.requestPromise(
+        `/projects/${organization.slug}/${projectSlug}/`
+      );
     } catch (error) {
       this.setState({
         loading: false,
@@ -264,11 +247,11 @@ class ProjectContext extends Component<Props, State> {
       case ErrorTypes.PROJECT_NOT_FOUND:
         // TODO(chrissy): use scale for margin values
         return (
-          <div className="container">
-            <div className="alert alert-block" style={{margin: '30px 0 10px'}}>
+          <Layout.Page withPadding>
+            <Alert type="warning">
               {t('The project you were looking for was not found.')}
-            </div>
-          </div>
+            </Alert>
+          </Layout.Page>
         );
       case ErrorTypes.MISSING_MEMBERSHIP:
         // TODO(dcramer): add various controls to improve this flow and break it
@@ -285,9 +268,9 @@ class ProjectContext extends Component<Props, State> {
 
   render() {
     return (
-      <DocumentTitle ref={this.docTitleRef} title={this.getTitle()}>
+      <SentryDocumentTitle noSuffix title={this.getTitle()}>
         {this.renderBody()}
-      </DocumentTitle>
+      </SentryDocumentTitle>
     );
   }
 }

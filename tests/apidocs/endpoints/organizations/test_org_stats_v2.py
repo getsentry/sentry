@@ -1,19 +1,20 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
-import pytz
 from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.constants import DataCategory
 from sentry.testutils.cases import OutcomesSnubaTest
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.outcomes import Outcome
 
 
+@region_silo_test
 class OrganizationStatsDocs(APIDocsTestCase, OutcomesSnubaTest):
     def setUp(self):
         super().setUp()
-        self.now = datetime(2021, 3, 14, 12, 27, 28, tzinfo=pytz.utc)
+        self.now = datetime(2021, 3, 14, 12, 27, 28, tzinfo=timezone.utc)
         self.login_as(user=self.user)
         self.store_outcomes(
             {

@@ -2,7 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import FormContext, {
   FormContextData,
 } from 'sentry/components/deprecatedforms/formContext';
@@ -43,7 +43,7 @@ export type Context = FormContextData;
 
 class Form<
   Props extends FormProps = FormProps,
-  State extends FormClassState = FormClassState
+  State extends FormClassState = FormClassState,
 > extends Component<Props, State> {
   static defaultProps = {
     cancelLabel: t('Cancel'),
@@ -133,7 +133,11 @@ class Form<
 
     return (
       <FormContext.Provider value={this.getContext()}>
-        <StyledForm onSubmit={this.onSubmit} className={this.props.className}>
+        <StyledForm
+          onSubmit={this.onSubmit}
+          className={this.props.className}
+          aria-label={this.props['aria-label']}
+        >
           {isError && !hideErrors && (
             <div className="alert alert-error alert-block">
               {nonFieldErrors ? (
@@ -166,7 +170,6 @@ class Form<
             </Button>
             {this.props.onCancel && (
               <Button
-                type="button"
                 disabled={isSaving}
                 onClick={this.props.onCancel}
                 style={{marginLeft: 5}}

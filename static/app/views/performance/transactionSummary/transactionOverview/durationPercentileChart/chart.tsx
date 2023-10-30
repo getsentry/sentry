@@ -1,13 +1,15 @@
 import {useTheme} from '@emotion/react';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
-import {axisLabelFormatter} from 'sentry/utils/discover/charts';
+import {axisLabelFormatter, getDurationUnit} from 'sentry/utils/discover/charts';
 import {getDuration} from 'sentry/utils/formatters';
 
 type Props = React.ComponentPropsWithoutRef<typeof AreaChart>;
 
 function Chart(props: Props) {
   const theme = useTheme();
+
+  const durationUnit = getDurationUnit(props.series);
 
   return (
     <AreaChart
@@ -25,11 +27,13 @@ function Chart(props: Props) {
         },
       }}
       yAxis={{
+        minInterval: durationUnit,
         type: 'value' as const,
         axisLabel: {
           color: theme.chartLabel,
           // Use p50() to force time formatting.
-          formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
+          formatter: (value: number) =>
+            axisLabelFormatter(value, 'duration', undefined, durationUnit),
         },
       }}
       tooltip={{valueFormatter: value => getDuration(value / 1000, 2)}}

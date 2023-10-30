@@ -6,15 +6,17 @@ import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
 import {Client} from 'sentry/api';
-import Button, {ButtonLabel} from 'sentry/components/button';
-import ButtonBar, {ButtonGrid} from 'sentry/components/buttonBar';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import GroupList from 'sentry/components/issues/groupList';
 import Pagination from 'sentry/components/pagination';
 import QueryCount from 'sentry/components/queryCount';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -31,13 +33,13 @@ enum IssuesType {
   ALL = 'all',
 }
 
-enum IssuesQuery {
-  NEW = 'first-release',
-  UNHANDLED = 'error.handled:0',
-  REGRESSED = 'regressed_in_release',
-  RESOLVED = 'is:resolved',
-  ALL = 'release',
-}
+const issuesQuery: Record<IssuesType, string> = {
+  [IssuesType.NEW]: 'first-release',
+  [IssuesType.UNHANDLED]: 'error.handled:0',
+  [IssuesType.REGRESSED]: 'regressed_in_release',
+  [IssuesType.RESOLVED]: 'is:resolved',
+  [IssuesType.ALL]: 'release',
+};
 
 type IssuesQueryParams = {
   limit: number;
@@ -54,7 +56,6 @@ type Props = {
   location: Location;
   organization: Organization;
   releaseBounds: ReleaseBounds;
-  selection: PageFilters;
   version: string;
   queryFilterDescription?: string;
 } & Partial<typeof defaultProps>;
@@ -67,7 +68,6 @@ type State = {
     resolved: number | null;
     unhandled: number | null;
   };
-  issuesType: IssuesType;
   onCursor?: () => void;
   pageLinks?: string;
 };
@@ -77,24 +77,7 @@ class ReleaseIssues extends Component<Props, State> {
   state: State = this.getInitialState();
 
   getInitialState() {
-    const {location} = this.props;
-    const query = location.query ? location.query.issuesType : null;
-    const issuesTypeState = !query
-      ? IssuesType.NEW
-      : query.includes(IssuesType.NEW)
-      ? IssuesType.NEW
-      : query.includes(IssuesType.UNHANDLED)
-      ? IssuesType.REGRESSED
-      : query.includes(IssuesType.REGRESSED)
-      ? IssuesType.UNHANDLED
-      : query.includes(IssuesType.RESOLVED)
-      ? IssuesType.RESOLVED
-      : query.includes(IssuesType.ALL)
-      ? IssuesType.ALL
-      : IssuesType.ALL;
-
     return {
-      issuesType: issuesTypeState,
       count: {
         new: null,
         all: null,
@@ -126,9 +109,16 @@ class ReleaseIssues extends Component<Props, State> {
     }
   }
 
+  getActiveIssuesType(): IssuesType {
+    const query = (this.props.location.query?.issuesType as string) ?? '';
+    return Object.values<string>(IssuesType).includes(query)
+      ? (query as IssuesType)
+      : IssuesType.NEW;
+  }
+
   getIssuesUrl() {
     const {version, organization} = this.props;
-    const {issuesType} = this.state;
+    const issuesType = this.getActiveIssuesType();
     const {queryParams} = this.getIssuesEndpoint();
     const query = new MutableSearch([]);
 
@@ -162,7 +152,7 @@ class ReleaseIssues extends Component<Props, State> {
 
   getIssuesEndpoint(): {path: string; queryParams: IssuesQueryParams} {
     const {version, organization, location, releaseBounds} = this.props;
-    const {issuesType} = this.state;
+    const issuesType = this.getActiveIssuesType();
 
     const queryParams = {
       ...getReleaseParams({
@@ -180,7 +170,10 @@ class ReleaseIssues extends Component<Props, State> {
           path: `/organizations/${organization.slug}/issues/`,
           queryParams: {
             ...queryParams,
-            query: new MutableSearch([`${IssuesQuery.ALL}:${version}`]).formatString(),
+            query: new MutableSearch([
+              `${issuesQuery.all}:${version}`,
+              'is:unresolved',
+            ]).formatString(),
           },
         };
       case IssuesType.RESOLVED:
@@ -196,8 +189,9 @@ class ReleaseIssues extends Component<Props, State> {
           queryParams: {
             ...queryParams,
             query: new MutableSearch([
-              `${IssuesQuery.ALL}:${version}`,
-              IssuesQuery.UNHANDLED,
+              `${issuesQuery.all}:${version}`,
+              issuesQuery.unhandled,
+              'is:unresolved',
             ]).formatString(),
           },
         };
@@ -207,7 +201,7 @@ class ReleaseIssues extends Component<Props, State> {
           queryParams: {
             ...queryParams,
             query: new MutableSearch([
-              `${IssuesQuery.REGRESSED}:${version}`,
+              `${issuesQuery.regressed}:${version}`,
             ]).formatString(),
           },
         };
@@ -217,7 +211,10 @@ class ReleaseIssues extends Component<Props, State> {
           path: `/organizations/${organization.slug}/issues/`,
           queryParams: {
             ...queryParams,
-            query: new MutableSearch([`${IssuesQuery.NEW}:${version}`]).formatString(),
+            query: new MutableSearch([
+              `${issuesQuery.new}:${version}`,
+              'is:unresolved',
+            ]).formatString(),
           },
         };
     }
@@ -237,13 +234,14 @@ class ReleaseIssues extends Component<Props, State> {
       ]).then(([issueResponse, resolvedResponse]) => {
         this.setState({
           count: {
-            all: issueResponse[`${IssuesQuery.ALL}:"${version}"`] || 0,
-            new: issueResponse[`${IssuesQuery.NEW}:"${version}"`] || 0,
+            all: issueResponse[`${issuesQuery.all}:"${version}" is:unresolved`] || 0,
+            new: issueResponse[`${issuesQuery.new}:"${version}" is:unresolved`] || 0,
             resolved: resolvedResponse.length,
             unhandled:
-              issueResponse[`${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:"${version}"`] ||
-              0,
-            regressed: issueResponse[`${IssuesQuery.REGRESSED}:"${version}"`] || 0,
+              issueResponse[
+                `${issuesQuery.unhandled} ${issuesQuery.all}:"${version}" is:unresolved`
+              ] || 0,
+            regressed: issueResponse[`${issuesQuery.regressed}:"${version}"`] || 0,
           },
         });
       });
@@ -257,10 +255,10 @@ class ReleaseIssues extends Component<Props, State> {
     const issuesCountPath = `/organizations/${organization.slug}/issues-count/`;
 
     const params = [
-      `${IssuesQuery.NEW}:"${version}"`,
-      `${IssuesQuery.ALL}:"${version}"`,
-      `${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:"${version}"`,
-      `${IssuesQuery.REGRESSED}:"${version}"`,
+      `${issuesQuery.new}:"${version}" is:unresolved`,
+      `${issuesQuery.all}:"${version}" is:unresolved`,
+      `${issuesQuery.unhandled} ${issuesQuery.all}:"${version}" is:unresolved`,
+      `${issuesQuery.regressed}:"${version}"`,
     ];
     const queryParams = params.map(param => param);
     const queryParameters = {
@@ -276,29 +274,14 @@ class ReleaseIssues extends Component<Props, State> {
 
   handleIssuesTypeSelection = (issuesType: IssuesType) => {
     const {location} = this.props;
-    const issuesTypeQuery =
-      issuesType === IssuesType.ALL
-        ? IssuesType.ALL
-        : issuesType === IssuesType.NEW
-        ? IssuesType.NEW
-        : issuesType === IssuesType.RESOLVED
-        ? IssuesType.RESOLVED
-        : issuesType === IssuesType.UNHANDLED
-        ? IssuesType.UNHANDLED
-        : issuesType === IssuesType.REGRESSED
-        ? IssuesType.REGRESSED
-        : '';
 
-    const to = {
+    browserHistory.replace({
       ...location,
       query: {
         ...location.query,
-        issuesType: issuesTypeQuery,
+        issuesType,
       },
-    };
-
-    browserHistory.replace(to);
-    this.setState({issuesType});
+    });
   };
 
   handleFetchSuccess = (groupListState, onCursor) => {
@@ -307,7 +290,7 @@ class ReleaseIssues extends Component<Props, State> {
 
   renderEmptyMessage = () => {
     const {location, releaseBounds} = this.props;
-    const {issuesType} = this.state;
+    const issuesType = this.getActiveIssuesType();
     const isEntireReleasePeriod =
       !location.query.pageStatsPeriod && !location.query.pageStart;
 
@@ -357,8 +340,9 @@ class ReleaseIssues extends Component<Props, State> {
   };
 
   render() {
-    const {issuesType, count, pageLinks, onCursor} = this.state;
-    const {organization, queryFilterDescription, withChart} = this.props;
+    const {count, pageLinks, onCursor} = this.state;
+    const issuesType = this.getActiveIssuesType();
+    const {organization, queryFilterDescription, withChart, version} = this.props;
     const {path, queryParams} = this.getIssuesEndpoint();
     const issuesTypes = [
       {value: IssuesType.ALL, label: t('All Issues'), issueCount: count.all},
@@ -383,35 +367,41 @@ class ReleaseIssues extends Component<Props, State> {
     return (
       <Fragment>
         <ControlsWrapper>
-          <StyledButtonBar active={issuesType} merged>
-            {issuesTypes.map(({value, label, issueCount}) => (
-              <Button
-                key={value}
-                barId={value}
-                size="xsmall"
-                onClick={() => this.handleIssuesTypeSelection(value)}
-                data-test-id={`filter-${value}`}
-              >
-                {label}
-                <QueryCount count={issueCount} max={99} hideParens hideIfEmpty={false} />
-              </Button>
-            ))}
-          </StyledButtonBar>
+          <GuideAnchor target="release_states">
+            <SegmentedControl
+              aria-label={t('Issue type')}
+              size="xs"
+              value={issuesType}
+              onChange={key => this.handleIssuesTypeSelection(key)}
+            >
+              {issuesTypes.map(({value, label, issueCount}) => (
+                <SegmentedControl.Item key={value} textValue={label}>
+                  {label}&nbsp;
+                  <QueryCount
+                    count={issueCount}
+                    max={99}
+                    hideParens
+                    hideIfEmpty={false}
+                  />
+                </SegmentedControl.Item>
+              ))}
+            </SegmentedControl>
+          </GuideAnchor>
 
           <OpenInButtonBar gap={1}>
-            <Button to={this.getIssuesUrl()} size="xsmall" data-test-id="issues-button">
+            <Button to={this.getIssuesUrl()} size="xs">
               {t('Open in Issues')}
             </Button>
 
-            <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xsmall" />
+            <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xs" />
           </OpenInButtonBar>
         </ControlsWrapper>
         <div data-test-id="release-wrapper">
           <GroupList
-            orgId={organization.slug}
+            orgSlug={organization.slug}
             endpointPath={path}
             queryParams={queryParams}
-            query=""
+            query={`release:${version}`}
             canSelectGroups={false}
             queryFilterDescription={queryFilterDescription}
             withChart={withChart}
@@ -419,6 +409,7 @@ class ReleaseIssues extends Component<Props, State> {
             renderEmptyMessage={this.renderEmptyMessage}
             withPagination={false}
             onFetchSuccess={this.handleFetchSuccess}
+            source="release"
           />
         </div>
       </Fragment>
@@ -433,32 +424,11 @@ const ControlsWrapper = styled('div')`
   justify-content: space-between;
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: block;
-    ${ButtonGrid} {
-      overflow: auto;
-    }
   }
 `;
 
 const OpenInButtonBar = styled(ButtonBar)`
   margin: ${space(1)} 0;
-`;
-
-const StyledButtonBar = styled(ButtonBar)`
-  grid-template-columns: repeat(4, 1fr);
-  ${ButtonLabel} {
-    white-space: nowrap;
-    gap: ${space(0.5)};
-    span:last-child {
-      color: ${p => p.theme.buttonCount};
-    }
-  }
-  .active {
-    ${ButtonLabel} {
-      span:last-child {
-        color: ${p => p.theme.buttonCountActive};
-      }
-    }
-  }
 `;
 
 const StyledPagination = styled(Pagination)`

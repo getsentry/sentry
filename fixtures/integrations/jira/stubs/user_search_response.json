@@ -1,7 +1,7 @@
 [
-    {
-        "accountId": "deadbeef123",
-        "displayName": "Bobby",
-        "emailAddress": "bob@example.org"
-    }
+  {
+    "accountId": "deadbeef123",
+    "displayName": "Bobby",
+    "emailAddress": "bob@example.org"
+  }
 ]

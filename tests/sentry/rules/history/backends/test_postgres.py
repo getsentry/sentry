@@ -1,13 +1,15 @@
-from datetime import timedelta
+from datetime import timedelta, timezone
 
-import pytz
-from freezegun import freeze_time
-
-from sentry.models import Rule, RuleFireHistory
+from sentry.models.rule import Rule
+from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.backends.postgres import PostgresRuleHistoryBackend
 from sentry.rules.history.base import RuleGroupHistory
-from sentry.testutils import TestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 class BasePostgresRuleHistoryBackendTest(TestCase):
@@ -15,6 +17,7 @@ class BasePostgresRuleHistoryBackendTest(TestCase):
         self.backend = PostgresRuleHistoryBackend()
 
 
+@region_silo_test(stable=True)
 class RecordTest(BasePostgresRuleHistoryBackendTest):
     def test(self):
         rule = Rule.objects.create(project=self.event.project)
@@ -29,6 +32,7 @@ class RecordTest(BasePostgresRuleHistoryBackendTest):
         assert RuleFireHistory.objects.filter(rule=rule).count() == 3
 
 
+@region_silo_test(stable=True)
 @freeze_time()
 class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
     def run_test(self, rule, start, end, expected, cursor=None, per_page=25):
@@ -72,7 +76,7 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
         )
         RuleFireHistory.objects.bulk_create(history)
 
-        base_triggered_date = before_now(days=1).replace(tzinfo=pytz.UTC)
+        base_triggered_date = before_now(days=1).replace(tzinfo=timezone.utc)
 
         self.run_test(
             rule,
@@ -136,7 +140,60 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
             ],
         )
 
+    def test_event_id(self):
+        rule = Rule.objects.create(project=self.event.project)
+        for i in range(3):
+            RuleFireHistory.objects.create(
+                project=rule.project,
+                rule=rule,
+                group=self.group,
+                date_added=before_now(days=i + 1),
+                event_id=i,
+            )
 
+        base_triggered_date = before_now(days=1).replace(tzinfo=timezone.utc)
+        self.run_test(
+            rule,
+            before_now(days=3),
+            before_now(days=0),
+            [
+                RuleGroupHistory(
+                    group=self.group, count=3, last_triggered=base_triggered_date, event_id="0"
+                )
+            ],
+        )
+
+        group_2 = self.create_group()
+        for i in range(3):
+            RuleFireHistory.objects.create(
+                project=rule.project,
+                rule=rule,
+                group=group_2,
+                date_added=before_now(days=i + 4),
+                event_id=i + 3,
+            )
+        self.run_test(
+            rule,
+            before_now(days=5),
+            before_now(days=2),
+            [
+                RuleGroupHistory(
+                    group=group_2,
+                    count=2,
+                    last_triggered=base_triggered_date - timedelta(days=3),
+                    event_id="3",
+                ),
+                RuleGroupHistory(
+                    group=self.group,
+                    count=1,
+                    last_triggered=base_triggered_date - timedelta(days=2),
+                    event_id="2",
+                ),
+            ],
+        )
+
+
+@region_silo_test(stable=True)
 @freeze_time()
 class FetchRuleHourlyStatsPaginatedTest(BasePostgresRuleHistoryBackendTest):
     def test(self):

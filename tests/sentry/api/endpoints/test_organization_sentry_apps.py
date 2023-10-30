@@ -1,7 +1,8 @@
 from django.urls import reverse
 
-from sentry.models import SentryApp
-from sentry.testutils import APITestCase
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
@@ -25,6 +26,7 @@ class OrganizationSentryAppsTest(APITestCase):
         self.url = reverse("sentry-api-0-organization-sentry-apps", args=[self.org.slug])
 
 
+@control_silo_test(stable=True)
 class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
     def test_gets_all_apps_in_own_org(self):
         self.login_as(user=self.user)
@@ -82,3 +84,11 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 403
+
+    def test_filter_for_internal(self):
+        self.login_as(user=self.user)
+        self.create_project(organization=self.org)
+        internal_integration = self.create_internal_integration(organization=self.org)
+        response = self.client.get(f"{self.url}?status=internal", format="json")
+        assert len(response.data) == 1
+        assert response.data[0]["uuid"] == internal_integration.uuid

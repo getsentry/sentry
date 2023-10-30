@@ -23,10 +23,18 @@ GUIDES = {
     "new_page_filters": 24,
     "new_page_filters_pin": 25,
     "releases_widget": 26,
+    "activate_sampling_rule": 27,
+    "create_conditional_rule": 28,
+    "explain_archive_button_issue_details": 29,
+    "explain_archive_tab_issue_stream": 30,
+    "explain_new_default_event_issue_detail": 31,
+    "new_project_filter": 32,
+    "explain_archive_button_issue_stream": 33,
 }
 
 # demo mode has different guides
 if settings.DEMO_MODE:
+    # TODO: remove old guides
     GUIDES = {
         "sidebar": 20,
         "issue_stream_v2": 21,
@@ -36,4 +44,13 @@ if settings.DEMO_MODE:
         "discover_landing": 25,
         "discover_event_view": 26,
         "transaction_details": 27,
+        "sidebar_v2": 28,
+        "issues_v3": 29,
+        "releases_v2": 30,
+        "react-native-release": 31,
+        "release-details_v2": 32,
+        "performance": 33,
+        "transaction_summary": 34,
+        "transaction_details_v2": 35,
+        "issue_stream_v3": 36,
     }

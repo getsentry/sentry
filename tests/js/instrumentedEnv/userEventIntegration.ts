@@ -1,4 +1,4 @@
-import {Hub} from '@sentry/hub';
+import {Hub} from '@sentry/core';
 import {fill, isThenable, loadModule} from '@sentry/utils';
 
 export function instrumentUserEvent(getCurrentHub: () => Hub): void {
@@ -6,7 +6,7 @@ export function instrumentUserEvent(getCurrentHub: () => Hub): void {
   ACTIONS.forEach((action: Action) => _patchAction(pkg.default, action, getCurrentHub));
 }
 
-type Action = typeof ACTIONS[number];
+type Action = (typeof ACTIONS)[number];
 
 const ACTIONS = [
   'click',

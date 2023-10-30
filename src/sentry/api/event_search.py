@@ -1,24 +1,31 @@
+from __future__ import annotations
+
 import re
 from collections import namedtuple
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
+from functools import reduce
 from typing import Any, List, Mapping, NamedTuple, Sequence, Set, Tuple, Union
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
 from parsimonious.expressions import Optional
-from parsimonious.grammar import Grammar, NodeVisitor
-from parsimonious.nodes import Node
+from parsimonious.grammar import Grammar
+from parsimonious.nodes import Node, NodeVisitor
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.constants import (
+    DURATION_UNITS,
     OPERATOR_NEGATION_MAP,
     SEARCH_MAP,
     SEMVER_ALIAS,
     SEMVER_BUILD_ALIAS,
+    SIZE_UNITS,
     TAG_KEY_RE,
     TEAM_KEY_TRANSACTION_ALIAS,
 )
-from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, InvalidSearchQuery
+from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.search.utils import (
     InvalidQuery,
     parse_datetime_range,
@@ -27,14 +34,10 @@ from sentry.search.utils import (
     parse_duration,
     parse_numeric_value,
     parse_percentage,
+    parse_size,
 )
-from sentry.utils.compat import filter, map
-from sentry.utils.snuba import (
-    Dataset,
-    is_duration_measurement,
-    is_measurement,
-    is_span_op_breakdown,
-)
+from sentry.snuba.dataset import Dataset
+from sentry.utils.snuba import is_duration_measurement, is_measurement, is_span_op_breakdown
 from sentry.utils.validators import is_event_id, is_span_id
 
 # A wildcard is an asterisk prefixed by an even number of back slashes.
@@ -62,12 +65,14 @@ filter = date_filter
        / specific_date_filter
        / rel_date_filter
        / duration_filter
+       / size_filter
        / boolean_filter
        / numeric_in_filter
        / numeric_filter
        / aggregate_duration_filter
        / aggregate_percentage_filter
        / aggregate_numeric_filter
+       / aggregate_size_filter
        / aggregate_date_filter
        / aggregate_rel_date_filter
        / has_filter
@@ -87,6 +92,9 @@ rel_date_filter = search_key sep rel_date_format
 # filter for durations
 duration_filter = negation? search_key sep operator? duration_format
 
+# filter for size
+size_filter = negation? search_key sep operator? size_format
+
 # boolean comparison filter
 boolean_filter = negation? search_key sep boolean_value
 
@@ -98,6 +106,9 @@ numeric_filter = negation? search_key sep operator? numeric_value
 
 # aggregate duration filter
 aggregate_duration_filter = negation? aggregate_key sep operator? duration_format
+
+# aggregate size filter
+aggregate_size_filter = negation? aggregate_key sep operator? size_format
 
 # aggregate percentage filter
 aggregate_percentage_filter = negation? aggregate_key sep operator? percentage_format
@@ -157,6 +168,7 @@ tz_format   = ~r"[+-]\d{2}:\d{2}"
 iso_8601_date_format = date_format time_format? ("Z" / tz_format)? &end_value
 rel_date_format      = ~r"[+-][0-9]+[wdhm]" &end_value
 duration_format      = numeric ("ms"/"s"/"min"/"m"/"hr"/"h"/"day"/"d"/"wk"/"w") &end_value
+size_format          = numeric ("bit"/"nb"/"bytes"/"kb"/"mb"/"gb"/"tb"/"pb"/"eb"/"zb"/"yb"/"kib"/"mib"/"gib"/"tib"/"pib"/"eib"/"zib"/"yib") &end_value
 percentage_format    = numeric "%"
 
 # NOTE: the order in which these operators are listed matters because for
@@ -251,14 +263,14 @@ def remove_optional_nodes(children):
     def is_not_optional(child):
         return not (isinstance(child, Node) and isinstance(child.expr, Optional))
 
-    return filter(is_not_optional, children)
+    return list(filter(is_not_optional, children))
 
 
 def remove_space(children):
     def is_not_space(text):
         return not (isinstance(text, str) and text == " " * len(text))
 
-    return filter(is_not_space, children)
+    return list(filter(is_not_space, children))
 
 
 def process_list(first, remaining):
@@ -310,7 +322,14 @@ class SearchBoolean(namedtuple("SearchBoolean", "left_term operator right_term")
 
 
 class ParenExpression(namedtuple("ParenExpression", "children")):
-    pass
+    def to_query_string(self):
+        children = ""
+        for child in self.children:
+            if isinstance(child, str):
+                children += f" {child}"
+            else:
+                children += f" {child.to_query_string()}"
+        return f"({children})"
 
 
 class SearchKey(NamedTuple):
@@ -345,6 +364,18 @@ class SearchValue(NamedTuple):
             return translate_escape_sequences(self.raw_value)
         return self.raw_value
 
+    def to_query_string(self):
+        # for any sequence (but not string) we want to iterate over the items
+        # we do that because a simple str() would not be usable for strings
+        # str(["a","b"]) == "['a', 'b']" but we would like "[a,b]"
+        if type(self.raw_value) in [list, tuple]:
+            ret_val = reduce(lambda acc, elm: f"{acc}, {elm}", self.raw_value)
+            ret_val = "[" + ret_val + "]"
+            return ret_val
+        if isinstance(self.raw_value, datetime):
+            return self.raw_value.isoformat()
+        return str(self.value)
+
     def is_wildcard(self) -> bool:
         if not isinstance(self.raw_value, str):
             return False
@@ -377,7 +408,15 @@ class SearchFilter(NamedTuple):
     value: SearchValue
 
     def __str__(self):
-        return "".join(map(str, (self.key.name, self.operator, self.value.raw_value)))
+        return f"{self.key.name}{self.operator}{self.value.raw_value}"
+
+    def to_query_string(self):
+        if self.operator == "IN":
+            return f"{self.key.name}:{self.value.to_query_string()}"
+        elif self.operator == "NOT IN":
+            return f"!{self.key.name}:{self.value.to_query_string()}"
+        else:
+            return f"{self.key.name}:{self.operator}{self.value.to_query_string()}"
 
     @property
     def is_negation(self) -> bool:
@@ -404,7 +443,7 @@ class AggregateFilter(NamedTuple):
     value: SearchValue
 
     def __str__(self):
-        return "".join(map(str, (self.key.name, self.operator, self.value.raw_value)))
+        return f"{self.key.name}{self.operator}{self.value.raw_value}"
 
 
 class AggregateKey(NamedTuple):
@@ -458,7 +497,7 @@ class SearchConfig:
     free_text_key = "message"
 
     @classmethod
-    def create_from(cls, search_config: "SearchConfig", **overrides):
+    def create_from(cls, search_config: SearchConfig, **overrides):
         config = cls(**asdict(search_config))
         for key, val in overrides.items():
             setattr(config, key, val)
@@ -481,7 +520,9 @@ class SearchVisitor(NodeVisitor):
 
             # TODO: read dataset from config
             self.builder = UnresolvedQuery(
-                dataset=Dataset.Discover, params=self.params, functions_acl=FUNCTIONS.keys()
+                dataset=Dataset.Discover,
+                params=self.params,
+                config=QueryBuilderConfig(functions_acl=list(FUNCTIONS)),
             )
         else:
             self.builder = builder
@@ -495,14 +536,25 @@ class SearchVisitor(NodeVisitor):
         return lookup
 
     def is_numeric_key(self, key):
-        return key in self.config.numeric_keys or is_measurement(key) or is_span_op_breakdown(key)
+        return (
+            key in self.config.numeric_keys
+            or is_measurement(key)
+            or is_span_op_breakdown(key)
+            or self.builder.get_field_type(key) == "number"
+            or self.is_duration_key(key)
+        )
 
     def is_duration_key(self, key):
+        duration_types = [*DURATION_UNITS, "duration"]
         return (
             key in self.config.duration_keys
             or is_duration_measurement(key)
             or is_span_op_breakdown(key)
+            or self.builder.get_field_type(key) in duration_types
         )
+
+    def is_size_key(self, key):
+        return self.builder.get_field_type(key) in SIZE_UNITS
 
     def is_date_key(self, key):
         return key in self.config.date_keys
@@ -642,7 +694,6 @@ class SearchVisitor(NodeVisitor):
             operator = handle_negation(negation, operator)
         else:
             operator = get_operator_value(operator)
-
         if self.is_duration_key(search_key.name):
             try:
                 search_value = parse_duration(*search_value)
@@ -659,13 +710,35 @@ class SearchVisitor(NodeVisitor):
         operator = "!=" if is_negated(negation) else "="
         return self._handle_basic_filter(search_key, operator, SearchValue(search_value))
 
+    def visit_size_filter(self, node, children):
+        (negation, search_key, _, operator, search_value) = children
+        # The only size keys we have are custom measurements right now
+        if self.is_size_key(search_key.name):
+            operator = handle_negation(negation, operator)
+        else:
+            operator = get_operator_value(operator)
+
+        if self.is_size_key(search_key.name):
+            try:
+                search_value = parse_size(*search_value)
+            except InvalidQuery as exc:
+                raise InvalidSearchQuery(str(exc))
+            return SearchFilter(search_key, operator, SearchValue(search_value))
+
+        search_value = "".join(search_value)
+        search_value = operator + search_value if operator not in ("=", "!=") else search_value
+        operator = "!=" if is_negated(negation) else "="
+        return self._handle_basic_filter(search_key, operator, SearchValue(search_value))
+
     def visit_boolean_filter(self, node, children):
         (negation, search_key, sep, search_value) = children
         negated = is_negated(negation)
 
         # Numeric and boolean filters overlap on 1 and 0 values.
         if self.is_numeric_key(search_key.name):
-            return self._handle_numeric_filter(search_key, "=", [search_value.text, ""])
+            return self._handle_numeric_filter(
+                search_key, "!=" if negated else "=", [search_value.text, ""]
+            )
 
         if self.is_boolean_key(search_key.name):
             if search_value.text.lower() in ("true", "1"):
@@ -723,7 +796,7 @@ class SearchVisitor(NodeVisitor):
             # duration for certain columns
             result_type = self.builder.get_function_result_type(search_key.name)
 
-            if result_type == "duration":
+            if result_type == "duration" or result_type in DURATION_UNITS:
                 aggregate_value = parse_duration(*search_value)
             else:
                 # Duration overlaps with numeric values with `m` (million vs
@@ -733,6 +806,19 @@ class SearchVisitor(NodeVisitor):
                 # TODO(epurkhiser): Should we validate that the field is
                 # numeric and do some other fallback if it's not?
                 aggregate_value = parse_numeric_value(*search_value)
+        except ValueError:
+            raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
+        except InvalidQuery as exc:
+            raise InvalidSearchQuery(str(exc))
+
+        return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
+
+    def visit_aggregate_size_filter(self, node, children):
+        (negation, search_key, _, operator, search_value) = children
+        operator = handle_negation(negation, operator)
+
+        try:
+            aggregate_value = parse_size(*search_value)
         except ValueError:
             raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
         except InvalidQuery as exc:
@@ -1000,6 +1086,9 @@ class SearchVisitor(NodeVisitor):
     def visit_duration_format(self, node, children):
         return [children[0], children[1][0].text]
 
+    def visit_size_format(self, node, children):
+        return [children[0], children[1][0].text]
+
     def visit_percentage_format(self, node, children):
         return children[0]
 
@@ -1065,11 +1154,14 @@ default_config = SearchConfig(
         "timestamp",
         "timestamp.to_hour",
         "timestamp.to_day",
+        "error.received",
     },
     boolean_keys={
         "error.handled",
         "error.unhandled",
+        "error.main_thread",
         "stack.in_app",
+        "is_application",
         TEAM_KEY_TRANSACTION_ALIAS,
     },
 )
@@ -1077,7 +1169,7 @@ default_config = SearchConfig(
 
 def parse_search_query(
     query, config=None, params=None, builder=None, config_overrides=None
-) -> Sequence[SearchFilter]:
+) -> list[SearchFilter]:
     if config is None:
         config = default_config
 

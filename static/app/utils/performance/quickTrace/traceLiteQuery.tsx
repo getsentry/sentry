@@ -5,15 +5,15 @@ import GenericDiscoverQuery, {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {
   BaseTraceChildrenProps,
+  EventLite,
   PartialQuickTrace,
-  TraceLite,
   TraceRequestProps,
+  TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {
   getTraceRequestPayload,
   makeEventView,
 } from 'sentry/utils/performance/quickTrace/utils';
-import withApi from 'sentry/utils/withApi';
 
 type AdditionalQueryProps = {
   eventId: string;
@@ -21,7 +21,7 @@ type AdditionalQueryProps = {
 
 type TraceLiteQueryChildrenProps = BaseTraceChildrenProps &
   Omit<PartialQuickTrace, 'trace'> & {
-    trace: TraceLite | null;
+    trace: TraceSplitResults<EventLite> | null;
   };
 
 type QueryProps = Omit<TraceRequestProps, 'eventView'> &
@@ -65,7 +65,7 @@ function TraceLiteQuery({
   const eventView = makeEventView({start, end, statsPeriod});
 
   return (
-    <GenericDiscoverQuery<TraceLite, AdditionalQueryProps>
+    <GenericDiscoverQuery<TraceSplitResults<EventLite>, AdditionalQueryProps>
       route={`events-trace-light/${traceId}`}
       getRequestPayload={getTraceLiteRequestPayload}
       eventView={eventView}
@@ -86,4 +86,4 @@ function TraceLiteQuery({
   );
 }
 
-export default withApi(TraceLiteQuery);
+export default TraceLiteQuery;

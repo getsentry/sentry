@@ -2,10 +2,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import release_health
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventsError, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import Release, ReleaseProject
+from sentry.models.release import Release, ReleaseProject
 from sentry.utils.dates import get_rollup_from_request
 
 
@@ -22,7 +24,11 @@ def upsert_missing_release(project, version):
             return release
 
 
+@region_silo_endpoint
 class ProjectReleaseStatsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project, version) -> Response:

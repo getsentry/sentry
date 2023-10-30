@@ -3,13 +3,14 @@ import re
 from urllib.parse import parse_qs, quote_plus, unquote_plus, urlencode, urlsplit, urlunsplit
 
 from django.conf import settings
-from django.conf.urls import url
+from django.urls import re_path
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.exceptions import PluginError
 from sentry.integrations import FeatureDescription, IntegrationFeatures
-from sentry.models import GroupMeta
-from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2, PluginError
+from sentry.models.groupmeta import GroupMeta
+from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.utils.http import absolute_uri
 from sentry_plugins.base import CorePluginMixin
@@ -47,7 +48,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
     def get_group_urls(self):
         _patterns = super().get_group_urls()
         _patterns.append(
-            url(
+            re_path(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
             )
@@ -251,14 +252,14 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         try:
             issue = client.get_issue(form_data["issue_id"])
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         comment = form_data.get("comment")
         if comment:
             try:
                 client.create_comment(issue["key"], comment)
             except Exception as e:
-                raise self.raise_error(e)
+                self.raise_error(e)
 
         return {"title": issue["fields"]["summary"]}
 
@@ -315,11 +316,11 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
             if is_user_api:  # its the JSON version of the autocompleter
                 is_xml = False
-                jira_query["username"] = query.encode("utf8")
+                jira_query["username"] = query
                 jira_query.pop(
                     "issueKey", False
                 )  # some reason JIRA complains if this key is in the URL.
-                jira_query["project"] = project.encode("utf8")
+                jira_query["project"] = project
             elif is_user_picker:
                 is_xml = False
                 # for whatever reason, the create meta api returns an
@@ -329,10 +330,10 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
                 parsed[0] = ""
                 parsed[1] = ""
                 parsed[2] = "/rest/api/2/user/picker"
-                jira_query["query"] = query.encode("utf8")
+                jira_query["query"] = query
             else:  # its the stupid XML version of the API.
                 is_xml = True
-                jira_query["query"] = query.encode("utf8")
+                jira_query["query"] = query
                 if jira_query.get("fieldName"):
                     # for some reason its a list.
                     jira_query["fieldName"] = jira_query["fieldName"][0]
@@ -469,7 +470,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         try:
             response = client.create_issue(cleaned_data)
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         return response.get("key")
 
@@ -501,7 +502,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         try:
             client.get_projects_list()
         except ApiError as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         return config
 

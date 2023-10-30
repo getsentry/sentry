@@ -1,13 +1,17 @@
 import functools
 from datetime import datetime, timedelta
-from typing import List, Mapping, Optional, Sequence
+from typing import Any, List, Mapping, Optional, Sequence
 
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import start_span
 
 from sentry import features, search
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventPermission, OrganizationEventsEndpointBase
 from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index import (
@@ -21,19 +25,15 @@ from sentry.api.helpers.group_index import (
 )
 from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
-from sentry.api.utils import InvalidParams, get_date_range_from_params
+from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
+from sentry.api.utils import InvalidParams, get_date_range_from_stats_period
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import (
-    QUERY_STATUS_LOOKUP,
-    Environment,
-    Group,
-    GroupEnvironment,
-    GroupInbox,
-    GroupStatus,
-    Project,
-)
+from sentry.models.environment import Environment
+from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.groupinbox import GroupInbox
+from sentry.models.project import Project
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import get_search_filter
@@ -56,6 +56,7 @@ def inbox_search(
     date_from: Optional[datetime] = None,
     date_to: Optional[datetime] = None,
     max_hits: Optional[int] = None,
+    actor: Optional[Any] = None,
 ) -> CursorResult:
     now: datetime = timezone.now()
     end: Optional[datetime] = None
@@ -134,7 +135,14 @@ def inbox_search(
     return results
 
 
+@region_silo_endpoint
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.ISSUES
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
 
@@ -159,20 +167,24 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
     def _search(
         self, request: Request, organization, projects, environments, extra_query_kwargs=None
     ):
-        query_kwargs = build_query_params_from_request(
-            request, organization, projects, environments
-        )
-        if extra_query_kwargs is not None:
-            assert "environment" not in extra_query_kwargs
-            query_kwargs.update(extra_query_kwargs)
+        with start_span(op="_search"):
+            query_kwargs = build_query_params_from_request(
+                request, organization, projects, environments
+            )
+            if extra_query_kwargs is not None:
+                assert "environment" not in extra_query_kwargs
+                query_kwargs.update(extra_query_kwargs)
 
-        query_kwargs["environments"] = environments if environments else None
-        if query_kwargs["sort_by"] == "inbox":
-            query_kwargs.pop("sort_by")
-            result = inbox_search(**query_kwargs)
-        else:
-            result = search.query(**query_kwargs)
-        return result, query_kwargs
+            query_kwargs["environments"] = environments if environments else None
+
+            query_kwargs["actor"] = request.user
+            if query_kwargs["sort_by"] == "inbox":
+                query_kwargs.pop("sort_by")
+                result = inbox_search(**query_kwargs)
+            else:
+                query_kwargs["referrer"] = "search.group_index"
+                result = search.query(**query_kwargs)
+            return result, query_kwargs
 
     @track_slo_response("workflow")
     def get(self, request: Request, organization) -> Response:
@@ -216,11 +228,11 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                                           issues belong to.
         :auth: required
         :qparam list expand: an optional list of strings to opt in to additional data. Supports `inbox`
-        :qparam list collapse: an optional list of strings to opt out of certain pieces of data. Supports `stats`, `lifetime`, `base`
+        :qparam list collapse: an optional list of strings to opt out of certain pieces of data. Supports `stats`, `lifetime`, `base`, `unhandled`
         """
         stats_period = request.GET.get("groupStatsPeriod")
         try:
-            start, end = get_date_range_from_params(request.GET)
+            start, end = get_date_range_from_stats_period(request.GET)
         except InvalidParams as e:
             raise ParseError(detail=str(e))
 
@@ -234,6 +246,22 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         environments = self.get_environments(request, organization)
 
+        projects = self.get_projects(request, organization)
+        project_ids = [p.id for p in projects]
+
+        if not projects:
+            return Response([])
+
+        is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
+        if (
+            len(projects) > 1
+            and not features.has("organizations:global-views", organization, actor=request.user)
+            and not is_fetching_replay_data
+        ):
+            return Response(
+                {"detail": "You do not have the multi project stream feature enabled"}, status=400
+            )
+
         serializer = functools.partial(
             StreamGroupSerializerSnuba,
             environment_ids=[env.id for env in environments],
@@ -242,20 +270,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             stats_period_end=stats_period_end,
             expand=expand,
             collapse=collapse,
+            project_ids=project_ids,
+            organization_id=organization.id,
         )
-
-        projects = self.get_projects(request, organization)
-        project_ids = [p.id for p in projects]
-
-        if not projects:
-            return Response([])
-
-        if len(projects) > 1 and not features.has(
-            "organizations:global-views", organization, actor=request.user
-        ):
-            return Response(
-                {"detail": "You do not have the multi project stream feature enabled"}, status=400
-            )
 
         # we ignore date range for both short id and event ids
         query = request.GET.get("query", "").strip()
@@ -268,14 +285,21 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 # projects that the user is a member of. This gives us a better
                 # chance of returning the correct result, even if the wrong
                 # project is selected.
-                direct_hit_projects = set(project_ids) | {
-                    project.id for project in request.access.projects
-                }
-                groups = list(Group.objects.filter_by_event_id(direct_hit_projects, event_id))
-                if len(groups) == 1:
-                    response = Response(
-                        serialize(groups, request.user, serializer(matching_event_id=event_id))
+                direct_hit_projects = (
+                    set(project_ids) | request.access.project_ids_with_team_membership
+                )
+                groups = list(
+                    Group.objects.filter_by_event_id(
+                        direct_hit_projects,
+                        event_id,
+                        tenant_ids={"organization_id": organization.id},
                     )
+                )
+                if len(groups) == 1:
+                    serialized_groups = serialize(groups, request.user, serializer())
+                    if event_id:
+                        serialized_groups[0]["matchingEventId"] = event_id
+                    response = Response(serialized_groups)
                     response["X-Sentry-Direct-Hit"] = "1"
                     return response
 
@@ -407,11 +431,17 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :param boolean isBookmarked: in case this API call is invoked with a
                                      user context this allows changing of
                                      the bookmark flag.
+        :param string substatus: the new substatus for the issues. Valid values
+                                 defined in GroupSubStatus.
         :auth: required
         """
         projects = self.get_projects(request, organization)
-        if len(projects) > 1 and not features.has(
-            "organizations:global-views", organization, actor=request.user
+        is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
+
+        if (
+            len(projects) > 1
+            and not features.has("organizations:global-views", organization, actor=request.user)
+            and not is_fetching_replay_data
         ):
             return Response(
                 {"detail": "You do not have the multi project stream feature enabled"}, status=400
@@ -441,18 +471,25 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         Only queries by 'id' are accepted.
 
-        If any ids are out of scope this operation will succeed without
+        If any IDs are out of scope this operation will succeed without
         any data mutation.
 
         :qparam int id: a list of IDs of the issues to be removed.  This
-                        parameter shall be repeated for each issue.
+                        parameter shall be repeated for each issue, e.g.
+                        `?id=1&id=2&id=3`. If this parameter is not provided,
+                        it will attempt to remove the first 1000 issues.
         :pparam string organization_slug: the slug of the organization the
                                           issues belong to.
         :auth: required
         """
         projects = self.get_projects(request, organization)
-        if len(projects) > 1 and not features.has(
-            "organizations:global-views", organization, actor=request.user
+
+        is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
+
+        if (
+            len(projects) > 1
+            and not features.has("organizations:global-views", organization, actor=request.user)
+            and not is_fetching_replay_data
         ):
             return Response(
                 {"detail": "You do not have the multi project stream feature enabled"}, status=400

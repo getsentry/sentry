@@ -1,7 +1,11 @@
 from time import time
 
-from sentry.models import Identity, IdentityProvider, Integration, Repository
-from sentry.testutils import APITestCase
+from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.integrations.integration import Integration
+from sentry.models.repository import Repository
+from sentry.silo import SiloMode
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode
 
 EXTERNAL_ID = "example.gitlab.com:group-x"
 WEBHOOK_SECRET = "secret-token-value"
@@ -13,28 +17,34 @@ class GitLabTestCase(APITestCase):
 
     def setUp(self):
         self.login_as(self.user)
-        self.integration = Integration.objects.create(
-            provider=self.provider,
-            name="Example Gitlab",
-            external_id=EXTERNAL_ID,
-            metadata={
-                "instance": "example.gitlab.com",
-                "base_url": "https://example.gitlab.com",
-                "domain_name": "example.gitlab.com/group-x",
-                "verify_ssl": False,
-                "webhook_secret": WEBHOOK_SECRET,
-                "group_id": 1,
-            },
-        )
-        identity = Identity.objects.create(
-            idp=IdentityProvider.objects.create(type=self.provider, config={}),
-            user=self.user,
-            external_id="gitlab123",
-            data={"access_token": "123456789", "created_at": time(), "refresh_token": "0987654321"},
-        )
-        self.integration.add_organization(self.organization, self.user, identity.id)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(
+                provider=self.provider,
+                name="Example Gitlab",
+                external_id=EXTERNAL_ID,
+                metadata={
+                    "instance": "example.gitlab.com",
+                    "base_url": "https://example.gitlab.com",
+                    "domain_name": "example.gitlab.com/group-x",
+                    "verify_ssl": False,
+                    "webhook_secret": WEBHOOK_SECRET,
+                    "group_id": 1,
+                },
+            )
+            identity = Identity.objects.create(
+                idp=IdentityProvider.objects.create(type=self.provider, config={}),
+                user=self.user,
+                external_id="gitlab123",
+                data={
+                    "access_token": "123456789",
+                    "created_at": time(),
+                    "refresh_token": "0987654321",
+                },
+            )
+            self.integration.add_organization(self.organization, self.user, identity.id)
         self.installation = self.integration.get_installation(self.organization.id)
 
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_repo(self, name, external_id=15, url=None, organization_id=None):
         instance = self.integration.metadata["instance"]
         organization_id = organization_id or self.organization.id
@@ -397,3 +407,35 @@ COMMIT_DIFF_RESPONSE = r"""
     }
 ]
 """
+
+# Example taken from https://docs.gitlab.com/ee/api/commits.html#get-a-single-commit
+GET_COMMIT_RESPONSE = """
+{
+  "id": "6104942438c14ec7bd21c6cd5bd995272b3faff6",
+  "short_id": "6104942438c",
+  "title": "Sanitize for network graph",
+  "author_name": "randx",
+  "author_email": "user@example.com",
+  "committer_name": "Dmitriy",
+  "committer_email": "user@example.com",
+  "created_at": "2021-09-20T09:06:12.300+03:00",
+  "message": "Sanitize for network graph",
+  "committed_date": "2021-09-20T09:06:12.300+03:00",
+  "authored_date": "2021-09-20T09:06:12.420+03:00",
+  "parent_ids": [
+    "ae1d9fb46aa2b07ee9836d49862ec4e2c46fbbba"
+  ],
+  "last_pipeline" : {
+    "id": 8,
+    "ref": "master",
+    "sha": "2dc6aa325a317eda67812f05600bdf0fcdc70ab0",
+    "status": "created"
+  },
+  "stats": {
+    "additions": 15,
+    "deletions": 10,
+    "total": 25
+  },
+  "status": "running",
+  "web_url": "https://gitlab.example.com/thedude/gitlab-foss/-/commit/6104942438c14ec7bd21c6cd5bd995272b3faff6"
+}"""

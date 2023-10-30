@@ -1,7 +1,11 @@
+import {Theme} from '@emotion/react';
+import Color from 'color';
+
 import {DurationDisplay} from 'sentry/components/performance/waterfall/types';
-import CHART_PALETTE from 'sentry/constants/chartPalette';
-import space from 'sentry/styles/space';
-import {Theme} from 'sentry/utils/theme';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {space} from 'sentry/styles/space';
+
+import {getSpanBarColours, SpanBarType} from './constants';
 
 export const getBackgroundColor = ({
   showStriping,
@@ -23,16 +27,10 @@ export const getBackgroundColor = ({
   return theme.background;
 };
 
-type HatchProps = {
-  spanBarHatch: boolean;
-};
+export function getHatchPattern(spanBarType: SpanBarType | undefined, theme: Theme) {
+  if (spanBarType) {
+    const {primary, alternate} = getSpanBarColours(spanBarType, theme);
 
-export function getHatchPattern(
-  {spanBarHatch}: HatchProps,
-  primary: string,
-  alternate: string
-) {
-  if (spanBarHatch === true) {
     return `
       background-image: linear-gradient(135deg,
         ${alternate},
@@ -60,12 +58,10 @@ export function getHatchPattern(
 
 export const getDurationPillAlignment = ({
   durationDisplay,
-  theme,
-  spanBarHatch,
 }: {
   durationDisplay: DurationDisplay;
-  spanBarHatch: boolean;
   theme: Theme;
+  spanBarType?: SpanBarType;
 }) => {
   switch (durationDisplay) {
     case 'left':
@@ -75,9 +71,27 @@ export const getDurationPillAlignment = ({
     default:
       return `
         right: ${space(0.75)};
-        color: ${spanBarHatch === true ? theme.gray300 : theme.white};
       `;
   }
+};
+
+export const getDurationPillColours = ({
+  durationDisplay,
+  theme,
+  showDetail,
+  spanBarType,
+}: {
+  durationDisplay: DurationDisplay;
+  showDetail: boolean;
+  theme: Theme;
+  spanBarType?: SpanBarType;
+}) => {
+  if (durationDisplay === 'inset') {
+    const {alternate, insetTextColour} = getSpanBarColours(spanBarType, theme);
+    return `background: ${alternate}; color: ${insetTextColour};`;
+  }
+
+  return `color: ${showDetail ? theme.gray200 : theme.gray300};`;
 };
 
 export const getToggleTheme = ({
@@ -86,13 +100,25 @@ export const getToggleTheme = ({
   disabled,
   errored,
   isSpanGroupToggler,
+  spanBarType,
 }: {
   disabled: boolean;
   errored: boolean;
   isExpanded: boolean;
   theme: Theme;
   isSpanGroupToggler?: boolean;
+  spanBarType?: SpanBarType;
 }) => {
+  if (spanBarType) {
+    const {primary} = getSpanBarColours(spanBarType, theme);
+    return `
+    background: ${primary};
+    border: 2px solid ${theme.button.default.border};
+    color: ${theme.button.primary.color};
+    cursor: pointer;
+  `;
+  }
+
   const buttonTheme = isExpanded ? theme.button.default : theme.button.primary;
   const errorTheme = theme.button.danger;
 
@@ -111,7 +137,7 @@ export const getToggleTheme = ({
   if (isSpanGroupToggler) {
     return `
     background: ${theme.blue300};
-    border: 1px solid ${theme.button.default.border};
+    border: 2px solid ${theme.button.default.border};
     color: ${color};
     cursor: pointer;
   `;
@@ -120,7 +146,7 @@ export const getToggleTheme = ({
   if (disabled) {
     return `
     background: ${background};
-    border: 1px solid ${border};
+    border: 2px solid ${border};
     color: ${color};
     cursor: default;
   `;
@@ -128,7 +154,7 @@ export const getToggleTheme = ({
 
   return `
     background: ${background};
-    border: 1px solid ${border};
+    border: 2px solid ${border};
     color: ${color};
   `;
 };
@@ -156,14 +182,12 @@ export const getDurationDisplay = ({
 
 export const getHumanDuration = (duration: number): string => {
   // note: duration is assumed to be in seconds
-  const durationMS = duration * 1000;
-  return `${durationMS.toLocaleString(undefined, {
+  const durationMs = duration * 1000;
+  return `${durationMs.toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}ms`;
 };
-
-export const toPercent = (value: number) => `${(value * 100).toFixed(3)}%`;
 
 type Rect = {
   height: number;
@@ -203,16 +227,6 @@ export const rectOfContent = (element: Element): Rect => {
   };
 };
 
-export const clamp = (value: number, min: number, max: number): number => {
-  if (value < min) {
-    return min;
-  }
-  if (value > max) {
-    return max;
-  }
-  return value;
-};
-
 const getLetterIndex = (letter: string): number => {
   const index = 'abcdefghijklmnopqrstuvwxyz'.indexOf(letter) || 0;
   return index === -1 ? 0 : index;
@@ -247,4 +261,12 @@ export const pickBarColor = (input: string | undefined): string => {
   return colorsAsArray[
     (letterIndex1 + letterIndex2 + letterIndex3 + letterIndex4) % colorsAsArray.length
   ];
+};
+
+export const lightenBarColor = (
+  input: string | undefined,
+  lightenRatio: number
+): string => {
+  const barColor = pickBarColor(input);
+  return Color(barColor).lighten(lightenRatio).string();
 };

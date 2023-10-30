@@ -1,24 +1,17 @@
-import {Location} from 'history';
-
+import {Alert} from 'sentry/components/alert';
+import Link from 'sentry/components/links/link';
 import {tct} from 'sentry/locale';
-import {crashReportTypes} from 'sentry/views/organizationGroupDetails/groupEventAttachments/groupEventAttachmentsFilter';
-
-import Alert from '../alert';
-import Link from '../links/link';
+import {useLocation} from 'sentry/utils/useLocation';
+import {crashReportTypes} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
 
 type Props = {
   groupId: string;
-  location: Location;
   orgSlug: string;
   projectSlug: string;
 };
 
-const EventAttachmentsCrashReportsNotice = ({
-  orgSlug,
-  projectSlug,
-  location,
-  groupId,
-}: Props) => {
+function EventAttachmentsCrashReportsNotice({orgSlug, projectSlug, groupId}: Props) {
+  const location = useLocation();
   const settingsUrl = `/settings/${orgSlug}/projects/${projectSlug}/security-and-privacy/`;
   const attachmentsUrl = {
     pathname: `/organizations/${orgSlug}/issues/${groupId}/attachments/`,
@@ -36,6 +29,6 @@ const EventAttachmentsCrashReportsNotice = ({
       )}
     </Alert>
   );
-};
+}
 
 export default EventAttachmentsCrashReportsNotice;

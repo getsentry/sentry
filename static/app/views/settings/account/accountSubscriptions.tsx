@@ -1,23 +1,27 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import groupBy from 'lodash/groupBy';
+import orderBy from 'lodash/orderBy';
 import moment from 'moment';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import DateTime from 'sentry/components/dateTime';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import EmptyMessage from 'sentry/components/emptyMessage';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
 import Switch from 'sentry/components/switchButton';
 import {IconToggle} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import AsyncView from 'sentry/views/asyncView';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import {space} from 'sentry/styles/space';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const ENDPOINT = '/users/me/subscriptions/';
 
-type Subscription = {
+export type Subscription = {
   email: string;
   listDescription: string;
   listId: number;
@@ -27,25 +31,36 @@ type Subscription = {
   unsubscribedDate: string | null;
 };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   subscriptions: Subscription[];
 };
 
-class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+class AccountSubscriptions extends DeprecatedAsyncView<
+  DeprecatedAsyncView['props'],
+  State
+> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['subscriptions', ENDPOINT]];
   }
 
   getTitle() {
-    return 'Subscriptions';
+    return t('Subscriptions');
   }
 
-  handleToggle = (subscription: Subscription, index: number, _e: React.MouseEvent) => {
+  handleToggle = (
+    subscription: Subscription,
+    email: string,
+    listId: number,
+    _e: React.MouseEvent
+  ) => {
     const subscribed = !subscription.subscribed;
     const oldSubscriptions = this.state.subscriptions;
 
     this.setState(state => {
-      const newSubscriptions = state.subscriptions.slice();
+      const newSubscriptions = [...state.subscriptions];
+      const index = newSubscriptions.findIndex(
+        sub => sub.listId === listId && sub.email === email
+      );
       newSubscriptions[index] = {
         ...subscription,
         subscribed,
@@ -78,11 +93,15 @@ class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
   };
 
   renderBody() {
-    const subGroups = Object.entries(groupBy(this.state.subscriptions, sub => sub.email));
+    // Group by does not guarantee order, so we sort by email
+    const subGroups = orderBy(
+      Object.entries(groupBy(this.state.subscriptions, sub => sub.email)),
+      ([email]) => email
+    );
 
     return (
       <div>
-        <SettingsPageHeader title="Subscriptions" />
+        <SettingsPageHeader title={this.getTitle()} />
         <TextBlock>
           {t(`Sentry is committed to respecting your inbox. Our goal is to
               provide useful content and resources that make fixing errors less
@@ -109,41 +128,52 @@ class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
                       </Heading>
                     )}
 
-                    {subscriptions.map((subscription, index) => (
-                      <PanelItem center key={subscription.listId}>
-                        <SubscriptionDetails>
-                          <SubscriptionName>{subscription.listName}</SubscriptionName>
-                          {subscription.listDescription && (
-                            <Description>{subscription.listDescription}</Description>
-                          )}
-                          {subscription.subscribed ? (
-                            <SubscribedDescription>
-                              <div>
-                                {tct('[email] on [date]', {
-                                  email: subscription.email,
-                                  date: (
-                                    <DateTime
-                                      date={moment(subscription.subscribedDate!)}
-                                    />
-                                  ),
-                                })}
-                              </div>
-                            </SubscribedDescription>
-                          ) : (
-                            <SubscribedDescription>
-                              {t('Not currently subscribed')}
-                            </SubscribedDescription>
-                          )}
-                        </SubscriptionDetails>
-                        <div>
-                          <Switch
-                            isActive={subscription.subscribed}
-                            size="lg"
-                            toggle={this.handleToggle.bind(this, subscription, index)}
-                          />
-                        </div>
-                      </PanelItem>
-                    ))}
+                    {subscriptions
+                      .sort((a, b) => a.listId - b.listId)
+                      .map(subscription => (
+                        <PanelItem center key={subscription.listId}>
+                          <SubscriptionDetails
+                            htmlFor={`${subscription.email}-${subscription.listId}`}
+                            aria-label={subscription.listName}
+                          >
+                            <SubscriptionName>{subscription.listName}</SubscriptionName>
+                            {subscription.listDescription && (
+                              <Description>{subscription.listDescription}</Description>
+                            )}
+                            {subscription.subscribed ? (
+                              <SubscribedDescription>
+                                <div>
+                                  {tct('[email] on [date]', {
+                                    email: subscription.email,
+                                    date: (
+                                      <DateTime
+                                        date={moment(subscription.subscribedDate!)}
+                                      />
+                                    ),
+                                  })}
+                                </div>
+                              </SubscribedDescription>
+                            ) : (
+                              <SubscribedDescription>
+                                {t('Not currently subscribed')}
+                              </SubscribedDescription>
+                            )}
+                          </SubscriptionDetails>
+                          <div>
+                            <Switch
+                              id={`${subscription.email}-${subscription.listId}`}
+                              isActive={subscription.subscribed}
+                              size="lg"
+                              toggle={this.handleToggle.bind(
+                                this,
+                                subscription,
+                                email,
+                                subscription.listId
+                              )}
+                            />
+                          </div>
+                        </PanelItem>
+                      ))}
                   </Fragment>
                 ))}
               </PanelBody>
@@ -181,9 +211,17 @@ const Heading = styled(PanelItem)`
   color: ${p => p.theme.subText};
 `;
 
-const SubscriptionDetails = styled('div')`
-  width: 50%;
+const SubscriptionDetails = styled('label')`
+  font-weight: initial;
   padding-right: ${space(2)};
+  width: 85%;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    width: 75%;
+  }
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    width: 50%;
+  }
 `;
 
 const SubscriptionName = styled('div')`

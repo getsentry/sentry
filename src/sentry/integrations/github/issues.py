@@ -1,16 +1,21 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from operator import attrgetter
+from typing import Any, Dict, List, Mapping, Sequence
 
 from django.urls import reverse
 
-from sentry.integrations.mixins import IssueBasicMixin
-from sentry.models import ExternalIssue, Group, User
+from sentry.eventstore.models import Event, GroupEvent
+from sentry.integrations.mixins.issues import MAX_CHAR, IssueBasicMixin
+from sentry.models.group import Group
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.user import User
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
+from sentry.utils.strings import truncatechars
 
 
-class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
+class GitHubIssueBasic(IssueBasicMixin):
     def make_external_key(self, data: Mapping[str, Any]) -> str:
         return "{}#{}".format(data["repo"], data["key"])
 
@@ -18,6 +23,28 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
         domain_name, user = self.model.metadata["domain_name"].split("/")
         repo, issue_id = key.split("#")
         return f"https://{domain_name}/{repo}/issues/{issue_id}"
+
+    def get_generic_issue_body(self, event: GroupEvent) -> str:
+        body = "|  |  |\n"
+        body += "| ------------- | --------------- |\n"
+        for evidence in sorted(
+            event.occurrence.evidence_display, key=attrgetter("important"), reverse=True
+        ):
+            body += f"| **{evidence.name}** | {truncatechars(evidence.value, MAX_CHAR)} |\n"
+
+        return body[:-2]
+
+    def get_group_description(self, group: Group, event: Event | GroupEvent, **kwargs: Any) -> str:
+        output = self.get_group_link(group, **kwargs)
+
+        if isinstance(event, GroupEvent) and event.occurrence is not None:
+            body = self.get_generic_issue_body(event)
+            output.extend([body])
+        else:
+            body = self.get_group_body(group, event)
+            if body:
+                output.extend(["", "```", body, "```"])
+        return "\n".join(output)
 
     def after_link_issue(self, external_issue: ExternalIssue, **kwargs: Any) -> None:
         data = kwargs["data"]
@@ -45,16 +72,18 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
 
     def get_create_issue_config(
         self, group: Group, user: User, **kwargs: Any
-    ) -> Sequence[Mapping[str, Any]]:
+    ) -> List[Dict[str, Any]]:
         kwargs["link_referrer"] = "github_integration"
         fields = super().get_create_issue_config(group, user, **kwargs)
-        default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
+        params = kwargs.pop("params", {})
+        default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
 
         assignees = self.get_allowed_assignees(default_repo) if default_repo else []
+        labels = self.get_repo_labels(default_repo) if default_repo else []
 
         org = group.organization
         autocomplete_url = reverse(
-            "sentry-extensions-github-search", args=[org.slug, self.model.id]
+            "sentry-integration-github-search", args=[org.slug, self.model.id]
         )
 
         return [
@@ -77,6 +106,15 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
                 "required": False,
                 "choices": assignees,
             },
+            {
+                "name": "labels",
+                "label": "Labels",
+                "default": [],
+                "type": "select",
+                "multiple": True,
+                "required": False,
+                "choices": labels,
+            },
         ]
 
     def create_issue(self, data: Mapping[str, Any], **kwargs: Any) -> Mapping[str, Any]:
@@ -94,6 +132,7 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
                     "title": data["title"],
                     "body": data["description"],
                     "assignee": data.get("assignee"),
+                    "labels": data.get("labels"),
                 },
             )
         except ApiError as e:
@@ -107,12 +146,13 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
             "repo": repo,
         }
 
-    def get_link_issue_config(self, group: Group, **kwargs: Any) -> Sequence[Mapping[str, Any]]:
-        default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
+    def get_link_issue_config(self, group: Group, **kwargs: Any) -> List[Dict[str, Any]]:
+        params = kwargs.pop("params", {})
+        default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
 
         org = group.organization
         autocomplete_url = reverse(
-            "sentry-extensions-github-search", args=[org.slug, self.model.id]
+            "sentry-integration-github-search", args=[org.slug, self.model.id]
         )
 
         return [
@@ -181,7 +221,7 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
         try:
             response = client.get_assignees(repo)
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         users = tuple((u["login"], u["login"]) for u in response)
 
@@ -192,8 +232,22 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
         try:
             response = client.get_issues(repo)
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         issues = tuple((i["number"], "#{} {}".format(i["number"], i["title"])) for i in response)
 
         return issues
+
+    def get_repo_labels(self, repo: str) -> Sequence[tuple[str, str]]:
+        client = self.get_client()
+        try:
+            response = client.get_labels(repo)
+        except Exception as e:
+            self.raise_error(e)
+
+        # sort alphabetically
+        labels = tuple(
+            sorted([(label["name"], label["name"]) for label in response], key=lambda pair: pair[0])
+        )
+
+        return labels

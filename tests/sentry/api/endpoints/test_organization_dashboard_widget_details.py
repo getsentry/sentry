@@ -1,9 +1,14 @@
 from django.urls import reverse
 
-from sentry.testutils import OrganizationDashboardWidgetTestCase
+from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
+@region_silo_test(stable=True)
 class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTestCase):
     def url(self):
         return reverse(
@@ -32,6 +37,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                     "orderby": "count()",
                 },
             ],
+            "description": "Valid widget description",
         }
         response = self.do_request(
             "post",
@@ -66,6 +72,45 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.status_code == 400, response.data
         assert "queries" in response.data, response.data
         assert response.data["queries"][0]["conditions"], response.data
+
+    def test_blank_descriptions_are_allowed(self):
+        data = {
+            "title": "Errors over time",
+            "displayType": "line",
+            "queries": [
+                {
+                    "name": "errors",
+                    "conditions": "event.type:error",
+                    "fields": ["count()"],
+                    "columns": [],
+                    "aggregates": ["count()"],
+                },
+                {
+                    "name": "errors",
+                    "conditions": "(level:error OR title:*Error*) !release:latest",
+                    "fields": ["count()"],
+                    "columns": [],
+                    "aggregates": ["count()"],
+                    "orderby": "count()",
+                },
+            ],
+            "description": "Valid widget description",
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
+        data["description"] = ""
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
 
     def test_invalid_widget_permissions(self):
         self.create_user_member_role()
@@ -318,6 +363,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         data = {
             "title": "EPM Big Number",
@@ -575,3 +621,47 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 400, response.data
         assert "queries" in response.data, response.data
+
+    def test_save_with_total_count(self):
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": [],
+                    "columns": ["total.count"],
+                    "aggregates": ["count()"],
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
+    def test_accepts_environment_for_filters_that_require_single_env(self):
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "fields": [],
+                    "columns": [],
+                    "aggregates": ["count()"],
+                }
+            ],
+        }
+        response = self.client.post(f"{self.url()}?environment=mock_env", data)
+        assert response.status_code == 200, response.data

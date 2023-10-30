@@ -1,7 +1,9 @@
 import {mat3} from 'gl-matrix';
 
+import {Rect} from 'sentry/utils/profiling/speedscope';
+
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
-import {getContext, Rect} from '../gl/utils';
+import {getContext} from '../gl/utils';
 
 class PositionIndicatorRenderer {
   canvas: HTMLCanvasElement;
@@ -17,7 +19,8 @@ class PositionIndicatorRenderer {
 
   draw(configView: Rect, configSpace: Rect, configSpaceToPhysicalSpace: mat3): void {
     if (configView.equals(configSpace)) {
-      // User is not zoomed in, so we dont need to draw anything.
+      // User is not zoomed in or entire chart fits in view,
+      // then we dont need to draw anything.
       return;
     }
 

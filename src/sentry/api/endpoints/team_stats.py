@@ -2,13 +2,21 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tsdb
-from sentry.api.base import EnvironmentMixin, StatsMixin
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import EnvironmentMixin, StatsMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Environment, Project
+from sentry.models.environment import Environment
+from sentry.models.project import Project
+from sentry.tsdb.base import TSDBModel
 
 
+@region_silo_endpoint
 class TeamStatsEndpoint(TeamEndpoint, EnvironmentMixin, StatsMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, team) -> Response:
         """
         Retrieve Event Counts for a Team
@@ -47,9 +55,10 @@ class TeamStatsEndpoint(TeamEndpoint, EnvironmentMixin, StatsMixin):
 
         data = list(
             tsdb.get_range(
-                model=tsdb.models.project,
+                model=TSDBModel.project,
                 keys=[p.id for p in projects],
                 **self._parse_args(request, environment_id),
+                tenant_ids={"organization_id": team.organization_id},
             ).values()
         )
 

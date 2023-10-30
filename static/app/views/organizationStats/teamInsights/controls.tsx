@@ -6,12 +6,12 @@ import pick from 'lodash/pick';
 import uniq from 'lodash/uniq';
 import moment from 'moment';
 
-import SelectControl from 'sentry/components/forms/selectControl';
-import TeamSelector from 'sentry/components/forms/teamSelector';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
+import TeamSelector from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {DateString, TeamWithProjects} from 'sentry/types';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import localStorage from 'sentry/utils/localStorage';
@@ -36,7 +36,7 @@ const PAGE_QUERY_PARAMS = [
   'environment',
 ];
 
-type Props = Pick<RouteComponentProps<{orgId: string}, {}>, 'router' | 'location'> & {
+type Props = Pick<RouteComponentProps<{}, {}>, 'router' | 'location'> & {
   currentEnvironment?: string;
   currentTeam?: TeamWithProjects;
   showEnvironment?: boolean;
@@ -50,7 +50,7 @@ function TeamStatsControls({
   showEnvironment,
 }: Props) {
   const {projects} = useProjects({
-    slugs: currentTeam?.projects.map(project => project.slug) ?? [],
+    slugs: currentTeam?.projects?.map(project => project.slug) ?? [],
   });
   const organization = useOrganization();
   const isSuperuser = isActiveSuperuser();
@@ -209,12 +209,11 @@ function TeamStatsControls({
         />
       )}
       <StyledPageTimeRangeSelector
-        organization={organization}
         relative={period ?? ''}
         start={start ?? null}
         end={end ?? null}
         utc={utc ?? null}
-        onUpdate={handleUpdateDatetime}
+        onChange={handleUpdateDatetime}
         showAbsolute={false}
         relativeOptions={{
           '14d': t('Last 2 weeks'),
@@ -242,13 +241,11 @@ const ControlsWrapper = styled('div')<{showEnvironment?: boolean}>`
 
 const StyledTeamSelector = styled(TeamSelector)`
   & > div {
-    box-shadow: ${p => p.theme.dropShadowLight};
+    box-shadow: ${p => p.theme.dropShadowMedium};
   }
 `;
 
 const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
-  height: 40px;
-
   div {
     min-height: unset;
   }

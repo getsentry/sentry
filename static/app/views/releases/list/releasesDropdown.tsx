@@ -1,24 +1,19 @@
-import CompactSelect from 'sentry/components/forms/compactSelect';
-
-type DropdownItemProps = Omit<
-  React.ComponentProps<typeof CompactSelect>['options'][0],
-  'value'
->;
+import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 
 type Props = {
   label: string;
   onSelect: (key: string) => void;
-  options: Record<string, DropdownItemProps>;
+  options: Record<string, Omit<SelectOption<string>, 'value'>>;
   selected: string;
 };
 
-const ReleasesDropdown = ({label: prefix, options, selected, onSelect}: Props) => {
+function ReleasesDropdown({label: prefix, options, selected, onSelect}: Props) {
   const mappedOptions = Object.entries(options).map(
     ([key, {label, tooltip, disabled}]) => ({
       value: key,
       label,
       tooltip,
-      isDisabled: disabled,
+      disabled,
     })
   );
 
@@ -30,6 +25,6 @@ const ReleasesDropdown = ({label: prefix, options, selected, onSelect}: Props) =
       triggerProps={{prefix, style: {width: '100%'}}}
     />
   );
-};
+}
 
 export default ReleasesDropdown;

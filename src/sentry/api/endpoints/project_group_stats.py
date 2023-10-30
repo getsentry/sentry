@@ -1,15 +1,22 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import EnvironmentMixin, StatsMixin
+from sentry import tsdb
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import EnvironmentMixin, StatsMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.app import tsdb
-from sentry.models import Environment, Group
+from sentry.models.environment import Environment
+from sentry.models.group import Group
+from sentry.tsdb.base import TSDBModel
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
+@region_silo_endpoint
 class ProjectGroupStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
@@ -36,7 +43,10 @@ class ProjectGroupStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
             return Response(status=204)
 
         data = tsdb.get_range(
-            model=tsdb.models.group, keys=group_ids, **self._parse_args(request, environment_id)
+            model=TSDBModel.group,
+            keys=group_ids,
+            **self._parse_args(request, environment_id),
+            tenant_ids={"organization_id": project.organization_id},
         )
 
         return Response({str(k): v for k, v in data.items()})

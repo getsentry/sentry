@@ -2,7 +2,7 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
-from sentry.models import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 
 
 class SentryAppDetailsDocs(APIDocsTestCase):
@@ -11,9 +11,11 @@ class SentryAppDetailsDocs(APIDocsTestCase):
         self.project = self.create_project(organization=self.org)
         self.group = self.create_group(project=self.project)
         self.sentry_app = self.create_sentry_app(
-            name="Hellboy App", published=True, organization=self.org
+            name="Hellboy App", published=True, organization_id=self.org.id
         )
-        self.install = SentryAppInstallation(sentry_app=self.sentry_app, organization=self.org)
+        self.install = SentryAppInstallation(
+            sentry_app=self.sentry_app, organization_id=self.org.id
+        )
         self.install.save()
         self.external_issue = self.create_platform_external_issue(
             group=self.group,

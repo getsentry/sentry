@@ -6,7 +6,7 @@ type Props = {
   organization?: OrganizationSummary;
 } & Omit<BaseAvatar['props'], 'uploadPath' | 'uploadId'>;
 
-const OrganizationAvatar = ({organization, ...props}: Props) => {
+function OrganizationAvatar({organization, ...props}: Props) {
   if (!organization) {
     return null;
   }
@@ -19,11 +19,12 @@ const OrganizationAvatar = ({organization, ...props}: Props) => {
       type={(organization.avatar && organization.avatar.avatarType) || 'letter_avatar'}
       uploadPath="organization-avatar"
       uploadId={organization.avatar && organization.avatar.avatarUuid}
+      uploadDomain={organization.links?.regionUrl}
       letterId={slug}
       tooltip={slug}
       title={title}
     />
   );
-};
+}
 
 export default OrganizationAvatar;

@@ -3,12 +3,15 @@ from __future__ import annotations
 import abc
 import logging
 from collections import namedtuple
-from typing import Any, Callable, MutableMapping, Sequence, Type
+from typing import Any, Callable, ClassVar, Dict, Sequence, Type
 
 from django import forms
 
-from sentry.eventstore.models import Event
-from sentry.models import Project, Rule
+from sentry.eventstore.models import GroupEvent
+from sentry.models.project import Project
+from sentry.models.rule import Rule
+from sentry.snuba.dataset import Dataset
+from sentry.types.condition_activity import ConditionActivity
 from sentry.types.rules import RuleFuture
 
 """
@@ -55,7 +58,7 @@ class RuleBase(abc.ABC):
     def __init__(
         self,
         project: Project,
-        data: MutableMapping[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
         rule: Rule | None = None,
     ) -> None:
         self.project = project
@@ -63,15 +66,9 @@ class RuleBase(abc.ABC):
         self.had_data = data is not None
         self.rule = rule
 
-    @property
-    @abc.abstractmethod
-    def id(self) -> str:
-        pass
-
-    @property
-    @abc.abstractmethod
-    def label(self) -> str:
-        pass
+    id: ClassVar[str]
+    label: ClassVar[str]
+    rule_type: ClassVar[str]
 
     def is_enabled(self) -> bool:
         return True
@@ -80,7 +77,7 @@ class RuleBase(abc.ABC):
         return self.data.get(key, default)
 
     def get_form_instance(self) -> forms.Form:
-        data: MutableMapping[str, Any] | None = None
+        data: dict[str, Any] | None = None
         if self.had_data:
             data = self.data
         return self.form_cls(data)
@@ -97,11 +94,19 @@ class RuleBase(abc.ABC):
 
     def future(
         self,
-        callback: Callable[[Event, Sequence[RuleFuture]], None],
+        callback: Callable[[GroupEvent, Sequence[RuleFuture]], None],
         key: str | None = None,
         **kwargs: Any,
     ) -> CallbackFuture:
         return CallbackFuture(callback=callback, key=key, kwargs=kwargs)
+
+    def get_event_columns(self) -> Dict[Dataset, Sequence[str]]:
+        return {}
+
+    def passes_activity(
+        self, condition_activity: ConditionActivity, event_map: Dict[str, Any]
+    ) -> bool:
+        raise NotImplementedError
 
 
 class EventState:

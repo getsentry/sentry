@@ -5,7 +5,7 @@ import * as qs from 'query-string';
 
 import BackgroundAvatar from 'sentry/components/avatar/backgroundAvatar';
 import LetterAvatar from 'sentry/components/letterAvatar';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
 import {Avatar} from 'sentry/types';
 
 import Gravatar from './gravatar';
@@ -24,7 +24,8 @@ const StyledBaseAvatar = styled('span')<{
 }>`
   flex-shrink: 0;
   border-radius: ${p => (p.round ? '50%' : '3px')};
-  border: ${p => (p.suggested ? `1px dashed ${p.theme.gray400}` : 'none')};
+  border: ${p => (p.suggested ? `1px dashed ${p.theme.subText}` : 'none')};
+  background-color: ${p => (p.suggested ? p.theme.background : 'none')};
 `;
 
 const defaultProps: DefaultProps = {
@@ -89,7 +90,7 @@ type BaseProps = DefaultProps & {
   /**
    * This is the size of the remote image to request.
    */
-  remoteImageSize?: typeof ALLOWED_SIZES[number];
+  remoteImageSize?: (typeof ALLOWED_SIZES)[number];
   size?: number;
   title?: string;
   /**
@@ -99,7 +100,14 @@ type BaseProps = DefaultProps & {
   /**
    * Additional props for the tooltip
    */
-  tooltipOptions?: Omit<React.ComponentProps<typeof Tooltip>, 'children' | 'title'>;
+  tooltipOptions?: Omit<TooltipProps, 'children' | 'title'>;
+  /**
+   * The region domain that organization avatars are on
+   */
+  uploadDomain?: string;
+  /**
+   * The uuid for the uploaded avatar.
+   */
   uploadId?: string | null | undefined;
 };
 
@@ -124,7 +132,7 @@ class BaseAvatar extends Component<Props, State> {
     };
   }
 
-  getRemoteImageSize = () => {
+  getRemoteImageSize() {
     const {remoteImageSize, size} = this.props;
     // Try to make sure remote image size is >= requested size
     // If requested size > allowed size then use the largest allowed size
@@ -134,15 +142,15 @@ class BaseAvatar extends Component<Props, State> {
         ALLOWED_SIZES[ALLOWED_SIZES.length - 1]);
 
     return remoteImageSize || allowed || DEFAULT_GRAVATAR_SIZE;
-  };
+  }
 
-  buildUploadUrl = () => {
-    const {uploadPath, uploadId} = this.props;
+  buildUploadUrl() {
+    const {uploadDomain, uploadPath, uploadId} = this.props;
 
-    return `/${uploadPath || 'avatar'}/${uploadId}/?${qs.stringify({
+    return `${uploadDomain || ''}/${uploadPath || 'avatar'}/${uploadId}/?${qs.stringify({
       s: DEFAULT_REMOTE_SIZE,
     })}`;
-  };
+  }
 
   handleLoad = () => {
     this.setState({showBackupAvatar: false, hasLoaded: true});
@@ -152,7 +160,7 @@ class BaseAvatar extends Component<Props, State> {
     this.setState({showBackupAvatar: true, loadError: true, hasLoaded: true});
   };
 
-  renderImg = () => {
+  renderImg() {
     if (this.state.loadError) {
       return null;
     }
@@ -172,7 +180,6 @@ class BaseAvatar extends Component<Props, State> {
           round={round}
           remoteSize={DEFAULT_REMOTE_SIZE}
           suggested={suggested}
-          grayscale={suggested}
           {...eventProps}
         />
       );
@@ -185,7 +192,6 @@ class BaseAvatar extends Component<Props, State> {
           src={this.buildUploadUrl()}
           {...eventProps}
           suggested={suggested}
-          grayscale={suggested}
         />
       );
     }
@@ -195,7 +201,7 @@ class BaseAvatar extends Component<Props, State> {
     }
 
     return this.renderLetterAvatar();
-  };
+  }
 
   renderLetterAvatar() {
     const {title, letterId, round, suggested} = this.props;

@@ -1,13 +1,13 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import NotAvailable from 'sentry/components/notAvailable';
 import Placeholder from 'sentry/components/placeholder';
 import Radio from 'sentry/components/radio';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {ReleaseComparisonChartType} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
@@ -107,6 +107,7 @@ const Cell = styled('div')`
   text-align: right;
   color: ${p => p.theme.subText};
   ${p => p.theme.overflowEllipsis}
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const NumericCell = styled(Cell)`
@@ -175,9 +176,7 @@ const ChartTableRow = styled('label')<{
 
   &:hover {
     cursor: pointer;
-    ${/* sc-selector */ Cell}, ${/* sc-selector */ NumericCell}, ${
-      /* sc-selector */ DescriptionCell
-    },${/* sc-selector */ ExpanderCell}, ${/* sc-selector */ TitleWrapper} {
+    ${Cell}, ${NumericCell}, ${DescriptionCell}, ${ExpanderCell}, ${TitleWrapper} {
       ${p => !p.isLoading && `background-color: ${p.theme.bodyBackground}`}
     }
   }

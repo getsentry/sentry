@@ -9,7 +9,8 @@ logger = logging.getLogger("sentry.events")
 
 def event_supports_reprocessing(data):
     """Only events of a certain format support reprocessing."""
-    from sentry.stacktraces.platform import JAVASCRIPT_PLATFORMS, NATIVE_PLATFORMS
+    from sentry.lang.native.utils import NATIVE_PLATFORMS
+    from sentry.stacktraces.platform import JAVASCRIPT_PLATFORMS
     from sentry.stacktraces.processing import find_stacktraces_in_data
 
     platform = data.get("platform")
@@ -27,7 +28,8 @@ def event_supports_reprocessing(data):
 
 def get_reprocessing_revision(project, cached=True):
     """Returns the current revision of the projects reprocessing config set."""
-    from sentry.models import Project, ProjectOption
+    from sentry.models.options.project_option import ProjectOption
+    from sentry.models.project import Project
 
     if cached:
         return ProjectOption.objects.get_value(project, REPROCESSING_OPTION)
@@ -41,15 +43,15 @@ def get_reprocessing_revision(project, cached=True):
 
 def bump_reprocessing_revision(project, use_buffer=False):
     """Bumps the reprocessing revision."""
-    from sentry import buffer
-    from sentry.models import ProjectOption
+    from sentry.models.options.project_option import ProjectOption
+    from sentry.tasks.process_buffer import buffer_incr
 
     rev = uuid.uuid4().hex
     if use_buffer:
-        buffer.incr(
+        buffer_incr(
             ProjectOption,
             columns={},
-            filters={"project": project, "key": REPROCESSING_OPTION},
+            filters={"project_id": project.id, "key": REPROCESSING_OPTION},
             signal_only=True,
         )
     else:
@@ -65,7 +67,7 @@ def report_processing_issue(event_data, scope, object=None, type=None, data=None
     if object is None:
         object = "*"
     if type is None:
-        from sentry.models import EventError
+        from sentry.models.eventerror import EventError
 
         type = EventError.INVALID_DATA
 
@@ -90,7 +92,7 @@ def resolve_processing_issue(project, scope, object=None, type=None):
     """
     if object is None:
         object = "*"
-    from sentry.models import ProcessingIssue
+    from sentry.models.processingissue import ProcessingIssue
 
     ProcessingIssue.objects.resolve_processing_issue(
         project=project, scope=scope, object=object, type=type

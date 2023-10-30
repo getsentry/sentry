@@ -1,8 +1,16 @@
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
-import space from 'sentry/styles/space';
-import {Organization, PageFilters, SessionFieldWithOperation} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import {
+  Organization,
+  PageFilters,
+  Project,
+  SessionFieldWithOperation,
+} from 'sentry/types';
+import {isPlatformANRCompatible} from 'sentry/views/projectDetail/utils';
 
+import {ProjectAnrScoreCard} from './projectAnrScoreCard';
 import ProjectApdexScoreCard from './projectApdexScoreCard';
 import ProjectStabilityScoreCard from './projectStabilityScoreCard';
 import ProjectVelocityScoreCard from './projectVelocityScoreCard';
@@ -10,9 +18,11 @@ import ProjectVelocityScoreCard from './projectVelocityScoreCard';
 type Props = {
   hasSessions: boolean | null;
   isProjectStabilized: boolean;
+  location: Location;
   organization: Organization;
   selection: PageFilters;
   hasTransactions?: boolean;
+  project?: Project;
   query?: string;
 };
 
@@ -23,6 +33,8 @@ function ProjectScoreCards({
   hasSessions,
   hasTransactions,
   query,
+  location,
+  project,
 }: Props) {
   return (
     <CardWrapper>
@@ -51,13 +63,23 @@ function ProjectScoreCards({
         query={query}
       />
 
-      <ProjectApdexScoreCard
-        organization={organization}
-        selection={selection}
-        isProjectStabilized={isProjectStabilized}
-        hasTransactions={hasTransactions}
-        query={query}
-      />
+      {isPlatformANRCompatible(project?.platform) ? (
+        <ProjectAnrScoreCard
+          organization={organization}
+          selection={selection}
+          isProjectStabilized={isProjectStabilized}
+          query={query}
+          location={location}
+        />
+      ) : (
+        <ProjectApdexScoreCard
+          organization={organization}
+          selection={selection}
+          isProjectStabilized={isProjectStabilized}
+          hasTransactions={hasTransactions}
+          query={query}
+        />
+      )}
     </CardWrapper>
   );
 }

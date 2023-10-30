@@ -4,18 +4,22 @@ from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     JSONField,
     Model,
+    region_silo_only_model,
     sane_repr,
 )
+from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 
+@region_silo_only_model
 class GroupSnooze(Model):
     """
     A snooze marks an issue as ignored until a condition is hit.
@@ -27,11 +31,13 @@ class GroupSnooze(Model):
     - If ``user_count`` is set, the snooze is lfited when unique users match.
     - If ``user_window`` is set (in addition to count), the snooze is lifted
       when the rate unique users matches.
+    - If ``until_escalating`` is set, the snooze is lifted when the Group's occurrences
+      exceeds the forecasted counts.
 
     NOTE: `window` and `user_window` are specified in minutes
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     group = FlexibleForeignKey("sentry.Group", unique=True)
     until = models.DateTimeField(null=True)
@@ -90,9 +96,15 @@ class GroupSnooze(Model):
         end = timezone.now()
         start = end - timedelta(minutes=self.window)
 
-        rate = tsdb.get_sums(model=tsdb.models.group, keys=[self.group_id], start=start, end=end)[
-            self.group_id
-        ]
+        rate = tsdb.backend.get_sums(
+            model=get_issue_tsdb_group_model(self.group.issue_category),
+            keys=[self.group_id],
+            start=start,
+            end=end,
+            tenant_ids={"organization_id": self.group.project.organization_id},
+            referrer_suffix="frequency_snoozes",
+        )[self.group_id]
+
         if rate >= self.count:
             return False
 
@@ -106,8 +118,13 @@ class GroupSnooze(Model):
         end = timezone.now()
         start = end - timedelta(minutes=self.user_window)
 
-        rate = tsdb.get_distinct_counts_totals(
-            model=tsdb.models.users_affected_by_group, keys=[self.group_id], start=start, end=end
+        rate = tsdb.backend.get_distinct_counts_totals(
+            model=get_issue_tsdb_user_group_model(self.group.issue_category),
+            keys=[self.group_id],
+            start=start,
+            end=end,
+            tenant_ids={"organization_id": self.group.project.organization_id},
+            referrer_suffix="user_count_snoozes",
         )[self.group_id]
 
         if rate >= self.user_count:

@@ -1,17 +1,16 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import AbstractExternalIssueForm, {
   ExternalIssueFormErrors,
 } from 'sentry/components/externalIssues/abstractExternalIssueForm';
-import Form from 'sentry/components/forms/form';
+import {FormProps} from 'sentry/components/forms/form';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Choices, IssueConfigField, Organization} from 'sentry/types';
 import {IssueAlertRuleAction} from 'sentry/types/alerts';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 const IGNORED_FIELDS = ['Sprint'];
 
@@ -21,13 +20,13 @@ type Props = {
   index: number;
   // The AlertRuleAction from DB.
   instance: IssueAlertRuleAction;
+  link: string | null;
   onSubmitAction: (
     data: {[key: string]: string},
     fetchedFieldOptionsCache: Record<string, Choices>
   ) => void;
   organization: Organization;
-  link?: string;
-  ticketType?: string;
+  ticketType: string;
 } & AbstractExternalIssueForm['props'];
 
 type State = {
@@ -47,7 +46,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {instance} = this.props;
     const query = (instance.dynamic_form_fields || [])
       .filter(field => field.updatesForm)
@@ -59,6 +58,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
         },
         {action: 'create'}
       );
+
     return [['integrationDetails', this.getEndPointString(), {query}]];
   }
 
@@ -111,7 +111,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     return formData;
   };
 
-  onFormSubmit: Form['props']['onSubmit'] = (data, _success, _error, e, model) => {
+  onFormSubmit: FormProps['onSubmit'] = (data, _success, _error, e, model) => {
     const {onSubmitAction, closeModal} = this.props;
     const {fetchedFieldOptionsCache} = this.state;
 
@@ -126,7 +126,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     }
   };
 
-  getFormProps = (): Form['props'] => {
+  getFormProps = (): FormProps => {
     const {closeModal} = this.props;
 
     return {
@@ -200,19 +200,26 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   renderBodyText = () => {
     // `ticketType` already includes indefinite article.
     const {ticketType, link} = this.props;
-    return (
-      <BodyText>
-        {tct(
-          'When this alert is triggered [ticketType] will be ' +
-            'created with the following fields. It will also [linkToDocs] ' +
-            'with the new Sentry Issue.',
-          {
-            linkToDocs: <ExternalLink href={link}>{t('stay in sync')}</ExternalLink>,
-            ticketType,
-          }
-        )}
-      </BodyText>
-    );
+
+    let body: React.ReactNode;
+    if (link) {
+      body = tct(
+        'When this alert is triggered [ticketType] will be created with the following fields. It will also [linkToDocs:stay in sync] with the new Sentry Issue.',
+        {
+          linkToDocs: <ExternalLink href={link} />,
+          ticketType,
+        }
+      );
+    } else {
+      body = tct(
+        'When this alert is triggered [ticketType] will be created with the following fields.',
+        {
+          ticketType,
+        }
+      );
+    }
+
+    return <BodyText>{body}</BodyText>;
   };
 
   render() {

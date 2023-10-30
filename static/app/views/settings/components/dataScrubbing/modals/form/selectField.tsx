@@ -1,9 +1,8 @@
 import {Component, createRef} from 'react';
-import {components, OptionProps} from 'react-select';
-import styled from '@emotion/styled';
 
-import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
-import space from 'sentry/styles/space';
+import SelectControl, {
+  ControlProps,
+} from 'sentry/components/forms/controls/selectControl';
 
 type Props = Pick<
   ControlProps,
@@ -29,32 +28,11 @@ class SelectField extends Component<Props> {
       <SelectControl
         {...this.props}
         isSearchable={false}
-        styles={{
-          control: (provided: {[x: string]: string | number | boolean}) => ({
-            ...provided,
-            minHeight: '41px',
-            height: '41px',
-          }),
-        }}
+        options={this.props.options.map(opt => ({
+          ...opt,
+          details: opt.description ? `(${opt.description})` : undefined,
+        }))}
         ref={this.selectRef}
-        components={{
-          Option: ({
-            data: {label, description, ...data},
-            isSelected,
-            ...props
-          }: OptionProps<{
-            label: React.ReactNode;
-            value: string;
-            description?: string;
-          }>) => (
-            <components.Option isSelected={isSelected} data={data} {...props}>
-              <Wrapper>
-                <div data-test-id="label">{label}</div>
-                {description && <Description>{`(${description})`}</Description>}
-              </Wrapper>
-            </components.Option>
-          ),
-        }}
         openOnFocus
       />
     );
@@ -62,13 +40,3 @@ class SelectField extends Component<Props> {
 }
 
 export default SelectField;
-
-const Description = styled('div')`
-  color: ${p => p.theme.gray300};
-`;
-
-const Wrapper = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: ${space(1)};
-`;

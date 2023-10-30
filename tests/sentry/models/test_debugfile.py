@@ -1,13 +1,18 @@
+from __future__ import annotations
+
 import os
 import time
 import zipfile
 from io import BytesIO
+from typing import Any
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from sentry.models import DifMeta, File, ProjectDebugFile, debugfile
-from sentry.testutils import APITestCase, TestCase
+from sentry.models.debugfile import DifMeta, ProjectDebugFile, create_dif_from_id
+from sentry.models.files.file import File
+from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.silo import region_silo_test
 
 # This is obviously a freely generated UUID and not the checksum UUID.
 # This is permissible if users want to send different UUIDs
@@ -20,6 +25,7 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 """
 
 
+@region_silo_test(stable=True)
 class DebugFileTest(TestCase):
     def test_delete_dif(self):
         dif = self.create_dif_file(
@@ -115,7 +121,7 @@ class CreateDebugFileTest(APITestCase):
         return os.path.join(os.path.dirname(__file__), "fixtures", "crash.dsym")
 
     def create_dif(self, fileobj=None, file=None, **kwargs):
-        args = {
+        args: dict[str, Any] = {
             "file_format": "macho",
             "arch": "x86_64",
             "debug_id": "67e9247c-814e-392b-a027-dbde6748fcbf",
@@ -124,9 +130,7 @@ class CreateDebugFileTest(APITestCase):
         }
 
         args.update(kwargs)
-        return debugfile.create_dif_from_id(
-            self.project, DifMeta(**args), fileobj=fileobj, file=file
-        )
+        return create_dif_from_id(self.project, DifMeta(**args), fileobj=fileobj, file=file)
 
     def test_create_dif_from_file(self):
         file = self.create_file(

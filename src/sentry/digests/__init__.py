@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import datetime as datetime_mod
 from collections import namedtuple
-from datetime import datetime
 from typing import TYPE_CHECKING, List, MutableMapping
 
 from django.conf import settings
@@ -10,7 +10,8 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.services import LazyServiceWrapper
 
 if TYPE_CHECKING:
-    from sentry.models import Rule, Group
+    from sentry.models.group import Group
+    from sentry.models.rule import Rule
 
 from .backends.base import Backend
 from .backends.dummy import DummyBackend
@@ -23,10 +24,8 @@ backend.expose(locals())
 
 class Record(namedtuple("Record", "key value timestamp")):
     @property
-    def datetime(self) -> datetime | None:
-        # Explicitly typing to satisfy mypy.
-        dt: datetime | None = to_datetime(self.timestamp)
-        return dt
+    def datetime(self) -> datetime_mod.datetime | None:
+        return to_datetime(self.timestamp)
 
 
 ScheduleEntry = namedtuple("ScheduleEntry", "key timestamp")

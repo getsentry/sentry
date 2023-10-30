@@ -7,6 +7,7 @@ Our linter engine needs to run in 3 different scenarios:
 For the js only path, we should not depend on any packages outside the
 python stdlib to prevent the need to install the world just to run eslint.
 """
+from __future__ import annotations
 
 # Import the stdlib json instead of sentry.utils.json, since this command is
 # run in setup.py
@@ -16,7 +17,6 @@ import subprocess
 import sys
 from subprocess import Popen, check_output
 
-os.environ["PYFLAKES_NODOCTEST"] = "1"
 os.environ["SENTRY_PRECOMMIT"] = "1"
 
 
@@ -72,7 +72,7 @@ def get_files_for_list(file_list):
 
 def get_js_files(file_list=None, snapshots=False):
     if snapshots:
-        extensions = (".js", ".jsx", ".ts", ".tsx", ".jsx.snap", ".js.snap")
+        extensions: tuple[str, ...] = (".js", ".jsx", ".ts", ".tsx", ".jsx.snap", ".js.snap")
     else:
         extensions = (".js", ".jsx", ".ts", ".tsx")
 
@@ -217,8 +217,6 @@ def js_lint_format(file_list=None):
 
     js_file_list = get_js_files(file_list)
 
-    # manually exclude some bad files
-    js_file_list = [x for x in js_file_list if "/javascript/example-project/" not in x]
     cmd = [eslint_path, "--fix"]
 
     has_package_json_errors = (

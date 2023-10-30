@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
@@ -11,10 +12,13 @@ import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {WebVital} from 'sentry/utils/discover/fields';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import {WebVital} from 'sentry/utils/fields';
+import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
+import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
+import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {vitalsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionVitals/utils';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import VitalInfo from 'sentry/views/performance/vitalDetail/vitalInfo';
@@ -40,22 +44,15 @@ function UserStats({
   transactionName,
   eventView,
 }: Props) {
-  const useAggregateAlias = !organization.features.includes(
-    'performance-frontend-use-events-endpoint'
-  );
   let userMisery = error !== null ? <div>{'\u2014'}</div> : <Placeholder height="34px" />;
 
   if (!isLoading && error === null && totals) {
-    const threshold: number | undefined = totals.project_threshold_config[1];
-    const miserableUsers: number | undefined = useAggregateAlias
-      ? totals.count_miserable_user
-      : totals['count_miserable_user()'];
-    const userMiseryScore: number = useAggregateAlias
-      ? totals.user_misery
-      : totals['user_misery()'];
-    const totalUsers = useAggregateAlias
-      ? totals.count_unique_user
-      : totals['count_unique_user()'];
+    const threshold: number | undefined = totals.project_threshold_config
+      ? totals.project_threshold_config[1]
+      : undefined;
+    const miserableUsers: number | undefined = totals['count_miserable_user()'];
+    const userMiseryScore: number = totals['user_misery()'] || 0;
+    const totalUsers = totals['count_unique_user()'];
     userMisery = (
       <UserMisery
         bars={40}
@@ -76,6 +73,14 @@ function UserStats({
     projectID: decodeScalar(location.query.project),
     query: location.query,
   });
+
+  const mepSetting = useMEPSettingContext();
+  const mepCardinalityContext = useMetricsCardinalityContext();
+  const queryExtras = getTransactionMEPParamsIfApplicable(
+    mepSetting,
+    mepCardinalityContext,
+    organization
+  );
 
   return (
     <Fragment>
@@ -107,18 +112,21 @@ function UserStats({
             project={eventView.project}
             hideVitalThresholds
             hideDurationDetail
+            queryExtras={queryExtras}
           />
           <SidebarSpacer />
         </Fragment>
       )}
-      <SectionHeading>
-        {t('User Misery')}
-        <QuestionTooltip
-          position="top"
-          title={getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY)}
-          size="sm"
-        />
-      </SectionHeading>
+      <GuideAnchor target="user_misery" position="left">
+        <SectionHeading>
+          {t('User Misery')}
+          <QuestionTooltip
+            position="top"
+            title={getTermHelp(organization, PerformanceTerm.USER_MISERY)}
+            size="sm"
+          />
+        </SectionHeading>
+      </GuideAnchor>
       {userMisery}
       <SidebarSpacer />
     </Fragment>

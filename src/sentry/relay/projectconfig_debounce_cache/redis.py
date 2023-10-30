@@ -8,6 +8,7 @@ REDIS_CACHE_TIMEOUT = 3600  # 1 hr
 class RedisProjectConfigDebounceCache(ProjectConfigDebounceCache):
     def __init__(self, **options):
         self._key_prefix = options.pop("key_prefix", "relayconfig-debounce")
+        self._debounce_ttl = options.pop("debounce_ttl", REDIS_CACHE_TIMEOUT)
         self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
             "SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS", options
         )
@@ -34,21 +35,34 @@ class RedisProjectConfigDebounceCache(ProjectConfigDebounceCache):
             return self.cluster.get_local_client_for_key(routing_key)
 
     def is_debounced(self, *, public_key, project_id, organization_id):
-        key = self._get_redis_key(public_key, project_id, organization_id)
-        client = self._get_redis_client(key)
-        if client.get(key):
-            return True
+        if organization_id:
+            key = self._get_redis_key(
+                public_key=None, project_id=None, organization_id=organization_id
+            )
+            client = self._get_redis_client(key)
+            if client.get(key):
+                return True
+        if project_id:
+            key = self._get_redis_key(public_key=None, project_id=project_id, organization_id=None)
+            client = self._get_redis_client(key)
+            if client.get(key):
+                return True
+        if public_key:
+            key = self._get_redis_key(public_key=public_key, project_id=None, organization_id=None)
+            client = self._get_redis_client(key)
+            if client.get(key):
+                return True
         return False
 
     def debounce(self, *, public_key, project_id, organization_id):
         key = self._get_redis_key(public_key, project_id, organization_id)
         client = self._get_redis_client(key)
-        client.setex(key, REDIS_CACHE_TIMEOUT, 1)
-        metrics.incr("relay.projectconfig_debounce_cache.debounce", sample_rate=1)
+        client.setex(key, self._debounce_ttl, 1)
+        metrics.incr("relay.projectconfig_debounce_cache.debounce")
 
     def mark_task_done(self, *, public_key, project_id, organization_id):
         key = self._get_redis_key(public_key, project_id, organization_id)
         client = self._get_redis_client(key)
         ret = client.delete(key)
-        metrics.incr("relay.projectconfig_debounce_cache.task_done", sample_rate=1)
+        metrics.incr("relay.projectconfig_debounce_cache.task_done")
         return ret

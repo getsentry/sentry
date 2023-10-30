@@ -1,15 +1,19 @@
+from __future__ import annotations
+
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.base import serialize
-from sentry.models import SentryAppComponent
+from sentry.models.integrations.sentry_app_component import SentryAppComponent
+from sentry.services.hybrid_cloud.app import SentryAppEventDataInterface
 
 
 @register(SentryAppComponent)
 class SentryAppComponentSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, errors):
         return {
             "uuid": str(obj.uuid),
             "type": obj.type,
             "schema": obj.schema,
+            "error": True if str(obj.uuid) in errors else False,
             "sentryApp": {
                 "uuid": obj.sentry_app.uuid,
                 "slug": obj.sentry_app.slug,
@@ -21,7 +25,7 @@ class SentryAppComponentSerializer(Serializer):
 
 class SentryAppAlertRuleActionSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):
-        event_action = kwargs.get("event_action")
+        event_action: SentryAppEventDataInterface | None = kwargs.get("event_action")
         if not event_action:
             raise AssertionError("Requires event_action keyword argument of type EventAction")
 

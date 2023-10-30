@@ -1,16 +1,17 @@
+from __future__ import annotations
+
 import logging
 
 from django import forms
 from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from requests.exceptions import ConnectionError, ReadTimeout
 
 import sentry
 from sentry.exceptions import PluginError
-from sentry.http import is_valid_url
 from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.net.socket import is_valid_url
 from sentry.plugins.bases import notify
-from sentry.utils.compat import filter
 
 from .client import WebhookApiClient
 
@@ -22,13 +23,13 @@ Internal Integration.
 """
 
 
-def split_urls(value):
+def split_urls(value: str) -> list[str]:
     if not value:
-        return ()
-    return filter(bool, (url.strip() for url in value.splitlines()))
+        return []
+    return list(filter(bool, (url.strip() for url in value.splitlines())))
 
 
-def validate_urls(value, **kwargs):
+def validate_urls(value: str, **kwargs: object) -> str:
     urls = split_urls(value)
     if any((not u.startswith(("http://", "https://")) or not is_valid_url(u)) for u in urls):
         raise PluginError("Not a valid URL.")

@@ -1,15 +1,30 @@
+from typing import Any
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.models import Integration, Organization
+from sentry.models.integrations.integration import Integration
+from sentry.services.hybrid_cloud import coerce_id_from
+from sentry.services.hybrid_cloud.organization import RpcOrganization
 
 
-class VstsSearchEndpoint(IntegrationEndpoint):  # type: ignore
-    def get(self, request: Request, organization: Organization, integration_id: int) -> Response:
+@control_silo_endpoint
+class VstsSearchEndpoint(IntegrationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
+    def get(
+        self, request: Request, organization: RpcOrganization, integration_id: int, **kwds: Any
+    ) -> Response:
         try:
             integration = Integration.objects.get(
-                organizations=organization, id=integration_id, provider="vsts"
+                organizationintegration__organization_id=coerce_id_from(organization),
+                id=integration_id,
+                provider="vsts",
             )
         except Integration.DoesNotExist:
             return Response(status=404)

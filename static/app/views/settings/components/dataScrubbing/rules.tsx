@@ -1,40 +1,21 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
+import ConfirmDelete from 'sentry/components/confirmDelete';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
-import {MethodType, Rule, RuleType} from './types';
-import {getMethodLabel, getRuleLabel} from './utils';
+import {Rule} from './types';
+import {getRuleDescription} from './utils';
 
 type Props = {
   rules: Array<Rule>;
   disabled?: boolean;
-  onDeleteRule?: (id: Rule['id']) => () => void;
-  onEditRule?: (id: Rule['id']) => () => void;
-};
-
-const getListItemDescription = (rule: Rule) => {
-  const {method, type, source} = rule;
-  const methodLabel = getMethodLabel(method);
-  const typeLabel = getRuleLabel(type);
-
-  const descriptionDetails: Array<string> = [];
-
-  descriptionDetails.push(`[${methodLabel.label}]`);
-
-  descriptionDetails.push(
-    rule.type === RuleType.PATTERN ? `[${rule.pattern}]` : `[${typeLabel}]`
-  );
-
-  if (rule.method === MethodType.REPLACE && rule.placeholder) {
-    descriptionDetails.push(` with [${rule.placeholder}]`);
-  }
-
-  return `${descriptionDetails.join(' ')} ${t('from')} [${source}]`;
+  onDeleteRule?: (id: Rule['id']) => void;
+  onEditRule?: (id: Rule['id']) => void;
 };
 
 const Rules = forwardRef(function RulesList(
@@ -45,26 +26,41 @@ const Rules = forwardRef(function RulesList(
     <List ref={ref} isDisabled={disabled} data-test-id="advanced-data-scrubbing-rules">
       {rules.map(rule => {
         const {id} = rule;
+        const ruleDescription = getRuleDescription(rule);
         return (
           <ListItem key={id}>
-            <TextOverflow>{getListItemDescription(rule)}</TextOverflow>
+            <TextOverflow>{ruleDescription}</TextOverflow>
             {onEditRule && (
               <Button
                 aria-label={t('Edit Rule')}
-                size="small"
-                onClick={onEditRule(id)}
+                size="sm"
+                onClick={() => onEditRule(id)}
                 icon={<IconEdit />}
                 disabled={disabled}
+                title={
+                  disabled ? t('You do not have permission to edit rules') : undefined
+                }
               />
             )}
             {onDeleteRule && (
-              <Button
-                aria-label={t('Delete Rule')}
-                size="small"
-                onClick={onDeleteRule(id)}
-                icon={<IconDelete />}
+              <ConfirmDelete
+                message={t('Are you sure you wish to delete this rule?')}
+                priority="danger"
+                onConfirm={() => onDeleteRule(id)}
+                confirmInput={ruleDescription}
                 disabled={disabled}
-              />
+                stopPropagation
+              >
+                <Button
+                  aria-label={t('Delete Rule')}
+                  size="sm"
+                  icon={<IconDelete />}
+                  disabled={disabled}
+                  title={
+                    disabled ? t('You do not have permission to delete rules') : undefined
+                  }
+                />
+              </ConfirmDelete>
             )}
           </ListItem>
         );

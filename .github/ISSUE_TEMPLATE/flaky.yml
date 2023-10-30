@@ -10,7 +10,6 @@ body:
       description: What are you observing
       options:
         - Timeout
-        - Visual Snapshot
         - Jest Snapshot
         - Insta Snapshot
         - Assertion failure
@@ -21,7 +20,7 @@ body:
     id: job-name
     attributes:
       label: Name of Job
-      placeholder: acceptance / acceptance (3.8.12, 0)
+      placeholder: acceptance / acceptance (0)
       description: name of job as reported in the status report
     validations:
       required: true

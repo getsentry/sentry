@@ -13,15 +13,13 @@
 !jest.config.js
 !now.json
 !package.json
-!prettier.config.js
+!.prettierrc
 !stylelint.config.js
 !tsconfig.json
 !config
 !config/tsconfig.build.json
 !webpack.config.js
 !yarn.lock
-!docs-ui
-!docs-ui/**
 !tests
 !fixtures
 !fixtures/integration-docs

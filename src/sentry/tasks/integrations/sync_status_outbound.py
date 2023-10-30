@@ -1,7 +1,11 @@
 from typing import Optional
 
 from sentry import analytics, features
-from sentry.models import ExternalIssue, Group, GroupStatus, Integration
+from sentry.models.group import Group, GroupStatus
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
+from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 
 
@@ -10,6 +14,7 @@ from sentry.tasks.base import instrumented_task, retry, track_group_async_operat
     queue="integrations",
     default_retry_delay=60 * 5,
     max_retries=5,
+    silo_mode=SiloMode.REGION,
 )
 @retry(exclude=(Integration.DoesNotExist,))
 @track_group_async_operation
@@ -31,7 +36,7 @@ def sync_status_outbound(group_id: int, external_issue_id: int) -> Optional[bool
         # Issue link could have been deleted while sync job was in the queue.
         return None
 
-    integration = Integration.objects.get(id=external_issue.integration_id)
+    integration = integration_service.get_integration(integration_id=external_issue.integration_id)
     installation = integration.get_installation(organization_id=external_issue.organization_id)
     if installation.should_sync("outbound_status"):
         installation.sync_status_outbound(

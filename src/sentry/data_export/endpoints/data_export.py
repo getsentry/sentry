@@ -5,16 +5,19 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.base import EnvironmentMixin
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationDataExportPermission, OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Environment
+from sentry.models.environment import Environment
 from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.types import QueryBuilderConfig
+from sentry.snuba.dataset import Dataset
 from sentry.utils import metrics
-from sentry.utils.snuba import MAX_FIELDS, Dataset
+from sentry.utils.snuba import MAX_FIELDS
 
 from ..base import ExportQueryType
 from ..models import ExportedData
@@ -96,8 +99,10 @@ class DataExportQuerySerializer(serializers.Serializer):
                     query=query_info["query"],
                     selected_columns=fields.copy(),
                     equations=equations,
-                    auto_fields=True,
-                    auto_aggregations=True,
+                    config=QueryBuilderConfig(
+                        auto_fields=True,
+                        auto_aggregations=True,
+                    ),
                 )
                 builder.get_snql_query()
             except InvalidSearchQuery as err:
@@ -106,7 +111,11 @@ class DataExportQuerySerializer(serializers.Serializer):
         return data
 
 
+@region_silo_endpoint
 class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationDataExportPermission,)
 
     def post(self, request: Request, organization) -> Response:
@@ -147,7 +156,7 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
             query_type = ExportQueryType.from_str(data["query_type"])
             data_export, created = ExportedData.objects.get_or_create(
                 organization=organization,
-                user=request.user,
+                user_id=request.user.id,
                 query_type=query_type,
                 query_info=data["query_info"],
                 date_finished=None,

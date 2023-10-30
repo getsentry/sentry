@@ -5,9 +5,8 @@ import * as Sentry from '@sentry/react';
 
 import {openSudo} from 'sentry/actionCreators/modal';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
-import ProjectActions from 'sentry/actions/projectActions';
 import {Client} from 'sentry/api';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingTriangle from 'sentry/components/loadingTriangle';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -18,7 +17,7 @@ import SentryTypes from 'sentry/sentryTypes';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {metric} from 'sentry/utils/analytics';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
@@ -36,13 +35,14 @@ type Props = RouteComponentProps<{orgId: string}, {}> & {
   organizationsLoading: boolean;
   routes: PlainRoute[];
   useLastOrganization: boolean;
+  children?: React.ReactNode;
 };
 
 type State = {
   loading: boolean;
   organization: Organization | null;
   prevProps: {
-    location: RouteComponentProps<{orgId: string}, {}>['location'];
+    location: Props['location'];
     orgId: string;
     organizationsLoading: boolean;
   };
@@ -182,7 +182,6 @@ class OrganizationContextContainer extends Component<Props, State> {
   }
 
   unlisteners = [
-    ProjectActions.createSuccess.listen(() => this.onProjectCreation(), undefined),
     OrganizationStore.listen(data => this.loadOrganization(data), undefined),
   ];
 
@@ -192,18 +191,6 @@ class OrganizationContextContainer extends Component<Props, State> {
       this.fetchData
     );
   };
-
-  onProjectCreation() {
-    // If a new project was created, we need to re-fetch the
-    // org details endpoint, which will propagate re-rendering
-    // for the entire component tree
-    fetchOrganizationDetails(
-      this.props.api,
-      OrganizationContextContainer.getOrganizationSlug(this.props),
-      true,
-      false
-    );
-  }
 
   isLoading() {
     // In the absence of an organization slug, the loading state should be
@@ -216,9 +203,12 @@ class OrganizationContextContainer extends Component<Props, State> {
   }
 
   fetchData(isInitialFetch = false) {
-    if (!OrganizationContextContainer.getOrganizationSlug(this.props)) {
+    const orgSlug = OrganizationContextContainer.getOrganizationSlug(this.props);
+
+    if (!orgSlug) {
       return;
     }
+
     // fetch from the store, then fetch from the API if necessary
     if (OrganizationContextContainer.isOrgStorePopulatedCorrectly(this.props)) {
       return;
@@ -227,7 +217,7 @@ class OrganizationContextContainer extends Component<Props, State> {
     metric.mark({name: 'organization-details-fetch-start'});
     fetchOrganizationDetails(
       this.props.api,
-      OrganizationContextContainer.getOrganizationSlug(this.props),
+      orgSlug,
       !OrganizationContextContainer.isOrgChanging(this.props), // if true, will preserve a lightweight org that was fetched,
       isInitialFetch
     );
@@ -282,12 +272,6 @@ class OrganizationContextContainer extends Component<Props, State> {
     });
   }
 
-  getOrganizationDetailsEndpoint() {
-    return `/organizations/${OrganizationContextContainer.getOrganizationSlug(
-      this.props
-    )}/`;
-  }
-
   getTitle() {
     return this.state.organization?.name ?? 'Sentry';
   }
@@ -311,7 +295,7 @@ class OrganizationContextContainer extends Component<Props, State> {
         return this.renderBody();
       case ORGANIZATION_FETCH_ERROR_TYPES.ORG_NOT_FOUND:
         errorComponent = (
-          <Alert type="error">
+          <Alert type="error" data-test-id="org-loading-error">
             {t('The organization you were looking for was not found.')}
           </Alert>
         );
@@ -361,7 +345,7 @@ export default withApi(
   withOrganizations(Sentry.withProfiler(OrganizationContextContainer))
 );
 
-export {OrganizationContextContainer as OrganizationLegacyContext, OrganizationContext};
+export {OrganizationContextContainer as OrganizationLegacyContext};
 
 const ErrorWrapper = styled('div')`
   padding: ${space(3)};

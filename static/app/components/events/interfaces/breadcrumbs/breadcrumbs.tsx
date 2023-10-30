@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -6,35 +6,40 @@ import {
   List,
   ListRowProps,
 } from 'react-virtualized';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {PanelTable} from 'sentry/components/panels';
-import Tooltip from 'sentry/components/tooltip';
+import {
+  BreadcrumbTransactionEvent,
+  BreadcrumbWithMeta,
+} from 'sentry/components/events/interfaces/breadcrumbs/types';
+import PanelTable from 'sentry/components/panels/panelTable';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {Crumb} from 'sentry/types/breadcrumbs';
+import {space} from 'sentry/styles/space';
+import {BreadcrumbType} from 'sentry/types/breadcrumbs';
+import {defined} from 'sentry/utils';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useProjects from 'sentry/utils/useProjects';
+import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
-import Breadcrumb from './breadcrumb';
+import {isEventId} from './breadcrumb/data/default';
+import {Breadcrumb} from './breadcrumb';
 
-const PANEL_MAX_HEIGHT = 400;
+const PANEL_MIN_HEIGHT = 200;
+const PANEL_INITIAL_HEIGHT = 400;
 
 const cache = new CellMeasurerCache({
   fixedWidth: true,
-  minHeight: 42,
+  defaultHeight: 38,
 });
 
 type Props = Pick<
   React.ComponentProps<typeof Breadcrumb>,
-  | 'event'
-  | 'organization'
-  | 'searchTerm'
-  | 'relativeTime'
-  | 'displayRelativeTime'
-  | 'router'
-  | 'route'
+  'event' | 'organization' | 'searchTerm' | 'relativeTime' | 'displayRelativeTime'
 > & {
-  breadcrumbs: Crumb[];
+  breadcrumbs: BreadcrumbWithMeta[];
   emptyMessage: Pick<
     React.ComponentProps<typeof PanelTable>,
     'emptyMessage' | 'emptyAction'
@@ -51,45 +56,77 @@ function Breadcrumbs({
   event,
   relativeTime,
   emptyMessage,
-  route,
-  router,
 }: Props) {
-  const [scrollToIndex, setScrollToIndex] = useState<number | undefined>(undefined);
   const [scrollbarSize, setScrollbarSize] = useState(0);
+  const {projects, fetching: loadingProjects} = useProjects();
 
-  let listRef: List | null = null;
+  const maybeProject = !loadingProjects
+    ? projects.find(project => {
+        return event && project.id === event.projectID;
+      })
+    : null;
+
+  const listRef = useRef<List>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    updateGrid();
+  const sentryTransaction = breadcrumbs.filter(
+    crumb =>
+      crumb.breadcrumb.category === 'sentry.transaction' &&
+      defined(crumb.breadcrumb.message) &&
+      isEventId(crumb.breadcrumb.message)
+  );
+
+  const sentryTransactionIds = sentryTransaction
+    .map(crumb => crumb.breadcrumb.message)
+    .filter(defined);
+
+  const {data: transactionEvents} = useApiQuery<{
+    data: BreadcrumbTransactionEvent[];
+    meta: any;
+  }>(
+    [
+      `/organizations/${organization.slug}/events/`,
+      {
+        query: {
+          query: `id:[${sentryTransactionIds}]`,
+          field: ['title'],
+          project: [maybeProject?.id],
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+      enabled: sentryTransactionIds.length > 0 && defined(maybeProject),
+    }
+  );
+
+  const updateGrid = useCallback(() => {
+    if (listRef.current) {
+      cache.clearAll();
+      listRef.current.forceUpdateGrid();
+    }
   }, []);
 
   useEffect(() => {
-    if (!!breadcrumbs.length && !scrollToIndex) {
-      setScrollToIndex(breadcrumbs.length - 1);
-      return;
-    }
-
     updateGrid();
-  }, [breadcrumbs]);
+  }, [breadcrumbs, updateGrid]);
 
-  useEffect(() => {
-    if (scrollToIndex !== undefined) {
-      updateGrid();
-    }
-  }, [scrollToIndex]);
-
-  function updateGrid() {
-    if (listRef) {
-      cache.clearAll();
-      listRef.forceUpdateGrid();
-    }
-  }
+  const {
+    size: containerSize,
+    isHeld,
+    onMouseDown,
+    onDoubleClick,
+  } = useResizableDrawer({
+    direction: 'down',
+    onResize: () => void 0,
+    initialSize: PANEL_INITIAL_HEIGHT,
+    min: PANEL_MIN_HEIGHT,
+  });
 
   function renderRow({index, key, parent, style}: ListRowProps) {
-    const breadcrumb = breadcrumbs[index];
-    const isLastItem = breadcrumbs[breadcrumbs.length - 1].id === breadcrumb.id;
-    const {height} = style;
+    const {breadcrumb, meta} = breadcrumbs[index];
+    const isLastItem = index === breadcrumbs.length - 1;
+
     return (
       <CellMeasurer
         cache={cache}
@@ -99,82 +136,92 @@ function Breadcrumbs({
         rowIndex={index}
       >
         {({measure}) => (
-          <Breadcrumb
-            data-test-id={isLastItem ? 'last-crumb' : 'crumb'}
-            style={style}
-            onLoad={measure}
-            organization={organization}
-            searchTerm={searchTerm}
-            breadcrumb={breadcrumb}
-            event={event}
-            relativeTime={relativeTime}
-            displayRelativeTime={displayRelativeTime}
-            height={height ? String(height) : undefined}
-            scrollbarSize={
-              (contentRef?.current?.offsetHeight ?? 0) < PANEL_MAX_HEIGHT
-                ? scrollbarSize
-                : 0
-            }
-            router={router}
-            route={route}
-          />
+          <BreadcrumbRow style={style} error={breadcrumb.type === BreadcrumbType.ERROR}>
+            <Breadcrumb
+              index={index}
+              cache={cache}
+              isLastItem={isLastItem}
+              style={style}
+              onResize={measure}
+              organization={organization}
+              searchTerm={searchTerm}
+              breadcrumb={breadcrumb}
+              meta={meta}
+              event={event}
+              relativeTime={relativeTime}
+              displayRelativeTime={displayRelativeTime}
+              scrollbarSize={
+                (contentRef?.current?.offsetHeight ?? 0) < containerSize
+                  ? scrollbarSize
+                  : 0
+              }
+              transactionEvents={transactionEvents?.data}
+            />
+          </BreadcrumbRow>
         )}
       </CellMeasurer>
     );
   }
 
   return (
-    <StyledPanelTable
-      scrollbarSize={scrollbarSize}
-      headers={[
-        t('Type'),
-        t('Category'),
-        t('Description'),
-        t('Level'),
-        <Time key="time" onClick={onSwitchTimeFormat}>
-          <Tooltip
-            containerDisplayMode="inline-flex"
-            title={
-              displayRelativeTime ? t('Switch to absolute') : t('Switch to relative')
-            }
-          >
-            <StyledIconSort size="xs" rotated />
-          </Tooltip>
+    <Wrapper>
+      <StyledPanelTable
+        scrollbarSize={scrollbarSize}
+        headers={[
+          t('Type'),
+          t('Category'),
+          t('Description'),
+          t('Level'),
+          <Time key="time" onClick={onSwitchTimeFormat}>
+            <Tooltip
+              containerDisplayMode="inline-flex"
+              title={
+                displayRelativeTime ? t('Switch to absolute') : t('Switch to relative')
+              }
+            >
+              <StyledIconSort size="xs" rotated />
+            </Tooltip>
 
-          {t('Time')}
-        </Time>,
-        '',
-      ]}
-      isEmpty={!breadcrumbs.length}
-      {...emptyMessage}
-    >
-      <Content ref={contentRef}>
-        <AutoSizer disableHeight onResize={updateGrid}>
-          {({width}) => (
-            <StyledList
-              ref={(el: List | null) => {
-                listRef = el;
-              }}
-              deferredMeasurementCache={cache}
-              height={PANEL_MAX_HEIGHT}
-              overscanRowCount={5}
-              rowCount={breadcrumbs.length}
-              rowHeight={cache.rowHeight}
-              rowRenderer={renderRow}
-              width={width}
-              onScrollbarPresenceChange={({size}) => setScrollbarSize(size)}
-              // when the component mounts, it scrolls to the last item
-              scrollToIndex={scrollToIndex}
-              scrollToAlignment={scrollToIndex ? 'end' : undefined}
-            />
-          )}
-        </AutoSizer>
-      </Content>
-    </StyledPanelTable>
+            {t('Time')}
+          </Time>,
+          // Space for the scrollbar
+          '',
+        ]}
+        isEmpty={!breadcrumbs.length}
+        {...emptyMessage}
+      >
+        <Content ref={contentRef}>
+          <AutoSizer disableHeight onResize={updateGrid}>
+            {({width}) => (
+              <StyledList
+                ref={listRef}
+                deferredMeasurementCache={cache}
+                height={containerSize}
+                overscanRowCount={5}
+                rowCount={breadcrumbs.length}
+                rowHeight={cache.rowHeight}
+                rowRenderer={renderRow}
+                width={width}
+                onScrollbarPresenceChange={({size}) => setScrollbarSize(size)}
+              />
+            )}
+          </AutoSizer>
+        </Content>
+      </StyledPanelTable>
+      <PanelDragHandle
+        onMouseDown={onMouseDown}
+        onDoubleClick={onDoubleClick}
+        className={isHeld ? 'is-held' : undefined}
+      />
+    </Wrapper>
   );
 }
 
 export default Breadcrumbs;
+
+const Wrapper = styled('div')`
+  position: relative;
+`;
 
 const StyledPanelTable = styled(PanelTable)<{scrollbarSize: number}>`
   display: grid;
@@ -191,6 +238,11 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarSize: number}>`
       :nth-child(6n-5) {
         text-align: center;
       }
+    }
+
+    /* Scroll bar header */
+    :nth-child(6) {
+      padding: 0;
     }
 
     /* Content */
@@ -222,8 +274,6 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarSize: number}>`
       }
     }
   }
-
-  overflow: hidden;
 `;
 
 const Time = styled('div')`
@@ -241,8 +291,31 @@ const StyledIconSort = styled(IconSort)`
 `;
 
 const Content = styled('div')`
-  max-height: ${PANEL_MAX_HEIGHT}px;
   overflow: hidden;
+`;
+
+const PanelDragHandle = styled('div')`
+  position: absolute;
+  bottom: -1px;
+  left: 1px;
+  right: 1px;
+  height: 10px;
+  cursor: ns-resize;
+  display: flex;
+  align-items: center;
+
+  &::after {
+    content: '';
+    height: 5px;
+    width: 100%;
+    border-radius: ${p => p.theme.borderRadiusBottom};
+    transition: background 100ms ease-in-out;
+  }
+
+  &:hover::after,
+  &.is-held:after {
+    background: ${p => p.theme.purple300};
+  }
 `;
 
 // XXX(ts): Emotion11 has some trouble with List's defaultProps
@@ -253,4 +326,24 @@ const StyledList = styled(List as any)<React.ComponentProps<typeof List>>`
   height: auto !important;
   max-height: ${p => p.height}px;
   outline: none;
+`;
+
+const BreadcrumbRow = styled('div')<{error: boolean}>`
+  :not(:last-child) {
+    border-bottom: 1px solid ${p => (p.error ? p.theme.red300 : p.theme.innerBorder)};
+  }
+
+  ${p =>
+    p.error &&
+    css`
+      :after {
+        content: '';
+        position: absolute;
+        top: -1px;
+        left: 0;
+        height: 1px;
+        width: 100%;
+        background: ${p.theme.red300};
+      }
+    `}
 `;

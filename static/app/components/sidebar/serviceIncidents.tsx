@@ -6,12 +6,12 @@ import sortBy from 'lodash/sortBy';
 import startCase from 'lodash/startCase';
 
 import {loadIncidents} from 'sentry/actionCreators/serviceIncidents';
-import Button from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Text from 'sentry/components/text';
-import Tooltip from 'sentry/components/tooltip';
-import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
+import TimeSince from 'sentry/components/timeSince';
+import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconCheckmark,
   IconFatal,
@@ -21,11 +21,9 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {SentryServiceStatus} from 'sentry/types';
 import marked from 'sentry/utils/marked';
-
-import TimeSince from '../timeSince';
 
 import SidebarItem from './sidebarItem';
 import SidebarPanel from './sidebarPanel';
@@ -68,16 +66,11 @@ function ServiceIncidents({
 
   useEffect(() => void fetchData(), []);
 
-  // Never render incidents in acceptance tests
-  if (IS_ACCEPTANCE_TEST) {
-    return null;
-  }
-
   if (!serviceStatus) {
     return null;
   }
 
-  const active = currentPanel === SidebarPanelKey.ServiceIncidents;
+  const active = currentPanel === SidebarPanelKey.SERVICE_INCIDENTS;
   const isEmpty = !serviceStatus.incidents || serviceStatus.incidents.length === 0;
 
   if (isEmpty) {
@@ -106,21 +99,16 @@ function ServiceIncidents({
             <SidebarPanelEmpty>{t('There are no incidents to report')}</SidebarPanelEmpty>
           )}
           {serviceStatus.incidents.map(incident => (
-            <SidebarPanelItem
-              title={incident.name}
-              key={incident.id}
-              titleAction={
-                <Button
-                  size="xsmall"
-                  icon={<IconOpen size="xs" />}
-                  priority="link"
-                  href={incident.url}
-                  external
-                >
-                  {t('Full Incident Details')}
-                </Button>
-              }
-            >
+            <SidebarPanelItem title={incident.name} key={incident.id}>
+              <LinkButton
+                size="xs"
+                icon={<IconOpen size="xs" />}
+                priority="link"
+                href={incident.url}
+                external
+              >
+                {t('Full Incident Details')}
+              </LinkButton>
               <AffectedServices>
                 {tct(
                   "This incident started [timeAgo]. We're experiencing the following problems with our services",
@@ -172,15 +160,15 @@ function getStatusSymbol(status: Status) {
   return (
     <Tooltip skipWrapper title={startCase(status)}>
       {status === 'operational' ? (
-        <IconCheckmark size="sm" isCircled color="green300" />
+        <IconCheckmark size="sm" isCircled color="successText" />
       ) : status === 'major_outage' ? (
-        <IconFatal size="sm" color="red300" />
+        <IconFatal size="sm" color="errorText" />
       ) : status === 'degraded_performance' ? (
-        <IconWarning size="sm" color="yellow300" />
+        <IconWarning size="sm" color="warningText" />
       ) : status === 'partial_outage' ? (
-        <IconFire size="sm" color="yellow300" />
+        <IconFire size="sm" color="warningText" />
       ) : (
-        <IconInfo size="sm" color="gray300" />
+        <IconInfo size="sm" color="subText" />
       )}
     </Tooltip>
   );

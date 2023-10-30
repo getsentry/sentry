@@ -12,8 +12,12 @@ from sentry.api.issue_search import convert_query_values, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Environment, Group, Organization, Project, Release, User
-from sentry.models.group import looks_like_short_id
+from sentry.models.environment import Environment
+from sentry.models.group import Group, looks_like_short_id
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.user import User
 from sentry.signals import advanced_search_feature_gated
 from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
@@ -31,6 +35,24 @@ advanced_search_features: Sequence[Tuple[Callable[[SearchFilter], Any], str]] = 
     (lambda search_filter: search_filter.is_negation, "negative search"),
     (lambda search_filter: search_filter.value.is_wildcard(), "wildcard search"),
 ]
+
+
+def parse_and_convert_issue_search_query(
+    query: str,
+    organization: Organization,
+    projects: Sequence[Project],
+    environments: Sequence[Environment],
+    user: User,
+) -> Sequence[SearchFilter]:
+    try:
+        search_filters = convert_query_values(
+            parse_search_query(query), projects, user, environments
+        )
+    except InvalidSearchQuery as e:
+        raise ValidationError(f"Error parsing search query: {e}")
+
+    validate_search_filter_permissions(organization, search_filters, user)
+    return search_filters
 
 
 def build_query_params_from_request(
@@ -64,15 +86,9 @@ def build_query_params_from_request(
             "search.environments", len(environments) if len(environments) <= 5 else ">5"
         )
     if query:
-        try:
-            search_filters = convert_query_values(
-                parse_search_query(query), projects, request.user, environments
-            )
-        except InvalidSearchQuery as e:
-            raise ValidationError(f"Error parsing search query: {e}")
-
-        validate_search_filter_permissions(organization, search_filters, request.user)
-        query_kwargs["search_filters"] = search_filters
+        query_kwargs["search_filters"] = parse_and_convert_issue_search_query(
+            query, organization, projects, environments, request.user
+        )
 
     return query_kwargs
 
@@ -202,6 +218,7 @@ def prep_search(
             query_kwargs.update(extra_query_kwargs)
 
         query_kwargs["environments"] = environments
+        query_kwargs["actor"] = request.user
         result = search.query(**query_kwargs)
     return result, query_kwargs
 
@@ -238,9 +255,7 @@ def get_release_info(request: Request, group: "Group", version: str) -> Mapping[
     except Release.DoesNotExist:
         release = {"version": version}
 
-    # Explicitly typing to satisfy mypy.
-    release_ifo: Mapping[str, Any] = serialize(release, request.user)
-    return release_ifo
+    return serialize(release, request.user)
 
 
 def get_first_last_release_info(

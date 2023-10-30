@@ -1,15 +1,15 @@
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import Clipboard from 'sentry/components/clipboard';
 import ConfirmDelete from 'sentry/components/confirmDelete';
 import DateTime from 'sentry/components/dateTime';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconCopy, IconDelete, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Relay} from 'sentry/types';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
 type Props = Relay & {
   disabled: boolean;
@@ -17,7 +17,7 @@ type Props = Relay & {
   onEdit: (publicKey: Relay['publicKey']) => () => void;
 };
 
-const CardHeader = ({
+function CardHeader({
   publicKey,
   name,
   description,
@@ -25,10 +25,12 @@ const CardHeader = ({
   disabled,
   onEdit,
   onDelete,
-}: Props) => {
+}: Props) {
+  const {onClick} = useCopyToClipboard({text: publicKey});
+
   const deleteButton = (
     <Button
-      size="small"
+      size="sm"
       icon={<IconDelete />}
       aria-label={t('Delete Key')}
       disabled={disabled}
@@ -45,13 +47,11 @@ const CardHeader = ({
         {tct('Created on [date]', {date: <DateTime date={created} />})}
       </DateCreated>
       <StyledButtonBar gap={1}>
-        <Clipboard value={publicKey}>
-          <Button size="small" icon={<IconCopy />}>
-            {t('Copy Key')}
-          </Button>
-        </Clipboard>
+        <Button size="sm" icon={<IconCopy />} onClick={onClick}>
+          {t('Copy Key')}
+        </Button>
         <Button
-          size="small"
+          size="sm"
           onClick={onEdit(publicKey)}
           icon={<IconEdit />}
           aria-label={t('Edit Key')}
@@ -74,15 +74,16 @@ const CardHeader = ({
       </StyledButtonBar>
     </Header>
   );
-};
+}
 
 export default CardHeader;
 
 const KeyName = styled('div')`
   grid-row: 1/2;
-  display: grid;
   grid-template-columns: repeat(2, max-content);
-  grid-column-gap: ${space(0.5)};
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
 `;
 
 const DateCreated = styled('div')`
@@ -99,7 +100,7 @@ const StyledButtonBar = styled(ButtonBar)`
 
 const Header = styled('div')`
   display: grid;
-  grid-row-gap: ${space(1)};
+  grid-row-gap: ${space(0.25)};
   margin-bottom: ${space(1)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {

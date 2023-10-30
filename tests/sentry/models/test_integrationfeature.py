@@ -1,8 +1,9 @@
-from sentry.models import IntegrationFeature
-from sentry.models.integrations.integration_feature import IntegrationTypes
-from sentry.testutils import TestCase
+from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class IntegrationFeatureTest(TestCase):
     def setUp(self):
         self.sentry_app = self.create_sentry_app()

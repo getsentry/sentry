@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import add_identity, install_slack
 from sentry.utils import json
 

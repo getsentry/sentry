@@ -1,22 +1,23 @@
+from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
-from rest_framework.request import Request
-from rest_framework.response import Response
 
-from sentry.models import Organization, OrganizationMember, User
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.user import User
 from sentry.notifications.notifications.organization_request import InviteRequestNotification
 
 from .mail import render_preview_email_for_notification
 
 
 class DebugOrganizationInviteRequestEmailView(View):
-    def get(self, request: Request) -> Response:
+    def get(self, request: HttpRequest) -> HttpResponse:
         org = Organization(id=1, slug="default", name="Default")
         requester = User(name="Rick Swan")
         pending_member = OrganizationMember(
-            email="test@gmail.com", organization=org, inviter=requester
+            email="test@gmail.com", organization=org, inviter_id=requester.id
         )
         recipient = User(name="James Bond")
-        recipient_member = OrganizationMember(user=recipient, organization=org)
+        recipient_member = OrganizationMember(user_id=recipient.id, organization=org)
 
         notification = InviteRequestNotification(pending_member, requester)
 

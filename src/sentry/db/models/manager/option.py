@@ -13,9 +13,7 @@ class OptionManager(BaseManager[M]):
         if not hasattr(_local_cache, "option_cache"):
             _local_cache.option_cache = {}
 
-        # Explicitly typing to satisfy mypy.
-        option_cache: Dict[str, Dict[str, Any]] = _local_cache.option_cache
-        return option_cache
+        return _local_cache.option_cache
 
     def clear_local_cache(self, **kwargs: Any) -> None:
         self._option_cache.clear()

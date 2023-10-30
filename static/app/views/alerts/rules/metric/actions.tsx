@@ -17,14 +17,13 @@ function isSavedRule(rule: MetricRule): rule is SavedMetricRule {
 export function addOrUpdateRule(
   api: Client,
   orgId: string,
-  projectId: string,
   rule: MetricRule,
   query?: object | any
 ) {
   const isExisting = isSavedRule(rule);
-  const endpoint = `/projects/${orgId}/${projectId}/alert-rules/${
-    isSavedRule(rule) ? `${rule.id}/` : ''
-  }`;
+  const endpoint = isExisting
+    ? `/organizations/${orgId}/alert-rules/${rule.id}/`
+    : `/organizations/${orgId}/alert-rules/`;
   const method = isExisting ? 'PUT' : 'POST';
 
   return api.requestPromise(endpoint, {
@@ -32,22 +31,5 @@ export function addOrUpdateRule(
     data: rule,
     query,
     includeAllArgs: true,
-  });
-}
-
-/**
- * Delete an existing rule
- *
- * @param api API Client
- * @param orgId Organization slug
- * @param rule Saved or Unsaved Metric Rule
- */
-export function deleteRule(
-  api: Client,
-  orgId: string,
-  rule: SavedMetricRule
-): Promise<void> {
-  return api.requestPromise(`/organizations/${orgId}/alert-rules/${rule.id}/`, {
-    method: 'DELETE',
   });
 }

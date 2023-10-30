@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, Optional, Sequence
 
 from sentry.utils.services import Service
 
 if TYPE_CHECKING:
-    from sentry.models import Group, Rule
+    from sentry.models.group import Group
+    from sentry.models.rule import Rule
     from sentry.utils.cursors import Cursor, CursorResult
 
 
@@ -16,6 +17,7 @@ class RuleGroupHistory:
     group: Group
     count: int
     last_triggered: datetime
+    event_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -31,7 +33,13 @@ class RuleHistoryBackend(Service):
 
     __all__ = ("record", "fetch_rule_groups_paginated", "fetch_rule_hourly_stats")
 
-    def record(self, rule: Rule, group: Group) -> None:
+    def record(
+        self,
+        rule: Rule,
+        group: Group,
+        event_id: Optional[str] = None,
+        notification_uuid: Optional[str] = None,
+    ) -> None:
         """
         Records an instance of an issue alert being fired for a given group.
         """
@@ -44,7 +52,7 @@ class RuleHistoryBackend(Service):
         Fetches groups that triggered a rule within a given timeframe, ordered by number of
         times each group fired.
         """
-        pass
+        raise NotImplementedError
 
     def fetch_rule_hourly_stats(
         self, rule: Rule, start: datetime, end: datetime
@@ -53,4 +61,4 @@ class RuleHistoryBackend(Service):
         Fetches counts of how often a rule has fired withing a given datetime range, bucketed by
         hour.
         """
-        pass
+        raise NotImplementedError

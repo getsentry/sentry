@@ -1,19 +1,15 @@
 from __future__ import annotations
 
 from typing import Any, Iterable, Mapping, MutableMapping, Sequence
+from urllib.parse import urlencode
 
-from sentry_relay import parse_release
+from sentry_relay.processing import parse_release
 
-from sentry.models import (
-    Activity,
-    Commit,
-    CommitFileChange,
-    OrganizationMember,
-    Project,
-    Team,
-    User,
-    UserEmail,
-)
+from sentry.models.activity import Activity
+from sentry.models.commit import Commit
+from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.notifications.utils import (
     get_deploy,
@@ -23,9 +19,10 @@ from sentry.notifications.utils import (
     get_repos,
 )
 from sentry.notifications.utils.actions import MessageAction
-from sentry.notifications.utils.participants import get_participants_for_release
+from sentry.notifications.utils.participants import ParticipantMap, get_participants_for_release
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.http import absolute_uri
 
 from .base import ActivityNotification
 
@@ -44,28 +41,30 @@ class ReleaseActivityNotification(ActivityNotification):
 
         if not self.release:
             self.email_list: set[str] = set()
-            self.user_ids: set[int] = set()
             self.repos: Iterable[Mapping[str, Any]] = set()
             self.projects: set[Project] = set()
             self.version = "unknown"
             self.version_parsed = self.version
+            self.user_ids = set()
             return
 
         self.projects = set(self.release.projects.all())
-        self.commit_list = Commit.objects.get_for_release(self.release)
+        self.commit_list = list(Commit.objects.get_for_release(self.release))
         self.email_list = {c.author.email for c in self.commit_list if c.author}
-        users = UserEmail.objects.get_users_by_emails(self.email_list, self.organization)
-        self.user_ids = {u.id for u in users.values()}
-        self.repos = get_repos(self.commit_list, users, self.organization)
+        users = user_service.get_many_by_email(
+            emails=list(self.email_list),
+            organization_id=self.organization.id,
+            is_verified=True,
+        )
+        self.user_ids = {u.id for u in users}
+        self.repos = get_repos(self.commit_list, {u.email: u for u in users}, self.organization)
         self.environment = get_environment_for_deploy(self.deploy)
         self.group_counts_by_project = get_group_counts_by_project(self.release, self.projects)
 
         self.version = self.release.version
         self.version_parsed = parse_release(self.version)["description"]
 
-    def get_participants_with_group_subscription_reason(
-        self,
-    ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
+    def get_participants_with_group_subscription_reason(self) -> ParticipantMap:
         return get_participants_for_release(self.projects, self.organization, self.user_ids)
 
     def get_users_by_teams(self) -> Mapping[int, list[int]]:
@@ -86,18 +85,22 @@ class ReleaseActivityNotification(ActivityNotification):
             "file_count": CommitFileChange.objects.get_count_for_commits(self.commit_list),
             "release": self.release,
             "repos": self.repos,
-            "setup_repo_link": absolute_uri(f"/organizations/{self.organization.slug}/repos/"),
+            "setup_repo_link": self.organization.absolute_url(
+                f"/organizations/{self.organization.slug}/repos/",
+                query=urlencode(
+                    {"referrer": self.metrics_key, "notification_uuid": self.notification_uuid}
+                ),
+            ),
             "text_description": f"Version {self.version_parsed} was deployed to {self.environment}",
             "version_parsed": self.version_parsed,
         }
 
-    def get_projects(self, recipient: Team | User) -> set[Project]:
+    def get_projects(self, recipient: RpcActor) -> set[Project]:
         if not self.release:
             return set()
 
-        if isinstance(recipient, User):
-            if recipient.is_superuser or self.organization.flags.allow_joinleave:
-                # Admins can see all projects.
+        if recipient.actor_type == ActorType.USER:
+            if self.organization.flags.allow_joinleave:
                 return self.projects
             team_ids = self.get_users_by_teams()[recipient.id]
         else:
@@ -109,12 +112,15 @@ class ReleaseActivityNotification(ActivityNotification):
         return projects
 
     def get_recipient_context(
-        self, recipient: Team | User, extra_context: Mapping[str, Any]
+        self, recipient: RpcActor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         projects = self.get_projects(recipient)
         release_links = [
-            absolute_uri(
-                f"/organizations/{self.organization.slug}/releases/{self.version}/?project={p.id}"
+            self.organization.absolute_url(
+                f"/organizations/{self.organization.slug}/releases/{self.version}/?project={p.id}",
+                query=urlencode(
+                    {"referrer": self.metrics_key, "notification_uuid": self.notification_uuid}
+                ),
             )
             for p in projects
         ]
@@ -133,7 +139,9 @@ class ReleaseActivityNotification(ActivityNotification):
     def title(self) -> str:
         return self.get_subject()
 
-    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+    def get_notification_title(
+        self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
+    ) -> str:
         projects_text = ""
         if len(self.projects) == 1:
             projects_text = " for this project"
@@ -141,35 +149,43 @@ class ReleaseActivityNotification(ActivityNotification):
             projects_text = " for these projects"
         return f"Release {self.version_parsed} was deployed to {self.environment}{projects_text}"
 
-    def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
+    def get_message_actions(
+        self, recipient: RpcActor, provider: ExternalProviders
+    ) -> Sequence[MessageAction]:
         if self.release:
             release = get_release(self.activity, self.project.organization)
             if release:
                 return [
                     MessageAction(
                         name=project.slug,
-                        url=absolute_uri(
-                            f"/organizations/{project.organization.slug}/releases/{release.version}/?project={project.id}&unselectedSeries=Healthy/"
+                        url=self.organization.absolute_url(
+                            f"/organizations/{project.organization.slug}/releases/{release.version}/",
+                            query=f"project={project.id}&unselectedSeries=Healthy&referrer={self.metrics_key}&notification_uuid={self.notification_uuid}",
                         ),
                     )
                     for project in self.release.projects.all()
                 ]
         return []
 
-    def build_attachment_title(self, recipient: Team | User) -> str:
+    def build_attachment_title(self, recipient: RpcActor) -> str:
         return ""
 
-    def get_title_link(self, recipient: Team | User) -> str | None:
+    def get_title_link(self, recipient: RpcActor, provider: ExternalProviders) -> str | None:
         return None
 
-    def build_notification_footer(self, recipient: Team | User) -> str:
-        # notification footer only used for Slack for now
-        settings_url = self.get_settings_url(recipient, ExternalProviders.SLACK)
+    def build_notification_footer(self, recipient: RpcActor, provider: ExternalProviders) -> str:
+        settings_url = self.get_settings_url(recipient, provider)
 
         # no environment related to a deploy
+        footer = ""
         if self.release:
-            return f"{self.release.projects.all()[0].slug} | <{settings_url}|Notification Settings>"
-        return f"<{settings_url}|Notification Settings>"
+            footer += f"{self.release.projects.all()[0].slug} | "
+
+        footer += (
+            f"{self.format_url(text='Notification Settings', url=settings_url, provider=provider)}"
+        )
+
+        return footer
 
     def send(self) -> None:
         # Don't create a message when the Activity doesn't have a release and deploy.

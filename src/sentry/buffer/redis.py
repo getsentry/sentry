@@ -1,23 +1,45 @@
+from __future__ import annotations
+
+import logging
 import pickle
 import threading
-from datetime import datetime
+from datetime import date, datetime, timezone
 from time import time
 
 from django.db import models
-from django.utils import timezone
-from django.utils.encoding import force_bytes, force_text
+from django.utils.encoding import force_bytes, force_str
 
-from sentry.buffer import Buffer
-from sentry.exceptions import InvalidConfiguration
+from sentry.buffer.base import Buffer
 from sentry.tasks.process_buffer import process_incr, process_pending
 from sentry.utils import json, metrics
 from sentry.utils.compat import crc32
 from sentry.utils.hashlib import md5_text
 from sentry.utils.imports import import_string
-from sentry.utils.redis import get_cluster_from_options
+from sentry.utils.redis import get_dynamic_cluster_from_options, validate_dynamic_cluster
 
 _local_buffers = None
 _local_buffers_lock = threading.Lock()
+
+logger = logging.getLogger(__name__)
+
+# Debounce our JSON validation a bit in order to not cause too much additional
+# load everywhere
+_last_validation_log: float | None = None
+
+
+def _validate_json_roundtrip(value, model):
+    global _last_validation_log
+
+    if _last_validation_log is None or _last_validation_log < time() - 10:
+        _last_validation_log = time()
+        try:
+            if (
+                RedisBuffer._load_values(json.loads(json.dumps(RedisBuffer._dump_values(value))))
+                != value
+            ):
+                logger.error("buffer.corrupted_value", extra={"value": value, "model": model})
+        except Exception:
+            logger.exception("buffer.invalid_value", extra={"value": value, "model": model})
 
 
 class PendingBuffer:
@@ -52,19 +74,22 @@ class RedisBuffer(Buffer):
     pending_key = "b:p"
 
     def __init__(self, pending_partitions=1, incr_batch_size=2, **options):
-        self.cluster, options = get_cluster_from_options("SENTRY_BUFFER_OPTIONS", options)
+        self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
+            "SENTRY_BUFFER_OPTIONS", options
+        )
         self.pending_partitions = pending_partitions
         self.incr_batch_size = incr_batch_size
         assert self.pending_partitions > 0
         assert self.incr_batch_size > 0
 
+    def get_routing_client(self):
+        if self.is_redis_cluster:
+            return self.cluster
+        else:
+            return self.cluster.get_routing_client()
+
     def validate(self):
-        try:
-            # wait 10 seconds at most
-            with self.cluster.all(timeout=10) as client:
-                client.ping()
-        except Exception as e:
-            raise InvalidConfiguration(str(e))
+        validate_dynamic_cluster(self.is_redis_cluster, self.cluster)
 
     def _coerce_val(self, value):
         if isinstance(value, models.Model):
@@ -104,16 +129,21 @@ class RedisBuffer(Buffer):
     def _make_lock_key(self, key):
         return f"l:{key}"
 
-    def _dump_values(self, values):
+    @classmethod
+    def _dump_values(cls, values):
         result = {}
         for k, v in values.items():
-            result[k] = self._dump_value(v)
+            result[k] = cls._dump_value(v)
         return result
 
-    def _dump_value(self, value):
+    @classmethod
+    def _dump_value(cls, value):
         if isinstance(value, str):
             type_ = "s"
         elif isinstance(value, datetime):
+            type_ = "dt"
+            value = value.strftime("%s.%f")
+        elif isinstance(value, date):
             type_ = "d"
             value = value.strftime("%s.%f")
         elif isinstance(value, int):
@@ -124,18 +154,22 @@ class RedisBuffer(Buffer):
             raise TypeError(type(value))
         return (type_, str(value))
 
-    def _load_values(self, payload):
+    @classmethod
+    def _load_values(cls, payload):
         result = {}
         for k, (t, v) in payload.items():
-            result[k] = self._load_value((t, v))
+            result[k] = cls._load_value((t, v))
         return result
 
-    def _load_value(self, payload):
+    @classmethod
+    def _load_value(cls, payload):
         (type_, value) = payload
         if type_ == "s":
-            return force_text(value)
-        elif type_ == "d":
+            return force_str(value)
+        elif type_ == "dt":
             return datetime.fromtimestamp(float(value)).replace(tzinfo=timezone.utc)
+        elif type_ == "d":
+            return date.fromtimestamp(float(value))
         elif type_ == "i":
             return int(value)
         elif type_ == "f":
@@ -148,8 +182,11 @@ class RedisBuffer(Buffer):
         Fetches buffered values for a model/filter. Passed columns must be integer columns.
         """
         key = self._make_key(model, filters)
-        conn = self.cluster.get_local_client_for_key(key)
-        pipe = conn.pipeline()
+        if self.is_redis_cluster:
+            pipe = self.cluster.pipeline(transaction=False)
+        else:
+            conn = self.cluster.get_local_client_for_key(key)
+            pipe = conn.pipeline()
 
         for col in columns:
             pipe.hget(key, f"i+{col}")
@@ -170,20 +207,24 @@ class RedisBuffer(Buffer):
         - Add hashmap key to pending flushes
         """
 
-        # TODO(dcramer): longer term we'd rather not have to serialize values
-        # here (unless it's to JSON)
         key = self._make_key(model, filters)
         pending_key = self._make_pending_key_from_key(key)
         # We can't use conn.map() due to wanting to support multiple pending
         # keys (one per Redis partition)
-        conn = self.cluster.get_local_client_for_key(key)
+        if self.is_redis_cluster:
+            conn = self.cluster
+        else:
+            conn = self.cluster.get_local_client_for_key(key)
 
         pipe = conn.pipeline()
         pipe.hsetnx(key, "m", f"{model.__module__}.{model.__name__}")
-        # TODO(dcramer): once this goes live in production, we can kill the pickle path
-        # (this is to ensure a zero downtime deploy where we can transition event processing)
-        pipe.hsetnx(key, "f", pickle.dumps(filters))
-        # pipe.hsetnx(key, 'f', json.dumps(self._dump_values(filters)))
+        _validate_json_roundtrip(filters, model)
+
+        if self.is_redis_cluster:
+            pipe.hsetnx(key, "f", json.dumps(self._dump_values(filters)))
+        else:
+            pipe.hsetnx(key, "f", pickle.dumps(filters))
+
         for column, amount in columns.items():
             pipe.hincrby(key, "i+" + column, amount)
 
@@ -191,11 +232,12 @@ class RedisBuffer(Buffer):
             # Group tries to serialize 'score', so we'd need some kind of processing
             # hook here
             # e.g. "update score if last_seen or times_seen is changed"
+            _validate_json_roundtrip(extra, model)
             for column, value in extra.items():
-                # TODO(dcramer): once this goes live in production, we can kill the pickle path
-                # (this is to ensure a zero downtime deploy where we can transition event processing)
-                pipe.hset(key, "e+" + column, pickle.dumps(value))
-                # pipe.hset(key, 'e+' + column, json.dumps(self._dump_value(value)))
+                if self.is_redis_cluster:
+                    pipe.hset(key, "e+" + column, json.dumps(self._dump_value(value)))
+                else:
+                    pipe.hset(key, "e+" + column, pickle.dumps(value))
 
         if signal_only is True:
             pipe.hset(key, "s", "1")
@@ -221,7 +263,10 @@ class RedisBuffer(Buffer):
             # super fast and is fine to do redundantly.
 
         pending_key = self._make_pending_key(partition)
-        client = self.cluster.get_routing_client()
+        if self.is_redis_cluster:
+            client = self.cluster
+        else:
+            client = self.cluster.get_routing_client()
         lock_key = self._make_lock_key(pending_key)
         # prevent a stampede due to celerybeat + periodic task
         if not client.set(lock_key, "1", nx=True, ex=60):
@@ -231,19 +276,32 @@ class RedisBuffer(Buffer):
 
         try:
             keycount = 0
-            with self.cluster.all() as conn:
-                results = conn.zrange(pending_key, 0, -1)
+            if self.is_redis_cluster:
+                keys = self.cluster.zrange(pending_key, 0, -1)
+                keycount += len(keys)
 
-            with self.cluster.all() as conn:
-                for host_id, keys in results.value.items():
-                    if not keys:
-                        continue
-                    keycount += len(keys)
-                    for key in keys:
-                        pending_buffer.append(key.decode("utf-8"))
-                        if pending_buffer.full():
-                            process_incr.apply_async(kwargs={"batch_keys": pending_buffer.flush()})
-                    conn.target([host_id]).zrem(pending_key, *keys)
+                for key in keys:
+                    pending_buffer.append(key)
+                    if pending_buffer.full():
+                        process_incr.apply_async(kwargs={"batch_keys": pending_buffer.flush()})
+
+                self.cluster.zrem(pending_key, *keys)
+            else:
+                with self.cluster.all() as conn:
+                    results = conn.zrange(pending_key, 0, -1)
+
+                with self.cluster.all() as conn:
+                    for host_id, keys in results.value.items():
+                        if not keys:
+                            continue
+                        keycount += len(keys)
+                        for key in keys:
+                            pending_buffer.append(key.decode("utf-8"))
+                            if pending_buffer.full():
+                                process_incr.apply_async(
+                                    kwargs={"batch_keys": pending_buffer.flush()}
+                                )
+                        conn.target([host_id]).zrem(pending_key, *keys)
 
             # queue up remainder of pending keys
             if not pending_buffer.empty():
@@ -263,21 +321,32 @@ class RedisBuffer(Buffer):
         for key in batch_keys:
             self._process_single_incr(key)
 
+    def _process(self, model, columns, filters, extra=None, signal_only=None):
+        return super().process(model, columns, filters, extra, signal_only)
+
     def _process_single_incr(self, key):
-        client = self.cluster.get_routing_client()
+        if self.is_redis_cluster:
+            client = self.cluster
+        else:
+            client = self.cluster.get_routing_client()
+
         lock_key = self._make_lock_key(key)
         # prevent a stampede due to the way we use celery etas + duplicate
         # tasks
         if not client.set(lock_key, "1", nx=True, ex=10):
             metrics.incr("buffer.revoked", tags={"reason": "locked"}, skip_internal=False)
-            self.logger.debug("buffer.revoked.locked", extra={"redis_key": key})
+            logger.debug("buffer.revoked.locked", extra={"redis_key": key})
             return
 
         pending_key = self._make_pending_key_from_key(key)
 
         try:
-            conn = self.cluster.get_local_client_for_key(key)
-            pipe = conn.pipeline()
+            if self.is_redis_cluster:
+                pipe = self.cluster.pipeline(transaction=False)
+            else:
+                conn = self.cluster.get_local_client_for_key(key)
+                pipe = conn.pipeline()
+
             pipe.hgetall(key)
             pipe.zrem(pending_key, key)
             pipe.delete(key)
@@ -286,23 +355,20 @@ class RedisBuffer(Buffer):
             # XXX(python3): In python2 this isn't as important since redis will
             # return string tyes (be it, byte strings), but in py3 we get bytes
             # back, and really we just want to deal with keys as strings.
-            values = {force_text(k): v for k, v in values.items()}
+            values = {force_str(k): v for k, v in values.items()}
 
             if not values:
                 metrics.incr("buffer.revoked", tags={"reason": "empty"}, skip_internal=False)
-                self.logger.debug("buffer.revoked.empty", extra={"redis_key": key})
+                logger.debug("buffer.revoked.empty", extra={"redis_key": key})
                 return
 
-            # XXX(py3): Note that ``import_string`` explicitly wants a str in
-            # python2, so we'll decode (for python3) and then translate back to
-            # a byte string (in python2) for import_string.
-            model = import_string(str(values.pop("m").decode("utf-8")))
+            model = import_string(force_str(values.pop("m")))
 
-            if values["f"].startswith(b"{"):
-                filters = self._load_values(json.loads(values.pop("f").decode("utf-8")))
+            if values["f"].startswith(b"{" if not self.is_redis_cluster else "{"):
+                filters = self._load_values(json.loads(force_str(values.pop("f"))))
             else:
                 # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
-                filters = pickle.loads(values.pop("f"))
+                filters = pickle.loads(force_bytes(values.pop("f")))
 
             incr_values = {}
             extra_values = {}
@@ -311,14 +377,14 @@ class RedisBuffer(Buffer):
                 if k.startswith("i+"):
                     incr_values[k[2:]] = int(v)
                 elif k.startswith("e+"):
-                    if v.startswith(b"["):
-                        extra_values[k[2:]] = self._load_value(json.loads(v.decode("utf-8")))
+                    if v.startswith(b"[" if not self.is_redis_cluster else "["):
+                        extra_values[k[2:]] = self._load_value(json.loads(force_str(v)))
                     else:
                         # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
-                        extra_values[k[2:]] = pickle.loads(v)
+                        extra_values[k[2:]] = pickle.loads(force_bytes(v))
                 elif k == "s":
                     signal_only = bool(int(v))  # Should be 1 if set
 
-            super().process(model, incr_values, filters, extra_values, signal_only)
+            self._process(model, incr_values, filters, extra_values, signal_only)
         finally:
             client.delete(lock_key)

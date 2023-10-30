@@ -1,12 +1,15 @@
+from __future__ import annotations
+
 import sys
 import traceback
+from typing import Any, Optional
 
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.utils.sdk import capture_exception
 
-from .organization import OrganizationEndpoint, OrganizationPermission
+from .organization import ControlSiloOrganizationEndpoint, OrganizationEndpoint
 
 # This GET scope map is ideally a public endpoint but for now
 # we are allowing for anyone who has member permissions or above.
@@ -22,15 +25,44 @@ PARANOID_GET = (
 )
 
 
-class IntegrationEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationPermission,)
+def _handle_exception(
+    exc: Exception,
+) -> Optional[Response]:
+    if hasattr(exc, "code") and exc.code == 503:
+        sys.stderr.write(traceback.format_exc())
+        event_id = capture_exception(exc)
+        context = {"detail": str(exc), "errorId": event_id}
+        response = Response(context, status=503)
+        response.exception = True
+        return response
+    return None
 
-    def handle_exception(self, request: Request, exc) -> Response:
-        if hasattr(exc, "code") and exc.code == 503:
-            sys.stderr.write(traceback.format_exc())
-            event_id = capture_exception()
-            context = {"detail": str(exc), "errorId": event_id}
-            response = Response(context, status=503)
-            response.exception = True
-            return response
-        return super().handle_exception(request, exc)
+
+class IntegrationEndpoint(ControlSiloOrganizationEndpoint):
+    """
+    Baseclass for integration endpoints in control silo that need integration exception handling
+    """
+
+    def handle_exception(
+        self,
+        request: Request,
+        exc: Exception,
+        *args: Any,
+        **kwds: Any,
+    ) -> Response:
+        return _handle_exception(exc) or super().handle_exception(request, exc, *args, **kwds)
+
+
+class RegionIntegrationEndpoint(OrganizationEndpoint):
+    """
+    Baseclass for integration endpoints in region silo that need integration exception handling
+    """
+
+    def handle_exception(
+        self,
+        request: Request,
+        exc: Exception,
+        *args: Any,
+        **kwds: Any,
+    ) -> Response:
+        return _handle_exception(exc) or super().handle_exception(request, exc, *args, **kwds)

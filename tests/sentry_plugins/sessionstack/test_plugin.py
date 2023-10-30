@@ -1,7 +1,8 @@
-import responses
-from exam import fixture
+from functools import cached_property
 
-from sentry.testutils import PluginTestCase
+import responses
+
+from sentry.testutils.cases import PluginTestCase
 from sentry_plugins.sessionstack.plugin import SessionStackPlugin
 
 EXPECTED_SESSION_URL = (
@@ -15,7 +16,7 @@ ACCESS_TOKENS_URL = (
 
 
 class SessionStackPluginTest(PluginTestCase):
-    @fixture
+    @cached_property
     def plugin(self):
         return SessionStackPlugin()
 

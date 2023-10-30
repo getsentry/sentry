@@ -1,36 +1,66 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-          "name": "sentry frontend",
-          "type": "chrome",
-          "request": "launch",
-          "url": "http://dev.getsentry.net:8000",
-          "webRoot": "${workspaceRoot}/src/sentry/static/sentry/app"
-        },
-        {
-          "name": "sentry backend",
-          "type": "python",
-          "request": "launch",
-          "stopOnEntry": true,
-          "program": "${workspaceRoot}/.venv/bin/sentry",
-          "args": ["devserver"],
-          "cwd": "${workspaceRoot}",
-          "debugOptions": ["WaitOnAbnormalExit", "WaitOnNormalExit", "RedirectOutput"]
-        },
-        {
-            "name": "jest",
-            "type": "node",
-            "request": "launch",
-            "protocol": "inspector",
-            "program": "${workspaceFolder}/node_modules/.bin/jest",
-            "internalConsoleOptions": "openOnSessionStart",
-            "args": [
-                "--runInBand"
-            ]
-        }
-    ]
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "sentry frontend",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://dev.getsentry.net:8000",
+      "webRoot": "${workspaceRoot}/static"
+    },
+    {
+      "name": "sentry backend",
+      "type": "python",
+      "request": "launch",
+      "stopOnEntry": true,
+      "program": "${workspaceRoot}/.venv/bin/sentry",
+      "args": ["devserver"],
+      "cwd": "${workspaceRoot}",
+      "debugOptions": ["WaitOnAbnormalExit", "WaitOnNormalExit", "RedirectOutput"]
+    },
+    {
+      "name": "sentry backend debug",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceRoot}/.venv/bin/sentry",
+      "args": ["devserver", "--debug-server", "--no-pretty"],
+      "cwd": "${workspaceRoot}"
+    },
+    {
+      "name": "jest - current file",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/.bin/jest",
+      "args": [
+        // this runs one test at a time, rather than running them in parallel
+        // (necessary for debugging so that you know you're hitting a single
+        // test's breakpoints, in order)
+        "--runInBand",
+        "--watch",
+        "--verbose",
+        "${file}"
+      ],
+      // if we don't set this, output goes to the VSCode debug terminal, which
+      // only prints the test output if "outputCapture" is also set, and even
+      // then won't print in color
+      "console": "integratedTerminal",
+      // since we're not using it, don't automatically switch to it
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "pytest - current file",
+      "type": "python",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["--verbosity", "2", "${file}"],
+      "django": true,
+      "env": {
+        "SENTRY_MODEL_MANIFEST_FILE_PATH": "./model-manifest.json"
+      },
+      "justMyCode": false
+    }
+  ]
 }

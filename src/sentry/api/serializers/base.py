@@ -1,20 +1,14 @@
-from typing import (
-    Any,
-    Callable,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Type,
-    TypeVar,
-    Union,
-)
+from __future__ import annotations
+
+import logging
+from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, Type, TypeVar, Union
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.utils.json import JSONData
+
+logger = logging.getLogger(__name__)
 
 K = TypeVar("K")
 
@@ -42,7 +36,7 @@ def serialize(
 
     :param objects: A list of objects
     :param user: The user who will be viewing the objects. Omit to view as `AnonymousUser`.
-    :param serializer: The `Serializer` class who's logic we'll use to serialize
+    :param serializer: The `Serializer` class whose logic we'll use to serialize
         `objects` (see below.) Omit to just look up the Serializer in the
         registry by the `objects`'s type.
     :param kwargs Any
@@ -68,7 +62,6 @@ def serialize(
                 pass
         else:
             return objects
-
     with sentry_sdk.start_span(op="serialize", description=type(serializer).__name__) as span:
         span.set_data("Object Count", len(objects))
 
@@ -90,13 +83,15 @@ class Serializer:
 
     def __call__(
         self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
-    ) -> Optional[MutableMapping[str, Any]]:
+    ) -> Optional[Mapping[str, Any]]:
         """See documentation for `serialize`."""
         if obj is None:
             return None
-        return self.serialize(obj, attrs, user, **kwargs)
+        return self._serialize(obj, attrs, user, **kwargs)
 
-    def get_attrs(self, item_list: List[Any], user: Any, **kwargs: Any) -> MutableMapping[Any, Any]:
+    def get_attrs(
+        self, item_list: Sequence[Any], user: Any, **kwargs: Any
+    ) -> MutableMapping[Any, Any]:
         """
         Fetch all of the associated data needed to serialize the objects in `item_list`.
 
@@ -107,9 +102,18 @@ class Serializer:
         """
         return {}
 
+    def _serialize(
+        self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+    ) -> Optional[Mapping[str, JSONData]]:
+        try:
+            return self.serialize(obj, attrs, user, **kwargs)
+        except Exception:
+            logger.exception("Failed to serialize", extra={"instance": obj})
+            return None
+
     def serialize(
         self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
-    ) -> MutableMapping[str, JSONData]:
+    ) -> Mapping[str, JSONData]:
         """
         Convert an arbitrary python object `obj` to an object that only contains primitives.
 

@@ -14,15 +14,16 @@ DESCRIPTION = """
 Trigger alerts in Opsgenie from Sentry.
 
 Opsgenie is a cloud-based service for dev & ops teams, providing reliable
-alerts, on-call schedule management and escalations. OpsGenie integrates with
-monitoring tools & services, ensures the right people are notified.
+alerts, on-call schedule management and escalations. Opsgenie integrates with
+monitoring tools & services, ensures the right people are notified. This
+plugin only supports issue alerts.
 """
 
 
 class OpsGenieOptionsForm(notify.NotificationConfigurationForm):
     api_key = forms.CharField(
         max_length=255,
-        help_text="OpsGenie API key used for authenticating API requests",
+        help_text="Opsgenie API key used for authenticating API requests",
         required=True,
     )
     recipients = forms.CharField(
@@ -32,7 +33,7 @@ class OpsGenieOptionsForm(notify.NotificationConfigurationForm):
     )
     alert_url = forms.URLField(
         max_length=255,
-        label="OpsGenie Alert URL",
+        label="Opsgenie Alert URL",
         widget=forms.TextInput(
             attrs={"class": "span6", "placeholder": "e.g. https://api.opsgenie.com/v2/alerts"}
         ),
@@ -44,7 +45,7 @@ class OpsGenieOptionsForm(notify.NotificationConfigurationForm):
 class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
     author = "Sentry Team"
     author_url = "https://github.com/getsentry"
-    title = "OpsGenie"
+    title = "Opsgenie"
     slug = "opsgenie"
     description = DESCRIPTION
     conf_key = "opsgenie"
@@ -54,7 +55,7 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
     feature_descriptions = [
         FeatureDescription(
             """
-            Manage incidents and outages by sending Sentry notifications to OpsGenie.
+            Manage incidents and outages by sending Sentry notifications to Opsgenie.
             """,
             IntegrationFeatures.INCIDENT_MANAGEMENT,
         ),
@@ -103,7 +104,7 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
         try:
             client.trigger_incident(payload)
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
     def get_client(self, project):
         api_key = self.get_option("api_key", project)

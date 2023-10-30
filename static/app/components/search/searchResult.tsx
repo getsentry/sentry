@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import DocIntegrationAvatar from 'sentry/components/avatar/docIntegrationAvatar';
@@ -7,12 +6,13 @@ import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
 import IdBadge from 'sentry/components/idBadge';
 import {IconInput, IconLink, IconSettings} from 'sentry/icons';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import highlightFuseMatches from 'sentry/utils/highlightFuseMatches';
+import {useParams} from 'sentry/utils/useParams';
 
 import {Result} from './sources/types';
 
-type Props = WithRouterProps<{orgId: string}> & {
+type Props = {
   highlighted: boolean;
   item: Result['item'];
   matches: Result['matches'];
@@ -37,18 +37,19 @@ function renderResultType({resultType, model}: Result['item']) {
   }
 }
 
-function SearchResult({item, matches, params, highlighted}: Props) {
+function HighlightedMarker(p: React.ComponentProps<typeof HighlightMarker>) {
+  return <HighlightMarker data-test-id="highlight" {...p} />;
+}
+
+function SearchResult({item, matches, highlighted}: Props) {
+  const params = useParams<{orgId: string}>();
+
   const {sourceType, model, extra} = item;
 
   function renderContent() {
     let {title, description} = item;
 
     if (matches) {
-      // TODO(ts) Type this better.
-      const HighlightedMarker = (p: any) => (
-        <HighlightMarker data-test-id="highlight" highlighted={highlighted} {...p} />
-      );
-
       const matchedTitle = matches && matches.find(({key}) => key === 'title');
       const matchedDescription =
         matches && matches.find(({key}) => key === 'description');
@@ -96,7 +97,7 @@ function SearchResult({item, matches, params, highlighted}: Props) {
   );
 }
 
-export default withRouter(SearchResult);
+export default SearchResult;
 
 const SearchDetail = styled('div')`
   font-size: 0.8em;
@@ -113,7 +114,7 @@ const ExtraDetail = styled('div')`
 
 const BadgeDetail = styled('div')<{highlighted: boolean}>`
   line-height: 1.3;
-  color: ${p => (p.highlighted ? p.theme.purple300 : null)};
+  color: ${p => (p.highlighted ? p.theme.activeText : null)};
 `;
 
 const Wrapper = styled('div')`

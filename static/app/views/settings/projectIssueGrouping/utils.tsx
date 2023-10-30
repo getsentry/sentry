@@ -1,4 +1,4 @@
-import Alert from 'sentry/components/alert';
+import type {AlertProps} from 'sentry/components/alert';
 import {t} from 'sentry/locale';
 import {EventGroupingConfig, Project} from 'sentry/types';
 
@@ -41,7 +41,7 @@ export function getGroupingChanges(
 }
 
 export function getGroupingRisk(riskLevel: number): {
-  alertType: React.ComponentProps<typeof Alert>['type'];
+  alertType: AlertProps['type'];
   riskNote: React.ReactNode;
 } {
   switch (riskLevel) {

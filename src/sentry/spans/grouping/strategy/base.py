@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional, Sequence, TypedDict
+from typing import Any, Callable, Dict, Optional, Sequence, TypedDict, Union
 from urllib.parse import urlparse
 
 from sentry.spans.grouping.utils import Hash, parse_fingerprint_var
@@ -84,9 +84,11 @@ class SpanGroupingStrategy:
         return span_group
 
 
-def span_op(op_name: str) -> Callable[[CallableStrategy], CallableStrategy]:
+def span_op(op_name: Union[str, Sequence[str]]) -> Callable[[CallableStrategy], CallableStrategy]:
+    permitted_ops = [op_name] if isinstance(op_name, str) else op_name
+
     def wrapped(fn: CallableStrategy) -> CallableStrategy:
-        return lambda span: fn(span) if span.get("op") == op_name else None
+        return lambda span: fn(span) if span.get("op") in permitted_ops else None
 
     return wrapped
 
@@ -102,19 +104,99 @@ def raw_description_strategy(span: Span) -> Sequence[str]:
 IN_CONDITION_PATTERN = re.compile(r" IN \(%s(\s*,\s*%s)*\)")
 
 
-@span_op("db")
+@span_op(
+    [
+        "db",
+        "db.query",
+        "db.sql.query",
+        "db.sql.active_record",
+        "db.sql.execute",
+        "db.sql.transaction",
+    ]
+)
 def normalized_db_span_in_condition_strategy(span: Span) -> Optional[Sequence[str]]:
-    """For a `db` span, the `IN` condition contains the same same number of elements
-    on the right hand side as the raw query. This results in identical queries that
-    have different number of elements on the right hand side to be seen as different
-    spans. We want these spans to be seen as similar spans, so we normalize the right
-    hand side of `IN` conditions to `(%s) to use in the fingerprint.
-    """
+    """For a `db` query span, the `IN` condition contains the same number of
+    elements on the right hand side as the raw query. This results in identical
+    queries that have different number of elements on the right hand side to be
+    seen as different spans. We want these spans to be seen as similar spans,
+    so we normalize the right hand side of `IN` conditions to `(%s) to use in
+    the fingerprint."""
     description = span.get("description") or ""
     cleaned, count = IN_CONDITION_PATTERN.subn(" IN (%s)", description)
     if count == 0:
         return None
     return [cleaned]
+
+
+# Catches sequences like (?, ?, ?), ($1, $2, $3), and (%s, %s, %s)
+LOOSE_IN_CONDITION_PATTERN = re.compile(r" IN \(((%s|\$?\d+|\?)(\s*,\s*(%s|\$?\d+|\?))*)\)", re.I)
+
+
+@span_op(
+    [
+        "db",
+        "db.query",
+        "db.sql.query",
+        "db.sql.active_record",
+        "db.sql.execute",
+        "db.sql.transaction",
+    ]
+)
+def loose_normalized_db_span_in_condition_strategy(span: Span) -> Optional[Sequence[str]]:
+    """This is identical to the above
+    `normalized_db_span_in_condition_strategy` but it uses a looser regular
+    expression that catches database spans that come from Laravel and Rails"""
+    description = span.get("description") or ""
+    cleaned, count = LOOSE_IN_CONDITION_PATTERN.subn(" IN (%s)", description)
+    if count == 0:
+        return None
+    return [cleaned]
+
+
+def join_regexes(regexes: Sequence[str]) -> str:
+    return r"(?:" + r")|(?:".join(regexes) + r")"
+
+
+DB_PARAMETRIZATION_PATTERN = re.compile(
+    join_regexes(
+        [
+            r"'(?:[^']|'')*?(?:\\'.*|'(?!'))",  # single-quoted strings
+            r"-?\b(?:[0-9]+\.)?[0-9]+(?:[eE][+-]?[0-9]+)?\b",  # numbers
+            r"\b(?:true|false)\b",  # booleans
+        ]
+    )
+)
+
+DB_SAVEPOINT_PATTERN = re.compile(r'SAVEPOINT (?:(?:"[^"]+")|(?:`[^`]+`)|(?:[a-z]\w+))', re.I)
+
+
+@span_op(
+    [
+        "db",
+        "db.query",
+        "db.sql.query",
+        "db.sql.active_record",
+        "db.sql.execute",
+        "db.sql.transaction",
+    ]
+)
+def parametrize_db_span_strategy(span: Span) -> Optional[Sequence[str]]:
+    """First, apply the same IN-condition normalization as
+    loose_normalized_db_span_condition_strategy. Then, replace all numeric,
+    string, and boolean parameters with placeholders so that queries that only
+    differ in their parameters will have the same hash.
+
+    Since we don't know what flavor of SQL is being passed in, we have to be
+    conservative with the literals we target. Currently, only single-quoted
+    strings are parametrized even though MySQL supports double-quoted strings as
+    well, because PG uses double-quoted strings for identifiers."""
+    query = span.get("description") or ""
+    query, in_count = LOOSE_IN_CONDITION_PATTERN.subn(" IN (%s)", query)
+    query, savepoint_count = DB_SAVEPOINT_PATTERN.subn("SAVEPOINT %s", query)
+    query, param_count = DB_PARAMETRIZATION_PATTERN.subn("%s", query)
+    if param_count + savepoint_count + in_count == 0:
+        return None
+    return [query.strip()]
 
 
 HTTP_METHODS = {
@@ -169,7 +251,7 @@ def remove_http_client_query_string_strategy(span: Span) -> Optional[Sequence[st
     return [method, url.scheme, url.netloc, url.path]
 
 
-@span_op("redis")
+@span_op(["redis", "db.redis"])
 def remove_redis_command_arguments_strategy(span: Span) -> Optional[Sequence[str]]:
     """For a `redis` span, the fingerprint to use is simply the redis command name.
     The arguments to the redis command is highly variable and therefore not used as

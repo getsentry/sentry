@@ -1,16 +1,17 @@
+from unittest.mock import patch
+
+from django.test import override_settings
 from django.urls import reverse
 
-from sentry.models import Team
-from sentry.testutils import SCIMTestCase
-
-CREATE_TEAM_POST_DATA = {
-    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
-    "displayName": "Test SCIMv2",
-    "members": [],
-}
+from sentry.models.team import Team
+from sentry.signals import receivers_raise_on_send
+from sentry.testutils.cases import SCIMTestCase
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import region_silo_test
 
 
-class SCIMGroupIndexTests(SCIMTestCase):
+@region_silo_test(stable=True)
+class SCIMIndexListTest(SCIMTestCase):
     def test_group_index_empty(self):
         url = reverse("sentry-api-0-organization-scim-team-index", args=[self.organization.slug])
         response = self.client.get(f"{url}?startIndex=1&count=100")
@@ -23,27 +24,6 @@ class SCIMGroupIndexTests(SCIMTestCase):
         }
         assert response.status_code == 200, response.content
         assert response.data == correct_get_data
-
-    def test_scim_team_index_create(self):
-        url = reverse(
-            "sentry-api-0-organization-scim-team-index",
-            args=[self.organization.slug],
-        )
-        response = self.client.post(url, CREATE_TEAM_POST_DATA)
-        assert response.status_code == 201, response.content
-
-        team_id = response.data["id"]
-        assert response.data == {
-            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
-            "id": team_id,
-            "displayName": "Test SCIMv2",
-            "members": [],
-            "meta": {"resourceType": "Group"},
-        }
-        assert Team.objects.filter(id=team_id).exists()
-        assert Team.objects.get(id=team_id).slug == "test-scimv2"
-        assert Team.objects.get(id=team_id).name == "Test SCIMv2"
-        assert len(Team.objects.get(id=team_id).member_set) == 0
 
     def test_scim_team_index_populated(self):
         team = self.create_team(organization=self.organization)
@@ -209,11 +189,60 @@ class SCIMGroupIndexTests(SCIMTestCase):
         response = self.client.get(f"{url}?startIndex=0")
         assert response.status_code == 400, response.data
 
-    def test_scim_team_no_duplicate_names(self):
-        self.create_team(organization=self.organization, name=CREATE_TEAM_POST_DATA["displayName"])
-        url = reverse(
-            "sentry-api-0-organization-scim-team-index",
-            args=[self.organization.slug],
+
+@override_settings(SENTRY_REGION="na")
+@region_silo_test(stable=True)
+class SCIMIndexCreateTest(SCIMTestCase):
+    endpoint = "sentry-api-0-organization-scim-team-index"
+    method = "post"
+
+    def setUp(self):
+        super().setUp()
+        self.post_data = {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+            "displayName": "Test SCIMv2",
+            "members": [],
+        }
+
+    @patch("sentry.scim.endpoints.teams.metrics")
+    def test_scim_team_index_create(self, mock_metrics):
+        with receivers_raise_on_send():
+            response = self.get_success_response(
+                self.organization.slug, **self.post_data, status_code=201
+            )
+
+        team_id = response.data["id"]
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+            "id": team_id,
+            "displayName": "Test SCIMv2",
+            "members": [],
+            "meta": {"resourceType": "Group"},
+        }
+
+        assert Team.objects.filter(id=team_id).exists()
+        assert Team.objects.get(id=team_id).slug == "test-scimv2"
+        assert Team.objects.get(id=team_id).name == "Test SCIMv2"
+        assert Team.objects.get(id=team_id).idp_provisioned
+        assert len(Team.objects.get(id=team_id).member_set) == 0
+        mock_metrics.incr.assert_called_with(
+            "sentry.scim.team.provision",
         )
-        response = self.client.post(url, CREATE_TEAM_POST_DATA)
-        assert response.status_code == 409, response.content
+
+    def test_scim_team_no_duplicate_names(self):
+        self.create_team(organization=self.organization, name=self.post_data["displayName"])
+        response = self.get_error_response(
+            self.organization.slug, **self.post_data, status_code=409
+        )
+        assert response.data["detail"] == "A team with this slug already exists."
+
+    @override_options({"api.prevent-numeric-slugs": True})
+    def test_scim_team_invalid_numeric_slug(self):
+        invalid_post_data = {**self.post_data, "displayName": "1234"}
+        response = self.get_error_response(
+            self.organization.slug, **invalid_post_data, status_code=400
+        )
+        assert response.data["slug"][0] == (
+            "Enter a valid slug consisting of lowercase letters, numbers, underscores or "
+            "hyphens. It cannot be entirely numeric."
+        )

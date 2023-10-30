@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 from django.template import engines
 
 from sentry.plugins.base.v2 import Plugin2
-from sentry.testutils import PluginTestCase
+from sentry.testutils.cases import PluginTestCase
 
 
 class SamplePlugin(Plugin2):

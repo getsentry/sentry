@@ -1,18 +1,17 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import {MultiControlProps} from 'sentry/components/deprecatedforms/multiSelectControl';
-import TeamSelector from 'sentry/components/forms/teamSelector';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import Tag from 'sentry/components/tag';
-import Tooltip from 'sentry/components/tooltip';
+import TeamSelector from 'sentry/components/teamSelector';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Member, Organization, OrgRole} from 'sentry/types';
 
 type Props = {
@@ -32,9 +31,8 @@ const InviteModalHook = HookOrDefault({
 });
 
 type InviteModalRenderFunc = React.ComponentProps<typeof InviteModalHook>['children'];
-type OnChangeArgs = Parameters<NonNullable<MultiControlProps['onChange']>>[0];
 
-const InviteRequestRow = ({
+function InviteRequestRow({
   inviteRequest,
   inviteRequestBusy,
   organization,
@@ -42,7 +40,7 @@ const InviteRequestRow = ({
   onDeny,
   onUpdate,
   allRoles,
-}: Props) => {
+}: Props) {
   const role = allRoles.find(r => r.id === inviteRequest.role);
   const roleDisallowed = !(role && role.allowed);
   const {access} = organization;
@@ -93,9 +91,7 @@ const InviteRequestRow = ({
         <TeamSelectControl
           name="teams"
           placeholder={t('Add to teams\u2026')}
-          onChange={(teams: OnChangeArgs) =>
-            onUpdate({teams: (teams || []).map(team => team.value)})
-          }
+          onChange={teams => onUpdate({teams: (teams || []).map(team => team.value)})}
           value={inviteRequest.teams}
           clearable
           multiple
@@ -106,7 +102,7 @@ const InviteRequestRow = ({
 
       <ButtonGroup>
         <Button
-          size="small"
+          size="sm"
           busy={inviteRequestBusy[inviteRequest.id]}
           onClick={() => onDeny(inviteRequest)}
           icon={<IconClose />}
@@ -134,7 +130,7 @@ const InviteRequestRow = ({
         >
           <Button
             priority="primary"
-            size="small"
+            size="sm"
             busy={inviteRequestBusy[inviteRequest.id]}
             title={
               canApprove
@@ -164,7 +160,7 @@ const InviteRequestRow = ({
       {hookRenderer}
     </InviteModalHook>
   );
-};
+}
 
 const JoinRequestIndicator = styled(Tag)`
   text-transform: uppercase;

@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   speed: number;
@@ -13,9 +13,9 @@ type Props = {
 function FastForwardBadge({speed, className}: Props) {
   return (
     <Badge className={className}>
-      <FastForwardTooltip title={t('Fast forwarding')}>
+      <FastForwardTooltip title={t('Fast forwarding at %sx', speed)}>
+        {t('Fast forwarding through inactivity')}
         <IconArrow size="sm" direction="right" />
-        {speed}x
       </FastForwardTooltip>
     </Badge>
   );

@@ -3,15 +3,17 @@ import {Event} from 'sentry/types/event';
 
 export type ViewerProps = {
   attachment: EventAttachment;
-  event: Event;
+  eventId: Event['id'];
   orgId: string;
-  projectId: string;
+  projectSlug: string;
   className?: string;
 };
 
 export function getAttachmentUrl(props: ViewerProps, withPrefix?: boolean): string {
-  const {orgId, projectId, event, attachment} = props;
-  return `${withPrefix ? '/api/0' : ''}/projects/${orgId}/${projectId}/events/${
-    event.id
-  }/attachments/${attachment.id}/?download`;
+  const {orgId, projectSlug, eventId, attachment} = props;
+  return `${
+    withPrefix ? '/api/0' : ''
+  }/projects/${orgId}/${projectSlug}/events/${eventId}/attachments/${
+    attachment.id
+  }/?download`;
 }

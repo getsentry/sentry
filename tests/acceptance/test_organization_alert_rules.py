@@ -1,12 +1,14 @@
 from django.utils import timezone
 
 from sentry.incidents.models import AlertRuleThresholdType, IncidentTrigger, TriggerStatus
-from sentry.models import Rule
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.models.rule import Rule
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.silo import no_silo_test
 
 FEATURE_NAME = ["organizations:incidents"]
 
 
+@no_silo_test(stable=True)
 class OrganizationAlertRulesListTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -17,7 +19,6 @@ class OrganizationAlertRulesListTest(AcceptanceTestCase, SnubaTestCase):
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.snapshot("alert rules - empty state")
 
     def test_alert_rules_list(self):
         Rule.objects.filter(project=self.project).update(date_added=timezone.now())
@@ -30,7 +31,6 @@ class OrganizationAlertRulesListTest(AcceptanceTestCase, SnubaTestCase):
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.snapshot("alert rules - list")
 
     def test_alert_rules_alert_list(self):
         self.create_alert_rule(
@@ -61,4 +61,3 @@ class OrganizationAlertRulesListTest(AcceptanceTestCase, SnubaTestCase):
         with self.feature(["organizations:incidents"]):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.snapshot("alert rules - alert list")

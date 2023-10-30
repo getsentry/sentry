@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Panel, PanelBody} from 'sentry/components/panels';
-import space from 'sentry/styles/space';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import {space} from 'sentry/styles/space';
 
 export const GRID_HEAD_ROW_HEIGHT = 45;
 export const GRID_BODY_ROW_HEIGHT = 40;
@@ -51,7 +52,7 @@ export const Body = styled(({children, ...props}) => (
     <PanelBody>{children}</PanelBody>
   </Panel>
 ))`
-  overflow: hidden;
+  overflow-x: auto;
   z-index: ${Z_INDEX_PANEL};
 `;
 
@@ -68,19 +69,30 @@ export const Body = styled(({children, ...props}) => (
  * <thead>, <tbody>, <tr> are ignored by CSS Grid.
  * The entire layout is determined by the usage of <th> and <td>.
  */
-export const Grid = styled('table')`
+export const Grid = styled('table')<{height?: string | number; scrollable?: boolean}>`
   position: inherit;
   display: grid;
 
   /* Overwritten by GridEditable.setGridTemplateColumns */
   grid-template-columns: repeat(auto-fill, minmax(50px, auto));
-
   box-sizing: border-box;
   border-collapse: collapse;
   margin: 0;
 
   z-index: ${Z_INDEX_GRID};
-  overflow-x: auto;
+  ${p =>
+    p.scrollable &&
+    `
+    overflow-x: auto;
+    overflow-y: scroll;
+    `}
+  ${p =>
+    p.height
+      ? `
+      height: 100%;
+      max-height: ${typeof p.height === 'number' ? p.height + 'px' : p.height}
+      `
+      : ''}
 `;
 
 export const GridRow = styled('tr')`
@@ -103,7 +115,7 @@ export const GridHead = styled('thead')`
   display: contents;
 `;
 
-export const GridHeadCell = styled('th')<{isFirst: boolean}>`
+export const GridHeadCell = styled('th')<{isFirst: boolean; sticky?: boolean}>`
   /* By default, a grid item cannot be smaller than the size of its content.
      We override this by setting min-width to be 0. */
   position: relative; /* Used by GridResizer */
@@ -122,6 +134,8 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   font-weight: 600;
   text-transform: uppercase;
   user-select: none;
+
+  ${p => (p.sticky ? `position: sticky; top: 0;` : '')}
 
   a,
   div,
@@ -227,15 +241,18 @@ const GridStatusFloat = styled('div')`
   align-items: center;
   width: 100%;
   height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
+  overflow: hidden;
 
   z-index: ${Z_INDEX_GRID_STATUS};
   background: ${p => p.theme.background};
 `;
-export const GridBodyCellStatus = props => (
-  <GridStatusWrapper>
-    <GridStatusFloat>{props.children}</GridStatusFloat>
-  </GridStatusWrapper>
-);
+export function GridBodyCellStatus(props) {
+  return (
+    <GridStatusWrapper>
+      <GridStatusFloat>{props.children}</GridStatusFloat>
+    </GridStatusWrapper>
+  );
+}
 
 /**
  * We have a fat GridResizer and we use the ::after pseudo-element to draw
@@ -251,12 +268,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
 
   height: ${p => {
     const numOfRows = p.dataRows;
-    let height = GRID_HEAD_ROW_HEIGHT + numOfRows * GRID_BODY_ROW_HEIGHT;
-
-    if (numOfRows >= 1) {
-      // account for border-bottom height
-      height += numOfRows;
-    }
+    const height = GRID_HEAD_ROW_HEIGHT + numOfRows * GRID_BODY_ROW_HEIGHT;
 
     return height;
   }}px;

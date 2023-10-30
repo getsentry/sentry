@@ -1,20 +1,20 @@
 import styled from '@emotion/styled';
 
-import {Panel} from 'sentry/components/panels';
-import space from 'sentry/styles/space';
+import Panel from 'sentry/components/panels/panel';
+import {space} from 'sentry/styles/space';
 
-type Props = {
+interface Props extends React.ComponentProps<typeof Panel> {
   children: React.ReactNode;
-  image: React.ReactNode;
-  className?: string;
-};
+  image?: React.ReactNode;
+  noCenter?: boolean;
+}
 
-function OnboardingPanel({className, image, children}: Props) {
+function OnboardingPanel({image, noCenter, children, ...props}: Props) {
   return (
-    <Panel className={className}>
+    <Panel {...props}>
       <Container>
-        <IlloBox>{image}</IlloBox>
-        <StyledBox>{children}</StyledBox>
+        {image ? <IlloBox>{image}</IlloBox> : null}
+        <StyledBox centered={!image && !noCenter}>{children}</StyledBox>
       </Container>
     </Panel>
   );
@@ -40,8 +40,12 @@ const Container = styled('div')`
   }
 `;
 
-const StyledBox = styled('div')`
+const StyledBox = styled('div')<{centered?: boolean}>`
+  min-width: 0;
   z-index: 1;
+
+  ${p => (p.centered ? 'text-align: center;' : '')}
+  ${p => (p.centered ? 'max-width: 600px;' : '')}
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     flex: 2;
@@ -52,6 +56,7 @@ const IlloBox = styled(StyledBox)`
   position: relative;
   min-height: 100px;
   max-width: 300px;
+  min-width: 150px;
   margin: ${space(2)} auto;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {

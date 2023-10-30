@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert, AlertProps} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import TimeSince from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {ProcessingIssue} from 'sentry/types';
 
 type Props = {
@@ -20,7 +20,7 @@ function ProcessingIssueHint({orgId, projectId, issue, showProject}: Props) {
   let showButton = false;
   let text = '';
   let lastEvent: React.ReactNode = null;
-  let alertType: React.ComponentProps<typeof Alert>['type'] = 'error';
+  let alertType: AlertProps['type'] = 'error';
 
   let project: React.ReactNode = null;
   if (showProject) {
@@ -74,7 +74,7 @@ function ProcessingIssueHint({orgId, projectId, issue, showProject}: Props) {
       showIcon
       trailingItems={
         showButton && (
-          <StyledButton size="xsmall" to={link}>
+          <StyledButton size="xs" to={link}>
             {t('Show details')}
           </StyledButton>
         )

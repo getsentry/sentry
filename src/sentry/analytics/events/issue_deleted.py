@@ -8,6 +8,7 @@ class IssueDeletedEvent(analytics.Event):
         analytics.Attribute("group_id"),
         analytics.Attribute("delete_type"),
         analytics.Attribute("organization_id"),
+        analytics.Attribute("project_id"),
         analytics.Attribute("user_id", required=False),
         analytics.Attribute("default_user_id"),
     )

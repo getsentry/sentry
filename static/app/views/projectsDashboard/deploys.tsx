@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Deploy as DeployType, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
@@ -18,7 +18,7 @@ type Props = {
   shorten?: boolean;
 };
 
-const Deploys = ({project, shorten}: Props) => {
+function Deploys({project, shorten}: Props) {
   const flattenedDeploys = Object.entries(project.latestDeploys || {}).map(
     ([environment, value]): Pick<
       DeployType,
@@ -48,7 +48,7 @@ const Deploys = ({project, shorten}: Props) => {
       ))}
     </DeployRows>
   );
-};
+}
 
 export default Deploys;
 
@@ -56,37 +56,44 @@ type DeployProps = Props & {
   deploy: Pick<DeployType, 'version' | 'dateFinished' | 'environment'>;
 };
 
-const Deploy = ({deploy, project, shorten}: DeployProps) => (
-  <Fragment>
-    <IconReleases size="sm" />
-    <TextOverflow>
-      <Environment>{deploy.environment}</Environment>
-      <Version
-        version={deploy.version}
-        projectId={project.id}
-        tooltipRawVersion
-        truncate
-      />
-    </TextOverflow>
+function Deploy({deploy, project, shorten}: DeployProps) {
+  return (
+    <Fragment>
+      <IconReleases size="sm" />
+      <TextOverflow>
+        <Environment>{deploy.environment}</Environment>
+        <Version
+          version={deploy.version}
+          projectId={project.id}
+          tooltipRawVersion
+          truncate
+        />
+      </TextOverflow>
 
-    <DeployTime>
-      {getDynamicText({
-        fixed: '3 hours ago',
-        value: (
-          <TimeSince date={deploy.dateFinished} shorten={shorten ? shorten : false} />
-        ),
-      })}
-    </DeployTime>
-  </Fragment>
-);
+      <DeployTime>
+        {getDynamicText({
+          fixed: '3 hours ago',
+          value: (
+            <TimeSince
+              date={deploy.dateFinished}
+              unitStyle={shorten ? 'short' : 'human'}
+            />
+          ),
+        })}
+      </DeployTime>
+    </Fragment>
+  );
+}
 
-const NoDeploys = () => (
-  <GetStarted>
-    <Button size="small" href="https://docs.sentry.io/product/releases/" external>
-      {t('Track Deploys')}
-    </Button>
-  </GetStarted>
-);
+function NoDeploys() {
+  return (
+    <GetStarted>
+      <Button size="sm" href="https://docs.sentry.io/product/releases/" external>
+        {t('Track Deploys')}
+      </Button>
+    </GetStarted>
+  );
+}
 const DeployContainer = styled('div')`
   padding: ${space(2)};
   height: 115px;

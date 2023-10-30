@@ -1,13 +1,20 @@
 from __future__ import annotations
 
 import abc
-from typing import Any
+from typing import List
 
 from django import forms
-from django.db.models import QuerySet
 
-from sentry.models import Integration
+from sentry import analytics
+from sentry.eventstore.models import GroupEvent
+from sentry.models.organization import OrganizationStatus
+from sentry.models.rule import Rule
 from sentry.rules.actions import EventAction
+from sentry.services.hybrid_cloud.integration import (
+    RpcIntegration,
+    RpcOrganizationIntegration,
+    integration_service,
+)
 
 INTEGRATION_KEY = "integration"
 
@@ -31,46 +38,79 @@ class IntegrationEventAction(EventAction, abc.ABC):
         pass
 
     def is_enabled(self) -> bool:
-        enabled: bool = self.get_integrations().exists()
+        enabled: bool = bool(self.get_integrations())
         return enabled
 
     def get_integration_name(self) -> str:
         """Get the integration's name for the label."""
-        try:
-            integration = self.get_integration()
-        except Integration.DoesNotExist:
+        integration = self.get_integration()
+        if not integration:
             return "[removed]"
 
         _name: str = integration.name
         return _name
 
-    def get_integrations(self) -> QuerySet[Integration]:
-        query: QuerySet[Integration] = Integration.objects.get_active_integrations(
-            self.project.organization.id
-        ).filter(
-            provider=self.provider,
+    def get_integrations(self) -> List[RpcIntegration]:
+        return integration_service.get_integrations(
+            organization_id=self.project.organization_id,
+            status=OrganizationStatus.ACTIVE,
+            org_integration_status=OrganizationStatus.ACTIVE,
+            providers=[self.provider],
         )
-        return query
 
-    def get_integration_id(self) -> str:
-        integration_id: str = self.get_option(self.integration_key)
-        return integration_id
+    def get_integration_id(self) -> int:
+        integration_id: str | None = self.get_option(self.integration_key)
+        if integration_id:
+            return int(integration_id)
+        return 0
 
-    def get_integration(self) -> Integration:
+    def get_integration(self) -> RpcIntegration | None:
         """
         Uses the required class variables `provider` and `integration_key` with
         RuleBase.get_option to get the integration object from DB.
-
-        :raises: Integration.DoesNotExist
-        :return: Integration
         """
-        return Integration.objects.get_active_integrations(self.project.organization.id).get(
-            id=self.get_integration_id(),
-            provider=self.provider,
-        )
+        for integration in integration_service.get_integrations(
+            organization_id=self.project.organization_id,
+            status=OrganizationStatus.ACTIVE,
+            org_integration_status=OrganizationStatus.ACTIVE,
+            providers=[self.provider],
+        ):
+            if integration.id == self.get_integration_id():
+                return integration
+        return None
 
-    def get_installation(self) -> Any:
-        return self.get_integration().get_installation(self.project.organization.id)
+    def get_organization_integration(self) -> RpcOrganizationIntegration | None:
+        return integration_service.get_organization_integration(
+            integration_id=self.get_integration_id(), organization_id=self.project.organization_id
+        )
 
     def get_form_instance(self) -> forms.Form:
         return self.form_cls(self.data, integrations=self.get_integrations())
+
+    def record_notification_sent(
+        self,
+        event: GroupEvent,
+        external_id: str,
+        rule: Rule | None = None,
+        notification_uuid: str | None = None,
+    ) -> None:
+        # Currently these actions can only be triggered by issue alerts
+        analytics.record(
+            f"integrations.{self.provider}.notification_sent",
+            category="issue_alert",
+            organization_id=event.organization.id,
+            project_id=event.project_id,
+            group_id=event.group_id,
+            notification_uuid=notification_uuid if notification_uuid else "",
+            alert_id=rule.id if rule else None,
+        )
+        analytics.record(
+            "alert.sent",
+            provider=self.provider,
+            alert_id=rule.id if rule else "",
+            alert_type="issue_alert",
+            organization_id=event.organization.id,
+            project_id=event.project_id,
+            external_id=external_id,
+            notification_uuid=notification_uuid if notification_uuid else "",
+        )

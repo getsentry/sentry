@@ -1,14 +1,16 @@
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppInstallationsBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import SENTRY_APP_SLUG_MAX_LENGTH
-from sentry.mediators.sentry_app_installations import Creator
-from sentry.models import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.installations import SentryAppInstallationCreator
 
 
 class SentryAppInstallationsSerializer(serializers.Serializer):
@@ -29,9 +31,15 @@ class SentryAppInstallationsSerializer(serializers.Serializer):
         return attrs
 
 
+@control_silo_endpoint
 class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization) -> Response:
-        queryset = SentryAppInstallation.objects.filter(organization=organization)
+        queryset = SentryAppInstallation.objects.filter(organization_id=organization.id)
 
         return self.paginate(
             request=request,
@@ -51,11 +59,11 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
         slug = serializer.validated_data.get("slug")
         try:
             install = SentryAppInstallation.objects.get(
-                sentry_app__slug=slug, organization=organization
+                sentry_app__slug=slug, organization_id=organization.id
             )
         except SentryAppInstallation.DoesNotExist:
-            install = Creator.run(
-                organization=organization, slug=slug, user=request.user, request=request
-            )
+            install = SentryAppInstallationCreator(
+                organization_id=organization.id, slug=slug, notify=True
+            ).run(user=request.user, request=request)
 
         return Response(serialize(install))

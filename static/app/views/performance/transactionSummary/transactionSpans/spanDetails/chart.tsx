@@ -1,5 +1,4 @@
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
-import {Location} from 'history';
+import {browserHistory} from 'react-router';
 
 import Feature from 'sentry/components/acl/feature';
 import OptionSelector from 'sentry/components/charts/optionSelector';
@@ -11,21 +10,21 @@ import {
   SectionValue,
 } from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import ExclusiveTimeHistogram from './exclusiveTimeHistogram';
 import ExclusiveTimeTimeSeries from './exclusiveTimeTimeSeries';
 
-type Props = WithRouterProps & {
+type Props = {
   eventView: EventView;
-  location: Location;
   organization: Organization;
   spanSlug: SpanSlug;
   totalCount?: number;
@@ -37,9 +36,9 @@ enum DisplayModes {
 }
 
 function Chart(props: Props) {
-  const {location} = props;
+  const location = useLocation();
 
-  const display = decodeScalar(props.location.query.display, DisplayModes.TIMESERIES);
+  const display = decodeScalar(location.query.display, DisplayModes.TIMESERIES);
 
   function generateDisplayOptions() {
     return [
@@ -49,7 +48,7 @@ function Chart(props: Props) {
   }
 
   function handleDisplayChange(value: string) {
-    trackAdvancedAnalyticsEvent('performance_views.span_summary.change_chart', {
+    trackAnalytics('performance_views.span_summary.change_chart', {
       organization: props.organization,
       change_to_display: value,
     });
@@ -100,4 +99,4 @@ function Chart(props: Props) {
   );
 }
 
-export default withRouter(Chart);
+export default Chart;

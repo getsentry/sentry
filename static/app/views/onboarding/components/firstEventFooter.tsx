@@ -1,84 +1,177 @@
-import {Fragment} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
+import {motion, Variants} from 'framer-motion';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import Link from 'sentry/components/links/link';
+import {IconCheckmark} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
+import {space} from 'sentry/styles/space';
+import {OnboardingRecentCreatedProject, Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import testableTransition from 'sentry/utils/testableTransition';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
-import FirstEventIndicator from './firstEventIndicator';
+import GenericFooter from './genericFooter';
 
 interface FirstEventFooterProps {
+  isLast: boolean;
+  onClickSetupLater: () => void;
   organization: Organization;
-  project: Project;
-  docsLink?: string;
-  docsOnClick?: () => void;
+  project: OnboardingRecentCreatedProject;
 }
 
 export default function FirstEventFooter({
   organization,
   project,
-  docsLink,
-  docsOnClick,
+  onClickSetupLater,
+  isLast,
 }: FirstEventFooterProps) {
-  return (
-    <Fragment>
-      <FirstEventIndicator
-        organization={organization}
-        project={project}
-        eventType="error"
+  const source = 'targeted_onboarding_first_event_footer';
+
+  const getSecondaryCta = useCallback(() => {
+    // if hasn't sent first event, allow skiping.
+    // if last, no secondary cta
+    if (!project?.firstError && !isLast) {
+      return <Button onClick={onClickSetupLater}>{t('Next Platform')}</Button>;
+    }
+    return null;
+  }, [project?.firstError, isLast, onClickSetupLater]);
+
+  const getPrimaryCta = useCallback(() => {
+    // if hasn't sent first event, allow creation of sample error
+    if (!project?.firstError) {
+      return (
+        <CreateSampleEventButton
+          project={project}
+          source="targted-onboarding"
+          priority="primary"
+        >
+          {t('View Sample Error')}
+        </CreateSampleEventButton>
+      );
+    }
+    return (
+      <Button
+        to={`/organizations/${organization.slug}/issues/${
+          project?.firstIssue && 'id' in project.firstIssue
+            ? `${project.firstIssue.id}/`
+            : ''
+        }?referrer=onboarding-first-event-footer`}
+        priority="primary"
       >
-        {({indicator, firstEventButton}) => (
-          <CTAFooter>
-            <Actions gap={2}>
-              {firstEventButton}
-              <Button external href={docsLink} onClick={docsOnClick}>
-                {t('View full documentation')}
-              </Button>
-            </Actions>
-            {indicator}
-          </CTAFooter>
+        {t('Take me to my error')}
+      </Button>
+    );
+  }, [project, organization.slug]);
+
+  return (
+    <GridFooter>
+      <SkipOnboardingLink
+        onClick={() => {
+          trackAnalytics('growth.onboarding_clicked_skip', {
+            organization,
+            source,
+          });
+        }}
+        to={`/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer-skip`}
+      >
+        {t('Skip Onboarding')}
+      </SkipOnboardingLink>
+      <StatusWrapper>
+        {project?.firstError ? (
+          <IconCheckmark isCircled color="green400" />
+        ) : (
+          <WaitingIndicator />
         )}
-      </FirstEventIndicator>
-      <CTASecondary>
-        {tct(
-          'Just want to poke around before getting too cozy with the SDK? [sample:View a sample event for this SDK] or [skip:finish setup later].',
-          {
-            sample: (
-              <CreateSampleEventButton
-                aria-label="View a sample event"
-                project={project}
-                source="onboarding"
-                priority="link"
-              />
-            ),
-            skip: (
-              <Button priority="link" href="/" aria-label={t('Finish setup later')} />
-            ),
-          }
-        )}
-      </CTASecondary>
-    </Fragment>
+        <AnimatedText errorReceived={project?.firstError}>
+          {project?.firstError ? t('Error Received') : t('Waiting for error')}
+        </AnimatedText>
+      </StatusWrapper>
+      <OnboardingButtonBar gap={2}>
+        {getSecondaryCta()}
+        {getPrimaryCta()}
+      </OnboardingButtonBar>
+    </GridFooter>
   );
 }
 
-const CTAFooter = styled('div')`
+const OnboardingButtonBar = styled(ButtonBar)`
+  margin: ${space(2)} ${space(4)};
+  justify-self: end;
+  margin-left: auto;
+`;
+
+const AnimatedText = styled(motion.div, {
+  shouldForwardProp: prop => prop !== 'errorReceived',
+})<{errorReceived: boolean}>`
+  margin-left: ${space(1)};
+  color: ${p => (p.errorReceived ? p.theme.successText : p.theme.pink400)};
+`;
+
+const indicatorAnimation: Variants = {
+  initial: {opacity: 0, y: -10},
+  animate: {opacity: 1, y: 0},
+  exit: {opacity: 0, y: 10},
+};
+
+AnimatedText.defaultProps = {
+  variants: indicatorAnimation,
+  transition: testableTransition(),
+};
+
+const WaitingIndicator = styled(motion.div)`
+  ${pulsingIndicatorStyles};
+  background-color: ${p => p.theme.pink300};
+`;
+
+WaitingIndicator.defaultProps = {
+  variants: indicatorAnimation,
+  transition: testableTransition(),
+};
+
+const StatusWrapper = styled(motion.div)`
   display: flex;
-  justify-content: space-between;
-  margin: ${space(2)} 0;
-  margin-top: ${space(4)};
-`;
-
-const CTASecondary = styled('p')`
-  color: ${p => p.theme.subText};
+  align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
-  margin: 0;
-  max-width: 500px;
+  justify-content: center;
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    display: none;
+  }
 `;
 
-const Actions = styled(ButtonBar)`
-  display: inline-grid;
-  justify-self: start;
+StatusWrapper.defaultProps = {
+  initial: 'initial',
+  animate: 'animate',
+  exit: 'exit',
+  variants: {
+    initial: {opacity: 0, y: -10},
+    animate: {
+      opacity: 1,
+      y: 0,
+      transition: testableTransition({when: 'beforeChildren', staggerChildren: 0.35}),
+    },
+    exit: {opacity: 0, y: 10},
+  },
+};
+
+const SkipOnboardingLink = styled(Link)`
+  margin: auto ${space(4)};
+  white-space: nowrap;
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    display: none;
+  }
+`;
+
+const GridFooter = styled(GenericFooter)`
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    display: flex;
+    flex-direction: row;
+    justify-content: end;
+  }
 `;

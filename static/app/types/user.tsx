@@ -13,6 +13,7 @@ export type AvatarUser = {
   username: string;
   avatar?: Avatar;
   avatarUrl?: string;
+  ip?: string;
   // Compatibility shim with EventUser serializer
   ipAddress?: string;
   lastSeen?: string;
@@ -32,8 +33,7 @@ type UserEnrolledAuthenticator = {
   type: Authenticator['id'];
 };
 
-export type User = Omit<AvatarUser, 'options'> & {
-  authenticators: UserEnrolledAuthenticator[];
+export interface User extends Omit<AvatarUser, 'options'> {
   canReset2fa: boolean;
   dateJoined: string;
   emails: {
@@ -56,13 +56,15 @@ export type User = Omit<AvatarUser, 'options'> & {
   options: {
     avatarType: Avatar['avatarType'];
     clock24Hours: boolean;
+    defaultIssueEvent: 'recommended' | 'latest' | 'oldest';
     language: string;
     stacktraceOrder: number;
     theme: 'system' | 'light' | 'dark';
     timezone: string;
   };
   permissions: Set<string>;
-};
+  authenticators?: UserEnrolledAuthenticator[];
+}
 
 // XXX(epurkhiser): we should understand how this is diff from User['emails]
 // above
@@ -76,20 +78,20 @@ export type UserEmail = {
  * API tokens and Api Applications.
  */
 // See src/sentry/api/serializers/models/apitoken.py for the differences based on application
-type BaseApiToken = {
+interface BaseApiToken {
   dateCreated: string;
   expiresAt: string;
   id: string;
   scopes: Scope[];
   state: string;
-};
+}
 
 // We include the token for API tokens used for internal apps
-export type InternalAppApiToken = BaseApiToken & {
+export interface InternalAppApiToken extends BaseApiToken {
   application: null;
   refreshToken: string;
   token: string;
-};
+}
 
 export type ApiApplication = {
   allowedOrigins: string[];
@@ -101,6 +103,16 @@ export type ApiApplication = {
   privacyUrl: string | null;
   redirectUris: string[];
   termsUrl: string | null;
+};
+
+export type OrgAuthToken = {
+  dateCreated: Date;
+  id: string;
+  name: string;
+  scopes: string[];
+  dateLastUsed?: Date;
+  projectLastUsedId?: string;
+  tokenLastCharacters?: string;
 };
 
 // Used in user session history.

@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import logging
 from typing import Any, Mapping
 
 from sentry.integrations.slack.client import SlackClient
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")
@@ -13,11 +16,15 @@ logger = logging.getLogger("sentry.integrations.slack.tasks")
     name="sentry.integrations.slack.post_message",
     queue="integrations",
     max_retries=0,
+    silo_mode=SiloMode.REGION,
 )
 def post_message(
-    payload: Mapping[str, Any], log_error_message: str, log_params: Mapping[str, Any]
+    integration_id: int,
+    payload: Mapping[str, Any],
+    log_error_message: str,
+    log_params: Mapping[str, Any],
 ) -> None:
-    client = SlackClient()
+    client = SlackClient(integration_id=integration_id)
     try:
         client.post("/chat.postMessage", data=payload, timeout=5)
     except ApiError as e:

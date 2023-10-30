@@ -1,0 +1,194 @@
+[
+  {
+    "desc": "FreeText with wildcard shall be invalid if disallowWildcard is true",
+    "query": "freeTextWith*",
+    "additionalConfig": {
+      "disallowWildcard": true
+    },
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "freeText",
+        "value": "freeTextWith*",
+        "quoted": false,
+        "invalid": {
+          "type": "wildcard-not-allowed",
+          "reason": "Wildcards not supported in search"
+        }
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  },
+  {
+    "desc": "List value with wildcard shall be invalid if disallowWildcard is true",
+    "query": "release:[*]",
+    "additionalConfig": {
+      "disallowWildcard": true
+    },
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "textIn",
+        "invalid": {
+          "type": "wildcard-not-allowed",
+          "reason": "Wildcards not supported in search"
+        },
+        "key": {
+          "type": "keySimple",
+          "value": "release",
+          "quoted": false
+        },
+        "operator": "",
+        "negated": false,
+        "value": {
+          "items": [
+            {
+              "separator": "",
+              "value": {
+                "quoted": false,
+                "type": "valueText",
+                "value": "*"
+              }
+            }
+          ],
+          "type": "valueTextList"
+        }
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  },
+  {
+    "desc": "Value shall be invalid if disallowWildcard is true",
+    "query": "release:*",
+    "additionalConfig": {
+      "disallowWildcard": true
+    },
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {
+          "type": "keySimple",
+          "value": "release",
+          "quoted": false
+        },
+        "operator": "",
+        "value": {
+          "type": "valueText",
+          "value": "*",
+          "quoted": false
+        },
+        "invalid": {
+          "type": "wildcard-not-allowed",
+          "reason": "Wildcards not supported in search"
+        }
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  },
+  {
+    "desc": "Key shall be invalid if not in supportedTags",
+    "query": "release*:1",
+    "additionalConfig": {
+      "disallowWildcard": true,
+      "supportedTags": {
+        "release": {
+          "key": "release",
+          "kind": "field"
+        }
+      }
+    },
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "freeText",
+        "value": "release*:1",
+        "quoted": false,
+        "invalid": {
+          "type": "wildcard-not-allowed",
+          "reason": "Wildcards not supported in search"
+        }
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  },
+  {
+    "desc": "If disallowWildcard is true and a custom reason is provided, it shall be shown",
+    "query": "rele*ase",
+    "additionalConfig": {
+      "disallowWildcard": true,
+      "invalidMessages": {
+        "wildcard-not-allowed": "Release queries don't support wildcards"
+      }
+    },
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "freeText",
+        "value": "rele*ase",
+        "quoted": false,
+        "invalid": {
+          "type": "wildcard-not-allowed",
+          "reason": "Release queries don't support wildcards"
+        }
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  },
+  {
+    "desc": "If disallowWildcard is true and a custom reason is provided, it shall be shown",
+    "query": "rele*ase",
+    "additionalConfig": {
+      "disallowWildcard": true,
+      "invalidMessages": {
+        "wildcard-not-allowed": "Release queries don't support wildcards"
+      }
+    },
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "freeText",
+        "value": "rele*ase",
+        "quoted": false,
+        "invalid": {
+          "type": "wildcard-not-allowed",
+          "reason": "Release queries don't support wildcards"
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

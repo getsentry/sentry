@@ -8,22 +8,25 @@ import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   GroupActivity,
+  GroupActivitySetByResolvedInNextSemverRelease,
   GroupActivitySetByResolvedInRelease,
   GroupActivityType,
-  ResolutionStatusDetails,
+  Repository,
+  ResolvedStatusDetails,
 } from 'sentry/types';
 
 type Props = {
   projectId: string;
-  statusDetails: ResolutionStatusDetails;
+  // TODO(ts): This should be a union type `IgnoredStatusDetails | ResolvedStatusDetails`
+  statusDetails: ResolvedStatusDetails;
   activities?: GroupActivity[];
 };
 
 function renderReason(
-  statusDetails: ResolutionStatusDetails,
+  statusDetails: ResolvedStatusDetails,
   projectId: string,
   activities: GroupActivity[]
 ) {
@@ -36,74 +39,69 @@ function renderReason(
 
   const relevantActivity = activities.find(
     activity => activity.type === GroupActivityType.SET_RESOLVED_IN_RELEASE
-  ) as GroupActivitySetByResolvedInRelease | undefined;
+  ) as
+    | GroupActivitySetByResolvedInRelease
+    | GroupActivitySetByResolvedInNextSemverRelease
+    | undefined;
 
-  const currentReleaseVersion = relevantActivity?.data.current_release_version!;
-
-  if (statusDetails.inNextRelease && statusDetails.actor) {
-    return tct('[actor] marked this issue as resolved in the upcoming release.', {
-      actor,
-    });
-  }
   if (statusDetails.inNextRelease) {
-    return t('This issue has been marked as resolved in the upcoming release.');
-  }
-  if (statusDetails.inRelease && statusDetails.actor) {
-    return currentReleaseVersion
-      ? tct('[actor] marked this issue as resolved in versions greater than [version].', {
+    // Resolved in next release has current_release_version (semver only)
+    if (relevantActivity && 'current_release_version' in relevantActivity.data) {
+      const version = (
+        <Version
+          version={relevantActivity.data.current_release_version}
+          projectId={projectId}
+          tooltipRawVersion
+        />
+      );
+      return statusDetails.actor
+        ? tct(
+            '[actor] marked this issue as resolved in versions greater than [version].',
+            {
+              actor,
+              version,
+            }
+          )
+        : tct(
+            'This issue has been marked as resolved in versions greater than [version].',
+            {version}
+          );
+    }
+
+    return actor
+      ? tct('[actor] marked this issue as resolved in the upcoming release.', {
           actor,
-          version: (
-            <Version
-              version={currentReleaseVersion}
-              projectId={projectId}
-              tooltipRawVersion
-            />
-          ),
         })
-      : tct('[actor] marked this issue as resolved in version [version].', {
-          actor,
-          version: (
-            <Version
-              version={statusDetails.inRelease}
-              projectId={projectId}
-              tooltipRawVersion
-            />
-          ),
-        });
+      : t('This issue has been marked as resolved in the upcoming release.');
   }
   if (statusDetails.inRelease) {
-    return currentReleaseVersion
-      ? tct(
-          'This issue has been marked as resolved in versions greater than [version].',
-          {
-            version: (
-              <Version
-                version={currentReleaseVersion}
-                projectId={projectId}
-                tooltipRawVersion
-              />
-            ),
-          }
-        )
-      : tct('This issue has been marked as resolved in version [version].', {
-          version: (
-            <Version
-              version={statusDetails.inRelease}
-              projectId={projectId}
-              tooltipRawVersion
-            />
-          ),
-        });
+    const version = (
+      <Version
+        version={statusDetails.inRelease}
+        projectId={projectId}
+        tooltipRawVersion
+      />
+    );
+    return actor
+      ? tct('[actor] marked this issue as resolved in version [version].', {
+          actor,
+          version,
+        })
+      : tct('This issue has been marked as resolved in version [version].', {version});
   }
-  if (!!statusDetails.inCommit) {
+  if (statusDetails.inCommit) {
     return tct('This issue has been marked as resolved by [commit]', {
       commit: (
         <Fragment>
           <CommitLink
+            inline
+            showIcon={false}
             commitId={statusDetails.inCommit.id}
-            repository={statusDetails.inCommit.repository}
+            repository={statusDetails.inCommit.repository as Repository}
           />
-          <StyledTimeSince date={statusDetails.inCommit.dateCreated} />
+          {statusDetails.inCommit.dateCreated && (
+            <StyledTimeSince date={statusDetails.inCommit.dateCreated} />
+          )}
         </Fragment>
       ),
     });
@@ -115,7 +113,7 @@ function ResolutionBox({statusDetails, projectId, activities = []}: Props) {
   return (
     <BannerContainer priority="default">
       <BannerSummary>
-        <StyledIconCheckmark color="green300" />
+        <StyledIconCheckmark color="successText" />
         <span>{renderReason(statusDetails, projectId, activities)}</span>
       </BannerSummary>
     </BannerContainer>

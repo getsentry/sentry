@@ -5,8 +5,10 @@ from typing import Any
 from django.db.models.signals import post_delete, post_save, pre_delete
 
 from sentry import tagstore
-from sentry.eventstore.models import Event
-from sentry.models import Environment, Release, ReleaseEnvironment, ReleaseProject
+from sentry.eventstore.models import GroupEvent
+from sentry.models.environment import Environment
+from sentry.models.release import Release, ReleaseProject
+from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.rules import EventState
 from sentry.rules.filters.base import EventFilter
 from sentry.search.utils import get_latest_release
@@ -26,7 +28,12 @@ def clear_release_cache(instance: Release, **kwargs: Any) -> None:
 
 
 def clear_release_environment_project_cache(instance: ReleaseEnvironment, **kwargs: Any) -> None:
-    release_project_ids = instance.release.projects.values_list("id", flat=True)
+    try:
+        release_project_ids = instance.release.projects.values_list("id", flat=True)
+    except Release.DoesNotExist:
+        # This can happen during deletions as release projects are removed before the release is.
+        return
+
     cache.delete_many(
         [
             get_project_release_cache_key(proj_id, instance.environment_id)
@@ -45,7 +52,7 @@ class LatestReleaseFilter(EventFilter):
     id = "sentry.rules.filters.latest_release.LatestReleaseFilter"
     label = "The event is from the latest release"
 
-    def get_latest_release(self, event: Event) -> Release | None:
+    def get_latest_release(self, event: GroupEvent) -> Release | None:
         environment_id = None if self.rule is None else self.rule.environment_id
         cache_key = get_project_release_cache_key(event.group.project_id, environment_id)
         latest_release = cache.get(cache_key)
@@ -74,7 +81,7 @@ class LatestReleaseFilter(EventFilter):
                 cache.set(cache_key, False, 600)
         return latest_release
 
-    def passes(self, event: Event, state: EventState) -> bool:
+    def passes(self, event: GroupEvent, state: EventState) -> bool:
         latest_release = self.get_latest_release(event)
         if not latest_release:
             return False

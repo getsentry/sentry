@@ -5,7 +5,7 @@ from typing import Any
 
 import phonenumbers
 from django import forms
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 import sentry
 from sentry.integrations import FeatureDescription, IntegrationFeatures
@@ -48,7 +48,11 @@ def clean_phone(phone):
 #      in theory only cleaned data would make it to the plugin via the form,
 #      and cleaned numbers are deduped already.
 def split_sms_to(data):
-    return set(filter(bool, re.split(r"\s*,\s*|\s+", data)))
+    # we use regex below to split the string since we allow any whitespace, comma, or combination of the two
+    # as a delimiter
+    phone_numbers = set(re.split(r"[,\s]+", data))
+    stripped_phone_numbers = {num.strip() for num in phone_numbers}
+    return stripped_phone_numbers
 
 
 class TwilioConfigurationForm(forms.Form):
@@ -95,11 +99,9 @@ class TwilioConfigurationForm(forms.Form):
 
 
 class TwilioPlugin(CorePluginMixin, NotificationPlugin):
-    author = "Matt Robenolt"
-    author_url = "https://github.com/mattrobenolt"
     version = sentry.VERSION
     description = DESCRIPTION
-    resource_links = (
+    resource_links = [
         (
             "Documentation",
             "https://github.com/getsentry/sentry/blob/master/src/sentry_plugins/twilio/Twilio_Instructions.md",
@@ -110,7 +112,7 @@ class TwilioPlugin(CorePluginMixin, NotificationPlugin):
             "https://github.com/getsentry/sentry/tree/master/src/sentry_plugins/twilio",
         ),
         ("Twilio", "https://www.twilio.com/"),
-    )
+    ]
 
     slug = "twilio"
     title = _("Twilio (SMS)")
@@ -185,7 +187,7 @@ class TwilioPlugin(CorePluginMixin, NotificationPlugin):
                 errors.append(e)
 
         if errors:
-            raise self.raise_error(errors[0])
+            self.raise_error(errors[0])
 
     def get_client(self, project):
         account_sid = self.get_option("account_sid", project)

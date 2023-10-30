@@ -18,7 +18,12 @@
         "format": "date-time"
       },
       "headers": {
-        "type": "object"
+        "type": "object",
+        "properties": {
+          "Content-Type": {
+            "type": "string"
+          }
+        }
       },
       "id": {
         "type": "string"

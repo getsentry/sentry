@@ -1,20 +1,20 @@
+from functools import cached_property
 from urllib.parse import parse_qs
 
 import pytest
 import responses
-from exam import fixture
 
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.testutils import PluginTestCase
+from sentry.testutils.cases import PluginTestCase
 from sentry.utils import json
 from sentry_plugins.slack.plugin import SlackPlugin
 
 
 class SlackPluginTest(PluginTestCase):
-    @fixture
+    @cached_property
     def plugin(self):
         return SlackPlugin()
 
@@ -34,6 +34,7 @@ class SlackPluginTest(PluginTestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
 
         rule = Rule.objects.create(project=self.project, label="my rule")
 
@@ -71,6 +72,7 @@ class SlackPluginTest(PluginTestCase):
             data={"message": "Hello world", "level": "warning"}, project_id=self.project.id
         )
         group = event.group
+        assert group is not None
 
         rule = Rule.objects.create(project=self.project, label="my rule")
 
@@ -106,6 +108,7 @@ class SlackPluginTest(PluginTestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
 
         rule = Rule.objects.create(project=self.project, label="my rule")
 

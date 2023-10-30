@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from ..base import BulkModelDeletionTask, ModelDeletionTask, ModelRelation
 
 
@@ -5,7 +7,10 @@ class ProjectDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
         from sentry import models
         from sentry.discover.models import DiscoverSavedQueryProject
-        from sentry.incidents.models import IncidentProject
+        from sentry.incidents.models import AlertRule, IncidentProject
+        from sentry.models.projectteam import ProjectTeam
+        from sentry.monitors.models import Monitor
+        from sentry.replays.models import ReplayRecordingSegment
         from sentry.snuba.models import QuerySubscription
 
         relations = [
@@ -14,11 +19,10 @@ class ProjectDeletionTask(ModelDeletionTask):
         ]
 
         # in bulk
-        model_list = (
+        for m in (
             models.Activity,
             models.AppConnectBuild,
             models.EnvironmentProject,
-            models.EventAttachment,
             models.EventUser,
             models.GroupAssignee,
             models.GroupBookmark,
@@ -32,47 +36,42 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.LatestAppConnectBuildsCheck,
             models.ProjectBookmark,
             models.ProjectKey,
-            models.ProjectTeam,
+            ProjectTeam,
             models.PromptsActivity,
             # order matters, ProjectCodeOwners to be deleted before RepositoryProjectPathConfig
             models.ProjectCodeOwners,
+            ReplayRecordingSegment,
             models.RepositoryProjectPathConfig,
-            models.SavedSearchUserDefault,
-            models.SavedSearch,
             models.ServiceHookProject,
             models.ServiceHook,
             models.UserReport,
             models.ProjectTransactionThreshold,
+            # NOTE: Removing the project relation from `ProjectArtifactBundle` may
+            # leave behind orphaned `ArtifactBundle`s. Though thats not a big problem
+            # as those are being automatically cleaned up on their own.
+            models.ProjectArtifactBundle,
+            models.ProguardArtifactRelease,
             DiscoverSavedQueryProject,
             IncidentProject,
             QuerySubscription,
-        )
-
-        relations.extend(
-            [
-                ModelRelation(m, {"project_id": instance.id}, BulkModelDeletionTask)
-                for m in model_list
-            ]
-        )
-
-        model_list = (models.GroupMeta, models.GroupResolution, models.GroupSnooze)
-        relations.extend(
-            [
-                ModelRelation(m, {"group__project": instance.id}, ModelDeletionTask)
-                for m in model_list
-            ]
+        ):
+            relations.append(ModelRelation(m, {"project_id": instance.id}, BulkModelDeletionTask))
+        relations.append(ModelRelation(Monitor, {"project_id": instance.id}))
+        relations.append(ModelRelation(models.Group, {"project_id": instance.id}))
+        relations.append(
+            ModelRelation(
+                AlertRule,
+                {"snuba_query__subscriptions__project": instance, "include_all_projects": False},
+            )
         )
 
         # Release needs to handle deletes after Group is cleaned up as the foreign
         # key is protected
-        model_list = (
-            models.Group,
+        for m in (
             models.ReleaseProject,
             models.ReleaseProjectEnvironment,
+            models.EventAttachment,
             models.ProjectDebugFile,
-        )
-        relations.extend(
-            [ModelRelation(m, {"project_id": instance.id}, ModelDeletionTask) for m in model_list]
-        )
-
+        ):
+            relations.append(ModelRelation(m, {"project_id": instance.id}, ModelDeletionTask))
         return relations

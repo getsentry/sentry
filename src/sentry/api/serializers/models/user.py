@@ -1,10 +1,24 @@
+from __future__ import annotations
+
 import itertools
 import warnings
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Callable, Dict, List, MutableMapping, Optional, Sequence, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+)
 
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import QuerySet
 from typing_extensions import TypedDict
 
@@ -13,18 +27,20 @@ from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import (
-    Authenticator,
-    AuthIdentity,
-    OrganizationMember,
-    OrganizationStatus,
-    User,
-    UserAvatar,
-    UserEmail,
-    UserOption,
-    UserPermission,
-    UserRoleUser,
-)
+from sentry.models.authenticator import Authenticator
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.avatars.user_avatar import UserAvatar
+from sentry.models.options.user_option import UserOption
+from sentry.models.organization import OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
+from sentry.models.userpermission import UserPermission
+from sentry.models.userrole import UserRoleUser
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils.avatar import get_gravatar_url
 
 
@@ -68,6 +84,7 @@ class _UserOptions(TypedDict):
     theme: str  # TODO: enum/literal for theme options
     language: str
     stacktraceOrder: int  # TODO enum/literal
+    defaultIssueEvent: str
     timezone: str
     clock24Hours: bool
 
@@ -75,6 +92,8 @@ class _UserOptions(TypedDict):
 class UserSerializerResponseOptional(TypedDict, total=False):
     identities: List[_Identity]
     avatar: SerializedAvatarFields
+    authenticators: List[Any]  # TODO: find out what type this is
+    canReset2fa: bool
 
 
 class UserSerializerResponse(UserSerializerResponseOptional):
@@ -102,15 +121,24 @@ class UserSerializerResponseSelf(UserSerializerResponse):
 
 
 @register(User)
-class UserSerializer(Serializer):  # type: ignore
+class UserSerializer(Serializer):
+    def _user_is_requester(self, obj: User, requester: User | AnonymousUser | RpcUser) -> bool:
+        if isinstance(requester, User):
+            return bool(requester == obj)
+        if isinstance(requester, RpcUser):
+            return bool(requester.id == obj.id)
+        return False
+
     def _get_identities(
         self, item_list: Sequence[User], user: User
     ) -> Dict[int, List[AuthIdentity]]:
         if not (env.request and is_active_superuser(env.request)):
-            item_list = [x for x in item_list if x == user]
+            item_list = [x for x in item_list if x.id == user.id]
 
-        queryset = AuthIdentity.objects.filter(user__in=item_list).select_related(
-            "auth_provider", "auth_provider__organization"
+        queryset = AuthIdentity.objects.filter(
+            user_id__in=[i.id for i in item_list]
+        ).select_related(
+            "auth_provider",
         )
 
         results: Dict[int, List[AuthIdentity]] = {i.id: [] for i in item_list}
@@ -119,11 +147,12 @@ class UserSerializer(Serializer):  # type: ignore
         return results
 
     def get_attrs(self, item_list: Sequence[User], user: User) -> MutableMapping[User, Any]:
-        avatars = {a.user_id: a for a in UserAvatar.objects.filter(user__in=item_list)}
+        user_ids = [i.id for i in item_list]
+        avatars = {a.user_id: a for a in UserAvatar.objects.filter(user_id__in=user_ids)}
         identities = self._get_identities(item_list, user)
 
-        emails = manytoone_to_dict(UserEmail.objects.filter(user__in=item_list), "user_id")
-        authenticators = Authenticator.objects.bulk_users_have_2fa([i.id for i in item_list])
+        emails = manytoone_to_dict(UserEmail.objects.filter(user_id__in=user_ids), "user_id")
+        authenticators = Authenticator.objects.bulk_users_have_2fa(user_ids)
 
         data = {}
         for item in item_list:
@@ -136,7 +165,7 @@ class UserSerializer(Serializer):  # type: ignore
         return data
 
     def serialize(
-        self, obj: User, attrs: MutableMapping[User, Any], user: User
+        self, obj: User, attrs: MutableMapping[str, Any], user: User | AnonymousUser | RpcUser
     ) -> Union[UserSerializerResponse, UserSerializerResponseSelf]:
         experiment_assignments = experiments.all(user=user)
 
@@ -162,17 +191,19 @@ class UserSerializer(Serializer):  # type: ignore
             ],
         }
 
-        if obj == user:
+        if self._user_is_requester(obj, user):
             d = cast(UserSerializerResponseSelf, d)
             options = {
-                o.key: o.value for o in UserOption.objects.filter(user=user, project__isnull=True)
+                o.key: o.value
+                for o in UserOption.objects.filter(user_id=user.id, project_id__isnull=True)
             }
             stacktrace_order = int(options.get("stacktrace_order", -1) or -1)
 
             d["options"] = {
                 "theme": options.get("theme") or "light",
-                "language": options.get("language") or "en",
+                "language": options.get("language") or settings.SENTRY_DEFAULT_LANGUAGE,
                 "stacktraceOrder": stacktrace_order,
+                "defaultIssueEvent": options.get("default_issue_event") or "recommended",
                 "timezone": options.get("timezone") or settings.SENTRY_DEFAULT_TIME_ZONE,
                 "clock24Hours": options.get("clock_24_hours") or False,
             }
@@ -182,21 +213,30 @@ class UserSerializer(Serializer):  # type: ignore
         if attrs.get("avatar"):
             avatar: SerializedAvatarFields = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
-                "avatarUuid": attrs["avatar"].ident if attrs["avatar"].file_id else None,
+                "avatarUuid": attrs["avatar"].ident if attrs["avatar"].get_file_id() else None,
+                "avatarUrl": attrs["avatar"].absolute_url(),
             }
         else:
-            avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
+            avatar = {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None}
         d["avatar"] = avatar
 
         # TODO(dcramer): move this to DetailedUserSerializer
         if attrs["identities"] is not None:
+            organization_ids = {i.auth_provider.organization_id for i in attrs["identities"]}
+            auth_identity_organizations = organization_mapping_service.get_many(
+                organization_ids=list(organization_ids)
+            )
+            orgs_by_id: Mapping[int, RpcOrganizationSummary] = {
+                o.id: o for o in auth_identity_organizations
+            }
+
             d["identities"] = [
                 {
                     "id": str(i.id),
                     "name": i.ident,
                     "organization": {
-                        "slug": i.auth_provider.organization.slug,
-                        "name": i.auth_provider.organization.name,
+                        "slug": orgs_by_id[i.auth_provider.organization_id].slug,
+                        "name": orgs_by_id[i.auth_provider.organization_id].name,
                     },
                     "provider": {
                         "id": i.auth_provider.provider,
@@ -231,17 +271,23 @@ class DetailedUserSerializer(UserSerializer):
             lambda x: not x.interface.is_backup_interface,
         )
 
-        memberships = manytoone_to_dict(
-            OrganizationMember.objects.filter(
-                user__in=item_list, organization__status=OrganizationStatus.VISIBLE
-            ),
-            "user_id",
-        )
+        memberships = OrganizationMemberMapping.objects.filter(
+            user_id__in={u.id for u in item_list}
+        ).values_list("user_id", "organization_id", named=True)
+        active_organizations = OrganizationMapping.objects.filter(
+            organization_id__in={m.organization_id for m in memberships},
+            status=OrganizationStatus.ACTIVE,
+        ).values_list("organization_id", flat=True)
+
+        active_memberships = defaultdict(int)
+        for membership in memberships:
+            if membership.organization_id in active_organizations:
+                active_memberships[membership.user_id] += 1
 
         for item in item_list:
             attrs[item]["authenticators"] = authenticators[item.id]
             # org can reset 2FA if the user is only in one org
-            attrs[item]["canReset2fa"] = len(memberships[item.id]) == 1
+            attrs[item]["canReset2fa"] = active_memberships[item.id] == 1
 
         return attrs
 
@@ -283,23 +329,24 @@ class DetailedSelfUserSerializer(UserSerializer):
 
     def get_attrs(self, item_list: Sequence[User], user: User) -> MutableMapping[User, Any]:
         attrs = super().get_attrs(item_list, user)
+        user_ids = [i.id for i in item_list]
 
         # ignore things that aren't user controlled (like recovery codes)
         authenticators = manytoone_to_dict(
-            Authenticator.objects.filter(user__in=item_list),
+            Authenticator.objects.filter(user_id__in=user_ids),
             "user_id",
             lambda x: not x.interface.is_backup_interface,
         )
 
         permissions = manytoone_to_dict(
-            UserPermission.objects.filter(user__in=item_list), "user_id"
+            UserPermission.objects.filter(user_id__in=user_ids), "user_id"
         )
         # XXX(dcramer): There is definitely a way to write this query using
         #  Django's awkward ORM magic to cache it using `UserRole` but at least
         #  someone can understand this direction of access/optimization.
         roles = {
             ur.user_id: ur.role.permissions
-            for ur in UserRoleUser.objects.filter(user__in=item_list).select_related("role")
+            for ur in UserRoleUser.objects.filter(user_id__in=user_ids).select_related("role")
         }
 
         for item in item_list:

@@ -4,6 +4,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.endpoints.organization_events_spans_performance import Span
 from sentry.snuba import discover
@@ -32,8 +34,11 @@ class SpansHistogramSerializer(serializers.Serializer):
             raise serializers.ValidationError(str(e))
 
 
+@region_silo_endpoint
 class OrganizationEventsSpansHistogramEndpoint(OrganizationEventsV2EndpointBase):
-    private = True
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
 
     def has_feature(self, organization, request):
         return features.has(

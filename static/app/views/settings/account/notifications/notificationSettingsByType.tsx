@@ -1,13 +1,14 @@
 import {Fragment} from 'react';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import {Field} from 'sentry/components/forms/type';
+import {Field} from 'sentry/components/forms/types';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Organization, OrganizationSummary} from 'sentry/types';
 import {OrganizationIntegration} from 'sentry/types/integrations';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import {
   ALL_PROVIDER_NAMES,
@@ -35,7 +36,6 @@ import {
   isGroupedByProject,
   isSufficientlyComplex,
   mergeNotificationSettings,
-  providerListToString,
 } from 'sentry/views/settings/account/notifications/utils';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -43,16 +43,23 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 type Props = {
   notificationType: string;
   organizations: Organization[];
-} & AsyncComponent['props'];
+} & DeprecatedAsyncComponent['props'];
 
 type State = {
   identities: Identity[];
   notificationSettings: NotificationSettingsObject;
   organizationIntegrations: OrganizationIntegration[];
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
 const typeMappedChildren = {
-  quota: ['quotaErrors', 'quotaTransactions', 'quotaAttachments', 'quotaWarnings'],
+  quota: [
+    'quotaErrors',
+    'quotaTransactions',
+    'quotaAttachments',
+    'quotaReplays',
+    'quotaWarnings',
+    'quotaSpendAllocations',
+  ],
 };
 
 const getQueryParams = (notificationType: string) => {
@@ -64,7 +71,7 @@ const getQueryParams = (notificationType: string) => {
   return {type: notificationType};
 };
 
-class NotificationSettingsByType extends AsyncComponent<Props, State> {
+class NotificationSettingsByType extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
@@ -74,13 +81,13 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {notificationType} = this.props;
     return [
       [
         'notificationSettings',
         `/users/me/notification-settings/`,
-        {query: getQueryParams(notificationType)},
+        {query: getQueryParams(notificationType), v2: 'serializer'},
       ],
       ['identities', `/users/me/identities/`, {query: {provider: 'slack'}}],
       [
@@ -92,14 +99,15 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
   }
 
   componentDidMount() {
-    trackAdvancedAnalyticsEvent('notification_settings.tuning_page_viewed', {
+    super.componentDidMount();
+    trackAnalytics('notification_settings.tuning_page_viewed', {
       organization: null,
       notification_type: this.props.notificationType,
     });
   }
 
   trackTuningUpdated(tuningFieldType: string) {
-    trackAdvancedAnalyticsEvent('notification_settings.updated_tuning_setting', {
+    trackAnalytics('notification_settings.updated_tuning_setting', {
       organization: null,
       notification_type: this.props.notificationType,
       tuning_field_type: tuningFieldType,
@@ -211,23 +219,28 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
 
   /* Methods responsible for rendering the page. */
 
-  getInitialData(): {[key: string]: string} {
+  getInitialData(): {[key: string]: string | string[]} {
     const {notificationType} = this.props;
     const {notificationSettings} = this.state;
 
-    const initialData = {
-      [notificationType]: getCurrentDefault(notificationType, notificationSettings),
-    };
-    if (!isEverythingDisabled(notificationType, notificationSettings)) {
-      initialData.provider = providerListToString(
-        getCurrentProviders(notificationType, notificationSettings)
-      );
-    }
+    // TODO: Backend should be in charge of providing defaults since it depends on the type
+    const provider = !isEverythingDisabled(notificationType, notificationSettings)
+      ? getCurrentProviders(notificationType, notificationSettings)
+      : ['email', 'slack'];
+
     const childTypes: string[] = typeMappedChildren[notificationType] || [];
-    childTypes.forEach(childType => {
-      initialData[childType] = getCurrentDefault(childType, notificationSettings);
-    });
-    return initialData;
+    const childTypesDefaults = Object.fromEntries(
+      childTypes.map(childType => [
+        childType,
+        getCurrentDefault(childType, notificationSettings),
+      ])
+    );
+
+    return {
+      [notificationType]: getCurrentDefault(notificationType, notificationSettings),
+      provider,
+      ...childTypesDefaults,
+    };
   }
 
   getFields(): Field[] {
@@ -315,6 +328,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     const {title, description} = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
     return (
       <Fragment>
+        <SentryDocumentTitle title={title} />
         <SettingsPageHeader title={title} />
         {description && <TextBlock>{description}</TextBlock>}
         {hasSlack && unlinkedOrgs.length > 0 && (
@@ -343,6 +357,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
               notificationSettings={notificationSettings}
               onChange={this.getStateToPutForParent}
               onSubmitSuccess={() => this.trackTuningUpdated('project')}
+              organizations={this.props.organizations}
             />
           ) : (
             <NotificationSettingsByOrganization

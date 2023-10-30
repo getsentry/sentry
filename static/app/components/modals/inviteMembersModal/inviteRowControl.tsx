@@ -1,15 +1,16 @@
-import {Component} from 'react';
-import {MultiValueProps, StylesConfig} from 'react-select';
-import {withTheme} from '@emotion/react';
+import {useState} from 'react';
+import {MultiValueProps} from 'react-select';
+import {Theme, useTheme} from '@emotion/react';
 
-import Button from 'sentry/components/button';
-import SelectControl from 'sentry/components/forms/selectControl';
-import TeamSelector from 'sentry/components/forms/teamSelector';
+import {Button} from 'sentry/components/button';
+import SelectControl, {
+  StylesConfig,
+} from 'sentry/components/forms/controls/selectControl';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
+import TeamSelector from 'sentry/components/teamSelector';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {OrgRole, SelectValue} from 'sentry/types';
-import {Theme} from 'sentry/utils/theme';
 
 import renderEmailValue from './renderEmailValue';
 import {InviteStatus} from './types';
@@ -21,21 +22,15 @@ type Props = {
   disabled: boolean;
   emails: string[];
   inviteStatus: InviteStatus;
-  onChangeEmails: (emails: null | SelectOption[]) => void;
+  onChangeEmails: (emails: SelectOption[]) => void;
   onChangeRole: (role: SelectOption) => void;
-  onChangeTeams: (teams?: SelectOption[] | null) => void;
+  onChangeTeams: (teams: SelectOption[]) => void;
   onRemove: () => void;
   role: string;
   roleDisabledUnallowed: boolean;
   roleOptions: OrgRole[];
-
   teams: string[];
-  theme: Theme;
   className?: string;
-};
-
-type State = {
-  inputValue: string;
 };
 
 function ValueComponent(
@@ -49,22 +44,32 @@ function mapToOptions(values: string[]): SelectOption[] {
   return values.map(value => ({value, label: value}));
 }
 
-class InviteRowControl extends Component<Props, State> {
-  state: State = {inputValue: ''};
+function InviteRowControl({
+  className,
+  disabled,
+  emails,
+  role,
+  teams,
+  roleOptions,
+  roleDisabledUnallowed,
+  inviteStatus,
+  onRemove,
+  onChangeEmails,
+  onChangeRole,
+  onChangeTeams,
+  disableRemove,
+}: Props) {
+  const [inputValue, setInputValue] = useState('');
 
-  handleInputChange = (inputValue: string) => {
-    this.setState({inputValue});
-  };
+  const theme = useTheme();
 
-  handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
-    const {onChangeEmails, emails} = this.props;
-    const {inputValue} = this.state;
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
     switch (event.key) {
       case 'Enter':
       case ',':
       case ' ':
         onChangeEmails([...mapToOptions(emails), {label: inputValue, value: inputValue}]);
-        this.setState({inputValue: ''});
+        setInputValue('');
         event.preventDefault();
         break;
       default:
@@ -72,81 +77,64 @@ class InviteRowControl extends Component<Props, State> {
     }
   };
 
-  render() {
-    const {
-      className,
-      disabled,
-      emails,
-      role,
-      teams,
-      roleOptions,
-      roleDisabledUnallowed,
-      inviteStatus,
-      onRemove,
-      onChangeEmails,
-      onChangeRole,
-      onChangeTeams,
-      disableRemove,
-      theme,
-    } = this.props;
-
-    return (
-      <div className={className}>
-        <SelectControl
-          data-test-id="select-emails"
-          disabled={disabled}
-          placeholder={t('Enter one or more emails')}
-          inputValue={this.state.inputValue}
-          value={emails}
-          components={{
-            MultiValue: props => ValueComponent(props, inviteStatus),
-            DropdownIndicator: () => null,
-          }}
-          options={mapToOptions(emails)}
-          onBlur={(e: React.ChangeEvent<HTMLInputElement>) =>
-            e.target.value &&
-            onChangeEmails([
-              ...mapToOptions(emails),
-              {label: e.target.value, value: e.target.value},
-            ])
-          }
-          styles={getStyles(theme, inviteStatus)}
-          onInputChange={this.handleInputChange}
-          onKeyDown={this.handleKeyDown}
-          onChange={onChangeEmails}
-          multiple
-          creatable
-          clearable
-          menuIsOpen={false}
-        />
-        <RoleSelectControl
-          data-test-id="select-role"
-          disabled={disabled}
-          value={role}
-          roles={roleOptions}
-          disableUnallowed={roleDisabledUnallowed}
-          onChange={onChangeRole}
-        />
-        <TeamSelector
-          data-test-id="select-teams"
-          disabled={disabled}
-          placeholder={t('Add to teams\u2026')}
-          value={teams}
-          onChange={onChangeTeams}
-          multiple
-          clearable
-        />
-        <Button
-          borderless
-          icon={<IconClose />}
-          size="zero"
-          onClick={onRemove}
-          disabled={disableRemove}
-          aria-label={t('Remove')}
-        />
-      </div>
-    );
-  }
+  return (
+    <li className={className}>
+      <SelectControl
+        aria-label={t('Email Addresses')}
+        data-test-id="select-emails"
+        disabled={disabled}
+        placeholder={t('Enter one or more emails')}
+        inputValue={inputValue}
+        value={emails}
+        components={{
+          MultiValue: props => ValueComponent(props, inviteStatus),
+          DropdownIndicator: () => null,
+        }}
+        options={mapToOptions(emails)}
+        onBlur={(e: React.ChangeEvent<HTMLInputElement>) =>
+          e.target.value &&
+          onChangeEmails([
+            ...mapToOptions(emails),
+            {label: e.target.value, value: e.target.value},
+          ])
+        }
+        styles={getStyles(theme, inviteStatus)}
+        onInputChange={setInputValue}
+        onKeyDown={handleKeyDown}
+        onChange={onChangeEmails}
+        multiple
+        creatable
+        clearable
+        menuIsOpen={false}
+      />
+      <RoleSelectControl
+        aria-label={t('Role')}
+        data-test-id="select-role"
+        disabled={disabled}
+        value={role}
+        roles={roleOptions}
+        disableUnallowed={roleDisabledUnallowed}
+        onChange={onChangeRole}
+      />
+      <TeamSelector
+        aria-label={t('Add to Team')}
+        data-test-id="select-teams"
+        disabled={disabled}
+        placeholder={t('Add to teams\u2026')}
+        value={teams}
+        onChange={onChangeTeams}
+        multiple
+        clearable
+      />
+      <Button
+        borderless
+        icon={<IconClose />}
+        onClick={onRemove}
+        disabled={disableRemove}
+        aria-label={t('Remove')}
+      />
+    </li>
+  );
 }
 
 /**
@@ -155,44 +143,35 @@ class InviteRowControl extends Component<Props, State> {
  */
 function getStyles(theme: Theme, inviteStatus: Props['inviteStatus']): StylesConfig {
   return {
-    multiValue: (
-      provided: React.CSSProperties,
-      {data}: MultiValueProps<SelectOption>
-    ) => {
+    multiValue: (provided, {data}: MultiValueProps<SelectOption>) => {
       const status = inviteStatus[data.value];
       return {
         ...provided,
         ...(status?.error
           ? {
-              color: theme.red300,
+              color: theme.red400,
               border: `1px solid ${theme.red300}`,
               backgroundColor: theme.red100,
             }
           : {}),
       };
     },
-    multiValueLabel: (
-      provided: React.CSSProperties,
-      {data}: MultiValueProps<SelectOption>
-    ) => {
+    multiValueLabel: (provided, {data}: MultiValueProps<SelectOption>) => {
       const status = inviteStatus[data.value];
       return {
         ...provided,
         pointerEvents: 'all',
-        ...(status?.error ? {color: theme.red300} : {}),
+        ...(status?.error ? {color: theme.red400} : {}),
       };
     },
-    multiValueRemove: (
-      provided: React.CSSProperties,
-      {data}: MultiValueProps<SelectOption>
-    ) => {
+    multiValueRemove: (provided, {data}: MultiValueProps<SelectOption>) => {
       const status = inviteStatus[data.value];
       return {
         ...provided,
         ...(status?.error
           ? {
               borderLeft: `1px solid ${theme.red300}`,
-              ':hover': {backgroundColor: theme.red100, color: theme.red300},
+              ':hover': {backgroundColor: theme.red100, color: theme.red400},
             }
           : {}),
       };
@@ -200,4 +179,4 @@ function getStyles(theme: Theme, inviteStatus: Props['inviteStatus']): StylesCon
   };
 }
 
-export default withTheme(InviteRowControl);
+export default InviteRowControl;

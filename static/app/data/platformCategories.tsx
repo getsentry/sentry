@@ -1,69 +1,61 @@
-import {t} from 'sentry/locale';
+import {PlatformKey} from 'sentry/types';
 
-export const popularPlatformCategories = [
-  'javascript',
-  'javascript-react',
-  'javascript-nextjs',
-  'python-django',
-  'python',
-  'python-flask',
-  'ruby-rails',
-  'node-express',
-  'php-laravel',
-  'java',
-  'java-spring-boot',
-  'dotnet',
-  'dotnet-aspnetcore',
-  'csharp',
-  'go',
-  'php',
-  'ruby',
-  'node',
-  'react-native',
-  'javascript-angular',
-  'javascript-vue',
-  'android',
-  'apple-ios',
-  'flutter',
-  'dart-flutter',
-  'unity',
-] as const;
+export enum PlatformCategory {
+  FRONTEND,
+  MOBILE,
+  BACKEND,
+  SERVERLESS,
+  DESKTOP,
+  OTHER,
+}
 
-export const frontend = [
+// Mirrors `FRONTEND` in src/sentry/utils/platform_categories.py
+// When changing this file, make sure to keep src/sentry/utils/platform_categories.py in sync.
+export const frontend: PlatformKey[] = [
   'dart',
   'javascript',
-  'javascript-react',
   'javascript-angular',
   'javascript-angularjs',
+  'javascript-astro',
   'javascript-backbone',
   'javascript-ember',
   'javascript-gatsby',
-  'javascript-vue',
   'javascript-nextjs',
+  'javascript-react',
+  'javascript-remix',
+  'javascript-svelte',
+  'javascript-sveltekit',
+  'javascript-vue',
   'unity',
-] as const;
+];
 
-export const mobile = [
+// Mirrors `MOBILE` in src/sentry/utils/platform_categories.py
+// When changing this file, make sure to keep src/sentry/utils/platform_categories.py in sync.
+export const mobile: PlatformKey[] = [
   'android',
   'apple-ios',
-  'cordova',
   'capacitor',
-  'javascript-cordova',
-  'javascript-capacitor',
-  'ionic',
-  'react-native',
-  'flutter',
+  'cordova',
   'dart-flutter',
-  'unity',
+  'dotnet-maui',
   'dotnet-xamarin',
+  'flutter',
+  'ionic',
+  'javascript-capacitor',
+  'javascript-cordova',
+  'react-native',
+  'unity',
   'unreal',
   // Old platforms
   'java-android',
   'cocoa-objc',
   'cocoa-swift',
-] as const;
+];
 
-export const backend = [
+// Mirrors `BACKEND` in src/sentry/utils/platform_categories.py
+// When changing this file, make sure to keep src/sentry/utils/platform_categories.py in sync.
+export const backend: PlatformKey[] = [
+  'bun',
   'dotnet',
   'dotnet-aspnetcore',
   'dotnet-aspnet',
@@ -78,6 +70,7 @@ export const backend = [
   'java-logging',
   'java-spring',
   'java-spring-boot',
+  'kotlin',
   'native',
   'node',
   'node-express',
@@ -87,63 +80,69 @@ export const backend = [
   'php',
   'php-laravel',
   'php-monolog',
-  'php-symfony2',
+  'php-symfony',
   'python',
-  'python-django',
-  'python-flask',
-  'python-sanic',
-  'python-celery',
+  'python-aiohttp',
+  'python-asgi',
   'python-bottle',
+  'python-celery',
+  'python-chalice',
+  'python-django',
+  'python-falcon',
+  'python-fastapi',
+  'python-flask',
   'python-pylons',
+  'python-pymongo',
   'python-pyramid',
-  'python-tornado',
+  'python-quart',
   'python-rq',
+  'python-sanic',
+  'python-starlette',
+  'python-tornado',
+  'python-tryton',
+  'python-wsgi',
   'ruby',
   'ruby-rails',
   'ruby-rack',
   'rust',
-  'kotlin',
-] as const;
+];
 
-export const serverless = [
-  'python-awslambda',
-  'python-azurefunctions',
-  'python-gcpfunctions',
+// Mirrors `SERVERLESS` in src/sentry/utils/platform_categories.py
+// When changing this file, make sure to keep src/sentry/utils/platform_categories.py in sync.
+export const serverless: PlatformKey[] = [
+  'dotnet-awslambda',
+  'dotnet-gcpfunctions',
   'node-awslambda',
   'node-azurefunctions',
   'node-gcpfunctions',
-  'dotnet-awslambda',
-  'dotnet-gcpfunctions',
-] as const;
+  'python-awslambda',
+  'python-azurefunctions',
+  'python-gcpfunctions',
+  'python-serverless',
+];
 
-export const desktop = [
+// Mirrors `DESKTOP` in src/sentry/utils/platform_categories.py
+// When changing this file, make sure to keep src/sentry/utils/platform_categories.py in sync.
+export const desktop: PlatformKey[] = [
   'apple-macos',
-  'dotnet',
+  'dotnet-maui',
   'dotnet-winforms',
   'dotnet-wpf',
-  'java',
+  'dotnet',
   'electron',
+  'flutter',
+  'java',
   'javascript-electron',
+  'kotlin',
+  'minidump',
   'native',
-  'native-crashpad',
   'native-breakpad',
+  'native-crashpad',
   'native-minidump',
   'native-qt',
-  'minidump',
   'unity',
-  'flutter',
-  'kotlin',
   'unreal',
-] as const;
-
-const categoryList = [
-  {id: 'popular', name: t('Popular'), platforms: popularPlatformCategories},
-  {id: 'browser', name: t('Browser'), platforms: frontend},
-  {id: 'server', name: t('Server'), platforms: backend},
-  {id: 'mobile', name: t('Mobile'), platforms: mobile},
-  {id: 'desktop', name: t('Desktop'), platforms: desktop},
-  {id: 'serverless', name: t('Serverless'), platforms: serverless},
-] as const;
+];
 
 export const sourceMaps: PlatformKey[] = [
   ...frontend,
@@ -152,13 +151,8 @@ export const sourceMaps: PlatformKey[] = [
   'electron',
 ];
 
-export const tracing = [
-  'python-tracing',
-  'node-tracing',
-  'react-native-tracing',
-] as const;
-
 export const performance: PlatformKey[] = [
+  'bun',
   'javascript',
   'javascript-ember',
   'javascript-react',
@@ -168,6 +162,8 @@ export const performance: PlatformKey[] = [
   'python',
   'python-django',
   'python-flask',
+  'python-fastapi',
+  'python-starlette',
   'python-sanic',
   'python-celery',
   'python-bottle',
@@ -181,17 +177,84 @@ export const performance: PlatformKey[] = [
   'node-connect',
 ];
 
+// List of platforms that have performance onboarding checklist content
+export const withPerformanceOnboarding: Set<PlatformKey> = new Set([
+  'javascript',
+  'javascript-react',
+]);
+
+// List of platforms that do not have performance support. We make use of this list in the product to not provide any Performance
+// views such as Performance onboarding checklist.
+export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
+  'elixir',
+  'minidump',
+]);
+
+export const profiling: PlatformKey[] = [
+  // mobile
+  'android',
+  'apple-ios',
+  // go
+  'go',
+  // nodejs
+  'node',
+  'node-express',
+  'node-koa',
+  'node-connect',
+  'javascript-nextjs',
+  'javascript-remix',
+  'javascript-sveltekit',
+  'javascript',
+  'javascript-react',
+  // react-native
+  'react-native',
+  // python
+  'python',
+  'python-django',
+  'python-flask',
+  'python-fastapi',
+  'python-starlette',
+  'python-sanic',
+  'python-celery',
+  'python-bottle',
+  'python-pylons',
+  'python-pyramid',
+  'python-tornado',
+  'python-rq',
+  'python-aiohttp',
+  'python-chalice',
+  'python-falcon',
+  'python-quart',
+  'python-tryton',
+  'python-wsgi',
+  'python-serverless',
+  // rust
+  'rust',
+  // php
+  'php',
+  'php-laravel',
+  'php-symfony',
+  // ruby
+  'ruby',
+  'ruby-rails',
+  'ruby-rack',
+];
+
 export const releaseHealth: PlatformKey[] = [
   // frontend
   'javascript',
   'javascript-react',
   'javascript-angular',
   'javascript-angularjs',
+  'javascript-astro',
   'javascript-backbone',
   'javascript-ember',
   'javascript-gatsby',
   'javascript-vue',
   'javascript-nextjs',
+  'javascript-remix',
+  'javascript-svelte',
+  'javascript-sveltekit',
   // mobile
   'android',
   'apple-ios',
@@ -201,6 +264,7 @@ export const releaseHealth: PlatformKey[] = [
   'flutter',
   'dart-flutter',
   // backend
+  'bun',
   'native',
   'node',
   'node-express',
@@ -209,6 +273,8 @@ export const releaseHealth: PlatformKey[] = [
   'python',
   'python-django',
   'python-flask',
+  'python-fastapi',
+  'python-starlette',
   'python-sanic',
   'python-celery',
   'python-bottle',
@@ -216,6 +282,7 @@ export const releaseHealth: PlatformKey[] = [
   'python-pyramid',
   'python-tornado',
   'python-rq',
+  'python-pymongo',
   'rust',
   // serverless
   // desktop
@@ -226,21 +293,48 @@ export const releaseHealth: PlatformKey[] = [
   'native-qt',
 ];
 
+export const replayPlatforms: readonly PlatformKey[] = [
+  'capacitor',
+  'electron',
+  'javascript-angular',
+  // 'javascript-angularjs', // Unsupported, angularjs requires the v6.x core SDK
+  'javascript-astro',
+  'javascript-backbone',
+  'javascript-capacitor',
+  'javascript-electron',
+  'javascript-ember',
+  'javascript-gatsby',
+  'javascript-nextjs',
+  'javascript-react',
+  'javascript-remix',
+  'javascript-svelte',
+  'javascript-sveltekit',
+  'javascript-vue',
+  'javascript',
+];
+
 /**
- * Additional aliases used for filtering in the platform picker
+ * The list of platforms for which we have created onboarding instructions.
+ * Should be a subset of the list of `replayPlatforms`.
+ * This should match sentry-docs: `/src/wizard/${platform}/replay-onboarding/${subPlatform}/`.
+ * See: https://github.com/getsentry/sentry-docs/tree/master/src/wizard/javascript/replay-onboarding
  */
-export const filterAliases: Partial<Record<PlatformKey, string[]>> = {
-  native: ['cpp', 'c++'],
-};
-
-export type PlatformKey =
-  | typeof popularPlatformCategories[number]
-  | typeof frontend[number]
-  | typeof mobile[number]
-  | typeof backend[number]
-  | typeof desktop[number]
-  | typeof tracing[number]
-  | typeof serverless[number]
-  | 'other';
-
-export default categoryList;
+export const replayOnboardingPlatforms: readonly PlatformKey[] = [
+  'capacitor',
+  'electron',
+  'javascript-angular',
+  'javascript-astro',
+  // 'javascript-angularjs', // Unsupported, angularjs requires the v6.x core SDK
+  // 'javascript-backbone', // No docs yet
+  'javascript-capacitor',
+  'javascript-electron',
+  'javascript-ember',
+  'javascript-gatsby',
+  'javascript-nextjs',
+  'javascript-react',
+  'javascript-remix',
+  'javascript-svelte',
+  'javascript-sveltekit',
+  'javascript-vue',
+  'javascript',
+];

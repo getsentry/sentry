@@ -2,11 +2,13 @@ from django.conf import settings
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_relay import create_register_challenge, is_version_supported
+from sentry_relay.auth import create_register_challenge, is_version_supported
 
 from sentry import options
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import is_internal_relay, is_static_relay, relay_from_id
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.relay.constants import RELAY_AUTH_RATE_LIMITS
 from sentry.api.serializers import serialize
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
@@ -19,9 +21,14 @@ class RelayRegisterChallengeSerializer(RelayIdSerializer):
     public_key = serializers.CharField(max_length=64, required=True)
 
 
+@region_silo_endpoint
 class RelayRegisterChallengeEndpoint(Endpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = ()
     permission_classes = ()
+    owner = ApiOwner.OWNERS_INGEST
 
     enforce_rate_limit = True
     rate_limits = RELAY_AUTH_RATE_LIMITS
@@ -54,7 +61,7 @@ class RelayRegisterChallengeEndpoint(Endpoint):
 
         public_key = json_data.get("public_key")
         if not public_key:
-            return Response({"detail": "Missing public key"}, status=status.HTTP_400_FORBIDDEN)
+            return Response({"detail": "Missing public key"}, status=status.HTTP_400_BAD_REQUEST)
 
         if not settings.SENTRY_RELAY_OPEN_REGISTRATION and not (
             is_internal_relay(request, public_key) or is_static_relay(request)

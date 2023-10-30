@@ -1,3 +1,7 @@
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions
+from selenium.webdriver.support.wait import WebDriverWait
+
 from .base import BasePage
 from .global_selection import GlobalSelectionPage
 
@@ -25,7 +29,9 @@ class IssueDetailsPage(BasePage):
         self.browser.wait_until('[data-test-id="group-tag-value"]')
 
     def get_environment(self):
-        return self.browser.find_element_by_css_selector('[data-test-id="env-label"').text.lower()
+        return self.browser.find_element(
+            by=By.CSS_SELECTOR, value='[data-test-id="env-label"'
+        ).text.lower()
 
     def go_back_to_issues(self):
         self.global_selection.go_back_to_issues()
@@ -33,9 +39,9 @@ class IssueDetailsPage(BasePage):
     def api_issue_get(self, groupid):
         return self.client.get(f"/api/0/issues/{groupid}/")
 
-    def go_to_subtab(self, name):
-        tabs = self.browser.find_element_by_css_selector(".group-detail .nav-tabs")
-        tabs.find_element_by_partial_link_text(name).click()
+    def go_to_subtab(self, key):
+        tabs = self.browser.find_element(by=By.CSS_SELECTOR, value='[role="tablist"]')
+        tabs.find_element(by=By.CSS_SELECTOR, value=f'[role="tab"][data-key="{key}"]').click()
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
     def open_issue_errors(self):
@@ -43,17 +49,17 @@ class IssueDetailsPage(BasePage):
         self.browser.wait_until(".entries > .errors ul")
 
     def open_curl(self):
-        self.browser.find_element_by_xpath("//a//code[contains(text(), 'curl')]").click()
+        self.browser.find_element(by=By.XPATH, value="//a//code[contains(text(), 'curl')]").click()
 
     def resolve_issue(self):
         self.browser.click('[aria-label="Resolve"]')
         # Resolve should become unresolve
-        self.browser.wait_until('[aria-label="Unresolve"]')
+        self.browser.wait_until('[aria-label="Resolved"]')
 
     def ignore_issue(self):
         self.browser.click('[aria-label="Ignore"]')
         # Ignore should become unresolve
-        self.browser.wait_until('[aria-label="Unignore"]')
+        self.browser.wait_until('[aria-label="Ignored"]')
 
     def bookmark_issue(self):
         self.browser.click('button[aria-label="More Actions"]')
@@ -64,21 +70,35 @@ class IssueDetailsPage(BasePage):
         self.browser.wait_until('[data-test-id="unbookmark"]')
 
     def assign_to(self, user):
-        assignee = self.browser.find_element_by_css_selector(".assigned-to")
+        assignee = self.browser.find_element(
+            by=By.CSS_SELECTOR, value='[data-test-id="assigned-to"]'
+        )
 
         # Open the assignee picker
-        assignee.find_element_by_css_selector('[role="button"]').click()
-        assignee.find_element_by_tag_name("input").send_keys(user)
+        assignee.find_element(
+            by=By.CSS_SELECTOR, value='[data-test-id="assignee-selector"]'
+        ).click()
+
+        # Wait for the input to be loaded
+        wait = WebDriverWait(assignee, 10)
+        wait.until(expected_conditions.presence_of_element_located((By.TAG_NAME, "input")))
+
+        assignee.find_element(by=By.TAG_NAME, value="input").send_keys(user)
 
         # Click the member/team
-        options = assignee.find_elements_by_css_selector('[data-test-id="assignee-option"]')
+        options = assignee.find_elements(
+            by=By.CSS_SELECTOR, value='[data-test-id="assignee-option"]'
+        )
         assert len(options) > 0, "No assignees could be found."
         options[0].click()
 
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
     def find_comment_form(self):
-        return self.browser.find_element_by_css_selector('[data-test-id="note-input-form"]')
+        self.browser.wait_until_test_id("note-input-form")
+        return self.browser.find_element(
+            by=By.CSS_SELECTOR, value='[data-test-id="note-input-form"]'
+        )
 
     def has_comment(self, text):
         element = self.browser.element('[data-test-id="activity-note-body"]')
@@ -86,7 +106,7 @@ class IssueDetailsPage(BasePage):
 
     def wait_until_loaded(self):
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.wait_until_test_id("event-entries-loading-false")
+        self.browser.wait_until_not('[data-test-id="event-errors-loading"]')
         self.browser.wait_until_test_id("linked-issues")
         self.browser.wait_until_test_id("loaded-device-name")
         if self.browser.element_exists("#grouping-info"):
@@ -94,5 +114,8 @@ class IssueDetailsPage(BasePage):
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
     def mark_reviewed(self):
-        self.browser.click('[aria-label="Mark Reviewed"]')
-        self.browser.wait_until('.disabled[aria-label="Mark Reviewed"]')
+        self.browser.click('[aria-label="More Actions"]')
+        self.browser.wait_until('[data-test-id="mark-review"]')
+        self.browser.click('[data-test-id="mark-review"]')
+        self.browser.click('[aria-label="More Actions"]')
+        self.browser.wait_until('[data-test-id="mark-review"][aria-disabled="true"]')

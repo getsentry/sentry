@@ -1,19 +1,26 @@
 from datetime import timedelta
 
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
-from sentry import buffer
-from sentry.db.models import BoundedBigIntegerField, BoundedPositiveIntegerField, Model, sane_repr
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    BoundedPositiveIntegerField,
+    Model,
+    region_silo_only_model,
+    sane_repr,
+)
+from sentry.tasks.process_buffer import buffer_incr
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
 
+@region_silo_only_model
 class GroupRelease(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
-    # TODO: Should be BoundedBigIntegerField
-    project_id = BoundedPositiveIntegerField(db_index=True)
+    project_id = BoundedBigIntegerField(db_index=True)
     group_id = BoundedBigIntegerField()
     # TODO: Should be BoundedBigIntegerField
     release_id = BoundedPositiveIntegerField(db_index=True)
@@ -45,7 +52,7 @@ class GroupRelease(Model):
         instance = cache.get(cache_key)
         if instance is None:
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(cls)):
                     instance, created = (
                         cls.objects.create(
                             release_id=release.id,
@@ -68,7 +75,7 @@ class GroupRelease(Model):
             created = False
 
         if not created and instance.last_seen < datetime - timedelta(seconds=60):
-            buffer.incr(
+            buffer_incr(
                 model=cls,
                 columns={},
                 filters={"id": instance.id},

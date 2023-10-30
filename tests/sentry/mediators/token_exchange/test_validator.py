@@ -3,18 +3,25 @@ from unittest.mock import patch
 import pytest
 
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators.token_exchange import Validator
-from sentry.models import SentryApp
-from sentry.testutils import TestCase
+from sentry.mediators.token_exchange.validator import Validator
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.services.hybrid_cloud.app import app_service
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class TestValidator(TestCase):
     def setUp(self):
         self.install = self.create_sentry_app_installation()
         self.client_id = self.install.sentry_app.application.client_id
         self.user = self.install.sentry_app.proxy_user
-
-        self.validator = Validator(install=self.install, client_id=self.client_id, user=self.user)
+        install = app_service.get_many(filter=dict(installation_ids=[self.install.id]))[0]
+        self.validator = Validator(
+            install=install,
+            client_id=self.client_id,
+            user=self.user,
+        )
 
     def test_happy_path(self):
         assert self.validator.call()

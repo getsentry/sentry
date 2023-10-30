@@ -2,26 +2,74 @@ import {ResponseMeta} from 'sentry/api';
 
 import {sanitizePath} from './sanitizePath';
 
+export const ERROR_MAP = {
+  0: 'CancelledError',
+  200: 'UndefinedResponseBodyError',
+  400: 'BadRequestError',
+  401: 'UnauthorizedError',
+  403: 'ForbiddenError',
+  404: 'NotFoundError',
+  414: 'URITooLongError',
+  426: 'UpgradeRequiredError',
+  429: 'TooManyRequestsError',
+  500: 'InternalServerError',
+  501: 'NotImplementedError',
+  502: 'BadGatewayError',
+  503: 'ServiceUnavailableError',
+  504: 'GatewayTimeoutError',
+};
+
+// Technically, this should include the fact that `responseJSON` can be an
+// array, but since we never actually use its array-ness, it makes the typing
+// significantly simpler if we just rely on the "arrays are objects and we
+// can always check if a given property is defined on an object" principle
+type ResponseJSON = {
+  [key: string]: unknown;
+  detail?: string | {code?: string; message?: string};
+};
+
 export default class RequestError extends Error {
   responseText?: string;
-  responseJSON?: any;
+  responseJSON?: ResponseJSON;
   status?: number;
   statusText?: string;
 
-  constructor(method: string | undefined, path: string) {
-    super(`${method || 'GET'} ${sanitizePath(path)}`);
+  constructor(
+    method: 'POST' | 'GET' | 'DELETE' | 'PUT' | undefined,
+    path: string,
+    cause: Error,
+    responseMetadata?: ResponseMeta
+  ) {
+    const options = cause instanceof Error ? {cause} : {};
+    super(`${method || 'GET'} ${sanitizePath(path)}`, options);
+    // TODO (kmclb) This is here to compensate for a bug in the SDK wherein it
+    // ignores subclassing of `Error` when getting error type. Once that's
+    // fixed, this can go. See https://github.com/getsentry/sentry-javascript/pull/8161.
     this.name = 'RequestError';
-    Object.setPrototypeOf(this, new.target.prototype);
+    this.addResponseMetadata(responseMetadata);
   }
 
   /**
    * Updates Error with XHR response
    */
-  setResponse(resp: ResponseMeta) {
+  addResponseMetadata(resp: ResponseMeta | undefined) {
     if (resp) {
-      this.setMessage(
-        `${this.message} ${typeof resp.status === 'number' ? resp.status : 'n/a'}`
-      );
+      // We filter 200's out unless they're the specific case of an undefined
+      // body. For the ones which will eventually get filtered, we don't care
+      // about the data added here and we don't want to change the name (or it
+      // won't match the filter) so bail before any of that happens.
+      //
+      // TODO: If it turns out the undefined ones aren't really a problem, we
+      // can remove this and the `200` entry in `ERROR_MAP` above
+      if (resp.status === 200 && resp.responseText !== undefined) {
+        return;
+      }
+
+      this.setNameFromStatus(resp.status);
+
+      this.message = `${this.message} ${
+        typeof resp.status === 'number' ? resp.status : 'n/a'
+      }`;
 
       // Some callback handlers expect these properties on the error object
       if (resp.responseText) {
@@ -37,29 +85,11 @@ export default class RequestError extends Error {
     }
   }
 
-  setMessage(message: string) {
-    this.message = message;
-  }
+  setNameFromStatus(status: number) {
+    const errorName = ERROR_MAP[status];
 
-  setStack(newStack: string) {
-    this.stack = newStack;
-  }
-
-  setName(name: string) {
-    this.name = name;
-  }
-
-  removeFrames(numLinesToRemove) {
-    // Drop some frames so stack trace starts at callsite
-    //
-    // Note that babel will add a call to support extending Error object
-
-    // Old browsers may not have stack trace
-    if (!this.stack) {
-      return;
+    if (errorName) {
+      this.name = errorName;
     }
-
-    const lines = this.stack.split('\n');
-    this.stack = [lines[0], ...lines.slice(numLinesToRemove)].join('\n');
   }
 }

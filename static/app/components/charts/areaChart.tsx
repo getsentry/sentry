@@ -1,16 +1,17 @@
 import type {LineSeriesOption} from 'echarts';
 
-import {Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 
 import AreaSeries from './series/areaSeries';
-import BaseChart from './baseChart';
+import BaseChart, {BaseChartProps} from './baseChart';
 
-type ChartProps = Omit<React.ComponentProps<typeof BaseChart>, 'css'>;
+export interface AreaChartSeries
+  extends Omit<LineSeriesOption, 'data' | 'areaStyle' | 'color' | 'id'>,
+    Series {}
 
-export type AreaChartSeries = Series & Omit<LineSeriesOption, 'data' | 'name'>;
-
-export interface AreaChartProps extends Omit<ChartProps, 'series'> {
+export interface AreaChartProps extends Omit<BaseChartProps, 'series'> {
   series: AreaChartSeries[];
+  additionalSeries?: LineSeriesOption[];
   stacked?: boolean;
 }
 

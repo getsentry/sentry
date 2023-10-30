@@ -1,8 +1,8 @@
+import {Theme} from '@emotion/react';
 import {createStore} from 'reflux';
 
 import {defined} from 'sentry/utils';
 import localStorage from 'sentry/utils/localStorage';
-import {Theme} from 'sentry/utils/theme';
 
 import {CommonStoreDefinition} from './types';
 
@@ -36,6 +36,9 @@ const storeConfig: AlertStoreDefinition = {
   count: 0,
 
   init() {
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
+
     this.alerts = [];
     this.count = 0;
   },

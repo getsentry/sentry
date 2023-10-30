@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconDownload} from 'sentry/icons/iconDownload';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {AppStoreConnectStatusData} from 'sentry/types/debugFiles';
 
 type Props = {
@@ -27,7 +27,7 @@ function Status({details, onEditRepository}: Props) {
 
   if (credentials.status === 'invalid') {
     return (
-      <Wrapper color={theme.red300} onClick={onEditRepository}>
+      <Wrapper color={theme.errorText} onClick={onEditRepository}>
         <StyledTooltip
           title={t('Re-check your App Store Credentials')}
           containerDisplayMode="inline-flex"
@@ -41,7 +41,7 @@ function Status({details, onEditRepository}: Props) {
 
   if (pendingDownloads) {
     return (
-      <Wrapper color={theme.gray400}>
+      <Wrapper color={theme.textColor}>
         <IconWrapper>
           <IconDownload size="sm" />
         </IconWrapper>
@@ -52,7 +52,7 @@ function Status({details, onEditRepository}: Props) {
 
   if (lastCheckedBuilds) {
     return (
-      <Wrapper color={theme.gray400}>
+      <Wrapper color={theme.textColor}>
         <IconWrapper>
           <IconRefresh size="sm" />
         </IconWrapper>

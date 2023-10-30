@@ -1,17 +1,18 @@
+from functools import cached_property
+
 import responses
 from django.test import RequestFactory
-from exam import fixture
 
-from sentry.testutils import PluginTestCase
+from sentry.testutils.cases import PluginTestCase
 from sentry_plugins.phabricator.plugin import PhabricatorPlugin
 
 
 class PhabricatorPluginTest(PluginTestCase):
-    @fixture
+    @cached_property
     def plugin(self):
         return PhabricatorPlugin()
 
-    @fixture
+    @cached_property
     def request(self):
         return RequestFactory()
 

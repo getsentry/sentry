@@ -1,8 +1,8 @@
 import bisect
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
-from pytz import utc
+from sentry.utils import json
 
 
 class WellKnownProjectOption:
@@ -50,7 +50,7 @@ class ProjectOptionsManager:
             project.update_option("sentry:option-epoch", LATEST_EPOCH)
 
     def set(self, project, key, value):
-        from sentry.models import ProjectOption
+        from sentry.models.options.project_option import ProjectOption
 
         self.update_rev_for_option(project)
         return ProjectOption.objects.set_value(project, key, value)
@@ -59,22 +59,24 @@ class ProjectOptionsManager:
         return project.get_option(project, key, Ellipsis) is not Ellipsis
 
     def get(self, project, key, default=None, validate=None):
-        from sentry.models import ProjectOption
+        from sentry.models.options.project_option import ProjectOption
 
         return ProjectOption.objects.get_value(project, key, default, validate=validate)
 
     def delete(self, project, key):
-        from sentry.models import ProjectOption
+        from sentry.models.options.project_option import ProjectOption
 
         self.update_rev_for_option(project)
         return ProjectOption.objects.unset_value(project, key)
 
     def update_rev_for_option(self, project):
-        from sentry.models import ProjectOption
+        from sentry.models.options.project_option import ProjectOption
 
         ProjectOption.objects.set_value(project, "sentry:relay-rev", uuid.uuid4().hex)
         ProjectOption.objects.set_value(
-            project, "sentry:relay-rev-lastchange", datetime.utcnow().replace(tzinfo=utc)
+            project,
+            "sentry:relay-rev-lastchange",
+            json.datetime_to_str(datetime.utcnow().replace(tzinfo=timezone.utc)),
         )
 
     def register(self, key, default=None, epoch_defaults=None):

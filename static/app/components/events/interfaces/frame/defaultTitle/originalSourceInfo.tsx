@@ -10,7 +10,7 @@ type Props = {
 
 // TODO(Priscila): Remove BR tags
 // mapUrl not always present; e.g. uploaded source maps
-const OriginalSourceInfo = ({mapUrl, map}: Props) => {
+function OriginalSourceInfo({mapUrl, map}: Props) {
   if (!defined(map) && !defined(mapUrl)) {
     return null;
   }
@@ -23,6 +23,6 @@ const OriginalSourceInfo = ({mapUrl, map}: Props) => {
       <br />
     </Fragment>
   );
-};
+}
 
 export default OriginalSourceInfo;

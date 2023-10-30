@@ -1,31 +1,38 @@
 from __future__ import annotations
 
+from enum import Enum
 from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
 
 from django.conf import settings
 from django.db import models
 from django.db.models import F
+from django.db.models.signals import post_save
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     GzippedDictField,
     Model,
+    region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.tasks import activity
 from sentry.types.activity import CHOICES, ActivityType
 
 if TYPE_CHECKING:
-    from sentry.models import Group, User
+    from sentry.models.group import Group
+    from sentry.models.user import User
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 
-class ActivityManager(BaseManager):
+class ActivityManager(BaseManager["Activity"]):
     def get_activities_for_group(self, group: Group, num: int) -> Sequence[Group]:
         activities = []
-        activity_qs = self.filter(group=group).order_by("-datetime").select_related("user")
+        activity_qs = self.filter(group=group).order_by("-datetime")
 
         prev_sig = None
         sig = None
@@ -57,37 +64,43 @@ class ActivityManager(BaseManager):
         self,
         group: Group,
         type: ActivityType,
-        user: Optional[User] = None,
+        user: Optional[User | RpcUser] = None,
+        user_id: Optional[int] = None,
         data: Optional[Mapping[str, Any]] = None,
         send_notification: bool = True,
     ) -> Activity:
-        activity = self.create(
-            project_id=group.project_id,
-            group=group,
-            type=type.value,
-            user=user,
-            data=data,
-        )
+        if user:
+            user_id = user.id
+        activity_args = {
+            "project_id": group.project_id,
+            "group": group,
+            "type": type.value,
+            "data": data,
+        }
+        if user_id is not None:
+            activity_args["user_id"] = user_id
+        activity = self.create(**activity_args)
         if send_notification:
             activity.send_notification()
 
         return activity
 
 
+@region_silo_only_model
 class Activity(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
     group = FlexibleForeignKey("sentry.Group", null=True)
     # index on (type, ident)
-    type = BoundedPositiveIntegerField(choices=CHOICES)
+    type: models.Field[int | ActivityType, int] = BoundedPositiveIntegerField(choices=CHOICES)
     ident = models.CharField(max_length=64, null=True)
     # if the user is not set, it's assumed to be the system
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     datetime = models.DateTimeField(default=timezone.now)
-    data = GzippedDictField(null=True)
+    data: models.Field[dict[str, Any], dict[str, Any]] = GzippedDictField(null=True)
 
-    objects = ActivityManager()
+    objects: ActivityManager = ActivityManager()
 
     class Meta:
         app_label = "sentry"
@@ -102,7 +115,7 @@ class Activity(Model):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        from sentry.models import Release
+        from sentry.models.release import Release
 
         # XXX(dcramer): fix for bad data
         if self.type in (ActivityType.RELEASE.value, ActivityType.DEPLOY.value) and isinstance(
@@ -122,14 +135,35 @@ class Activity(Model):
 
         # HACK: support Group.num_comments
         if self.type == ActivityType.NOTE.value:
+            from sentry.models.group import Group
+
             self.group.update(num_comments=F("num_comments") + 1)
+            post_save.send_robust(
+                sender=Group, instance=self.group, created=True, update_fields=["num_comments"]
+            )
 
     def delete(self, *args, **kwargs):
         super().delete(*args, **kwargs)
 
         # HACK: support Group.num_comments
         if self.type == ActivityType.NOTE.value:
+            from sentry.models.group import Group
+
             self.group.update(num_comments=F("num_comments") - 1)
+            post_save.send_robust(
+                sender=Group, instance=self.group, created=True, update_fields=["num_comments"]
+            )
 
     def send_notification(self):
         activity.send_activity_notifications.delay(self.id)
+
+
+class ActivityIntegration(Enum):
+    """Used in the Activity data column to define an acting integration"""
+
+    CODEOWNERS = "codeowners"
+    PROJECT_OWNERSHIP = "projectOwnership"
+    SLACK = "slack"
+    MSTEAMS = "msteams"
+    DISCORD = "discord"
+    SUSPECT_COMMITTER = "suspectCommitter"

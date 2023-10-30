@@ -9,7 +9,7 @@ def make_template_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"template": data})
         mgr.normalize()
-        evt = eventstore.create_event(data=mgr.get_data())
+        evt = eventstore.backend.create_event(data=mgr.get_data())
 
         interface = evt.interfaces.get("template")
         insta_snapshot(

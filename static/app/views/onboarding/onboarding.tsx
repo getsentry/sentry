@@ -1,238 +1,461 @@
-import {Component, useEffect} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {useCallback, useContext, useEffect, useRef, useState} from 'react';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
 
-import Button, {ButtonProps} from 'sentry/components/button';
+import {removeProject} from 'sentry/actionCreators/projects';
+import {Button, ButtonProps} from 'sentry/components/button';
+import Confirm, {openConfirmModal, OpenConfirmOptions} from 'sentry/components/confirm';
 import Hook from 'sentry/components/hook';
+import Link from 'sentry/components/links/link';
 import LogoSentry from 'sentry/components/logoSentry';
+import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconChevron} from 'sentry/icons';
+import categoryList from 'sentry/data/platformPickerCategories';
+import platforms from 'sentry/data/platforms';
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import {OnboardingSelectedSDK} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
-import withOrganization from 'sentry/utils/withOrganization';
-import withProjects from 'sentry/utils/withProjects';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 
-import PageCorners from './components/pageCorners';
-import OnboardingPlatform from './platform';
-import SdkConfiguration from './sdkConfiguration';
-import {StepData, StepDescriptor} from './types';
-import OnboardingWelcome from './welcome';
-
-const ONBOARDING_STEPS: StepDescriptor[] = [
-  {
-    id: 'welcome',
-    title: t('Welcome'),
-    Component: OnboardingWelcome,
-    centered: true,
-  },
-  {
-    id: 'select-platform',
-    title: t('Select a platform'),
-    Component: OnboardingPlatform,
-  },
-  {
-    id: 'get-started',
-    title: t('Install the Sentry SDK'),
-    Component: SdkConfiguration,
-  },
-];
+import Stepper from './components/stepper';
+import {PlatformSelection} from './platformSelection';
+import SetupDocs from './setupDocs';
+import {StepDescriptor} from './types';
+import TargetedOnboardingWelcome from './welcome';
 
 type RouteParams = {
-  orgId: string;
   step: string;
 };
 
-type DefaultProps = {
-  steps: StepDescriptor[];
-};
+type Props = RouteComponentProps<RouteParams, {}>;
 
-type Props = RouteComponentProps<RouteParams, {}> &
-  DefaultProps & {
-    organization: Organization;
-    projects: Project[];
-  };
+function getOrganizationOnboardingSteps(): StepDescriptor[] {
+  return [
+    {
+      id: 'welcome',
+      title: t('Welcome'),
+      Component: TargetedOnboardingWelcome,
+      cornerVariant: 'top-right',
+    },
+    {
+      id: 'select-platform',
+      title: t('Select platform'),
+      Component: PlatformSelection,
+      hasFooter: true,
+      cornerVariant: 'top-left',
+    },
+    {
+      id: 'setup-docs',
+      title: t('Install the Sentry SDK'),
+      Component: SetupDocs,
+      hasFooter: true,
+      cornerVariant: 'top-left',
+    },
+  ];
+}
 
-type State = StepData;
+function Onboarding(props: Props) {
+  const api = useApi();
+  const organization = useOrganization();
+  const onboardingContext = useContext(OnboardingContext);
+  const selectedSDK = onboardingContext.data.selectedSDK;
+  const selectedProjectSlug = selectedSDK?.key;
 
-class Onboarding extends Component<Props, State> {
-  static defaultProps: DefaultProps = {
-    steps: ONBOARDING_STEPS,
-  };
+  const {
+    params: {step: stepId},
+  } = props;
 
-  state: State = {};
+  const onboardingSteps = getOrganizationOnboardingSteps();
+  const stepObj = onboardingSteps.find(({id}) => stepId === id);
+  const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
 
-  componentDidMount() {
-    this.validateActiveStep();
-  }
+  const recentCreatedProject = useRecentCreatedProject({
+    orgSlug: organization.slug,
+    projectSlug:
+      onboardingSteps[stepIndex].id === 'setup-docs' ? selectedProjectSlug : undefined,
+  });
 
-  componentDidUpdate() {
-    this.validateActiveStep();
-  }
+  const cornerVariantTimeoutRed = useRef<number | undefined>(undefined);
 
-  validateActiveStep() {
-    if (this.activeStepIndex === -1) {
-      const firstStep = this.props.steps[0].id;
-      browserHistory.replace(`/onboarding/${this.props.params.orgId}/${firstStep}/`);
+  useEffect(() => {
+    return () => {
+      window.clearTimeout(cornerVariantTimeoutRed.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (
+      props.location.pathname === `/onboarding/${onboardingSteps[2].id}/` &&
+      props.location.query?.platform &&
+      onboardingContext.data.selectedSDK === undefined
+    ) {
+      const platformKey = Object.keys(platforms).find(
+        key => platforms[key].id === props.location.query.platform
+      );
+
+      const platform = platformKey ? platforms[platformKey] : undefined;
+
+      // if no platform found, we redirect the user to the platform select page
+      if (!platform) {
+        props.router.push(
+          normalizeUrl(`/onboarding/${organization.slug}/${onboardingSteps[1].id}/`)
+        );
+        return;
+      }
+
+      const frameworkCategory =
+        categoryList.find(category => {
+          return category.platforms?.has(platform.id);
+        })?.id ?? 'all';
+
+      onboardingContext.setData({
+        ...onboardingContext.data,
+        selectedSDK: {
+          key: props.location.query.platform,
+          category: frameworkCategory,
+          language: platform.language,
+          type: platform.type,
+        },
+      });
     }
-  }
+  }, [
+    props.location.query,
+    props.router,
+    onboardingContext,
+    onboardingSteps,
+    organization.slug,
+    props.location.pathname,
+  ]);
 
-  get activeStepIndex() {
-    return this.props.steps.findIndex(({id}) => this.props.params.step === id);
-  }
+  const shallProjectBeDeleted =
+    onboardingSteps[stepIndex].id === 'setup-docs' &&
+    recentCreatedProject &&
+    // if the project has received a first error, we don't delete it
+    recentCreatedProject.firstError === false &&
+    // if the project has received a first transaction, we don't delete it
+    recentCreatedProject.firstTransaction === false &&
+    // if the project has replays, we don't delete it
+    recentCreatedProject.hasReplays === false &&
+    // if the project has sessions, we don't delete it
+    recentCreatedProject.hasSessions === false &&
+    // if the project is older than one hour, we don't delete it
+    recentCreatedProject.olderThanOneHour === false;
 
-  get activeStep() {
-    return this.props.steps[this.activeStepIndex];
-  }
+  const cornerVariantControl = useAnimation();
+  const updateCornerVariant = () => {
+    // TODO: find better way to delay the corner animation
+    window.clearTimeout(cornerVariantTimeoutRed.current);
 
-  get firstProject() {
-    const sortedProjects = this.props.projects.sort(
-      (a, b) => new Date(a.dateCreated).getTime() - new Date(b.dateCreated).getTime()
+    cornerVariantTimeoutRed.current = window.setTimeout(
+      () => cornerVariantControl.start(stepIndex === 0 ? 'top-right' : 'top-left'),
+      1000
     );
-
-    return sortedProjects.length > 0 ? sortedProjects[0] : null;
-  }
-
-  get projectPlatform() {
-    return this.state.platform ?? this.firstProject?.platform ?? null;
-  }
-
-  handleUpdate = (data: StepData) => {
-    this.setState(data);
   };
 
-  handleNextStep(step: StepDescriptor, data: StepData) {
-    this.handleUpdate(data);
+  useEffect(updateCornerVariant, [stepIndex, cornerVariantControl]);
 
-    if (step !== this.activeStep) {
+  // Called onExitComplete
+  const [containerHasFooter, setContainerHasFooter] = useState<boolean>(false);
+  const updateAnimationState = () => {
+    if (!stepObj) {
       return;
     }
 
-    const {orgId} = this.props.params;
-    const nextStep = this.props.steps[this.activeStepIndex + 1];
-
-    browserHistory.push(`/onboarding/${orgId}/${nextStep.id}/`);
-  }
-
-  handleGoBack = () => {
-    const previousStep = this.props.steps[this.activeStepIndex - 1];
-    browserHistory.replace(`/onboarding/${this.props.params.orgId}/${previousStep.id}/`);
+    setContainerHasFooter(stepObj.hasFooter ?? false);
   };
 
-  renderProgressBar() {
-    const activeStepIndex = this.activeStepIndex;
-    return (
-      <ProgressBar>
-        {this.props.steps.map((step, index) => (
-          <ProgressStep active={activeStepIndex === index} key={step.id} />
-        ))}
-      </ProgressBar>
-    );
-  }
-
-  renderOnboardingStep() {
-    const {orgId} = this.props.params;
-    const step = this.activeStep;
-
-    return (
-      <OnboardingStep
-        centered={step.centered}
-        key={step.id}
-        data-test-id={`onboarding-step-${step.id}`}
-      >
-        <step.Component
-          active
-          orgId={orgId}
-          project={this.firstProject}
-          platform={this.projectPlatform}
-          onComplete={data => this.handleNextStep(step, data)}
-          onUpdate={this.handleUpdate}
-          organization={this.props.organization}
-        />
-      </OnboardingStep>
-    );
-  }
-
-  Contents = () => {
-    const cornerVariantControl = useAnimation();
-    const updateCornerVariant = () => {
-      cornerVariantControl.start(this.activeStepIndex === 0 ? 'top-right' : 'top-left');
-    };
-
-    // XXX(epurkhiser): We're using a react hook here becuase there's no other
-    // way to create framer-motion controls than by using the `useAnimation`
-    // hook.
-
-    useEffect(updateCornerVariant, [cornerVariantControl]);
-
-    return (
-      <Container>
-        <Back
-          animate={this.activeStepIndex > 0 ? 'visible' : 'hidden'}
-          onClick={this.handleGoBack}
-        />
-        <AnimatePresence exitBeforeEnter onExitComplete={updateCornerVariant}>
-          {this.renderOnboardingStep()}
-        </AnimatePresence>
-        <PageCorners animateVariant={cornerVariantControl} />
-      </Container>
-    );
+  const goToStep = (step: StepDescriptor) => {
+    if (!stepObj) {
+      return;
+    }
+    if (step.cornerVariant !== stepObj.cornerVariant) {
+      cornerVariantControl.start('none');
+    }
+    props.router.push(normalizeUrl(`/onboarding/${organization.slug}/${step.id}/`));
   };
 
-  render() {
-    if (this.activeStepIndex === -1) {
-      return null;
+  const goNextStep = useCallback(
+    (step: StepDescriptor, platform?: OnboardingSelectedSDK) => {
+      const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
+      const nextStep = onboardingSteps[currentStepIndex + 1];
+
+      if (nextStep.id === 'setup-docs' && !platform) {
+        return;
+      }
+
+      if (step.cornerVariant !== nextStep.cornerVariant) {
+        cornerVariantControl.start('none');
+      }
+
+      props.router.push(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
+    },
+    [organization.slug, onboardingSteps, cornerVariantControl, props.router]
+  );
+
+  const deleteRecentCreatedProject = useCallback(async () => {
+    if (!recentCreatedProject?.slug) {
+      return;
     }
 
+    const newProjects = Object.keys(onboardingContext.data.projects).reduce(
+      (acc, key) => {
+        if (
+          onboardingContext.data.projects[key].slug !==
+          onboardingContext.data.selectedSDK?.key
+        ) {
+          acc[key] = onboardingContext.data.projects[key];
+        }
+        return acc;
+      },
+      {}
+    );
+
+    try {
+      await removeProject({
+        api,
+        orgSlug: organization.slug,
+        projectSlug: recentCreatedProject.slug,
+        origin: 'onboarding',
+      });
+      onboardingContext.setData({
+        ...onboardingContext.data,
+        projects: newProjects,
+      });
+
+      trackAnalytics('onboarding.data_removed', {
+        organization,
+        date_created: recentCreatedProject.dateCreated,
+        platform: recentCreatedProject.slug,
+        project_id: recentCreatedProject.id,
+      });
+    } catch (error) {
+      handleXhrErrorResponse('Unable to delete project in onboarding', error);
+      // we don't give the user any feedback regarding this error as this shall be silent
+    }
+  }, [api, organization, recentCreatedProject, onboardingContext]);
+
+  const handleGoBack = useCallback(
+    (goToStepIndex?: number) => {
+      if (!stepObj) {
+        return;
+      }
+
+      const previousStep = defined(goToStepIndex)
+        ? onboardingSteps[goToStepIndex]
+        : onboardingSteps[stepIndex - 1];
+
+      if (!previousStep) {
+        return;
+      }
+
+      if (stepObj.cornerVariant !== previousStep.cornerVariant) {
+        cornerVariantControl.start('none');
+      }
+
+      trackAnalytics('onboarding.back_button_clicked', {
+        organization,
+        from: onboardingSteps[stepIndex].id,
+        to: previousStep.id,
+      });
+
+      // from selected platform to welcome
+      if (onboardingSteps[stepIndex].id === 'select-platform') {
+        onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
+
+        props.router.replace(
+          normalizeUrl(`/onboarding/${organization.slug}/${previousStep.id}/`)
+        );
+        return;
+      }
+
+      // from setup docs to selected platform
+      if (onboardingSteps[stepIndex].id === 'setup-docs' && shallProjectBeDeleted) {
+        trackAnalytics('onboarding.data_removal_modal_confirm_button_clicked', {
+          organization,
+          platform: recentCreatedProject.slug,
+          project_id: recentCreatedProject.id,
+        });
+        deleteRecentCreatedProject();
+      }
+
+      props.router.replace(
+        normalizeUrl(`/onboarding/${organization.slug}/${previousStep.id}/`)
+      );
+    },
+    [
+      stepObj,
+      stepIndex,
+      onboardingSteps,
+      organization,
+      cornerVariantControl,
+      props.router,
+      onboardingContext,
+      shallProjectBeDeleted,
+      deleteRecentCreatedProject,
+      recentCreatedProject,
+    ]
+  );
+
+  const genSkipOnboardingLink = () => {
+    const source = `targeted-onboarding-${stepId}`;
     return (
-      <OnboardingWrapper>
-        <SentryDocumentTitle title={this.activeStep.title} />
-        <Header>
-          <LogoSvg />
-          <HeaderRight>
-            {this.renderProgressBar()}
-            <Hook
-              name="onboarding:targeted-onboarding-header"
-              source="simple-onboarding"
-            />
-          </HeaderRight>
-        </Header>
-        <this.Contents />
-      </OnboardingWrapper>
+      <SkipOnboardingLink
+        onClick={() => {
+          trackAnalytics('growth.onboarding_clicked_skip', {
+            organization,
+            source,
+          });
+          onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
+        }}
+        to={normalizeUrl(
+          `/organizations/${organization.slug}/issues/?referrer=onboarding-skip`
+        )}
+      >
+        {t('Skip Onboarding')}
+      </SkipOnboardingLink>
+    );
+  };
+
+  if (!stepObj || stepIndex === -1) {
+    return (
+      <Redirect
+        to={normalizeUrl(`/onboarding/${organization.slug}/${onboardingSteps[0].id}/`)}
+      />
     );
   }
+
+  const goBackDeletionAlertModalProps: OpenConfirmOptions = {
+    message: t(
+      "Hey, just a heads up - we haven't received any data for this SDK yet and by going back all changes will be discarded. Are you sure you want to head back?"
+    ),
+    priority: 'danger',
+    confirmText: t("Yes I'm sure"),
+    onConfirm: handleGoBack,
+    onClose: () => {
+      if (!recentCreatedProject) {
+        return;
+      }
+
+      trackAnalytics('onboarding.data_removal_modal_dismissed', {
+        organization,
+        platform: recentCreatedProject.slug,
+        project_id: recentCreatedProject.id,
+      });
+    },
+    onRender: () => {
+      if (!recentCreatedProject) {
+        return;
+      }
+
+      trackAnalytics('onboarding.data_removal_modal_rendered', {
+        organization,
+        platform: recentCreatedProject.slug,
+        project_id: recentCreatedProject.id,
+      });
+    },
+  };
+
+  return (
+    <OnboardingWrapper data-test-id="targeted-onboarding">
+      <SentryDocumentTitle title={stepObj.title} />
+      <Header>
+        <LogoSvg />
+        {stepIndex !== -1 && (
+          <StyledStepper
+            numSteps={onboardingSteps.length}
+            currentStepIndex={stepIndex}
+            onClick={i => {
+              if (i < stepIndex && shallProjectBeDeleted) {
+                openConfirmModal({
+                  ...goBackDeletionAlertModalProps,
+                  onConfirm: () => handleGoBack(i),
+                });
+                return;
+              }
+
+              goToStep(onboardingSteps[i]);
+            }}
+          />
+        )}
+        <UpsellWrapper>
+          <Hook
+            name="onboarding:targeted-onboarding-header"
+            source="targeted-onboarding"
+          />
+        </UpsellWrapper>
+      </Header>
+      <Container hasFooter={containerHasFooter}>
+        <Confirm bypass={!shallProjectBeDeleted} {...goBackDeletionAlertModalProps}>
+          <Back animate={stepIndex > 0 ? 'visible' : 'hidden'} />
+        </Confirm>
+        <AnimatePresence exitBeforeEnter onExitComplete={updateAnimationState}>
+          <OnboardingStep key={stepObj.id} data-test-id={`onboarding-step-${stepObj.id}`}>
+            {stepObj.Component && (
+              <stepObj.Component
+                active
+                data-test-id={`onboarding-step-${stepObj.id}`}
+                stepIndex={stepIndex}
+                onComplete={platform => {
+                  if (stepObj) {
+                    goNextStep(stepObj, platform);
+                  }
+                }}
+                orgId={organization.slug}
+                search={props.location.search}
+                route={props.route}
+                router={props.router}
+                location={props.location}
+                recentCreatedProject={recentCreatedProject}
+                {...{
+                  genSkipOnboardingLink,
+                }}
+              />
+            )}
+          </OnboardingStep>
+        </AnimatePresence>
+        <AdaptivePageCorners animateVariant={cornerVariantControl} />
+      </Container>
+    </OnboardingWrapper>
+  );
 }
 
-const OnboardingWrapper = styled('main')`
-  overflow: hidden;
+const Container = styled('div')<{hasFooter: boolean}>`
+  flex-grow: 1;
   display: flex;
   flex-direction: column;
-  flex-grow: 1;
-`;
-
-const Container = styled('div')`
-  display: flex;
-  justify-content: center;
   position: relative;
   background: ${p => p.theme.background};
   padding: 120px ${space(3)};
-  padding-top: 12vh;
   width: 100%;
   margin: 0 auto;
-  flex-grow: 1;
+  padding-bottom: ${p => p.hasFooter && '72px'};
+  margin-bottom: ${p => p.hasFooter && '72px'};
 `;
 
 const Header = styled('header')`
   background: ${p => p.theme.background};
-  padding: ${space(4)};
+  padding-left: ${space(4)};
+  padding-right: ${space(4)};
   position: sticky;
+  height: 80px;
+  align-items: center;
   top: 0;
   z-index: 100;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  justify-items: stretch;
 `;
 
 const LogoSvg = styled(LogoSentry)`
@@ -241,57 +464,52 @@ const LogoSvg = styled(LogoSentry)`
   color: ${p => p.theme.textColor};
 `;
 
-const ProgressBar = styled('div')`
-  margin: 0 ${space(4)};
-  position: relative;
+const OnboardingStep = styled(motion.div)`
+  flex-grow: 1;
   display: flex;
-  align-items: center;
-  min-width: 120px;
-  justify-content: space-between;
+  flex-direction: column;
+`;
 
-  &:before {
-    position: absolute;
-    display: block;
-    content: '';
-    height: 4px;
-    background: ${p => p.theme.border};
-    left: 2px;
-    right: 2px;
-    top: 50%;
-    margin-top: -2px;
+OnboardingStep.defaultProps = {
+  initial: 'initial',
+  animate: 'animate',
+  exit: 'exit',
+  variants: {animate: {}},
+  transition: testableTransition({
+    staggerChildren: 0.2,
+  }),
+};
+
+const Sidebar = styled(motion.div)`
+  width: 850px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+Sidebar.defaultProps = {
+  initial: 'initial',
+  animate: 'animate',
+  exit: 'exit',
+  variants: {animate: {}},
+  transition: testableTransition({
+    staggerChildren: 0.2,
+  }),
+};
+
+const AdaptivePageCorners = styled(PageCorners)`
+  --corner-scale: 1;
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    --corner-scale: 0.5;
   }
 `;
 
-const ProgressStep = styled('div')<{active: boolean}>`
-  position: relative;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 4px solid ${p => (p.active ? p.theme.active : p.theme.border)};
-  background: ${p => p.theme.background};
+const StyledStepper = styled(Stepper)`
+  justify-self: center;
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    display: none;
+  }
 `;
-
-const ProgressStatus = styled(motion.div)`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
-  text-align: right;
-  grid-column: 3;
-  grid-row: 1;
-`;
-
-const HeaderRight = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: max-content;
-  gap: ${space(1)};
-`;
-
-ProgressStatus.defaultProps = {
-  initial: {opacity: 0, y: -10},
-  animate: {opacity: 1, y: 0},
-  exit: {opacity: 0, y: 10},
-  transition: testableTransition(),
-};
 
 interface BackButtonProps extends Omit<ButtonProps, 'icon' | 'priority'> {
   animate: MotionProps['animate'];
@@ -318,8 +536,8 @@ const Back = styled(({className, animate, ...props}: BackButtonProps) => (
       },
     }}
   >
-    <Button {...props} icon={<IconChevron direction="left" size="sm" />} priority="link">
-      {t('Go back')}
+    <Button {...props} icon={<IconArrow direction="left" size="sm" />} priority="link">
+      {t('Back')}
     </Button>
   </motion.div>
 ))`
@@ -329,28 +547,22 @@ const Back = styled(({className, animate, ...props}: BackButtonProps) => (
 
   button {
     font-size: ${p => p.theme.fontSizeSmall};
-    color: ${p => p.theme.subText};
   }
 `;
 
-const OnboardingStep = styled(motion.div)<{centered?: boolean}>`
-  width: 850px;
-  display: flex;
-  flex-direction: column;
-  ${p =>
-    p.centered &&
-    `justify-content: center;
-     align-items: center;`};
+const SkipOnboardingLink = styled(Link)`
+  margin: auto ${space(4)};
 `;
 
-OnboardingStep.defaultProps = {
-  initial: 'initial',
-  animate: 'animate',
-  exit: 'exit',
-  variants: {animate: {}},
-  transition: testableTransition({
-    staggerChildren: 0.2,
-  }),
-};
+const UpsellWrapper = styled('div')`
+  grid-column: 3;
+  margin-left: auto;
+`;
 
-export default withOrganization(withProjects(Onboarding));
+const OnboardingWrapper = styled('main')`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+`;
+
+export default Onboarding;

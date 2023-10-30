@@ -1,12 +1,16 @@
+from datetime import datetime, timezone
 from unittest import mock
+from unittest.mock import patch
 
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.models import ProjectCodeOwners
-from sentry.testutils import APITestCase
+from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
     def setUp(self):
         self.user = self.create_user("admin@sentry.io", is_superuser=True)
@@ -50,14 +54,19 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
     def test_basic_update(self):
         self.create_external_team(external_name="@getsentry/frontend", integration=self.integration)
         self.create_external_team(external_name="@getsentry/docs", integration=self.integration)
+        date = datetime(2023, 10, 3, tzinfo=timezone.utc)
+        raw = "\n# cool stuff comment\n*.js                    @getsentry/frontend @NisanthanNanthakumar\n# good comment\n\n\n  docs/*  @getsentry/docs @getsentry/ecosystem\n\n"
         data = {
-            "raw": "\n# cool stuff comment\n*.js                    @getsentry/frontend @NisanthanNanthakumar\n# good comment\n\n\n  docs/*  @getsentry/docs @getsentry/ecosystem\n\n"
+            "raw": raw,
+            "date_updated": date,
         }
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.put(self.url, data)
         assert response.status_code == 200
         assert response.data["id"] == str(self.codeowners.id)
-        assert response.data["raw"] == data["raw"].strip()
+        assert response.data["raw"] == raw.strip()
+        codeowner = ProjectCodeOwners.objects.filter(id=self.codeowners.id)[0]
+        assert codeowner.date_updated == date
 
     def test_wrong_codeowners_id(self):
         self.url = reverse(
@@ -111,7 +120,8 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         assert response.status_code == 200
         assert response.data["raw"] == "# cool stuff comment\n*.js admin@sentry.io\n# good comment"
 
-    def test_codeowners_max_raw_length(self):
+    @patch("sentry.analytics.record")
+    def test_codeowners_max_raw_length(self, mock_record):
         with mock.patch(
             "sentry.api.endpoints.codeowners.MAX_RAW_LENGTH", len(self.data["raw"]) + 1
         ):
@@ -130,6 +140,11 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
                     )
                 ]
             }
+
+            mock_record.assert_called_with(
+                "codeowners.max_length_exceeded",
+                organization_id=self.organization.id,
+            )
 
             # Test that we allow this to be modified for existing large rows
             code_mapping = self.create_code_mapping(project=self.project, stack_root="/")

@@ -3,8 +3,10 @@ from __future__ import annotations
 from abc import ABC
 from typing import Any, Mapping, MutableMapping, Sequence
 
+from sentry.eventstore.models import Event, GroupEvent
+from sentry.integrations.message_builder import AbstractMessageBuilder
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SlackBody
-from sentry.integrations.slack.message_builder.base import AbstractMessageBuilder
+from sentry.models.group import Group
 from sentry.notifications.utils.actions import MessageAction
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
@@ -33,8 +35,23 @@ class SlackMessageBuilder(AbstractMessageBuilder, ABC):
         """Abstract `build` method that all inheritors must implement."""
         raise NotImplementedError
 
-    @staticmethod
+    def build_fallback_text(self, obj: Group | Event | GroupEvent, project_slug: str) -> str:
+        """Fallback text is used in the message preview popup."""
+        title = obj.title
+        if isinstance(obj, GroupEvent) and obj.occurrence is not None:
+            title = obj.occurrence.issue_title
+
+        return f"[{project_slug}] {title}"
+
+    @property
+    def escape_text(self) -> bool:
+        """
+        Returns True if we need to escape the text in the message.
+        """
+        return False
+
     def _build(
+        self,
         text: str,
         title: str | None = None,
         title_link: str | None = None,

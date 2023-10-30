@@ -1,31 +1,33 @@
-import {useContext} from 'react';
-
-import {Panel} from 'sentry/components/panels';
+import EmptyMessage from 'sentry/components/emptyMessage';
+import {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
+import Panel from 'sentry/components/panels/panel';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {ExceptionValue, Group, PlatformType} from 'sentry/types';
+import {ExceptionValue, Group, PlatformKey} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {STACK_VIEW} from 'sentry/types/stacktrace';
+import {StackType, StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import StackTraceContent from '../stackTrace/content';
-import StacktraceContentV2 from '../stackTrace/contentV2';
-import StacktraceContentV3 from '../stackTrace/contentV3';
+import {HierarchicalGroupingContent} from '../stackTrace/hierarchicalGroupingContent';
+import {NativeContent} from '../stackTrace/nativeContent';
 
 type Props = {
   chainedException: boolean;
   data: ExceptionValue['stacktrace'];
   event: Event;
   hasHierarchicalGrouping: boolean;
-  platform: PlatformType;
+  platform: PlatformKey;
+  stackType: StackType;
   stacktrace: ExceptionValue['stacktrace'];
   expandFirstFrame?: boolean;
+  frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
   groupingCurrentLevel?: Group['metadata']['current_level'];
+  meta?: Record<any, any>;
   newestFirst?: boolean;
-  stackView?: STACK_VIEW;
+  stackView?: StackView;
+  threadId?: number;
 };
 
 function StackTrace({
@@ -39,18 +41,17 @@ function StackTrace({
   data,
   expandFirstFrame,
   event,
+  meta,
+  threadId,
+  frameSourceMapDebuggerData,
+  stackType,
 }: Props) {
-  // Organization context may be unavailable for the shared event view, so we
-  // avoid using the `useOrganization` hook here and directly useContext
-  // instead.
-  const organization = useContext(OrganizationContext);
-
   if (!defined(stacktrace)) {
     return null;
   }
 
   if (
-    stackView === STACK_VIEW.APP &&
+    stackView === StackView.APP &&
     (stacktrace.frames ?? []).filter(frame => frame.inApp).length === 0 &&
     !chainedException
   ) {
@@ -73,7 +74,7 @@ function StackTrace({
   }
 
   const includeSystemFrames =
-    stackView === STACK_VIEW.FULL ||
+    stackView === StackView.FULL ||
     (chainedException && data.frames?.every(frame => !frame.inApp));
 
   /**
@@ -85,12 +86,9 @@ function StackTrace({
    * It is easier to fix the UI logic to show a non-empty stack trace for chained exceptions
    */
 
-  if (
-    !!organization?.features?.includes('native-stack-trace-v2') &&
-    isNativePlatform(platform)
-  ) {
+  if (isNativePlatform(platform)) {
     return (
-      <StacktraceContentV3
+      <NativeContent
         data={data}
         expandFirstFrame={expandFirstFrame}
         includeSystemFrames={includeSystemFrames}
@@ -98,13 +96,14 @@ function StackTrace({
         platform={platform}
         newestFirst={newestFirst}
         event={event}
+        meta={meta}
       />
     );
   }
 
   if (hasHierarchicalGrouping) {
     return (
-      <StacktraceContentV2
+      <HierarchicalGroupingContent
         data={data}
         expandFirstFrame={expandFirstFrame}
         includeSystemFrames={includeSystemFrames}
@@ -112,6 +111,7 @@ function StackTrace({
         platform={platform}
         newestFirst={newestFirst}
         event={event}
+        meta={meta}
       />
     );
   }
@@ -124,6 +124,10 @@ function StackTrace({
       platform={platform}
       newestFirst={newestFirst}
       event={event}
+      meta={meta}
+      threadId={threadId}
+      frameSourceMapDebuggerData={frameSourceMapDebuggerData}
+      hideSourceMapDebugger={stackType === StackType.MINIFIED}
     />
   );
 }

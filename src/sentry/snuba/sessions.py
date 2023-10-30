@@ -1,8 +1,7 @@
 import math
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Sequence, Set, Tuple
 
-import pytz
 from snuba_sdk import Request
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
@@ -36,7 +35,7 @@ def _get_conditions_and_filter_keys(project_releases, environments):
 def _get_changed_project_release_model_adoptions(project_ids, now=None):
     """Returns the last 72 hours worth of releases."""
     if now is None:
-        now = datetime.now(pytz.utc)
+        now = datetime.now(timezone.utc)
 
     start = now - timedelta(days=3)
     rv = []
@@ -61,7 +60,7 @@ def _get_oldest_health_data_for_releases(project_releases, now=None):
     in 90 days.  This is used for backfilling.
     """
     if now is None:
-        now = datetime.now(pytz.utc)
+        now = datetime.now(timezone.utc)
 
     conditions = [["release", "IN", [x[1] for x in project_releases]]]
     filter_keys = {"project_id": [x[0] for x in project_releases]}
@@ -91,7 +90,7 @@ def _check_has_health_data(projects_list, now=None):
     """
 
     if now is None:
-        now = datetime.now(pytz.utc)
+        now = datetime.now(timezone.utc)
 
     if len(projects_list) == 0:
         return set()
@@ -99,7 +98,7 @@ def _check_has_health_data(projects_list, now=None):
     conditions = None
     projects_list = list(projects_list)
     # Check if projects_list also contains releases as a tuple of (project_id, releases)
-    includes_releases = type(projects_list[0]) == tuple
+    includes_releases = isinstance(projects_list[0], tuple)
 
     if includes_releases:
         filter_keys = {"project_id": {x[0] for x in projects_list}}
@@ -155,10 +154,13 @@ def _check_releases_have_health_data(
             Condition(Column("release"), Op.IN, release_versions),
         ],
     )
-    request = Request(dataset="sessions", app_id="default", query=query)
-    data = snuba.raw_snql_query(request, referrer="snuba.sessions.check_releases_have_health_data")[
-        "data"
-    ]
+    request = Request(
+        dataset="sessions",
+        app_id="default",
+        query=query,
+        tenant_ids={"organization_id": organization_id},
+    )
+    data = snuba.raw_snql_query(request, "snuba.sessions.check_releases_have_health_data")["data"]
     return {row["release"] for row in data}
 
 
@@ -265,10 +267,13 @@ def _get_project_releases_count(
         where=where,
         having=having,
     )
-    request = Request(dataset="sessions", app_id="default", query=query)
-    data = snuba.raw_snql_query(request, referrer="snuba.sessions.get_project_releases_count")[
-        "data"
-    ]
+    request = Request(
+        dataset="sessions",
+        app_id="default",
+        query=query,
+        tenant_ids={"organization_id": organization_id},
+    )
+    data = snuba.raw_snql_query(request, "snuba.sessions.get_project_releases_count")["data"]
     return data[0]["count"] if data else 0
 
 
@@ -301,7 +306,7 @@ def get_rollup_starts_and_buckets(period, now=None):
         raise TypeError("Invalid stats period")
     seconds, buckets = STATS_PERIODS[period]
     if now is None:
-        now = datetime.now(pytz.utc)
+        now = datetime.now(timezone.utc)
     start = now - timedelta(seconds=seconds * buckets)
     return seconds, start, buckets
 
@@ -310,7 +315,7 @@ def _get_release_adoption(project_releases, environments=None, now=None):
     """Get the adoption of the last 24 hours (or a difference reference timestamp)."""
     conditions, filter_keys = _get_conditions_and_filter_keys(project_releases, environments)
     if now is None:
-        now = datetime.now(pytz.utc)
+        now = datetime.now(timezone.utc)
     start = now - timedelta(days=1)
 
     total_conditions = []
@@ -519,7 +524,7 @@ def _get_crash_free_breakdown(project_id, release, start, environments=None, now
         conditions.append(["environment", "IN", environments])
 
     if now is None:
-        now = datetime.now(pytz.utc)
+        now = datetime.now(timezone.utc)
 
     def _query_stats(end):
         row = raw_query(

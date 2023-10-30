@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {TreeLabelPart} from 'sentry/types';
 import {getTreeLabelPartDetails} from 'sentry/utils/events';
 

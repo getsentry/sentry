@@ -3,7 +3,7 @@ from django import forms
 
 from sentry.exceptions import PluginError
 from sentry.plugins.base.v2 import Plugin2
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class DummyForm(forms.Form):

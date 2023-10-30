@@ -2,8 +2,8 @@ import {Query} from 'history';
 import isArray from 'lodash/isArray';
 import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
-import isUndefined from 'lodash/isUndefined';
 
+import ConfigStore from 'sentry/stores/configStore';
 import {Project} from 'sentry/types';
 import {EventTag} from 'sentry/types/event';
 import {appendTagCondition} from 'sentry/utils/queryString';
@@ -121,7 +121,7 @@ export function explodeSlug(slug: string): string {
 }
 
 export function defined<T>(item: T): item is Exclude<T, null | undefined> {
-  return !isUndefined(item) && item !== null;
+  return item !== undefined && item !== null;
 }
 
 export function nl2br(str: string): string {
@@ -156,7 +156,7 @@ export function percent(value: number, totalValue: number): number {
 export function toTitleCase(str: string): string {
   return str.replace(
     /\w\S*/g,
-    txt => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+    txt => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase()
   );
 }
 
@@ -199,7 +199,7 @@ export function formatBytesBase2(bytes: number, fixPoints: number = 1): string {
   const units = ['KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'];
   const thresh = 1024;
   if (bytes < thresh) {
-    return bytes + ' B';
+    return bytes.toFixed(fixPoints) + ' B';
   }
 
   let u = -1;
@@ -212,7 +212,7 @@ export function formatBytesBase2(bytes: number, fixPoints: number = 1): string {
 
 export function getShortCommitHash(hash: string): string {
   if (hash.match(/^[a-f0-9]{40}$/)) {
-    hash = hash.substr(0, 7);
+    hash = hash.substring(0, 7);
   }
   return hash;
 }
@@ -232,7 +232,7 @@ export function parseRepo<T>(repo: T): T {
  * Converts a multi-line textarea input value into an array,
  * eliminating empty lines
  */
-export function extractMultilineFields(value: string): Array<string> {
+export function extractMultilineFields(value: string): string[] {
   return value
     .split('\n')
     .map(f => trim(f))
@@ -242,7 +242,7 @@ export function extractMultilineFields(value: string): Array<string> {
 /**
  * If the value is of type Array, converts it to type string, keeping the line breaks, if there is any
  */
-export function convertMultilineFieldValue<T extends string | Array<string>>(
+export function convertMultilineFieldValue<T extends string | string[]>(
   value: T
 ): string {
   if (Array.isArray(value)) {
@@ -334,4 +334,13 @@ export const isFunction = (value: any): value is Function => typeof value === 'f
 // NOTE: only escapes a " if it's not already escaped
 export function escapeDoubleQuotes(str: string) {
   return str.replace(/\\([\s\S])|(")/g, '\\$1$2');
+}
+
+export function generateBaseControlSiloUrl() {
+  return ConfigStore.get('links').sentryUrl || '';
+}
+
+export function generateOrgSlugUrl(orgSlug) {
+  const sentryDomain = window.__initialData.links.sentryUrl.split('/')[2];
+  return `${window.location.protocol}//${orgSlug}.${sentryDomain}${window.location.pathname}`;
 }

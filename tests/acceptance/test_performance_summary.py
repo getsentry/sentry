@@ -1,12 +1,12 @@
+from datetime import timezone
 from unittest.mock import patch
 from urllib.parse import urlencode
 
-import pytz
-
 from fixtures.page_objects.transaction_summary import TransactionSummaryPage
-from sentry.models import AssistantActivity
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.models.assistant import AssistantActivity
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
 FEATURES = {"organizations:performance-view": True}
@@ -18,6 +18,7 @@ def make_event(event_data):
     return event_data
 
 
+@no_silo_test(stable=True)
 class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -41,7 +42,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_with_data(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
 
         # Create a transaction
         event = make_event(load_data("transaction", timestamp=before_now(minutes=3)))
@@ -62,11 +63,10 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             self.page.wait_until_loaded()
             # We have to wait for this again because there are loaders inside of the table
             self.page.wait_until_loaded()
-            self.browser.snapshot("performance summary - with data")
 
     @patch("django.utils.timezone.now")
     def test_view_details_from_summary(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
 
         event = make_event(
             load_data(
@@ -82,11 +82,10 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             # View the first event details.
             self.browser.element('[data-test-id="view-id"]').click()
             self.page.wait_until_loaded()
-            self.browser.snapshot("performance event details")
 
     @patch("django.utils.timezone.now")
     def test_tags_page(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
 
         tags_path = "/organizations/{}/performance/summary/tags/?{}".format(
             self.org.slug,
@@ -102,11 +101,10 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         with self.feature(FEATURES):
             self.browser.get(tags_path)
             self.page.wait_until_loaded()
-            self.browser.snapshot("transaction summary tags page")
 
     @patch("django.utils.timezone.now")
     def test_transaction_vitals(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
 
         vitals_path = "/organizations/{}/performance/summary/vitals/?{}".format(
             self.org.slug,
@@ -125,11 +123,9 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(vitals_path)
             self.page.wait_until_loaded()
 
-            self.browser.snapshot("real user monitoring")
-
     @patch("django.utils.timezone.now")
     def test_transaction_vitals_filtering(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
 
         vitals_path = "/organizations/{}/performance/summary/vitals/?{}".format(
             self.org.slug,
@@ -183,17 +179,13 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(vitals_path)
             self.page.wait_until_loaded()
 
-            self.browser.snapshot("real user monitoring - exclude outliers")
-
             self.browser.element(xpath="//button//span[contains(text(), 'Exclude')]").click()
             self.browser.element(xpath="//p[contains(text(), 'Include')]").click()
             self.page.wait_until_loaded()
 
-            self.browser.snapshot("real user monitoring - view all data")
-
     @patch("django.utils.timezone.now")
     def test_transaction_threshold_modal(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
 
         # Create a transaction
         event = make_event(load_data("transaction", timestamp=before_now(minutes=3)))
@@ -213,4 +205,3 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(self.path)
             self.page.wait_until_loaded()
             self.browser.click('[data-test-id="set-transaction-threshold"]')
-            self.browser.snapshot("transaction threshold modal")

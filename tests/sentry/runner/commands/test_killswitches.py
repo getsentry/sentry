@@ -1,8 +1,9 @@
 from unittest import mock
 
+from sentry import options
 from sentry.killswitches import KillswitchInfo
 from sentry.runner.commands.killswitches import killswitches
-from sentry.testutils import CliTestCase
+from sentry.testutils.cases import CliTestCase
 
 OPTION = "store.load-shed-group-creation-projects"
 
@@ -80,7 +81,7 @@ class KillswitchesTest(CliTestCase):
             "  # the description\n"
             "DROP DATA WHERE\n"
             "  (project_id = 42 AND event_type = transaction) OR\n"
-            "  (project_id = 43)\n"
+            "  (project_id = 43 AND event_type = *)\n"
         )
 
         assert self.invoke("pull", OPTION, "-").output == PREAMBLE + (
@@ -108,3 +109,58 @@ class KillswitchesTest(CliTestCase):
         )
 
         assert self.invoke("pull", OPTION, "-").output == PREAMBLE
+
+    @mock.patch(
+        "sentry.tasks.relay.schedule_invalidate_project_config",
+    )
+    @mock.patch(
+        "sentry.options.set",
+    )
+    def test_relay_drop_transaction_metrics(self, mock_set, mock_schedule):
+
+        option = "relay.drop-transaction-metrics"
+
+        rv = self.invoke("push", "--yes", option, "-", input=("- project_id: 42\n"))
+        assert rv.exit_code == 0, rv.output
+
+        assert mock_set.mock_calls == [
+            mock.call(
+                "relay.drop-transaction-metrics",
+                [{"project_id": "42"}],
+                channel=options.UpdateChannel.KILLSWITCH,
+            )
+        ]
+
+        assert mock_schedule.mock_calls == [
+            mock.call(project_id="42", trigger="killswitches.relay.drop-transaction-metrics")
+        ]
+
+    @mock.patch(
+        "sentry.tasks.relay.schedule_invalidate_project_config",
+    )
+    @mock.patch(
+        "sentry.options.set",
+    )
+    def test_relay_drop_transaction_metrics_all(self, mock_set, mock_schedule):
+        self.organization
+        option = "relay.drop-transaction-metrics"
+
+        rv = self.invoke("push", "--yes", option, "-", input=("- project_id: null\n"))
+        assert rv.exit_code == 0, rv.output
+
+        assert mock_set.mock_calls == [
+            mock.call(
+                "relay.drop-transaction-metrics",
+                [{"project_id": None}],
+                channel=options.UpdateChannel.KILLSWITCH,
+            )
+        ]
+
+        # All organisations should have been invalidated:
+        assert mock_schedule.mock_calls == [
+            mock.call(
+                trigger="invalidate-all",
+                organization_id=mock_schedule.mock_calls[0].kwargs["organization_id"],
+                countdown=0,
+            )
+        ]

@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-from typing import Mapping, Sequence
+from typing import Collection, Mapping, Sequence
 
 from sentry_sdk import configure_scope
 
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.constants import ObjectStatus
-from sentry.models import Identity, Repository
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.models.identity import Identity
+from sentry.models.repository import Repository
+from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 
 class RepositoryMixin:
@@ -15,8 +17,20 @@ class RepositoryMixin:
     # dynamically given a search query
     repo_search = False
 
+    def source_url_matches(self, url: str) -> bool:
+        """Checks if the url matches the integration's source url."""
+        raise NotImplementedError
+
     def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
         """Formats the source code url used for stack trace linking."""
+        raise NotImplementedError
+
+    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        """Extracts the branch from the source code url."""
+        raise NotImplementedError
+
+    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        """Extracts the source path from the source code url."""
         raise NotImplementedError
 
     def check_file(self, repo: Repository, filepath: str, branch: str) -> str | None:
@@ -24,7 +38,7 @@ class RepositoryMixin:
         Calls the client's `check_file` method to see if the file exists.
         Returns the link to the file if it's exists, otherwise return `None`.
 
-        So far only GitHub and GitLab have this implemented, both of which give
+        So far only GitHub, GitLab and VSTS have this implemented, all of which give
         use back 404s. If for some reason an integration gives back a different
         status code, this method could be overwritten.
 
@@ -35,7 +49,7 @@ class RepositoryMixin:
         filepath = filepath.lstrip("/")
         try:
             client = self.get_client()
-        except Identity.DoesNotExist:
+        except (Identity.DoesNotExist, IntegrationError):
             return None
         try:
             response = client.check_file(repo, filepath, branch)
@@ -94,19 +108,25 @@ class RepositoryMixin:
         """
         raise NotImplementedError
 
-    def get_unmigratable_repositories(self) -> Sequence[Repository]:
+    def get_unmigratable_repositories(self) -> Collection[RpcRepository]:
+        """
+        Get all repositories which are in our database but no longer exist as far as
+        the external service is concerned.
+        """
         return []
 
     def reinstall_repositories(self) -> None:
         """Reinstalls repositories associated with the integration."""
-        organizations = self.model.organizations.all()
-        Repository.objects.filter(
-            organization_id__in=organizations.values_list("id", flat=True),
-            provider=f"integrations:{self.model.provider}",
-            integration_id=self.model.id,
-        ).update(status=ObjectStatus.VISIBLE)
+        _, installs = integration_service.get_organization_contexts(integration_id=self.model.id)
 
-    def has_repo_access(self, repo: Repository) -> bool:
+        for install in installs:
+            repository_service.reinstall_repositories_for_integration(
+                organization_id=install.organization_id,
+                integration_id=self.model.id,
+                provider=f"integrations:{self.model.provider}",
+            )
+
+    def has_repo_access(self, repo: RpcRepository) -> bool:
         raise NotImplementedError
 
     def get_codeowner_file(

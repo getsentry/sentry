@@ -1,4 +1,3 @@
-import {Component} from 'react';
 import styled from '@emotion/styled';
 import isFinite from 'lodash/isFinite';
 
@@ -6,15 +5,19 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import {ActiveOperationFilter} from 'sentry/components/events/interfaces/spans/filter';
 import {
   RawSpanType,
-  SpanEntry,
   TraceContextType,
 } from 'sentry/components/events/interfaces/spans/types';
 import {getSpanOperation} from 'sentry/components/events/interfaces/spans/utils';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {EntryType, Event, EventTransaction} from 'sentry/types/event';
+import {space} from 'sentry/styles/space';
+import {
+  AggregateEventTransaction,
+  EntrySpans,
+  EntryType,
+  Event,
+} from 'sentry/types/event';
 
 type StartTimestamp = number;
 type EndTimestamp = number;
@@ -42,56 +45,47 @@ const TOP_N_SPANS = 4;
 
 type OpBreakdownType = OpStats[];
 
-type DefaultProps = {
-  hideHeader: boolean;
-  topN: number;
-};
-
-type Props = DefaultProps & {
-  event: Event;
+type Props = {
+  event: Event | AggregateEventTransaction;
   operationNameFilters: ActiveOperationFilter;
+  hideHeader?: boolean;
+  topN?: number;
 };
 
-class OpsBreakdown extends Component<Props> {
-  static defaultProps: DefaultProps = {
-    topN: TOP_N_SPANS,
-    hideHeader: false,
-  };
+function OpsBreakdown({
+  event,
+  operationNameFilters,
+  hideHeader = false,
+  topN = TOP_N_SPANS,
+}: Props) {
+  const transactionEvent =
+    event.type === 'transaction' || event.type === 'aggregateTransaction'
+      ? event
+      : undefined;
 
-  getTransactionEvent(): EventTransaction | undefined {
-    const {event} = this.props;
-
-    if (event.type === 'transaction') {
-      return event as EventTransaction;
-    }
-
-    return undefined;
-  }
-
-  generateStats(): OpBreakdownType {
-    const {topN, operationNameFilters} = this.props;
-    const event = this.getTransactionEvent();
-
-    if (!event) {
+  function generateStats(): OpBreakdownType {
+    if (!transactionEvent) {
       return [];
     }
 
-    const traceContext: TraceContextType | undefined = event?.contexts?.trace;
+    const traceContext: TraceContextType | undefined = transactionEvent?.contexts?.trace;
 
     if (!traceContext) {
       return [];
     }
 
-    const spanEntry = event.entries.find((entry: SpanEntry | any): entry is SpanEntry => {
-      return entry.type === EntryType.SPANS;
-    });
+    const spanEntry = transactionEvent.entries.find(
+      (entry: EntrySpans | any): entry is EntrySpans => {
+        return entry.type === EntryType.SPANS;
+      }
+    );
 
     let spans: RawSpanType[] = spanEntry?.data ?? [];
 
     const rootSpan = {
       op: traceContext.op,
-      timestamp: event.endTimestamp,
-      start_timestamp: event.startTimestamp,
+      timestamp: transactionEvent.endTimestamp,
+      start_timestamp: transactionEvent.startTimestamp,
       trace_id: traceContext.trace_id || '',
       span_id: traceContext.span_id || '',
       data: {},
@@ -120,12 +114,15 @@ class OpsBreakdown extends Component<Props> {
     const operationNameIntervals = spans.reduce(
       (intervals: Partial<OperationNameIntervals>, span: RawSpanType) => {
         let startTimestamp = span.start_timestamp;
-        let endTimestamp = span.timestamp;
+        const endTimestamp = span.timestamp;
+
+        if (!span.exclusive_time) {
+          return intervals;
+        }
 
         if (endTimestamp < startTimestamp) {
           // reverse timestamps
           startTimestamp = span.timestamp;
-          endTimestamp = span.start_timestamp;
         }
 
         // invariant: startTimestamp <= endTimestamp
@@ -137,7 +134,10 @@ class OpsBreakdown extends Component<Props> {
           operationName = 'unknown';
         }
 
-        const cover: TimeWindowSpan = [startTimestamp, endTimestamp];
+        const cover: TimeWindowSpan = [
+          startTimestamp,
+          startTimestamp + span.exclusive_time / 1000,
+        ];
 
         const operationNameInterval = intervals[operationName];
 
@@ -235,62 +235,56 @@ class OpsBreakdown extends Component<Props> {
     return breakdown;
   }
 
-  render() {
-    const {hideHeader} = this.props;
-
-    const event = this.getTransactionEvent();
-
-    if (!event) {
-      return null;
-    }
-
-    const breakdown = this.generateStats();
-
-    const contents = breakdown.map(currOp => {
-      const {name, percentage, totalInterval} = currOp;
-
-      const isOther = name === OtherOperation;
-      const operationName = typeof name === 'string' ? name : t('Other');
-
-      const durLabel = Math.round(totalInterval * 1000 * 100) / 100;
-      const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
-      const opsColor: string = pickBarColor(operationName);
-
-      return (
-        <OpsLine key={operationName}>
-          <OpsNameContainer>
-            <OpsDot style={{backgroundColor: isOther ? 'transparent' : opsColor}} />
-            <OpsName>{operationName}</OpsName>
-          </OpsNameContainer>
-          <OpsContent>
-            <Dur>{durLabel}ms</Dur>
-            <Pct>{pctLabel}%</Pct>
-          </OpsContent>
-        </OpsLine>
-      );
-    });
-
-    if (!hideHeader) {
-      return (
-        <StyledBreakdown>
-          <SectionHeading>
-            {t('Operation Breakdown')}
-            <QuestionTooltip
-              position="top"
-              size="sm"
-              containerDisplayMode="block"
-              title={t(
-                'Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once. Percentages are calculated by dividing the summed span durations by the total of all span durations.'
-              )}
-            />
-          </SectionHeading>
-          {contents}
-        </StyledBreakdown>
-      );
-    }
-
-    return <StyledBreakdownNoHeader>{contents}</StyledBreakdownNoHeader>;
+  if (!transactionEvent) {
+    return null;
   }
+
+  const breakdown = generateStats();
+
+  const contents = breakdown.map(currOp => {
+    const {name, percentage, totalInterval} = currOp;
+
+    const isOther = name === OtherOperation;
+    const operationName = typeof name === 'string' ? name : t('Other');
+
+    const durLabel = Math.round(totalInterval * 1000 * 100) / 100;
+    const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
+    const opsColor: string = pickBarColor(operationName);
+
+    return (
+      <OpsLine key={operationName}>
+        <OpsNameContainer>
+          <OpsDot style={{backgroundColor: isOther ? 'transparent' : opsColor}} />
+          <OpsName>{operationName}</OpsName>
+        </OpsNameContainer>
+        <OpsContent>
+          <Dur>{durLabel}ms</Dur>
+          <Pct>{pctLabel}%</Pct>
+        </OpsContent>
+      </OpsLine>
+    );
+  });
+
+  if (!hideHeader) {
+    return (
+      <StyledBreakdown>
+        <SectionHeading>
+          {t('Operation Breakdown')}
+          <QuestionTooltip
+            position="top"
+            size="sm"
+            containerDisplayMode="block"
+            title={t(
+              'Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once. Percentages are calculated by dividing the summed span durations by the total of all span durations.'
+            )}
+          />
+        </SectionHeading>
+        {contents}
+      </StyledBreakdown>
+    );
+  }
+
+  return <StyledBreakdownNoHeader>{contents}</StyledBreakdownNoHeader>;
 }
 
 const StyledBreakdown = styled('div')`
@@ -303,7 +297,7 @@ const StyledBreakdownNoHeader = styled('div')`
   margin: ${space(2)} ${space(3)};
 `;
 
-const OpsLine = styled('div')`
+export const OpsLine = styled('div')`
   display: flex;
   justify-content: space-between;
   margin-bottom: ${space(0.5)};
@@ -313,7 +307,7 @@ const OpsLine = styled('div')`
   }
 `;
 
-const OpsDot = styled('div')`
+export const OpsDot = styled('div')`
   content: '';
   display: block;
   width: 8px;

@@ -1,3 +1,4 @@
+import {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
 /**
@@ -21,10 +22,10 @@ export const Meter = styled('div')`
 `;
 
 export const Value = styled('span')<{
-  percent: number;
+  style: {width: string} & CSSProperties;
 }>`
+  max-width: 100%;
   position: absolute;
   height: 100%;
-  width: ${p => p.percent * 100}%;
   pointer-events: none;
 `;

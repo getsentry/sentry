@@ -1,24 +1,28 @@
-import {cloneElement, isValidElement} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {Organization, Project} from 'sentry/types';
-import withOrganization from 'sentry/utils/withOrganization';
+import {Project} from 'sentry/types';
 
-type RouteParams = {
-  orgId: string;
-};
+import {ProjectSourceMaps} from './projectSourceMaps';
+import {ProjectSourceMapsArtifacts} from './projectSourceMapsArtifacts';
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<
+  {orgId: string; projectId: string; bundleId?: string; name?: string},
+  {}
+> & {
   children: React.ReactNode;
-  organization: Organization;
   project: Project;
 };
 
-function ProjectSourceMapsContainer(props: Props) {
-  const {children, organization, project} = props;
-  return isValidElement(children)
-    ? cloneElement(children, {organization, project})
-    : null;
-}
+export default function ProjectSourceMapsContainer({params, location, ...props}: Props) {
+  if (params.bundleId) {
+    return (
+      <ProjectSourceMapsArtifacts
+        {...props}
+        location={location}
+        params={{...params, bundleId: params.bundleId}}
+      />
+    );
+  }
 
-export default withOrganization(ProjectSourceMapsContainer);
+  return <ProjectSourceMaps {...props} location={location} params={params} />;
+}

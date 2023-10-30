@@ -3,36 +3,22 @@ import * as Sentry from '@sentry/react';
 
 import {Client} from 'sentry/api';
 import {Group, Organization, Project} from 'sentry/types';
-import {analytics} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 
 const DEFAULT_POLL_INTERVAL = 5000;
 
-const recordAnalyticsFirstEvent = ({
-  key,
-  organization,
-  project,
-}: {
-  key: 'first_event_recieved' | 'first_transaction_recieved';
-  organization: Organization;
-  project: Project;
-}) =>
-  analytics(`onboarding_v2.${key}`, {
-    org_id: parseInt(organization.id, 10),
-    project: String(project.id),
-  });
-
 /**
- * Should no issue object be available (the first issue has expired) then it
- * will simply be boolean true. When no event has been received this will be
- * null. Otherwise it will be the group
+ * When no event has been received this will be set to null or false.
+ * Otherwise it will be the Group of the issue that was received.
+ * Or in the case of transactions & replay the value will be set to true.
+ * The `group.id` value is used to generate links directly into the event.
  */
-type FirstIssue = null | true | Group;
+type FirstIssue = null | boolean | Group;
 
 export interface EventWaiterProps {
   api: Client;
   children: (props: {firstIssue: FirstIssue}) => React.ReactNode;
-  eventType: 'error' | 'transaction';
+  eventType: 'error' | 'transaction' | 'replay' | 'profile';
   organization: Organization;
   project: Project;
   disabled?: boolean;
@@ -44,6 +30,21 @@ export interface EventWaiterProps {
 type EventWaiterState = {
   firstIssue: FirstIssue;
 };
+
+function getFirstEvent(eventType: EventWaiterProps['eventType'], resp: Project) {
+  switch (eventType) {
+    case 'error':
+      return resp.firstEvent;
+    case 'transaction':
+      return resp.firstTransactionEvent;
+    case 'replay':
+      return resp.hasReplays;
+    case 'profile':
+      return resp.hasProfiles;
+    default:
+      return null;
+  }
+}
 
 /**
  * This is a render prop component that can be used to wait for the first event
@@ -72,14 +73,14 @@ class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
 
   pollHandler = async () => {
     const {api, organization, project, eventType, onIssueReceived} = this.props;
-    let firstEvent = null;
+    let firstEvent: string | boolean | null = null;
     let firstIssue: Group | boolean | null = null;
 
     try {
       const resp = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`
       );
-      firstEvent = eventType === 'error' ? resp.firstEvent : resp.firstTransactionEvent;
+      firstEvent = getFirstEvent(eventType, resp);
     } catch (resp) {
       if (!resp) {
         return;
@@ -115,21 +116,10 @@ class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
 
       // The event may have expired, default to true
       firstIssue = issues.find((issue: Group) => issue.firstSeen === firstEvent) || true;
-
-      // noinspection SpellCheckingInspection
-      recordAnalyticsFirstEvent({
-        key: 'first_event_recieved',
-        organization,
-        project,
-      });
-    } else {
-      firstIssue = firstEvent;
-      // noinspection SpellCheckingInspection
-      recordAnalyticsFirstEvent({
-        key: 'first_transaction_recieved',
-        organization,
-        project,
-      });
+    } else if (eventType === 'transaction') {
+      firstIssue = Boolean(firstEvent);
+    } else if (eventType === 'replay') {
+      firstIssue = Boolean(firstEvent);
     }
 
     if (onIssueReceived) {

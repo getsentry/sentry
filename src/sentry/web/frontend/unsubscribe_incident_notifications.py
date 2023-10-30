@@ -17,7 +17,7 @@ class UnsubscribeIncidentNotificationsView(UnsubscribeBaseView):
             raise Http404
         return incident
 
-    def build_link(self, instance):
+    def build_link(self, instance) -> str:
         return absolute_uri(
             reverse(
                 "sentry-metric-alert",
@@ -29,4 +29,4 @@ class UnsubscribeIncidentNotificationsView(UnsubscribeBaseView):
         )
 
     def unsubscribe(self, instance, user):
-        unsubscribe_from_incident(instance, user)
+        unsubscribe_from_incident(instance, user.id)

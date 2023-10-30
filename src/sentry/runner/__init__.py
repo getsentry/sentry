@@ -46,14 +46,17 @@ def cli(ctx, config):
 for cmd in map(
     import_string,
     (
+        "sentry.runner.commands.backup.compare",
         "sentry.runner.commands.backup.export",
         "sentry.runner.commands.backup.import_",
         "sentry.runner.commands.cleanup.cleanup",
         "sentry.runner.commands.config.config",
+        "sentry.runner.commands.configoptions.configoptions",
         "sentry.runner.commands.createuser.createuser",
         "sentry.runner.commands.devserver.devserver",
         "sentry.runner.commands.django.django",
         "sentry.runner.commands.exec.exec_",
+        "sentry.runner.commands.sendmail.sendmail",
         "sentry.runner.commands.execfile.execfile",
         "sentry.runner.commands.files.files",
         "sentry.runner.commands.help.help",
@@ -69,6 +72,10 @@ for cmd in map(
         "sentry.runner.commands.upgrade.upgrade",
         "sentry.runner.commands.permissions.permissions",
         "sentry.runner.commands.devservices.devservices",
+        "sentry.runner.commands.performance.performance",
+        "sentry.runner.commands.spans.spans",
+        "sentry.runner.commands.spans.write_hashes",
+        "sentry.runner.commands.openai.openai",
     ),
 ):
     cli.add_command(cmd)
@@ -99,7 +106,7 @@ def make_django_command(name, django_command=None, help=None):
 cli.add_command(make_django_command("shell", help="Run a Python interactive interpreter."))
 
 
-def configure():
+def configure(*, skip_service_validation: bool = False):
     """
     Kick things off and configure all the things.
 
@@ -107,7 +114,8 @@ def configure():
     or from another invocation of `configure()`. If Click, we're able
     to pass along the Click context object.
     """
-    from .settings import configure, discover_configs
+    from .settings import configure as _configure
+    from .settings import discover_configs
 
     try:
         ctx = click.get_current_context()
@@ -116,11 +124,11 @@ def configure():
     _, py, yaml = discover_configs()
 
     # TODO(mattrobenolt): Surface this also as a CLI option?
-    skip_service_validation = (
+    skip_service_validation = skip_service_validation or (
         "SENTRY_SKIP_BACKEND_VALIDATION" in os.environ
         or "SENTRY_SKIP_SERVICE_VALIDATION" in os.environ
     )
-    configure(ctx, py, yaml, skip_service_validation)
+    _configure(ctx, py, yaml, skip_service_validation)
 
 
 def get_prog():

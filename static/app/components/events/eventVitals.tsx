@@ -2,11 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {Panel} from 'sentry/components/panels';
-import Tooltip from 'sentry/components/tooltip';
+import Panel from 'sentry/components/panels/panel';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {formattedValue} from 'sentry/utils/measurements/index';
@@ -58,7 +58,7 @@ function WebVitals({event}: Props) {
       <SectionHeading>
         {t('Web Vitals')}
         {isOutdatedSdk(event) && (
-          <WarningIconContainer size="sm">
+          <WarningIconContainer data-test-id="outdated-sdk-warning" size="sm">
             <Tooltip
               title={t(
                 'These vitals were collected using an outdated SDK version and may not be accurate. To ensure accurate web vitals in new transaction events, please update your SDK to the latest version.'
@@ -135,7 +135,7 @@ function EventVital({event, name, vital}: EventVitalProps) {
         <Name>{vital.name ?? name}</Name>
         <ValueRow>
           {failedThreshold ? (
-            <FireIconContainer size="sm">
+            <FireIconContainer data-test-id="threshold-failed-warning" size="sm">
               <Tooltip
                 title={t('Fails threshold at %s.', thresholdValue)}
                 position="top"
@@ -180,7 +180,7 @@ const WarningIconContainer = styled('span')<{size: IconSize | string}>`
   height: ${p => p.theme.iconSizes[p.size] ?? p.size};
   line-height: ${p => p.theme.iconSizes[p.size] ?? p.size};
   margin-left: ${space(0.5)};
-  color: ${p => p.theme.red300};
+  color: ${p => p.theme.errorText};
 `;
 
 const FireIconContainer = styled('span')<{size: IconSize | string}>`
@@ -188,12 +188,12 @@ const FireIconContainer = styled('span')<{size: IconSize | string}>`
   height: ${p => p.theme.iconSizes[p.size] ?? p.size};
   line-height: ${p => p.theme.iconSizes[p.size] ?? p.size};
   margin-right: ${space(0.5)};
-  color: ${p => p.theme.red300};
+  color: ${p => p.theme.errorText};
 `;
 
 const Value = styled('span')<{failedThreshold: boolean}>`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  ${p => p.failedThreshold && `color: ${p.theme.red300};`}
+  ${p => p.failedThreshold && `color: ${p.theme.errorText};`}
 `;
 
 export const EventVitalContainer = styled('div')``;

@@ -1,13 +1,25 @@
+from __future__ import annotations
+
 import logging
-from datetime import datetime
-from typing import Any, Mapping, Optional, Tuple
+from datetime import datetime, timezone
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Collection,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+)
 from uuid import uuid4
 
-import pytz
+import sentry_kafka_schemas
 import urllib3
 
 from sentry import quotas
-from sentry.eventstream.base import EventStream
+from sentry.eventstore.models import GroupEvent
+from sentry.eventstream.base import EventStream, EventStreamEventType, GroupStates
 from sentry.utils import json, snuba
 from sentry.utils.safe import get_path
 from sentry.utils.sdk import set_current_event_project
@@ -15,6 +27,9 @@ from sentry.utils.sdk import set_current_event_project
 KW_SKIP_SEMANTIC_PARTITIONING = "skip_semantic_partitioning"
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
 
 
 # Version 1 format: (1, TYPE, [...REST...])
@@ -78,36 +93,51 @@ class SnubaProtocolEventStream(EventStream):
 
     def _get_headers_for_insert(
         self,
-        group,
-        event,
-        is_new,
-        is_regression,
-        is_new_group_environment,
-        primary_hash,
-        received_timestamp,  # type: float
-        skip_consume,
-    ) -> Mapping[str, str]:
-        return {"Received-Timestamp": str(received_timestamp)}
-
-    @staticmethod
-    def _is_transaction_event(event) -> bool:
-        return event.group_id is None
+        event: Event | GroupEvent,
+        is_new: bool,
+        is_regression: bool,
+        is_new_group_environment: bool,
+        primary_hash: Optional[str],
+        received_timestamp: float,
+        skip_consume: bool,
+        group_states: Optional[GroupStates] = None,
+    ) -> MutableMapping[str, str]:
+        return {
+            "Received-Timestamp": str(received_timestamp),
+            "queue": self._get_queue_for_post_process(event),
+        }
 
     def insert(
         self,
-        group,
-        event,
-        is_new,
-        is_regression,
-        is_new_group_environment,
-        primary_hash,
-        received_timestamp,  # type: float
-        skip_consume=False,
-        **kwargs,
-    ):
+        event: Event | GroupEvent,
+        is_new: bool,
+        is_regression: bool,
+        is_new_group_environment: bool,
+        primary_hash: Optional[str],
+        received_timestamp: float,
+        skip_consume: bool = False,
+        group_states: Optional[GroupStates] = None,
+        **kwargs: Any,
+    ) -> None:
+        if event.get_tag("sample_event") == "true":
+            logger.info(
+                "insert: attempting to insert event in SnubaProtocolEventStream",
+                extra={
+                    "event.id": event.event_id,
+                    "project_id": event.project_id,
+                    "sample_event": True,
+                },
+            )
+        if isinstance(event, GroupEvent) and not event.occurrence:
+            logger.error(
+                "`GroupEvent` passed to `EventStream.insert`. `GroupEvent` may only be passed when "
+                "associated with an `IssueOccurrence`",
+                exc_info=True,
+            )
+            return
         project = event.project
         set_current_event_project(project.id)
-        retention_days = quotas.get_event_retention(organization=project.organization)
+        retention_days = quotas.backend.get_event_retention(organization=project.organization)
 
         event_data = event.get_raw_data(for_stream=True)
 
@@ -120,7 +150,6 @@ class SnubaProtocolEventStream(EventStream):
             logger.error("%r received unexpected tags: %r", self, unexpected_tags)
 
         headers = self._get_headers_for_insert(
-            group,
             event,
             is_new,
             is_regression,
@@ -128,6 +157,7 @@ class SnubaProtocolEventStream(EventStream):
             primary_hash,
             received_timestamp,
             skip_consume,
+            group_states,
         )
 
         skip_semantic_partitioning = (
@@ -136,7 +166,23 @@ class SnubaProtocolEventStream(EventStream):
             else False
         )
 
-        is_transaction_event = self._is_transaction_event(event)
+        event_type = self._get_event_type(event)
+        occurrence_data = self._get_occurrence_data(event)
+
+        # instead of normalizing and doing custom 'contexts' processing in snuba, we elect to do it here instead to
+        # avoid having to clutter up snuba code with business logic
+        if event_type == EventStreamEventType.Generic:
+            event_data = dict(event_data)
+            contexts = event_data.setdefault("contexts", {})
+
+            # add user.geo to contexts if it exists
+            user_dict = event_data.get("user") or event_data.get("sentry.interfaces.User") or {}
+            geo = user_dict.get("geo", {})
+            if "geo" not in contexts and isinstance(geo, dict):
+                contexts["geo"] = geo
+
+            # transactions processing has a configurable 'skipped contexts' to skip writing specific contexts maps
+            # to the row. for now, we're ignoring that until we have a need for it
 
         self._send(
             project.id,
@@ -144,6 +190,7 @@ class SnubaProtocolEventStream(EventStream):
             extra_data=(
                 {
                     "group_id": event.group_id,
+                    "group_ids": [group.id for group in getattr(event, "groups", [])],
                     "event_id": event.event_id,
                     "organization_id": project.organization_id,
                     "project_id": event.project_id,
@@ -151,69 +198,85 @@ class SnubaProtocolEventStream(EventStream):
                     # message but this is what snuba needs at the moment.
                     "message": event.search_message,
                     "platform": event.platform,
-                    "datetime": event.datetime,
+                    "datetime": json.datetime_to_str(event.datetime),
                     "data": event_data,
                     "primary_hash": primary_hash,
                     "retention_days": retention_days,
+                    "occurrence_id": occurrence_data.get("id"),
+                    "occurrence_data": occurrence_data,
                 },
                 {
                     "is_new": is_new,
                     "is_regression": is_regression,
                     "is_new_group_environment": is_new_group_environment,
+                    "queue": headers["queue"],
                     "skip_consume": skip_consume,
+                    "group_states": group_states,
                 },
             ),
             headers=headers,
+            asynchronous=kwargs.get("asynchronous", True),
             skip_semantic_partitioning=skip_semantic_partitioning,
-            is_transaction_event=is_transaction_event,
+            event_type=event_type,
         )
 
-    def start_delete_groups(self, project_id, group_ids):
+    def start_delete_groups(
+        self, project_id: int, group_ids: Sequence[int]
+    ) -> Optional[Mapping[str, Any]]:
         if not group_ids:
-            return
+            return None
 
         state = {
             "transaction_id": uuid4().hex,
             "project_id": project_id,
             "group_ids": list(group_ids),
-            "datetime": datetime.now(tz=pytz.utc),
+            "datetime": datetime.now(tz=timezone.utc),
         }
 
         self._send(project_id, "start_delete_groups", extra_data=(state,), asynchronous=False)
 
         return state
 
-    def end_delete_groups(self, state):
-        state = state.copy()
-        state["datetime"] = datetime.now(tz=pytz.utc)
+    def end_delete_groups(self, state: Mapping[str, Any]) -> None:
+        state_copy: MutableMapping[str, Any] = {**state}
+        state_copy["datetime"] = json.datetime_to_str(datetime.now(tz=timezone.utc))
         self._send(
-            state["project_id"], "end_delete_groups", extra_data=(state,), asynchronous=False
+            state_copy["project_id"],
+            "end_delete_groups",
+            extra_data=(state_copy,),
+            asynchronous=False,
         )
 
-    def start_merge(self, project_id, previous_group_ids, new_group_id):
+    def start_merge(
+        self, project_id: int, previous_group_ids: Sequence[int], new_group_id: int
+    ) -> Optional[Mapping[str, Any]]:
         if not previous_group_ids:
-            return
+            return None
 
         state = {
             "transaction_id": uuid4().hex,
             "project_id": project_id,
             "previous_group_ids": list(previous_group_ids),
             "new_group_id": new_group_id,
-            "datetime": datetime.now(tz=pytz.utc),
+            "datetime": json.datetime_to_str(datetime.now(tz=timezone.utc)),
         }
 
         self._send(project_id, "start_merge", extra_data=(state,), asynchronous=False)
 
         return state
 
-    def end_merge(self, state):
-        state = state.copy()
-        state["datetime"] = datetime.now(tz=pytz.utc)
-        self._send(state["project_id"], "end_merge", extra_data=(state,), asynchronous=False)
+    def end_merge(self, state: Mapping[str, Any]) -> None:
+        state_copy: MutableMapping[str, Any] = {**state}
+        state_copy["datetime"] = datetime.now(tz=timezone.utc)
+        self._send(
+            state_copy["project_id"], "end_merge", extra_data=(state_copy,), asynchronous=False
+        )
 
-    def start_unmerge(self, project_id, hashes, previous_group_id, new_group_id):
+    def start_unmerge(
+        self, project_id: int, hashes: Collection[str], previous_group_id: int, new_group_id: int
+    ) -> Optional[Mapping[str, Any]]:
         if not hashes:
-            return
+            return None
 
         state = {
             "transaction_id": uuid4().hex,
@@ -221,41 +284,51 @@ class SnubaProtocolEventStream(EventStream):
             "previous_group_id": previous_group_id,
             "new_group_id": new_group_id,
             "hashes": list(hashes),
-            "datetime": datetime.now(tz=pytz.utc),
+            "datetime": json.datetime_to_str(datetime.now(tz=timezone.utc)),
         }
 
         self._send(project_id, "start_unmerge", extra_data=(state,), asynchronous=False)
 
         return state
 
-    def end_unmerge(self, state):
-        state = state.copy()
-        state["datetime"] = datetime.now(tz=pytz.utc)
-        self._send(state["project_id"], "end_unmerge", extra_data=(state,), asynchronous=False)
+    def end_unmerge(self, state: Mapping[str, Any]) -> None:
+        state_copy: MutableMapping[str, Any] = {**state}
+        state_copy["datetime"] = json.datetime_to_str(datetime.now(tz=timezone.utc))
+        self._send(
+            state_copy["project_id"], "end_unmerge", extra_data=(state_copy,), asynchronous=False
+        )
 
-    def start_delete_tag(self, project_id, tag):
+    def start_delete_tag(self, project_id: int, tag: str) -> Optional[Mapping[str, Any]]:
         if not tag:
-            return
+            return None
 
         state = {
             "transaction_id": uuid4().hex,
             "project_id": project_id,
             "tag": tag,
-            "datetime": datetime.now(tz=pytz.utc),
+            "datetime": json.datetime_to_str(datetime.now(tz=timezone.utc)),
         }
 
         self._send(project_id, "start_delete_tag", extra_data=(state,), asynchronous=False)
 
         return state
 
-    def end_delete_tag(self, state):
-        state = state.copy()
-        state["datetime"] = datetime.now(tz=pytz.utc)
-        self._send(state["project_id"], "end_delete_tag", extra_data=(state,), asynchronous=False)
+    def end_delete_tag(self, state: Mapping[str, Any]) -> None:
+        state_copy: MutableMapping[str, Any] = {**state}
+        state_copy["datetime"] = json.datetime_to_str(datetime.now(tz=timezone.utc))
+        self._send(
+            state_copy["project_id"], "end_delete_tag", extra_data=(state_copy,), asynchronous=False
+        )
 
     def tombstone_events_unsafe(
-        self, project_id, event_ids, old_primary_hash=False, from_timestamp=None, to_timestamp=None
-    ):
+        self,
+        project_id: int,
+        event_ids: Sequence[str],
+        old_primary_hash: Optional[str] = None,
+        from_timestamp: Optional[datetime] = None,
+        to_timestamp: Optional[datetime] = None,
+    ) -> None:
+
         """
         Tell Snuba to eventually delete these events.
 
@@ -288,8 +361,13 @@ class SnubaProtocolEventStream(EventStream):
         self._send(project_id, "tombstone_events", extra_data=(state,), asynchronous=False)
 
     def replace_group_unsafe(
-        self, project_id, event_ids, new_group_id, from_timestamp=None, to_timestamp=None
-    ):
+        self,
+        project_id: int,
+        event_ids: Sequence[str],
+        new_group_id: int,
+        from_timestamp: Optional[datetime] = None,
+        to_timestamp: Optional[datetime] = None,
+    ) -> None:
         """
         Tell Snuba to move events into a new group ID
 
@@ -305,7 +383,7 @@ class SnubaProtocolEventStream(EventStream):
         }
         self._send(project_id, "replace_group", extra_data=(state,), asynchronous=False)
 
-    def exclude_groups(self, project_id, group_ids):
+    def exclude_groups(self, project_id: int, group_ids: Sequence[int]) -> None:
         """
         Exclude a group from queries for a while until event tombstoning takes
         effect. See docstring of `tombstone_events`.
@@ -322,10 +400,10 @@ class SnubaProtocolEventStream(EventStream):
         _type: str,
         extra_data: Tuple[Any, ...] = (),
         asynchronous: bool = True,
-        headers: Optional[Mapping[str, str]] = None,
+        headers: Optional[MutableMapping[str, str]] = None,
         skip_semantic_partitioning: bool = False,
-        is_transaction_event: bool = False,
-    ):
+        event_type: EventStreamEventType = EventStreamEventType.Error,
+    ) -> None:
         raise NotImplementedError
 
 
@@ -336,48 +414,63 @@ class SnubaEventStream(SnubaProtocolEventStream):
         _type: str,
         extra_data: Tuple[Any, ...] = (),
         asynchronous: bool = True,
-        headers: Optional[Mapping[str, str]] = None,
+        headers: Optional[MutableMapping[str, str]] = None,
         skip_semantic_partitioning: bool = False,
-        is_transaction_event: bool = False,
-    ):
+        event_type: EventStreamEventType = EventStreamEventType.Error,
+    ) -> None:
         if headers is None:
             headers = {}
 
         data = (self.EVENT_PROTOCOL_VERSION, _type) + extra_data
 
-        dataset = "events"
-        if is_transaction_event:
-            dataset = "transactions"
+        entity = "events"
+        if event_type == EventStreamEventType.Transaction:
+            entity = "transactions"
+        if event_type == EventStreamEventType.Generic:
+            entity = "search_issues"
+
+        serialized_data = json.dumps(data)
+
+        codec = sentry_kafka_schemas.get_codec(
+            topic={
+                "events": "events",
+                "transactions": "transactions",
+                "search_issues": "generic-events",
+            }[entity]
+        )
+        codec.decode(serialized_data.encode("utf-8"), validate=True)
+
         try:
             resp = snuba._snuba_pool.urlopen(
                 "POST",
-                f"/tests/{dataset}/eventstream",
-                body=json.dumps(data),
+                f"/tests/{entity}/eventstream",
+                body=serialized_data,
                 headers={f"X-Sentry-{k}": v for k, v in headers.items()},
             )
             if resp.status != 200:
-                raise snuba.SnubaError("HTTP %s response from Snuba!" % resp.status)
-            return resp
+                raise snuba.SnubaError(
+                    f"HTTP {resp.status} response from Snuba! {json.loads(resp.data)}"
+                )
+            return None
         except urllib3.exceptions.HTTPError as err:
             raise snuba.SnubaError(err)
 
-    def requires_post_process_forwarder(self):
+    def requires_post_process_forwarder(self) -> bool:
         return False
 
     def insert(
         self,
-        group,
-        event,
-        is_new,
-        is_regression,
-        is_new_group_environment,
-        primary_hash,
-        received_timestamp,  # type: float
-        skip_consume=False,
-        **kwargs,
-    ):
+        event: Event | GroupEvent,
+        is_new: bool,
+        is_regression: bool,
+        is_new_group_environment: bool,
+        primary_hash: Optional[str],
+        received_timestamp: float,
+        skip_consume: bool = False,
+        group_states: Optional[GroupStates] = None,
+        **kwargs: Any,
+    ) -> None:
         super().insert(
-            group,
             event,
             is_new,
             is_regression,
@@ -385,6 +478,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
             primary_hash,
             received_timestamp,
             skip_consume,
+            group_states,
             **kwargs,
         )
         self._dispatch_post_process_group_task(
@@ -395,5 +489,8 @@ class SnubaEventStream(SnubaProtocolEventStream):
             is_regression,
             is_new_group_environment,
             primary_hash,
+            self._get_queue_for_post_process(event),
             skip_consume,
+            group_states,
+            occurrence_id=event.occurrence_id if isinstance(event, GroupEvent) else None,
         )

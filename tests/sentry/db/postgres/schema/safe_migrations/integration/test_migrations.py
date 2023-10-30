@@ -4,14 +4,15 @@ from django.db.migrations.executor import MigrationExecutor
 from django.test import override_settings
 from django_zero_downtime_migrations.backends.postgres.schema import UnsafeOperationException
 
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class BaseSafeMigrationTest(TestCase):
     BASE_PATH = "fixtures.safe_migrations_apps"
-    app = None
-    migrate_from = None
-    migrate_to = None
+    # abstract
+    app: str
+    migrate_from: str
+    migrate_to: str
 
     def run_migration(self):
         with override_settings(INSTALLED_APPS=(f"{self.BASE_PATH}.{self.app}",)):
@@ -38,7 +39,7 @@ class AddColWithDefaultTest(BaseSafeMigrationTest):
     def test(self):
         with pytest.raises(
             UnsafeOperationException,
-            match="Adding TestTable.field as column with a default is unsafe.",
+            match="Adding TestTable.field as column with a default is safe, but you need to take additional steps.",
         ):
             self.run_migration()
 
@@ -51,7 +52,7 @@ class AddColWithNotNullDefaultTest(BaseSafeMigrationTest):
     def test(self):
         with pytest.raises(
             UnsafeOperationException,
-            match="Adding TestTable.field as column with a default is unsafe.",
+            match="Adding TestTable.field as column with a default is safe, but you need to take additional steps.",
         ):
             self.run_migration()
 

@@ -19,7 +19,7 @@ const COLORS = [
   '#847a8c', // gray
 ] as const;
 
-type Color = typeof COLORS[number];
+type Color = (typeof COLORS)[number];
 
 function hashIdentifier(identifier: string) {
   identifier += '';
@@ -87,7 +87,7 @@ const LetterAvatar = styled(
           height="120"
           rx="15"
           ry="15"
-          fill={suggested ? theme.white : getColor(identifier)}
+          fill={suggested ? theme.background : getColor(identifier)}
         />
         <text
           x="50%"
@@ -95,7 +95,7 @@ const LetterAvatar = styled(
           fontSize="65"
           style={{dominantBaseline: 'central'}}
           textAnchor="middle"
-          fill={suggested ? theme.gray400 : theme.white}
+          fill={suggested ? theme.subText : theme.white}
         >
           {getInitials(displayName)}
         </text>

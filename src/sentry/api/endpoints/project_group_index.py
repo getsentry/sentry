@@ -4,7 +4,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, eventstore
-from sentry.api.base import EnvironmentMixin
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.helpers.group_index import (
     ValidationError,
@@ -15,8 +16,9 @@ from sentry.api.helpers.group_index import (
     update_groups,
 )
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import StreamGroupSerializer
-from sentry.models import QUERY_STATUS_LOOKUP, Environment, Group, GroupStatus
+from sentry.api.serializers.models.group_stream import StreamGroupSerializer
+from sentry.models.environment import Environment
+from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.signals import advanced_search
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -25,15 +27,21 @@ from sentry.utils.validators import normalize_event_id
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
 
+@region_silo_endpoint
 class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectEventPermission,)
     enforce_rate_limit = True
 
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(3, 1),
-            RateLimitCategory.USER: RateLimit(3, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(3, 1),
+            RateLimitCategory.IP: RateLimit(5, 1),
+            RateLimitCategory.USER: RateLimit(5, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
         }
     }
 
@@ -101,7 +109,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 except Group.DoesNotExist:
                     pass
                 else:
-                    matching_event = eventstore.get_event_by_id(project.id, event_id)
+                    matching_event = eventstore.backend.get_event_by_id(project.id, event_id)
             elif matching_group is None:
                 matching_group = get_by_short_id(
                     project.organization_id, request.GET.get("shortIdLookup"), query
@@ -119,16 +127,21 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 except Environment.DoesNotExist:
                     pass
 
-                response = Response(
-                    serialize(
-                        [matching_group],
-                        request.user,
-                        serializer(
-                            matching_event_id=getattr(matching_event, "event_id", None),
-                            matching_event_environment=matching_event_environment,
-                        ),
-                    )
+                serialized_groups = serialize(
+                    [matching_group],
+                    request.user,
+                    serializer(),
                 )
+                matching_event_id = getattr(matching_event, "event_id", None)
+                if matching_event_id:
+                    serialized_groups[0]["matchingEventId"] = getattr(
+                        matching_event, "event_id", None
+                    )
+                if matching_event_environment:
+                    serialized_groups[0]["matchingEventEnvironment"] = matching_event_environment
+
+                response = Response(serialized_groups)
+
                 response["X-Sentry-Direct-Hit"] = "1"
                 return response
 
@@ -188,7 +201,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         The following attributes can be modified and are supplied as
         JSON object in the body:
 
-        If any ids are out of scope this operation will succeed without
+        If any IDs are out of scope this operation will succeed without
         any data mutation.
 
         :qparam int id: a list of IDs of the issues to be mutated.  This
@@ -225,6 +238,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         :param boolean isBookmarked: in case this API call is invoked with a
                                      user context this allows changing of
                                      the bookmark flag.
+        :param string substatus: the new substatus for the issues. Valid values
+                                 defined in GroupSubStatus.
         :auth: required
         """
 
@@ -249,7 +264,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         Only queries by 'id' are accepted.
 
-        If any ids are out of scope this operation will succeed without
+        If any IDs are out of scope this operation will succeed without
         any data mutation.
 
         :qparam int id: a list of IDs of the issues to be removed.  This

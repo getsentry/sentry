@@ -3,12 +3,13 @@ import {Location} from 'history';
 import moment from 'moment';
 
 import {getInterval} from 'sentry/components/charts/utils';
+import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
 import {Project} from 'sentry/types';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {
-  AggregationKey,
+  AggregationKeyWithAlias,
   Field,
   generateFieldAsString,
   Sort,
@@ -17,15 +18,16 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-import {platformToPerformanceType, PROJECT_PERFORMANCE_TYPE} from '../utils';
+import {platformToPerformanceType, ProjectPerformanceType} from '../utils';
 
 import {
   NormalizedTrendsTransaction,
   TrendChangeType,
-  TrendColumnField,
   TrendFunction,
   TrendFunctionField,
   TrendParameter,
+  TrendParameterColumn,
+  TrendParameterLabel,
   TrendsTransaction,
   TrendView,
 } from './types';
@@ -68,40 +70,40 @@ export const TRENDS_FUNCTIONS: TrendFunction[] = [
 
 export const TRENDS_PARAMETERS: TrendParameter[] = [
   {
-    label: 'Duration',
-    column: TrendColumnField.DURATION,
+    label: TrendParameterLabel.DURATION,
+    column: TrendParameterColumn.DURATION,
   },
   {
-    label: 'LCP',
-    column: TrendColumnField.LCP,
+    label: TrendParameterLabel.LCP,
+    column: TrendParameterColumn.LCP,
   },
   {
-    label: 'FCP',
-    column: TrendColumnField.FCP,
+    label: TrendParameterLabel.FCP,
+    column: TrendParameterColumn.FCP,
   },
   {
-    label: 'FID',
-    column: TrendColumnField.FID,
+    label: TrendParameterLabel.FID,
+    column: TrendParameterColumn.FID,
   },
   {
-    label: 'CLS',
-    column: TrendColumnField.CLS,
+    label: TrendParameterLabel.CLS,
+    column: TrendParameterColumn.CLS,
   },
   {
-    label: 'Spans (http)',
-    column: TrendColumnField.SPANS_HTTP,
+    label: TrendParameterLabel.SPANS_HTTP,
+    column: TrendParameterColumn.SPANS_HTTP,
   },
   {
-    label: 'Spans (db)',
-    column: TrendColumnField.SPANS_DB,
+    label: TrendParameterLabel.SPANS_DB,
+    column: TrendParameterColumn.SPANS_DB,
   },
   {
-    label: 'Spans (browser)',
-    column: TrendColumnField.SPANS_BROWSER,
+    label: TrendParameterLabel.SPANS_BROWSER,
+    column: TrendParameterColumn.SPANS_BROWSER,
   },
   {
-    label: 'Spans (resource)',
-    column: TrendColumnField.SPANS_RESOURCE,
+    label: TrendParameterLabel.SPANS_RESOURCE,
+    column: TrendParameterColumn.SPANS_RESOURCE,
   },
 ];
 
@@ -113,6 +115,16 @@ export const trendToColor = {
   [TrendChangeType.REGRESSION]: {
     lighter: theme.red200,
     default: theme.red300,
+  },
+  neutral: {
+    lighter: theme.yellow200,
+    default: theme.yellow300,
+  },
+  // TODO remove this once backend starts sending
+  // TrendChangeType.IMPROVED as change type
+  improvement: {
+    lighter: theme.green200,
+    default: theme.green300,
   },
 };
 
@@ -130,6 +142,8 @@ export const trendCursorNames = {
   [TrendChangeType.IMPROVED]: 'improvedCursor',
   [TrendChangeType.REGRESSION]: 'regressionCursor',
 };
+
+const TOKEN_KEYS_SUPPORTED_IN_METRICS_TRENDS = ['transaction', 'tpm()'];
 
 export function resetCursors() {
   const cursors = {};
@@ -176,21 +190,21 @@ export function getCurrentTrendParameter(
 }
 
 export function performanceTypeToTrendParameterLabel(
-  performanceType: PROJECT_PERFORMANCE_TYPE
+  performanceType: ProjectPerformanceType
 ): TrendParameter {
   switch (performanceType) {
-    case PROJECT_PERFORMANCE_TYPE.FRONTEND:
+    case ProjectPerformanceType.FRONTEND:
       return {
-        label: 'LCP',
-        column: TrendColumnField.LCP,
+        label: TrendParameterLabel.LCP,
+        column: TrendParameterColumn.LCP,
       };
-    case PROJECT_PERFORMANCE_TYPE.ANY:
-    case PROJECT_PERFORMANCE_TYPE.BACKEND:
-    case PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER:
+    case ProjectPerformanceType.ANY:
+    case ProjectPerformanceType.BACKEND:
+    case ProjectPerformanceType.FRONTEND_OTHER:
     default:
       return {
-        label: 'Duration',
-        column: TrendColumnField.DURATION,
+        label: TrendParameterLabel.DURATION,
+        column: TrendParameterColumn.DURATION,
       };
   }
 }
@@ -201,7 +215,12 @@ export function generateTrendFunctionAsString(
 ): string {
   return generateFieldAsString({
     kind: 'function',
-    function: [trendFunction as AggregationKey, trendParameter, undefined, undefined],
+    function: [
+      trendFunction as AggregationKeyWithAlias,
+      trendParameter,
+      undefined,
+      undefined,
+    ],
   });
 }
 
@@ -230,13 +249,12 @@ export function modifyTrendView(
   location: Location,
   trendsType: TrendChangeType,
   projects: Project[],
-  isProjectOnly?: boolean
+  canUseMetricsTrends: boolean = false
 ) {
   const trendFunction = getCurrentTrendFunction(location);
   const trendParameter = getCurrentTrendParameter(location, projects, trendView.project);
 
-  const transactionField = isProjectOnly ? [] : ['transaction'];
-  const fields = [...transactionField, 'project'].map(field => ({
+  const fields = ['transaction', 'project'].map(field => ({
     field,
   })) as Field[];
 
@@ -256,7 +274,23 @@ export function modifyTrendView(
       trendParameter.column
     );
   }
-  trendView.query = getLimitTransactionItems(trendView.query);
+
+  if (!canUseMetricsTrends) {
+    trendView.query = getLimitTransactionItems(trendView.query);
+  } else {
+    const query = new MutableSearch(trendView.query);
+    if (query.freeText.length > 0) {
+      const parsedFreeText = query.freeText.join(' ');
+
+      // the query here is a user entered condition, no need to escape it
+      query.setFilterValues('transaction', [wrapQueryInWildcards(parsedFreeText)], false);
+      query.freeText = [];
+    }
+    query.tokens = query.tokens.filter(
+      token => token.key && TOKEN_KEYS_SUPPORTED_IN_METRICS_TRENDS.includes(token.key)
+    );
+    trendView.query = query.formatString();
+  }
 
   trendView.interval = getQueryInterval(location, trendView);
 
@@ -285,7 +319,7 @@ function getQueryInterval(location: Location, eventView: TrendView) {
     period: statsPeriod,
   };
 
-  const intervalFromSmoothing = getInterval(datetimeSelection, 'high');
+  const intervalFromSmoothing = getInterval(datetimeSelection, 'medium');
 
   return intervalFromQueryParam || intervalFromSmoothing;
 }
@@ -413,4 +447,14 @@ export function transformEventStatsSmoothed(data?: Series[], seriesName?: string
     maxValue,
     smoothedResults,
   };
+}
+
+export function modifyTransactionNameTrendsQuery(trendView: TrendView) {
+  const query = new MutableSearch(trendView.query);
+  query.setFilterValues('tpm()', ['>0.1']);
+  trendView.query = query.formatString();
+}
+
+export function getTopTrendingEvents(location: Location) {
+  return decodeScalar(location?.query?.topEvents);
 }

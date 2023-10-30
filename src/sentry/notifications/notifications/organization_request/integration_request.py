@@ -8,30 +8,28 @@ from sentry.notifications.notifications.strategies.owner_recipient_strategy impo
     OwnerRecipientStrategy,
 )
 from sentry.notifications.utils.actions import MessageAction
-from sentry.utils.http import absolute_uri
+from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Team, User
+    from sentry.models.organization import Organization
+    from sentry.models.user import User
+
+provider_types = {
+    "first_party": "integrations",
+    "plugin": "plugins",
+    "sentry_app": "sentry-apps",
+}
 
 
 def get_url(organization: Organization, provider_type: str, provider_slug: str) -> str:
-    # Explicitly typing to satisfy mypy.
-    url: str = absolute_uri(
-        "/".join(
-            [
-                "/settings",
-                organization.slug,
-                {
-                    "first_party": "integrations",
-                    "plugin": "plugins",
-                    "sentry_app": "sentry-apps",
-                }.get(provider_type, ""),
-                provider_slug,
-                "?referrer=request_email",
-            ]
+    type_name = provider_types.get(provider_type, "")
+    return str(
+        organization.absolute_url(
+            f"/settings/{organization.slug}/{type_name}/{provider_slug}/",
+            query="referrer=request_email",
         )
     )
-    return url
 
 
 @register()
@@ -64,6 +62,8 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
     def get_context(self) -> MutableMapping[str, Any]:
         return {
             **self.get_base_context(),
+            "requester_name": self.requester.get_display_name(),
+            "organization_name": self.organization.name,
             "integration_link": self.integration_link,
             "integration_name": self.provider_name,
             "message": self.message,
@@ -72,19 +72,23 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return f"Your team member requested the {self.provider_name} integration on Sentry"
 
-    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+    def get_notification_title(
+        self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
+    ) -> str:
         return self.get_subject()
 
-    def build_attachment_title(self, recipient: Team | User) -> str:
+    def build_attachment_title(self, recipient: RpcActor) -> str:
         return "Request to Install"
 
-    def get_message_description(self, recipient: Team | User) -> str:
+    def get_message_description(self, recipient: RpcActor, provider: ExternalProviders) -> str:
         requester_name = self.requester.get_display_name()
         optional_message = (
             f" They've included this message `{self.message}`" if self.message else ""
         )
         return f"{requester_name} is requesting to install the {self.provider_name} integration into {self.organization.name}.{optional_message}"
 
-    def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
+    def get_message_actions(
+        self, recipient: RpcActor, provider: ExternalProviders
+    ) -> Sequence[MessageAction]:
         # TODO: update referrer
         return [MessageAction(name="Check it out", url=self.integration_link)]

@@ -7,10 +7,12 @@ from rest_framework.response import Response
 from urllib3 import Retry
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.utils import get_date_range_from_params
 from sentry.net.http import connection_from_url
-from sentry.snuba.discover import timeseries_query
+from sentry.snuba.metrics_enhanced_performance import timeseries_query
 from sentry.utils import json
 
 ads_connection_pool = connection_from_url(
@@ -35,7 +37,7 @@ def get_anomalies(snuba_io):
     return Response(json.loads(response.data), status=200)
 
 
-def get_time_params(start, end):
+def get_time_params(start: datetime, end: datetime) -> MappedParams:
     """
     Takes visualization start/end timestamps
     and returns the start/end/granularity
@@ -94,7 +96,12 @@ def get_time_params(start, end):
     )
 
 
+@region_silo_endpoint
 class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def has_feature(self, organization, request):
         return features.has(
             "organizations:performance-anomaly-detection-ui", organization, actor=request.user
@@ -113,7 +120,6 @@ class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpoint
         datetime_format = "%Y-%m-%d %H:%M:%S"
         ads_request = {
             "query": query,
-            "params": query_params,
             "start": start.strftime(datetime_format),
             "end": end.strftime(datetime_format),
             "granularity": time_params.granularity,

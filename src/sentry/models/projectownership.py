@@ -1,34 +1,56 @@
-from typing import Any, Mapping, Optional, Sequence, Tuple, Union
+from __future__ import annotations
+
+import enum
+import logging
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence, Tuple, Union
 
 from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
-from sentry.db.models import Model, sane_repr
+from sentry import features
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
-from sentry.models import ActorTuple
+from sentry.models.activity import Activity
+from sentry.models.actor import ActorTuple
+from sentry.models.groupowner import OwnerRuleType
+from sentry.models.project import Project
 from sentry.ownership.grammar import Rule, load_schema, resolve_actors
+from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
+if TYPE_CHECKING:
+    from sentry.models.projectcodeowners import ProjectCodeOwners
+    from sentry.models.team import Team
+    from sentry.services.hybrid_cloud.user import RpcUser
+
+logger = logging.getLogger(__name__)
 READ_CACHE_DURATION = 3600
 
 
+_Everyone = enum.Enum("_Everyone", "EVERYONE")
+
+
+@region_silo_only_model
 class ProjectOwnership(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     project = FlexibleForeignKey("sentry.Project", unique=True)
     raw = models.TextField(null=True)
     schema = JSONField(null=True)
     fallthrough = models.BooleanField(default=True)
-    auto_assignment = models.BooleanField(default=False)
+    # Auto Assignment through Ownership Rules & Code Owners
+    auto_assignment = models.BooleanField(default=True)
     date_created = models.DateTimeField(default=timezone.now)
     last_updated = models.DateTimeField(default=timezone.now)
     is_active = models.BooleanField(default=True)
     codeowners_auto_sync = models.BooleanField(default=True, null=True)
+    suspect_committer_auto_assignment = models.BooleanField(default=False)
 
     # An object to indicate ownership is implicitly everyone
-    Everyone = object()
+    Everyone = _Everyone.EVERYONE
 
     class Meta:
         app_label = "sentry"
@@ -83,7 +105,7 @@ class ProjectOwnership(Model):
     @classmethod
     def get_owners(
         cls, project_id: int, data: Mapping[str, Any]
-    ) -> Tuple[Union["Everyone", Sequence["ActorTuple"]], Optional[Sequence[Rule]]]:
+    ) -> Tuple[_Everyone | Sequence[ActorTuple], Optional[Sequence[Rule]]]:
         """
         For a given project_id, and event data blob.
         We combine the schemas from IssueOwners and CodeOwners.
@@ -98,7 +120,7 @@ class ProjectOwnership(Model):
             The order is determined by iterating through rules sequentially, evaluating
             CODEOWNERS (if present), followed by Ownership Rules
         """
-        from sentry.models import ProjectCodeOwners
+        from sentry.models.projectcodeowners import ProjectCodeOwners
 
         ownership = cls.get_ownership_cached(project_id)
         if not ownership:
@@ -107,9 +129,15 @@ class ProjectOwnership(Model):
         codeowners = ProjectCodeOwners.get_codeowners_cached(project_id)
         ownership.schema = cls.get_combined_schema(ownership, codeowners)
 
-        rules = cls._matching_ownership_rules(ownership, project_id, data)
+        rules = cls._matching_ownership_rules(ownership, data)
 
         if not rules:
+            project = Project.objects.get(id=project_id)
+            if features.has(
+                "organizations:issue-alert-fallback-targeting", project.organization, actor=None
+            ):
+                return [], None
+
             return cls.Everyone if ownership.fallthrough else [], None
 
         owners = {o for rule in rules for o in rule.owners}
@@ -124,78 +152,213 @@ class ProjectOwnership(Model):
         return ordered_actors, rules
 
     @classmethod
-    def _find_actors(cls, project_id, rules, limit):
+    def _hydrate_rules(cls, project_id, rules, type: str = OwnerRuleType.OWNERSHIP_RULE.value):
         """
         Get the last matching rule to take the most precedence.
         """
         owners = [owner for rule in rules for owner in rule.owners]
-        owners.reverse()
         actors = {
             key: val
             for key, val in resolve_actors({owner for owner in owners}, project_id).items()
             if val
         }
-        actors = [actors[owner] for owner in owners if owner in actors][:limit]
-        return actors
+        result = [
+            (
+                rule,
+                ActorTuple.resolve_many(
+                    [actors[owner] for owner in rule.owners if owner in actors]
+                ),
+                type,
+            )
+            for rule in rules
+        ]
+        return result
 
     @classmethod
-    def get_autoassign_owners(cls, project_id, data, limit=2):
+    def get_issue_owners(
+        cls, project_id, data, limit=2
+    ) -> Sequence[Tuple[Rule, Sequence[Union[Team, RpcUser]], str,]]:
+        """
+        Get the issue owners for a project if there are any.
+
+        We combine the schemas from IssueOwners and CodeOwners.
+
+        Returns list of tuple (rule, owners, rule_type)
+        """
+        from sentry.models.projectcodeowners import ProjectCodeOwners
+
+        with metrics.timer("projectownership.get_autoassign_owners"):
+            ownership = cls.get_ownership_cached(project_id)
+            codeowners = ProjectCodeOwners.get_codeowners_cached(project_id)
+            if not (ownership or codeowners):
+                return []
+
+            if not ownership:
+                ownership = cls(project_id=project_id)
+
+            ownership_rules = cls._matching_ownership_rules(ownership, data)
+            codeowners_rules = cls._matching_ownership_rules(codeowners, data) if codeowners else []
+
+            if not (codeowners_rules or ownership_rules):
+                return []
+
+            hydrated_ownership_rules = cls._hydrate_rules(
+                project_id, ownership_rules, OwnerRuleType.OWNERSHIP_RULE.value
+            )
+            hydrated_codeowners_rules = cls._hydrate_rules(
+                project_id, codeowners_rules, OwnerRuleType.CODEOWNERS.value
+            )
+
+            rules_in_evaluation_order = [
+                *hydrated_ownership_rules[::-1],
+                *hydrated_codeowners_rules[::-1],
+            ]
+            rules_with_owners = list(
+                filter(
+                    lambda item: len(item[1]) > 0,
+                    rules_in_evaluation_order,
+                )
+            )
+
+            return rules_with_owners[:limit]
+
+    @classmethod
+    def _get_autoassignment_types(cls, ownership):
+        from sentry.models.groupowner import GroupOwnerType
+
+        autoassignment_types = []
+        if ownership.suspect_committer_auto_assignment:
+            autoassignment_types.append(GroupOwnerType.SUSPECT_COMMIT.value)
+
+        if ownership.auto_assignment:
+            autoassignment_types.extend(
+                [GroupOwnerType.OWNERSHIP_RULE.value, GroupOwnerType.CODEOWNERS.value]
+            )
+        return autoassignment_types
+
+    @classmethod
+    def handle_auto_assignment(cls, project_id, event=None, group=None):
         """
         Get the auto-assign owner for a project if there are any.
 
         We combine the schemas from IssueOwners and CodeOwners.
 
-        Returns a tuple of (auto_assignment_enabled, list_of_owners, assigned_by_codeowners: boolean).
         """
-        from sentry.models import ProjectCodeOwners
+        from sentry import analytics
+        from sentry.models.activity import ActivityIntegration
+        from sentry.models.groupassignee import GroupAssignee
+        from sentry.models.groupowner import GroupOwner, GroupOwnerType
+        from sentry.models.team import Team
+        from sentry.models.user import User
+        from sentry.services.hybrid_cloud.user import RpcUser
+
+        # If event is passed in, then this is not called from the force auto-assign API, else it is
+        force_autoassign = True
+        if event:
+            force_autoassign = False
+            group = event.group
 
         with metrics.timer("projectownership.get_autoassign_owners"):
             ownership = cls.get_ownership_cached(project_id)
-            codeowners = ProjectCodeOwners.get_codeowners_cached(project_id)
-            assigned_by_codeowners = False
-            if not (ownership or codeowners):
-                return False, [], assigned_by_codeowners
-
             if not ownership:
                 ownership = cls(project_id=project_id)
 
-            ownership_rules = cls._matching_ownership_rules(ownership, project_id, data)
-            codeowners_rules = (
-                cls._matching_ownership_rules(codeowners, project_id, data) if codeowners else []
+            autoassignment_types = cls._get_autoassignment_types(ownership)
+            if not len(autoassignment_types):
+                return
+
+            # Get the most recent GroupOwner that matches the following order: Suspect Committer, then Ownership Rule, then Code Owner
+            issue_owner = GroupOwner.get_autoassigned_owner_cached(
+                group.id, project_id, autoassignment_types
             )
+            if issue_owner is False:
+                return
 
-            if not (codeowners_rules or ownership_rules):
-                return ownership.auto_assignment, [], assigned_by_codeowners
+            owner = issue_owner.owner()
+            if not owner:
+                return
 
-            ownership_actors = cls._find_actors(project_id, ownership_rules, limit)
-            codeowners_actors = cls._find_actors(project_id, codeowners_rules, limit)
+            try:
+                owner = owner.resolve()
+            except (User.DoesNotExist, Team.DoesNotExist):
+                return
 
-            # Can happen if the ownership rule references a user/team that no longer
-            # is assigned to the project or has been removed from the org.
-            if not (ownership_actors or codeowners_actors):
-                return ownership.auto_assignment, [], assigned_by_codeowners
-
-            # Ownership rules take precedence over codeowner rules.
-            actors = [*ownership_actors, *codeowners_actors][:limit]
-
-            # Only the first item in the list is used for assignment, the rest are just used to suggest suspect owners.
-            # So if ownership_actors is empty, it will be assigned by codeowners_actors
-            if len(ownership_actors) == 0:
-                assigned_by_codeowners = True
-
-            from sentry.models import ActorTuple
-
-            return (
-                ownership.auto_assignment,
-                ActorTuple.resolve_many(actors),
-                assigned_by_codeowners,
+            details = (
+                {"integration": ActivityIntegration.SUSPECT_COMMITTER.value}
+                if issue_owner.type == GroupOwnerType.SUSPECT_COMMIT.value
+                else {
+                    "integration": ActivityIntegration.PROJECT_OWNERSHIP.value,
+                    "rule": (issue_owner.context or {}).get("rule", ""),
+                }
+                if issue_owner.type == GroupOwnerType.OWNERSHIP_RULE.value
+                else {
+                    "integration": ActivityIntegration.CODEOWNERS.value,
+                    "rule": (issue_owner.context or {}).get("rule", ""),
+                }
             )
+            activity = Activity.objects.filter(
+                group=group, type=ActivityType.ASSIGNED.value
+            ).order_by("-datetime")
+            if activity:
+                auto_assigned = activity[0].data.get("integration")
+                if not auto_assigned and not force_autoassign:
+                    logger.info(
+                        "autoassignment.post_manual_assignment",
+                        extra={
+                            "event_id": event.event_id,
+                            "group_id": event.group_id,
+                            "project": event.project_id,
+                            "organization_id": event.project.organization_id,
+                            **details,
+                        },
+                    )
+                    return
+            if (
+                isinstance(owner, Team)
+                and not GroupAssignee.objects.filter(group=group, team=owner.id).exists()
+            ) or (
+                isinstance(owner, RpcUser)
+                and not GroupAssignee.objects.filter(group=group, user_id=owner.id).exists()
+            ):
+                assignment = GroupAssignee.objects.assign(
+                    group,
+                    owner,
+                    create_only=not force_autoassign,
+                    extra=details,
+                    force_autoassign=force_autoassign,
+                )
+
+                if assignment["new_assignment"] or assignment["updated_assignment"]:
+                    analytics.record(
+                        "codeowners.assignment"
+                        if details.get("integration") == ActivityIntegration.CODEOWNERS.value
+                        else "issueowners.assignment",
+                        organization_id=ownership.project.organization_id,
+                        project_id=project_id,
+                        group_id=group.id,
+                    )
+                    logger.info(
+                        "handle_auto_assignment.success",
+                        extra={
+                            "event": event.event_id if event else None,
+                            "group": group.id,
+                            "project": group.project.id,
+                            "organization": group.project.organization_id,
+                            # owner_id returns a string including the owner type (user or team) and id
+                            "assignee": issue_owner.owner_id(),
+                            "reason": "created" if assignment["new_assignment"] else "updated",
+                            **details,
+                        },
+                    )
 
     @classmethod
     def _matching_ownership_rules(
-        cls, ownership: "ProjectOwnership", project_id: int, data: Mapping[str, Any]
-    ) -> Sequence["Rule"]:
+        cls,
+        ownership: Union[ProjectOwnership, ProjectCodeOwners],
+        data: Mapping[str, Any],
+    ) -> Sequence[Rule]:
         rules = []
+
         if ownership.schema is not None:
             for rule in load_schema(ownership.schema):
                 if rule.test(data):
@@ -204,18 +367,30 @@ class ProjectOwnership(Model):
         return rules
 
 
+def process_resource_change(instance, change, **kwargs):
+    from sentry.models.groupowner import GroupOwner
+    from sentry.models.projectownership import ProjectOwnership
+
+    cache.set(
+        ProjectOwnership.get_cache_key(instance.project_id),
+        instance if change == "updated" else None,
+        READ_CACHE_DURATION,
+    )
+    autoassignment_types = ProjectOwnership._get_autoassignment_types(instance)
+    if len(autoassignment_types) > 0:
+        GroupOwner.invalidate_autoassigned_owner_cache(instance.project_id, autoassignment_types)
+
+    GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(instance.project_id)
+
+
 # Signals update the cached reads used in post_processing
 post_save.connect(
-    lambda instance, **kwargs: cache.set(
-        ProjectOwnership.get_cache_key(instance.project_id), instance, READ_CACHE_DURATION
-    ),
+    lambda instance, **kwargs: process_resource_change(instance, "updated", **kwargs),
     sender=ProjectOwnership,
     weak=False,
 )
 post_delete.connect(
-    lambda instance, **kwargs: cache.set(
-        ProjectOwnership.get_cache_key(instance.project_id), False, READ_CACHE_DURATION
-    ),
+    lambda instance, **kwargs: process_resource_change(instance, "deleted", **kwargs),
     sender=ProjectOwnership,
     weak=False,
 )

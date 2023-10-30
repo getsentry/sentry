@@ -22,12 +22,12 @@ export default function useMedia(query: string) {
       setState(!!mql.matches);
     };
 
-    mql.addListener(onChange);
+    mql.addEventListener('change', onChange);
     setState(mql.matches);
 
     return () => {
       mounted = false;
-      mql.removeListener(onChange);
+      mql.removeEventListener('change', onChange);
     };
   }, [query]);
 

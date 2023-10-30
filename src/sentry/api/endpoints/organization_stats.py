@@ -2,13 +2,24 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tsdb
-from sentry.api.base import EnvironmentMixin, StatsMixin
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import EnvironmentMixin, StatsMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Environment, Project, Team
+from sentry.models.environment import Environment
+from sentry.models.project import Project
+from sentry.models.team import Team
+from sentry.tsdb.base import TSDBModel
 
 
+@region_silo_endpoint
 class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.ENTERPRISE
+
     def get(self, request: Request, organization) -> Response:
         """
         Retrieve Event Counts for an Organization
@@ -62,22 +73,22 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMix
         query_kwargs = {}
         if stat == "received":
             if group == "project":
-                stat_model = tsdb.models.project_total_received
+                stat_model = TSDBModel.project_total_received
             else:
-                stat_model = tsdb.models.organization_total_received
+                stat_model = TSDBModel.organization_total_received
         elif stat == "rejected":
             if group == "project":
-                stat_model = tsdb.models.project_total_rejected
+                stat_model = TSDBModel.project_total_rejected
             else:
-                stat_model = tsdb.models.organization_total_rejected
+                stat_model = TSDBModel.organization_total_rejected
         elif stat == "blacklisted":
             if group == "project":
-                stat_model = tsdb.models.project_total_blacklisted
+                stat_model = TSDBModel.project_total_blacklisted
             else:
-                stat_model = tsdb.models.organization_total_blacklisted
+                stat_model = TSDBModel.organization_total_blacklisted
         elif stat == "generated":
             if group == "project":
-                stat_model = tsdb.models.project
+                stat_model = TSDBModel.project
                 try:
                     query_kwargs["environment_id"] = self._get_environment_id_from_request(
                         request, organization.id
@@ -88,7 +99,10 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMix
         if stat_model is None:
             raise ValueError(f"Invalid group: {group}, stat: {stat}")
         data = tsdb.get_range(
-            model=stat_model, keys=keys, **self._parse_args(request, **query_kwargs)
+            model=stat_model,
+            keys=keys,
+            **self._parse_args(request, **query_kwargs),
+            tenant_ids={"organization_id": organization.id},
         )
 
         if group == "organization":

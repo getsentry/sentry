@@ -1,7 +1,9 @@
 import os
 import subprocess
+import sys
 import time
 
+from sentry.testutils.pytest.sentry import configure_split_db
 from sentry.utils import json
 
 
@@ -27,17 +29,16 @@ def pytest_configure(config):
             last_built = int(time.time()) - data["built"]
 
             if last_built <= 3600:
-                print(
-                    """
+                print(  # noqa: S002
+                    f"""
 ###################
 #
-# Frontend assets last built {} seconds ago, skipping rebuilds for another {} seconds.
+# Frontend assets last built {last_built} seconds ago, skipping rebuilds for another {3600 - last_built} seconds.
 # Delete the file: `.webpack.meta` to rebuild.
 #
 ###################
-                """.format(
-                        last_built, 3600 - last_built
-                    )
+                """,
+                    file=sys.stderr,
                 )
                 return
     except OSError:
@@ -45,7 +46,7 @@ def pytest_configure(config):
     except Exception:
         pass
 
-    print(
+    print(  # noqa: S002
         """
 ###################
 #
@@ -69,3 +70,5 @@ def pytest_configure(config):
         raise Exception(
             "Unable to run `yarn` -- make sure your development environment is setup correctly: https://docs.sentry.io/development/contribute/environment/#macos---nodejs"
         )
+
+    configure_split_db()

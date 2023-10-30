@@ -7,22 +7,27 @@ import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import Feature from 'sentry/components/acl/feature';
+import {
+  OnDemandMetricAlert,
+  OnDemandWarningIcon,
+} from 'sentry/components/alerts/onDemandMetricAlert';
 import SearchBar from 'sentry/components/events/searchBar';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
+import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
-import SelectControl from 'sentry/components/forms/selectControl';
-import SelectField from 'sentry/components/forms/selectField';
 import IdBadge from 'sentry/components/idBadge';
 import ListItem from 'sentry/components/list/listItem';
-import {Panel, PanelBody} from 'sentry/components/panels';
-import Tooltip from 'sentry/components/tooltip';
-import {IconQuestion} from 'sentry/icons';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import {InvalidReason} from 'sentry/components/searchSyntax/parser';
+import {SearchInvalidTag} from 'sentry/components/smartSearchBar/searchInvalidTag';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Environment, Organization, Project, SelectValue} from 'sentry/types';
-import {MobileVital, WebVital} from 'sentry/utils/discover/fields';
 import {getDisplayName} from 'sentry/utils/environment';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
+import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
+import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
 import {
@@ -30,15 +35,12 @@ import {
   DATA_SOURCE_LABELS,
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
-import {AlertType, getFunctionHelpText} from 'sentry/views/alerts/wizard/options';
+import {AlertType, getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
+
+import {getProjectOptions} from '../utils';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
-import {
-  COMPARISON_DELTA_OPTIONS,
-  DEFAULT_AGGREGATE,
-  DEFAULT_TRANSACTION_AGGREGATE,
-} from './constants';
-import MetricField from './metricField';
+import {DEFAULT_AGGREGATE, DEFAULT_TRANSACTION_AGGREGATE} from './constants';
 import {AlertRuleComparisonType, Dataset, Datasource, TimeWindow} from './types';
 
 const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
@@ -59,9 +61,8 @@ type Props = {
   comparisonType: AlertRuleComparisonType;
   dataset: Dataset;
   disabled: boolean;
-  hasAlertWizardV3: boolean;
   onComparisonDeltaChange: (value: number) => void;
-  onFilterSearch: (query: string) => void;
+  onFilterSearch: (query: string, isQueryValid) => void;
   onTimeWindowChange: (value: number) => void;
   organization: Organization;
   project: Project;
@@ -72,6 +73,7 @@ type Props = {
   allowChangeEventTypes?: boolean;
   comparisonDelta?: number;
   disableProjectSelector?: boolean;
+  isExtrapolatedChartData?: boolean;
   loadingProjects?: boolean;
 };
 
@@ -134,11 +136,9 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
     return Object.entries(options).map(([value, label]) => ({
       value: parseInt(value, 10),
-      label: this.props.hasAlertWizardV3
-        ? tct('[timeWindow] interval', {
-            timeWindow: label.slice(-1) === 's' ? label.slice(0, -1) : label,
-          })
-        : label,
+      label: tct('[timeWindow] interval', {
+        timeWindow: label.slice(-1) === 's' ? label.slice(0, -1) : label,
+      }),
     }));
   }
 
@@ -153,19 +153,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       default:
         return t('Filter transactions by URL, tags, and other properties\u2026');
     }
-  }
-
-  get searchSupportedTags() {
-    if (isCrashFreeAlert(this.props.dataset)) {
-      return {
-        release: {
-          key: 'release',
-          name: 'release',
-        },
-      };
-    }
-
-    return undefined;
   }
 
   renderEventTypeFilter() {
@@ -217,6 +204,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         {({onChange, onBlur, model}) => {
           const formDataset = model.getValue('dataset');
           const formEventTypes = model.getValue('eventTypes');
+          const aggregate = model.getValue('aggregate');
           const mappedValue = convertDatasetEventTypesToSource(
             formDataset,
             formEventTypes
@@ -225,20 +213,23 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             <SelectControl
               value={mappedValue}
               inFieldLabel={t('Events: ')}
-              onChange={optionObj => {
-                const optionValue = optionObj.value;
-                onChange(optionValue, {});
-                onBlur(optionValue, {});
+              onChange={({value}) => {
+                onChange(value, {});
+                onBlur(value, {});
                 // Reset the aggregate to the default (which works across
                 // datatypes), otherwise we may send snuba an invalid query
                 // (transaction aggregate on events datasource = bad).
-                optionValue === 'transaction'
-                  ? model.setValue('aggregate', DEFAULT_TRANSACTION_AGGREGATE)
-                  : model.setValue('aggregate', DEFAULT_AGGREGATE);
+                const newAggregate =
+                  value === Datasource.TRANSACTION
+                    ? DEFAULT_TRANSACTION_AGGREGATE
+                    : DEFAULT_AGGREGATE;
+                if (alertType === 'custom' && aggregate !== newAggregate) {
+                  model.setValue('aggregate', newAggregate);
+                }
 
                 // set the value of the dataset and event type from data source
                 const {dataset: datasetFromDataSource, eventTypes} =
-                  DATA_SOURCE_TO_SET_AND_EVENT_TYPES[optionValue] ?? {};
+                  DATA_SOURCE_TO_SET_AND_EVENT_TYPES[value] ?? {};
                 model.setValue('dataset', datasetFromDataSource);
                 model.setValue('eventTypes', eventTypes);
               }}
@@ -251,18 +242,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     );
   }
 
-  renderIdBadge(project: Project) {
-    return (
-      <IdBadge
-        project={project}
-        avatarProps={{consistentWidth: true}}
-        avatarSize={18}
-        disableLink
-        hideName
-      />
-    );
-  }
-
   renderProjectSelector() {
     const {
       project: _selectedProject,
@@ -271,37 +250,11 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       organization,
       disableProjectSelector,
     } = this.props;
-    const hasOpenMembership = organization.features.includes('open-membership');
-    const myProjects = projects.filter(project => project.hasAccess && project.isMember);
-    const allProjects = projects.filter(
-      project => project.hasAccess && !project.isMember
-    );
-
-    const myProjectOptions = myProjects.map(myProject => ({
-      value: myProject.id,
-      label: myProject.slug,
-      leadingItems: this.renderIdBadge(myProject),
-    }));
-
-    const openMembershipProjects = [
-      {
-        label: t('My Projects'),
-        options: myProjectOptions,
-      },
-      {
-        label: t('All Projects'),
-        options: allProjects.map(allProject => ({
-          value: allProject.id,
-          label: allProject.slug,
-          leadingItems: this.renderIdBadge(allProject),
-        })),
-      },
-    ];
-
-    const projectOptions =
-      hasOpenMembership || isActiveSuperuser()
-        ? openMembershipProjects
-        : myProjectOptions;
+    const projectOptions = getProjectOptions({
+      organization,
+      projects,
+      isFormDisabled: disabled,
+    });
 
     return (
       <FormField
@@ -328,7 +281,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 // if the current owner/team isn't part of project selected, update to the first available team
                 const nextSelectedProject =
                   projects.find(({id}) => id === value) ?? selectedProject;
-                const ownerId: String | undefined = model
+                const ownerId: string | undefined = model
                   .getValue('owner')
                   ?.split(':')[1];
                 if (
@@ -362,84 +315,43 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   renderInterval() {
-    const {
-      organization,
-      disabled,
-      alertType,
-      hasAlertWizardV3,
-      timeWindow,
-      comparisonDelta,
-      comparisonType,
-      onTimeWindowChange,
-      onComparisonDeltaChange,
-    } = this.props;
-
-    const {labelText, timeWindowText} = getFunctionHelpText(alertType);
-    const intervalLabelText = hasAlertWizardV3 ? t('Define your metric') : labelText;
+    const {organization, disabled, alertType, timeWindow, onTimeWindowChange} =
+      this.props;
 
     return (
       <Fragment>
         <StyledListItem>
           <StyledListTitle>
-            <div>{intervalLabelText}</div>
-            {!hasAlertWizardV3 && (
-              <Tooltip
-                title={t(
-                  'Time window over which the metric is evaluated. Alerts are evaluated every minute regardless of this value.'
-                )}
-              >
-                <IconQuestion size="sm" color="gray200" />
-              </Tooltip>
-            )}
+            <div>{t('Define your metric')}</div>
           </StyledListTitle>
         </StyledListItem>
         <FormRow>
-          {hasAlertWizardV3 ? (
-            <WizardField
-              name="aggregate"
-              help={null}
-              organization={organization}
-              disabled={disabled}
-              style={{
-                ...this.formElemBaseStyle,
-                flex: 1,
-              }}
-              inline={false}
-              flexibleControlStateSize
-              columnWidth={200}
-              alertType={alertType}
-              required
-            />
-          ) : (
-            <MetricField
-              name="aggregate"
-              help={null}
-              organization={organization}
-              disabled={disabled}
-              style={{
-                ...this.formElemBaseStyle,
-              }}
-              inline={false}
-              flexibleControlStateSize
-              columnWidth={200}
-              alertType={alertType}
-              required
-            />
-          )}
-          {!hasAlertWizardV3 && timeWindowText && (
-            <FormRowText>{timeWindowText}</FormRowText>
-          )}
+          <WizardField
+            name="aggregate"
+            help={null}
+            organization={organization}
+            disabled={disabled}
+            style={{
+              ...this.formElemBaseStyle,
+              flex: 1,
+            }}
+            inline={false}
+            flexibleControlStateSize
+            columnWidth={200}
+            alertType={alertType}
+            required
+          />
           <SelectControl
             name="timeWindow"
             styles={{
               control: (provided: {[x: string]: string | number | boolean}) => ({
                 ...provided,
-                minWidth: hasAlertWizardV3 ? 200 : 130,
+                minWidth: 200,
                 maxWidth: 300,
               }),
               container: (provided: {[x: string]: string | number | boolean}) => ({
                 ...provided,
-                margin: hasAlertWizardV3 ? `${space(0.5)}` : 0,
+                margin: `${space(0.5)}`,
               }),
             }}
             options={this.timeWindowOptions}
@@ -450,38 +362,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             inline={false}
             flexibleControlStateSize
           />
-          {!hasAlertWizardV3 && (
-            <Feature
-              features={['organizations:change-alerts']}
-              organization={organization}
-            >
-              {comparisonType === AlertRuleComparisonType.CHANGE && (
-                <ComparisonContainer>
-                  {t(' compared to ')}
-                  <SelectControl
-                    name="comparisonDelta"
-                    styles={{
-                      container: (provided: {
-                        [x: string]: string | number | boolean;
-                      }) => ({
-                        ...provided,
-                        marginLeft: space(1),
-                      }),
-                      control: (provided: {[x: string]: string | number | boolean}) => ({
-                        ...provided,
-                        minWidth: 500,
-                        maxWidth: 1000,
-                      }),
-                    }}
-                    value={comparisonDelta}
-                    onChange={({value}) => onComparisonDeltaChange(value)}
-                    options={COMPARISON_DELTA_OPTIONS}
-                    required={comparisonType === AlertRuleComparisonType.CHANGE}
-                  />
-                </ComparisonContainer>
-              )}
-            </Feature>
-          )}
         </FormRow>
       </Fragment>
     );
@@ -493,8 +373,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       disabled,
       onFilterSearch,
       allowChangeEventTypes,
-      hasAlertWizardV3,
       dataset,
+      isExtrapolatedChartData,
     } = this.props;
     const {environments} = this.state;
 
@@ -507,28 +387,22 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         []),
     ];
 
-    const transactionTags = [
-      'transaction',
-      'transaction.duration',
-      'transaction.op',
-      'transaction.status',
-    ];
-    const measurementTags = Object.values({...WebVital, ...MobileVital});
-    const eventOmitTags =
-      dataset === 'events' ? [...measurementTags, ...transactionTags] : [];
-
     return (
       <Fragment>
         <ChartPanel>
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
-        {hasAlertWizardV3 && this.renderInterval()}
+        {isExtrapolatedChartData && (
+          <OnDemandMetricAlert
+            message={t(
+              'The chart data above is an estimate based on the stored transactions that match the filters specified.'
+            )}
+          />
+        )}
+        {this.renderInterval()}
         <StyledListItem>{t('Filter events')}</StyledListItem>
-        <FormRow
-          noMargin
-          columns={1 + (allowChangeEventTypes ? 1 : 0) + (hasAlertWizardV3 ? 1 : 0)}
-        >
-          {hasAlertWizardV3 && this.renderProjectSelector()}
+        <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
+          {this.renderProjectSelector()}
           <SelectField
             name="environment"
             placeholder={t('All Environments')}
@@ -563,56 +437,99 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             }}
             flexibleControlStateSize
           >
-            {({onChange, onBlur, onKeyDown, initialData}) => (
-              <SearchContainer>
-                <StyledSearchBar
-                  searchSource="alert_builder"
-                  defaultQuery={initialData?.query ?? ''}
-                  omitTags={[
-                    'event.type',
-                    'release.version',
-                    'release.stage',
-                    'release.package',
-                    'release.build',
-                    'project',
-                    ...eventOmitTags,
-                  ]}
-                  includeSessionTagsValues={dataset === Dataset.SESSIONS}
-                  disabled={disabled}
-                  useFormWrapper={false}
-                  organization={organization}
-                  placeholder={this.searchPlaceholder}
-                  onChange={onChange}
-                  onKeyDown={e => {
-                    /**
-                     * Do not allow enter key to submit the alerts form since it is unlikely
-                     * users will be ready to create the rule as this sits above required fields.
-                     */
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      e.stopPropagation();
+            {({onChange, onBlur, onKeyDown, initialData, value}) => {
+              return (
+                <SearchContainer>
+                  <StyledSearchBar
+                    disallowWildcard={dataset === Dataset.SESSIONS}
+                    invalidMessages={{
+                      [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
+                        'The wildcard operator is not supported here.'
+                      ),
+                    }}
+                    customInvalidTagMessage={item => {
+                      if (
+                        ![Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(dataset)
+                      ) {
+                        return null;
+                      }
+                      return (
+                        <SearchInvalidTag
+                          message={tct(
+                            "The field [field] isn't supported for performance alerts.",
+                            {
+                              field: <code>{item.desc}</code>,
+                            }
+                          )}
+                          docLink="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#tags--properties"
+                        />
+                      );
+                    }}
+                    searchSource="alert_builder"
+                    defaultQuery={initialData?.query ?? ''}
+                    {...getSupportedAndOmittedTags(dataset, organization)}
+                    includeSessionTagsValues={dataset === Dataset.SESSIONS}
+                    disabled={disabled}
+                    useFormWrapper={false}
+                    organization={organization}
+                    placeholder={this.searchPlaceholder}
+                    onChange={onChange}
+                    query={initialData.query}
+                    // We only need strict validation for Transaction queries, everything else is fine
+                    highlightUnsupportedTags={
+                      organization.features.includes('alert-allow-indexed') ||
+                      (hasOnDemandMetricAlertFeature(organization) &&
+                        isOnDemandQueryString(initialData.query))
+                        ? false
+                        : [Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(
+                            dataset
+                          )
                     }
+                    onKeyDown={e => {
+                      /**
+                       * Do not allow enter key to submit the alerts form since it is unlikely
+                       * users will be ready to create the rule as this sits above required fields.
+                       */
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }
 
-                    onKeyDown?.(e);
-                  }}
-                  onBlur={query => {
-                    onFilterSearch(query);
-                    onBlur(query);
-                  }}
-                  onSearch={query => {
-                    onFilterSearch(query);
-                    onChange(query, {});
-                  }}
-                  {...(this.searchSupportedTags
-                    ? {supportedTags: this.searchSupportedTags}
-                    : {})}
-                  hasRecentSearches={dataset !== Dataset.SESSIONS}
-                />
-              </SearchContainer>
-            )}
+                      onKeyDown?.(e);
+                    }}
+                    onClose={(query, {validSearch}) => {
+                      onFilterSearch(query, validSearch);
+                      onBlur(query);
+                    }}
+                    onSearch={query => {
+                      onFilterSearch(query, true);
+                      onChange(query, {});
+                    }}
+                    hasRecentSearches={dataset !== Dataset.SESSIONS}
+                  />
+                  {isExtrapolatedChartData && isOnDemandQueryString(value) && (
+                    <OnDemandWarningIcon
+                      color="gray500"
+                      msg={tct(
+                        `We don’t routinely collect metrics from [fields]. However, we’ll do so [strong:once this alert has been saved.]`,
+                        {
+                          fields: (
+                            <strong>
+                              {getOnDemandKeys(value)
+                                .map(key => `"${key}"`)
+                                .join(', ')}
+                            </strong>
+                          ),
+                          strong: <strong />,
+                        }
+                      )}
+                    />
+                  )}
+                </SearchContainer>
+              );
+            }}
           </FormField>
         </FormRow>
-        {!hasAlertWizardV3 && this.renderInterval()}
       </Fragment>
     );
   }
@@ -626,7 +543,7 @@ const StyledListTitle = styled('div')`
 `;
 
 const ChartPanel = styled(Panel)`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${space(1)};
 `;
 
 const StyledPanelBody = styled(PanelBody)`
@@ -638,14 +555,24 @@ const StyledPanelBody = styled(PanelBody)`
 
 const SearchContainer = styled('div')`
   display: flex;
+  align-items: center;
+  gap: ${space(1)};
 `;
 
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
+
+  ${p =>
+    p.disabled &&
+    `
+    background: ${p.theme.backgroundSecondary};
+    color: ${p.theme.disabled};
+    cursor: not-allowed;
+  `}
 `;
 
 const StyledListItem = styled(ListItem)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   line-height: 1.3;
 `;
@@ -664,15 +591,4 @@ const FormRow = styled('div')<{columns?: number; noMargin?: boolean}>`
     `}
 `;
 
-const FormRowText = styled('div')`
-  margin: ${space(1)};
-`;
-
-const ComparisonContainer = styled('div')`
-  margin-left: ${space(1)};
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-`;
-
-export default withProjects(RuleConditionsForm);
+export default withApi(withProjects(RuleConditionsForm));

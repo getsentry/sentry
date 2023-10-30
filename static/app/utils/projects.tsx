@@ -3,11 +3,11 @@ import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 import uniqBy from 'lodash/uniqBy';
 
-import ProjectActions from 'sentry/actions/projectActions';
 import {Client} from 'sentry/api';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {AvatarProject, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import RequestError from 'sentry/utils/requestError/requestError';
 import withApi from 'sentry/utils/withApi';
@@ -61,7 +61,7 @@ type RenderProps = {
    * Calls API and searches for project, accepts a callback function with signature:
    * fn(searchTerm, {append: bool})
    */
-  onSearch: (searchTerm: string, {append: boolean}) => void;
+  onSearch: (searchTerm: string, options: {append: boolean}) => void;
 
   /**
    * We want to make sure that at the minimum, we return a list of objects with only `slug`
@@ -83,30 +83,24 @@ type DefaultProps = {
 
 type Props = {
   api: Client;
-
   children: RenderFunc;
-
   /**
    * Organization slug
    */
   orgId: string;
-
   /**
    * List of projects that have we already have summaries for (i.e. from store)
    */
   projects: Project[];
-
   /**
    * Whether to fetch all the projects in the organization of which the user
    * has access to
-   * */
+   */
   allProjects?: boolean;
-
   /**
    * Number of projects to return when not using `props.slugs`
    */
   limit?: number;
-
   /**
    * List of project ids to look for summaries for, this can be from `props.projects`,
    * otherwise fetch from API
@@ -139,9 +133,9 @@ class BaseProjects extends Component<Props, State> {
   componentDidMount() {
     const {slugs, projectIds} = this.props;
 
-    if (!!slugs?.length) {
+    if (slugs?.length) {
       this.loadSpecificProjects();
-    } else if (!!projectIds?.length) {
+    } else if (projectIds?.length) {
       this.loadSpecificProjectsFromIds();
     } else {
       this.loadAllProjects();
@@ -167,7 +161,7 @@ class BaseProjects extends Component<Props, State> {
       return;
     }
 
-    if (!!slugs?.length) {
+    if (slugs?.length) {
       // Extract the requested projects from the store based on props.slugs
       const projectsMap = this.getProjectsMap(projects);
       const projectsFromStore = slugs.map(slug => projectsMap.get(slug)).filter(defined);
@@ -294,7 +288,7 @@ class BaseProjects extends Component<Props, State> {
       .map(slug =>
         projectsMap.has(slug)
           ? projectsMap.get(slug)
-          : !!passthroughPlaceholderProject
+          : passthroughPlaceholderProject
           ? {slug}
           : null
       )
@@ -527,12 +521,22 @@ async function fetchProjects(
 
   // populate the projects store if all projects were fetched
   if (allProjects) {
-    ProjectActions.loadProjects(data);
+    ProjectsStore.loadInitialData(data);
   }
 
   return {
     results: data,
     hasMore,
     nextCursor,
+  };
+}
+
+export function getAnalyicsDataForProject(project?: Project | null) {
+  return {
+    project_has_replay: project?.hasReplays ?? false,
+    project_has_minified_stack_trace: project?.hasMinifiedStackTrace ?? false,
+    project_age: project ? getDaysSinceDate(project.dateCreated) : -1,
+    project_id: project ? parseInt(project.id, 10) : -1,
+    project_platform: project?.platform ?? '',
   };
 }

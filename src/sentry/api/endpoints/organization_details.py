@@ -1,40 +1,75 @@
+from __future__ import annotations
+
 import logging
 from copy import copy
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.db.models.query_utils import DeferredAttribute
-from pytz import UTC
+from django.urls import reverse
+from django.utils import timezone as django_timezone
 from rest_framework import serializers, status
+from typing_extensions import TypedDict
 
 from bitfield.types import BitHandler
 from sentry import audit_log, roles
-from sentry.api.base import ONE_DAY
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import ONE_DAY, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
+from sentry.api.endpoints.project_details import MAX_SENSITIVE_FIELD_CHARS
 from sentry.api.fields import AvatarField
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization as org_serializers
-from sentry.api.serializers.models.organization import TrustedRelaySerializer
-from sentry.api.serializers.rest_framework import ListField
-from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS, RESERVED_ORGANIZATION_SLUGS
+from sentry.api.serializers.models.organization import (
+    BaseOrganizationSerializer,
+    TrustedRelaySerializer,
+)
+from sentry.constants import (
+    ACCOUNT_RATE_LIMIT_DEFAULT,
+    AI_SUGGESTED_SOLUTION,
+    ALERTS_MEMBER_WRITE_DEFAULT,
+    ATTACHMENTS_ROLE_DEFAULT,
+    DEBUG_FILES_ROLE_DEFAULT,
+    EVENTS_MEMBER_ADMIN_DEFAULT,
+    GITHUB_COMMENT_BOT_DEFAULT,
+    JOIN_REQUESTS_DEFAULT,
+    LEGACY_RATE_LIMIT_OPTIONS,
+    PROJECT_RATE_LIMIT_DEFAULT,
+    REQUIRE_SCRUB_DATA_DEFAULT,
+    REQUIRE_SCRUB_DEFAULTS_DEFAULT,
+    REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
+    SAFE_FIELDS_DEFAULT,
+    SCRAPE_JAVASCRIPT_DEFAULT,
+    SENSITIVE_FIELDS_DEFAULT,
+)
 from sentry.datascrubbing import validate_pii_config_update
+from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
     STORE_CRASH_REPORTS_DEFAULT,
     STORE_CRASH_REPORTS_MAX,
     convert_crashreport_count,
 )
-from sentry.models import (
-    Authenticator,
-    AuthProvider,
-    Organization,
-    OrganizationAvatar,
-    OrganizationOption,
-    OrganizationStatus,
-    ScheduledDeletion,
-    UserEmail,
+from sentry.models.avatars.organization_avatar import OrganizationAvatar
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.scheduledeletion import RegionScheduledDeletion
+from sentry.models.useremail import UserEmail
+from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
+from sentry.services.hybrid_cloud.auth import auth_service
+from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.organization.model import (
+    RpcOrganization,
+    RpcOrganizationDeleteResponse,
+    RpcOrganizationDeleteState,
 )
+from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
+from sentry.services.organization.provisioning import (
+    OrganizationSlugCollisionException,
+    organization_provisioning_service,
+)
+from sentry.utils.audit import create_audit_entry
 from sentry.utils.cache import memoize
 
 ERR_DEFAULT_ORG = "You cannot remove the default organization."
@@ -42,6 +77,7 @@ ERR_NO_USER = "This request requires an authenticated user."
 ERR_NO_2FA = "Cannot require two-factor authentication without personal two-factor enabled."
 ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
 ERR_EMAIL_VERIFICATION = "Cannot require email verification before verifying your email address."
+ERR_3RD_PARTY_PUBLISHED_APP = "Cannot delete an organization that owns a published integration. Contact support if you need assistance."
 
 ORG_OPTIONS = (
     # serializer field name, option key name, type, default value
@@ -49,28 +85,28 @@ ORG_OPTIONS = (
         "projectRateLimit",
         "sentry:project-rate-limit",
         int,
-        org_serializers.PROJECT_RATE_LIMIT_DEFAULT,
+        PROJECT_RATE_LIMIT_DEFAULT,
     ),
     (
         "accountRateLimit",
         "sentry:account-rate-limit",
         int,
-        org_serializers.ACCOUNT_RATE_LIMIT_DEFAULT,
+        ACCOUNT_RATE_LIMIT_DEFAULT,
     ),
-    ("dataScrubber", "sentry:require_scrub_data", bool, org_serializers.REQUIRE_SCRUB_DATA_DEFAULT),
-    ("sensitiveFields", "sentry:sensitive_fields", list, org_serializers.SENSITIVE_FIELDS_DEFAULT),
-    ("safeFields", "sentry:safe_fields", list, org_serializers.SAFE_FIELDS_DEFAULT),
+    ("dataScrubber", "sentry:require_scrub_data", bool, REQUIRE_SCRUB_DATA_DEFAULT),
+    ("sensitiveFields", "sentry:sensitive_fields", list, SENSITIVE_FIELDS_DEFAULT),
+    ("safeFields", "sentry:safe_fields", list, SAFE_FIELDS_DEFAULT),
     (
         "scrapeJavaScript",
         "sentry:scrape_javascript",
         bool,
-        org_serializers.SCRAPE_JAVASCRIPT_DEFAULT,
+        SCRAPE_JAVASCRIPT_DEFAULT,
     ),
     (
         "dataScrubberDefaults",
         "sentry:require_scrub_defaults",
         bool,
-        org_serializers.REQUIRE_SCRUB_DEFAULTS_DEFAULT,
+        REQUIRE_SCRUB_DEFAULTS_DEFAULT,
     ),
     (
         "storeCrashReports",
@@ -82,35 +118,59 @@ ORG_OPTIONS = (
         "attachmentsRole",
         "sentry:attachments_role",
         str,
-        org_serializers.ATTACHMENTS_ROLE_DEFAULT,
+        ATTACHMENTS_ROLE_DEFAULT,
     ),
     (
         "debugFilesRole",
         "sentry:debug_files_role",
         str,
-        org_serializers.DEBUG_FILES_ROLE_DEFAULT,
+        DEBUG_FILES_ROLE_DEFAULT,
     ),
     (
         "eventsMemberAdmin",
         "sentry:events_member_admin",
         bool,
-        org_serializers.EVENTS_MEMBER_ADMIN_DEFAULT,
+        EVENTS_MEMBER_ADMIN_DEFAULT,
     ),
     (
         "alertsMemberWrite",
         "sentry:alerts_member_write",
         bool,
-        org_serializers.ALERTS_MEMBER_WRITE_DEFAULT,
+        ALERTS_MEMBER_WRITE_DEFAULT,
     ),
     (
         "scrubIPAddresses",
         "sentry:require_scrub_ip_address",
         bool,
-        org_serializers.REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
+        REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     ),
     ("relayPiiConfig", "sentry:relay_pii_config", str, None),
-    ("allowJoinRequests", "sentry:join_requests", bool, org_serializers.JOIN_REQUESTS_DEFAULT),
+    ("allowJoinRequests", "sentry:join_requests", bool, JOIN_REQUESTS_DEFAULT),
     ("apdexThreshold", "sentry:apdex_threshold", int, None),
+    (
+        "aiSuggestedSolution",
+        "sentry:ai_suggested_solution",
+        bool,
+        AI_SUGGESTED_SOLUTION,
+    ),
+    (
+        "githubPRBot",
+        "sentry:github_pr_bot",
+        bool,
+        GITHUB_COMMENT_BOT_DEFAULT,
+    ),
+    (
+        "githubOpenPRBot",
+        "sentry:github_open_pr_bot",
+        bool,
+        GITHUB_COMMENT_BOT_DEFAULT,
+    ),
+    (
+        "githubNudgeInvite",
+        "sentry:github_nudge_invite",
+        bool,
+        GITHUB_COMMENT_BOT_DEFAULT,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
@@ -121,9 +181,7 @@ UNSAVED = object()
 DEFERRED = object()
 
 
-class OrganizationSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64)
-    slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
+class OrganizationSerializer(BaseOrganizationSerializer):
     accountRateLimit = EmptyIntegerField(
         min_value=0, max_value=1000000, required=False, allow_null=True
     )
@@ -142,8 +200,8 @@ class OrganizationSerializer(serializers.Serializer):
     enhancedPrivacy = serializers.BooleanField(required=False)
     dataScrubber = serializers.BooleanField(required=False)
     dataScrubberDefaults = serializers.BooleanField(required=False)
-    sensitiveFields = ListField(child=serializers.CharField(), required=False)
-    safeFields = ListField(child=serializers.CharField(), required=False)
+    sensitiveFields = serializers.ListField(child=serializers.CharField(), required=False)
+    safeFields = serializers.ListField(child=serializers.CharField(), required=False)
     storeCrashReports = serializers.IntegerField(
         min_value=-1, max_value=STORE_CRASH_REPORTS_MAX, required=False
     )
@@ -154,9 +212,14 @@ class OrganizationSerializer(serializers.Serializer):
     scrubIPAddresses = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
+    aiSuggestedSolution = serializers.BooleanField(required=False)
+    codecovAccess = serializers.BooleanField(required=False)
+    githubOpenPRBot = serializers.BooleanField(required=False)
+    githubNudgeInvite = serializers.BooleanField(required=False)
+    githubPRBot = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     requireEmailVerification = serializers.BooleanField(required=False)
-    trustedRelays = ListField(child=TrustedRelaySerializer(), required=False)
+    trustedRelays = serializers.ListField(child=TrustedRelaySerializer(), required=False)
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
@@ -170,29 +233,8 @@ class OrganizationSerializer(serializers.Serializer):
 
     def _has_sso_enabled(self):
         org = self.context["organization"]
-        return AuthProvider.objects.filter(organization=org).exists()
-
-    def validate_slug(self, value):
-        # Historically, the only check just made sure there was more than 1
-        # character for the slug, but since then, there are many slugs that
-        # fit within this new imposed limit. We're not fixing existing, but
-        # just preventing new bad values.
-        if len(value) < 3:
-            raise serializers.ValidationError(
-                f'This slug "{value}" is too short. Minimum of 3 characters.'
-            )
-        if value in RESERVED_ORGANIZATION_SLUGS:
-            raise serializers.ValidationError(f'This slug "{value}" is reserved and not allowed.')
-        qs = Organization.objects.filter(slug=value).exclude(id=self.context["organization"].id)
-        if qs.exists():
-            raise serializers.ValidationError(f'The slug "{value}" is already in use.')
-
-        contains_whitespace = any(c.isspace() for c in self.initial_data["slug"])
-        if contains_whitespace:
-            raise serializers.ValidationError(
-                f'The slug "{value}" should not contain any whitespace.'
-            )
-        return value
+        org_auth_provider = auth_service.get_auth_provider(organization_id=org.id)
+        return org_auth_provider is not None
 
     def validate_relayPiiConfig(self, value):
         organization = self.context["organization"]
@@ -201,6 +243,8 @@ class OrganizationSerializer(serializers.Serializer):
     def validate_sensitiveFields(self, value):
         if value and not all(value):
             raise serializers.ValidationError("Empty values are not allowed.")
+        if sum(map(len, value)) > MAX_SENSITIVE_FIELD_CHARS:
+            raise serializers.ValidationError("List of sensitive fields is too long.")
         return value
 
     def validate_safeFields(self, value):
@@ -224,7 +268,7 @@ class OrganizationSerializer(serializers.Serializer):
 
     def validate_require2FA(self, value):
         user = self.context["user"]
-        has_2fa = Authenticator.objects.user_has_2fa(user)
+        has_2fa = user.has_2fa()
         if value and not has_2fa:
             raise serializers.ValidationError(ERR_NO_2FA)
 
@@ -288,7 +332,7 @@ class OrganizationSerializer(serializers.Serializer):
         return attrs
 
     def save_trusted_relays(self, incoming, changed_data, organization):
-        timestamp_now = datetime.utcnow().replace(tzinfo=UTC).isoformat()
+        timestamp_now = datetime.utcnow().replace(tzinfo=timezone.utc).isoformat()
         option_key = "sentry:trusted-relays"
         try:
             # get what we already have
@@ -381,6 +425,8 @@ class OrganizationSerializer(serializers.Serializer):
             org.flags.enhanced_privacy = data["enhancedPrivacy"]
         if "isEarlyAdopter" in data:
             org.flags.early_adopter = data["isEarlyAdopter"]
+        if "codecovAccess" in data:
+            org.flags.codecov_access = data["codecovAccess"]
         if "require2FA" in data:
             org.flags.require_2fa = data["require2FA"]
         if (
@@ -403,6 +449,7 @@ class OrganizationSerializer(serializers.Serializer):
                 "disable_shared_issues": org.flags.disable_shared_issues.is_set,
                 "early_adopter": org.flags.early_adopter.is_set,
                 "require_2fa": org.flags.require_2fa.is_set,
+                "codecov_access": org.flags.codecov_access.is_set,
             },
         }
 
@@ -440,6 +487,7 @@ class OrganizationSerializer(serializers.Serializer):
 class OwnerOrganizationSerializer(OrganizationSerializer):
     defaultRole = serializers.ChoiceField(choices=roles.get_choices())
     cancelDeletion = serializers.BooleanField(required=False)
+    idempotencyKey = serializers.CharField(max_length=IDEMPOTENCY_KEY_LENGTH, required=False)
 
     def save(self, *args, **kwargs):
         org = self.context["organization"]
@@ -449,7 +497,7 @@ class OwnerOrganizationSerializer(OrganizationSerializer):
         if "defaultRole" in data:
             org.default_role = data["defaultRole"]
         if cancel_deletion:
-            org.status = OrganizationStatus.VISIBLE
+            org.status = OrganizationStatus.ACTIVE
         return super().save(*args, **kwargs)
 
 
@@ -457,7 +505,40 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 
+def post_org_pending_deletion(
+    *, request: Request, org_delete_response: RpcOrganizationDeleteResponse
+):
+    if org_delete_response.response_state == RpcOrganizationDeleteState.PENDING_DELETION:
+        updated_organization = org_delete_response.updated_organization
+        assert updated_organization
+
+        entry = create_audit_entry(
+            request=request,
+            organization=updated_organization,
+            target_object=updated_organization.id,
+            event=audit_log.get_event_id("ORG_REMOVE"),
+            data=updated_organization.get_audit_log_data(),
+            transaction_id=org_delete_response.schedule_guid,
+        )
+
+        delete_confirmation_args: DeleteConfirmationArgs = dict(
+            username=request.user.get_username(),
+            ip_address=entry.ip_address,
+            deletion_datetime=entry.datetime,
+            countdown=ONE_DAY,
+            organization=updated_organization,
+        )
+        send_delete_confirmation(delete_confirmation_args)
+
+
+@region_silo_endpoint
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization) -> Response:
         """
         Retrieve an Organization
@@ -471,12 +552,15 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         :param string detailed: Specify '0' to retrieve details without projects and teams.
         :auth: required
         """
-        is_detailed = request.GET.get("detailed", "1") != "0"
-        serializer = (
-            org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams
-            if is_detailed
-            else org_serializers.DetailedOrganizationSerializer
-        )
+
+        serializer = org_serializers.OrganizationSerializer
+        if request.access.has_scope("org:read"):
+            is_detailed = request.GET.get("detailed", "1") != "0"
+
+            serializer = org_serializers.DetailedOrganizationSerializer
+            if is_detailed:
+                serializer = org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams
+
         context = serialize(organization, request.user, serializer(), access=request.access)
 
         return self.respond(context)
@@ -503,13 +587,37 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
         was_pending_deletion = organization.status in DELETION_STATUSES
 
+        enabling_codecov = "codecovAccess" in request.data and request.data["codecovAccess"]
+        if enabling_codecov:
+            has_integration, error = has_codecov_integration(organization)
+            if not has_integration:
+                return self.respond(
+                    {"codecovAccess": [error]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
         serializer = serializer_cls(
             data=request.data,
             partial=True,
             context={"organization": organization, "user": request.user, "request": request},
         )
         if serializer.is_valid():
-            organization, changed_data = serializer.save()
+            slug_change_requested = "slug" in request.data and request.data["slug"]
+
+            # Attempt slug change first as it's a more complex, control-silo driven workflow.
+            if slug_change_requested:
+                slug = request.data["slug"]
+                try:
+                    organization_provisioning_service.change_organization_slug(
+                        organization_id=organization.id, slug=slug
+                    )
+                except OrganizationSlugCollisionException:
+                    return self.respond(
+                        {"slug": ["An organization with this slug already exists."]},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+            with transaction.atomic(router.db_for_write(Organization)):
+                organization, changed_data = serializer.save()
 
             if was_pending_deletion:
                 self.create_audit_entry(
@@ -519,7 +627,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     event=audit_log.get_event_id("ORG_RESTORE"),
                     data=organization.get_audit_log_data(),
                 )
-                ScheduledDeletion.cancel(organization)
+                RegionScheduledDeletion.cancel(organization)
             elif changed_data:
                 self.create_audit_entry(
                     request=request,
@@ -539,31 +647,37 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             return self.respond(context)
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def handle_delete(self, request: Request, organization):
+    def handle_delete(self, request: Request, organization: Organization):
         """
         This method exists as a way for getsentry to override this endpoint with less duplication.
         """
         if not request.user.is_authenticated:
             return self.respond({"detail": ERR_NO_USER}, status=401)
-        if organization.is_default:
+
+        org_delete_response = organization_service.delete_organization(
+            organization_id=organization.id, user=serialize_generic_user(request.user)
+        )
+
+        if (
+            org_delete_response.response_state
+            == RpcOrganizationDeleteState.CANNOT_REMOVE_DEFAULT_ORG
+            or organization.is_default
+        ):
             return self.respond({"detail": ERR_DEFAULT_ORG}, status=400)
 
-        with transaction.atomic():
-            updated = Organization.objects.filter(
-                id=organization.id, status=OrganizationStatus.VISIBLE
-            ).update(status=OrganizationStatus.PENDING_DELETION)
-            if updated:
-                organization.status = OrganizationStatus.PENDING_DELETION
-                schedule = ScheduledDeletion.schedule(organization, days=1, actor=request.user)
-                entry = self.create_audit_entry(
-                    request=request,
-                    organization=organization,
-                    target_object=organization.id,
-                    event=audit_log.get_event_id("ORG_REMOVE"),
-                    data=organization.get_audit_log_data(),
-                    transaction_id=schedule.guid,
-                )
-                organization.send_delete_confirmation(entry, ONE_DAY)
+        if (
+            org_delete_response.response_state
+            == RpcOrganizationDeleteState.OWNS_PUBLISHED_INTEGRATION
+        ):
+            return self.respond({"detail": ERR_3RD_PARTY_PUBLISHED_APP}, status=400)
+
+        if org_delete_response.response_state == RpcOrganizationDeleteState.PENDING_DELETION:
+            organization.status = OrganizationStatus.PENDING_DELETION
+            post_org_pending_deletion(
+                request=request,
+                org_delete_response=org_delete_response,
+            )
+
         context = serialize(
             organization,
             request.user,
@@ -618,6 +732,49 @@ def update_tracked_data(model):
         model.__data = data
     else:
         model.__data = UNSAVED
+
+
+class DeleteConfirmationArgs(TypedDict):
+    username: str
+    ip_address: str
+    deletion_datetime: datetime
+    organization: RpcOrganization
+    countdown: int
+
+
+def send_delete_confirmation(delete_confirmation_args: DeleteConfirmationArgs):
+    from sentry import options
+    from sentry.utils.email import MessageBuilder
+
+    organization = delete_confirmation_args.get("organization")
+    username = delete_confirmation_args.get("username")
+    user_ip_address = delete_confirmation_args.get("ip_address")
+    deletion_datetime = delete_confirmation_args.get("deletion_datetime")
+    countdown = delete_confirmation_args.get("countdown")
+
+    url = organization.absolute_url(
+        reverse("sentry-restore-organization", args=[organization.slug])
+    )
+
+    context = {
+        "organization": organization,
+        "username": username,
+        "user_ip_address": user_ip_address,
+        "deletion_datetime": deletion_datetime,
+        "eta": django_timezone.now() + timedelta(seconds=countdown),
+        "url": url,
+    }
+
+    message = MessageBuilder(
+        subject="{}Organization Queued for Deletion".format(options.get("mail.subject-prefix")),
+        template="sentry/emails/org_delete_confirm.txt",
+        html_template="sentry/emails/org_delete_confirm.html",
+        type="org.confirm_delete",
+        context=context,
+    )
+
+    owners = organization.get_owners()
+    message.send_async([o.email for o in owners])
 
 
 def get_field_value(model, field):

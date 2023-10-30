@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import abc
-from typing import Sequence, Set, Tuple
+import logging
+from typing import List, Sequence, Set, Tuple
+from urllib.parse import urlencode
 
-import sentry_sdk
+from django.conf import settings
 from django.template.defaultfilters import pluralize
 from django.urls import reverse
 
-from sentry import features
+from sentry import analytics, features
 from sentry.charts.types import ChartSize
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.charts import build_metric_alert_chart
@@ -16,18 +18,26 @@ from sentry.incidents.models import (
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
     IncidentStatus,
-    IncidentTrigger,
     TriggerStatus,
 )
 from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.rulesnooze import RuleSnooze
+from sentry.models.user import User
+from sentry.notifications.helpers import should_use_notifications_v2
+from sentry.notifications.notificationcontroller import NotificationController
+from sentry.notifications.types import NotificationSettingEnum
+from sentry.services.hybrid_cloud.actor import ActorType
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.services.hybrid_cloud.user_option import RpcUserOption, user_option_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder, get_email_addresses
-from sentry.utils.http import absolute_uri
 
 
 class ActionHandler(metaclass=abc.ABCMeta):
     status_display = {TriggerStatus.ACTIVE: "Fired", TriggerStatus.RESOLVED: "Resolved"}
+    provider: str
 
     def __init__(self, action, incident, project):
         self.action = action
@@ -35,23 +45,64 @@ class ActionHandler(metaclass=abc.ABCMeta):
         self.project = project
 
     @abc.abstractmethod
-    def fire(self, metric_value: int | float, new_status: IncidentStatus):
+    def fire(
+        self,
+        metric_value: int | float,
+        new_status: IncidentStatus,
+        notification_uuid: str | None = None,
+    ):
         pass
 
     @abc.abstractmethod
-    def resolve(self, metric_value: int | float, new_status: IncidentStatus):
+    def resolve(
+        self,
+        metric_value: int | float,
+        new_status: IncidentStatus,
+        notification_uuid: str | None = None,
+    ):
         pass
+
+    def record_alert_sent_analytics(
+        self, external_id: int | str | None = None, notification_uuid: str | None = None
+    ):
+        analytics.record(
+            "alert.sent",
+            organization_id=self.incident.organization_id,
+            project_id=self.project.id,
+            provider=self.provider,
+            alert_id=self.incident.alert_rule_id,
+            alert_type="metric_alert",
+            external_id=str(external_id) if external_id is not None else "",
+            notification_uuid=notification_uuid or "",
+        )
 
 
 class DefaultActionHandler(ActionHandler):
-    def fire(self, metric_value: int | float, new_status: IncidentStatus):
-        self.send_alert(metric_value, new_status)
+    def fire(
+        self,
+        metric_value: int | float,
+        new_status: IncidentStatus,
+        notification_uuid: str | None = None,
+    ):
+        if not RuleSnooze.objects.is_snoozed_for_all(alert_rule=self.incident.alert_rule):
+            self.send_alert(metric_value, new_status, notification_uuid)
 
-    def resolve(self, metric_value: int | float, new_status: IncidentStatus):
-        self.send_alert(metric_value, new_status)
+    def resolve(
+        self,
+        metric_value: int | float,
+        new_status: IncidentStatus,
+        notification_uuid: str | None = None,
+    ):
+        if not RuleSnooze.objects.is_snoozed_for_all(alert_rule=self.incident.alert_rule):
+            self.send_alert(metric_value, new_status, notification_uuid)
 
     @abc.abstractmethod
-    def send_alert(self, metric_value: int | float, new_status: IncidentStatus):
+    def send_alert(
+        self,
+        metric_value: int | float,
+        new_status: IncidentStatus,
+        notification_uuid: str | None = None,
+    ):
         pass
 
 
@@ -61,44 +112,91 @@ class DefaultActionHandler(ActionHandler):
     [AlertRuleTriggerAction.TargetType.USER, AlertRuleTriggerAction.TargetType.TEAM],
 )
 class EmailActionHandler(ActionHandler):
+    provider = "email"
+
     def _get_targets(self) -> Set[int]:
         target = self.action.target
         if not target:
             return set()
 
+        if RuleSnooze.objects.is_snoozed_for_all(alert_rule=self.incident.alert_rule):
+            return set()
+
         if self.action.target_type == AlertRuleTriggerAction.TargetType.USER.value:
+            if RuleSnooze.objects.is_snoozed_for_user(
+                user_id=target.id, alert_rule=self.incident.alert_rule
+            ):
+                return set()
+
             return {target.id}
 
         elif self.action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
-            users = NotificationSetting.objects.filter_to_accepting_recipients(
-                self.project,
-                {member.user for member in target.member_set},
-            )[ExternalProviders.EMAIL]
-            return {user.id for user in users}
+            users = None
+            if should_use_notifications_v2(self.project.organization):
+                controller = NotificationController(
+                    recipients={RpcUser(id=member.user_id) for member in target.member_set},
+                    project_ids=[self.project.id],
+                    organization_id=self.project.organization_id,
+                )
+
+                users = controller.get_notification_recipients(
+                    type=NotificationSettingEnum.ISSUE_ALERTS, actor_type=ActorType.USER
+                )[ExternalProviders.EMAIL]
+            else:
+                users = NotificationSetting.objects.filter_to_accepting_recipients(
+                    self.project,
+                    {RpcUser(id=member.user_id) for member in target.member_set},
+                )[ExternalProviders.EMAIL]
+
+            snoozed_users = RuleSnooze.objects.filter(
+                alert_rule=self.incident.alert_rule, user_id__in=[user.id for user in users]
+            ).values_list("user_id", flat=True)
+            return {user.id for user in users if user.id not in snoozed_users}
 
         return set()
 
     def get_targets(self) -> Sequence[Tuple[int, str]]:
         return list(get_email_addresses(self._get_targets(), project=self.project).items())
 
-    def fire(self, metric_value: int | float, new_status: IncidentStatus):
-        self.email_users(TriggerStatus.ACTIVE, new_status)
+    def fire(
+        self,
+        metric_value: int | float,
+        new_status: IncidentStatus,
+        notification_uuid: str | None = None,
+    ):
+        self.email_users(TriggerStatus.ACTIVE, new_status, notification_uuid)
 
-    def resolve(self, metric_value: int | float, new_status: IncidentStatus):
-        self.email_users(TriggerStatus.RESOLVED, new_status)
+    def resolve(
+        self,
+        metric_value: int | float,
+        new_status: IncidentStatus,
+        notification_uuid: str | None = None,
+    ):
+        self.email_users(TriggerStatus.RESOLVED, new_status, notification_uuid)
 
-    def email_users(self, trigger_status: TriggerStatus, incident_status: IncidentStatus) -> None:
-        email_context = generate_incident_trigger_email_context(
-            self.project,
-            self.incident,
-            self.action.alert_rule_trigger,
-            trigger_status,
-            incident_status,
-        )
-        for user_id, email in self.get_targets():
+    def email_users(
+        self,
+        trigger_status: TriggerStatus,
+        incident_status: IncidentStatus,
+        notification_uuid: str | None = None,
+    ) -> None:
+        targets = [(user_id, email) for user_id, email in self.get_targets()]
+        users = user_service.get_many(filter={"user_ids": [user_id for user_id, _ in targets]})
+        for index, (user_id, email) in enumerate(targets):
+            user = users[index]
+            email_context = generate_incident_trigger_email_context(
+                self.project,
+                self.incident,
+                self.action.alert_rule_trigger,
+                trigger_status,
+                incident_status,
+                user,
+                notification_uuid,
+            )
             self.build_message(email_context, trigger_status, user_id).send_async(to=[email])
+            self.record_alert_sent_analytics(user_id, notification_uuid)
 
-    def build_message(self, context, status, user_id):
+    def build_message(self, context, status, user_id) -> MessageBuilder:
         display = self.status_display[status]
         return MessageBuilder(
             subject="[{}] {} - {}".format(
@@ -119,10 +217,21 @@ class EmailActionHandler(ActionHandler):
     integration_provider="slack",
 )
 class SlackActionHandler(DefaultActionHandler):
-    def send_alert(self, metric_value: int | float, new_status: IncidentStatus):
+    provider = "slack"
+
+    def send_alert(
+        self,
+        metric_value: int | float,
+        new_status: IncidentStatus,
+        notification_uuid: str | None = None,
+    ):
         from sentry.integrations.slack.utils import send_incident_alert_notification
 
-        send_incident_alert_notification(self.action, self.incident, metric_value, new_status)
+        success = send_incident_alert_notification(
+            self.action, self.incident, metric_value, new_status, notification_uuid
+        )
+        if success:
+            self.record_alert_sent_analytics(self.action.target_identifier, notification_uuid)
 
 
 @AlertRuleTriggerAction.register_type(
@@ -132,10 +241,47 @@ class SlackActionHandler(DefaultActionHandler):
     integration_provider="msteams",
 )
 class MsTeamsActionHandler(DefaultActionHandler):
-    def send_alert(self, metric_value: int | float, new_status: IncidentStatus):
+    provider = "msteams"
+
+    def send_alert(
+        self,
+        metric_value: int | float,
+        new_status: IncidentStatus,
+        notification_uuid: str | None = None,
+    ):
         from sentry.integrations.msteams.utils import send_incident_alert_notification
 
-        send_incident_alert_notification(self.action, self.incident, metric_value, new_status)
+        success = send_incident_alert_notification(
+            self.action, self.incident, metric_value, new_status, notification_uuid
+        )
+        if success:
+            self.record_alert_sent_analytics(self.action.target_identifier, notification_uuid)
+
+
+@AlertRuleTriggerAction.register_type(
+    "discord",
+    AlertRuleTriggerAction.Type.DISCORD,
+    [AlertRuleTriggerAction.TargetType.SPECIFIC],
+    integration_provider="discord",
+)
+class DiscordActionHandler(DefaultActionHandler):
+    provider = "discord"
+
+    def send_alert(
+        self,
+        metric_value: int | float,
+        new_status: IncidentStatus,
+        notification_uuid: str | None = None,
+    ):
+        from sentry.integrations.discord.actions.metric_alert import (
+            send_incident_alert_notification,
+        )
+
+        success = send_incident_alert_notification(
+            self.action, self.incident, metric_value, new_status
+        )
+        if success:
+            self.record_alert_sent_analytics(self.action.target_identifier, notification_uuid)
 
 
 @AlertRuleTriggerAction.register_type(
@@ -145,10 +291,45 @@ class MsTeamsActionHandler(DefaultActionHandler):
     integration_provider="pagerduty",
 )
 class PagerDutyActionHandler(DefaultActionHandler):
-    def send_alert(self, metric_value: int | float, new_status: IncidentStatus):
+    provider = "pagerduty"
+
+    def send_alert(
+        self,
+        metric_value: int | float,
+        new_status: IncidentStatus,
+        notification_uuid: str | None = None,
+    ):
         from sentry.integrations.pagerduty.utils import send_incident_alert_notification
 
-        send_incident_alert_notification(self.action, self.incident, metric_value, new_status)
+        success = send_incident_alert_notification(
+            self.action, self.incident, metric_value, new_status, notification_uuid
+        )
+        if success:
+            self.record_alert_sent_analytics(self.action.target_identifier, notification_uuid)
+
+
+@AlertRuleTriggerAction.register_type(
+    "opsgenie",
+    AlertRuleTriggerAction.Type.OPSGENIE,
+    [AlertRuleTriggerAction.TargetType.SPECIFIC],
+    integration_provider="opsgenie",
+)
+class OpsgenieActionHandler(DefaultActionHandler):
+    provider = "opsgenie"
+
+    def send_alert(
+        self,
+        metric_value: int | float,
+        new_status: IncidentStatus,
+        notification_uuid: str | None = None,
+    ):
+        from sentry.integrations.opsgenie.utils import send_incident_alert_notification
+
+        success = send_incident_alert_notification(
+            self.action, self.incident, metric_value, new_status, notification_uuid
+        )
+        if success:
+            self.record_alert_sent_analytics(self.action.target_identifier, notification_uuid)
 
 
 @AlertRuleTriggerAction.register_type(
@@ -157,10 +338,21 @@ class PagerDutyActionHandler(DefaultActionHandler):
     [AlertRuleTriggerAction.TargetType.SENTRY_APP],
 )
 class SentryAppActionHandler(DefaultActionHandler):
-    def send_alert(self, metric_value: int | float, new_status: IncidentStatus):
+    provider = "sentry_app"
+
+    def send_alert(
+        self,
+        metric_value: int | float,
+        new_status: IncidentStatus,
+        notification_uuid: str | None = None,
+    ):
         from sentry.rules.actions.notify_event_service import send_incident_alert_notification
 
-        send_incident_alert_notification(self.action, self.incident, new_status, metric_value)
+        success = send_incident_alert_notification(
+            self.action, self.incident, new_status, metric_value, notification_uuid
+        )
+        if success:
+            self.record_alert_sent_analytics(self.action.sentry_app_id, notification_uuid)
 
 
 def format_duration(minutes):
@@ -185,11 +377,15 @@ def format_duration(minutes):
 
 
 def generate_incident_trigger_email_context(
-    project, incident, alert_rule_trigger, trigger_status, incident_status
+    project,
+    incident,
+    alert_rule_trigger,
+    trigger_status,
+    incident_status,
+    user: User | RpcUser | None = None,
+    notification_uuid: str | None = None,
 ):
     trigger = alert_rule_trigger
-    incident_trigger = IncidentTrigger.objects.get(incident=incident, alert_rule_trigger=trigger)
-
     alert_rule = trigger.alert_rule
     snuba_query = alert_rule.snuba_query
     is_active = trigger_status == TriggerStatus.ACTIVE
@@ -222,34 +418,46 @@ def generate_incident_trigger_email_context(
                 selected_incident=incident,
                 size=ChartSize({"width": 600, "height": 200}),
             )
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
+        except Exception:
+            logging.exception("Error while attempting to build_metric_alert_chart")
+
+    tz = settings.SENTRY_DEFAULT_TIME_ZONE
+    if user is not None:
+        options: List[RpcUserOption] = user_option_service.get_many(
+            filter=dict(keys=["timezone"], user_ids=[user.id])
+        )
+        if options and options[0].value is not None:
+            tz = options[0].value
+
+    organization = incident.organization
+    alert_link_params = {
+        "referrer": "metric_alert_email",
+    }
+    if notification_uuid:
+        alert_link_params["notification_uuid"] = notification_uuid
+
+    alert_link = organization.absolute_url(
+        reverse(
+            "sentry-metric-alert",
+            kwargs={
+                "organization_slug": organization.slug,
+                "incident_id": incident.identifier,
+            },
+        ),
+        query=urlencode(alert_link_params),
+    )
+
+    snooze_alert_url = None
+    snooze_alert = True
+    snooze_alert_url = alert_link + "&" + urlencode({"mute": "1"})
 
     return {
-        "link": absolute_uri(
-            reverse(
-                "sentry-metric-alert",
-                kwargs={
-                    "organization_slug": incident.organization.slug,
-                    "incident_id": incident.identifier,
-                },
-            )
-        ),
-        "rule_link": absolute_uri(
-            reverse(
-                "sentry-alert-rule",
-                kwargs={
-                    "organization_slug": incident.organization.slug,
-                    "project_slug": project.slug,
-                    "alert_rule_id": trigger.alert_rule_id,
-                },
-            )
-        ),
+        "link": alert_link,
         "project_slug": project.slug,
         "incident_name": incident.title,
         "environment": environment_string,
         "time_window": format_duration(snuba_query.time_window / 60),
-        "triggered_at": incident_trigger.date_added,
+        "triggered_at": incident.date_added,
         "aggregate": aggregate,
         "query": snuba_query.query,
         "threshold": threshold,
@@ -262,4 +470,7 @@ def generate_incident_trigger_email_context(
         "is_warning": incident_status == IncidentStatus.WARNING,
         "unsubscribe_link": None,
         "chart_url": chart_url,
+        "timezone": tz,
+        "snooze_alert": snooze_alert,
+        "snooze_alert_url": snooze_alert_url,
     }

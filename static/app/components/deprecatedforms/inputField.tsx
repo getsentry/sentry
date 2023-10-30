@@ -12,9 +12,14 @@ type InputFieldProps = FormField['props'] & {
   step?: number;
 };
 
+// XXX: This is ONLY used in GenericField. If we can delete that this can go.
+
+/**
+ * @deprecated Do not use this
+ */
 class InputField<
   Props extends InputFieldProps = InputFieldProps,
-  State extends FormField['state'] = FormField['state']
+  State extends FormField['state'] = FormField['state'],
 > extends FormField<Props, State> {
   getField() {
     return (

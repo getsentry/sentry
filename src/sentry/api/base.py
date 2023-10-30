@@ -3,51 +3,97 @@ from __future__ import annotations
 import functools
 import logging
 import time
-from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional
+from datetime import datetime, timedelta, timezone
+from typing import Any, Callable, Iterable, Mapping, Optional, Tuple, Type
+from urllib.parse import quote as urlquote
 
 import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
-from django.utils.http import urlquote
+from django.http.request import HttpRequest
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
-from pytz import utc
-from rest_framework.authentication import SessionAuthentication
+from rest_framework import serializers, status
+from rest_framework.authentication import BaseAuthentication, SessionAuthentication
 from rest_framework.exceptions import ParseError
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from sentry_sdk import Scope
 
-from sentry import analytics, tsdb
-from sentry.apidocs.hooks import HTTP_METHODS_SET
+from sentry import analytics, options, tsdb
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
-from sentry.models import Environment
+from sentry.models.environment import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
+from sentry.silo import SiloLimit, SiloMode
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.types.region import is_region_name
 from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
-from sentry.utils.http import absolute_uri, is_valid_origin, origin_from_request
-from sentry.utils.numbers import format_grouped_length
-from sentry.utils.sdk import capture_exception
+from sentry.utils.http import (
+    absolute_uri,
+    is_using_customer_domain,
+    is_valid_origin,
+    origin_from_request,
+)
+from sentry.utils.sdk import capture_exception, merge_context_into_scope
 
-from .authentication import ApiKeyAuthentication, TokenAuthentication
+from .authentication import (
+    ApiKeyAuthentication,
+    OrgAuthTokenAuthentication,
+    UserAuthTokenAuthentication,
+)
 from .paginator import BadPaginationError, Paginator
 from .permissions import NoPermission
 
-__all__ = ["Endpoint", "EnvironmentMixin", "StatsMixin"]
+__all__ = [
+    "Endpoint",
+    "EnvironmentMixin",
+    "StatsMixin",
+    "control_silo_endpoint",
+    "region_silo_endpoint",
+]
+
+from ..services.hybrid_cloud import rpcmetrics
+from ..utils.pagination_factory import (
+    annotate_span_with_pagination_args,
+    clamp_pagination_per_page,
+    get_cursor,
+    get_paginator,
+)
+from .utils import generate_organization_url
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
 ONE_DAY = ONE_HOUR * 24
 
-LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"; cursor="{cursor}"'
+CURSOR_LINK_HEADER = (
+    '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"; cursor="{cursor}"'
+)
 
-DEFAULT_AUTHENTICATION = (TokenAuthentication, ApiKeyAuthentication, SessionAuthentication)
+DEFAULT_AUTHENTICATION = (
+    UserAuthTokenAuthentication,
+    OrgAuthTokenAuthentication,
+    ApiKeyAuthentication,
+    SessionAuthentication,
+)
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.api")
 api_access_logger = logging.getLogger("sentry.access.api")
+
+DEFAULT_SLUG_PATTERN = r"^[a-z0-9_\-]+$"
+NON_NUMERIC_SLUG_PATTERN = r"^(?![0-9]+$)[a-z0-9_\-]+$"
+DEFAULT_SLUG_ERROR_MESSAGE = _(
+    "Enter a valid slug consisting of lowercase letters, numbers, underscores or hyphens. "
+    "It cannot be entirely numeric."
+)
 
 
 def allow_cors_options(func):
@@ -64,7 +110,6 @@ def allow_cors_options(func):
 
     @functools.wraps(func)
     def allow_cors_options_wrapper(self, request: Request, *args, **kwargs):
-
         if request.method == "OPTIONS":
             response = HttpResponse(status=200)
             response["Access-Control-Max-Age"] = "3600"  # don't ask for options again for 1 hour
@@ -76,12 +121,17 @@ def allow_cors_options(func):
         response["Access-Control-Allow-Methods"] = allow
         response["Access-Control-Allow-Headers"] = (
             "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
-            "Content-Type, Authentication, Authorization, Content-Encoding"
+            "Content-Type, Authentication, Authorization, Content-Encoding, "
+            "sentry-trace, baggage, X-CSRFToken"
         )
-        response["Access-Control-Expose-Headers"] = "X-Sentry-Error, Retry-After"
+        response["Access-Control-Expose-Headers"] = (
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "Endpoint, Retry-After, Link"
+        )
 
         if request.META.get("HTTP_ORIGIN") == "null":
-            origin = "null"  # if ORIGIN header is explicitly specified as 'null' leave it alone
+            # if ORIGIN header is explicitly specified as 'null' leave it alone
+            origin: str | None = "null"
         else:
             origin = origin_from_request(request)
 
@@ -90,6 +140,14 @@ def allow_cors_options(func):
         else:
             response["Access-Control-Allow-Origin"] = origin
 
+        # If the requesting origin is a subdomain of
+        # the application's base-hostname we should allow cookies
+        # to be sent.
+        basehost = options.get("system.base-hostname")
+        if basehost and origin:
+            if origin.endswith(("://" + basehost, "." + basehost)):
+                response["Access-Control-Allow-Credentials"] = "true"
+
         return response
 
     return allow_cors_options_wrapper
@@ -97,20 +155,24 @@ def allow_cors_options(func):
 
 class Endpoint(APIView):
     # Note: the available renderer and parser classes can be found in conf/server.py.
-    authentication_classes = DEFAULT_AUTHENTICATION
-    permission_classes = (NoPermission,)
+    authentication_classes: Tuple[Type[BaseAuthentication], ...] = DEFAULT_AUTHENTICATION
+    permission_classes: Tuple[Type[BasePermission], ...] = (NoPermission,)
 
     cursor_name = "cursor"
 
-    # end user of endpoint must set private to true, or define public endpoints
-    private: Optional[bool] = None
-    public: Optional[HTTP_METHODS_SET] = None
-
-    rate_limits: RateLimitConfig = DEFAULT_RATE_LIMIT_CONFIG
+    owner: ApiOwner = ApiOwner.UNOWNED
+    publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
+    rate_limits: RateLimitConfig | dict[
+        str, dict[RateLimitCategory, RateLimit]
+    ] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
 
-    def build_cursor_link(self, request: Request, name, cursor):
-        querystring = None
+    def build_link_header(self, request: Request, path: str, rel: str):
+        # TODO(dcramer): it would be nice to expand this to support params to consolidate `build_cursor_link`
+        uri = request.build_absolute_uri(urlquote(path))
+        return f'<{uri}>; rel="{rel}">'
+
+    def build_cursor_link(self, request: Request, name: str, cursor: Cursor):
         if request.GET.get("cursor") is None:
             querystring = request.GET.urlencode()
         else:
@@ -118,14 +180,19 @@ class Endpoint(APIView):
             mutable_query_dict.pop("cursor")
             querystring = mutable_query_dict.urlencode()
 
-        base_url = absolute_uri(urlquote(request.path))
+        url_prefix = (
+            generate_organization_url(request.subdomain)
+            if is_using_customer_domain(request)
+            else None
+        )
+        base_url = absolute_uri(urlquote(request.path), url_prefix=url_prefix)
 
-        if querystring is not None:
+        if querystring:
             base_url = f"{base_url}?{querystring}"
         else:
-            base_url = base_url + "?"
+            base_url = f"{base_url}?"
 
-        return LINK_HEADER.format(
+        return CURSOR_LINK_HEADER.format(
             uri=base_url,
             cursor=str(cursor),
             name=name,
@@ -135,18 +202,45 @@ class Endpoint(APIView):
     def convert_args(self, request: Request, *args, **kwargs):
         return (args, kwargs)
 
-    def handle_exception(self, request: Request, exc):
+    def handle_exception(  # type: ignore[override]
+        self,
+        request: Request,
+        exc: Exception,
+        handler_context: Mapping[str, Any] | None = None,
+        scope: Scope | None = None,
+    ) -> Response:
+        """
+        Handle exceptions which arise while processing incoming API requests.
+
+        :param request:          The incoming request.
+        :param exc:              The exception raised during handling.
+        :param handler_context:  (Optional) Extra data which will be attached to the event sent to
+                                 Sentry, under the "Request Handler Data" heading.
+        :param scope:            (Optional) A `Scope` object containing extra data which will be
+                                 attached to the event sent to Sentry.
+
+        :returns: A 500 response including the event id of the captured Sentry event.
+        """
         try:
+            # Django REST Framework's built-in exception handler. If `settings.EXCEPTION_HANDLER`
+            # exists and returns a response, that's used. Otherwise, `exc` is just re-raised
+            # and caught below.
             response = super().handle_exception(exc)
-        except Exception:
+        except Exception as err:
             import sys
             import traceback
 
             sys.stderr.write(traceback.format_exc())
-            event_id = capture_exception()
-            context = {"detail": "Internal Error", "errorId": event_id}
-            response = Response(context, status=500)
+
+            scope = scope or sentry_sdk.Scope()
+            if handler_context:
+                merge_context_into_scope("Request Handler Data", handler_context, scope)
+            event_id = capture_exception(err, scope=scope)
+
+            response_body = {"detail": "Internal Error", "errorId": event_id}
+            response = Response(response_body, status=500)
             response.exception = True
+
         return response
 
     def create_audit_entry(self, request: Request, transaction_id=None, **kwargs):
@@ -175,7 +269,7 @@ class Endpoint(APIView):
         except json.JSONDecodeError:
             return
 
-    def initialize_request(self, request: Request, *args, **kwargs):
+    def initialize_request(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Request:
         # XXX: Since DRF 3.x, when the request is passed into
         # `initialize_request` it's set as an internal variable on the returned
         # request. Then when we call `rv.auth` it attempts to authenticate,
@@ -235,9 +329,11 @@ class Endpoint(APIView):
                 self.initial(request, *args, **kwargs)
 
                 # Get the appropriate handler method
-                if request.method.lower() in self.http_method_names:
-                    handler = getattr(self, request.method.lower(), self.http_method_not_allowed)
+                method = request.method.lower()
+                if method in self.http_method_names and hasattr(self, method):
+                    handler = getattr(self, method)
 
+                    # Only convert args when using defined handlers
                     (args, kwargs) = self.convert_args(request, *args, **kwargs)
                     self.args = args
                     self.kwargs = kwargs
@@ -251,8 +347,9 @@ class Endpoint(APIView):
             with sentry_sdk.start_span(
                 op="base.dispatch.execute",
                 description=f"{type(self).__name__}.{handler.__name__}",
-            ):
-                response = handler(request, *args, **kwargs)
+            ) as span:
+                with rpcmetrics.wrap_sdk_span(span):
+                    response = handler(request, *args, **kwargs)
 
         except Exception as exc:
             response = self.handle_exception(request, exc)
@@ -299,24 +396,19 @@ class Endpoint(APIView):
 
     def get_per_page(self, request: Request, default_per_page=100, max_per_page=100):
         try:
-            per_page = int(request.GET.get("per_page", default_per_page))
-        except ValueError:
-            raise ParseError(detail="Invalid per_page parameter.")
-
-        max_per_page = max(max_per_page, default_per_page)
-        if per_page > max_per_page:
-            raise ParseError(detail=f"Invalid per_page value. Cannot exceed {max_per_page}.")
-
-        return per_page
+            return clamp_pagination_per_page(
+                request.GET.get("per_page", default_per_page),
+                default_per_page=default_per_page,
+                max_per_page=max_per_page,
+            )
+        except ValueError as e:
+            raise ParseError(detail=str(e))
 
     def get_cursor_from_request(self, request: Request, cursor_cls=Cursor):
-        if not request.GET.get(self.cursor_name):
-            return
-
         try:
-            return cursor_cls.from_string(request.GET.get(self.cursor_name))
-        except ValueError:
-            raise ParseError(detail="Invalid cursor parameter.")
+            return get_cursor(request.GET.get(self.cursor_name), cursor_cls)
+        except ValueError as e:
+            raise ParseError(detail=str(e))
 
     def paginate(
         self,
@@ -327,30 +419,39 @@ class Endpoint(APIView):
         default_per_page=100,
         max_per_page=100,
         cursor_cls=Cursor,
+        response_cls=Response,
+        response_kwargs=None,
+        count_hits=None,
         **paginator_kwargs,
     ):
-        assert (paginator and not paginator_kwargs) or (paginator_cls and paginator_kwargs)
-
-        per_page = self.get_per_page(request, default_per_page, max_per_page)
-
-        input_cursor = self.get_cursor_from_request(request, cursor_cls=cursor_cls)
-
-        if not paginator:
-            paginator = paginator_cls(**paginator_kwargs)
+        # XXX(epurkhiser): This is an experiment that overrides all paginated
+        # API requests so that we can more easily debug on the frontend the
+        # experiemce customers have when they have lots of entites.
+        override_limit = request.COOKIES.get("__sentry_dev_pagination_limit", None)
+        if override_limit is not None:
+            default_per_page = int(override_limit)
+            max_per_page = int(override_limit)
 
         try:
+            per_page = self.get_per_page(request, default_per_page, max_per_page)
+            cursor = self.get_cursor_from_request(request, cursor_cls)
             with sentry_sdk.start_span(
                 op="base.paginate.get_result",
                 description=type(self).__name__,
             ) as span:
-                span.set_data("Limit", per_page)
-                sentry_sdk.set_tag("query.per_page", per_page)
-                sentry_sdk.set_tag(
-                    "query.per_page.grouped", format_grouped_length(per_page, [1, 10, 50, 100])
+                annotate_span_with_pagination_args(span, per_page)
+                paginator = get_paginator(paginator, paginator_cls, paginator_kwargs)
+                result_args = dict(count_hits=count_hits) if count_hits is not None else dict()
+                cursor_result = paginator.get_result(
+                    limit=per_page,
+                    cursor=cursor,
+                    **result_args,
                 )
-                cursor_result = paginator.get_result(limit=per_page, cursor=input_cursor)
         except BadPaginationError as e:
             raise ParseError(detail=str(e))
+
+        if response_kwargs is None:
+            response_kwargs = {}
 
         # map results based on callback
         if on_results:
@@ -362,10 +463,8 @@ class Endpoint(APIView):
         else:
             results = cursor_result.results
 
-        response = Response(results)
-
+        response = response_cls(results, **response_kwargs)
         self.add_cursor_headers(request, response, cursor_result)
-
         return response
 
 
@@ -405,29 +504,37 @@ class EnvironmentMixin:
 
 
 class StatsMixin:
-    def _parse_args(self, request: Request, environment_id=None):
+    def _parse_args(self, request: Request, environment_id=None, restrict_rollups=True):
+        """
+        Parse common stats parameters from the query string. This includes
+        `since`, `until`, and `resolution`.
+
+        :param boolean restrict_rollups: When False allows any rollup value to
+        be specified. Be careful using this as this allows for fine grain
+        rollups that may put strain on the system.
+        """
         try:
             resolution = request.GET.get("resolution")
             if resolution:
                 resolution = self._parse_resolution(resolution)
-                if resolution not in tsdb.get_rollups():
+                if restrict_rollups and resolution not in tsdb.backend.get_rollups():
                     raise ValueError
         except ValueError:
             raise ParseError(detail="Invalid resolution")
 
         try:
-            end = request.GET.get("until")
-            if end:
-                end = to_datetime(float(end))
+            end_s = request.GET.get("until")
+            if end_s:
+                end = to_datetime(float(end_s))
             else:
-                end = datetime.utcnow().replace(tzinfo=utc)
+                end = datetime.utcnow().replace(tzinfo=timezone.utc)
         except ValueError:
             raise ParseError(detail="until must be a numeric timestamp.")
 
         try:
-            start = request.GET.get("since")
-            if start:
-                start = to_datetime(float(start))
+            start_s = request.GET.get("since")
+            if start_s:
+                start = to_datetime(float(start_s))
                 assert start <= end
             else:
                 start = end - timedelta(days=1, seconds=-1)
@@ -437,7 +544,7 @@ class StatsMixin:
             raise ParseError(detail="start must be before or equal to end")
 
         if not resolution:
-            resolution = tsdb.get_optimal_rollup(start, end)
+            resolution = tsdb.backend.get_optimal_rollup(start, end)
 
         return {
             "start": start,
@@ -468,3 +575,94 @@ class ReleaseAnalyticsMixin:
             project_ids=project_ids,
             user_agent=request.META.get("HTTP_USER_AGENT", ""),
         )
+
+
+class PreventNumericSlugMixin:
+    def validate_slug(self, slug: str) -> str:
+        """
+        Validates that the slug is not entirely numeric. Requires a feature flag
+        to be turned on.
+        """
+        if options.get("api.prevent-numeric-slugs") and slug.isdecimal():
+            raise serializers.ValidationError(DEFAULT_SLUG_ERROR_MESSAGE)
+        return slug
+
+
+def resolve_region(request: HttpRequest) -> Optional[str]:
+    subdomain = getattr(request, "subdomain", None)
+    if subdomain is None:
+        return None
+    if is_region_name(subdomain):
+        return subdomain
+    return None
+
+
+class EndpointSiloLimit(SiloLimit):
+    def modify_endpoint_class(self, decorated_class: Type[Endpoint]) -> type:
+        dispatch_override = self.create_override(decorated_class.dispatch)
+        new_class = type(
+            decorated_class.__name__,
+            (decorated_class,),
+            {
+                "dispatch": dispatch_override,
+                "silo_limit": self,
+            },
+        )
+        new_class.__module__ = decorated_class.__module__
+        return new_class
+
+    def modify_endpoint_method(self, decorated_method: Callable[..., Any]) -> Callable[..., Any]:
+        return self.create_override(decorated_method)
+
+    def handle_when_unavailable(
+        self,
+        original_method: Callable[..., Any],
+        current_mode: SiloMode,
+        available_modes: Iterable[SiloMode],
+    ) -> Callable[..., Any]:
+        def handle(obj: Any, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
+            mode_str = ", ".join(str(m) for m in available_modes)
+            message = (
+                f"Received {request.method} request at {request.path!r} to server in "
+                f"{current_mode} mode. This endpoint is available only in: {mode_str}"
+            )
+            if settings.FAIL_ON_UNAVAILABLE_API_CALL:
+                raise self.AvailabilityError(message)
+            else:
+                logger.warning(message)
+                return HttpResponse(status=status.HTTP_404_NOT_FOUND)
+
+        return handle
+
+    def __call__(self, decorated_obj: Any) -> Any:
+        if isinstance(decorated_obj, type):
+            if not issubclass(decorated_obj, Endpoint):
+                raise ValueError("`@EndpointSiloLimit` can decorate only Endpoint subclasses")
+            return self.modify_endpoint_class(decorated_obj)
+
+        if callable(decorated_obj):
+            return self.modify_endpoint_method(decorated_obj)
+
+        raise TypeError("`@EndpointSiloLimit` must decorate a class or method")
+
+
+control_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL)
+"""
+Apply to endpoints that exist in CONTROL silo.
+If a request is received and the application is not in CONTROL
+mode 404s will be returned.
+"""
+
+region_silo_endpoint = EndpointSiloLimit(SiloMode.REGION)
+"""
+Apply to endpoints that exist in REGION silo.
+If a request is received and the application is not in REGION
+mode 404s will be returned.
+"""
+
+all_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH)
+"""
+Apply to endpoints that are available in all silo modes.
+
+This should be rarely used, but is relevant for resources like ROBOTS.txt.
+"""

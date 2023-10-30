@@ -1,19 +1,45 @@
-from sentry.app import tsdb
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
+@region_silo_test(stable=True)
 class ProjectGroupStatsTest(APITestCase):
+    @freeze_time(before_now(days=1).replace(minute=10))
     def test_simple(self):
         self.login_as(user=self.user)
 
-        project = self.create_project()
-        group1 = self.create_group(project=project)
-        group2 = self.create_group(project=project)
+        group1 = self.store_event(
+            data={
+                "fingerprint": ["group1"],
+                "timestamp": iso_format(before_now(minutes=5)),
+            },
+            project_id=self.project.id,
+        ).group
+        assert group1 is not None
+        group2 = self.store_event(
+            data={
+                "fingerprint": ["group2"],
+                "timestamp": iso_format(before_now(minutes=5)),
+            },
+            project_id=self.project.id,
+        ).group
+        assert group2 is not None
 
-        url = f"/api/0/projects/{project.organization.slug}/{project.slug}/issues/stats/"
-        response = self.client.get(f"{url}?id={group1.id}&id={group2.id}", format="json")
+        for fingerprint, count in (("group1", 2), ("group2", 4)):
+            for _ in range(count):
+                self.store_event(
+                    data={
+                        "fingerprint": [fingerprint],
+                        "timestamp": iso_format(before_now(minutes=5)),
+                    },
+                    project_id=self.project.id,
+                )
 
-        tsdb.incr(tsdb.models.group, group1.id, count=3)
+        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/issues/stats/"
 
         response = self.client.get(f"{url}?id={group1.id}&id={group2.id}", format="json")
 

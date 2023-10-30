@@ -1,52 +1,62 @@
+from functools import cached_property
+
 import pytest
 import responses
-from exam import fixture
 
 from fixtures.gitlab import COMMIT_DIFF_RESPONSE, COMMIT_LIST_RESPONSE, COMPARE_RESPONSE
 from sentry.integrations.gitlab.repository import GitlabRepositoryProvider
-from sentry.models import Identity, IdentityProvider, Integration, PullRequest, Repository
+from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.integrations.integration import Integration
+from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils import IntegrationRepositoryTestCase
+from sentry.silo import SiloMode
 from sentry.testutils.asserts import assert_commit_shape
+from sentry.testutils.cases import IntegrationRepositoryTestCase
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 
+@region_silo_test(stable=True)
 class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
     provider_name = "integrations:gitlab"
 
     def setUp(self):
         super().setUp()
-        self.integration = Integration.objects.create(
-            provider="gitlab",
-            name="Example GitLab",
-            external_id="example.gitlab.com:getsentry",
-            metadata={
-                "instance": "example.gitlab.com",
-                "domain_name": "example.gitlab.com/getsentry",
-                "verify_ssl": False,
-                "base_url": "https://example.gitlab.com",
-                "webhook_secret": "secret-token-value",
-            },
-        )
-        identity = Identity.objects.create(
-            idp=IdentityProvider.objects.create(type="gitlab", config={}, external_id="1234567890"),
-            user=self.user,
-            external_id="example.gitlab.com:4",
-            data={"access_token": "1234567890"},
-        )
-        self.integration.add_organization(self.organization, self.user, identity.id)
-        self.integration.get_provider().setup()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(
+                provider="gitlab",
+                name="Example GitLab",
+                external_id="example.gitlab.com:getsentry",
+                metadata={
+                    "instance": "example.gitlab.com",
+                    "domain_name": "example.gitlab.com/getsentry",
+                    "verify_ssl": False,
+                    "base_url": "https://example.gitlab.com",
+                    "webhook_secret": "secret-token-value",
+                },
+            )
+            identity = Identity.objects.create(
+                idp=IdentityProvider.objects.create(
+                    type="gitlab", config={}, external_id="1234567890"
+                ),
+                user=self.user,
+                external_id="example.gitlab.com:4",
+                data={"access_token": "1234567890"},
+            )
+            self.integration.add_organization(self.organization, self.user, identity.id)
+            self.integration.get_provider().setup()
 
-        self.default_repository_config = {
-            "path_with_namespace": "getsentry/example-repo",
-            "name_with_namespace": "Get Sentry / Example Repo",
-            "path": "example-repo",
-            "id": "123",
-            "web_url": "https://example.gitlab.com/getsentry/projects/example-repo",
-        }
-        self.gitlab_id = 123
+            self.default_repository_config = {
+                "path_with_namespace": "getsentry/example-repo",
+                "name_with_namespace": "Get Sentry / Example Repo",
+                "path": "example-repo",
+                "id": "123",
+                "web_url": "https://example.gitlab.com/getsentry/projects/example-repo",
+            }
+            self.gitlab_id = 123
 
-    @fixture
+    @cached_property
     def provider(self):
         return GitlabRepositoryProvider("gitlab")
 
@@ -66,11 +76,15 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             json={"id": 99},
         )
 
+    @assume_test_silo_mode(SiloMode.REGION)
+    def get_repository(self, **kwargs) -> Repository:
+        return Repository.objects.get(**kwargs)
+
     def assert_repository(self, repository_config, organization_id=None):
         instance = self.integration.metadata["instance"]
 
         external_id = "{}:{}".format(instance, repository_config["id"])
-        repo = Repository.objects.get(
+        repo = self.get_repository(
             organization_id=organization_id or self.organization.id,
             provider=self.provider_name,
             external_id=external_id,
@@ -143,7 +157,8 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
 
     def test_create_repository_data_integration_does_not_exist(self):
         integration_id = self.integration.id
-        self.integration.delete()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.delete()
 
         response = self.create_repository(self.default_repository_config, integration_id)
         assert response.status_code == 404
@@ -197,7 +212,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             "https://example.gitlab.com/api/v4/projects/%s/hooks/99" % self.gitlab_id,
             status=204,
         )
-        repo = Repository.objects.get(pk=response.data["id"])
+        repo = self.get_repository(pk=response.data["id"])
         self.provider.on_delete_repository(repo)
         assert len(responses.calls) == 1
 
@@ -211,7 +226,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             "https://example.gitlab.com/api/v4/projects/%s/hooks/99" % self.gitlab_id,
             status=404,
         )
-        repo = Repository.objects.get(pk=response.data["id"])
+        repo = self.get_repository(pk=response.data["id"])
         self.provider.on_delete_repository(repo)
         assert len(responses.calls) == 1
 
@@ -236,7 +251,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             json=json.loads(COMMIT_DIFF_RESPONSE),
         )
         response = self.create_repository(self.default_repository_config, self.integration.id)
-        repo = Repository.objects.get(pk=response.data["id"])
+        repo = self.get_repository(pk=response.data["id"])
         commits = self.provider.compare_commits(repo, "abc", "xyz")
         assert 2 == len(commits)
         for commit in commits:
@@ -251,7 +266,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             status=502,
         )
         response = self.create_repository(self.default_repository_config, self.integration.id)
-        repo = Repository.objects.get(pk=response.data["id"])
+        repo = self.get_repository(pk=response.data["id"])
         with pytest.raises(IntegrationError):
             self.provider.compare_commits(repo, "abc", "xyz")
 
@@ -282,7 +297,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         )
 
         response = self.create_repository(self.default_repository_config, self.integration.id)
-        repo = Repository.objects.get(pk=response.data["id"])
+        repo = self.get_repository(pk=response.data["id"])
         commits = self.provider.compare_commits(repo, None, "xyz")
         for commit in commits:
             assert_commit_shape(commit)
@@ -295,14 +310,14 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             status=502,
         )
         response = self.create_repository(self.default_repository_config, self.integration.id)
-        repo = Repository.objects.get(pk=response.data["id"])
+        repo = self.get_repository(pk=response.data["id"])
         with pytest.raises(IntegrationError):
             self.provider.compare_commits(repo, None, "abc")
 
     @responses.activate
     def test_pull_request_url(self):
         response = self.create_repository(self.default_repository_config, self.integration.id)
-        repo = Repository.objects.get(pk=response.data["id"])
+        repo = self.get_repository(pk=response.data["id"])
         pull = PullRequest(key=99)
         result = self.provider.pull_request_url(repo, pull)
         assert (
@@ -312,6 +327,6 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
     @responses.activate
     def test_repository_external_slug(self):
         response = self.create_repository(self.default_repository_config, self.integration.id)
-        repo = Repository.objects.get(pk=response.data["id"])
+        repo = self.get_repository(pk=response.data["id"])
         result = self.provider.repository_external_slug(repo)
         assert result == repo.config["project_id"]

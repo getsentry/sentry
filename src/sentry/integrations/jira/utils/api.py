@@ -1,38 +1,36 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Mapping
+from typing import Any, Mapping
 
 from rest_framework import status
 from rest_framework.response import Response
 
 from sentry.integrations.utils import sync_group_assignee_inbound
+from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.shared_integrations.exceptions import ApiError
 
-from ..client import JiraApiClient, JiraCloud
-
-if TYPE_CHECKING:
-    from sentry.models import Integration
-
+from ...mixins import IssueSyncMixin
+from ..client import JiraCloudClient
 
 logger = logging.getLogger(__name__)
 
 
-def _get_client(integration: Integration) -> JiraApiClient:
-    return JiraApiClient(
-        integration.metadata["base_url"],
-        JiraCloud(integration.metadata["shared_secret"]),
+def _get_client(integration: RpcIntegration) -> JiraCloudClient:
+    return JiraCloudClient(
+        integration=integration,
         verify_ssl=True,
     )
 
 
-def set_badge(integration: Integration, issue_key: str, group_link_num: int) -> Response:
+def set_badge(integration: RpcIntegration, issue_key: str, group_link_num: int) -> Response:
     client = _get_client(integration)
     return client.set_issue_property(issue_key, group_link_num)
 
 
 def get_assignee_email(
-    integration: Integration,
+    integration: RpcIntegration,
     assignee: Mapping[str, str],
     use_email_scope: bool = False,
 ) -> str | None:
@@ -46,7 +44,7 @@ def get_assignee_email(
 
 
 def handle_assignee_change(
-    integration: Integration,
+    integration: RpcIntegration,
     data: Mapping[str, Any],
     use_email_scope: bool = False,
 ) -> None:
@@ -67,7 +65,6 @@ def handle_assignee_change(
         return
 
     email = get_assignee_email(integration, assignee, use_email_scope)
-    # TODO(steve) check display name
     if not email:
         logger.info(
             "missing-assignee-email",
@@ -94,12 +91,13 @@ def handle_status_change(integration, data):
         )
         return
 
-    for org_id in integration.organizations.values_list("id", flat=True):
-        installation = integration.get_installation(org_id)
-
-        installation.sync_status_inbound(
-            issue_key, {"changelog": changelog, "issue": data["issue"]}
-        )
+    _, org_integrations = integration_service.get_organization_contexts(
+        integration_id=integration.id
+    )
+    for oi in org_integrations:
+        install = integration.get_installation(organization_id=oi.organization_id)
+        if isinstance(install, IssueSyncMixin):
+            install.sync_status_inbound(issue_key, {"changelog": changelog, "issue": data["issue"]})
 
 
 def handle_jira_api_error(error: ApiError, message: str = "") -> Mapping[str, str] | None:

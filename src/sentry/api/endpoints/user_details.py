@@ -4,22 +4,31 @@ from datetime import datetime
 import pytz
 from django.conf import settings
 from django.contrib.auth import logout
-from django.db import transaction
-from django.utils.translation import ugettext_lazy as _
+from django.db import router, transaction
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import roles
-from sentry.api import client
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
+from sentry.api.endpoints.organization_details import post_org_pending_deletion
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import DetailedSelfUserSerializer
-from sentry.api.serializers.rest_framework import ListField
+from sentry.api.serializers.rest_framework import CamelSnakeModelSerializer, ListField
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LANGUAGES
-from sentry.models import Organization, OrganizationMember, OrganizationStatus, User, UserOption
+from sentry.models.options.user_option import UserOption
+from sentry.models.organization import OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.user import User
+from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.organization.model import RpcOrganizationDeleteState
+from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 
 audit_logger = logging.getLogger("sentry.audit.user")
 delete_logger = logging.getLogger("sentry.deletions.api")
@@ -61,11 +70,25 @@ class UserOptionsSerializer(serializers.Serializer):
         ),
         required=False,
     )
+    defaultIssueEvent = serializers.ChoiceField(
+        choices=(
+            ("recommended", _("Recommended")),
+            ("latest", _("Latest")),
+            ("oldest", _("Oldest")),
+        ),
+        required=False,
+    )
 
 
-class BaseUserSerializer(serializers.ModelSerializer):
+class BaseUserSerializer(CamelSnakeModelSerializer):
     def validate_username(self, value):
-        if User.objects.filter(username__iexact=value).exclude(id=self.instance.id).exists():
+        if (
+            User.objects.filter(username__iexact=value)
+            # Django throws an exception if `id` is `None`, which it will be when we're importing
+            # new users via the relocation logic on the `User` model. So we cast `None` to `0` to
+            # make Django happy here.
+            .exclude(id=self.instance.id if hasattr(self.instance, "id") else 0).exists()
+        ):
             raise serializers.ValidationError("That username is already in use.")
         return value
 
@@ -98,22 +121,20 @@ class UserSerializer(BaseUserSerializer):
 
 
 class SuperuserUserSerializer(BaseUserSerializer):
-    isActive = serializers.BooleanField(source="is_active")
+    is_active = serializers.BooleanField()
 
     class Meta:
         model = User
-        fields = ("name", "username", "isActive")
+        fields = ("name", "username", "is_active")
 
 
 class PrivilegedUserSerializer(SuperuserUserSerializer):
-    isStaff = serializers.BooleanField(source="is_staff")
-    isSuperuser = serializers.BooleanField(source="is_superuser")
+    is_staff = serializers.BooleanField()
+    is_superuser = serializers.BooleanField()
 
     class Meta:
         model = User
-        # no idea wtf is up with django rest framework, but we need is_active
-        # and isActive
-        fields = ("name", "username", "isActive", "isStaff", "isSuperuser")
+        fields = ("name", "username", "is_active", "is_staff", "is_superuser")
 
 
 class DeleteUserSerializer(serializers.Serializer):
@@ -121,7 +142,14 @@ class DeleteUserSerializer(serializers.Serializer):
     hardDelete = serializers.BooleanField(required=False)
 
 
+@control_silo_endpoint
 class UserDetailsEndpoint(UserEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, user) -> Response:
         """
         Retrieve User Details
@@ -147,8 +175,20 @@ class UserDetailsEndpoint(UserEndpoint):
         :param string timezone: timezone option
         :param clock_24_hours boolean: use 24 hour clock
         :param string theme: UI theme, either "light", "dark", or "system"
+        :param string default_issue_event: Event displayed by default, "recommended", "latest" or "oldest"
         :auth: required
         """
+        if not request.access.has_permission("users.admin"):
+            if not user.is_superuser and request.data.get("isSuperuser"):
+                return Response(
+                    {"detail": "Missing required permission to add superuser."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            elif not user.is_staff and request.data.get("isStaff"):
+                return Response(
+                    {"detail": "Missing required permission to add admin."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
 
         if request.access.has_permission("users.admin"):
             serializer_cls = PrivilegedUserSerializer
@@ -156,7 +196,7 @@ class UserDetailsEndpoint(UserEndpoint):
             serializer_cls = SuperuserUserSerializer
         else:
             serializer_cls = UserSerializer
-        serializer = serializer_cls(user, data=request.data, partial=True)
+        serializer = serializer_cls(instance=user, data=request.data, partial=True)
 
         serializer_options = UserOptionsSerializer(
             data=request.data.get("options", {}), partial=True
@@ -172,6 +212,7 @@ class UserDetailsEndpoint(UserEndpoint):
             "language": "language",
             "timezone": "timezone",
             "stacktraceOrder": "stacktrace_order",
+            "defaultIssueEvent": "default_issue_event",
             "clock24Hours": "clock_24_hours",
         }
 
@@ -183,7 +224,7 @@ class UserDetailsEndpoint(UserEndpoint):
                     user=user, key=key_map.get(key, key), value=options_result.get(key)
                 )
 
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(User)):
             user = serializer.save()
 
             if any(k in request.data for k in ("isStaff", "isSuperuser", "isActive")):
@@ -216,36 +257,62 @@ class UserDetailsEndpoint(UserEndpoint):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         # from `frontend/remove_account.py`
-        org_list = Organization.objects.filter(
-            member_set__role__in=[x.id for x in roles.with_scope("org:admin")],
-            member_set__user=user,
-            status=OrganizationStatus.VISIBLE,
+        org_mappings = OrganizationMapping.objects.filter(
+            organization_id__in=OrganizationMemberMapping.objects.filter(
+                user_id=user.id, role__in=[r.id for r in roles.with_scope("org:admin")]
+            ).values("organization_id"),
+            status=OrganizationStatus.ACTIVE,
         )
 
         org_results = []
-        for org in org_list:
-            org_results.append({"organization": org, "single_owner": org.has_single_owner()})
+        for org in org_mappings:
+            first_two_owners = OrganizationMemberMapping.objects.filter(
+                organization_id=org.organization_id, role__in=[roles.get_top_dog().id]
+            )[:2]
+            has_single_owner = len(first_two_owners) == 1
+            org_results.append(
+                {
+                    "organization_id": org.organization_id,
+                    "single_owner": has_single_owner,
+                }
+            )
 
-        avail_org_slugs = {o["organization"].slug for o in org_results}
-        orgs_to_remove = set(serializer.validated_data.get("organizations")).intersection(
-            avail_org_slugs
-        )
+        avail_org_ids = {o["organization_id"] for o in org_results}
+        requested_org_slugs_to_remove = set(serializer.validated_data.get("organizations"))
+        requested_org_ids_to_remove = OrganizationMapping.objects.filter(
+            slug__in=requested_org_slugs_to_remove
+        ).values_list("organization_id", flat=True)
+
+        orgs_to_remove = set(requested_org_ids_to_remove).intersection(avail_org_ids)
 
         for result in org_results:
             if result["single_owner"]:
-                orgs_to_remove.add(result["organization"].slug)
+                orgs_to_remove.add(result["organization_id"])
 
-        for org_slug in orgs_to_remove:
-            client.delete(path=f"/organizations/{org_slug}/", request=request, is_sudo=True)
+        for org_id in orgs_to_remove:
+            org_delete_response = organization_service.delete_organization(
+                organization_id=org_id, user=serialize_generic_user(request.user)
+            )
+            if org_delete_response.response_state == RpcOrganizationDeleteState.PENDING_DELETION:
+                post_org_pending_deletion(
+                    request=request,
+                    org_delete_response=org_delete_response,
+                )
 
         remaining_org_ids = [
-            o.id for o in org_list if o.slug in avail_org_slugs.difference(orgs_to_remove)
+            o.organization_id
+            for o in org_mappings
+            if o.organization_id in avail_org_ids.difference(orgs_to_remove)
         ]
 
         if remaining_org_ids:
-            OrganizationMember.objects.filter(
-                organization__in=remaining_org_ids, user=user
-            ).delete()
+            for member_mapping in OrganizationMemberMapping.objects.filter(
+                organization_id__in=remaining_org_ids, user_id=user.id
+            ):
+                organization_service.delete_organization_member(
+                    organization_id=member_mapping.organization_id,
+                    organization_member_id=member_mapping.organizationmember_id,
+                )
 
         logging_data = {
             "actor_id": request.user.id,

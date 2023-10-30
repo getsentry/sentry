@@ -5,6 +5,8 @@ import click
 from django.db import transaction
 
 from sentry.runner.decorators import configuration
+from sentry.services.hybrid_cloud.util import region_silo_function
+from sentry.silo.base import SiloLimit
 from sentry.types.activity import ActivityType
 
 
@@ -15,7 +17,7 @@ class RollbackLocally(Exception):
 @contextmanager
 def catchable_atomic():
     try:
-        with transaction.atomic():
+        with transaction.atomic("default"):
             yield
     except RollbackLocally:
         pass
@@ -36,8 +38,10 @@ def sync_docs():
         click.echo(" - skipping, path does not exist: %r" % DOC_FOLDER)
 
 
+@region_silo_function
 def create_missing_dsns():
-    from sentry.models import Project, ProjectKey
+    from sentry.models.project import Project
+    from sentry.models.projectkey import ProjectKey
 
     click.echo("Creating missing DSNs")
     queryset = Project.objects.filter(key_set__isnull=True)
@@ -48,6 +52,7 @@ def create_missing_dsns():
             pass
 
 
+@region_silo_function
 def fix_group_counters():
     from django.db import connection
 
@@ -83,5 +88,9 @@ def repair(with_docs):
     if with_docs:
         sync_docs()
 
-    create_missing_dsns()
-    fix_group_counters()
+    try:
+        create_missing_dsns()
+        fix_group_counters()
+    except SiloLimit.AvailabilityError:
+        click.echo("Skipping repair operations due to silo restrictions")
+        pass

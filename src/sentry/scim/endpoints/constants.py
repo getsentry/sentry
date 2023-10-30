@@ -19,10 +19,10 @@ SCIM_404_GROUP_RES = {
     "detail": "Group not found.",
 }
 
-SCIM_409_USER_EXISTS = {
-    "schemas": [SCIM_API_ERROR],
-    "detail": "User already exists in the database.",
-}
+SCIM_400_INVALID_ORGROLE = "Invalid organization role."
+
+SCIM_409_USER_EXISTS = "User already exists in the database."
+
 SCIM_400_INVALID_FILTER = {
     "schemas": [SCIM_API_ERROR],
     "scimType": "invalidFilter",
@@ -43,10 +43,7 @@ SCIM_400_UNSUPPORTED_ATTRIBUTE = {
     "detail": "Invalid Replace attr. Only displayName and members supported.",
 }
 
-SCIM_400_INVALID_PATCH = {
-    "schemas": [SCIM_API_ERROR],
-    "detail": "Invalid Patch Operation.",
-}
+SCIM_400_INVALID_PATCH = "Invalid Patch Operation."
 
 
 class TeamPatchOps(str, Enum):

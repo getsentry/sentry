@@ -1,8 +1,12 @@
 from django.db import connections
 
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import Commit, Repository, UserEmail
+from sentry.models.commit import Commit
+from sentry.models.repository import Repository
+from sentry.services.hybrid_cloud.user.service import user_service
 
 # TODO(dcramer): once LatestRepoReleaseEnvironment is backfilled, change this query to use the new
 # schema [performance]
@@ -37,13 +41,19 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 
+@region_silo_endpoint
 class OrganizationMemberUnreleasedCommitsEndpoint(OrganizationMemberEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization, member) -> Response:
-        email_list = list(
-            UserEmail.objects.filter(user=member.user_id, is_verified=True).values_list(
-                "email", flat=True
+        email_list = [
+            e.email
+            for e in filter(
+                lambda x: x.is_verified, user_service.get_user(member.user_id).useremails
             )
-        )
+        ]
         if not email_list:
             return self.respond(
                 {"commits": [], "repositories": {}, "errors": {"missing_emails": True}}

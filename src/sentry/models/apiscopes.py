@@ -1,8 +1,9 @@
 from collections.abc import Sequence
+from typing import List, TypedDict
 
 from django.db import models
 
-from bitfield import BitField
+from bitfield import typed_dict_bitfield
 from sentry.db.models import ArrayField
 
 
@@ -13,7 +14,7 @@ class ApiScopes(Sequence):
 
     event = (("event:read"), ("event:write"), ("event:admin"))
 
-    org = (("org:read"), ("org:write"), ("org:admin"))
+    org = (("org:read"), ("org:write"), ("org:integrations"), ("org:admin"))
 
     member = (("member:read"), ("member:write"), ("member:admin"))
 
@@ -25,9 +26,6 @@ class ApiScopes(Sequence):
             + self.__class__.org
             + self.__class__.member
         )
-
-    def to_bitfield(self):
-        return tuple((s, s) for s in self.scopes)
 
     def __getitem__(self, value):
         return self.scopes.__getitem__(value)
@@ -48,15 +46,44 @@ class HasApiScopes(models.Model):
         abstract = True
 
     # List of scopes in bit form
-    scopes = BitField(flags=ApiScopes().to_bitfield())
+    ScopesDict = TypedDict(
+        "ScopesDict",
+        {
+            "project:read": bool,
+            "project:write": bool,
+            "project:admin": bool,
+            "project:releases": bool,
+            "team:read": bool,
+            "team:write": bool,
+            "team:admin": bool,
+            "event:read": bool,
+            "event:write": bool,
+            "event:admin": bool,
+            "org:read": bool,
+            "org:write": bool,
+            "org:admin": bool,
+            "member:read": bool,
+            "member:write": bool,
+            "member:admin": bool,
+            "org:integrations": bool,
+        },
+    )
+    assert set(ScopesDict.__annotations__) == set(ApiScopes())
+    scopes = typed_dict_bitfield(ScopesDict)
 
     # Human readable list of scopes
     scope_list = ArrayField(of=models.TextField)
 
-    def get_scopes(self):
+    def get_scopes(self) -> List[str]:
+        """
+        Returns a list of the token's scopes in alphabetical order.
+        """
         if self.scope_list:
-            return self.scope_list
-        return [k for k, v in self.scopes.items() if v]
+            return sorted(self.scope_list)
+        return sorted([k for k, v in self.scopes.items() if v])
 
-    def has_scope(self, scope):
+    def has_scope(self, scope: str) -> bool:
+        """
+        Checks whether the token has the given scope
+        """
         return scope in self.get_scopes()

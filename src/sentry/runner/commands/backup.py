@@ -1,153 +1,671 @@
-from io import StringIO
+from __future__ import annotations
+
+from io import BytesIO
+from typing import Callable, Sequence, TextIO
 
 import click
-from django.apps import apps
-from django.core import management, serializers
-from django.db import connection
 
+from sentry.backup.comparators import get_default_comparators
+from sentry.backup.findings import Finding, FindingJSONEncoder
+from sentry.backup.helpers import DecryptionError, ImportFlags, Side, decrypt_encrypted_tarball
+from sentry.backup.validate import validate
 from sentry.runner.decorators import configuration
+from sentry.utils import json
 
-EXCLUDED_APPS = frozenset(("auth", "contenttypes"))
+DEFAULT_INDENT = 2
+
+DECRYPT_WITH_HELP = """A path to a file containing a private key with which to decrypt a tarball
+                    previously encrypted using an `export ... --encrypt_with=<PUBLIC_KEY>` command.
+                    The private key provided via this flag should be the complement of the public
+                    key used to encrypt the tarball (this public key is included in the tarball
+                    itself).
+
+                    This flag is mutually exclusive with the `--decrypt-with-gcp-kms` flag."""
+
+DECRYPT_WITH_GCP_KMS_HELP = """For users that want to avoid storing their own private keys, this
+                            flag can be used in lieu of `--decrypt-with` to retrieve keys from
+                            Google Cloud's Key Management Service directly, avoiding ever storing
+                            them on the machine doing the decryption.
+
+                            This flag should point to a JSON file containing a single top-level
+                            object storing the `project-id`, `location`, `keyring`, `key`, and
+                            `version` of the desired asymmetric private key that pairs with the
+                            public key included in the tarball being imported (for more information
+                            on these resource identifiers and how to set up KMS to use the, see:
+                            https://cloud.google.com/kms/docs/getting-resource-ids). An example
+                            version of this file might look like:
+
+                            ``` {
+                                "project_id": "my-google-cloud-project",
+                                "location": "global",
+                                "key_ring": "my-key-ring-name",
+                                "key": "my-key-name",
+                                "version": "1"
+                            }
+                            ```
+
+                            Property names must be spelled exactly as above, and the `version` field in particular must be a string, not an integer."""
+
+ENCRYPT_WITH_HELP = """A path to the a public key with which to encrypt this export. If this flag is
+                       enabled and points to a valid key, the output file will be a tarball
+                       containing 3 constituent files: 1. An encrypted JSON file called
+                       `export.json`, which is encrypted using 2. An asymmetrically encrypted data
+                       encryption key (DEK) called `data.key`, which is itself encrypted by 3. The
+                       public key contained in the file supplied to this flag, called `key.pub`. To
+                       decrypt the exported JSON data, decryptors should use the private key paired
+                       with `key.pub` to decrypt the DEK, which can then be used to decrypt the
+                       export data in `export.json`."""
+
+FINDINGS_FILE_HELP = """Optional file that records comparator findings, saved in the JSON format.
+                     If left unset, no such file is written."""
+
+INDENT_HELP = "Number of spaces to indent for the JSON output. (default: 2)"
+
+MERGE_USERS_HELP = """If this flag is set and users in the import JSON have matching usernames to
+                   those already in the database, the existing users are used instead and their
+                   associated user scope models are not updated. If this flag is not set, new users
+                   are always created in the event of a collision, with the new user receiving a
+                   random suffix to their username."""
+
+OVERWRITE_CONFIGS_HELP = """Imports are generally non-destructive of old data. However, if this flag
+                         is set and a global configuration, like an option or a relay id, collides
+                         with an existing value, the new value will overwrite the existing one. If
+                         the flag is left in its (default) unset state, the old value will be
+                         retained in the event of a collision."""
 
 
-@click.command(name="import")
-@click.argument("src", type=click.File("rb"))
-@configuration
-def import_(src):
-    "Imports data from a Sentry export."
+def get_printer(silent: bool) -> Callable:
+    if silent:
+        return lambda *args, **kwargs: None
+    else:
+        return click.echo
 
-    for obj in serializers.deserialize("json", src, stream=True, use_natural_keys=True):
-        if obj.object._meta.app_label not in EXCLUDED_APPS:
-            obj.save()
 
-    sequence_reset_sql = StringIO()
+def parse_filter_arg(filter_arg: str) -> set[str] | None:
+    filter_by = None
+    if filter_arg:
+        filter_by = set(filter_arg.split(","))
 
-    for app in apps.get_app_configs():
-        management.call_command(
-            "sqlsequencereset", app.label, "--no-color", stdout=sequence_reset_sql
+    return filter_by
+
+
+def get_decryptor_io_from_flags(
+    decrypt_with: BytesIO | None, decrypt_with_gcp_kms: BytesIO | None
+) -> BytesIO | None:
+    if decrypt_with is not None and decrypt_with_gcp_kms is not None:
+        raise click.UsageError(
+            """`--decrypt-with` and `--decrypt-with-gcp-kms` are mutually exclusive options - you may use one or the other, but not both."""
+        )
+    return decrypt_with if decrypt_with is not None else decrypt_with_gcp_kms
+
+
+def write_findings(
+    findings_file: TextIO | None, findings: Sequence[Finding], indent: int, printer: Callable
+):
+    for f in findings:
+        printer(f.pretty(), err=True)
+
+    if findings_file:
+        findings_encoder = FindingJSONEncoder(
+            sort_keys=True,
+            ensure_ascii=True,
+            check_circular=True,
+            allow_nan=True,
+            indent=indent,
+            encoding="utf-8",
         )
 
-    with connection.cursor() as cursor:
-        cursor.execute(sequence_reset_sql.getvalue())
+        with findings_file as file:
+            encoded = findings_encoder.encode(findings)
+            file.write(encoded)
 
 
-def sort_dependencies():
-    """
-    Similar to Django's except that we discard the important of natural keys
-    when sorting dependencies (i.e. it works without them).
-    """
-    from django.apps import apps
-
-    # Process the list of models, and get the list of dependencies
-    model_dependencies = []
-    models = set()
-    for app_config in apps.get_app_configs():
-        if app_config.label in EXCLUDED_APPS:
-            continue
-
-        model_list = app_config.get_models()
-
-        for model in model_list:
-            models.add(model)
-            # Add any explicitly defined dependencies
-            if hasattr(model, "natural_key"):
-                deps = getattr(model.natural_key, "dependencies", [])
-                if deps:
-                    deps = [apps.get_model(*d.split(".")) for d in deps]
-            else:
-                deps = []
-
-            # Now add a dependency for any FK relation with a model that
-            # defines a natural key
-            for field in model._meta.fields:
-                if hasattr(field.remote_field, "model"):
-                    rel_model = field.remote_field.model
-                    if rel_model != model:
-                        deps.append(rel_model)
-
-            # Also add a dependency for any simple M2M relation with a model
-            # that defines a natural key.  M2M relations with explicit through
-            # models don't count as dependencies.
-            for field in model._meta.many_to_many:
-                rel_model = field.remote_field.model
-                if rel_model != model:
-                    deps.append(rel_model)
-            model_dependencies.append((model, deps))
-
-    model_dependencies.reverse()
-    # Now sort the models to ensure that dependencies are met. This
-    # is done by repeatedly iterating over the input list of models.
-    # If all the dependencies of a given model are in the final list,
-    # that model is promoted to the end of the final list. This process
-    # continues until the input list is empty, or we do a full iteration
-    # over the input models without promoting a model to the final list.
-    # If we do a full iteration without a promotion, that means there are
-    # circular dependencies in the list.
-    model_list = []
-    while model_dependencies:
-        skipped = []
-        changed = False
-        while model_dependencies:
-            model, deps = model_dependencies.pop()
-
-            # If all of the models in the dependency list are either already
-            # on the final model list, or not on the original serialization list,
-            # then we've found another model with all it's dependencies satisfied.
-            found = True
-            for candidate in ((d not in models or d in model_list) for d in deps):
-                if not candidate:
-                    found = False
-            if found:
-                model_list.append(model)
-                changed = True
-            else:
-                skipped.append((model, deps))
-        if not changed:
-            raise RuntimeError(
-                "Can't resolve dependencies for %s in serialized app list."
-                % ", ".join(
-                    f"{model._meta.app_label}.{model._meta.object_name}"
-                    for model, deps in sorted(skipped, key=lambda obj: obj[0].__name__)
-                )
-            )
-        model_dependencies = skipped
-
-    return model_list
-
-
-@click.command()
-@click.argument("dest", default="-", type=click.File("w"))
-@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@click.command(name="compare")
+@click.argument("left", type=click.File("rb"))
+@click.argument("right", type=click.File("rb"))
 @click.option(
-    "--indent", default=2, help="Number of spaces to indent for the JSON output. (default: 2)"
+    "--findings-file",
+    type=click.File("w"),
+    required=False,
+    help=FINDINGS_FILE_HELP,
 )
-@click.option("--exclude", default=None, help="Models to exclude from export.", metavar="MODELS")
+@click.option(
+    "--decrypt-left-with",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_HELP,
+)
+@click.option(
+    "--decrypt-left-with-gcp-kms",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_GCP_KMS_HELP,
+)
+@click.option(
+    "--decrypt-right-with",
+    type=click.File("rb"),
+    help="Identical to `--decrypt-left-with`, but for the 2nd input argument.",
+)
+@click.option(
+    "--decrypt-right-with-gcp-kms",
+    type=click.File("rb"),
+    help="Identical to `--decrypt-left-with-gcp-kms`, but for the 2nd input argument.",
+)
 @configuration
-def export(dest, silent, indent, exclude):
-    "Exports core metadata for the Sentry installation."
+def compare(
+    left,
+    right,
+    decrypt_left_with,
+    decrypt_left_with_gcp_kms,
+    decrypt_right_with,
+    decrypt_right_with_gcp_kms,
+    findings_file,
+):
+    """
+    Compare two exports generated by the `export` command for equality, modulo certain necessary
+    expected differences like `date_updated` timestamps, unique tokens, and the like.
+    """
 
-    if exclude is None:
-        exclude = ()
+    # Helper function that loads data from one of the two sides, decrypting it if necessary along
+    # the way.
+    def load_data(
+        side: Side, src: BytesIO, decrypt_with: BytesIO, decrypt_with_gcp_kms: BytesIO
+    ) -> json.JSONData:
+        decrypt_io = get_decryptor_io_from_flags(decrypt_with, decrypt_with_gcp_kms)
+
+        # Decrypt the tarball, if the user has indicated that this is one by using either of the
+        # `--decrypt...` flags.
+        if decrypt_io is not None:
+            try:
+                input = BytesIO(
+                    decrypt_encrypted_tarball(src, decrypt_with_gcp_kms is not None, decrypt_io)
+                )
+            except DecryptionError as e:
+                click.echo(f"Invalid {side.name} side tarball: {str(e)}", err=True)
+        else:
+            input = src
+
+        # Now read the input string into memory as JSONData.
+        try:
+            data = json.load(input)
+        except json.JSONDecodeError:
+            click.echo(f"Invalid {side.name} JSON", err=True)
+
+        return data
+
+    with left:
+        left_data = load_data(Side.left, left, decrypt_left_with, decrypt_left_with_gcp_kms)
+    with right:
+        right_data = load_data(Side.right, right, decrypt_right_with, decrypt_right_with_gcp_kms)
+
+    res = validate(left_data, right_data, get_default_comparators())
+    if res:
+        write_findings(findings_file, res.findings, DEFAULT_INDENT, click.echo)
+        click.echo(f"Done, found {len(res.findings)} differences:\n\n{res.pretty()}")
     else:
-        exclude = exclude.lower().split(",")
+        click.echo("Done, found 0 differences!")
 
-    def yield_objects():
-        # Collate the objects to be serialized.
-        for model in sort_dependencies():
-            if (
-                not getattr(model, "__include_in_export__", True)
-                or model.__name__.lower() in exclude
-                or model._meta.proxy
-            ):
-                if not silent:
-                    click.echo(f">> Skipping model <{model.__name__}>", err=True)
-                continue
 
-            queryset = model._base_manager.order_by(model._meta.pk.name)
-            yield from queryset.iterator()
+@click.group(name="import")
+def import_():
+    """Performs non-destructive imports of core data for a Sentry installation."""
 
-    if not silent:
-        click.echo(">> Beginning export", err=True)
-    serializers.serialize(
-        "json", yield_objects(), indent=indent, stream=dest, use_natural_foreign_keys=True
-    )
+
+@import_.command(name="users")
+@click.argument("src", type=click.File("rb"))
+@click.option(
+    "--decrypt-with",
+    "--decrypt_with",  # For backwards compatibility with self-hosted@23.10.0
+    type=click.File("rb"),
+    help=DECRYPT_WITH_HELP,
+)
+@click.option(
+    "--decrypt-with-gcp-kms",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_GCP_KMS_HELP,
+)
+@click.option(
+    "--filter-usernames",
+    "--filter_usernames",  # For backwards compatibility with self-hosted@23.10.0
+    default="",
+    type=str,
+    help="An optional comma-separated list of users to include. "
+    "If this option is not set, all encountered users are imported.",
+)
+@click.option(
+    "--findings-file",
+    type=click.File("w"),
+    required=False,
+    help=FINDINGS_FILE_HELP,
+)
+@click.option(
+    "--merge-users",
+    "--merge_users",  # For backwards compatibility with self-hosted@23.10.0
+    default=False,
+    is_flag=True,
+    help=MERGE_USERS_HELP,
+)
+@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@configuration
+def import_users(
+    src,
+    decrypt_with,
+    decrypt_with_gcp_kms,
+    filter_usernames,
+    findings_file,
+    merge_users,
+    silent,
+):
+    """
+    Import the Sentry users from an exported JSON file.
+    """
+
+    from sentry.backup.imports import ImportingError, import_in_user_scope
+
+    printer = get_printer(silent)
+    try:
+        import_in_user_scope(
+            src,
+            decrypt_with=get_decryptor_io_from_flags(decrypt_with, decrypt_with_gcp_kms),
+            flags=ImportFlags(
+                merge_users=merge_users,
+                decrypt_using_gcp_kms=decrypt_with_gcp_kms is not None,
+            ),
+            user_filter=parse_filter_arg(filter_usernames),
+            printer=printer,
+        )
+    except ImportingError as e:
+        if e.context:
+            write_findings(findings_file, [e.context], DEFAULT_INDENT, printer)
+        raise e
+
+
+@import_.command(name="organizations")
+@click.argument("src", type=click.File("rb"))
+@click.option(
+    "--decrypt-with",
+    "--decrypt_with",  # For backwards compatibility with self-hosted@23.10.0
+    type=click.File("rb"),
+    help=DECRYPT_WITH_HELP,
+)
+@click.option(
+    "--decrypt-with-gcp-kms",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_GCP_KMS_HELP,
+)
+@click.option(
+    "--filter-org-slugs",
+    "--filter_org_slugs",  # For backwards compatibility with self-hosted@23.10.0
+    default="",
+    type=str,
+    help="An optional comma-separated list of organization slugs to include. "
+    "If this option is not set, all encountered organizations are imported. "
+    "Users not members of at least one organization in this set will not be imported.",
+)
+@click.option(
+    "--findings-file",
+    type=click.File("w"),
+    required=False,
+    help=FINDINGS_FILE_HELP,
+)
+@click.option(
+    "--merge-users",
+    "--merge_users",  # For backwards compatibility with self-hosted@23.10.0
+    default=False,
+    is_flag=True,
+    help=MERGE_USERS_HELP,
+)
+@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@configuration
+def import_organizations(
+    src,
+    decrypt_with,
+    decrypt_with_gcp_kms,
+    filter_org_slugs,
+    findings_file,
+    merge_users,
+    silent,
+):
+    """
+    Import the Sentry organizations, and all constituent Sentry users, from an exported JSON file.
+    """
+
+    from sentry.backup.imports import ImportingError, import_in_organization_scope
+
+    printer = get_printer(silent)
+    try:
+        import_in_organization_scope(
+            src,
+            decrypt_with=get_decryptor_io_from_flags(decrypt_with, decrypt_with_gcp_kms),
+            flags=ImportFlags(
+                merge_users=merge_users,
+                decrypt_using_gcp_kms=decrypt_with_gcp_kms is not None,
+            ),
+            org_filter=parse_filter_arg(filter_org_slugs),
+            printer=printer,
+        )
+    except ImportingError as e:
+        if e.context:
+            write_findings(findings_file, [e.context], DEFAULT_INDENT, printer)
+        raise e
+
+
+@import_.command(name="config")
+@click.argument("src", type=click.File("rb"))
+@click.option(
+    "--decrypt-with",
+    "--decrypt_with",  # For backwards compatibility with self-hosted@23.10.0
+    type=click.File("rb"),
+    help=DECRYPT_WITH_HELP,
+)
+@click.option(
+    "--decrypt-with-gcp-kms",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_GCP_KMS_HELP,
+)
+@click.option(
+    "--findings-file",
+    type=click.File("w"),
+    required=False,
+    help=FINDINGS_FILE_HELP,
+)
+@click.option(
+    "--merge-users",
+    "--merge_users",  # For backwards compatibility with self-hosted@23.10.0
+    default=False,
+    is_flag=True,
+    help=MERGE_USERS_HELP,
+)
+@click.option(
+    "--overwrite-configs",
+    "--overwrite_configs",  # For backwards compatibility with self-hosted@23.10.0
+    default=False,
+    is_flag=True,
+    help=OVERWRITE_CONFIGS_HELP,
+)
+@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@configuration
+def import_config(
+    src,
+    decrypt_with,
+    decrypt_with_gcp_kms,
+    findings_file,
+    merge_users,
+    overwrite_configs,
+    silent,
+):
+    """
+    Import all configuration and administrator accounts needed to set up this Sentry instance.
+    """
+
+    from sentry.backup.imports import ImportingError, import_in_config_scope
+
+    printer = get_printer(silent)
+    try:
+        import_in_config_scope(
+            src,
+            decrypt_with=get_decryptor_io_from_flags(decrypt_with, decrypt_with_gcp_kms),
+            flags=ImportFlags(
+                merge_users=merge_users,
+                overwrite_configs=overwrite_configs,
+                decrypt_using_gcp_kms=decrypt_with_gcp_kms is not None,
+            ),
+            printer=printer,
+        )
+    except ImportingError as e:
+        if e.context:
+            write_findings(findings_file, [e.context], DEFAULT_INDENT, printer)
+        raise e
+
+
+@import_.command(name="global")
+@click.argument("src", type=click.File("rb"))
+@click.option(
+    "--decrypt-with",
+    "--decrypt_with",  # For backwards compatibility with self-hosted@23.10.0
+    type=click.File("rb"),
+    help=DECRYPT_WITH_HELP,
+)
+@click.option(
+    "--decrypt-with-gcp-kms",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_GCP_KMS_HELP,
+)
+@click.option(
+    "--findings-file",
+    type=click.File("w"),
+    required=False,
+    help=FINDINGS_FILE_HELP,
+)
+@click.option(
+    "--overwrite-configs",
+    "--overwrite_configs",  # For backwards compatibility with self-hosted@23.10.0
+    default=False,
+    is_flag=True,
+    help=OVERWRITE_CONFIGS_HELP,
+)
+@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@configuration
+def import_global(
+    src,
+    decrypt_with,
+    decrypt_with_gcp_kms,
+    findings_file,
+    overwrite_configs,
+    silent,
+):
+    """
+    Import all Sentry data from an exported JSON file.
+    """
+
+    from sentry.backup.imports import ImportingError, import_in_global_scope
+
+    printer = get_printer(silent)
+    try:
+        import_in_global_scope(
+            src,
+            decrypt_with=get_decryptor_io_from_flags(decrypt_with, decrypt_with_gcp_kms),
+            flags=ImportFlags(
+                overwrite_configs=overwrite_configs,
+                decrypt_using_gcp_kms=decrypt_with_gcp_kms is not None,
+            ),
+            printer=printer,
+        )
+    except ImportingError as e:
+        if e.context:
+            write_findings(findings_file, [e.context], DEFAULT_INDENT, printer)
+        raise e
+
+
+@click.group(name="export")
+def export():
+    """Exports core data for the Sentry installation."""
+
+
+@export.command(name="users")
+@click.argument("dest", default="-", type=click.File("wb"))
+@click.option(
+    "--encrypt-with",
+    "--encrypt_with",  # For backwards compatibility with self-hosted@23.10.0
+    type=click.File("rb"),
+    help=ENCRYPT_WITH_HELP,
+)
+@click.option(
+    "--filter-usernames",
+    "--filter_usernames",  # For backwards compatibility with self-hosted@23.10.0
+    default="",
+    type=str,
+    help="An optional comma-separated list of users to include. "
+    "If this option is not set, all encountered users are imported.",
+)
+@click.option(
+    "--findings-file",
+    type=click.File("w"),
+    required=False,
+    help=FINDINGS_FILE_HELP,
+)
+@click.option(
+    "--indent",
+    default=2,
+    type=int,
+    help=INDENT_HELP,
+)
+@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@configuration
+def export_users(dest, encrypt_with, filter_usernames, findings_file, indent, silent):
+    """
+    Export all Sentry users in the JSON format.
+    """
+
+    from sentry.backup.exports import ExportingError, export_in_user_scope
+
+    printer = get_printer(silent)
+    try:
+        export_in_user_scope(
+            dest,
+            encrypt_with=encrypt_with,
+            indent=indent,
+            user_filter=parse_filter_arg(filter_usernames),
+            printer=printer,
+        )
+    except ExportingError as e:
+        if e.context:
+            write_findings(findings_file, [e.context], DEFAULT_INDENT, printer)
+        raise e
+
+
+@export.command(name="organizations")
+@click.argument("dest", default="-", type=click.File("wb"))
+@click.option(
+    "--encrypt-with",
+    "--encrypt_with",  # For backwards compatibility with self-hosted@23.10.0
+    type=click.File("rb"),
+    help=ENCRYPT_WITH_HELP,
+)
+@click.option(
+    "--filter-org-slugs",
+    "--filter_org_slugs",  # For backwards compatibility with self-hosted@23.10.0
+    default="",
+    type=str,
+    help="An optional comma-separated list of organization slugs to include. "
+    "If this option is not set, all encountered organizations are exported. "
+    "Users not members of at least one organization in this set will not be exported.",
+)
+@click.option(
+    "--findings-file",
+    type=click.File("w"),
+    required=False,
+    help=FINDINGS_FILE_HELP,
+)
+@click.option(
+    "--indent",
+    default=2,
+    type=int,
+    help=INDENT_HELP,
+)
+@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@configuration
+def export_organizations(dest, encrypt_with, filter_org_slugs, findings_file, indent, silent):
+    """
+    Export all Sentry organizations, and their constituent users, in the JSON format.
+    """
+
+    from sentry.backup.exports import ExportingError, export_in_organization_scope
+
+    printer = get_printer(silent)
+    try:
+        export_in_organization_scope(
+            dest,
+            encrypt_with=encrypt_with,
+            indent=indent,
+            org_filter=parse_filter_arg(filter_org_slugs),
+            printer=printer,
+        )
+    except ExportingError as e:
+        if e.context:
+            write_findings(findings_file, [e.context], DEFAULT_INDENT, printer)
+        raise e
+
+
+@export.command(name="config")
+@click.argument("dest", default="-", type=click.File("wb"))
+@click.option(
+    "--encrypt-with",
+    "--encrypt_with",  # For backwards compatibility with self-hosted@23.10.0
+    type=click.File("rb"),
+    help=ENCRYPT_WITH_HELP,
+)
+@click.option(
+    "--findings-file",
+    type=click.File("w"),
+    required=False,
+    help=FINDINGS_FILE_HELP,
+)
+@click.option(
+    "--indent",
+    default=2,
+    type=int,
+    help=INDENT_HELP,
+)
+@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@configuration
+def export_config(dest, encrypt_with, findings_file, indent, silent):
+    """
+    Export all configuration and administrator accounts needed to set up this Sentry instance.
+    """
+
+    from sentry.backup.exports import ExportingError, export_in_config_scope
+
+    printer = get_printer(silent)
+    try:
+        export_in_config_scope(
+            dest,
+            encrypt_with=encrypt_with,
+            indent=indent,
+            printer=printer,
+        )
+    except ExportingError as e:
+        if e.context:
+            write_findings(findings_file, [e.context], DEFAULT_INDENT, printer)
+        raise e
+
+
+@export.command(name="global")
+@click.argument("dest", default="-", type=click.File("wb"))
+@click.option(
+    "--encrypt-with",
+    "--encrypt_with",  # For backwards compatibility with self-hosted@23.10.0
+    type=click.File("rb"),
+    help=ENCRYPT_WITH_HELP,
+)
+@click.option(
+    "--findings-file",
+    type=click.File("w"),
+    required=False,
+    help=FINDINGS_FILE_HELP,
+)
+@click.option(
+    "--indent",
+    default=2,
+    type=int,
+    help=INDENT_HELP,
+)
+@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@configuration
+def export_global(dest, encrypt_with, findings_file, indent, silent):
+    """
+    Export all Sentry data in the JSON format.
+    """
+
+    from sentry.backup.exports import ExportingError, export_in_global_scope
+
+    printer = get_printer(silent)
+    try:
+        export_in_global_scope(
+            dest,
+            encrypt_with=encrypt_with,
+            indent=indent,
+            printer=printer,
+        )
+    except ExportingError as e:
+        if e.context:
+            write_findings(findings_file, [e.context], DEFAULT_INDENT, printer)
+        raise e

@@ -3,11 +3,12 @@ import datetime
 import time
 
 from sentry import options
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.utils import jwt
 from sentry_plugins.client import ApiClient, AuthApiClient
 
 
-class GitHubClientMixin(AuthApiClient):
+class GithubPluginClientMixin(AuthApiClient):
     allow_redirects = True
 
     base_url = "https://api.github.com"
@@ -30,7 +31,7 @@ class GitHubClientMixin(AuthApiClient):
         return self.get(f"/repos/{repo}/pulls/{num}/commits")
 
 
-class GitHubClient(GitHubClientMixin, AuthApiClient):
+class GithubPluginClient(GithubPluginClientMixin, AuthApiClient):
     def __init__(self, url=None, auth=None):
         if url is not None:
             self.base_url = url.rstrip("/")
@@ -76,8 +77,8 @@ class GitHubClient(GitHubClientMixin, AuthApiClient):
         return self._request("GET", "/user/installations", headers=headers)
 
 
-class GitHubAppsClient(GitHubClientMixin, ApiClient):
-    def __init__(self, integration):
+class GithubPluginAppsClient(GithubPluginClientMixin, ApiClient):
+    def __init__(self, integration: RpcIntegration):
         self.integration = integration
         self.token = None
         self.expires_at = None

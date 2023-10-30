@@ -2,12 +2,16 @@
 /* eslint import/no-nodejs-modules:0 */
 
 import fs from 'fs';
+import http from 'http';
 import https from 'https';
 import path from 'path';
+import url from 'url';
 
 import webpack from 'webpack';
 
-const PLATFORMS_URL = 'https://docs.sentry.io/_platforms/_index.json';
+const INTEGRATIONS_DOC_URL =
+  process.env.INTEGRATION_DOCS_URL || 'https://docs.sentry.io/_platforms/';
+const PLATFORMS_URL = INTEGRATIONS_DOC_URL + '_index.json';
 const DOCS_INDEX_PATH = 'src/sentry/integration-docs/_platforms.json';
 
 const alphaSortFromKey =
@@ -31,8 +35,8 @@ type PlatformsData = {
   platforms: Record<string, PlatformItem>;
 };
 
-const transformPlatformsToList = ({platforms}: PlatformsData) =>
-  Object.keys(platforms)
+const transformPlatformsToList = ({platforms}: PlatformsData) => {
+  return Object.keys(platforms)
     .map(platformId => {
       const integrationMap = platforms[platformId];
       const integrations = Object.keys(integrationMap)
@@ -51,6 +55,7 @@ const transformPlatformsToList = ({platforms}: PlatformsData) =>
       };
     })
     .sort(alphaSortFromKey(item => item.name));
+};
 
 class IntegrationDocsFetchPlugin {
   modulePath: string;
@@ -68,8 +73,13 @@ class IntegrationDocsFetchPlugin {
   fetch: Parameters<webpack.Compiler['hooks']['beforeRun']['tapAsync']>[1] = (
     _compilation,
     callback
-  ) =>
-    https
+  ) => {
+    let httpClient = https;
+    if (url.parse(PLATFORMS_URL).protocol === 'http:') {
+      // @ts-expect-error
+      httpClient = http;
+    }
+    return httpClient
       .get(PLATFORMS_URL, res => {
         res.setEncoding('utf8');
         let buffer = '';
@@ -88,6 +98,7 @@ class IntegrationDocsFetchPlugin {
           );
       })
       .on('error', callback);
+  };
 
   apply(compiler: webpack.Compiler) {
     compiler.hooks.beforeRun.tapAsync('IntegrationDocsFetchPlugin', this.fetch);

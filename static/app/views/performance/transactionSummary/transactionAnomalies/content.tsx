@@ -7,14 +7,14 @@ import omit from 'lodash/omit';
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {LineChartSeries} from 'sentry/components/charts/lineChart';
-import DatePageFilter from 'sentry/components/datePageFilter';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
@@ -278,7 +278,7 @@ function AnomaliesContent(props: Props) {
       <FilterActions>
         <PageFilterBar condensed>
           <EnvironmentPageFilter />
-          <DatePageFilter alignDropdown="left" />
+          <DatePageFilter />
         </PageFilterBar>
         <SearchBar
           organization={organization}
@@ -295,7 +295,10 @@ function AnomaliesContent(props: Props) {
       >
         {queryData => (
           <Fragment>
-            <Anomalies {...props} queryData={queryData} />
+            <AnomaliesWrapper>
+              <Anomalies {...props} queryData={queryData} />
+            </AnomaliesWrapper>
+
             <AnomaliesTable
               anomalies={queryData.data?.anomalies}
               {...props}
@@ -316,6 +319,10 @@ const FilterActions = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: auto 1fr;
   }
+`;
+
+const AnomaliesWrapper = styled('div')`
+  margin-bottom: ${space(2)};
 `;
 
 export default AnomaliesContent;

@@ -1,4 +1,5 @@
 import {InjectedRouter} from 'react-router';
+import {Theme} from '@emotion/react';
 import {Query} from 'history';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -10,9 +11,13 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {Series} from 'sentry/types/echarts';
-import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {
+  axisLabelFormatter,
+  getDurationUnit,
+  tooltipFormatter,
+} from 'sentry/utils/discover/charts';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {Theme} from 'sentry/utils/theme';
 import {TransactionsListOption} from 'sentry/views/releases/detail/overview';
 
 type Props = {
@@ -56,6 +61,18 @@ function Content({
     );
   }
 
+  const colors = (data && theme.charts.getColorPalette(data.length - 2)) || [];
+
+  // Create a list of series based on the order of the fields,
+  const series = data
+    ? data.map((values, i: number) => ({
+        ...values,
+        color: colors[i],
+      }))
+    : [];
+
+  const durationUnit = getDurationUnit(series, legend);
+
   const chartOptions: Omit<LineChartProps, 'series'> = {
     grid: {
       left: '10px',
@@ -68,7 +85,8 @@ function Content({
     },
     tooltip: {
       trigger: 'axis',
-      valueFormatter: tooltipFormatter,
+      valueFormatter: (value, label) =>
+        tooltipFormatter(value, aggregateOutputType(label)),
     },
     xAxis: timeFrame
       ? {
@@ -77,23 +95,15 @@ function Content({
         }
       : undefined,
     yAxis: {
+      minInterval: durationUnit,
       axisLabel: {
         color: theme.chartLabel,
         // p75(measurements.fcp) coerces the axis to be time based
-        formatter: (value: number) => axisLabelFormatter(value, 'p75(measurements.fcp)'),
+        formatter: (value: number) =>
+          axisLabelFormatter(value, 'duration', undefined, durationUnit),
       },
     },
   };
-
-  const colors = (data && theme.charts.getColorPalette(data.length - 2)) || [];
-
-  // Create a list of series based on the order of the fields,
-  const series = data
-    ? data.map((values, i: number) => ({
-        ...values,
-        color: colors[i],
-      }))
-    : [];
 
   return (
     <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>

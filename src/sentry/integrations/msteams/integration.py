@@ -1,6 +1,9 @@
-import logging
+from __future__ import annotations
 
-from django.utils.translation import ugettext_lazy as _
+import logging
+from typing import Any
+
+from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -12,9 +15,14 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
+from sentry.models.integrations.integration import Integration
 from sentry.pipeline import PipelineView
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 
-from .card_builder import build_installation_confirmation_message
+from .card_builder.installation import (
+    build_personal_installation_confirmation_message,
+    build_team_installation_confirmation_message,
+)
 from .client import MsTeamsClient, get_token_data
 
 logger = logging.getLogger("sentry.integrations.msteams")
@@ -80,30 +88,48 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
 
     def build_integration(self, state):
         data = state[self.key]
-        team_id = data["team_id"]
-        team_name = data["team_name"]
+        external_id = data["external_id"]
+        external_name = data["external_name"]
         service_url = data["service_url"]
+        user_id = data["user_id"]
+        conversation_id = data["conversation_id"]
 
         # TODO: add try/except for request errors
         token_data = get_token_data()
 
         integration = {
-            "name": team_name,
-            "external_id": team_id,
+            "name": external_name,
+            "external_id": external_id,
             "metadata": {
                 "access_token": token_data["access_token"],
                 "expires_at": token_data["expires_at"],
                 "service_url": service_url,
+                "installation_type": data["installation_type"],
+                "tenant_id": data["tenant_id"],
             },
-            # TODO: Use user id for external_id in user_identity
-            "user_identity": {"type": "msteams", "external_id": team_id, "scopes": [], "data": {}},
+            "user_identity": {
+                "type": "msteams",
+                "external_id": user_id,
+                "scopes": [],
+                "data": {},
+            },
+            "post_install_data": {"conversation_id": conversation_id},
         }
         return integration
 
-    def post_install(self, integration, organization, extra=None):
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
+    ) -> None:
         client = MsTeamsClient(integration)
-        card = build_installation_confirmation_message(organization)
-        conversation_id = integration.external_id
+        card = (
+            build_team_installation_confirmation_message(organization)
+            if "team" == integration.metadata["installation_type"]
+            else build_personal_installation_confirmation_message()
+        )
+        conversation_id = extra["conversation_id"]
         client.send_card(conversation_id, card)
 
 

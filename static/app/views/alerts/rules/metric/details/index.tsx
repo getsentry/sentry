@@ -1,22 +1,23 @@
 import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
+import pick from 'lodash/pick';
 import moment from 'moment';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Client, ResponseMeta} from 'sentry/api';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import DateTime from 'sentry/components/dateTime';
+import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
-import {buildMetricGraphDateRange} from 'sentry/views/alerts/rules/details/utils';
 import {MetricRule, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import type {Incident} from 'sentry/views/alerts/types';
 import {
@@ -25,11 +26,12 @@ import {
   fetchIncidentsForRule,
 } from 'sentry/views/alerts/utils/apiCalls';
 
-import DetailsBody from './body';
+import MetricDetailsBody from './body';
 import {TIME_OPTIONS, TIME_WINDOWS, TimePeriodType} from './constants';
 import DetailsHeader from './header';
+import {buildMetricGraphDateRange} from './utils';
 
-interface Props extends RouteComponentProps<{orgId: string; ruleId: string}, {}> {
+interface Props extends RouteComponentProps<{ruleId: string}, {}> {
   api: Client;
   location: Location;
   organization: Organization;
@@ -50,17 +52,24 @@ class MetricAlertDetails extends Component<Props, State> {
   state: State = {isLoading: false, hasError: false, error: null, selectedIncident: null};
 
   componentDidMount() {
-    const {api, params} = this.props;
+    const {api, organization} = this.props;
 
-    fetchOrgMembers(api, params.orgId);
+    fetchOrgMembers(api, organization.slug);
     this.fetchData();
     this.trackView();
   }
 
   componentDidUpdate(prevProps: Props) {
+    const prevQuery = pick(prevProps.location.query, ['start', 'end', 'period', 'alert']);
+    const nextQuery = pick(this.props.location.query, [
+      'start',
+      'end',
+      'period',
+      'alert',
+    ]);
     if (
-      prevProps.location.search !== this.props.location.search ||
-      prevProps.params.orgId !== this.props.params.orgId ||
+      !isEqual(prevQuery, nextQuery) ||
+      prevProps.organization.slug !== this.props.organization.slug ||
       prevProps.params.ruleId !== this.props.params.ruleId
     ) {
       this.fetchData();
@@ -71,7 +80,7 @@ class MetricAlertDetails extends Component<Props, State> {
   trackView() {
     const {params, organization, location} = this.props;
 
-    trackAdvancedAnalyticsEvent('alert_rule_details.viewed', {
+    trackAnalytics('alert_rule_details.viewed', {
       organization,
       rule_id: parseInt(params.ruleId, 10),
       alert: (location.query.alert as string) ?? '',
@@ -139,10 +148,26 @@ class MetricAlertDetails extends Component<Props, State> {
     };
   }
 
+  onSnooze = ({
+    snooze,
+    snoozeCreatedBy,
+    snoozeForEveryone,
+  }: {
+    snooze: boolean;
+    snoozeCreatedBy?: string;
+    snoozeForEveryone?: boolean;
+  }) => {
+    if (this.state.rule) {
+      const rule = {...this.state.rule, snooze, snoozeCreatedBy, snoozeForEveryone};
+      this.setState({rule});
+    }
+  };
+
   fetchData = async () => {
     const {
       api,
-      params: {orgId, ruleId},
+      organization,
+      params: {ruleId},
       location,
     } = this.props;
 
@@ -152,7 +177,7 @@ class MetricAlertDetails extends Component<Props, State> {
     const rulePromise =
       ruleId === this.state.rule?.id
         ? Promise.resolve(this.state.rule)
-        : fetchAlertRule(orgId, ruleId, {expand: 'latestIncident'});
+        : fetchAlertRule(organization.slug, ruleId, {expand: 'latestIncident'});
 
     // Fetch selected incident, if it exists. We need this to set the selected date range
     let selectedIncident: Incident | null = null;
@@ -160,7 +185,7 @@ class MetricAlertDetails extends Component<Props, State> {
       try {
         selectedIncident = await fetchIncident(
           api,
-          orgId,
+          organization.slug,
           location.query.alert as string
         );
       } catch {
@@ -172,7 +197,7 @@ class MetricAlertDetails extends Component<Props, State> {
     const {start, end} = timePeriod;
     try {
       const [incidents, rule] = await Promise.all([
-        fetchIncidentsForRule(orgId, ruleId, start, end),
+        fetchIncidentsForRule(organization.slug, ruleId, start, end),
         rulePromise,
       ]);
       this.setState({
@@ -191,19 +216,19 @@ class MetricAlertDetails extends Component<Props, State> {
     const {error} = this.state;
 
     return (
-      <PageContent>
+      <Layout.Page withPadding>
         <Alert type="error" showIcon>
           {error?.status === 404
             ? t('This alert rule could not be found.')
             : t('An error occurred while fetching the alert rule.')}
         </Alert>
-      </PageContent>
+      </Layout.Page>
     );
   }
 
   render() {
     const {rule, incidents, hasError, selectedIncident} = this.state;
-    const {params, projects, loadingProjects} = this.props;
+    const {organization, projects, loadingProjects} = this.props;
     const timePeriod = this.getTimePeriod(selectedIncident);
 
     if (hasError) {
@@ -226,11 +251,12 @@ class MetricAlertDetails extends Component<Props, State> {
 
         <DetailsHeader
           hasMetricRuleDetailsError={hasError}
-          params={params}
+          organization={organization}
           rule={rule}
           project={project}
+          onSnooze={this.onSnooze}
         />
-        <DetailsBody
+        <MetricDetailsBody
           {...this.props}
           rule={rule}
           project={project}

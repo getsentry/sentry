@@ -10,6 +10,10 @@ export interface ActivityBubbleProps extends React.HTMLAttributes<HTMLDivElement
  * on the left-side at the top.
  */
 const ActivityBubble = styled('div')<ActivityBubbleProps>`
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: stretch;
   flex: 1;
   background-color: ${p => p.backgroundColor || p.theme.background};
   border: 1px solid ${p => p.borderColor || p.theme.border};
@@ -44,4 +48,4 @@ const ActivityBubble = styled('div')<ActivityBubbleProps>`
   }
 `;
 
-export default ActivityBubble;
+export {ActivityBubble};

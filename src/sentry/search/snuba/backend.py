@@ -1,95 +1,82 @@
 from __future__ import annotations
 
+import atexit
 import functools
+import logging
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Mapping, Optional, Sequence
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence
 
 from django.db.models import Q, QuerySet
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 
-from sentry import quotas
+from sentry import features, quotas
 from sentry.api.event_search import SearchFilter
+from sentry.db.models import BaseQuerySet
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import (
-    Environment,
-    Group,
-    GroupAssignee,
-    GroupEnvironment,
-    GroupHistory,
-    GroupHistoryStatus,
-    GroupLink,
-    GroupOwner,
-    GroupStatus,
-    GroupSubscription,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    PlatformExternalIssue,
-    Project,
-    Release,
-    Team,
-    User,
-)
+from sentry.issues.grouptype import ErrorGroupType
+from sentry.models.environment import Environment
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupowner import GroupOwner
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.platformexternalissue import PlatformExternalIssue
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.search.base import SearchBackend
 from sentry.search.events.constants import EQUALITY_OPERATORS, OPERATOR_TO_DJANGO
 from sentry.search.snuba.executors import (
     AbstractQueryExecutor,
     CdcPostgresSnubaQueryExecutor,
+    InvalidQueryForExecutor,
     PostgresSnubaQueryExecutor,
+    PrioritySortWeights,
 )
+from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
+
+logger = logging.getLogger(__name__)
 
 
 def assigned_to_filter(
     actors: Sequence[User | Team | None], projects: Sequence[Project], field_filter: str = "id"
 ) -> Q:
-    from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 
     include_none = False
     types_to_actors = defaultdict(list)
     for actor in actors:
         if actor is None:
             include_none = True
-        types_to_actors[type(actor) if not isinstance(actor, SimpleLazyObject) else User].append(
-            actor
-        )
+        types_to_actors[
+            (actor and actor.class_name()) if not isinstance(actor, SimpleLazyObject) else "User"
+        ].append(actor)
 
     query = Q()
 
-    if Team in types_to_actors:
+    if "Team" in types_to_actors:
         query |= Q(
             **{
                 f"{field_filter}__in": GroupAssignee.objects.filter(
-                    team__in=types_to_actors[Team], project_id__in=[p.id for p in projects]
+                    team__in=types_to_actors["Team"], project_id__in=[p.id for p in projects]
                 ).values_list("group_id", flat=True)
             }
         )
 
-    if User in types_to_actors:
-        users = types_to_actors[User]
+    if "User" in types_to_actors:
+        users = types_to_actors["User"]
+        user_ids: List[int] = [u.id for u in users if u is not None]
         query |= Q(
             **{
                 f"{field_filter}__in": GroupAssignee.objects.filter(
-                    user__in=users, project_id__in=[p.id for p in projects]
-                ).values_list("group_id", flat=True)
-            }
-        )
-        query |= Q(
-            **{
-                f"{field_filter}__in": GroupAssignee.objects.filter(
-                    project_id__in=[p.id for p in projects],
-                    team_id__in=list(
-                        Team.objects.filter(
-                            id__in=OrganizationMemberTeam.objects.filter(
-                                organizationmember__in=OrganizationMember.objects.filter(
-                                    user__in=users, organization_id=projects[0].organization_id
-                                ),
-                                is_active=True,
-                            ).values_list("team_id", flat=True)
-                        )
-                    ),
+                    user_id__in=user_ids, project_id__in=[p.id for p in projects]
                 ).values_list("group_id", flat=True)
             }
         )
@@ -197,14 +184,14 @@ def assigned_or_suggested_filter(
     for owner in owners:
         if owner is None:
             include_none = True
-        types_to_owners[type(owner) if not isinstance(owner, SimpleLazyObject) else User].append(
-            owner
-        )
+        types_to_owners[
+            (owner and owner.class_name()) if not isinstance(owner, SimpleLazyObject) else "User"
+        ].append(owner)
 
     query = Q()
 
-    if Team in types_to_owners:
-        teams = types_to_owners[Team]
+    if "Team" in types_to_owners:
+        teams = types_to_owners["Team"]
         query |= Q(
             **{
                 f"{field_filter}__in": GroupOwner.objects.filter(
@@ -218,22 +205,14 @@ def assigned_or_suggested_filter(
             }
         ) | assigned_to_filter(teams, projects, field_filter=field_filter)
 
-    if User in types_to_owners:
-        users = types_to_owners[User]
-        team_ids = list(
-            Team.objects.filter(
-                id__in=OrganizationMemberTeam.objects.filter(
-                    organizationmember__in=OrganizationMember.objects.filter(
-                        user__in=users, organization_id=organization_id
-                    ),
-                    is_active=True,
-                ).values("team")
-            ).values_list("id", flat=True)
-        )
+    if "User" in types_to_owners:
+        users = types_to_owners["User"]
+        user_ids: List[int] = [u.id for u in users if u is not None]
+        query_ids = Q(user_id__in=user_ids)
         owned_by_me = Q(
             **{
                 f"{field_filter}__in": GroupOwner.objects.filter(
-                    Q(user__in=users) | Q(team_id__in=team_ids),
+                    query_ids,
                     group__assignee_set__isnull=True,
                     project_id__in=[p.id for p in projects],
                     organization_id=organization_id,
@@ -273,6 +252,149 @@ def regressed_in_release_filter(versions: Sequence[str], projects: Sequence[Proj
             project__in=projects,
         ).values_list("group_id", flat=True),
     )
+
+
+_side_query_pool = ThreadPoolExecutor(max_workers=10)
+
+atexit.register(_side_query_pool.shutdown, False)
+
+
+def _group_attributes_side_query(
+    events_only_search_results: CursorResult[Group],
+    builder: Callable[[], BaseQuerySet],
+    projects: Sequence[Project],
+    retention_window_start: Optional[datetime],
+    group_queryset: BaseQuerySet,
+    environments: Optional[Sequence[Environment]] = None,
+    sort_by: str = "date",
+    limit: int = 100,
+    cursor: Optional[Cursor] = None,
+    count_hits: bool = False,
+    paginator_options: Optional[Mapping[str, Any]] = None,
+    search_filters: Optional[Sequence[SearchFilter]] = None,
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None,
+    max_hits: Optional[int] = None,
+    referrer: Optional[str] = None,
+    actor: Optional[Any] = None,
+    aggregate_kwargs: Optional[PrioritySortWeights] = None,
+) -> None:
+    def __run_joined_query_and_log_metric(
+        events_only_search_results: CursorResult[Group],
+        builder: Callable[[], BaseQuerySet],
+        projects: Sequence[Project],
+        retention_window_start: Optional[datetime],
+        group_queryset: BaseQuerySet,
+        environments: Optional[Sequence[Environment]] = None,
+        sort_by: str = "date",
+        limit: int = 100,
+        cursor: Optional[Cursor] = None,
+        count_hits: bool = False,
+        paginator_options: Optional[Mapping[str, Any]] = None,
+        search_filters: Optional[Sequence[SearchFilter]] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+        max_hits: Optional[int] = None,
+        referrer: Optional[str] = None,
+        actor: Optional[Any] = None,
+        aggregate_kwargs: Optional[PrioritySortWeights] = None,
+    ):
+        from sentry.utils import metrics
+
+        try:
+            from sentry.search.snuba.executors import GroupAttributesPostgresSnubaQueryExecutor
+
+            executor = GroupAttributesPostgresSnubaQueryExecutor()
+            with metrics.timer("snuba.search.group_attributes_joined.duration"):
+                cursor_results = executor.query(
+                    projects,
+                    retention_window_start,
+                    builder(),
+                    environments,
+                    sort_by,
+                    limit,
+                    cursor,
+                    count_hits,
+                    paginator_options,
+                    search_filters,
+                    date_from,
+                    date_to,
+                    max_hits,
+                    referrer,
+                    actor,
+                    aggregate_kwargs,
+                )
+            joined_hits = len(cursor_results.results)
+            events_only_search_hits = len(events_only_search_results.results)
+            if events_only_search_hits > 0:
+                if joined_hits == events_only_search_hits:
+                    comparison = "equal"
+                elif joined_hits > events_only_search_hits:
+                    comparison = "greater"
+                else:
+                    # the joined query shouldn't have fewer hits since the query is deliberately less restrictive
+                    comparison = "less"
+
+                metrics.incr(
+                    "snuba.search.group_attributes_joined.events_compared",
+                    tags={"comparison": comparison},
+                )
+
+            metrics.incr("snuba.search.group_attributes_joined.query", tags={"exception": "none"})
+        except InvalidQueryForExecutor as e:
+            logger.info(
+                "unsupported query received in GroupAttributesPostgresSnubaQueryExecutor",
+                exc_info=True,
+            )
+            metrics.incr(
+                "snuba.search.group_attributes_joined.query",
+                tags={
+                    "exception": f"{type(e).__module__}.{type(e).__qualname__}",
+                },
+            )
+        except Exception as e:
+            logger.warning(
+                "failed to load side query from _group_attributes_side_query", exc_info=True
+            )
+            metrics.incr(
+                "snuba.search.group_attributes_joined.query",
+                tags={
+                    "exception": f"{type(e).__module__}.{type(e).__qualname__}",
+                },
+            )
+        finally:
+            # since this code is running in a thread and django establishes a connection per thread, we need to
+            # explicitly close the connection assigned to this thread to avoid linger connections
+            from django.db import connection
+
+            connection.close()
+
+    try:
+        _side_query_pool.submit(
+            __run_joined_query_and_log_metric,
+            events_only_search_results,
+            builder,
+            projects,
+            retention_window_start,
+            group_queryset,
+            environments,
+            sort_by,
+            limit,
+            cursor,
+            count_hits,
+            paginator_options,
+            search_filters,
+            date_from,
+            date_to,
+            max_hits,
+            referrer,
+            actor,
+            aggregate_kwargs,
+        )
+    except Exception:
+        logger.exception(
+            "failed to submit group-attributes search side-query to pool", exc_info=True
+        )
 
 
 class Condition:
@@ -357,9 +479,12 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         date_from: Optional[datetime] = None,
         date_to: Optional[datetime] = None,
         max_hits: Optional[int] = None,
+        referrer: Optional[str] = None,
+        actor: Optional[Any] = None,
+        aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> CursorResult[Group]:
-        search_filters = search_filters if search_filters is not None else []
 
+        search_filters = search_filters if search_filters is not None else []
         # ensure projects are from same org
         if len({p.organization_id for p in projects}) != 1:
             raise RuntimeError("Cross organization search not supported")
@@ -396,21 +521,70 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         if not query_executor.has_sort_strategy(sort_by):
             raise InvalidSearchQuery(f"Sort key '{sort_by}' not supported.")
 
-        return query_executor.query(
-            projects=projects,
-            retention_window_start=retention_window_start,
-            group_queryset=group_queryset,
-            environments=environments,
-            sort_by=sort_by,
-            limit=limit,
-            cursor=cursor,
-            count_hits=count_hits,
-            paginator_options=paginator_options,
-            search_filters=search_filters,
-            date_from=date_from,
-            date_to=date_to,
-            max_hits=max_hits,
-        )
+        with metrics.timer("snuba.search.postgres_snuba.duration"):
+            query_results = query_executor.query(
+                projects=projects,
+                retention_window_start=retention_window_start,
+                group_queryset=group_queryset,
+                environments=environments,
+                sort_by=sort_by,
+                limit=limit,
+                cursor=cursor,
+                count_hits=count_hits,
+                paginator_options=paginator_options,
+                search_filters=search_filters,
+                date_from=date_from,
+                date_to=date_to,
+                max_hits=max_hits,
+                referrer=referrer,
+                actor=actor,
+                aggregate_kwargs=aggregate_kwargs,
+            )
+
+        if len(projects) > 0 and features.has(
+            "organizations:issue-search-group-attributes-side-query", projects[0].organization
+        ):
+            new_group_queryset = self._build_group_queryset(
+                projects=projects,
+                environments=environments,
+                search_filters=search_filters,
+                retention_window_start=retention_window_start,
+                date_from=date_from,
+                date_to=date_to,
+            )
+
+            builder = functools.partial(
+                self._build_group_queryset,
+                projects=projects,
+                environments=environments,
+                search_filters=search_filters,
+                retention_window_start=retention_window_start,
+                date_from=date_from,
+                date_to=date_to,
+            )
+
+            _group_attributes_side_query(
+                events_only_search_results=query_results,
+                builder=builder,
+                projects=projects,
+                retention_window_start=retention_window_start,
+                group_queryset=new_group_queryset,
+                environments=environments,
+                sort_by=sort_by,
+                limit=limit,
+                cursor=cursor,
+                count_hits=count_hits,
+                paginator_options=paginator_options,
+                search_filters=search_filters,
+                date_from=date_from,
+                date_to=date_to,
+                max_hits=max_hits,
+                referrer=referrer,
+                actor=actor,
+                aggregate_kwargs=aggregate_kwargs,
+            )
+
+        return query_results
 
     def _build_group_queryset(
         self,
@@ -500,8 +674,12 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
     ) -> Mapping[str, Condition]:
         queryset_conditions: Dict[str, Condition] = {
             "status": QCallbackCondition(lambda statuses: Q(status__in=statuses)),
+            "substatus": QCallbackCondition(lambda substatuses: Q(substatus__in=substatuses)),
             "bookmarked_by": QCallbackCondition(
-                lambda users: Q(bookmark_set__project__in=projects, bookmark_set__user__in=users)
+                lambda users: Q(
+                    bookmark_set__project__in=projects,
+                    bookmark_set__user_id__in=[u.id for u in users if u],
+                )
             ),
             "assigned_to": QCallbackCondition(
                 functools.partial(assigned_to_filter, projects=projects)
@@ -513,7 +691,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "subscribed_by": QCallbackCondition(
                 lambda users: Q(
                     id__in=GroupSubscription.objects.filter(
-                        project__in=projects, user__in=users, is_active=True
+                        project__in=projects, user_id__in=[u.id for u in users if u], is_active=True
                     ).values_list("group")
                 )
             ),
@@ -524,7 +702,34 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "regressed_in_release": QCallbackCondition(
                 functools.partial(regressed_in_release_filter, projects=projects)
             ),
+            "issue.category": QCallbackCondition(lambda categories: Q(type__in=categories)),
+            "issue.type": QCallbackCondition(lambda types: Q(type__in=types)),
         }
+
+        message_filter = next((sf for sf in search_filters or () if "message" == sf.key.name), None)
+        if message_filter:
+
+            def _issue_platform_issue_message_condition(query: str) -> Q:
+                return Q(
+                    ~Q(type=ErrorGroupType.type_id),
+                    message__icontains=query,
+                )
+
+            queryset_conditions.update(
+                {
+                    "message": QCallbackCondition(
+                        lambda query: Q(type=ErrorGroupType.type_id)
+                        | _issue_platform_issue_message_condition(query)
+                    )
+                    # negation should only apply on the message search icontains, we have to include
+                    # the type filter(type=GroupType.ERROR) check since we don't wanna search on the message
+                    # column when type=GroupType.ERROR - we delegate that to snuba in that case
+                    if not message_filter.is_negation
+                    else QCallbackCondition(
+                        lambda query: _issue_platform_issue_message_condition(query)
+                    )
+                }
+            )
 
         if environments is not None:
             environment_ids = [environment.id for environment in environments]

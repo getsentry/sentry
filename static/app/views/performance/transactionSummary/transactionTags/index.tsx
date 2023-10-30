@@ -27,7 +27,7 @@ function TransactionTags(props: Props) {
       location={location}
       organization={organization}
       projects={projects}
-      tab={Tab.Tags}
+      tab={Tab.TAGS}
       getDocumentTitle={getDocumentTitle}
       generateEventView={generateEventView}
       childComponent={TagsPageContent}
@@ -53,7 +53,7 @@ function generateEventView({
   location: Location;
   transactionName: string;
 }): EventView {
-  const query = decodeScalar(location.query.query, '');
+  const query = `(${decodeScalar(location.query.query, '')})`;
   const conditions = new MutableSearch(query);
 
   conditions.setFilterValues('event.type', ['transaction']);

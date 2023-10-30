@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from collections import namedtuple
-from typing import Any, Iterable, Mapping
+from typing import Any, Iterable, Mapping, Optional, Union
 
+from sentry.models.user import User
 from sentry.notifications.types import (
     FineTuningAPIKey,
     NotificationScopeType,
@@ -10,13 +11,14 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
     UserOptionsSettingsKey,
 )
+from sentry.services.hybrid_cloud.user.model import RpcUser
 
 LegacyUserOptionClone = namedtuple(
     "LegacyUserOptionClone",
     [
         "user",
-        "project",
-        "organization",
+        "project_id",
+        "organization_id",
         "key",
         "value",
     ],
@@ -164,9 +166,7 @@ def get_key_value_from_legacy(
 
 def get_legacy_object(
     notification_setting: Any,
-    actor_mapping: Mapping[int, Any],
-    parent_mapping: Mapping[int, Any],
-    organization_mapping: Mapping[int, Any],
+    user_mapping: Optional[Mapping[int, Union[User, RpcUser]]] = None,
 ) -> Any:
     type = NotificationSettingTypes(notification_setting.type)
     value = NotificationSettingOptionValues(notification_setting.value)
@@ -176,29 +176,26 @@ def get_legacy_object(
     data = {
         "key": key,
         "value": get_legacy_value(type, value),
-        "user": actor_mapping.get(notification_setting.target_id),
-        "project": None,
-        "organization": None,
+        "user": user_mapping.get(notification_setting.user_id) if user_mapping else None,
+        "project_id": None,
+        "organization_id": None,
     }
 
     if scope_type == NotificationScopeType.PROJECT:
-        data["project"] = parent_mapping.get(notification_setting.scope_identifier)
+        data["project_id"] = notification_setting.scope_identifier
     if scope_type == NotificationScopeType.ORGANIZATION:
-        data["organization"] = organization_mapping.get(notification_setting.scope_identifier)
+        data["organization_id"] = notification_setting.scope_identifier
 
     return LegacyUserOptionClone(**data)
 
 
 def map_notification_settings_to_legacy(
     notification_settings: Iterable[Any],
-    actor_mapping: Mapping[int, Any],
+    user_mapping: Mapping[int, Union[User, RpcUser]],
 ) -> list[Any]:
     """A hack for legacy serializers. Pretend a list of NotificationSettings is a list of UserOptions."""
-    project_mapping, organization_mapping = get_parent_mappings(notification_settings)
     return [
-        get_legacy_object(
-            notification_setting, actor_mapping, project_mapping, organization_mapping
-        )
+        get_legacy_object(notification_setting, user_mapping)
         for notification_setting in notification_settings
     ]
 

@@ -1,12 +1,14 @@
-import type {LegendComponentOption} from 'echarts';
+import type {EChartsOption, LegendComponentOption, LineSeriesOption} from 'echarts';
 import type {Location} from 'history';
 import moment from 'moment';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {EventsStats, MultiSeriesEventsStats, PageFilters} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import {defined, escape} from 'sentry/utils';
-import {parsePeriodToHours} from 'sentry/utils/dates';
+import {getFormattedDate, parsePeriodToHours} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import {decodeList} from 'sentry/utils/queryString';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
@@ -50,7 +52,7 @@ export function useShortInterval(datetimeObj: DateTimeObject): boolean {
   return diffInMinutes <= TWENTY_FOUR_HOURS;
 }
 
-export type Fidelity = 'high' | 'medium' | 'low';
+export type Fidelity = 'high' | 'medium' | 'low' | 'metrics';
 
 export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'medium') {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
@@ -61,6 +63,9 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
       return '4h';
     }
     if (fidelity === 'medium') {
+      return '1d';
+    }
+    if (fidelity === 'metrics') {
       return '1d';
     }
     return '2d';
@@ -74,6 +79,9 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
     if (fidelity === 'medium') {
       return '4h';
     }
+    if (fidelity === 'metrics') {
+      return '12h';
+    }
     return '1d';
   }
 
@@ -84,27 +92,52 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
     if (fidelity === 'medium') {
       return '1h';
     }
+    if (fidelity === 'metrics') {
+      return '4h';
+    }
     return '12h';
   }
 
   if (diffInMinutes > TWENTY_FOUR_HOURS) {
-    // Greater than 24 hours
+    // Between 24 hours and 14 days
     if (fidelity === 'high') {
       return '30m';
     }
     if (fidelity === 'medium') {
       return '1h';
     }
+    if (fidelity === 'metrics') {
+      return '30m';
+    }
     return '6h';
   }
 
+  if (diffInMinutes > SIX_HOURS) {
+    // Between six hours and 24 hours
+    if (fidelity === 'high') {
+      return '5m';
+    }
+
+    if (fidelity === 'medium') {
+      return '15m';
+    }
+
+    if (fidelity === 'metrics') {
+      return '5m';
+    }
+    return '1h';
+  }
+
   if (diffInMinutes > ONE_HOUR) {
-    // Between 1 hour and 24 hours
+    // Between 1 hour and 6 hours
     if (fidelity === 'high') {
       return '5m';
     }
     if (fidelity === 'medium') {
       return '15m';
+    }
+    if (fidelity === 'metrics') {
+      return '1m';
     }
     return '1h';
   }
@@ -115,6 +148,9 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
   }
   if (fidelity === 'medium') {
     return '5m';
+  }
+  if (fidelity === 'metrics') {
+    return '1m';
   }
   return '10m';
 }
@@ -134,6 +170,11 @@ export function getSeriesApiInterval(datetimeObj: DateTimeObject) {
   if (diffInMinutes >= THIRTY_DAYS) {
     // Greater than or equal to 30 days
     return '4h';
+  }
+
+  if (diffInMinutes < SIX_HOURS) {
+    // Less than 6 hours
+    return '5m';
   }
 
   return '1h';
@@ -211,7 +252,7 @@ export function isMultiSeriesStats(
   return (
     defined(data) &&
     ((data.data === undefined && data.totals === undefined) ||
-      (defined(isTopN) && isTopN && defined(data) && !!!isSingleSeriesStats(data))) // the isSingleSeriesStats check is for topN queries returning null data
+      (defined(isTopN) && isTopN && defined(data) && !isSingleSeriesStats(data))) // the isSingleSeriesStats check is for topN queries returning null data
   );
 }
 
@@ -279,3 +320,100 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
 export const getPreviousSeriesName = (seriesName: string) => {
   return `previous ${seriesName}`;
 };
+
+function formatList(items: Array<string | number | undefined>) {
+  const filteredItems = items.filter((item): item is string | number => !!item);
+
+  return oxfordizeArray(filteredItems.map(item => item.toString()));
+}
+
+export function useEchartsAriaLabels(
+  {series, useUTC}: Omit<EChartsOption, 'series'>,
+  isGroupedByDate: boolean
+) {
+  const filteredSeries = Array.isArray(series)
+    ? series.filter(s => s && !!s.data && s.data.length > 0)
+    : [series];
+
+  const dateFormat = useShortInterval({
+    start: filteredSeries[0]?.data?.[0][0],
+    end: filteredSeries[0]?.data?.slice(-1)[0][0],
+  })
+    ? `MMMM D, h:mm A`
+    : 'MMMM Do';
+
+  if (!filteredSeries[0]) {
+    return {enabled: false};
+  }
+
+  function formatDate(date) {
+    return getFormattedDate(date, dateFormat, {
+      local: !useUTC,
+    });
+  }
+
+  // Generate title (first sentence)
+  const chartTypes = new Set(filteredSeries.map(s => s.type));
+  const title = [
+    `${formatList([...chartTypes])} chart`,
+    isGroupedByDate
+      ? `with ${formatDate(filteredSeries[0].data?.[0][0])} to ${formatDate(
+          filteredSeries[0].data?.slice(-1)[0][0]
+        )}`
+      : '',
+    `featuring ${filteredSeries.length} data series: ${formatList(
+      filteredSeries.filter(s => s.data && s.data.length > 0).map(s => s.name)
+    )}`,
+  ].join(' ');
+
+  // Generate series descriptions
+  const seriesDescriptions = filteredSeries
+    .map(s => {
+      if (!s.data || s.data.length === 0) {
+        return '';
+      }
+
+      let highestValue: NonNullable<LineSeriesOption['data']>[0] = [0, -Infinity];
+      let lowestValue: NonNullable<LineSeriesOption['data']>[0] = [0, Infinity];
+
+      s.data.forEach(datum => {
+        if (!Array.isArray(datum)) {
+          return;
+        }
+
+        if (datum[1] > highestValue[1]) {
+          highestValue = datum;
+        }
+        if (datum[1] < lowestValue[1]) {
+          lowestValue = datum;
+        }
+      });
+
+      const lowestX = isGroupedByDate ? formatDate(lowestValue[0]) : lowestValue[0];
+      const highestX = isGroupedByDate ? formatDate(lowestValue[0]) : lowestValue[0];
+
+      const lowestY =
+        typeof lowestValue[1] === 'number' ? +lowestValue[1].toFixed(3) : lowestValue[1];
+      const highestY =
+        typeof highestValue[1] === 'number'
+          ? +highestValue[1].toFixed(3)
+          : lowestValue[1];
+
+      return `The ${s.name} series contains ${s.data
+        ?.length} data points. Its lowest value is ${lowestY} ${
+        isGroupedByDate ? 'on' : 'at'
+      } ${lowestX} and highest value is ${highestY} ${
+        isGroupedByDate ? 'on' : 'at'
+      } ${highestX}`;
+    })
+    .filter(s => !!s);
+
+  return {
+    enabled: true,
+    label: {description: [title, ...seriesDescriptions].join('. ')},
+  };
+}
+
+export function isEmptySeries(series: Series) {
+  return series.data.every(dataPoint => dataPoint.value === 0);
+}

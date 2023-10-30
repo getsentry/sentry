@@ -1,11 +1,10 @@
 from rest_framework import serializers
 
-from sentry.api.serializers.rest_framework.list import ListField
-from sentry.models import CommitFileChange
+from sentry.models.commitfilechange import CommitFileChange
 
 
 class CommitPatchSetSerializer(serializers.Serializer):
-    path = serializers.CharField(max_length=255)
+    path = serializers.CharField(max_length=510)
     type = serializers.CharField(max_length=1)
 
     def validate_type(self, value):
@@ -30,6 +29,6 @@ class CommitSerializer(serializers.Serializer):
         allow_blank=True,
     )
     timestamp = serializers.DateTimeField(required=False, allow_null=True)
-    patch_set = ListField(
+    patch_set = serializers.ListField(
         child=CommitPatchSetSerializer(required=False), required=False, allow_null=True
     )

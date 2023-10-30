@@ -2,12 +2,12 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import {nullableValue} from './fieldRenderers';
 
 type Props = {
-  value: string[];
+  value: Array<string | null>;
 };
 type State = {
   expanded: boolean;
@@ -57,7 +57,7 @@ const ArrayContainer = styled('div')<{expanded: boolean}>`
     outline: none;
     padding: 0;
     cursor: pointer;
-    color: ${p => p.theme.blue300};
+    color: ${p => p.theme.linkColor};
     margin-left: ${space(0.5)};
   }
 `;

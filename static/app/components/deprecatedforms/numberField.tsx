@@ -5,6 +5,11 @@ type Props = {
   min?: number;
 } & InputField['props'];
 
+// XXX: This is ONLY used in GenericField. If we can delete that this can go.
+
+/**
+ * @deprecated Do not use this
+ */
 export default class NumberField extends InputField<Props> {
   coerceValue(value) {
     const intValue = parseInt(value, 10);

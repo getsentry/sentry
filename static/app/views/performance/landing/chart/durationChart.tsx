@@ -1,4 +1,3 @@
-import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -10,12 +9,13 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import Chart from '../../charts/chart';
 import {DoubleHeaderContainer} from '../../styles';
@@ -29,19 +29,18 @@ type Props = {
   titleTooltip: string;
   usingBackupAxis: boolean;
   backupField?: string;
-} & WithRouterProps;
+};
 
 function DurationChart({
   organization,
   eventView,
-  location,
-  router,
   field,
   title,
   titleTooltip,
   backupField,
   usingBackupAxis,
 }: Props) {
+  const location = useLocation();
   const api = useApi();
 
   // construct request parameters for fetching chart data
@@ -131,7 +130,6 @@ function DurationChart({
                         height={250}
                         data={series}
                         loading={loading || reloading}
-                        router={router}
                         statsPeriod={globalSelection.datetime.period}
                         start={start}
                         end={end}
@@ -164,4 +162,4 @@ const MaskContainer = styled('div')`
   position: relative;
 `;
 
-export default withRouter(DurationChart);
+export default DurationChart;

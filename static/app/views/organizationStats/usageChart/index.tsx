@@ -1,8 +1,13 @@
 import {Component, Fragment} from 'react';
-import {withTheme} from '@emotion/react';
+import {Theme, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
-import type {SeriesOption, TooltipComponentOption} from 'echarts';
+import type {
+  BarSeriesOption,
+  LegendComponentOption,
+  SeriesOption,
+  TooltipComponentOption,
+} from 'echarts';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import Legend from 'sentry/components/charts/components/legend';
@@ -12,15 +17,14 @@ import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
-import {DATA_CATEGORY_NAMES} from 'sentry/constants';
+import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {DataCategory, IntervalPeriod, SelectValue} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import {DataCategoryInfo, IntervalPeriod, SelectValue} from 'sentry/types';
 import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
-import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import commonTheme, {Theme} from 'sentry/utils/theme';
+import commonTheme from 'sentry/utils/theme';
 
 import {formatUsageWithUnits, GIGABYTE} from '../utils';
 
@@ -39,21 +43,43 @@ const COLOR_ATTACHMENTS = Color(commonTheme.dataCategory.attachments)
 const COLOR_DROPPED = commonTheme.red300;
 const COLOR_FILTERED = commonTheme.pink100;
 
-export const CHART_OPTIONS_DATACATEGORY: SelectValue<DataCategory>[] = [
+export type CategoryOption = {
+  /**
+   * Scale of y-axis with no usage data.
+   */
+  yAxisMinInterval: number;
+} & SelectValue<DataCategoryInfo['plural']>;
+
+export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
   {
-    label: DATA_CATEGORY_NAMES[DataCategory.ERRORS],
-    value: DataCategory.ERRORS,
+    label: DATA_CATEGORY_INFO.error.titleName,
+    value: DATA_CATEGORY_INFO.error.plural,
     disabled: false,
+    yAxisMinInterval: 100,
   },
   {
-    label: DATA_CATEGORY_NAMES[DataCategory.TRANSACTIONS],
-    value: DataCategory.TRANSACTIONS,
+    label: DATA_CATEGORY_INFO.transaction.titleName,
+    value: DATA_CATEGORY_INFO.transaction.plural,
     disabled: false,
+    yAxisMinInterval: 100,
   },
   {
-    label: DATA_CATEGORY_NAMES[DataCategory.ATTACHMENTS],
-    value: DataCategory.ATTACHMENTS,
+    label: DATA_CATEGORY_INFO.replay.titleName,
+    value: DATA_CATEGORY_INFO.replay.plural,
     disabled: false,
+    yAxisMinInterval: 100,
+  },
+  {
+    label: DATA_CATEGORY_INFO.attachment.titleName,
+    value: DATA_CATEGORY_INFO.attachment.plural,
+    disabled: false,
+    yAxisMinInterval: 0.5 * GIGABYTE,
+  },
+  {
+    label: DATA_CATEGORY_INFO.profile.titleName,
+    value: DATA_CATEGORY_INFO.profile.plural,
+    disabled: false,
+    yAxisMinInterval: 100,
   },
 ];
 
@@ -84,6 +110,10 @@ export enum SeriesTypes {
 
 type DefaultProps = {
   /**
+   * Config for category dropdown options
+   */
+  categoryOptions: CategoryOption[];
+  /**
    * Modify the usageStats using the transformation method selected.
    * 1. This must be a pure function!
    * 2. If the parent component will handle the data transformation, you should
@@ -105,8 +135,8 @@ type DefaultProps = {
   usageDateShowUtc: boolean;
 };
 
-type Props = DefaultProps & {
-  dataCategory: DataCategory;
+export type UsageChartProps = DefaultProps & {
+  dataCategory: DataCategoryInfo['plural'];
 
   dataTransform: ChartDataTransform;
   theme: Theme;
@@ -117,6 +147,11 @@ type Props = DefaultProps & {
    * Usage data to draw on chart
    */
   usageStats: ChartStats;
+
+  /**
+   * Override chart colors for each outcome
+   */
+  categoryColors?: string[];
 
   /**
    * Additional data to draw on the chart alongside usage
@@ -142,14 +177,15 @@ type State = {
 };
 
 export type ChartStats = {
-  accepted: NonNullable<SeriesOption['data']>;
-  dropped: NonNullable<SeriesOption['data']>;
-  projected: NonNullable<SeriesOption['data']>;
-  filtered?: NonNullable<SeriesOption['data']>;
+  accepted: NonNullable<BarSeriesOption['data']>;
+  dropped: NonNullable<BarSeriesOption['data']>;
+  projected: NonNullable<BarSeriesOption['data']>;
+  filtered?: NonNullable<BarSeriesOption['data']>;
 };
 
-export class UsageChart extends Component<Props, State> {
+export class UsageChart extends Component<UsageChartProps, State> {
   static defaultProps: DefaultProps = {
+    categoryOptions: CHART_OPTIONS_DATACATEGORY,
     usageDateShowUtc: true,
     usageDateInterval: '1d',
     handleDataTransformation: (stats, transform) => {
@@ -190,7 +226,10 @@ export class UsageChart extends Component<Props, State> {
    * E.g. usageStats.accepted covers day 1-15 of a month, usageStats.projected
    * either covers day 16-30 or may not be available at all.
    */
-  static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
+  static getDerivedStateFromProps(
+    nextProps: Readonly<UsageChartProps>,
+    prevState: State
+  ): State {
     const {usageDateStart, usageDateEnd, usageDateShowUtc, usageDateInterval} = nextProps;
 
     return {
@@ -208,11 +247,11 @@ export class UsageChart extends Component<Props, State> {
     const {dataCategory, theme} = this.props;
     const COLOR_PROJECTED = theme.chartOther;
 
-    if (dataCategory === DataCategory.ERRORS) {
+    if (dataCategory === DATA_CATEGORY_INFO.error.plural) {
       return [COLOR_ERRORS, COLOR_FILTERED, COLOR_DROPPED, COLOR_PROJECTED];
     }
 
-    if (dataCategory === DataCategory.ATTACHMENTS) {
+    if (dataCategory === DATA_CATEGORY_INFO.attachment.plural) {
       return [COLOR_ATTACHMENTS, COLOR_FILTERED, COLOR_DROPPED, COLOR_PROJECTED];
     }
 
@@ -229,7 +268,7 @@ export class UsageChart extends Component<Props, State> {
     yAxisFormatter: (val: number) => string;
     yAxisMinInterval: number;
   } {
-    const {usageDateStart, usageDateEnd} = this.props;
+    const {categoryOptions, usageDateStart, usageDateEnd} = this.props;
     const {
       usageDateInterval,
       usageStats,
@@ -239,9 +278,7 @@ export class UsageChart extends Component<Props, State> {
     } = this.props;
     const {xAxisDates} = this.state;
 
-    const selectDataCategory = CHART_OPTIONS_DATACATEGORY.find(
-      o => o.value === dataCategory
-    );
+    const selectDataCategory = categoryOptions.find(o => o.value === dataCategory);
     if (!selectDataCategory) {
       throw new Error('Selected item is not supported');
     }
@@ -276,20 +313,7 @@ export class UsageChart extends Component<Props, State> {
       dataPeriod / barPeriod
     );
 
-    const {label, value} = selectDataCategory;
-
-    if (value === DataCategory.ERRORS || value === DataCategory.TRANSACTIONS) {
-      return {
-        chartLabel: label,
-        chartData,
-        xAxisData: xAxisDates,
-        xAxisTickInterval,
-        xAxisLabelInterval,
-        yAxisMinInterval: 100,
-        yAxisFormatter: formatAbbreviatedNumber,
-        tooltipValueFormatter: getTooltipFormatter(dataCategory),
-      };
-    }
+    const {label, yAxisMinInterval} = selectDataCategory;
 
     return {
       chartLabel: label,
@@ -297,9 +321,9 @@ export class UsageChart extends Component<Props, State> {
       xAxisData: xAxisDates,
       xAxisTickInterval,
       xAxisLabelInterval,
-      yAxisMinInterval: 0.5 * GIGABYTE,
+      yAxisMinInterval,
       yAxisFormatter: (val: number) =>
-        formatUsageWithUnits(val, DataCategory.ATTACHMENTS, {
+        formatUsageWithUnits(val, dataCategory, {
           isAbbreviated: true,
           useUnitScaling: true,
         }),
@@ -314,27 +338,27 @@ export class UsageChart extends Component<Props, State> {
     let series: SeriesOption[] = [
       barSeries({
         name: SeriesTypes.ACCEPTED,
-        data: chartData.accepted as any, // TODO(ts)
+        data: chartData.accepted,
         barMinHeight: 1,
         stack: 'usage',
         legendHoverLink: false,
       }),
       barSeries({
         name: SeriesTypes.FILTERED,
-        data: chartData.filtered as any, // TODO(ts)
+        data: chartData.filtered,
         barMinHeight: 1,
         stack: 'usage',
         legendHoverLink: false,
       }),
       barSeries({
         name: SeriesTypes.DROPPED,
-        data: chartData.dropped as any, // TODO(ts)
+        data: chartData.dropped,
         stack: 'usage',
         legendHoverLink: false,
       }),
       barSeries({
         name: SeriesTypes.PROJECTED,
-        data: chartData.projected as any, // TODO(ts)
+        data: chartData.projected,
         barMinHeight: 1,
         stack: 'usage',
         legendHoverLink: false,
@@ -349,31 +373,39 @@ export class UsageChart extends Component<Props, State> {
     return series;
   }
 
-  get chartLegend() {
+  get chartLegendData() {
+    const {chartSeries} = this.props;
     const {chartData} = this.chartMetadata;
-    const legend = [
+    const legend: LegendComponentOption['data'] = [
       {
         name: SeriesTypes.ACCEPTED,
       },
     ];
 
-    if (chartData.filtered && (chartData.filtered as any[]).length > 0) {
+    if (chartData.filtered && chartData.filtered.length > 0) {
       legend.push({
         name: SeriesTypes.FILTERED,
       });
     }
 
-    if ((chartData.dropped as any[]).length > 0) {
+    if (chartData.dropped.length > 0) {
       legend.push({
         name: SeriesTypes.DROPPED,
       });
     }
 
-    if ((chartData.projected as any[]).length > 0) {
+    if (chartData.projected.length > 0) {
       legend.push({
         name: SeriesTypes.PROJECTED,
       });
     }
+
+    if (chartSeries) {
+      chartSeries.forEach(chartOption => {
+        legend.push({name: `${chartOption.name}`});
+      });
+    }
+
     return legend;
   }
 
@@ -395,7 +427,7 @@ export class UsageChart extends Component<Props, State> {
   }
 
   renderChart() {
-    const {theme, title, isLoading, isError, errors} = this.props;
+    const {categoryColors, theme, title, isLoading, isError, errors} = this.props;
     if (isLoading) {
       return (
         <Placeholder height="200px">
@@ -407,8 +439,8 @@ export class UsageChart extends Component<Props, State> {
     if (isError) {
       return (
         <Placeholder height="200px">
-          <IconWarning size={theme.fontSizeExtraLarge} />
-          <ErrorMessages>
+          <IconWarning size="sm" />
+          <ErrorMessages data-test-id="error-messages">
             {errors &&
               Object.keys(errors).map(k => <span key={k}>{errors[k]?.message}</span>)}
           </ErrorMessages>
@@ -424,13 +456,15 @@ export class UsageChart extends Component<Props, State> {
       yAxisFormatter,
     } = this.chartMetadata;
 
+    const colors = categoryColors?.length ? categoryColors : this.chartColors;
+
     return (
       <Fragment>
         <HeaderTitleLegend>{title || t('Current Usage Period')}</HeaderTitleLegend>
         {getDynamicText({
           value: (
             <BaseChart
-              colors={this.chartColors}
+              colors={colors}
               grid={{bottom: '3px', left: '0px', right: '10px', top: '40px'}}
               xAxis={xAxis({
                 show: true,
@@ -461,7 +495,7 @@ export class UsageChart extends Component<Props, State> {
               legend={Legend({
                 right: 10,
                 top: 5,
-                data: this.chartLegend,
+                data: this.chartLegendData,
                 theme,
               })}
             />
@@ -476,7 +510,7 @@ export class UsageChart extends Component<Props, State> {
     const {footer} = this.props;
 
     return (
-      <Panel id="usage-chart">
+      <Panel id="usage-chart" data-test-id="usage-chart">
         <ChartContainer>{this.renderChart()}</ChartContainer>
         {footer}
       </Panel>

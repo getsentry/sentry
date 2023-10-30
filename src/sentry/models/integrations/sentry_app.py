@@ -2,13 +2,15 @@ import hmac
 import itertools
 import uuid
 from hashlib import sha256
+from typing import List
 
-from django.db import models
+from django.db import models, router, transaction
 from django.db.models import QuerySet
-from django.template.defaultfilters import slugify
 from django.utils import timezone
+from django.utils.text import slugify
 from rest_framework.request import Request
 
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import (
     SENTRY_APP_SLUG_MAX_LENGTH,
     SentryAppInstallationStatus,
@@ -17,12 +19,17 @@ from sentry.constants import (
 from sentry.db.models import (
     ArrayField,
     BoundedPositiveIntegerField,
-    EncryptedJsonField,
     FlexibleForeignKey,
+    Model,
     ParanoidManager,
     ParanoidModel,
+    control_silo_only_model,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.fields.jsonfield import JSONField
 from sentry.models.apiscopes import HasApiScopes
+from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
+from sentry.types.region import find_all_region_names
 from sentry.utils import metrics
 
 # When a developer selects to receive "<Resource> Webhooks" it really means
@@ -68,7 +75,7 @@ def default_uuid():
     return str(uuid.uuid4())
 
 
-def generate_slug(name, is_internal=False):
+def generate_slug(name: str, is_internal=False) -> str:
     slug = slugify(name)
     # for internal, add some uuid to make it unique
     if is_internal:
@@ -103,8 +110,9 @@ class SentryAppManager(ParanoidManager):
         return self.filter(status=SentryAppStatus.PUBLISHED)
 
 
-class SentryApp(ParanoidModel, HasApiScopes):
-    __include_in_export__ = True
+@control_silo_only_model
+class SentryApp(ParanoidModel, HasApiScopes, Model):
+    __relocation_scope__ = RelocationScope.Global
 
     application = models.OneToOneField(
         "sentry.ApiApplication", null=True, on_delete=models.SET_NULL, related_name="sentry_app"
@@ -118,7 +126,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
 
     # The Organization the Sentry App was created in "owns" it. Members of that
     # Org have differing access, dependent on their role within the Org.
-    owner = FlexibleForeignKey("sentry.Organization", related_name="owned_sentry_apps")
+    owner_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
 
     name = models.TextField()
     slug = models.CharField(max_length=SENTRY_APP_SLUG_MAX_LENGTH, unique=True)
@@ -142,7 +150,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
     events = ArrayField(of=models.TextField, null=True)
 
     overview = models.TextField(null=True)
-    schema = EncryptedJsonField(default=dict)
+    schema = JSONField(default=dict)
 
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now)
@@ -190,10 +198,10 @@ class SentryApp(ParanoidModel, HasApiScopes):
         return super().save(*args, **kwargs)
 
     def is_installed_on(self, organization):
-        from sentry.models import SentryAppInstallation
+        from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 
         return SentryAppInstallation.objects.filter(
-            organization=organization,
+            organization_id=organization.id,
             sentry_app=self,
         ).exists()
 
@@ -207,8 +215,28 @@ class SentryApp(ParanoidModel, HasApiScopes):
         encoded_scopes = set({"%s" % scope for scope in list(access.scopes)})
         return set(self.scope_list).issubset(encoded_scopes)
 
+    def outboxes_for_update(self) -> List[ControlOutbox]:
+        return [
+            ControlOutbox(
+                shard_scope=OutboxScope.APP_SCOPE,
+                shard_identifier=self.id,
+                object_identifier=self.id,
+                category=OutboxCategory.SENTRY_APP_UPDATE,
+                region_name=region_name,
+            )
+            for region_name in find_all_region_names()
+        ]
+
     def delete(self):
-        from sentry.models import SentryAppAvatar
+        from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
+
+        with outbox_context(transaction.atomic(using=router.db_for_write(SentryApp))):
+            for outbox in self.outboxes_for_update():
+                outbox.save()
 
         SentryAppAvatar.objects.filter(sentry_app=self).delete()
         return super().delete()
+
+    def _disable(self):
+        self.events = []
+        self.save(update_fields=["events"])

@@ -1,17 +1,19 @@
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {SelectField} from 'sentry/components/deprecatedforms';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import InternalStatChart from 'sentry/components/internalStatChart';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
-import AsyncView from 'sentry/views/asyncView';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 const TIME_WINDOWS = ['1h', '1d', '1w'] as const;
 
-type TimeWindow = typeof TIME_WINDOWS[number];
+type TimeWindow = (typeof TIME_WINDOWS)[number];
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   activeTask: string;
   resolution: string;
   since: number;
@@ -20,7 +22,7 @@ type State = AsyncView['state'] & {
   timeWindow: TimeWindow;
 };
 
-export default class AdminQueue extends AsyncView<{}, State> {
+export default class AdminQueue extends DeprecatedAsyncView<{}, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -31,7 +33,7 @@ export default class AdminQueue extends AsyncView<{}, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['taskList', '/internal/queue/tasks/']];
   }
 
@@ -66,7 +68,7 @@ export default class AdminQueue extends AsyncView<{}, State> {
 
           <ButtonBar merged active={this.state.timeWindow}>
             {TIME_WINDOWS.map(r => (
-              <Button size="small" barId={r} onClick={() => this.changeWindow(r)} key={r}>
+              <Button size="sm" barId={r} onClick={() => this.changeWindow(r)} key={r}>
                 {r}
               </Button>
             ))}
@@ -90,15 +92,12 @@ export default class AdminQueue extends AsyncView<{}, State> {
         <div>
           <div className="m-b-1">
             <label>Show details for task:</label>
-            <SelectField
+            <SelectControl
               name="task"
-              onChange={value => this.changeTask(value as string)}
+              onChange={({value}) => this.changeTask(value)}
               value={activeTask}
               clearable
-              options={taskList.map(t => ({
-                value: t,
-                label: t,
-              }))}
+              options={taskList.map(value => ({value, label: value}))}
             />
           </div>
           {activeTask ? (

@@ -1,0 +1,84 @@
+---
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace*
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "react-dom@16.13.1/umd/react-dom.production"
+            filename (module takes precedence)
+              "/react-dom@16.13.1/umd/react-dom.production.min.js"
+            function*
+              "unpkg"
+            lineno (function takes precedence)
+              61
+          frame (frame considered in-app because no frame is in-app)
+            filename (ignored because filename is a URL)
+              "/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"
+            function (function name is not used if module or filename are available)
+              "cdnjs"
+            lineno (line number is not used if module or filename are available)
+              146
+          frame (frame considered in-app because no frame is in-app)
+            filename (ignored because filename is a URL)
+              "/npm/jquery@3.2.1/dist/jquery.min.js"
+            function (function name is not used if module or filename are available)
+              "jsdelivr"
+            lineno (line number is not used if module or filename are available)
+              146
+          frame (frame considered in-app because no frame is in-app)
+            filename (ignored because filename is a URL)
+              "/d3@7.6.1"
+            function (function name is not used if module or filename are available)
+              "esm.run"
+            lineno (line number is not used if module or filename are available)
+              146
+        type*
+          "Error"
+        value (stacktrace and type take precedence)
+          "bad"
+--------------------------------------------------------------------------
+system:
+  hash: "5a78ef040b2122b94fc8d7756971739c"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "react-dom@16.13.1/umd/react-dom.production"
+            filename (module takes precedence)
+              "/react-dom@16.13.1/umd/react-dom.production.min.js"
+            function*
+              "unpkg"
+            lineno (function takes precedence)
+              61
+          frame
+            filename (ignored because filename is a URL)
+              "/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"
+            function (function name is not used if module or filename are available)
+              "cdnjs"
+            lineno (line number is not used if module or filename are available)
+              146
+          frame
+            filename (ignored because filename is a URL)
+              "/npm/jquery@3.2.1/dist/jquery.min.js"
+            function (function name is not used if module or filename are available)
+              "jsdelivr"
+            lineno (line number is not used if module or filename are available)
+              146
+          frame
+            filename (ignored because filename is a URL)
+              "/d3@7.6.1"
+            function (function name is not used if module or filename are available)
+              "esm.run"
+            lineno (line number is not used if module or filename are available)
+              146
+        type*
+          "Error"
+        value (stacktrace and type take precedence)
+          "bad"

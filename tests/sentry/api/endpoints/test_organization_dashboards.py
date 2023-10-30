@@ -1,16 +1,22 @@
+from __future__ import annotations
+
+from datetime import datetime, timedelta
+from typing import Any
+
 from django.urls import reverse
 
-from sentry.models import (
-    Dashboard,
-    DashboardTombstone,
+from sentry.models.dashboard import Dashboard, DashboardTombstone
+from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetTypes,
 )
-from sentry.testutils import OrganizationDashboardWidgetTestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
     def setUp(self):
         super().setUp()
@@ -20,7 +26,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             kwargs={"organization_slug": self.organization.slug},
         )
         self.dashboard_2 = Dashboard.objects.create(
-            title="Dashboard 2", created_by=self.user, organization=self.organization
+            title="Dashboard 2", created_by_id=self.user.id, organization=self.organization
         )
         DashboardWidget.objects.create(
             dashboard=self.dashboard_2,
@@ -34,7 +40,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
     def assert_equal_dashboards(self, dashboard, data):
         assert data["id"] == str(dashboard.id)
         assert data["title"] == dashboard.title
-        assert data["createdBy"]["id"] == str(dashboard.created_by.id)
+        assert data["createdBy"]["id"] == str(dashboard.created_by_id)
 
         widgets = self.get_widgets(dashboard.id)
         widget_displays = []
@@ -75,7 +81,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     def test_get_query(self):
         dashboard = Dashboard.objects.create(
-            title="Dashboard 11", created_by=self.user, organization=self.organization
+            title="Dashboard 11", created_by_id=self.user.id, organization=self.organization
         )
         response = self.do_request("get", self.url, data={"query": "1"})
         assert response.status_code == 200, response.content
@@ -89,7 +95,9 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert len(response.data) == 0
 
     def test_get_sortby(self):
-        Dashboard.objects.create(title="A", created_by=self.user, organization=self.organization)
+        Dashboard.objects.create(
+            title="A", created_by_id=self.user.id, organization=self.organization
+        )
 
         sort_options = {
             "dateCreated": True,
@@ -110,7 +118,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
     def test_get_sortby_most_popular(self):
         Dashboard.objects.create(
             title="A",
-            created_by=self.user,
+            created_by_id=self.user.id,
             organization=self.organization,
             visits=3,
             last_visited=before_now(minutes=5),
@@ -132,7 +140,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
     def test_get_sortby_recently_viewed(self):
         Dashboard.objects.create(
             title="A",
-            created_by=self.user,
+            created_by_id=self.user.id,
             organization=self.organization,
             visits=3,
             last_visited=before_now(minutes=5),
@@ -158,8 +166,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         user_2 = self.create_user(username="user_2")
         self.create_member(organization=self.organization, user=user_2)
 
-        Dashboard.objects.create(title="A", created_by=user_1, organization=self.organization)
-        Dashboard.objects.create(title="B", created_by=user_2, organization=self.organization)
+        Dashboard.objects.create(title="A", created_by_id=user_1.id, organization=self.organization)
+        Dashboard.objects.create(title="B", created_by_id=user_2.id, organization=self.organization)
 
         response = self.client.get(self.url, data={"sort": "mydashboards"})
         assert response.status_code == 200, response.content
@@ -175,25 +183,25 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
         Dashboard.objects.create(
             title="Dashboard 3",
-            created_by=user_1,
+            created_by_id=user_1.id,
             organization=self.organization,
             last_visited=before_now(minutes=5),
         )
         Dashboard.objects.create(
             title="Dashboard 4",
-            created_by=user_2,
+            created_by_id=user_2.id,
             organization=self.organization,
             last_visited=before_now(minutes=0),
         )
         Dashboard.objects.create(
             title="Dashboard 5",
-            created_by=self.user,
+            created_by_id=self.user.id,
             organization=self.organization,
             last_visited=before_now(minutes=5),
         )
         Dashboard.objects.create(
             title="Dashboard 6",
-            created_by=self.user,
+            created_by_id=self.user.id,
             organization=self.organization,
             last_visited=before_now(minutes=0),
         )
@@ -217,7 +225,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         dashboard = Dashboard.objects.get(
             organization=self.organization, title="Dashboard from Post"
         )
-        assert dashboard.created_by == self.user
+        assert dashboard.created_by_id == self.user.id
 
     def test_post_member_can_create(self):
         self.create_user_member_role()
@@ -236,7 +244,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             assert response.status_code == 404
 
     def test_post_with_widgets(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "Dashboard from Post",
             "widgets": [
                 {
@@ -276,7 +284,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         dashboard = Dashboard.objects.get(
             organization=self.organization, title="Dashboard from Post"
         )
-        assert dashboard.created_by == self.user
+        assert dashboard.created_by_id == self.user.id
 
         widgets = self.get_widgets(dashboard.id)
         assert len(widgets) == 2
@@ -316,7 +324,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         dashboard = Dashboard.objects.get(
             organization=self.organization, title="Dashboard from Post"
         )
-        assert dashboard.created_by == self.user
+        assert dashboard.created_by_id == self.user.id
 
         widgets = self.get_widgets(dashboard.id)
         assert len(widgets) == 1
@@ -325,7 +333,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         self.assert_serialized_widget(data["widgets"][0], widgets[0])
 
     def test_post_widgets_with_null_layout_succeeds(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "Dashboard from Post",
             "widgets": [
                 {
@@ -350,7 +358,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         dashboard = Dashboard.objects.get(
             organization=self.organization, title="Dashboard from Post"
         )
-        assert dashboard.created_by == self.user
+        assert dashboard.created_by_id == self.user.id
 
         widgets = self.get_widgets(dashboard.id)
         assert len(widgets) == 1
@@ -388,7 +396,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 400, response.data
 
     def test_extra_keys_in_widget_layout_are_ignored(self):
-        expected_widget = {
+        expected_widget: dict[str, Any] = {
             "displayType": "line",
             "interval": "5m",
             "title": "Transaction count()",
@@ -403,7 +411,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             ],
             "layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
         }
-        data = {
+        data: dict[str, Any] = {
             "title": "Dashboard from Post",
             "widgets": [
                 {
@@ -474,6 +482,77 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         }
         response = self.do_request("post", self.url, data=data)
         assert response.status_code == 400, response.data
+
+    def test_post_dashboard_with_filters(self):
+        project1 = self.create_project(name="foo", organization=self.organization)
+        project2 = self.create_project(name="bar", organization=self.organization)
+
+        response = self.do_request(
+            "post",
+            self.url,
+            data={
+                "title": "Dashboard from Post",
+                "projects": [project1.id, project2.id],
+                "environment": ["alpha"],
+                "period": "7d",
+                "filters": {"release": ["v1"], "releaseId": ["1"]},
+            },
+        )
+        assert response.status_code == 201
+        assert response.data["projects"].sort() == [project1.id, project2.id].sort()
+        assert response.data["environment"] == ["alpha"]
+        assert response.data["period"] == "7d"
+        assert response.data["filters"]["release"] == ["v1"]
+        assert response.data["filters"]["releaseId"] == ["1"]
+
+    def test_post_with_start_and_end_filter(self):
+        start = iso_format(datetime.now() - timedelta(seconds=10))
+        end = iso_format(datetime.now())
+        response = self.do_request(
+            "post",
+            self.url,
+            data={"title": "Dashboard from Post", "start": start, "end": end, "utc": True},
+        )
+        assert response.status_code == 201
+        assert response.data["start"].strftime("%Y-%m-%dT%H:%M:%S") == start
+        assert response.data["end"].strftime("%Y-%m-%dT%H:%M:%S") == end
+        assert response.data["utc"]
+
+    def test_post_with_start_and_end_filter_and_utc_false(self):
+        start = iso_format(datetime.now() - timedelta(seconds=10))
+        end = iso_format(datetime.now())
+        response = self.do_request(
+            "post",
+            self.url,
+            data={"title": "Dashboard from Post", "start": start, "end": end, "utc": False},
+        )
+        assert response.status_code == 201
+        assert response.data["start"].strftime("%Y-%m-%dT%H:%M:%S") == start
+        assert response.data["end"].strftime("%Y-%m-%dT%H:%M:%S") == end
+        assert not response.data["utc"]
+
+    def test_post_dashboard_with_invalid_project_filter(self):
+        other_org = self.create_organization()
+        other_project = self.create_project(name="other", organization=other_org)
+        response = self.do_request(
+            "post",
+            self.url,
+            data={
+                "title": "Dashboard from Post",
+                "projects": [other_project.id],
+            },
+        )
+        assert response.status_code == 403
+
+    def test_post_dashboard_with_invalid_start_end_filter(self):
+        start = iso_format(datetime.now())
+        end = iso_format(datetime.now() - timedelta(seconds=10))
+        response = self.do_request(
+            "post",
+            self.url,
+            data={"title": "Dashboard from Post", "start": start, "end": end},
+        )
+        assert response.status_code == 400
 
     def test_add_widget_with_limit(self):
         data = {
@@ -572,7 +651,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert b"Ensure this value is greater than or equal to 1" in response.content
 
     def test_add_widget_with_field_aliases_succeeds(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "Dashboard with fieldAliases in the query",
             "widgets": [
                 {
@@ -609,7 +688,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 self.assert_serialized_widget_query(expected_query, actual_query)
 
     def test_post_widgets_with_columns_and_aggregates_succeeds(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "Dashboard with null agg and cols",
             "widgets": [
                 {
@@ -634,7 +713,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         dashboard = Dashboard.objects.get(
             organization=self.organization, title="Dashboard with null agg and cols"
         )
-        assert dashboard.created_by == self.user
+        assert dashboard.created_by_id == self.user.id
 
         widgets = self.get_widgets(dashboard.id)
         assert len(widgets) == 1
@@ -644,6 +723,35 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             queries = actual_widget.dashboardwidgetquery_set.all()
             for expected_query, actual_query in zip(expected_widget["queries"], queries):
                 self.assert_serialized_widget_query(expected_query, actual_query)
+
+    def test_post_dashboard_with_greater_than_max_widgets_not_allowed(self):
+        data = {
+            "title": "Dashboard with way too many widgets",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": f"Widget {i}",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": ["transaction"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                    "layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
+                }
+                for i in range(Dashboard.MAX_WIDGETS + 1)
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400, response.data
+        assert (
+            f"Number of widgets must be less than {Dashboard.MAX_WIDGETS}"
+            in response.content.decode()
+        )
 
     def test_invalid_data(self):
         response = self.do_request("post", self.url, data={"malformed-data": "Dashboard from Post"})
@@ -730,3 +838,28 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             DashboardWidgetDisplayTypes.LINE_CHART
         )
         assert widget_data["layout"] is None
+
+    def test_post_dashboard_with_widget_filter_requiring_environment(self):
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Dashboard",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Widget",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "release.stage:adopted",
+                        }
+                    ],
+                }
+            ],
+        }
+        response = self.do_request("post", f"{self.url}?environment=mock_env", data=data)
+        assert response.status_code == 201, response.data

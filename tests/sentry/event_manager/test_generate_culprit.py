@@ -1,5 +1,9 @@
+from __future__ import annotations
+
+from typing import Any
+
 from sentry.constants import MAX_CULPRIT_LENGTH
-from sentry.event_manager import generate_culprit
+from sentry.culprit import generate_culprit
 from sentry.grouping.utils import hash_from_values
 
 
@@ -66,7 +70,7 @@ def test_with_empty_stacktrace():
 
 
 def test_with_only_http_interface():
-    data = {"request": {"url": "http://example.com"}}
+    data: dict[str, Any] = {"request": {"url": "http://example.com"}}
     assert generate_culprit(data) == "http://example.com"
 
     data = {"request": {"url": None}}
@@ -84,7 +88,7 @@ def test_empty_data():
 
 
 def test_truncation():
-    data = {
+    data: dict[str, dict[str, Any]] = {
         "exception": {
             "values": [{"stacktrace": {"frames": [{"filename": "x" * (MAX_CULPRIT_LENGTH + 1)}]}}]
         }

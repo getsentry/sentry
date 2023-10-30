@@ -1,17 +1,16 @@
-import pytz
 import sentry_sdk
 from django.conf import settings
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.middleware.locale import LocaleMiddleware
-from django.utils.translation import LANGUAGE_SESSION_KEY, _trans
-from rest_framework.request import Request
-from rest_framework.response import Response
+from django.utils import translation
 
-from sentry.models import UserOption
+from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.utils.safe import safe_execute
 
 
 class SentryLocaleMiddleware(LocaleMiddleware):
-    def process_request(self, request: Request):
+    def process_request(self, request: HttpRequest) -> None:
         with sentry_sdk.start_span(op="middleware.locale", description="process_request"):
             # No locale for static media
             # This avoids touching user session, which means we avoid
@@ -27,28 +26,30 @@ class SentryLocaleMiddleware(LocaleMiddleware):
             # user is explicitly forcing language
             if lang_code:
                 try:
-                    language = _trans.get_supported_language_variant(lang_code)
+                    language = translation.get_supported_language_variant(lang_code)
                 except LookupError:
                     super().process_request(request)
                 else:
-                    _trans.activate(language)
-                    request.LANGUAGE_CODE = _trans.get_language()
+                    translation.activate(language)
+                    request.LANGUAGE_CODE = translation.get_language()
             else:
                 super().process_request(request)
 
-    def load_user_conf(self, request: Request):
+    def load_user_conf(self, request: HttpRequest) -> None:
         if not request.user.is_authenticated:
             return
 
-        language = UserOption.objects.get_value(user=request.user, key="language")
-        if language:
-            request.session[LANGUAGE_SESSION_KEY] = language
+        options = user_option_service.get_many(
+            filter={"user_ids": [request.user.id], "keys": ["language", "timezone"]}
+        )
 
-        timezone = UserOption.objects.get_value(user=request.user, key="timezone")
-        if timezone:
-            request.timezone = pytz.timezone(timezone)
+        if language := get_option_from_list(options, key="language"):
+            # TODO: django 4.x removes this from session
+            request.session[translation.LANGUAGE_SESSION_KEY] = language  # type: ignore[attr-defined]
 
-    def process_response(self, request: Request, response: Response) -> Response:
+    def process_response(
+        self, request: HttpRequest, response: HttpResponseBase
+    ) -> HttpResponseBase:
         # If static bound, we don't want to run the normal process_response since this
         # adds an extra `Vary: Accept-Language`. Static files don't need this and is
         # less effective for caching.

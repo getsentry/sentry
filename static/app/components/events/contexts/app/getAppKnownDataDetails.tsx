@@ -10,11 +10,13 @@ type Output = {
   value?: React.ReactNode;
 };
 
-function getAppKnownDataDetails(
-  event: Event,
-  data: AppData,
-  type: AppKnownDataType
-): Output {
+type Props = {
+  data: AppData;
+  event: Event;
+  type: AppKnownDataType;
+};
+
+export function getAppKnownDataDetails({data, event, type}: Props): Output | undefined {
   switch (type) {
     case AppKnownDataType.ID:
       return {
@@ -59,12 +61,12 @@ function getAppKnownDataDetails(
         subject: t('App Build'),
         value: data.app_build,
       };
-    default:
+    case AppKnownDataType.IN_FOREGROUND:
       return {
-        subject: type,
-        value: data[type],
+        subject: t('In Foreground'),
+        value: data.in_foreground,
       };
+    default:
+      return undefined;
   }
 }
-
-export default getAppKnownDataDetails;

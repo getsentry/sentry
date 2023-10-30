@@ -1,4 +1,5 @@
-type Result = Record<string, {cursor: string; href: string; results: boolean | null}>;
+export type ParsedHeader = {cursor: string; href: string; results: boolean | null};
+type Result = Record<string, ParsedHeader>;
 
 export default function parseLinkHeader(header: string | null): Result {
   if (header === null || header === '') {

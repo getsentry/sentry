@@ -1,8 +1,6 @@
-from collections import OrderedDict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import click
-import pytz
 from dateutil.parser import parse
 
 from sentry.runner.decorators import configuration
@@ -27,7 +25,7 @@ class DateTimeParamType(click.ParamType):
             # TODO: We should probably warn about this? Also note that this
             # doesn't use the Django specified timezone, since settings haven't
             # been configured yet.
-            result = result.replace(tzinfo=pytz.utc)
+            result = result.replace(tzinfo=timezone.utc)
 
         return result
 
@@ -63,8 +61,9 @@ def organizations(metrics, since, until):
     """
     from django.utils import timezone
 
-    from sentry.app import tsdb
-    from sentry.models import Organization
+    from sentry import tsdb
+    from sentry.models.organization import Organization
+    from sentry.tsdb.base import TSDBModel
 
     stdout = click.get_text_stream("stdout")
     stderr = click.get_text_stream("stderr")
@@ -72,7 +71,7 @@ def organizations(metrics, since, until):
     def aggregate(series):
         return sum(value for timestamp, value in series)
 
-    metrics = OrderedDict((name, getattr(tsdb.models, name)) for name in metrics)
+    metrics = {name: getattr(TSDBModel, name) for name in metrics}
     if not metrics:
         return
 
@@ -90,11 +89,11 @@ def organizations(metrics, since, until):
     objects = Organization.objects.all()
 
     for chunk in chunked(objects, 100):
-        instances = OrderedDict((instance.pk, instance) for instance in chunk)
+        instances = {instance.pk: instance for instance in chunk}
 
         results = {}
         for metric in metrics.values():
-            results[metric] = tsdb.get_range(metric, list(instances.keys()), since, until)
+            results[metric] = tsdb.backend.get_range(metric, list(instances.keys()), since, until)
 
         for key, instance in instances.items():
             values = []

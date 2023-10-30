@@ -2,10 +2,12 @@ from base64 import b64encode
 
 from django.urls import reverse
 
-from sentry.models import TeamAvatar
-from sentry.testutils import APITestCase
+from sentry.models.avatars.team_avatar import TeamAvatar
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class TeamAvatarTest(APITestCase):
     def test_get(self):
         team = self.team  # force creation

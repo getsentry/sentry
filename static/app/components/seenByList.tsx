@@ -1,10 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import classNames from 'classnames';
 import moment from 'moment';
 
 import AvatarList from 'sentry/components/avatar/avatarList';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -28,14 +27,14 @@ type Props = {
   seenBy?: User[];
 };
 
-const SeenByList = ({
+function SeenByList({
   avatarSize = 28,
   seenBy = [],
   iconTooltip = t('People who have viewed this'),
   maxVisibleAvatars = 10,
   iconPosition = 'left',
   className,
-}: Props) => {
+}: Props) {
   const activeUser = ConfigStore.get('user');
   const displayUsers = seenBy.filter(user => activeUser.id !== user.id);
 
@@ -45,10 +44,7 @@ const SeenByList = ({
 
   // Note className="seen-by" is required for responsive design
   return (
-    <SeenByWrapper
-      iconPosition={iconPosition}
-      className={classNames('seen-by', className)}
-    >
+    <SeenByWrapper iconPosition={iconPosition} className={className}>
       <AvatarList
         users={displayUsers}
         avatarSize={avatarSize}
@@ -68,12 +64,10 @@ const SeenByList = ({
       </IconWrapper>
     </SeenByWrapper>
   );
-};
+}
 
 const SeenByWrapper = styled('div')<{iconPosition: Props['iconPosition']}>`
   display: flex;
-  margin-top: 15px;
-  float: right;
   ${p => (p.iconPosition === 'left' ? 'flex-direction: row-reverse' : '')};
 `;
 

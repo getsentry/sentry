@@ -1,9 +1,11 @@
 from django.urls import reverse
 
-from sentry.models import ProjectKey
-from sentry.testutils import APITestCase
+from sentry.models.projectkey import ProjectKey
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class ListProjectKeysTest(APITestCase):
     def test_simple(self):
         project = self.create_project()
@@ -19,6 +21,7 @@ class ListProjectKeysTest(APITestCase):
         assert response.data[0]["public"] == key.public_key
 
 
+@region_silo_test(stable=True)
 class CreateProjectKeyTest(APITestCase):
     def test_simple(self):
         project = self.create_project()
@@ -35,6 +38,11 @@ class CreateProjectKeyTest(APITestCase):
         assert key.label == "hello world"
         assert key.rate_limit_count == 10
         assert key.rate_limit_window == 60
+        assert "dynamicSdkLoaderOptions" in key.data
+        assert key.data["dynamicSdkLoaderOptions"] == {
+            "hasPerformance": True,
+            "hasReplay": True,
+        }
 
     def test_minimal_args(self):
         project = self.create_project()
@@ -47,6 +55,11 @@ class CreateProjectKeyTest(APITestCase):
         assert resp.status_code == 201, resp.content
         key = ProjectKey.objects.get(public_key=resp.data["public"])
         assert key.label
+        assert "dynamicSdkLoaderOptions" in key.data
+        assert key.data["dynamicSdkLoaderOptions"] == {
+            "hasPerformance": True,
+            "hasReplay": True,
+        }
 
     def test_keys(self):
         project = self.create_project()

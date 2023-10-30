@@ -10,7 +10,7 @@ import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Group} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 
@@ -22,7 +22,7 @@ type Props = {
   to: string;
 };
 
-const IssueLink = ({children, orgId, issue, to, card = true}: Props) => {
+function IssueLink({children, orgId, issue, to, card = true}: Props) {
   if (!card) {
     return <Link to={to}>{children}</Link>;
   }
@@ -41,7 +41,7 @@ const IssueLink = ({children, orgId, issue, to, card = true}: Props) => {
     <div className={className}>
       <Section>
         <Title>
-          <EventOrGroupTitle data={issue} />
+          <StyledEventOrGroupTitle data={issue} />
         </Title>
 
         <HovercardEventMessage
@@ -55,7 +55,7 @@ const IssueLink = ({children, orgId, issue, to, card = true}: Props) => {
                   <Link
                     to={{
                       pathname: streamPath,
-                      query: {query: `logger:${issue.logger}`},
+                      query: {query: `logger:${issue.logger}`, referrer: 'issue-link'},
                     }}
                   >
                     {issue.logger}
@@ -96,20 +96,23 @@ const IssueLink = ({children, orgId, issue, to, card = true}: Props) => {
       <Link to={to}>{children}</Link>
     </Hovercard>
   );
-};
+}
 
 export default IssueLink;
 
-const Title = styled('h3')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin: 0 0 ${space(0.5)};
+const Title = styled('div')`
   ${p => p.theme.overflowEllipsis};
+  margin: 0 0 ${space(0.5)};
+`;
+
+const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
+  font-weight: 600;
+  font-size: ${p => p.theme.fontSizeMedium};
 
   em {
     font-style: normal;
     font-weight: 400;
-    color: ${p => p.theme.gray300};
-    font-size: 90%;
+    font-size: ${p => p.theme.fontSizeSmall};
   }
 `;
 

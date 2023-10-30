@@ -1,11 +1,19 @@
+from __future__ import annotations
+
 from enum import IntEnum, unique
+from typing import TYPE_CHECKING, Any, Optional, Tuple
 
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry import options
+from sentry import features, options
+from sentry.constants import DataCategory
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.services import Service
+
+if TYPE_CHECKING:
+    from sentry.models.project import Project
+    from sentry.monitors.models import Monitor
 
 
 @unique
@@ -64,13 +72,13 @@ class QuotaConfig:
         categories=None,
         scope=None,
         scope_id=None,
-        limit=None,
+        limit: int | None = None,
         window=None,
         reason_code=None,
     ):
         if limit is not None:
             assert reason_code, "reason code required for fallible quotas"
-            assert type(limit) == int, "limit must be an integer"
+            assert isinstance(limit, int), "limit must be an integer"
 
         if limit == 0:
             assert id is None, "reject-all quotas cannot be tracked"
@@ -100,20 +108,6 @@ class QuotaConfig:
         """
 
         return self.id is not None and self.window is not None
-
-    def to_json_legacy(self):
-        data = {
-            "prefix": str(self.id) if self.id is not None else None,
-            "subscope": str(self.scope_id) if self.scope_id is not None else None,
-            "limit": self.limit,
-            "window": self.window,
-            "reasonCode": self.reason_code,
-        }
-
-        if self.scope != QuotaScope.ORGANIZATION and self.scope_id is not None:
-            data["subscope"] = self.scope_id
-
-        return prune_empty_keys(data)
 
     def to_json(self):
         categories = None
@@ -176,13 +170,25 @@ class RateLimited(RateLimit):
         super().__init__(True, **kwargs)
 
 
-def _limit_from_settings(x):
+def _limit_from_settings(x: Any) -> int | None:
     """
     limit=0 (or any falsy value) in database means "no limit". Convert that to
     limit=None as limit=0 in code means "reject all".
     """
 
     return int(x or 0) or None
+
+
+def index_data_category(event_type: Optional[str], organization) -> DataCategory:
+    if event_type == "transaction" and features.has(
+        "organizations:transaction-metrics-extraction", organization
+    ):
+        # TODO: This logic should move into sentry-relay, once the consequences
+        # of making `from_event_type` return `TRANSACTION_INDEXED` are clear.
+        # https://github.com/getsentry/relay/blob/d77c489292123e53831e10281bd310c6a85c63cc/relay-server/src/envelope.rs#L121
+        return DataCategory.TRANSACTION_INDEXED
+
+    return DataCategory.from_event_type(event_type)
 
 
 class Quota(Service):
@@ -202,13 +208,20 @@ class Quota(Service):
 
     __all__ = (
         "get_maximum_quota",
-        "get_organization_quota",
+        "get_project_abuse_quotas",
         "get_project_quota",
+        "get_organization_quota",
         "is_rate_limited",
         "validate",
         "refund",
         "get_event_retention",
         "get_quotas",
+        "get_blended_sample_rate",
+        "get_transaction_sampling_tier_for_volume",
+        "assign_monitor_seat",
+        "unassign_monitor_seat",
+        "enable_seat_recreate",
+        "disable_seat_recreate",
     )
 
     def __init__(self, **options):
@@ -322,8 +335,89 @@ class Quota(Service):
         limit, window = key.rate_limit
         return _limit_from_settings(limit), window
 
+    def get_project_abuse_quotas(self, org):
+        # Per-project abuse quotas for errors, transactions, attachments, sessions.
+        global_abuse_window = options.get("project-abuse-quota.window")
+
+        for option, compat_options, id, categories in (
+            (
+                "project-abuse-quota.error-limit",
+                (
+                    "sentry:project-error-limit",
+                    "getsentry.rate-limit.project-errors",
+                ),
+                "pae",
+                DataCategory.error_categories(),
+            ),
+            (
+                "project-abuse-quota.transaction-limit",
+                (
+                    "sentry:project-transaction-limit",
+                    "getsentry.rate-limit.project-transactions",
+                ),
+                "pati",  # project abuse transaction indexed limit
+                (index_data_category("transaction", org),),
+            ),
+            (
+                "project-abuse-quota.attachment-limit",
+                (),
+                "paa",
+                (DataCategory.ATTACHMENT,),
+            ),
+            (
+                "project-abuse-quota.session-limit",
+                (),
+                "pas",
+                (DataCategory.SESSION,),
+            ),
+        ):
+            limit: int | None = 0
+            abuse_window = global_abuse_window
+            # compat_options were previously present in getsentry
+            # for errors and transactions. The first one is the org
+            # option for overriding the global option, the second one.
+            # For now, these deprecated ones take precedence over the new
+            # to preserve existing behavior.
+            if compat_options:
+                limit = org.get_option(compat_options[0])
+                if not limit:
+                    limit = options.get(compat_options[1])
+
+            if not limit:
+                limit = org.get_option(option)
+                if not limit:
+                    limit = options.get(option)
+
+            limit = _limit_from_settings(limit)
+            if limit is None:
+                # Unlimited.
+                continue
+
+            # Negative limits in config mean a reject-all quota.
+            if limit < 0:
+                yield QuotaConfig(
+                    scope=QuotaScope.PROJECT,
+                    categories=categories,
+                    limit=0,
+                    reason_code="disabled",
+                )
+
+            else:
+                yield QuotaConfig(
+                    id=id,
+                    limit=limit * abuse_window,
+                    scope=QuotaScope.PROJECT,
+                    categories=categories,
+                    window=abuse_window,
+                    # XXX: This reason code is hardcoded RateLimitReasonLabel.PROJECT_ABUSE_LIMIT
+                    #      from getsentry. Don't change it here.
+                    #      If it's changed in getsentry, it needs to be synced here.
+                    reason_code="project_abuse_limit",
+                )
+
     def get_project_quota(self, project):
-        from sentry.models import Organization, OrganizationOption
+        from sentry.models.options.organization_option import OrganizationOption
+        from sentry.models.organization import Organization
 
         if not project.is_field_cached("organization"):
             project.set_cached_field_value(
@@ -346,7 +440,7 @@ class Quota(Service):
         return (quota, window)
 
     def get_organization_quota(self, organization):
-        from sentry.models import OrganizationOption
+        from sentry.models.options.organization_option import OrganizationOption
 
         account_limit = _limit_from_settings(
             OrganizationOption.objects.get_value(
@@ -375,3 +469,62 @@ class Quota(Service):
         Return the maximum capable rate for an organization.
         """
         return (_limit_from_settings(options.get("system.rate-limit")), 60)
+
+    def get_blended_sample_rate(
+        self, project: Optional[Project] = None, organization_id: Optional[int] = None
+    ) -> Optional[float]:
+        """
+        Returns the blended sample rate for an org based on the package that they are currently on. Returns ``None``
+        if the the organization doesn't have dynamic sampling.
+
+        The reasoning for having two params as `Optional` is because this method was first designed to work with
+        `Project` but due to requirements change the `Organization` was needed and since we can get the `Organization`
+        from the `Project` we allow one or the other to be passed.
+
+        :param project: The project model.
+        :param organization_id: The organization id.
+        """
+
+    def get_transaction_sampling_tier_for_volume(
+        self, organization_id: int, volume: int
+    ) -> Optional[Tuple[int, float]]:
+        """
+        Returns the transaction sampling tier closest to a specific volume.
+
+        The organization_id is required because the tier is based on the organization's plan, and we have to check
+        whether the organization has dynamic sampling.
+
+        :param organization_id: The organization id.
+        :param volume: The volume of transaction of the given project.
+        """
+
+    def assign_monitor_seat(
+        self,
+        monitor: Monitor,
+    ) -> int:
+        """
+        Determines if a monitor seat assignment is accepted or rate limited. The Monitor status
+        will be updated from ACTIVE to OK if the seat assignment is accepted.
+        """
+        from sentry.monitors.models import MonitorStatus
+        from sentry.utils.outcomes import Outcome
+
+        monitor.update(status=MonitorStatus.OK)
+        return Outcome.ACCEPTED
+
+    def unassign_monitor_seat(
+        self,
+        monitor: Monitor,
+    ):
+        """
+        Disables a monitor seat assignment and sets the Monitor status to DISABLED
+        """
+        from sentry.monitors.models import MonitorStatus
+
+        monitor.update(status=MonitorStatus.DISABLED)
+
+    def enable_seat_recreate(self, monitor: Monitor):
+        """Sets the monitor's seat assignment to automatically be recreated at renewal."""
+
+    def disable_seat_recreate(self, monitor: Monitor):
+        """Removes the monitor's seat assignment so it is NOT automatically be recreated at renewal."""

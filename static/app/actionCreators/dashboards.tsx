@@ -4,12 +4,9 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {
-  DashboardDetails,
-  DashboardListItem,
-  Widget,
-} from 'sentry/views/dashboardsV2/types';
-import {flattenErrors} from 'sentry/views/dashboardsV2/utils';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import {DashboardDetails, DashboardListItem, Widget} from 'sentry/views/dashboards/types';
+import {flattenErrors} from 'sentry/views/dashboards/utils';
 
 export function fetchDashboards(api: Client, orgSlug: string) {
   const promise: Promise<DashboardListItem[]> = api.requestPromise(
@@ -40,18 +37,28 @@ export function createDashboard(
   newDashboard: DashboardDetails,
   duplicate?: boolean
 ): Promise<DashboardDetails> {
-  const {title, widgets} = newDashboard;
+  const {title, widgets, projects, environment, period, start, end, filters, utc} =
+    newDashboard;
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
     `/organizations/${orgId}/dashboards/`,
     {
       method: 'POST',
-      data: {title, widgets: widgets.map(widget => omit(widget, ['tempId'])), duplicate},
+      data: {
+        title,
+        widgets: widgets.map(widget => omit(widget, ['tempId'])),
+        duplicate,
+        projects,
+        environment,
+        period,
+        start,
+        end,
+        filters,
+        utc,
+      },
       query: {
-        // TODO: This should be replaced in the future with projects
-        // when we save Dashboard page filters. This is being sent to
-        // bypass validation when creating or updating dashboards
-        project: [ALL_ACCESS_PROJECTS],
+        project: projects,
+        environment,
       },
     }
   );
@@ -115,9 +122,18 @@ export function updateDashboard(
   orgId: string,
   dashboard: DashboardDetails
 ): Promise<DashboardDetails> {
+  const {title, widgets, projects, environment, period, start, end, filters, utc} =
+    dashboard;
   const data = {
-    title: dashboard.title,
-    widgets: dashboard.widgets.map(widget => omit(widget, ['tempId'])),
+    title,
+    widgets: widgets.map(widget => omit(widget, ['tempId'])),
+    projects,
+    environment,
+    period,
+    start,
+    end,
+    filters,
+    utc,
   };
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
@@ -126,14 +142,15 @@ export function updateDashboard(
       method: 'PUT',
       data,
       query: {
-        // TODO: This should be replaced in the future with projects
-        // when we save Dashboard page filters. This is being sent to
-        // bypass validation when creating or updating dashboards
-        project: [ALL_ACCESS_PROJECTS],
+        project: projects,
+        environment,
       },
     }
   );
 
+  // We let the callers of `updateDashboard` handle adding a success message, so
+  // that it can be more specific than just "Dashboard updated," but do the
+  // error-handling here, since it doesn't depend on the caller's context
   promise.catch(response => {
     const errorResponse = response?.responseJSON ?? null;
 
@@ -179,6 +196,7 @@ export function validateWidget(
   orgId: string,
   widget: Widget
 ): Promise<undefined> {
+  const {selection} = PageFiltersStore.getState();
   const promise: Promise<undefined> = api.requestPromise(
     `/organizations/${orgId}/dashboards/widgets/`,
     {
@@ -189,6 +207,7 @@ export function validateWidget(
         // when we save Dashboard page filters. This is being sent to
         // bypass validation when creating or updating dashboards
         project: [ALL_ACCESS_PROJECTS],
+        environment: selection.environments,
       },
     }
   );

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import random
 from collections import namedtuple
 from copy import deepcopy
@@ -7,16 +9,23 @@ import pytest
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.testutils import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
+from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
+from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import get_array_column_alias
 
-HistogramSpec = namedtuple("HistogramSpec", ["start", "end", "fields"])
+pytestmark = pytest.mark.sentry_metrics
+
+HistogramSpec = namedtuple(
+    "HistogramSpec", ["start", "end", "fields", "tags"], defaults=[None, None, [], {}]
+)
 
 ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
 
 
+@region_silo_test
 class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -49,7 +58,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
                     self.store_event(data, self.project.id)
 
     def as_response_data(self, specs):
-        data = {}
+        data: dict[str, list[dict[str, int]]] = {}
         for spec in specs:
             spec = HistogramSpec(*spec)
             for measurement, count in sorted(spec.fields):
@@ -1033,15 +1042,16 @@ class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
             spec = HistogramSpec(*spec)
             for suffix_key, count in spec.fields:
                 for i in range(count):
-                    self.store_metric(
+                    self.store_transaction_metric(
                         (spec.end + spec.start) / 2,
                         metric=suffix_key,
-                        tags={"transaction": suffix_key},
+                        tags={"transaction": suffix_key, **spec.tags},
                         timestamp=start,
+                        aggregation_option=AggregationOption.HIST,
                     )
 
     def as_response_data(self, specs):
-        data = {}
+        data: dict[str, list[dict[str, int]]] = {}
         for spec in specs:
             spec = HistogramSpec(*spec)
             for measurement, count in sorted(spec.fields):
@@ -1124,9 +1134,9 @@ class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
 
     def test_histogram_exclude_outliers_data_filter(self):
         specs = [
-            (0, 0, [("transaction.duration", 4)]),
-            (1, 1, [("transaction.duration", 4)]),
-            (4000, 4001, [("transaction.duration", 1)]),
+            (0, 0, [("transaction.duration", 4)], {"histogram_outlier": "inlier"}),
+            (1, 1, [("transaction.duration", 4)], {"histogram_outlier": "inlier"}),
+            (4000, 4001, [("transaction.duration", 1)], {"histogram_outlier": "outlier"}),
         ]
         self.populate_events(specs)
 
@@ -1144,10 +1154,16 @@ class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
         expected = [
             (0, 0, [("transaction.duration", 8)]),
             (1, 2, [("transaction.duration", 0)]),
-            (2, 3, [("transaction.duration", 0)]),
-            (3, 4, [("transaction.duration", 0)]),
-            (4, 5, [("transaction.duration", 0)]),
         ]
         expected_response = self.as_response_data(expected)
         expected_response["meta"] = {"isMetricsData": True}
         assert response.data == expected_response
+
+
+@region_silo_test
+class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTestWithMetricLayer(
+    OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest
+):
+    def setUp(self):
+        super().setUp()
+        self.features["organizations:use-metrics-layer"] = True

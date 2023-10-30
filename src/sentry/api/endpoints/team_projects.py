@@ -1,24 +1,62 @@
-from django.db import IntegrityError, transaction
+from typing import List
+
+from django.db import IntegrityError, router, transaction
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
-from sentry.api.base import EnvironmentMixin
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import (
+    DEFAULT_SLUG_ERROR_MESSAGE,
+    DEFAULT_SLUG_PATTERN,
+    EnvironmentMixin,
+    PreventNumericSlugMixin,
+    region_silo_endpoint,
+)
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import ProjectSummarySerializer, serialize
-from sentry.models import Project, ProjectStatus
+from sentry.api.serializers.models.project import OrganizationProjectResponse, ProjectSerializer
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.apidocs.examples.project_examples import ProjectExamples
+from sentry.apidocs.examples.team_examples import TeamExamples
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.constants import ObjectStatus
+from sentry.models.project import Project
 from sentry.signals import project_created
+from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
 
 
-class ProjectSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=50, required=True)
-    slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50, required=False, allow_null=True)
-    platform = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    default_rules = serializers.BooleanField(required=False, initial=True)
+class ProjectPostSerializer(serializers.Serializer, PreventNumericSlugMixin):
+    name = serializers.CharField(
+        help_text="The name for the project.", max_length=50, required=True
+    )
+    slug = serializers.RegexField(
+        DEFAULT_SLUG_PATTERN,
+        help_text="""Uniquely identifies a project and is used for the interface.
+        If not provided, it is automatically generated from the name.""",
+        max_length=50,
+        required=False,
+        allow_null=True,
+        error_messages={"invalid": DEFAULT_SLUG_ERROR_MESSAGE},
+    )
+    platform = serializers.CharField(
+        help_text="The platform for the project.", required=False, allow_blank=True, allow_null=True
+    )
+    default_rules = serializers.BooleanField(
+        help_text="""
+Defaults to true where the behavior is to alert the user on every new
+issue. Setting this to false will turn this off and the user must create
+their own alerts to be notified of new issues.
+        """,
+        required=False,
+        initial=True,
+    )
 
     def validate_platform(self, value):
         if Project.is_valid_platform(value):
@@ -43,25 +81,40 @@ class TeamProjectPermission(TeamPermission):
     }
 
 
+@extend_schema(tags=["Teams"])
+@region_silo_endpoint
 class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
+    }
     permission_classes = (TeamProjectPermission,)
 
+    @extend_schema(
+        operation_id="List a Team's Projects",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.TEAM_SLUG,
+            CursorQueryParam,
+        ],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListTeamProjectResponse", List[OrganizationProjectResponse]
+            ),
+            403: RESPONSE_FORBIDDEN,
+            404: OpenApiResponse(description="Team not found."),
+        },
+        examples=TeamExamples.LIST_TEAM_PROJECTS,
+    )
     def get(self, request: Request, team) -> Response:
         """
-        List a Team's Projects
-        ``````````````````````
-
         Return a list of projects bound to a team.
-
-        :pparam string organization_slug: the slug of the organization the
-                                          team belongs to.
-        :pparam string team_slug: the slug of the team to list the projects of.
-        :auth: required
         """
         if request.auth and hasattr(request.auth, "project"):
             queryset = Project.objects.filter(id=request.auth.project.id)
         else:
-            queryset = Project.objects.filter(teams=team, status=ProjectStatus.VISIBLE)
+            queryset = Project.objects.filter(teams=team, status=ObjectStatus.ACTIVE)
 
         stats_period = request.GET.get("statsPeriod")
         if stats_period not in (None, "", "24h", "14d", "30d"):
@@ -90,60 +143,63 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
             paginator_cls=OffsetPaginator,
         )
 
+    @extend_schema(
+        # Ensure POST is in the projects tab
+        tags=["Projects"],
+        operation_id="Create a New Project",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.TEAM_SLUG,
+        ],
+        request=ProjectPostSerializer,
+        responses={
+            201: ProjectSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: OpenApiResponse(description="Team not found."),
+            409: OpenApiResponse(description="A project with this slug already exists."),
+        },
+        examples=ProjectExamples.CREATE_PROJECT,
+    )
     def post(self, request: Request, team) -> Response:
         """
-        Create a New Project
-        ````````````````````
-
         Create a new project bound to a team.
-
-        :pparam string organization_slug: the slug of the organization the
-                                          team belongs to.
-        :pparam string team_slug: the slug of the team to create a new project
-                                  for.
-        :param string name: the name for the new project.
-        :param string slug: optionally a slug for the new project.  If it's
-                            not provided a slug is generated from the name.
-        :param bool default_rules: create default rules (defaults to True)
-        :auth: required
         """
-        serializer = ProjectSerializer(data=request.data)
+        serializer = ProjectPostSerializer(data=request.data)
 
-        if serializer.is_valid():
-            result = serializer.validated_data
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-            with transaction.atomic():
-                try:
-                    with transaction.atomic():
-                        project = Project.objects.create(
-                            name=result["name"],
-                            slug=result.get("slug"),
-                            organization=team.organization,
-                            platform=result.get("platform"),
-                        )
-                except IntegrityError:
-                    return Response(
-                        {"detail": "A project with this slug already exists."}, status=409
+        result = serializer.validated_data
+        with transaction.atomic(router.db_for_write(Project)):
+            try:
+                with transaction.atomic(router.db_for_write(Project)):
+                    project = Project.objects.create(
+                        name=result["name"],
+                        slug=result.get("slug"),
+                        organization=team.organization,
+                        platform=result.get("platform"),
                     )
-                else:
-                    project.add_team(team)
+            except (IntegrityError, MaxSnowflakeRetryError):
+                return Response({"detail": "A project with this slug already exists."}, status=409)
+            else:
+                project.add_team(team)
 
-                # XXX: create sample event?
+            # XXX: create sample event?
 
-                self.create_audit_entry(
-                    request=request,
-                    organization=team.organization,
-                    target_object=project.id,
-                    event=audit_log.get_event_id("PROJECT_ADD"),
-                    data=project.get_audit_log_data(),
-                )
+            self.create_audit_entry(
+                request=request,
+                organization=team.organization,
+                target_object=project.id,
+                event=audit_log.get_event_id("PROJECT_ADD"),
+                data=project.get_audit_log_data(),
+            )
 
-                project_created.send(
-                    project=project,
-                    user=request.user,
-                    default_rules=result.get("default_rules", True),
-                    sender=self,
-                )
+            project_created.send(
+                project=project,
+                user=request.user,
+                default_rules=result.get("default_rules", True),
+                sender=self,
+            )
 
-            return Response(serialize(project, request.user), status=201)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serialize(project, request.user), status=201)

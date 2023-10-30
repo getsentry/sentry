@@ -1,7 +1,7 @@
 from uuid import uuid4
 
-from sentry.models import OrganizationOption
-from sentry.testutils import APITestCase
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.testutils.cases import APITestCase
 from sentry_plugins.github.testutils import PUSH_EVENT_EXAMPLE
 
 

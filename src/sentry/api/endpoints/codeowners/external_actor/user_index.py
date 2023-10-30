@@ -4,15 +4,22 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.external_actor import ExternalActorEndpointMixin, ExternalUserSerializer
 from sentry.api.serializers import serialize
-from sentry.models import Organization
+from sentry.models.organization import Organization
 
 logger = logging.getLogger(__name__)
 
 
-class ExternalUserEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):  # type: ignore
+@region_silo_endpoint
+class ExternalUserEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     def post(self, request: Request, organization: Organization) -> Response:
         """
         Create an External User

@@ -1,12 +1,17 @@
-from freezegun import freeze_time
+from __future__ import annotations
+
+from typing import Any
 
 from sentry.data_export.base import ExportQueryType, ExportStatus
 from sentry.data_export.models import ExportedData
 from sentry.search.utils import parse_datetime_string
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.snuba import MAX_FIELDS
 
 
+@region_silo_test(stable=True)
 class DataExportTest(APITestCase):
     endpoint = "sentry-api-0-organization-data-export"
     method = "post"
@@ -22,7 +27,7 @@ class DataExportTest(APITestCase):
         self.login_as(user=self.user)
 
     def make_payload(self, payload_type, extras=None, overwrite=False):
-        payload = {}
+        payload: dict[str, Any] = {}
         if payload_type == "issue":
             payload = {
                 "query_type": ExportQueryType.ISSUES_BY_TAG_STR,

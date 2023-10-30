@@ -1,15 +1,16 @@
 import logging
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated
 
-from sentry.api.base import Endpoint
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import AdminBroadcastSerializer, BroadcastSerializer, serialize
 from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
-from sentry.models import Broadcast, BroadcastSeen
+from sentry.models.broadcast import Broadcast, BroadcastSeen
 
 logger = logging.getLogger("sentry")
 
@@ -18,7 +19,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 
+@control_silo_endpoint
 class BroadcastDetailsEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (IsAuthenticated,)
 
     def _get_broadcast(self, request: Request, broadcast_id):
@@ -73,7 +79,7 @@ class BroadcastDetailsEndpoint(Endpoint):
         if result.get("cta"):
             update_kwargs["cta"] = result["cta"]
         if update_kwargs:
-            with transaction.atomic():
+            with transaction.atomic(using=router.db_for_write(Broadcast)):
                 broadcast.update(**update_kwargs)
                 logger.info(
                     "broadcasts.update",
@@ -87,8 +93,8 @@ class BroadcastDetailsEndpoint(Endpoint):
 
         if result.get("hasSeen"):
             try:
-                with transaction.atomic():
-                    BroadcastSeen.objects.create(broadcast=broadcast, user=request.user)
+                with transaction.atomic(using=router.db_for_write(Broadcast)):
+                    BroadcastSeen.objects.create(broadcast=broadcast, user_id=request.user.id)
             except IntegrityError:
                 pass
 

@@ -1,6 +1,3 @@
-import {InjectedRouter, withRouter} from 'react-router';
-import {Location} from 'history';
-
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -9,27 +6,22 @@ import {DateString} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {useLocation} from 'sentry/utils/useLocation';
+import useRouter from 'sentry/utils/useRouter';
 
 type Props = {
   data: Series[];
   end: DateString;
-  location: Location;
-  router: InjectedRouter;
   start: DateString;
   statsPeriod: string | undefined;
   height?: number;
 };
 
-const _AnomalyChart = (props: Props) => {
-  const {
-    data,
-    location,
-    statsPeriod,
-    height,
-    router,
-    start: propsStart,
-    end: propsEnd,
-  } = props;
+export function AnomalyChart(props: Props) {
+  const router = useRouter();
+  const location = useLocation();
+  const {data, statsPeriod, height, start: propsStart, end: propsEnd} = props;
 
   const start = propsStart ? getUtcToLocalDateObject(propsStart) : null;
   const end = propsEnd ? getUtcToLocalDateObject(propsEnd) : null;
@@ -47,13 +39,14 @@ const _AnomalyChart = (props: Props) => {
     height,
     tooltip: {
       trigger: 'axis',
-      valueFormatter: tooltipFormatter,
+      valueFormatter: (value, label) =>
+        tooltipFormatter(value, aggregateOutputType(label)),
     },
     xAxis: undefined,
     yAxis: {
       axisLabel: {
         // Coerces the axis to be count based
-        formatter: (value: number) => axisLabelFormatter(value, 'tpm()'),
+        formatter: (value: number) => axisLabelFormatter(value, 'number'),
       },
     },
   };
@@ -71,6 +64,4 @@ const _AnomalyChart = (props: Props) => {
       )}
     </ChartZoom>
   );
-};
-
-export const AnomalyChart = withRouter(_AnomalyChart);
+}

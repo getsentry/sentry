@@ -1,20 +1,27 @@
 import logging
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.permissions import SuperuserPermission
 from sentry.api.serializers import serialize
 from sentry.api.validators.userrole import UserRoleValidator
-from sentry.models import UserRole
+from sentry.models.userrole import UserRole
 
 audit_logger = logging.getLogger("sentry.audit.user")
 
 
+@control_silo_endpoint
 class UserRoleDetailsEndpoint(Endpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (SuperuserPermission,)
 
     @sudo_required
@@ -46,7 +53,7 @@ class UserRoleDetailsEndpoint(Endpoint):
 
         result = validator.validated_data
         try:
-            with transaction.atomic():
+            with transaction.atomic(using=router.db_for_write(UserRole)):
                 if "name" in result:
                     role.name = result["name"]
                 if "permissions" in result:
@@ -77,7 +84,7 @@ class UserRoleDetailsEndpoint(Endpoint):
         except UserRole.DoesNotExist:
             return self.respond({"detail": f"'{role_name}' is not a known role."}, status=404)
 
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(UserRole)):
             role.delete()
             audit_logger.info(
                 "user-roles.delete",

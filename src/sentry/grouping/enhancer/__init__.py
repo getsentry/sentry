@@ -1,13 +1,25 @@
+from __future__ import annotations
+
 import base64
+import logging
 import os
 import zlib
+from hashlib import md5
+from typing import Any, Sequence
 
 import msgpack
+import sentry_sdk
+from django.core.cache import cache
 from parsimonious.exceptions import ParseError
-from parsimonious.grammar import Grammar, NodeVisitor
+from parsimonious.grammar import Grammar
+from parsimonious.nodes import NodeVisitor
 
 from sentry import projectoptions
 from sentry.grouping.component import GroupingComponent
+from sentry.stacktraces.functions import set_in_app
+from sentry.utils import metrics
+from sentry.utils.hashlib import hash_value
+from sentry.utils.safe import get_path, set_path
 from sentry.utils.strings import unescape_string
 
 from .actions import Action, FlagAction, VarAction
@@ -20,6 +32,9 @@ from .matchers import (
     Match,
     create_match_frame,
 )
+
+DATADOG_KEY = "save_event.stacktrace"
+logger = logging.getLogger(__name__)
 
 # Grammar is defined in EBNF syntax.
 enhancements_grammar = Grammar(
@@ -113,27 +128,53 @@ class Enhancements:
             bases = []
         self.bases = bases
 
-        self._modifier_rules = [rule for rule in self.iter_rules() if rule.is_modifier]
-        self._updater_rules = [rule for rule in self.iter_rules() if rule.is_updater]
+        self._modifier_rules: list[Rule] = []
+        self._updater_rules: list[Rule] = []
+        for rule in self.iter_rules():
+            if modifier_rule := rule._as_modifier_rule():
+                self._modifier_rules.append(modifier_rule)
+            if updater_rule := rule._as_updater_rule():
+                self._updater_rules.append(updater_rule)
 
-    def apply_modifications_to_frame(self, frames, platform, exception_data):
-        """This applies the frame modifications to the frames itself.  This
-        does not affect grouping.
-        """
+    def apply_modifications_to_frame(
+        self,
+        frames: Sequence[dict[str, Any]],
+        platform: str,
+        exception_data: dict[str, Any],
+        extra_fingerprint: str = "",
+    ) -> None:
+        """This applies the frame modifications to the frames itself. This does not affect grouping."""
+        in_memory_cache: dict[str, str] = {}
 
-        cache = {}
-
+        # Matching frames are used for matching rules
         match_frames = [create_match_frame(frame, platform) for frame in frames]
+        # The extra fingerprint mostly makes sense during test execution when two different group configs
+        # can share the same set of rules and bases
+        stacktrace_fingerprint = _generate_stacktrace_fingerprint(
+            match_frames, exception_data, f"{extra_fingerprint}.{self.dumps()}", platform
+        )
+        # The most expensive part of creating groups is applying the rules to frames (next code block)
+        cache_key = f"stacktrace_hash.{stacktrace_fingerprint}"
+        use_cache = bool(stacktrace_fingerprint)
+        if use_cache:
+            frames_changed = _update_frames_from_cached_values(frames, cache_key, platform)
+            if frames_changed:
+                logger.debug("The frames have been loaded from the cache. Skipping some work.")
+                return
 
-        for rule in self._modifier_rules:
-            for idx, action in rule.get_matching_frame_actions(
-                match_frames, platform, exception_data, cache
-            ):
-                action.apply_modifications_to_frame(frames, match_frames, idx, rule=rule)
+        with sentry_sdk.start_span(op="stacktrace_processing", description="apply_rules_to_frames"):
+            for rule in self._modifier_rules:
+                for idx, action in rule.get_matching_frame_actions(
+                    match_frames, platform, exception_data, in_memory_cache
+                ):
+                    # Both frames and match_frames are updated
+                    action.apply_modifications_to_frame(frames, match_frames, idx, rule=rule)
+
+        if use_cache:
+            _cache_changed_frame_values(frames, cache_key, platform)
 
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
-
-        cache = {}
+        in_memory_cache: dict[str, str] = {}
 
         match_frames = [create_match_frame(frame, platform) for frame in frames]
 
@@ -142,7 +183,7 @@ class Enhancements:
         for rule in self._updater_rules:
 
             for idx, action in rule.get_matching_frame_actions(
-                match_frames, platform, exception_data, cache
+                match_frames, platform, exception_data, in_memory_cache
             ):
                 action.update_frame_components_contributions(components, frames, idx, rule=rule)
                 action.modify_stacktrace_state(stacktrace_state, rule)
@@ -270,7 +311,7 @@ class Enhancements:
             raise InvalidEnhancerConfig(
                 f'Invalid syntax near "{context}" (line {e.line()}, column {e.column()})'
             )
-        return EnhancmentsVisitor(bases, id).visit(tree)
+        return EnhancementsVisitor(bases, id).visit(tree)
 
 
 class Rule:
@@ -296,15 +337,19 @@ class Rule:
             rv = f"{rv} {action}"
         return rv
 
-    @property
-    def is_modifier(self):
-        """Does this rule modify the frame?"""
-        return self._is_modifier
+    def _as_modifier_rule(self) -> Rule | None:
+        actions = [action for action in self.actions if action.is_modifier]
+        if actions:
+            return Rule(self.matchers, actions)
+        else:
+            return None
 
-    @property
-    def is_updater(self):
-        """Does this rule update grouping components?"""
-        return self._is_updater
+    def _as_updater_rule(self) -> Rule | None:
+        actions = [action for action in self.actions if action.is_updater]
+        if actions:
+            return Rule(self.matchers, actions)
+        else:
+            return None
 
     def as_dict(self):
         matchers = {}
@@ -312,7 +357,13 @@ class Rule:
             matchers[matcher.key] = matcher.pattern
         return {"match": matchers, "actions": [str(x) for x in self.actions]}
 
-    def get_matching_frame_actions(self, frames, platform, exception_data=None, cache=None):
+    def get_matching_frame_actions(
+        self,
+        match_frames: Sequence[dict[str, Any]],
+        platform: str,
+        exception_data: dict[str, Any],
+        in_memory_cache: dict[str, str],
+    ) -> list[tuple[int, Action]]:
         """Given a frame returns all the matching actions based on this rule.
         If the rule does not match `None` is returned.
         """
@@ -321,15 +372,15 @@ class Rule:
 
         # 1 - Check if exception matchers match
         for m in self._exception_matchers:
-            if not m.matches_frame(frames, -1, platform, exception_data, cache):
+            if not m.matches_frame(match_frames, None, platform, exception_data, in_memory_cache):
                 return []
 
         rv = []
 
         # 2 - Check if frame matchers match
-        for idx, frame in enumerate(frames):
+        for idx, _ in enumerate(match_frames):
             if all(
-                m.matches_frame(frames, idx, platform, exception_data, cache)
+                m.matches_frame(match_frames, idx, platform, exception_data, in_memory_cache)
                 for m in self._other_matchers
             ):
                 for action in self.actions:
@@ -351,7 +402,7 @@ class Rule:
         )
 
 
-class EnhancmentsVisitor(NodeVisitor):
+class EnhancementsVisitor(NodeVisitor):
     visit_comment = visit_empty = lambda *a: None
     unwrapped_exceptions = (InvalidEnhancerConfig,)
 
@@ -443,6 +494,139 @@ class EnhancmentsVisitor(NodeVisitor):
     def visit_quoted_ident(self, node, children):
         # leading ! are used to indicate negation. make sure they don't appear.
         return node.match.groups()[0].lstrip("!")
+
+
+def _update_frames_from_cached_values(
+    frames: Sequence[dict[str, Any]], cache_key: str, platform: str
+) -> bool:
+    """
+    This will update the frames of the stacktrace if it's been cached.
+    Returns True if the merged has correctly happened.
+    """
+    frames_changed = False
+    changed_frames_values = cache.get(cache_key, {})
+
+    # This helps tracking changes in the hit/miss ratio of the cache
+    metrics.incr(
+        f"{DATADOG_KEY}.cache.get",
+        tags={"success": bool(changed_frames_values), "platform": platform},
+    )
+    if changed_frames_values:
+        try:
+            for frame, changed_frame_values in zip(frames, changed_frames_values):
+                if changed_frame_values.get("in_app") is not None:
+                    set_in_app(frame, changed_frame_values["in_app"])
+                    frames_changed = True
+                if changed_frame_values.get("category") is not None:
+                    set_path(frame, "data", "category", value=changed_frame_values["category"])
+                    frames_changed = True
+
+            if frames_changed:
+                logger.debug("We have merged the cached stacktrace to the incoming one.")
+        except Exception as error:
+            logger.exception(
+                "We have failed to update the stacktrace from the cache. Not aborting execution.",
+                extra={"platform": platform},
+            )
+            # We want tests to fail to prevent breaking the caching system without noticing
+            if os.environ.get("PYTEST_CURRENT_TEST"):
+                raise error
+
+    metrics.incr(
+        f"{DATADOG_KEY}.merged_cached_values",
+        tags={"success": frames_changed, "platform": platform},
+    )
+    return frames_changed
+
+
+def _cache_changed_frame_values(
+    frames: Sequence[dict[str, Any]], cache_key: str, platform: str
+) -> None:
+    """Store in the cache the values which have been modified for each frame."""
+    caching_succeeded = False
+    # Check that some other event has not already populated the cache
+    if cache.get(cache_key):
+        return
+
+    try:
+        # XXX: A follow up PR will be required to make sure that only a whitelisted set of parameters
+        # are allowed to be modified in apply_modifications_to_frame, thus, not falling out of date with this
+        changed_frames_values = [
+            {
+                "in_app": frame.get("in_app"),  # Based on FlagAction
+                "category": get_path(frame, "data", "category"),  # Based on VarAction's
+            }
+            for frame in frames
+        ]
+        cache.set(cache_key, changed_frames_values)
+        caching_succeeded = True
+    except Exception:
+        logger.exception("Failed to store changed frames in cache", extra={"platform": platform})
+
+    metrics.incr(
+        f"{DATADOG_KEY}.cache.set",
+        tags={"success": caching_succeeded, "platform": platform},
+    )
+
+
+def _generate_stacktrace_fingerprint(
+    stacktrace_match_frames: Sequence[dict[str, Any]],
+    stacktrace_container: dict[str, Any],
+    enhancements_dumps: str,
+    platform: str,
+) -> str:
+    """Create a fingerprint for the stacktrace. Empty string if unsuccesful."""
+    stacktrace_fingerprint = ""
+    try:
+        stacktrace_frames_fingerprint = _generate_match_frames_fingerprint(stacktrace_match_frames)
+        stacktrace_type_value = _generate_stacktrace_container_fingerprint(stacktrace_container)
+        # Hash of the three components involved for fingerprinting a stacktrace
+        stacktrace_hash = md5()
+        hash_value(
+            stacktrace_hash,
+            (stacktrace_frames_fingerprint, stacktrace_type_value, enhancements_dumps),
+        )
+
+        stacktrace_fingerprint = stacktrace_hash.hexdigest()
+    except Exception as error:
+        # This will create an error in Sentry to help us evaluate why it failed
+        logger.exception(
+            "Stacktrace hashing failure. Investigate and fix.", extra={"platform": platform}
+        )
+        # We want tests to fail to prevent breaking the caching system without noticing
+        if os.environ.get("PYTEST_CURRENT_TEST"):
+            raise error
+
+    # This will help us calculate the success ratio for fingerprint calculation
+    metrics.incr(
+        f"{DATADOG_KEY}.fingerprint",
+        tags={
+            "hashing_failure": stacktrace_fingerprint == "",
+            "platform": platform,
+        },
+    )
+    return stacktrace_fingerprint
+
+
+def _generate_stacktrace_container_fingerprint(stacktrace_container: dict[str, Any]) -> str:
+    stacktrace_type_value = ""
+    if stacktrace_container:
+        cont_type = stacktrace_container.get("type", "")
+        cont_value = stacktrace_container.get("value", "")
+        stacktrace_type_value = f"{cont_type}.{cont_value}"
+
+    return stacktrace_type_value
+
+
+def _generate_match_frames_fingerprint(match_frames: Sequence[dict[str, Any]]) -> str:
+    """Fingerprint representing the stacktrace frames. Raises error if it fails."""
+    stacktrace_hash = md5()
+    for match_frame in match_frames:
+        # We create the hash based on the match_frame since it does not
+        # contain values like the `vars` which is not necessary for grouping
+        hash_value(stacktrace_hash, match_frame)
+
+    return stacktrace_hash.hexdigest()
 
 
 def _load_configs():

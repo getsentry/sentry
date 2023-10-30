@@ -4,8 +4,8 @@ import type {experimentList, unassignedValue} from 'sentry/data/experimentConfig
  * The grouping of the experiment
  */
 export enum ExperimentType {
-  Organization = 'organization',
-  User = 'user',
+  ORGANIZATION = 'organization',
+  USER = 'user',
 }
 
 /**
@@ -42,16 +42,16 @@ export type ExperimentConfig = {
 //
 // [0]: app/data/experimentConfig.tsx
 
-type ExperimentList = typeof experimentList[number];
+type ExperimentList = (typeof experimentList)[number];
 
 type ExperimentSelect<
   C extends ExperimentConfig,
-  N extends ExperimentConfig['key']
+  N extends ExperimentConfig['key'],
 > = C extends {key: N} ? C : never;
 
 type TypeSelect<
   C extends ExperimentConfig,
-  T extends ExperimentConfig['type']
+  T extends ExperimentConfig['type'],
 > = C extends {type: T} ? C : never;
 
 /**
@@ -71,11 +71,11 @@ type GetExperimentAssignment<E extends ExperimentList['key']> = {
 };
 
 export type OrgExperiments = GetExperimentAssignment<
-  TypeSelect<ExperimentList, ExperimentType.Organization>['key']
+  TypeSelect<ExperimentList, ExperimentType.ORGANIZATION>['key']
 >;
 
 export type UserExperiments = GetExperimentAssignment<
-  TypeSelect<ExperimentList, ExperimentType.User>['key']
+  TypeSelect<ExperimentList, ExperimentType.USER>['key']
 >;
 
 export type ExperimentAssignment = GetExperimentAssignment<ExperimentList['key']>;

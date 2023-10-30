@@ -1,27 +1,38 @@
-from sentry import tsdb
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
+@region_silo_test(stable=True)
 class GroupStatsTest(APITestCase):
+    @freeze_time(before_now(days=1).replace(minute=10))
     def test_simple(self):
         self.login_as(user=self.user)
-
-        group1 = self.create_group()
-        group2 = self.create_group()
+        group1 = self.store_event(
+            data={
+                "fingerprint": ["group1"],
+                "timestamp": iso_format(before_now(minutes=5)),
+            },
+            project_id=self.project.id,
+        ).group
+        assert group1 is not None
 
         url = f"/api/0/issues/{group1.id}/stats/"
+
+        for fingerprint, count in (("group1", 2), ("group2", 5)):
+            for _ in range(count):
+                self.store_event(
+                    data={
+                        "fingerprint": [fingerprint],
+                        "timestamp": iso_format(before_now(minutes=5)),
+                    },
+                    project_id=self.project.id,
+                )
+
         response = self.client.get(url, format="json")
-
-        assert response.status_code == 200, response.content
-        for point in response.data:
-            assert point[1] == 0
-        assert len(response.data) == 24
-
-        tsdb.incr(tsdb.models.group, group1.id, count=3)
-        tsdb.incr(tsdb.models.group, group2.id, count=5)
-
-        response = self.client.get(url, format="json")
-
         assert response.status_code == 200, response.content
         assert response.data[-1][1] == 3, response.data
         for point in response.data[:-1]:

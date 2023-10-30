@@ -1,7 +1,5 @@
-import {Component} from 'react';
-
 import Form from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import withOrganizations from 'sentry/utils/withOrganizations';
@@ -9,6 +7,7 @@ import {
   NotificationSettingsByProviderObject,
   NotificationSettingsObject,
 } from 'sentry/views/settings/account/notifications/constants';
+import {StyledJsonForm} from 'sentry/views/settings/account/notifications/notificationSettingsByProjects';
 import {
   getParentData,
   getParentField,
@@ -25,19 +24,15 @@ type Props = {
   organizations: OrganizationSummary[];
 };
 
-type State = {};
-
-class NotificationSettingsByOrganization extends Component<Props, State> {
-  render() {
-    const {
-      notificationType,
-      notificationSettings,
-      onChange,
-      onSubmitSuccess,
-      organizations,
-    } = this.props;
-
-    return (
+function NotificationSettingsByOrganization({
+  notificationType,
+  notificationSettings,
+  onChange,
+  onSubmitSuccess,
+  organizations,
+}: Props) {
+  return (
+    <Panel>
       <Form
         saveOnBlur
         apiMethod="PUT"
@@ -45,15 +40,20 @@ class NotificationSettingsByOrganization extends Component<Props, State> {
         initialData={getParentData(notificationType, notificationSettings, organizations)}
         onSubmitSuccess={onSubmitSuccess}
       >
-        <JsonForm
+        <StyledJsonForm
           title={t('Organizations')}
-          fields={organizations.map(organization =>
-            getParentField(notificationType, notificationSettings, organization, onChange)
-          )}
+          fields={organizations.map(organization => {
+            return getParentField(
+              notificationType,
+              notificationSettings,
+              organization,
+              onChange
+            );
+          })}
         />
       </Form>
-    );
-  }
+    </Panel>
+  );
 }
 
 export default withOrganizations(NotificationSettingsByOrganization);

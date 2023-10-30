@@ -1,0 +1,3 @@
+TRANSACTION_SOURCE_URL = "url"
+TRANSACTION_SOURCE_SANITIZED = "sanitized"
+HTTP_404_TAG = ["http.status_code", "404"]

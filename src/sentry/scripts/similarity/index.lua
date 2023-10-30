@@ -37,8 +37,19 @@ local function identity(...)
     return ...
 end
 
+local function table_ireduce(t, f, i)
+    if i == nil then
+        i = {}
+    end
+    local result = i
+    for i, value in ipairs(t) do
+        result = f(result, value)
+    end
+    return result
+end
+
 local function sum(t)
-    return table.ireduce(
+    return table_ireduce(
         t,
         function (total, value)
             return total + value
@@ -51,7 +62,7 @@ local function avg(t)
     return sum(t) / #t
 end
 
-function table.count(t)
+local function table_count(t)
     -- Shitty O(N) table size implementation
     local n = 0
     for k in pairs(t) do
@@ -60,7 +71,7 @@ function table.count(t)
     return n
 end
 
-function table.slice(t, start, stop)
+local function table_slice(t, start, stop)
     -- NOTE: ``stop`` is inclusive!
     local result = {}
     for i = start or 1, stop or #t do
@@ -69,7 +80,7 @@ function table.slice(t, start, stop)
     return result
 end
 
-function table.get_or_set_default(t, k, f)
+local function table_get_or_set_default(t, k, f)
     local v = t[k]
     if v ~= nil then
         return v
@@ -80,29 +91,19 @@ function table.get_or_set_default(t, k, f)
     end
 end
 
-function table.imap(t, f)
+local function table_imap(t, f)
     local result = {}
     for i, value in ipairs(t) do
         result[i] = f(value)
     end
     return result
 end
-function table.ireduce(t, f, i)
-    if i == nil then
-        i = {}
-    end
-    local result = i
-    for i, value in ipairs(t) do
-        result = f(result, value)
-    end
-    return result
-end
 
-function table.izip(...)
+local function table_izip(...)
     local args = {...}
     local n = math.max(
         unpack(
-            table.imap(
+            table_imap(
                 args,
                 function (t) return #t end
             )
@@ -495,8 +496,8 @@ local function calculate_similarity(configuration, item_frequencies, candidate_f
     end
 
     return avg(
-        table.imap(
-            table.izip(
+        table_imap(
+            table_izip(
                 item_frequencies,
                 candidate_frequencies
             ),
@@ -530,14 +531,14 @@ local function fetch_candidates(configuration, index, frequencies)
             -- period.
             local members = get_bucket_membership_set(configuration, index, band, bucket):members()
             for member in pairs(members) do
-                table.get_or_set_default(candidates, member, create_table)[band] = true
+                table_get_or_set_default(candidates, member, create_table)[band] = true
             end
         end
     end
 
     local results = {}
     for candidate, bands in pairs(candidates) do
-        results[candidate] = table.count(bands)
+        results[candidate] = table_count(bands)
     end
     return results
 end
@@ -551,7 +552,7 @@ local function search(configuration, parameters, limit)
     for i, p in ipairs(parameters) do
         for candidate, hits in pairs(fetch_candidates(configuration, p.index, p.frequencies)) do
             if hits >= p.threshold then
-                table.get_or_set_default(possible_candidates, candidate, create_table)[i] = hits
+                table_get_or_set_default(possible_candidates, candidate, create_table)[i] = hits
             end
         end
     end
@@ -584,7 +585,7 @@ local function search(configuration, parameters, limit)
                 end
             end
         )
-        candidates = table.slice(candidates, 1, limit)
+        candidates = table_slice(candidates, 1, limit)
     end
 
     local results = {}
@@ -618,7 +619,7 @@ local commands = {
             )
         )(cursor, arguments)
 
-        return table.imap(
+        return table_imap(
             signatures,
             function (signature)
                 set_frequencies(configuration, signature.index, key, signature.frequencies)
@@ -735,7 +736,7 @@ local commands = {
             })
         )(cursor, arguments)
 
-        return table.imap(
+        return table_imap(
             entries,
             function (source)
                 if #source.data == 0 then
@@ -770,7 +771,7 @@ local commands = {
             })
         )(cursor, arguments)
 
-        return table.imap(
+        return table_imap(
             entries,
             function (source)
                 local frequency_key = get_frequency_key(configuration, source.index, source.key)
@@ -809,7 +810,7 @@ local commands = {
                 {'count', argument_parser(validate_integer)}
             })
         )(cursor, arguments)
-        return table.imap(
+        return table_imap(
             entries,
             function (argument)
                 return redis.call(

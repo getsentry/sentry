@@ -1,10 +1,14 @@
-__all__ = ("ApiClient",)
+from __future__ import annotations
 
+from django.conf import settings
 from django.urls import resolve
 from rest_framework.test import APIRequestFactory, force_authenticate
+from typing_extensions import TypeAlias
 
 from sentry.auth.superuser import Superuser
 from sentry.utils import json
+
+__all__ = ("ApiClient",)
 
 
 class ApiError(Exception):
@@ -22,7 +26,7 @@ class ApiError(Exception):
 class ApiClient:
     prefix = "/api/0"
 
-    ApiError = ApiError
+    ApiError: TypeAlias = ApiError
 
     def request(
         self,
@@ -78,6 +82,8 @@ class ApiClient:
             mock_request.session = {}
             mock_request.superuser = Superuser(mock_request)
 
+        if "*" not in settings.ALLOWED_HOSTS:
+            mock_request.META["HTTP_HOST"] = settings.ALLOWED_HOSTS[0]
         mock_request.is_superuser = lambda: mock_request.superuser.is_active
 
         if request:

@@ -1,15 +1,21 @@
 from html import escape
 
-from sentry.mediators import Mediator, Param
-from sentry.models import PlatformExternalIssue
+from django.db import router
+
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param
+from sentry.models.group import Group
+from sentry.models.platformexternalissue import PlatformExternalIssue
+from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
 
 
 class Creator(Mediator):
-    install = Param("sentry.models.SentryAppInstallation")
-    group = Param("sentry.models.Group")
-    web_url = Param((str,))
-    project = Param((str,))
-    identifier = Param((str,))
+    install = Param(RpcSentryAppInstallation)
+    group = Param(Group)
+    web_url = Param(str)
+    project = Param(str)
+    identifier = Param(str)
+    using = router.db_for_write(PlatformExternalIssue)
 
     def call(self):
         self._create_external_issue()

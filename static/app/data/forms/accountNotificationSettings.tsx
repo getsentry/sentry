@@ -1,4 +1,4 @@
-import {Field, JsonFormObject} from 'sentry/components/forms/type';
+import {Field} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 
 // TODO: cleanup unused fields and exports
@@ -59,37 +59,3 @@ export const fields: {[key: string]: Field} = {
     help: t("You'll receive notifications about any changes that happen afterwards."),
   },
 };
-
-const formGroups: JsonFormObject[] = [
-  {
-    title: t('Alerts'),
-    fields: [fields.subscribeByDefault],
-  },
-
-  {
-    title: t('Workflow Notifications'),
-    fields: [fields.workflowNotifications],
-  },
-
-  {
-    title: t('Email Routing'),
-    fields: [],
-  },
-
-  {
-    title: t('Weekly Reports'),
-    fields: [],
-  },
-
-  {
-    title: t('Deploy Notifications'),
-    fields: [fields.deployNotifications],
-  },
-
-  {
-    title: t('My Activity'),
-    fields: [fields.personalActivityNotifications, fields.selfAssignOnResolve],
-  },
-];
-
-export default formGroups;

@@ -1,12 +1,21 @@
+from functools import cached_property
+from urllib.parse import urlparse
+
+from django.test import override_settings
 from django.urls import reverse
-from exam import fixture
 
-from sentry.models import LostPasswordHash
-from sentry.testutils import TestCase
+from sentry.models.lostpasswordhash import LostPasswordHash
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.notifications.types import NotificationSettingOptionValues
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
+from sentry.utils import linksign
 
 
+@control_silo_test(stable=True)
 class TestAccounts(TestCase):
-    @fixture
+    @cached_property
     def path(self):
         return reverse("sentry-account-recover")
 
@@ -74,3 +83,61 @@ class TestAccounts(TestCase):
 
         assert resp.has_header(header_name)
         assert resp[header_name] == "strict-origin-when-cross-origin"
+
+    @override_settings(
+        AUTH_PASSWORD_VALIDATORS=[
+            {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"}
+        ]
+    )
+    def test_unable_to_set_weak_password_via_recover_form(self):
+        lost_password = LostPasswordHash.objects.create(user=self.user)
+
+        resp = self.client.post(
+            self.password_recover_path(lost_password.user_id, lost_password.hash),
+            data={"user": self.user.email, "password": self.user.email},
+        )
+        assert resp.status_code == 200
+        assert b"The password is too similar to the username." in resp.content
+
+
+@region_silo_test(stable=True)
+class EmailUnsubscribeProjectTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.signed_link = linksign.generate_signed_link(
+            self.user,
+            "sentry-account-email-unsubscribe-project",
+            kwargs={"project_id": self.project.id},
+        )
+
+    def test_get_invalid_link(self):
+        resp = self.client.get(f"/notifications/unsubscribe/{self.project.id}/?_=lol")
+        assert resp.status_code == 302
+        assert resp["Location"] == "/auth/login/"
+
+    def test_get(self):
+        url = urlparse(self.signed_link)
+        resp = self.client.get(f"{url.path}?{url.query}")
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/account/email_unsubscribe_project.html")
+
+    def test_post_cancel(self):
+        url = urlparse(self.signed_link)
+        resp = self.client.post(f"{url.path}?{url.query}", data={"cancel": "1"})
+        assert resp.status_code == 302
+        assert resp["Location"] == "/auth/login/"
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert NotificationSetting.objects.count() == 0, "No settings should be saved"
+
+    def test_post_success(self):
+        url = urlparse(self.signed_link)
+        resp = self.client.post(f"{url.path}?{url.query}")
+        assert resp.status_code == 302
+        assert resp["Location"] == "/auth/login/"
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            setting = NotificationSetting.objects.filter(
+                user_id=self.user.id,
+                scope_identifier=self.project.id,
+                value=NotificationSettingOptionValues.NEVER.value,
+            )
+            assert setting.get(), "Setting should be saved"

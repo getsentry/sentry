@@ -1,4 +1,4 @@
-import {ReducerAction, ReducerState, useReducer} from 'react';
+import {ReducerAction, ReducerState, useMemo, useReducer} from 'react';
 
 export type UndoableNode<S> = {
   current: S;
@@ -67,28 +67,31 @@ export function makeUndoableReducer<R extends React.Reducer<any, any>>(
   };
 }
 
-export function useUndoableReducer<
-  R extends React.Reducer<ReducerState<R>, ReducerAction<R>>
->(
-  reducer: R,
-  initialState: ReducerState<R>
-): [
+type UndoableReducerState<R extends React.Reducer<ReducerState<R>, ReducerAction<R>>> = [
   ReducerState<R>,
   React.Dispatch<UndoableReducerAction<ReducerAction<R>>>,
   {
     nextState: ReducerState<R> | undefined;
     previousState: ReducerState<R> | undefined;
-  }
-] {
+  },
+];
+
+export function useUndoableReducer<
+  R extends React.Reducer<ReducerState<R>, ReducerAction<R>>,
+>(reducer: R, initialState: ReducerState<R>): UndoableReducerState<R> {
   const [state, dispatch] = useReducer(makeUndoableReducer(reducer), {
     current: initialState,
     previous: undefined,
     next: undefined,
   });
 
-  return [
-    state.current,
-    dispatch,
-    {previousState: state.previous?.current, nextState: state.next?.current},
-  ];
+  const value: UndoableReducerState<R> = useMemo(() => {
+    return [
+      state.current,
+      dispatch,
+      {previousState: state.previous?.current, nextState: state.next?.current},
+    ];
+  }, [state, dispatch]);
+
+  return value;
 }

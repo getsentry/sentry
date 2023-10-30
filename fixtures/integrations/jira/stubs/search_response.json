@@ -14,7 +14,5 @@
       }
     }
   ],
-  "warningMessages": [
-    "The value 'splat' does not exist for the field 'Foo'."
-  ]
+  "warningMessages": ["The value 'splat' does not exist for the field 'Foo'."]
 }

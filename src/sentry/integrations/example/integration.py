@@ -4,7 +4,6 @@ from typing import Any, Mapping, Sequence
 
 from django.http import HttpResponse
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.integrations import (
     FeatureDescription,
@@ -13,10 +12,16 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
-from sentry.mediators.plugins import Migrator
-from sentry.models import ExternalIssue, Repository, User
+from sentry.integrations.mixins import IssueSyncMixin, RepositoryMixin, ResolveSyncAction
+from sentry.mediators.plugins.migrator import Migrator
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
+from sentry.models.repository import Repository
 from sentry.pipeline import PipelineView
+from sentry.services.hybrid_cloud.integration.serial import serialize_integration
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import IntegrationError
 
 
@@ -30,7 +35,7 @@ class ExampleSetupView(PipelineView):
         </form>
     """
 
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
         if "name" in request.POST:
             pipeline.bind_state("name", request.POST["name"])
             return pipeline.next_step()
@@ -59,7 +64,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
+class ExampleIntegration(IntegrationInstallation, IssueSyncMixin, RepositoryMixin):
     comment_key = "sync_comments"
     outbound_status_key = "sync_status_outbound"
     inbound_status_key = "sync_status_inbound"
@@ -70,7 +75,7 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
         return f"https://example/issues/{key}"
 
     def create_comment(self, issue_id, user_id, group_note):
-        user = User.objects.get(id=user_id)
+        user = user_service.get_user(user_id)
         attribution = f"{user.name} wrote:\n\n"
         comment = {
             "id": "123456789",
@@ -127,7 +132,7 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
             "description": "This is a test external issue description",
         }
 
-    def get_repositories(self):
+    def get_repositories(self, query=None):
         return [{"name": "repo", "identifier": "user/repo"}]
 
     def get_unmigratable_repositories(self):
@@ -136,7 +141,7 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
     def sync_assignee_outbound(
         self,
         external_issue: ExternalIssue,
-        user: User | None,
+        user: RpcUser | None,
         assign: bool = True,
         **kwargs: Any,
     ) -> None:
@@ -189,8 +194,13 @@ class ExampleIntegrationProvider(IntegrationProvider):
     def get_config(self):
         return [{"name": "name", "label": "Name", "type": "text", "required": True}]
 
-    def post_install(self, integration, organization, extra=None):
-        Migrator.run(integration=integration, organization=organization)
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
+    ) -> None:
+        Migrator.run(integration=serialize_integration(integration), organization=organization)
 
     def build_integration(self, state):
         return {"external_id": state["name"]}

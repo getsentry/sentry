@@ -6,29 +6,26 @@ import {Organization} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import OrganizationApiKeysList from './organizationApiKeysList';
 import {DeprecatedApiKey} from './types';
 
-type RouteParams = {
-  orgId: string;
-};
-
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<{}, {}> & {
   organization: Organization;
 };
 
 type State = {
   keys: DeprecatedApiKey[];
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
 /**
  * API Keys are deprecated, but there may be some legacy customers that still use it
  */
-class OrganizationApiKeys extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    return [['keys', `/organizations/${this.props.params.orgId}/api-keys/`]];
+class OrganizationApiKeys extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+    const {organization} = this.props;
+    return [['keys', `/organizations/${organization.slug}/api-keys/`]];
   }
 
   getTitle() {
@@ -36,6 +33,7 @@ class OrganizationApiKeys extends AsyncView<Props, State> {
   }
 
   handleRemove = async (id: string) => {
+    const {organization} = this.props;
     const oldKeys = [...this.state.keys];
 
     this.setState(state => ({
@@ -44,7 +42,7 @@ class OrganizationApiKeys extends AsyncView<Props, State> {
 
     try {
       await this.api.requestPromise(
-        `/organizations/${this.props.params.orgId}/api-keys/${id}/`,
+        `/organizations/${organization.slug}/api-keys/${id}/`,
         {
           method: 'DELETE',
           data: {},
@@ -60,10 +58,11 @@ class OrganizationApiKeys extends AsyncView<Props, State> {
     this.setState({
       busy: true,
     });
+    const {organization} = this.props;
 
     try {
       const data = await this.api.requestPromise(
-        `/organizations/${this.props.params.orgId}/api-keys/`,
+        `/organizations/${organization.slug}/api-keys/`,
         {
           method: 'POST',
           data: {},
@@ -74,11 +73,11 @@ class OrganizationApiKeys extends AsyncView<Props, State> {
         this.setState({busy: false});
         browserHistory.push(
           recreateRoute(`${data.id}/`, {
-            params: this.props.params,
+            params: {orgId: organization.slug},
             routes: this.props.routes,
           })
         );
-        addSuccessMessage(t(`Created a new API key "${data.label}"`));
+        addSuccessMessage(t('Created a new API key "%s"', data.label));
       }
     } catch {
       this.setState({busy: false});
@@ -90,14 +89,18 @@ class OrganizationApiKeys extends AsyncView<Props, State> {
   }
 
   renderBody() {
+    const {organization} = this.props;
+    const params = {orgId: organization.slug};
+
     return (
       <OrganizationApiKeysList
+        {...this.props}
+        params={params}
         loading={this.state.loading}
         busy={this.state.busy}
         keys={this.state.keys}
         onRemove={this.handleRemove}
         onAddApiKey={this.handleAddApiKey}
-        {...this.props}
       />
     );
   }

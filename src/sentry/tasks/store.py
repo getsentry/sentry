@@ -1,11 +1,11 @@
 import logging
-from datetime import datetime
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from time import time
 from typing import Any, Callable, Dict, List, Optional
 
 import sentry_sdk
 from django.conf import settings
-from django.utils import timezone
 from sentry_relay.processing import StoreNormalizer
 
 from sentry import options, reprocessing, reprocessing2
@@ -15,7 +15,12 @@ from sentry.datascrubbing import scrub_data
 from sentry.eventstore import processing
 from sentry.eventstore.processing.base import Event
 from sentry.killswitches import killswitch_matches_context
-from sentry.models import Activity, Organization, Project, ProjectOption
+from sentry.lang.native.symbolicator import SymbolicatorTaskKind
+from sentry.models.activity import Activity
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.silo import SiloMode
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
@@ -36,13 +41,9 @@ class RetryProcessing(Exception):
     pass
 
 
-@metrics.wraps("should_process")  # type: ignore
+@metrics.wraps("should_process")
 def should_process(data: CanonicalKeyDict) -> bool:
     """Quick check if processing is needed at all."""
-    return _should_process_inner(data)
-
-
-def _should_process_inner(data: CanonicalKeyDict) -> bool:
     from sentry.plugins.base import plugins
 
     if data.get("type") == "transaction":
@@ -55,10 +56,6 @@ def _should_process_inner(data: CanonicalKeyDict) -> bool:
         if processors:
             return True
 
-        enhancers = safe_execute(plugin.get_event_enhancers, data=data, _with_transaction=False)
-        if enhancers:
-            return True
-
     if should_process_for_stacktraces(data):
         return True
 
@@ -66,12 +63,13 @@ def _should_process_inner(data: CanonicalKeyDict) -> bool:
 
 
 def submit_process(
-    project: Optional[Project],
     from_reprocessing: bool,
     cache_key: str,
     event_id: Optional[str],
     start_time: Optional[int],
     data_has_changed: bool = False,
+    from_symbolicate: bool = False,
+    has_attachments: bool = False,
 ) -> None:
     task = process_event_from_reprocessing if from_reprocessing else process_event
     task.delay(
@@ -79,12 +77,21 @@ def submit_process(
         start_time=start_time,
         event_id=event_id,
         data_has_changed=data_has_changed,
+        from_symbolicate=from_symbolicate,
+        has_attachments=has_attachments,
     )
 
 
+@dataclass(frozen=True)
+class SaveEventTaskKind:
+    is_highcpu: bool = False
+    has_attachments: bool = False
+    from_reprocessing: bool = False
+
+
 def submit_save_event(
+    task_kind: SaveEventTaskKind,
     project_id: int,
-    from_reprocessing: bool,
     cache_key: Optional[str],
     event_id: Optional[str],
     start_time: Optional[int],
@@ -94,14 +101,22 @@ def submit_save_event(
         data = None
 
     # XXX: honor from_reprocessing
+    if task_kind.has_attachments:
+        task = save_event_attachments
+    elif task_kind.is_highcpu:
+        task = save_event_highcpu
+    else:
+        task = save_event
 
-    save_event.delay(
-        cache_key=cache_key,
-        data=data,
-        start_time=start_time,
-        event_id=event_id,
-        project_id=project_id,
-    )
+    task_kwargs = {
+        "cache_key": cache_key,
+        "data": data,
+        "start_time": start_time,
+        "event_id": event_id,
+        "project_id": project_id,
+    }
+
+    task.delay(**task_kwargs)
 
 
 def _do_preprocess_event(
@@ -111,9 +126,13 @@ def _do_preprocess_event(
     event_id: Optional[str],
     process_task: Callable[[Optional[str], Optional[int], Optional[str], bool], None],
     project: Optional[Project],
+    has_attachments: bool = False,
 ) -> None:
-    from sentry.lang.native.processing import should_process_with_symbolicator
-    from sentry.tasks.symbolication import should_demote_symbolication, submit_symbolicate
+    from sentry.tasks.symbolication import (
+        get_symbolication_function,
+        should_demote_symbolication,
+        submit_symbolicate,
+    )
 
     if cache_key and data is None:
         data = processing.event_processing_store.get(cache_key)
@@ -140,39 +159,68 @@ def _do_preprocess_event(
             "organization", Organization.objects.get_from_cache(id=project.organization_id)
         )
 
-    if should_process_with_symbolicator(data):
-        reprocessing2.backup_unprocessed_event(project=project, data=original_data)
+    is_js, symbolication_function = get_symbolication_function(data)
+    if symbolication_function:
+        symbolication_function_name = getattr(symbolication_function, "__name__", "none")
 
-        is_low_priority = should_demote_symbolication(project_id)
-        submit_symbolicate(
-            is_low_priority,
-            from_reprocessing,
-            cache_key,
-            event_id,
-            start_time,
-            original_data,
-        )
-        return
+        if not killswitch_matches_context(
+            "store.load-shed-symbolicate-event-projects",
+            {
+                "project_id": project_id,
+                "event_id": event_id,
+                "platform": data.get("platform") or "null",
+                "symbolication_function": symbolication_function_name,
+            },
+        ):
+            reprocessing2.backup_unprocessed_event(data=original_data)
 
-    if should_process(data):
+            is_low_priority = should_demote_symbolication(project_id)
+            task_kind = SymbolicatorTaskKind(
+                is_js=is_js, is_low_priority=is_low_priority, is_reprocessing=from_reprocessing
+            )
+            submit_symbolicate(
+                task_kind,
+                cache_key=cache_key,
+                event_id=event_id,
+                start_time=start_time,
+                has_attachments=has_attachments,
+            )
+            return
+        # else: go directly to process, do not go through the symbolicate queue, do not collect 200
+
+    # NOTE: Events considered for symbolication always go through `do_process_event`
+    if symbolication_function or should_process(data):
         submit_process(
-            project,
-            from_reprocessing,
-            cache_key,
-            event_id,
-            start_time,
+            from_reprocessing=from_reprocessing,
+            cache_key=cache_key,
+            event_id=event_id,
+            start_time=start_time,
             data_has_changed=False,
+            has_attachments=has_attachments,
         )
         return
 
-    submit_save_event(project_id, from_reprocessing, cache_key, event_id, start_time, original_data)
+    task_kind = SaveEventTaskKind(
+        has_attachments=has_attachments,
+        from_reprocessing=from_reprocessing,
+        is_highcpu=data["platform"] in options.get("store.save-event-highcpu-platforms", []),
+    )
+    submit_save_event(
+        task_kind,
+        project_id=project_id,
+        cache_key=cache_key,
+        event_id=event_id,
+        start_time=start_time,
+        data=original_data,
+    )
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.preprocess_event",
     queue="events.preprocess_event",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def preprocess_event(
     cache_key: str,
@@ -180,6 +228,7 @@ def preprocess_event(
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     project: Optional[Project] = None,
+    has_attachments: bool = False,
     **kwargs: Any,
 ) -> None:
     return _do_preprocess_event(
@@ -189,14 +238,16 @@ def preprocess_event(
         event_id=event_id,
         process_task=process_event,
         project=project,
+        has_attachments=has_attachments,
     )
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.preprocess_event_from_reprocessing",
     queue="events.reprocessing.preprocess_event",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def preprocess_event_from_reprocessing(
     cache_key: str,
@@ -216,11 +267,12 @@ def preprocess_event_from_reprocessing(
     )
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.retry_process_event",
     queue="sleep",
     time_limit=(60 * 5) + 5,
     soft_time_limit=60 * 5,
+    silo_mode=SiloMode.REGION,
 )
 def retry_process_event(process_task_name: str, task_kwargs: Dict[str, Any], **kwargs: Any) -> None:
     """
@@ -248,6 +300,7 @@ def do_process_event(
     data: Optional[Event] = None,
     data_has_changed: bool = False,
     from_symbolicate: bool = False,
+    has_attachments: bool = False,
 ) -> None:
     from sentry.plugins.base import plugins
 
@@ -269,8 +322,19 @@ def do_process_event(
     event_id = data["event_id"]
 
     def _continue_to_save_event() -> None:
-        from_reprocessing = process_task is process_event_from_reprocessing
-        submit_save_event(project_id, from_reprocessing, cache_key, event_id, start_time, data)
+        task_kind = SaveEventTaskKind(
+            from_reprocessing=process_task is process_event_from_reprocessing,
+            has_attachments=has_attachments,
+            is_highcpu=data["platform"] in options.get("store.save-event-highcpu-platforms", []),
+        )
+        submit_save_event(
+            task_kind,
+            project_id=project_id,
+            cache_key=cache_key,
+            event_id=event_id,
+            start_time=start_time,
+            data=data,
+        )
 
     if killswitch_matches_context(
         "store.load-shed-process-event-projects",
@@ -320,8 +384,7 @@ def do_process_event(
     # happens somewhere in the middle of the pipeline.
     #
     # On the other hand, Javascript event error translation is happening after
-    # this block because it uses `get_event_preprocessors` instead of
-    # `get_event_enhancers`.
+    # this block because it uses `get_event_preprocessors`.
     #
     # We are fairly confident, however, that this should run *before*
     # re-normalization as it is hard to find sensitive data in partially
@@ -407,17 +470,20 @@ def do_process_event(
     return _continue_to_save_event()
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.process_event",
     queue="events.process_event",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def process_event(
     cache_key: str,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     data_has_changed: bool = False,
+    from_symbolicate: bool = False,
+    has_attachments: bool = False,
     **kwargs: Any,
 ) -> None:
     """
@@ -436,20 +502,25 @@ def process_event(
         event_id=event_id,
         process_task=process_event,
         data_has_changed=data_has_changed,
+        from_symbolicate=from_symbolicate,
+        has_attachments=has_attachments,
     )
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.process_event_from_reprocessing",
     queue="events.reprocessing.process_event",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def process_event_from_reprocessing(
     cache_key: str,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     data_has_changed: bool = False,
+    from_symbolicate: bool = False,
+    has_attachments: bool = False,
     **kwargs: Any,
 ) -> None:
     return do_process_event(
@@ -458,6 +529,8 @@ def process_event_from_reprocessing(
         event_id=event_id,
         process_task=process_event_from_reprocessing,
         data_has_changed=data_has_changed,
+        from_symbolicate=from_symbolicate,
+        has_attachments=has_attachments,
     )
 
 
@@ -470,7 +543,8 @@ def delete_raw_event(
         error_logger.error("process.failed_delete_raw_event", extra={"project_id": project_id})
         return
 
-    from sentry.models import RawEvent, ReprocessingReport
+    from sentry.models.rawevent import RawEvent
+    from sentry.models.reprocessingreport import ReprocessingReport
 
     RawEvent.objects.filter(project_id=project_id, event_id=event_id).delete()
     ReprocessingReport.objects.filter(project_id=project_id, event_id=event_id).delete()
@@ -563,7 +637,8 @@ def create_failed_event(
         return True
 
     data = CanonicalKeyDict(data)
-    from sentry.models import ProcessingIssue, RawEvent
+    from sentry.models.processingissue import ProcessingIssue
+    from sentry.models.rawevent import RawEvent
 
     raw_event = RawEvent.objects.create(
         project_id=project_id,
@@ -661,7 +736,10 @@ def _do_save_event(
                 manager = EventManager(data)
                 # event.project.organization is populated after this statement.
                 manager.save(
-                    project_id, assume_normalized=True, start_time=start_time, cache_key=cache_key
+                    project_id,
+                    assume_normalized=True,
+                    start_time=start_time,
+                    cache_key=cache_key,
                 )
                 # Put the updated event back into the cache so that post_process
                 # has the most recent data.
@@ -675,6 +753,9 @@ def _do_save_event(
             if cache_key:
                 with metrics.timer("tasks.store.do_save_event.delete_cache"):
                     processing.event_processing_store.delete_by_key(cache_key)
+        except Exception:
+            metrics.incr("events.save_event.exception", tags={"event_type": event_type})
+            raise
 
         finally:
             reprocessing2.mark_event_reprocessed(data)
@@ -698,7 +779,7 @@ def _do_save_event(
 
 
 def time_synthetic_monitoring_event(
-    data: Event, project_id: int, start_time: Optional[int]
+    data: Event, project_id: int, start_time: Optional[float]
 ) -> bool:
     """
     For special events produced by the recurring synthetic monitoring
@@ -747,11 +828,12 @@ def time_synthetic_monitoring_event(
     return True
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.save_event",
     queue="events.save_event",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def save_event(
     cache_key: Optional[str] = None,
@@ -764,13 +846,49 @@ def save_event(
     _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.save_event_transaction",
     queue="events.save_event_transaction",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def save_event_transaction(
+    cache_key: Optional[str] = None,
+    data: Optional[Event] = None,
+    start_time: Optional[int] = None,
+    event_id: Optional[str] = None,
+    project_id: Optional[int] = None,
+    **kwargs: Any,
+) -> None:
+    _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)
+
+
+@instrumented_task(
+    name="sentry.tasks.store.save_event_attachments",
+    queue="events.save_event_attachments",
+    time_limit=65,
+    soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
+)
+def save_event_attachments(
+    cache_key: Optional[str] = None,
+    data: Optional[Event] = None,
+    start_time: Optional[int] = None,
+    event_id: Optional[str] = None,
+    project_id: Optional[int] = None,
+    **kwargs: Any,
+) -> None:
+    _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)
+
+
+@instrumented_task(
+    name="sentry.tasks.store.save_event_highcpu",
+    queue="events.save_event_highcpu",
+    time_limit=65,
+    soft_time_limit=60,
+)
+def save_event_highcpu(
     cache_key: Optional[str] = None,
     data: Optional[Event] = None,
     start_time: Optional[int] = None,

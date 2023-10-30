@@ -1,0 +1,24 @@
+---
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace (ignored because hash matches system variant)
+        frame* (frame considered in-app because no frame is in-app)
+          module*
+            "com.example.api.OutboundController$$EnhancerByGuice$$ae46b1bf"
+          function*
+            "jipJipManagementApplication"
+--------------------------------------------------------------------------
+system:
+  hash: "d8f406c2efb312db2231282f94647b1d"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module*
+            "com.example.api.OutboundController$$EnhancerByGuice$$ae46b1bf"
+          function*
+            "jipJipManagementApplication"

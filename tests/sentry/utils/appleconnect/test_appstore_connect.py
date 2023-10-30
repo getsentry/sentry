@@ -7,12 +7,12 @@ file with credentials.  See the ``api_credentials`` fixture for details.
 import pathlib
 import textwrap
 import urllib.parse
-from typing import Optional
+from typing import Generator, Optional
 from unittest import mock
 
 import pytest
 import requests
-import responses as responses_mod  # type: ignore
+import responses as responses_mod
 
 from sentry.lang.native.appconnect import NoDsymUrl
 from sentry.utils import json
@@ -20,11 +20,10 @@ from sentry.utils.appleconnect import appstore_connect
 
 
 class TestListBuilds:
-    # mypy just can't cope with this function:
-    # - The request fixture type is private: _pytest.fixtures.FixtureRequest.
-    # - mypy has no idea that `pytest.skip()` raises and exception and terminates control flow.
-    @pytest.fixture(scope="session", params=["live", "responses"])  # type: ignore
-    def api_credentials(self, request) -> appstore_connect.AppConnectCredentials:  # type: ignore
+    @pytest.fixture(scope="session", params=["live", "responses"])
+    def api_credentials(
+        self, request: pytest.FixtureRequest
+    ) -> appstore_connect.AppConnectCredentials:
         """An App Store Connect API key in the form of AppConnectCredentials.
 
         If ``apikey.json`` is present in the current directory it will load the credentials
@@ -71,7 +70,7 @@ class TestListBuilds:
                 ),
             )
 
-    @pytest.fixture(scope="session")  # type: ignore
+    @pytest.fixture(scope="session")
     def app_id(self) -> str:
         """The Sentry Cocoa Swift example app."""
         return "1549832463"
@@ -104,10 +103,10 @@ class TestListBuilds:
         pages_file = module_dir / "pages_data.json"
         pages_file.write_text(json.dumps(pages))
 
-    @pytest.fixture  # type: ignore
+    @pytest.fixture
     def mocked_list_builds_api(
         self, api_credentials: appstore_connect.AppConnectCredentials
-    ) -> Optional[responses_mod.RequestsMock]:
+    ) -> Generator[Optional[responses_mod.RequestsMock], None, None]:
         """Optionally mocks the App Store Connect list builds API.
 
         This fixture piggybacks on the ``api_credentials`` fixture's parametrisation and if

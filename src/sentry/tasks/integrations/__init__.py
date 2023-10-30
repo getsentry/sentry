@@ -4,7 +4,8 @@ from django.conf import settings
 
 from sentry import features
 from sentry.integrations import IntegrationInstallation
-from sentry.models import ExternalIssue, Organization
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.organization import Organization
 
 logger = logging.getLogger("sentry.tasks.integrations")
 
@@ -22,6 +23,8 @@ __all__ = (
     "kick_off_status_syncs",
     "kickoff_vsts_subscription_check",
     "logger",
+    "migrate_opsgenie_plugin",
+    "migrate_issues",
     "migrate_repo",
     "should_comment_sync",
     "sync_assignee_outbound",
@@ -32,24 +35,29 @@ __all__ = (
     "vsts_subscription_check",
 )
 
-_tasks_list = (
-    "create_comment",
-    "kick_off_status_syncs",
-    "migrate_repo",
-    "sync_assignee_outbound",
-    "sync_metadata",
-    "sync_status_inbound",
-    "sync_status_outbound",
-    "update_comment",
-    "vsts.kickoff_subscription_check",
-    "vsts.subscription_check",
+settings.CELERY_IMPORTS += (
+    "sentry.tasks.integrations.create_comment",
+    "sentry.tasks.integrations.github.pr_comment",
+    "sentry.tasks.integrations.kick_off_status_syncs",
+    "sentry.tasks.integrations.link_all_repos",
+    "sentry.tasks.integrations.migrate_opsgenie_plugins",
+    "sentry.tasks.integrations.migrate_issues",
+    "sentry.tasks.integrations.migrate_repo",
+    "sentry.tasks.integrations.sync_assignee_outbound_impl",
+    "sentry.tasks.integrations.sync_metadata",
+    "sentry.tasks.integrations.sync_status_inbound",
+    "sentry.tasks.integrations.sync_status_outbound",
+    "sentry.tasks.integrations.update_comment",
+    "sentry.tasks.integrations.vsts.kickoff_subscription_check",
+    "sentry.tasks.integrations.vsts.subscription_check",
 )
-settings.CELERY_IMPORTS += tuple(f"sentry.tasks.integrations.{task}" for task in _tasks_list)
 
 from .create_comment import create_comment
 from .kick_off_status_syncs import kick_off_status_syncs
+from .migrate_issues import migrate_issues
+from .migrate_opsgenie_plugins import migrate_opsgenie_plugin
 from .migrate_repo import migrate_repo
-from .sync_assignee_outbound import sync_assignee_outbound
+from .sync_assignee_outbound_impl import sync_assignee_outbound
 from .sync_metadata import sync_metadata
 from .sync_status_inbound import sync_status_inbound
 from .sync_status_outbound import sync_status_outbound

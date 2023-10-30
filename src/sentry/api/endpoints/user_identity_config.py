@@ -1,11 +1,13 @@
 import itertools
 from typing import Iterable, Optional
 
-from django.db import transaction
+from django.db import router, transaction
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user_identity_config import (
@@ -13,7 +15,9 @@ from sentry.api.serializers.models.user_identity_config import (
     UserIdentityConfig,
     supports_login,
 )
-from sentry.models import AuthIdentity, Identity, User
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.identity import Identity
+from sentry.models.user import User
 from social_auth.models import UserSocialAuth
 
 
@@ -73,7 +77,12 @@ def get_identities(user: User) -> Iterable[UserIdentityConfig]:
     return itertools.chain(social_identities, global_identities, org_identities)
 
 
+@control_silo_endpoint
 class UserIdentityConfigEndpoint(UserEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, user) -> Response:
         """
         Retrieve all of a user's SocialIdentity, Identity, and AuthIdentity values
@@ -87,7 +96,13 @@ class UserIdentityConfigEndpoint(UserEndpoint):
         return Response(serialize(identities))
 
 
+@control_silo_endpoint
 class UserIdentityConfigDetailsEndpoint(UserEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     @staticmethod
     def _get_identity(user, category, identity_id) -> Optional[UserIdentityConfig]:
         identity_id = int(identity_id)
@@ -109,7 +124,7 @@ class UserIdentityConfigDetailsEndpoint(UserEndpoint):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
     def delete(self, request: Request, user, category, identity_id) -> Response:
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(Identity)):
             identity = self._get_identity(user, category, identity_id)
             if not identity:
                 # Returns 404 even if the ID exists but belongs to

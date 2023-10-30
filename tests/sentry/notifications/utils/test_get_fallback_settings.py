@@ -1,14 +1,17 @@
-from unittest import TestCase
-
-from sentry.models import Project, User
 from sentry.notifications.helpers import get_fallback_settings
 from sentry.notifications.types import NotificationSettingTypes
+from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.silo import SiloMode
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
+@control_silo_test(stable=True)
 class GetFallbackSettingsTest(TestCase):
     def setUp(self) -> None:
-        self.user = User(id=1)
-        self.project = Project(id=123)
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.user = RpcActor.from_orm_user(self.create_user())
+        self.project = self.create_project()
 
     def test_get_fallback_settings_minimal(self):
         assert get_fallback_settings({NotificationSettingTypes.ISSUE_ALERTS}, {}, {}) == {}
@@ -20,7 +23,8 @@ class GetFallbackSettingsTest(TestCase):
                 "user": {
                     self.user.id: {
                         "email": "always",
-                        "slack": "never",
+                        "slack": "always",
+                        "msteams": "never",
                     }
                 }
             }
@@ -34,6 +38,7 @@ class GetFallbackSettingsTest(TestCase):
                     self.project.id: {
                         "email": "default",
                         "slack": "default",
+                        "msteams": "default",
                     }
                 }
             }

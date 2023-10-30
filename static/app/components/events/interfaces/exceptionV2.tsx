@@ -1,13 +1,11 @@
-import styled from '@emotion/styled';
-
 import {t} from 'sentry/locale';
-import {ExceptionType, Group, PlatformType, Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
+import {ExceptionType, Group, PlatformKey, Project} from 'sentry/types';
+import {EntryType, Event} from 'sentry/types/event';
+import {StackType, StackView} from 'sentry/types/stacktrace';
 
-import {TraceEventDataSection} from '../traceEventDataSection';
+import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
 
-import CrashContentException from './crashContent/exception';
+import {ExceptionContent} from './crashContent/exception';
 import NoStackTraceMessage from './noStackTraceMessage';
 import {isStacktraceNewestFirst} from './utils';
 
@@ -15,30 +13,34 @@ type Props = {
   data: ExceptionType;
   event: Event;
   hasHierarchicalGrouping: boolean;
-  projectId: Project['id'];
-  type: string;
+  projectSlug: Project['slug'];
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
 };
 
-function Exception({
+export function ExceptionV2({
   event,
-  type,
   data,
-  projectId,
+  projectSlug,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
 }: Props) {
-  const eventHasThreads = !!event.entries.some(entry => entry.type === 'threads');
+  const eventHasThreads = !!event.entries.some(entry => entry.type === EntryType.THREADS);
 
-  /* in case there are threads in the event data, we don't render the
-   exception block.  Instead the exception is contained within the
-   thread interface. */
+  // in case there are threads in the event data, we don't render the
+  // exception block.  Instead the exception is contained within the
+  // thread interface.
   if (eventHasThreads) {
     return null;
   }
 
-  function getPlatform(): PlatformType {
+  const entryIndex = event.entries.findIndex(
+    eventEntry => eventEntry.type === EntryType.EXCEPTION
+  );
+
+  const meta = event._meta?.entries?.[entryIndex]?.data?.values;
+
+  function getPlatform(): PlatformKey {
     const dataValue = data.values?.find(
       value => !!value.stacktrace?.frames?.some(frame => !!frame.platform)
     );
@@ -59,10 +61,9 @@ function Exception({
 
   return (
     <TraceEventDataSection
-      title={<Title>{t('Exception')}</Title>}
-      type={type}
-      stackType={STACK_TYPE.ORIGINAL}
-      projectId={projectId}
+      title={<PermalinkTitle>{t('Stack Trace')}</PermalinkTitle>}
+      type={EntryType.EXCEPTION}
+      projectSlug={projectSlug}
       eventId={event.id}
       recentFirst={isStacktraceNewestFirst()}
       fullStackTrace={!data.hasSystemFrames}
@@ -98,40 +99,34 @@ function Exception({
         !!data.values?.some(value => (value.stacktrace?.frames ?? []).length > 1)
       }
       stackTraceNotFound={stackTraceNotFound}
-      showPermalink
       wrapTitle={false}
     >
       {({recentFirst, display, fullStackTrace}) =>
         stackTraceNotFound ? (
           <NoStackTraceMessage />
         ) : (
-          <CrashContentException
+          <ExceptionContent
             stackType={
-              display.includes('minified') ? STACK_TYPE.MINIFIED : STACK_TYPE.ORIGINAL
+              display.includes('minified') ? StackType.MINIFIED : StackType.ORIGINAL
             }
             stackView={
               display.includes('raw-stack-trace')
-                ? STACK_VIEW.RAW
+                ? StackView.RAW
                 : fullStackTrace
-                ? STACK_VIEW.FULL
-                : STACK_VIEW.APP
+                ? StackView.FULL
+                : StackView.APP
             }
-            projectId={projectId}
+            projectSlug={projectSlug}
             newestFirst={recentFirst}
             event={event}
             platform={platform}
             values={data.values}
             groupingCurrentLevel={groupingCurrentLevel}
             hasHierarchicalGrouping={hasHierarchicalGrouping}
+            meta={meta}
           />
         )
       }
     </TraceEventDataSection>
   );
 }
-
-export default Exception;
-
-const Title = styled('h3')`
-  margin-bottom: 0;
-`;

@@ -13,7 +13,7 @@ type State = {
 };
 
 type Options = {
-  componentType?: 'stacktrace-link';
+  componentType?: SentryAppComponent['type'];
 };
 
 function withSentryAppComponents<P extends InjectedAppComponentsProps>(
@@ -38,16 +38,15 @@ function withSentryAppComponents<P extends InjectedAppComponentsProps>(
     );
 
     render() {
-      const {components, ...props} = this.props as P;
-      return (
-        <WrappedComponent
-          {...({
-            components:
-              components ?? SentryAppComponentsStore.getComponentByType(componentType),
-            ...props,
-          } as P)}
-        />
-      );
+      const {components: propComponents, ...props} = this.props as P;
+
+      const storeComponents = componentType
+        ? this.state.components.filter(item => item.type === componentType)
+        : this.state.components;
+
+      const components = propComponents ?? storeComponents;
+
+      return <WrappedComponent {...({components, ...props} as P)} />;
     }
   }
   return WithSentryAppComponents;

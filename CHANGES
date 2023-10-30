@@ -1,3 +1,1141 @@
+23.10.1
+-------
+
+### Various fixes & improvements
+
+- fix(hybridcloud) Fix a queue silo assignment (#58386) by @markstory
+- feat(migrations): Add new index to `IncidentTrigger` model (#58467) by @isabellaenriquez
+- feat(suspect-commits): Remove suspect commit recalculation period (when all-frames is enabled) (#58415) by @malwilley
+- fix(starfish): Pass webvital to charts in Webvitals module (#58517) by @edwardgou-sentry
+- feat(hc): Add __str__ implementation for RpcUser (#58485) by @mrduncan
+- Revert "feat(replays): Replay layout move start time (#58488)" (80e576dd) by @getsentry-bot
+- Revert "feat(replays): Replay layout add breadcrumbs to fullscreen mode (#58466)" (7f6fe452) by @getsentry-bot
+- feat(replays): Replay layout move start time (#58488) by @c298lee
+- feat(replays): Replay layout add breadcrumbs to fullscreen mode (#58466) by @c298lee
+- fix(alerts): use generic metrics dataset for on demand (#58510) by @obostjancic
+- fix(on-demand): Fix p100 and percentiles (#58511) by @iambriccardo
+- feat(dynamic-sampling):Add raw_query and user relation to custom_rules model (second try) (#58447) by @RaduW
+- fix(alerts): on demand migration ui (#58508) by @obostjancic
+- Revert "fix(alerts): Fix dataset selector width (#58499)" (#58501) by @ArthurKnaus
+- fix(on-demand): p100 support (#58500) by @obostjancic
+- fix(alerts): Fix dataset selector width (#58499) by @ArthurKnaus
+- fix(on-demand): remove p90 (#58496) by @obostjancic
+- feat(on-demand): conditionally show on-demand UI (#58330) by @obostjancic
+- ref(escalating-issues): Change batch size to 100 (#58489) by @NisanthanNanthakumar
+- Add Papercut label (ff80fbb5) by @chadwhitacre
+- chore(replay): Cleanup DOM Tab test, before we remove the tab itself (#58486) by @ryan953
+- feat(replay): Add Jump up|down buttons to all the Replay Details tables & lists (#58359) by @ryan953
+- chore(agg-spans): Update language on span frequency (#58484) by @shruthilayaj
+- fix(statistical-detectors): Feature flags in wrong place (#58483) by @Zylphrex
+
+_Plus 209 more_
+
+23.10.0
+-------
+
+### Discord Integration (ongoing)
+
+By: @17hogeju (#57522)
+
+### Notification Analytics Milestone 2 (ongoing)
+
+By: @scttcper (#56700)
+
+### Notification Settings 2.0 (ongoing)
+
+By: @snigdhas (#57053, #56717, #56621)
+
+### Various fixes & improvements
+
+- feat(crons): Add cron monitor created metric (#58017) by @davidenwang
+- ref(participants): Check for group list (#58204) by @ceorourke
+- feat(hybridcloud) Fix silo issues in shared issue HTML view (#57978) by @markstory
+- feat(sdk): Upgrade `@sentry` SDKs to v7.74.0 (#58198) by @billyvg
+- test(backup): Create backup version snapshot tests (#58173) by @azaslavsky
+- fix(hc): Silo fixes for alert rule actions (#58185) by @RyanSkonnord
+- meta(crons): Update API help text (#58048) by @rjo100
+- fix(ci): fix rate limit test (#58184) by @volokluev
+- feat(ui): Throw error on non-json api responses (#58129) by @scttcper
+- ref(bug reports): display name and email in list and details (#58087) by @michellewzhang
+- chore(actionable-items): remove feature flag backend (#57934) by @roggenkemper
+- update release threshold api routes (#58177) by @nhsiehgit
+- feat(backup): Support import decryption (#58128) by @azaslavsky
+- chore(alert-rule): Add jira server action to frontend enum (#58186) by @schew2381
+- feat(metrics): Add new option to toggle reading from new cache schema for indexer (#58170) by @john-z-yang
+- fix(hybridcloud) Assign control silo tasks to correct queues (#58112) by @markstory
+- fix(feedback): Improve spacing between feedback list items (#58182) by @ryan953
+- ref(bug reports): modify blueprint name and contact_email to reflect BE (#58083) by @michellewzhang
+- fix(hc): Fix silo availability error in send_alert_event (#58044) by @RyanSkonnord
+- ref(replay): Improve accessibility type names, and compat with replay frames (#58179) by @ryan953
+- feat(notifications): adds backfill for weekly report settings (#58168) by @scefali
+- feat(notifications): remove notification double write feature flag (#57863) by @scefali
+- feat(discord): adds logging of discord errors (#58176) by @scefali
+- fix(stat-detectors): Use 7 days for span analysis (#58096) by @narsaynorath
+
+_Plus 1060 more_
+
+23.9.1
+------
+
+### Various fixes & improvements
+
+- fix(fly): return user with correct auth (#56523) by @sentaur-athena
+- chore(api): Delete acceptance test for user tokens (#56537) by @schew2381
+- fix(backup): Suppress verbose SQL error reporting (#56583) by @azaslavsky
+- chore(github-growth): remove auto repo linking feature flag (#56581) by @cathteng
+- docs: Create some stories for PageBanner (#56519) by @ryan953
+- docs: Create a story for FeatureBadge (#56510) by @ryan953
+- ref(ui): Refine featureDisabled prop type (#56538) by @scttcper
+- migration(crons): Add MonitorIncident table (#56435) by @rjo100
+- ref(escalating-issues): Auto-transition tasks should update up to 500_000 groups per minute (#56168) by @NisanthanNanthakumar
+- chore(notifications): rename approval notifications to nudges in the UI (#56505) by @cathteng
+- feat(trace-view-load-more): Added ui for loading longer traces. (#56476) by @Abdkhan14
+- feat(starfish): add span domain array (#56494) by @wmak
+- chore(profiling): Track accepted profile outcomes (#56575) by @Zylphrex
+- feat(replay): Link page breadcrumb on Replay Details to the list page, filtered by project (#56574) by @ryan953
+- feat(crons): Add mark_environment_missed task (#56528) by @rjo100
+- fix(notifications): fixes bug for commited_only settings (#56518) by @scefali
+- ref(ddm): datetime params (#56567) by @obostjancic
+- chore(github-growth): stop writing to commitfilechange language column (#56491) by @cathteng
+- chore(github-growth): more FE analytics (#56507) by @cathteng
+- chore(hybrid-cloud): Mark extract_user_ids_from_mentions to be a region silo function (#56441) by @dashed
+- feat(statistical-detectors): Integrate detector with breakpoint detection (#56384) by @Zylphrex
+- feat(trace-view-load-more): Fixed bug that loads an extra row of orphans. (#56561) by @Abdkhan14
+- fix(dashboards): Use loading indicator to avoid multiple requests (#56558) by @narsaynorath
+- chore(hybrid-cloud): Stabilize issue integration defaults for split silo (#56297) by @dashed
+
+_Plus 46 more_
+
+23.9.0
+------
+
+### Notify on Disabled Integration  (ongoing)
+
+https://www.notion.so/sentry/Tech-Spec-Notify-on-Disabled-Integration-Spec-e7ea0f86ccd6419cb3e564067cf4a2ef?pvs=4
+
+By: @chloeho7 (#54286)
+
+### save_event improvements (ongoing)
+
+With the new 2023 grouping config, we started incurring a higher processing cost per saved event.
+In order to bring it back under controlled a series of code changes will be perform to improve the understandability of the code and its performance.
+
+By: @armenzg (#53643)
+
+### Notification Analytics Milestone 2 (ongoing)
+
+By: @scttcper (#56280, #56151, #56141, #55937, #55479, #55366, #54891, #54809)
+
+### Various fixes & improvements
+
+- feat(crons): Fan out `check_missing` task to each `monitor_environment` (#55924) by @rjo100
+- fix(severity): Prevent skipping severity score when equal to zero (#56225) by @lobsterkatie
+- docs(api): Clarify how to use id param in bulk delete issue endpoint (#56422) by @malwilley
+- feat(perf): Add link to Database view to sidebar (#56341) by @gggritso
+- chore(codeowners): update enterprise codeowners (#56487) by @cathteng
+- fix(commits): use externalId in filechange and project release commits FE (#56146) by @cathteng
+- fix(github-growth): improve performance of missing members API (#56477) by @cathteng
+- fix(api): test symbol sources in DetailedProjectSerializer (#56473) by @cathteng
+- feat(replay): Upgrade rrweb packages to v2 (#56088) by @billyvg
+- fix(backup): Handle UserRole name collisions (#56479) by @azaslavsky
+- logging(apis): better logging for api failures (#56432) by @scefali
+- Release threshold folder imports nit (#56400) by @nhsiehgit
+- docs: Document our loadingTriangle component (#56438) by @ryan953
+- ref(tests): Split error event tests into classes (#56448) by @lobsterkatie
+- fix(jira-server): try a second project for jira server if the first one fails (#56439) by @scefali
+- ref(snuba-sdk): Update snuba-sdk version to latest 2.0.1 (#56419) by @enochtangg
+- fix(actionable-items): Remove source map debug from actionable items (#56405) by @roggenkemper
+- feat(save_event): Always use cache for stacktrace processing (#56413) by @armenzg
+- feat(stat-detectors): Add param to fetch all tags (#56434) by @narsaynorath
+- feat(ddm): support for 1m interval (#56467) by @obostjancic
+- fix(minimetrics): Fix broken recursion detection (#56466) by @mitsuhiko
+- ref(typing): Few typing changes for sentry.snuba.metrics (#56397) by @armenzg
+- ref(sentry-sdk): Upgrade SDK (#56461) by @mitsuhiko
+- feat(ddm): Add metrics explorer from getsentry (#56460) by @matejminar
+
+_Plus 1078 more_
+
+23.8.0
+------
+
+### Notify on Disabled Integration  (ongoing)
+
+https://www.notion.so/sentry/Tech-Spec-Notify-on-Disabled-Integration-Spec-e7ea0f86ccd6419cb3e564067cf4a2ef?pvs=4
+
+By: @chloeho7 (#54734, #54655, #54589, #54640, #54466, #54348, #54339, #53522, #54234)
+
+### Notification Analytics Milestone 2 (ongoing)
+
+By: @scttcper (#54744)
+
+### Various fixes & improvements
+
+- (fix): user creation for self-hosted clean installs (#54776) by @hubertdeng123
+- fix(replays): remove replay from desktop and mobile projects (#54749) by @michellewzhang
+- ref: add mypy stubs for django-csp (#54786) by @asottile-sentry
+- chore(hybrid-cloud): Update OrganizationAuditLogsEndpoint to be a control silo endpoint (#54755) by @dashed
+- fix: ensure PYTEST_DEBUG_TEMPROOT exists (#54725) by @joshuarli
+- ref(replays): Update replay pages to show project name (#54728) by @c298lee
+- chore(codeowners): Update codeowners with project creation files (#54774) by @schew2381
+- feat(commit-context): Do not create if older than 1 year (#54624) by @NisanthanNanthakumar
+- feat(backup): Support foreign key remapping (#54610) by @azaslavsky
+- feat(tracing-without-performance): Replay compatibility and ui improvements. (#54700) by @Abdkhan14
+- fix(crons): Add border back to non-sticky timeline header (#54770) by @davidenwang
+- ref: upgrade datadog to a typed version (#54758) by @asottile-sentry
+- ref(crons): Remove temp_task_dispatcher (#54768) by @evanpurkhiser
+- fix(metrics-layer): Add xfailing metrics layer sort test (#54712) by @wmak
+- ref(query-builder): Cleanup query_framework code (#54586) by @wmak
+- ref(statistical-detectors): Clean up statistical detectors calculation (#54694) by @Zylphrex
+- fix(crons): Add className parameter to timeline components (#54769) by @davidenwang
+- ref(ui): Enhance Carousel component (#54747) by @evanpurkhiser
+- Feat/opt automator add region (#54631) by @kneeyo1
+- sample-event: try synchronous kafka producing (#54748) by @JoshFerge
+- ref(alerts): Don't pass "name" field (#54739) by @ceorourke
+- chore(issues): Cleanup apply_rule logs and add some more for regressions (#54455) by @snigdhas
+- feat(crons): Implement fallback clock pulse task (#54647) by @evanpurkhiser
+- fix(actionable-items): Add scraping as hidden error (#54648) by @roggenkemper
+
+_Plus 424 more_
+
+23.7.2
+------
+
+### Notify on Disabled Integration  (ongoing)
+
+https://www.notion.so/sentry/Tech-Spec-Notify-on-Disabled-Integration-Spec-e7ea0f86ccd6419cb3e564067cf4a2ef?pvs=4
+
+By: @chloeho7 (#54001)
+
+### save_event improvements (ongoing)
+
+With the new 2023 grouping config, we started incurring a higher processing cost per saved event.
+In order to bring it back under controlled a series of code changes will be perform to improve the understandability of the code and its performance.
+
+By: @armenzg (#53645, #53541)
+
+### Various fixes & improvements
+
+- feat(tracing-without-performance): Returned orphan errors with trace … (#54103) by @Abdkhan14
+- feat(profiling): use color pallete on chart (#54101) by @JonasBa
+- feat(issue-platform): Add an experimental frame drop issue type (#54028) by @phacops
+- feat(backup): Add DateAddedComparator (#54009) by @azaslavsky
+- feat(opsgenie): refactor validation (#53996) by @mifu67
+- Declare events.save_event_highcpu queue (#54041) by @hubertsentry
+- fix(escalating): Add reason to feedback analytic (#54082) by @scttcper
+- deps(ui): Update jest dependencies (#54065) by @scttcper
+- feat(discord): Add metrics (#54072) by @spalmurray
+- fix(starfish): Handle free text search (#54060) by @wmak
+- fix(github-comments): update comment copy (#54104) by @cathteng
+- fix(most-helpful-event): One event dropdown disabled (#54070) by @17hogeju
+- feat(most-helpful-event): Add option in user settings to change default issue event (#54048) by @17hogeju
+- ref(metrics-layer): Test the span metric charts too (#54045) by @wmak
+- fix(metrics-layer): Incorrect metrics layer tests (#54046) by @wmak
+- fix(notification-actions): allow org and team admins to modify (#53797) by @cathteng
+- ref(starfish): Show 3 significant digits for queries per minute try 2 (#54100) by @AbhiPrasad
+- ref(hc): Mark silo stable tests stable (#54074) by @mrduncan
+- feat(profiling): add react native onboarding wizard (#54096) by @JonasBa
+- fix(mypy): fix mypy errors for src/sentry/api/serializers/models (part 1) (#53905) by @hubertsentry
+- Revert "ref(starfish): Show 3 significant digits for queries per minute (#54033)" (dd75a2cb) by @getsentry-bot
+- ref(starfish): Show 3 significant digits for queries per minute (#54033) by @AbhiPrasad
+- chore(grouping): Kill grouping levels endpoints (#54073) by @lobsterkatie
+- xfail flakey test (#54081) by @JoshFerge
+
+_Plus 400 more_
+
+23.7.1
+------
+
+### Escalating Issues V1 (ongoing)
+
+This will allow marking an issue as archived until escalating.
+
+By: @scttcper (#53011)
+
+### Escalating Issues V2 (EA) (ongoing)
+
+This is a placeholder milestone for tracking post-v1 work for escalating issues.
+See the RFC: https://github.com/getsentry/rfcs/blob/main/text/0078-escalating-issues.md
+There's also discussions about escalation in here:
+https://github.com/getsentry/sentry/discussions/43039
+
+V2 will focus on moving ongoing issues (upcoming) into the state archived-until-escalating after an issue being in the `ongoing` state for 14 days.
+
+
+By: @snigdhas (#52774)
+
+### Various fixes & improvements
+
+- chore(replay): Remove unicode from slack View Replays link (#53518) by @ryan953
+- feat(starfish): Replaces usage of p95 in the Database Module with avg (#53515) by @edwardgou-sentry
+- Revert "feat(profiling): Deobfuscate Android methods' signature (#53427)" (af3ae3b7) by @getsentry-bot
+- feat(integration-slack): store request error counts and disable on broken (#52994) by @chloeho7
+- ref(grouping): Clean up message normalization (#53479) by @lobsterkatie
+- ref(projects): Redirect after project transfer (#53466) by @ceorourke
+- feat(secrecy): enable data secrecy for organizations (#53322) by @cathteng
+- feat(perf-detector-threshold-configuration) Added option for new Cons… (#53461) by @Abdkhan14
+- fix(ci): Increase codecov `comment.after_n_builds` value (#53488) by @lobsterkatie
+- test(ui): Reset api mocks between EventDetails tests (#53497) by @scttcper
+- ref(hybrid-cloud): Fix a few tests in split silo mode (#53482) by @mikejihbe
+- feat(profiling): Deobfuscate Android methods' signature (#53427) by @phacops
+- feat(perf-detector-threshold-configuration) Added new thresholds and … (#53460) by @Abdkhan14
+- fix(starfish): clicking endpoint in span summary replaces groupId with 'db' in url (#53517) by @DominikB2014
+- feat(starfish): add transaction.op:http.server to webservice queries (#53355) by @DominikB2014
+- fix(starfish): add quotes around transaction name (#53516) by @DominikB2014
+- ref(redis): Configure default 3s socket timeout (#53513) by @beezz
+- feat(dynamic-sampling): Add project slug to response of AM2 check (#53514) by @iambriccardo
+- feat(dnd-worldmap-removal) Added null checks for columns and fields. (#53475) by @Abdkhan14
+- Implement ArtifactBundle flat file indexing (#53505) by @Swatinem
+- chore(ts): Improve Starfish span metrics typing (#53453) by @gggritso
+- ref(feature): Remove no longer used heartbeat feature flag (#53510) by @priscilawebdev
+- ref(feature): Remove heartbeat feature (#53509) by @priscilawebdev
+- feat(dynamic-sampling): Improve check am2 compatibility (#53414) by @iambriccardo
+
+_Plus 399 more_
+
+23.7.0
+------
+
+### Escalating Issues V2 (EA) (ongoing)
+
+This is a placeholder milestone for tracking post-v1 work for escalating issues.
+See the RFC: https://github.com/getsentry/rfcs/blob/main/text/0078-escalating-issues.md
+There's also discussions about escalation in here:
+https://github.com/getsentry/sentry/discussions/43039
+
+V2 will focus on moving ongoing issues (upcoming) into the state archived-until-escalating after an issue being in the `ongoing` state for 14 days.
+
+
+By: @snigdhas (#52360)
+
+### Search Shortcuts (ongoing)
+
+Make common searches more accessible and discoverable for users. [notion page](https://www.notion.so/sentry/Search-Shortcuts-fka-Assignee-Filter-on-Issue-Stream-648954e782d04805bc64f1983e5cbd16?pvs=4)
+
+By: @scttcper (#52414, #52348)
+
+### Various fixes & improvements
+
+- test(hybrid-cloud): Stabilizes sentry app install tests (#53004) by @GabeVillalobos
+- ref(saved search): Migrate betterPriority to priority (#52909) by @ceorourke
+- ref(sort): Change betterPriority to priority (#52910) by @ceorourke
+- feat(crons): Use timeout_at for timed out check-ins (#52570) by @rjo100
+- ref(event_manager): Fix typing issues for event_manager (#52974) by @armenzg
+- test(backup): Add more model tests (#52923) by @azaslavsky
+- fix(replays): fix bin/mock-replays script (#52927) by @michellewzhang
+- ref(crons): Change to uuid validator for trace (#52561) by @rjo100
+- fix(crons): Properly checks for environment name lengths (#52820) by @rjo100
+- feat(grouping): Add metrics for issue merging and unmerging (#52919) by @lobsterkatie
+- chore(starfish): Adding referrers to starfish (#52749) by @wmak
+- chore(starfish): Add starfish referrers to the backend (#52754) by @wmak
+- ref(tsc): usageChart utils to tsx (#52935) by @IanWoodard
+- chore(hybrid-cloud): Add tags to debug Identity service (#52997) by @dashed
+- feat(starfish): Add unit and types for rates (#52991) by @wmak
+- ref(replay): Refactor the "Next Breadcrumb" button to use *Frame types (#52931) by @ryan953
+- fix(group-attributes): log metric when post_save.send(update_fields=["status", "subs"]) is called for group (#52996) by @barkbarkimashark
+- fix(releases): Use query parameter when switching filters (#52937) by @scttcper
+- fix(discord): Change log level from error to info for unauthorized interactions (#52946) by @spalmurray
+- ref: fix typing for sentry.models.__init__ (#52992) by @asottile-sentry
+- feat(replay): Render the replay currentTime & hoverTime inside the performance waterfall (#52890) by @ryan953
+- feat(perf): Hide timing metrics on http (#52993) by @k-fish
+- fix(issue-details): Fix react warning (#52907) by @roggenkemper
+- fix(hybrid-cloud): Fixes tests for split DB mode app installs using transaction routing and silo annotations (#52932) by @GabeVillalobos
+
+_Plus 434 more_
+
+23.6.2
+------
+
+### Escalating Issues V1 (ongoing)
+
+This will allow marking an issue as archived until escalating.
+
+By: @scttcper (#51765, #51852, #52048, #51766, #51735, #51671, #51158, #51185, #51187)
+
+### Grouping Release (2023-01-01 config)
+
+Added new language/platform specific stack trace grouping enhancements rules that should make the default grouping experience better. This includes JavaScript, Python, PHP, Go, Java and Kotlin.
+
+By: @armenzg (#51040)
+
+### Search Shortcuts (ongoing)
+
+Make common searches more accessible and discoverable for users. [notion page](https://www.notion.so/sentry/Search-Shortcuts-fka-Assignee-Filter-on-Issue-Stream-648954e782d04805bc64f1983e5cbd16?pvs=4)
+
+By: @scttcper (#51564, #51565, #51194)
+
+### Various fixes & improvements
+
+- meta(routing) Sync with product-owners.yml in security-as-code@4447d434 (#52367) by @getsantry
+- fix(ui): Set lazy calendar component type (#52381) by @scttcper
+- chore(gh-comments): Drop pr window to 7 days for rollout (#51837) by @AniketDas-Tekky
+- ref(autocomplete): convert test to tsx (#52357) by @JonasBa
+- feat(functions): Tune function trends default threshold (#52346) by @Zylphrex
+- fix(starfish): Time spent local was always querying light time spent (#52374) by @shruthilayaj
+- ref(tests): convert test to tsx (#52368) by @JonasBa
+- feat(slack): slack channel lookup via schedule message (#52034) by @chloeho7
+- feat(crons): Change crons groupcategory name (#52037) by @rjo100
+- feat(perf-detector-threshold-configuration) Added frontend changes for more threshold configurations. (#52262) by @Abdkhan14
+- fix(hc): Prevent exception from siloed_atomic (#52326) by @RyanSkonnord
+- feat(escalating-issues): Update MsTeams integration to use Group substates (#51756) by @NisanthanNanthakumar
+- ref(crons): Remove references to crons-issue-platform flag (#52036) by @rjo100
+- Ref(generic-metrics): set default for index-tag-values to False (#52370) by @john-z-yang
+- feat(github-comments): use internal feature flag (#52002) by @cathteng
+- fix(ui): Export named constants from forms (#52361) by @scttcper
+- fix(mute-metric-alerts): Use incident link in metric alert emails for muting (#52363) by @roggenkemper
+- feat(starfish): API module consistency and continuity updaes (#52347) by @edwardgou-sentry
+- fix(mute-metric-alerts): Add query params to incident redirect (#52362) by @roggenkemper
+- fix(github-comments): update option toggle copy (#52354) by @cathteng
+- nit: Update fly build config (#52301) by @nhsiehgit
+- ref: django 3.x does not pass None groups to views any more (#52341) by @asottile-sentry
+- meta(routing) Sync with product-owners.yml in security-as-code@3d4fceac (#52355) by @getsantry
+- ref: make app label an identifier (#52342) by @asottile-sentry
+
+_Plus 790 more_
+
+23.6.1
+------
+
+### Various fixes & improvements
+
+- chore(hybrid-cloud): Fix get_webhook_payload_from_outbox classmethod (#51113) by @dashed
+- ref(js): Convert access.spec to tsx (#51106) by @evanpurkhiser
+- ref(js): Convert feature.spec to tsx (#51107) by @evanpurkhiser
+- ref(js): Convert breadcrumbs.spec to tsx (#51109) by @evanpurkhiser
+- ref(js): Convert dateTime.spec to tsx (#51111) by @evanpurkhiser
+- fix(crons): Properly send fingerprint array through issue platform (#51103) by @rjo100
+- ref(hc): Updates org deletion code to queue an org mapping outbox update (#51004) by @GabeVillalobos
+- meta: Snuba team owns the post process forwarder (#51090) by @lynnagara
+- ref: Remove dead code from post process forwarder (#51079) by @lynnagara
+- ref: Remove spammy debug logs (#51001) by @untitaker
+- fix: Use unified CLI for metrics indexer in devserver (#51046) by @untitaker
+- feat(mute-metric-alerts): Add mute button to metric alerts page (#50967) by @roggenkemper
+- fix(hc):  Serialize the organization via RPC to json (#51078) by @corps
+- fix(compactSelect): Escape quotes inside option values (#51007) by @vuluongj20
+- fix(hybridcloud) Drain outbox after transaction completes (#51059) by @markstory
+- feat(gh-comments): Queuing Logic (#50865) by @AniketDas-Tekky
+- Added pretty printing to dump command (#51065) by @kneeyo1
+- chore(ui): Upgrade to typescript 5.1 (#51073) by @scttcper
+- feat(crons): Add hover to rows (#51012) by @evanpurkhiser
+- feat(ts): Add LinkButton alias (#51013) by @evanpurkhiser
+- feat(starfish): Changes the web service view throughput chart to be a line chart (#51053) by @edwardgou-sentry
+- fix(starfish): use span.self_time instead of span.duration (#51051) by @DominikB2014
+- feat(debug): Add Metric Alert Trigger (#51060) by @roggenkemper
+- fix(ui): Remove xAxis boundaryGap from profilingMeasurements (#51008) by @scttcper
+
+_Plus 14 more_
+
+23.6.0
+------
+
+### Escalating Issues V1 (ongoing)
+
+This will allow marking an issue as archived until escalating.
+
+By: @scttcper (#50456)
+
+### Escalating Issues V2 (EA) (ongoing)
+
+This is a placeholder milestone for tracking post-v1 work for escalating issues.
+See the RFC: https://github.com/getsentry/rfcs/blob/main/text/0078-escalating-issues.md
+There's also discussions about escalation in here:
+https://github.com/getsentry/sentry/discussions/43039
+
+V2 will focus on moving ongoing issues (upcoming) into the state archived-until-escalating after an issue being in the `ongoing` state for 14 days.
+
+
+By: @scttcper (#50896)
+
+### JS Project Cleanup (ongoing)
+
+By: @scttcper (#50684, #50682, #50670)
+
+### Various fixes & improvements
+
+- fix(issues): Switch to item kind on search autocomplete (#51045) by @scttcper
+- feat(consumer): Make max poll time configurable  (#51020) by @ayirr7
+- fix(api) Don't fail on invalid queries to organization_teams endpoint (#51042) by @markstory
+- feat(starfish): Cleanup (#50957) by @DominikB2014
+- feat(hybridcloud) Run celery workers for each silo  (#50821) by @markstory
+- fix(hybrid-cloud): Allow enums to serialize in RPC calls (#50913) by @mikejihbe
+- ref: Make model cache replica db preference configurable (#51027) by @beezz
+- fix(crons): Properly specify occurrence data (#50974) by @rjo100
+- ref(starfish): Remove all references to scraped data SQL (#51033) by @gggritso
+- feat(graphql): Add has_graphql_request analytics property to issue/event (#50949) by @malwilley
+- fix(perf-issues): Require space in N+1 ext span description (#50994) by @mjq-sentry
+- fix(starfish): issues table reloads when span type changes (#50970) by @DominikB2014
+- feat(dynamic-sampling): Improve AM2 compatibility check (#51039) by @iambriccardo
+- ref(replay): Deduplicate components used in Replay Details>Error & Network tabs (#50884) by @ryan953
+- fix(traces): Return empty array when accessing offender span ids (#51037) by @narsaynorath
+- feat(discover-tags): Add page_size and cursor to endpoint (#50971) by @narsaynorath
+- fix(hybrid-cloud): Fix normalizeUrl (#51014) by @dashed
+- feat(starfish): Switch use_case_id for spans (#50757) by @wmak
+- fix(mocks) Fix load-mocks usage or OrganizationMember (#50942) by @markstory
+- fix(profiling): Ensure there are symbolicated frames for profile (#50999) by @Zylphrex
+- fix(starfish): Special cursor name for span table cursor (#50966) by @shruthilayaj
+- feat(starfish): Span category chart error and loading status (#50946) by @shruthilayaj
+- ref(starfish): Remove scraped data query fallbacks (#50972) by @gggritso
+- fix(native/unreal): Don't overwrite a previously set event level (#50717) by @bitsandfoxes
+
+_Plus 669 more_
+
+23.5.2
+------
+
+### Escalating Issues V1 (ongoing)
+
+This will allow marking an issue as archived until escalating.
+
+By: @scttcper (#50020), @armenzg (#49907)
+
+### Issue States and Filters (ongoing)
+
+By: @scttcper (#49642, #49626, #49517, #49587, #49582)
+
+### Various fixes & improvements
+
+- feat(replay): Change min version in replay onboarding (#50072) by @billyvg
+- bug(replays): Fix Replay Search box overflow/wrapping (#50074) by @ryan953
+- feat(replays): add replay clicks field to replay index endpoint (#49873) by @JoshFerge
+- fix(analytics): Change actor_id to user_id in slack status analytic (#49966) by @jangjodi
+- dep(relay): Upgrade librelay to 0.8.25 (#50063) by @iker-barriocanal
+- chore(HC): Remove org mapping write paths in preparation of organization mapping updates (#50015) by @GabeVillalobos
+- feat(escalating-issues): Define analytic for escalating feedback (#50000) by @jangjodi
+- chore(profiling): Add referrers to profiling queries frontend (#49923) by @Zylphrex
+- feat(starfish) Hook up span view filter selectors to production data (#49987) by @gggritso
+- fix(hybridcloud) Fix serialization errors in RPC responses (#49922) by @markstory
+- feat(dashboar-widget-description) Added description field to Widget model (#49992) by @Abdkhan14
+- fix(starfish) Small fixes to spans table (#50001) by @gggritso
+- chore(profiling) Add referrers to profiling queries backend (#49924) by @Zylphrex
+- Revert "ref(project_creation): Add project deletion to the go back button (#49844)" (fda9548a) by @getsentry-bot
+- ref(sessionstorage): use wrapper (#50051) by @JonasBa
+- ref(project_creation): Add project deletion to the go back button (#49844) by @priscilawebdev
+- feat: Return how an artifact was resolved (#49959) by @loewenheim
+- fix(clusterer): Fix clusterer datasource in test endpoint (#50040) by @iker-barriocanal
+- ref(spans): Sample all discovered rules (#49970) by @iker-barriocanal
+- ref(js): Remove unnecessary AsyncComponent props (#50034) by @evanpurkhiser
+- ref(js): Remove unnecessary extends AsyncComponentProps (#50031) by @evanpurkhiser
+- fix(dynamic-sampling): Fix logging with missing parameter (#50038) by @iambriccardo
+- fix(js): Avoid anchor nesting in monitor edit page (#50026) by @evanpurkhiser
+- ref(js): Add IGNORED_SPANS_BY_DESCRIPTION in initializeSdk (#50025) by @evanpurkhiser
+
+_Plus 268 more_
+
+23.5.1
+------
+
+### Issue States and Filters (ongoing)
+
+By: @scttcper (#49578, #49157)
+
+### JS Project Cleanup (ongoing)
+
+By: @scttcper (#49381, #49255, #49210, #49159)
+
+### Various fixes & improvements
+
+- fix(hc): Change integration search endpoint to control silo (#49589) by @RyanSkonnord
+- fix(starfish): Zerofill round up (#49598) by @shruthilayaj
+- feat(starfish): Update endpoint overview to be consistent (#49607) by @shruthilayaj
+- ref(performance): Move metrics histogram outlier filtering (#48731) by @mjq-sentry
+- feat(starfish): Add top endpoints chart to web service view (#49603) by @shruthilayaj
+- feat(starfish): Fix span summary chart styling (#49463) by @0Calories
+- feat(starfish): Updated WSV span group chart (#49499) by @shruthilayaj
+- ref(perf): Mark long-task with sentry-tracing-init (#49481) by @k-fish
+- chore(profiling): Add flags for more profiling features (#49461) by @Zylphrex
+- feat(starfish): Switch top graph to p50 (#49510) by @wmak
+- feat(starfish): adds synchronized axis markers to starfish charts (#49504) by @edwardgou-sentry
+- deps: bump profiling to alpha.6 (#49127) by @JonasBa
+- feat(create-project): Add framework selection modal tests (#49305) by @priscilawebdev
+- chore(discover-transactions-cell-action): Removed go to summary cell … (#49406) by @Abdkhan14
+- Add index on sentry_monitorchecking.date_added to avoid seq scans during cleanup (#49310) by @beezz
+- Add a utility to query the memory usage percentage of a configured redis cluster (#49459) by @Swatinem
+- ref(createProject): convert test from jsx to tsx (#49304) by @priscilawebdev
+- ref(project-creation): Convert overview from class to func (#49303) by @priscilawebdev
+- feat(project-creation): Add framework selection modal (#49300) by @priscilawebdev
+- chore(js): Use FormFieldProps vs FormField['props'] (#49591) by @evanpurkhiser
+- feat(hybrid-cloud): Update api invite helper (#48829) by @dashed
+- chore(js): Convert Form to a FC (#49525) by @evanpurkhiser
+- ref(js): Convert SentryAppExternalIssueForm for a FC (#49581) by @evanpurkhiser
+- feat(issue-states): auto transition new and regressed issues to ongoing (#49522) by @barkbarkimashark
+
+_Plus 306 more_
+
+23.5.0
+------
+
+### Escalating Issues V1 (ongoing)
+
+This will allow marking an issue as archived until escalating.
+
+By: @scttcper (#48498, #47408), @armenzg (#48257, #48369, #48332, #48272, #48247, #48102, #48104, #47626, #47822, #47625), @jangjodi (#47954, #47843, #47716, #47601, #47593, #47586, #47578, #47496, #47419), @snigdhas (#47789, #47681, #47437), @NisanthanNanthakumar (#47799, #47749)
+
+### Issue States and Filters (ongoing)
+
+By: @scttcper (#48047), @barkbarkimashark (#47691, #48042, #47881, #48043, #47753, #47720), @snigdhas (#48289, #47909, #48164, #47785, #47832, #47689, #47687, #47604, #47603, #47420)
+
+### JS Project Cleanup (ongoing)
+
+By: @lobsterkatie (#49060, #49045), @scttcper (#48873, #48883, #48841, #48825, #48379)
+
+### Various fixes & improvements
+
+- fix(onboarding): Add missing `useEffect` dependency (#49105) by @lobsterkatie
+- ref(api): Rename `handleXhrErrorResponse` to `getXhrErrorResponseHandler` (#49100) by @lobsterkatie
+- chore(starfish): Remove the count if query (#49097) by @shruthilayaj
+- fix(issue-platform): Fix `get_event_by_id` to correctly return occurrence information for transactions (#49059) by @wedamija
+- feat(starfish): Compare span samples to p50 baseline in table column (#48959) by @0Calories
+- feat(source-maps): adds new case for source map debugging (#49061) by @scefali
+- feat(starfish): Add releases to db module (#48782) by @wmak
+- ref(trends): Impose strict top event limit (#49098) by @udameli
+- feat(replays): Log to stdout when a slow click event is detected (#48775) by @cmanallen
+- fix(txnames): Revert high threshold for running the clusterer (#49087) by @jjbayer
+- instr(txnames): Count number of discovered rules (#49085) by @jjbayer
+- Allow defining different symbolicator for JS LPQ (#49072) by @Swatinem
+- feat(transaction-summary): Add analytics to track biases sufficiency assessment (#48865) by @priscilawebdev
+- chore(hybrid-cloud): save outbox messages when creating them for org members (#49055) by @dashed
+- feat(api): Allow overriding default pagination limits for testing (#49056) by @evanpurkhiser
+- feat(js): Add useMembers hook (#49043) by @evanpurkhiser
+- feat(issues): Add archived issue tag (#49044) by @scttcper
+- fix(issues): Remove resolve/archive/ignore action icons (#49058) by @scttcper
+- ref(pageFilters): Add ability to disable persistence (#49048) by @vuluongj20
+- ref(js): Export useTeams as a named export (#49052) by @evanpurkhiser
+- chore(roles): Pixel Matters for Project/Team Settings Pages (#49042) by @leedongwei
+- ref(hc): Create ControlOption to support cross silo options (#48833) by @corps
+- chore(issue-platform): Remove project level option for creating issues via platform (#48911) by @wedamija
+- fix(issue-states): increase time limits for auto transitioning to ongoing issues (#49033) by @barkbarkimashark
+
+_Plus 1059 more_
+
+23.4.0
+------
+
+### Codecov Integration V2
+
+This is the work post-MVP release for the Codecov Integration, with UI and performance improvements and a new CTA.
+
+By: @snigdhas (#46523, #46463, #46460, #46420, #46421, #46416, #46414, #46401, #46294), @scttcper (#46234), @armenzg (#46257)
+
+### JavaScript SDK Dynamic Loader (ongoing)
+
+By: @mydea (#46996, #46995, #46994)
+
+### Escalating Issues V1 (ongoing)
+
+This will allow marking an issue as archived until escalating.
+
+By: @jangjodi (#47333, #46636), @snigdhas (#47129, #47039, #46845), @barkbarkimashark (#47101, #47100, #47094, #47058, #47053), @armenzg (#46517), @scttcper (#46705, #46639), @NisanthanNanthakumar (#46205, #45971)
+
+### Various fixes & improvements
+
+- fix(crons): Pass environment to edit monitor page (#47435) by @davidenwang
+- chore(js): Convert PackageLink to a FC (#47299) by @evanpurkhiser
+- chore(deps): bump cronstrue from 2.23.0 to 2.26.0 (#47431) by @dependabot
+- feat(worflow): Track unmerge issue usage (#47423) by @scttcper
+- feat(rulesnooze): Update endpoint to include info about if snooze is for all (#47414) by @roggenkemper
+- feat(analytics): Add user feedback info to issue analytics (#47296) by @malwilley
+- fix(issue-platform): Fix bug where searching by issue shortname in discover returns too many results (#47406) by @wedamija
+- feat(perf-issues): initialize giant http payload detector (#47264) by @DominikB2014
+- feat(rulesnooze): Don't notify if rule is snoozed (#47197) by @roggenkemper
+- feat(trends): Update the breakpoint endpoint and request shape (#47412) by @udameli
+- Document 'download' query parameter (#47247) by @alyssa-glean
+- feat(replays): Add replays/:id/clicks/ endpoint for searching for click node and timestamp metadata (#47332) by @cmanallen
+- feat(code mapping): Derive code mappings for more distinct issues (#47345) by @lobsterkatie
+- chore(profiling): End profiling beta alert (#47249) by @Zylphrex
+- feat(profiling): Link from profile summary to transaction summary (#47328) by @Zylphrex
+- chore(perf): Remove old feature flag (#47394) by @udameli
+- feat(releasehealth): Switch mget to get for Redis Cluster compatibility (#46210) by @ayirr7
+- fix(breadcrumbs): Resize breadcrumb rows when expanding object properties (#47369) by @malwilley
+- ref(escalating-issues): Add logs and increase freq of cron job (#47403) by @jangjodi
+- deps(ui): Upgrade to TypeScript v5 (#47405) by @scttcper
+- feat(email): Add X-SMTPAPI category to email headers (#47352) by @mbauer404
+- chore(js): Add comment to js-sdk-loader eslint config (#47340) by @evanpurkhiser
+- fix(ui): Check type is number when using `>` `<` (#47360) by @scttcper
+- feat(hc): Send and receive RPCs over network (#47046) by @RyanSkonnord
+
+_Plus 745 more_
+
+23.3.1
+------
+
+### Various fixes & improvements
+
+- fix(dynamic-sampling):Set low volume transaction boost default to True (#46179) by @RaduW
+- feat(replays): Add backend support for `session-replay-network-details` feature (#46200) by @ryan953
+- fix(roles): check for existence of org roles from team (#46197) by @cathteng
+- feat(escalating-issues): Add escalating group status (#45965) by @NisanthanNanthakumar
+- feat: Add a simple endpoint to lookup artifacts (#45757) by @Swatinem
+- fix(profiling): fix profiling timeout (#46193) by @JonasBa
+- fix(db-issue): Add db detector (#46154) by @wmak
+- chore(hybrid-cloud): Add outbox_runner to outbox tests (#46155) by @dashed
+- chore(hybrid-cloud): Update user type for sync_assignee_outbound (#46160) by @dashed
+- ref(profiling): Replace DataDog metric by a Sentry tag (#46156) by @phacops
+- fix(dashboards): Clear GroupStore when unmounting dashboard (#46189) by @edwardgou-sentry
+- fix(profiling): Show p75 only for suspect functions table (#46140) by @Zylphrex
+- feat(flag): Add flag for onboarding product selection - (#46184) by @priscilawebdev
+- ref(sourcemaps): Add date_uploaded field to bundle (#46172) by @iambriccardo
+- fix(sourcemaps): Change reverse sql type (#46180) by @iambriccardo
+- ref(sourcemaps): Remove date_last_accessed field from db (#46118) by @iambriccardo
+- chore(oss): add license to api docs spectacular ports (#46164) by @JoshFerge
+- fix(test): fix flake when time rolls to the next day (#46166) by @barkbarkimashark
+- feat(issue-platform): Hook up noise reduction config to occurrence ingestion (#46159) by @wedamija
+- chore(issue-platform): Remove unused features (#46161) by @wedamija
+- fix(codecov): Change endpoint for has_integration check (#46127) by @snigdhas
+- fix(profiling): Typo in format name sampled vs sample (#46150) by @Zylphrex
+- chore: Add missing license for jsonfield (#46148) by @markstory
+- fix(workflow): Add `ref_fallback` to issue details analytics (#46125) by @scttcper
+
+_Plus 233 more_
+
+23.3.0
+------
+
+### Stacktrace Codecov V2 (ongoing)
+
+This is the work post-MVP release.
+
+By: @armenzg (#44827)
+
+### JavaScript SDK Dynamic Loader (ongoing)
+
+By: @AbhiPrasad (#44496)
+
+### Various fixes & improvements
+
+- fix(ecosystem): Preserve codeowners filters on update (#45810) by @scttcper
+- chore(trace_view): Add perf issues to the mock trace (#45794) by @wmak
+- feat(dynamic-sampling): Add prioritise low volume transaction rules [TET-736] (#45635) by @RaduW
+- ref(onboarding): Update experiment segments (#45843) by @priscilawebdev
+- ref(onboarding): Update copy (#45830) by @priscilawebdev
+- ref(dynamic-sampling): Update Health Check copy (#45826) by @ale-cota
+- chore(commit-context): Flag cleanup (#45804) by @snigdhas
+- ref(compactSelect): Maintain menu width while searching (#45356) by @vuluongj20
+- ref(outcomes) Add methods to build outcomes queries without django (#45730) by @markstory
+- feat(compactSelect): Add optional menu footer (#45339) by @vuluongj20
+- ref(dynamic-sampling): Add onboarding experiement to the ds page (temp test) -  (#45827) by @priscilawebdev
+- chore(view-hierarchy): Remove frontend feature flags (#45761) by @narsaynorath
+- chore(dashboards): Reintroduce release widget feature flag (#45791) by @shruthilayaj
+- fix (dyn-sampling): Change schedule interval for prioritise by project task [TET-788] (#45821) by @andriisoldatenko
+- chore(hybrid-cloud): Deprecate mediator destroyers (#45656) by @corps
+- feat(onboarding): Add view sample error button new design - (#45820) by @priscilawebdev
+- feat(onboarding): Add feature flag to control the View Sample Error button - (#45818) by @priscilawebdev
+- fix(onboarding): Fix issue when first error sent (#45817) by @priscilawebdev
+-  feat(source-maps): Add debug ids UI - (#45711) by @priscilawebdev
+- feat(sourcemaps): Add endpoint for listing all artifact bundles of a project (#45751) by @iambriccardo
+- chore(hybrid-cloud): Backfill installation_id to service hooks (#45800) by @corps
+- fix(issue-platform): Explicitly pass `culprit` as part of the occurrence, and store `subtitle` correctly (#45809) by @wedamija
+- feat(crons): Explain crontab syntax in monitor form (#45801) by @davidenwang
+- ref(hybrid-cloud): Denormalize user avatars 1/3 (#45685) by @mikejihbe
+
+_Plus 792 more_
+
+23.2.0
+------
+
+### Stacktrace Codecov MVP
+
+Related to https://github.com/getsentry/sentry/discussions/42399
+
+By: @snigdhas (#43819, #43667, #43675), @jangjodi (#43746)
+
+### JavaScript SDK Dynamic Loader (ongoing)
+
+By: @AbhiPrasad (#44492, #44346, #44228)
+
+### Various fixes & improvements
+
+- perf(sentry): Add optional referrer to query.search for granularity (#44585) by @k-fish
+- bug(replay): Do not render the list page until project data has loaded (#44623) by @ryan953
+- fix(ui) Fix navigation between customer-domain accounts (#44625) by @markstory
+- feat(codeowners): [BE] Allow project members to edit project owner rules (#44508) by @jangjodi
+- ref(heartbeat): Update modal copy (#44658) by @priscilawebdev
+- Reverts for INC-307 (#44654) by @beezz
+- bump(dynamic-sampling): Bump sentry-relay to 0.8.18 (#44648) by @iambriccardo
+- feat(contexts): Add OpenTelemetry context (#44605) by @AbhiPrasad
+- fix: Avoid logging a `bad_report` for .NET events (#44291) by @Swatinem
+- chore(hybrid-cloud): Api* => Rpc* (#44646) by @corps
+- ref(hybrid-cloud): Isolate alert rules functionality by silo (#44644) by @mikejihbe
+- fix(api): Don't try and convert_args when http_method_not_allowed (#44635) by @evanpurkhiser
+- ref(api): Consistent relative endpoints import (#44640) by @evanpurkhiser
+- feat(profile-issues): Add profile category/type to search autocomplete (#44548) by @malwilley
+- fix(ui): Bring back Australia timezone (#44634) by @evanpurkhiser
+- feat: Deprecate legacy post process forwarder (#44631) by @lynnagara
+- fix(api): Remove inclusion of CHECKIN_ID in monitor check-in POST (#44630) by @evanpurkhiser
+- fix(source-maps): fixes too many values to unpack error in ArtifactSource (#44624) by @roggenkemper
+- ref(rules): Catch environment not existing (#44553) by @ceorourke
+- feat(analytics): improve analytics for soure map debugging (#44626) by @scefali
+- ref(tabs): Export `Item` as property of `TabList` & `TabPanels` (#44620) by @vuluongj20
+- feat(ui): Switch translate tct return type to react element (#44610) by @scttcper
+- feat: adds tracking for setup wizard (#44619) by @scefali
+- feat(team-roles): Amend PUT on OrganizationMemberDetailsEndpoint (#44599) by @leedongwei
+
+_Plus 637 more_
+
+23.1.1
+------
+
+### Post-GA fixes and improvements for derived code mappings
+
+This will track work that are known issues that will be handled after the GA.
+
+See related RFC: https://github.com/getsentry/rfcs/blob/main/text/0016-auto-code-mappings.md
+
+By: @armenzg (#43323, #43325, #43310)
+
+### Stacktrace Codecov MVP (ongoing)
+
+Related to https://github.com/getsentry/sentry/discussions/42399
+
+By: @snigdhas (#43650, #43649, #43404, #43353, #43201), @jangjodi (#43032, #43517, #43407, #43116)
+
+### Various fixes & improvements
+
+- ci(acceptance): Replace selenium finalizer with yield (#43711) by @mattgauntseo-sentry
+- test(profiles): test sample stats and raw weights across formats (#43685) by @JonasBa
+- fix(release_health) : bad granularity was causing limit validation error in MetricsLayer (#43729) by @RaduW
+- ref: upgrade structlog (#43680) by @asottile-sentry
+- ref(ui) Remove error for missing router context (#43693) by @markstory
+- ref(perf-issues): Increase unc asset duration threshold (#43722) by @k-fish
+- hotfix: handle empty series returns from get_series. (#43721) by @RaduW
+- Revert "feat(codecov): Get commit sha from Git blame  (#42978)" (7d918eb7) by @getsentry-bot
+- feat(perf-issues) Add project options for consecutive db (#43701) by @DominikB2014
+- fix(perf-issues): ensure php is not allowed to detect issues (#43694) by @DominikB2014
+- feat(codecov): Get commit sha from Git blame  (#42978) by @jangjodi
+- ref(mep): Allow up to 10 custom measurements (#43719) by @jan-auer
+- (perf-issues) Add detection rate project option to UI (#43698) by @DominikB2014
+- fix(txnames): Skip deleted projects (#43716) by @jjbayer
+- feat(release-health): Switch release health backend to MetricsLayer (#43545) by @RaduW
+- chore(hybrid-cloud): remove region to control, use outbox (#43361) by @corps
+- feat(hc): Use hybrid cloud services in AuthIdentityHandler (#43035) by @RyanSkonnord
+- fix(sourcemaps): ease check on valid url and add data for invalid url issue (#43709) by @roggenkemper
+- test(acceptance): Reduce flakiness by waiting for requests to complete (#43486) by @mattgauntseo-sentry
+- ref(hybrid-cloud): test for both urls in MonitorCheckinDetails (#43690) by @cathyteng17
+- ui(codecov): Fix codecov legend border (#43704) by @snigdhas
+- fix(tasks): Do not ignore exception by default (#43696) by @Zylphrex
+- ref: retry on 500s in docker pulls (#43700) by @asottile-sentry
+- Revert "CI(dispatch): Switch to merge commit sha where possible (#43570)" (f2dd50ad) by @getsentry-bot
+
+_Plus 285 more_
+
+23.1.0
+------
+
+### Derived Code Mappings (GA Release - JS and Python)
+
+Python is in EA already. We will first add JS to EA and then GA both of them.
+
+For JS, this will only apply to stacktraces that have source maps applied, otherwise, it is not possible to derive code mappings.
+
+Read https://github.com/getsentry/rfcs/pull/16 for more details.
+
+By: @armenzg (#42302)
+
+### Stacktrace linking and code mapping improvements (ongoing)
+
+Various improvements to configuring Code Mappings by a customer.
+
+This milestones is simply to track the various related PRs.
+
+By: @armenzg (#43105, #43104, #42810)
+
+### Post-GA fixes and improvements for derived code mappings (ongoing)
+
+This will track work that are known issues that will be handled after the GA.
+
+See related RFC: https://github.com/getsentry/rfcs/blob/main/text/0016-auto-code-mappings.md
+
+By: @armenzg (#43265, #43199, #42554, #42510, #42544, #42540, #42511, #42487)
+
+### Stacktrace Codecov Integration (ongoing)
+
+Related to https://github.com/getsentry/sentry/discussions/42399
+
+By: @snigdhas (#43114, #43025, #43024, #43015)
+
+### Various fixes & improvements
+
+- Revert "fix(domains) Remove usage or params.orgId in search (#43205)" (2fc1398b) by @getsentry-bot
+- ref(js): Convert events/userFeedback to a FC (#43283) by @evanpurkhiser
+- feat(replays): Remove calendar icon from Replays list table (#43252) by @ryan953
+- feat(replays): Remove the icon from the "Open Replay" preview in Issues (#43251) by @ryan953
+- ref(ui): Visually improve PageHeadingQuestionTooltip (#43277) by @evanpurkhiser
+- chore(ui): Upgrade babel, babel-loader, core-ui (#43286) by @scttcper
+- ref(scim): Use transaction instead of span (#43287) by @AniketDas-Tekky
+- feat(modal) Consolidate close prevention props (#43258) by @malwilley
+- fix(integrations): Use services to get organization data (#43284) by @leeandher
+- fix(useOverlay): Only enable maxSize modifier when open (#43193) by @vuluongj20
+- fix(domains) Use routing params in join-request route (#43271) by @markstory
+- fix(integrations): Use organization_id for finding the integration (#43279) by @leeandher
+- ref(js): Remove default Button export (#43280) by @evanpurkhiser
+- ref(js): Consistent spacing in eventEntry (#43230) by @evanpurkhiser
+- ref(replays): Rename Replay API fields to be snake_case and new names (#43206) by @ryan953
+- feat(replays): Convert fields to snake-case and add additional query aliases (#43194) by @cmanallen
+- feat(anr-rate): Update ANR rate defaults on project details (#43248) by @shruthilayaj
+- bug: Fix import of button (#43272) by @ryan953
+- Revert "ref(js): Remove default Button export (#43254)" (9f77d654) by @getsentry-bot
+- ci: Skip pip install when we have a cache hit in venv action (#43267) by @mattgauntseo-sentry
+- security(codeql): set codeql to weekly scans, on prs, and on master b… (#43213) by @mdtro
+- revert-revert: feat(hybrid-cloud): Move Integration/OrgIntegration to Control and implement IntegrationService (#43183) by @leeandher
+- chore: Add $schema to package.json + tsconfig.json (#43235) by @evanpurkhiser
+- ref(js): Export named Alert (#43255) by @evanpurkhiser
+
+_Plus 621 more_
+
+22.12.0
+-------
+
+### Derived Code Mappings (EA release - Python only)
+
+This adds the ability of deriving code mappings automatically for all orgs using Python and Github at first.
+
+See RFC for details: https://github.com/getsentry/rfcs/blob/main/text/0016-auto-code-mappings.md
+
+By: @armenzg (#41562, #41523, #41466, #41464, #41384)
+
+### Derived Code Mappings (GA Release - JS and Python) (ongoing)
+
+Python is in EA already. We will first add JS to EA and then GA both of them.
+
+For JS, this will only apply to stacktraces that have source maps applied, otherwise, it is not possible to derive code mappings.
+
+Read https://github.com/getsentry/rfcs/pull/16 for more details.
+
+By: @armenzg (#42293, #42249, #42155, #42161, #42147, #42130, #42082, #42069, #41777, #41933, #41909, #41794, #41771, #41733, #41706, #41718, #41639, #41671, #41648), @jangjodi (#42192)
+
+### Stacktrace linking and code mapping improvements (ongoing)
+
+Various improvements to configuring Code Mappings by a customer.
+
+This milestones is simply to track the various related PRs.
+
+By: @scttcper (#41582, #41585, #41529, #41512, #41474, #41299, #41403, #41372), @snigdhas (#41465), @armenzg (#41409)
+
+### Post-GA fixes and improvements for derived code mappings (ongoing)
+
+This will track work that are known issues that will be handled after the GA.
+
+See related RFC: https://github.com/getsentry/rfcs/blob/main/text/0016-auto-code-mappings.md
+
+By: @armenzg (#42348, #41857)
+
+### Stacktrace linking: Mobile Support (ongoing)
+
+By: @jangjodi (#42117, #41936)
+
+### Various fixes & improvements
+
+- ref(js): Remove enforceActOnUseLegacyStoreHook hack (#42370) by @evanpurkhiser
+- feat(java): Add feature flag for deobfuscating java exception values (#42353) by @edwardgou-sentry
+- feat(profiling): add profiling-flamechart-spans flag (#42357) by @eliashussary
+- feat(node): fix package for windows path (#42325) by @JonasBa
+- feat(profiling): add transaction context (#42347) by @JonasBa
+- ref(replays): Move replay-events-meta test into correct folder (#42324) by @ryan953
+- Revert "chore(routes): Remove support for deprecated pre-Sentry 10 routes" (#42374) by @dashed
+- chore(anr-rate): Add option for abnormal_mechanism extraction flag (#42367) by @shruthilayaj
+- chore(hybrid-cloud): test model decorators and fk breakage (#42254) by @corps
+- chore(transactions): Set the entity argument to default "false" (#42371) by @olksdr
+- ref(contexts): Convert chunck from class to function (#42246) by @priscilawebdev
+- feat(txnames): Sort rules in project options (#42372) by @jjbayer
+- chore(js): useApi in groupEventDetails (#42355) by @evanpurkhiser
+- fix(profiling): remove wasteful rect  (#42351) by @JonasBa
+- feat(issues): Add frontend typings for issue occurrence data (#42329) by @malwilley
+- ref(hybrid-cloud): use organization_slug in MonitorCheckIns (#42356) by @cathyteng17
+- ref(replays): Create NetworkHeaderCell for Replay Details (#42240) by @ryan953
+- ref(profiling): rm profiling-onboarding-checklist feature flag (#42354) by @eliashussary
+- ref(replays): Refactor Replay network table sorting (#42235) by @ryan953
+- fix(profiling): fix zoom when frame is in view (#42350) by @JonasBa
+- feat(discover-quick-context): Added issue title (#42343) by @Abdkhan14
+- chore(hybrid-cloud): use organization_slug in MonitorDetails (#42300) by @cathyteng17
+- (perf-issues) add fingerprinting to consecutive db detector (#42339) by @DominikB2014
+- frontend(invite): update invite link helper text (#42344) by @mdtro
+
+_Plus 731 more_
+
+22.11.0
+-------
+
+### Derived code mappings (Internal Release) (ongoing)
+
+This milestones add support for creating Python code mappings automatically for orgs with the Github integration installed.
+
+This milestone initially focuses on Python projects.
+
+Future work described in this RFC: https://github.com/getsentry/rfcs/blob/main/text/0016-auto-code-mappings.md
+
+By: @snigdhas (#41147, #41036, #40882, #40973, #40934, #40881, #40717, #40528, #40465, #40271), @armenzg (#41131, #41067, #40892, #40781, #40764, #40729, #40671, #40461, #40190, #40101), @scttcper (#40593)
+
+### Derived code mappings (EA release - Python only) (ongoing)
+
+This adds the ability of deriving code mappings automatically for all orgs using Python and Github at first.
+
+See RFC for details: https://github.com/getsentry/rfcs/blob/main/text/0016-auto-code-mappings.md
+
+By: @armenzg (#41313, #41199, #41132, #41125, #41083), @snigdhas (#41097, #41038, #41080, #41003, #41000, #40991, #40979)
+
+### Various fixes & improvements
+
+- feat(profiling): Add release to profile payload (#41282) by @Zylphrex
+- fix(tests): escape `.` in regex passed to findByText (#41391) by @mdtro
+- test(js): Convert DashboardList to RTL (#41375) by @malwilley
+- test(js): Convert SentryApplicationDetails to RTL (#41378) by @evanpurkhiser
+- feat(profiling): profiling onboarding sidebar (#41322) by @eliashussary
+- feat(useStacktraceLink): add hook to fetch stack trace link (#41269) by @JonasBa
+- dep(profiling): Bump sentry sdk for updated profiler (#41324) by @Zylphrex
+- feat(analytics): Record analytics for first profile sent (#41315) by @Zylphrex
+- perf(users-endpoint): Improve users endpoint performance more (#41347) by @Zylphrex
+- fix(metrics): Use parameterize instead of for loop in test (#41316) by @iambriccardo
+- ref(perf-issues): Add projectoption for enabling individual detector (#41328) by @k-fish
+- ref(contexts): Prettify only known contexts - (#41379) by @priscilawebdev
+- ci(jest): regenerate jest-balance.json (#41377) by @getsentry-bot
+- fix(code-mappings): Always add a trailing backslash for codemappings (#41330) by @snigdhas
+- fix(replays): Adjust Replay Details layout(s) dimensions (#41331) by @jesus4497
+- test(js): Convert ManageDashboards test to RTL (#41352) by @malwilley
+- feat(monitors): Tag error events with monitor id (#41291) by @davidenwang
+- ref(access): Dataclass to represent (requires_sso, sso_is_valid) pairs (#41239) by @RyanSkonnord
+- test(js): Convert organizationAuthList to RTL (#41309) by @evanpurkhiser
+- feat(hybrid-cloud): Add /user-feedback/* Django route (#41326) by @dashed
+- test(js): Convert teamKeyTransactionButton to RTL (#41308) by @evanpurkhiser
+- Customize pip-compile header (#41334) by @atugushev
+- ref: fix typing in sentry.integrations.slack (#41314) by @asottile-sentry
+- feat(hybrid-cloud): Add /issues/* Django route (#41333) by @dashed
+
+_Plus 1017 more_
+
+22.10.0
+-------
+
+### Automatic code mappings for Python/Github projects (ongoing)
+
+This milestones add support for creating Python code mappings automatically for orgs with the Github integration installed.
+
+Future work described in this RFC: https://github.com/getsentry/rfcs/blob/main/text/0016-auto-code-mappings.md
+
+By: @armenzg (#39975, #39750)
+
+### Various fixes & improvements
+
+- Revert "feat(commit-context): Refactor Issue Owner auto-assignment (#40048)" (#40081) by @wedamija
+- ref(emails): Update perf issue email subject (#40072) by @ceorourke
+- test(js): Convert AcceptOrganizationInvite to RTL (#39809) by @evanpurkhiser
+- ref: improve pin_github_action ref matching (#40067) by @asottile-sentry
+- test(ui): Convert SelectAsyncField test to RTL (#40060) by @malwilley
+- test(js): Convert TableField test to RTL (#40064) by @malwilley
+- deps(ui): Upgrade to jest v29 (#40070) by @scttcper
+- test: Use initialProps when testing hooks with reactHooks.renderHook (#39532) by @ryan953
+- feat(hybrid-cloud): Add a test for file upload (#39931) by @AniketDas-Tekky
+- feat(ui): Add aria-describedby to form inputs (#40037) by @evanpurkhiser
+- feat(commit-context): Refactor Issue Owner auto-assignment (#40048) by @NisanthanNanthakumar
+- chore(hybrid-cloud): ORM decorators updated. (#40022) by @corps
+- ref(email): Add performance issue alert email template (#39948) by @ceorourke
+- test(js): Rebalance tests (#40036) by @evanpurkhiser
+- fix(all-events) issue where events tab makes extra api call (#40056) by @DominikB2014
+- feat(all-events) Add minidump all events (#40049) by @DominikB2014
+- feat(perf_issues): Only send error issues to digests system (#40050) by @wedamija
+- feat(commit-context): Support GitLab (#39381) by @NisanthanNanthakumar
+- ref: Mark batching kafka consumer as deprecated (#40044) by @lynnagara
+- ref(gitlab): No need to show token (#40045) by @armenzg
+- Add all inclusive resources (#40047) by @0Calories
+- feat(charts): Add auto-generated aria labels (#39653) by @vuluongj20
+- fix(auth): Fix `device-failed` position (#40011) by @vuluongj20
+- feat(replays): Add Slowest Transaction Column To Transaction Replay Table (#39930) by @danecando
+
+_Plus 916 more_
+
+22.9.0
+------
+
+### Various fixes & improvements
+
+- fix(js): Avoid constructing API inside fetchOrganizationDetails (#38859) by @evanpurkhiser
+- feat(codeowners): Add assignee dropdown codeowners copy (#38832) by @scttcper
+- test(ui): Convert project install tests to RTL (#38866) by @scttcper
+- feat(dashboards): widgets use mep setting provider to determine if requests should be metricsEnhanced or not (#38810) by @edwardgou-sentry
+- feat(replays): Change replay event tags type and update UI (#38604) by @jesus4497
+- ref: Continue typing eventstream (#38858) by @lynnagara
+- feat(sidebar): open up broadcasts if #whats-new is the hash (#38838) by @scefali
+- Added question tooltip beside processed baseline toggle. (#38875) by @Abdkhan14
+- feat(perf-issues): Add analytics event to count num of perf issues on issues stream page (#38876) by @0Calories
+- feat(metrics): Add `count_web_vitals` to metrics layer [TET-161] (#38873) by @ahmedetefy
+- feat(dashboard): Flip top level query filter flag (#38829) by @narsaynorath
+- ref(dashboards): Delete deprecated dashboard tests (#38872) by @edwardgou-sentry
+- chore(perf-issues): Add issue creation rate limiter metrics (#38874) by @udameli
+- ref(perf-issues): prettify test event JSON (#38871) by @mjq-sentry
+- feat(perf_issues): Make `GroupTagKeyValuesEndpoint` work with perf issues (#38865) by @wedamija
+- feat(profiling): add links to profiledetails (#38824) by @eliashussary
+- fix(perf-issues): N+1 with odd number of potential sources missed (#38862) by @mjq-sentry
+- feat(perf_issues): Default `sentry:performance_issue_creation_rate` to 1.0, and gate perf issue creation using `performance-issues-ingest` (#38864) by @wedamija
+- feat(perf_issues): Explicitly hide performance issues from search if feature flag is disabled (#38863) by @wedamija
+- feat(perf-issues): Add Performance Issues analytics (#38807) by @0Calories
+- feat(dashboards): Flip grid layout feature flag (#38827) by @narsaynorath
+- feat(metrics): Support rate for derived metric [TET-129 TET-127] (#38792) by @ahmedetefy
+- feat(metrics): Register new option [sns-1660] (#38816) by @untitaker
+- fix(datascrubbing): Limit sensitiveFields (#38803) by @jjbayer
+
+_Plus 746 more_
+
+22.8.0
+------
+
+### Various fixes & improvements
+
+- fix(breadcrumbsFilter): Fix level tag crop issue (#37777) by @vuluongj20
+- ref(dropdownMenu): Mark as deprecated (#37319) by @vuluongj20
+- feat(workflow): Remove `duplicate-alert-rule` flag (#37489) by @scttcper
+- fix(dashboards): Fix custom metrics not displaying with units correctly in widget viewer(#37807) by @edwardgou-sentry
+- feat(replays): New column size and improve of a11y (#37765) by @jesus4497
+- ref(perf): Add duplicate detection on group hash (#37787) by @k-fish
+- fix(profiling): Profiling stats response for no projects (#37772) by @Zylphrex
+- feat(replays): Normalize resources with client expectations (#37708) by @cmanallen
+- feat(dashboard-filters): Save and expose releaseId in dashboards (#37779) by @narsaynorath
+- ref: upgrade confluent-kafka to 1.9.2 (#37733) by @asottile-sentry
+- pass resolution time to get_files_changed_in_releases() (#37800) by @komal-saini
+- don't call flagr on this feature flag since we'll be hard-coding the handler (#37799) by @barkbarkimashark
+- fix(suspect-resolutions): Get files changed in releases within 5h time-window  (#37789) by @komal-saini
+- fix: explicitly define app label (#37795) by @MeredithAnya
+- fix(integrations): don't remove functions before they're actually removed (#37793) by @vpandiarajan20
+- ref(indexer): Add postgres, cloudspanner modules (#37771) by @MeredithAnya
+- Sentry Functions: Backend Webhook Integration (#37205) by @vpandiarajan20
+- ref(indexer): Deprecate DbKey (#37790) by @lynnagara
+- ref(suspect-resolutions): refactor code around (#37775) by @barkbarkimashark
+- fix(dashboard): Pass location to handleAddQueryToDashboard (#37785) by @shruthilayaj
+- fix(releases): filter out releases with projects by project membership instead of access (#37495) by @barkbarkimashark
+- feat(suspect-resolutions): track the suspect resolutions algo changes in analytics events (#37778) by @barkbarkimashark
+- Revert "fix(mep): Missed a tag resolver (#37768)" (#37782) by @k-fish
+- fix(ui): integrations text alignment (#37776) by @robinrendle
+
+_Plus 789 more_
+
+22.7.0
+------
+
+### Various fixes & improvements
+
+- ref(replays): Refactor MouseTracking component into a react hook (#36710) by @ryan953
+- feat(release-activity): backend support for tracking release activity (#36608) by @barkbarkimashark
+- feat(grouping): Add support for automatic grouping updates (#36358) by @mitsuhiko
+- feat(replays): add session replays endpoints, proxy logic (#36631) by @JoshFerge
+- fix(dashboards): Open in Discover missing in Default Dashboard (#36728) by @narsaynorath
+- chore(deps): Upgrade @sentry/* JS SDKs from 7.6.0 to 7.7.0 (#36727) by @AbhiPrasad
+- fix(mep): Remove the granularity hacks (#36724) by @wmak
+- chore(deps): Bump eslint-config-sentry 1.94 -> 1.95 (#36693) by @NisanthanNanthakumar
+- fix(test) Allow the connection name to be defined by migration tests (#36712) by @markstory
+- fix(perf) Disabled performance settings if denied access (#36675) by @DominikB2014
+- fix: Remove potentially unnecessary pip installs (#36649) by @untitaker
+- fix: Fix unbound variable if DEVENV_NO_REPORT=1 (#36650) by @untitaker
+- test(issue-details): Fix issue details create comment test (#36715) by @Zylphrex
+- ref(tags): Refactor the Tags table so the rows are independant of the styled title (#36711) by @ryan953
+- fix(ci): include workdir to cache-dependency-path in setup-sentry (#36718) by @joshuarli
+- bug(replays): Remove the custom replays navTabs, use core nav which supports with dark-mode (#36709) by @ryan953
+- feat(replays): Cleanup unneeded tabs from the Replay Details page (#36706) by @ryan953
+- feat(alert): Create metric alerts on project creation (#36582) by @Neo-Zhixing
+- fix(devserver): Start both string indexers when metrics are enabled (#36682) by @untitaker
+- feat(profiling): Ingest profile call trees (#36268) by @Zylphrex
+- ref: replace legacy compat.map with list comprehensions (api) (#36694) by @asottile-sentry
+- feat(integrations): Endpoint for SentryFunctions creation page (#36557) by @vpandiarajan20
+- tests(mep): Add missing tests for entity subscription helper functions (#36689) by @wedamija
+- feat(mep): Add `PerformanceMetricsEntitySubscription` for use with MEP alerts (#36653) by @wedamija
+
+_Plus 760 more_
+
 22.6.0
 ------
 

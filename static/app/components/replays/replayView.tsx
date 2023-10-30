@@ -1,90 +1,95 @@
-import React, {useEffect, useRef, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
 
-import {Panel, PanelBody, PanelHeader as _PanelHeader} from 'sentry/components/panels';
-import HorizontalMouseTracking from 'sentry/components/replays/player/horizontalMouseTracking';
-import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
+import {Button} from 'sentry/components/button';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
-import space from 'sentry/styles/space';
-
-// How much to reveal under the player, so people can see the 'pagefold' and
-// know that they can scroll the page.
-const BOTTOM_REVEAL_PIXELS = 70;
-
-const SCREEN_HEIGHT_DIVISOR = 2;
+import {IconChevron} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
+import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
+import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
+import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 type Props = {
-  isFullscreen: boolean;
   toggleFullscreen: () => void;
 };
 
-function ReplayView({isFullscreen, toggleFullscreen}: Props) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const playerRef = useRef<HTMLDivElement>(null);
-
-  const [windowInnerHeight, setWindowInnerHeight] = useState(window.innerHeight);
-  const [playerHeight, setPlayerHeight] = useState(0);
-
-  useEffect(() => {
-    const onResize = debounce(() => {
-      setWindowInnerHeight(window.innerHeight);
-    });
-    window.addEventListener('resize', onResize);
-    return () => {
-      window.removeEventListener('resize', onResize);
-    };
-  }, []);
-
-  useEffect(() => {
-    const containerBottom =
-      (containerRef.current?.offsetTop || 0) + (containerRef.current?.offsetHeight || 0);
-    const playerOffsetHeight = playerRef.current?.offsetHeight || 0;
-    const calc =
-      windowInnerHeight - (containerBottom - playerOffsetHeight) - BOTTOM_REVEAL_PIXELS;
-    setPlayerHeight(Math.max(200, calc / SCREEN_HEIGHT_DIVISOR));
-  }, [windowInnerHeight]);
+function ReplayView({toggleFullscreen}: Props) {
+  const organization = useOrganization();
+  const hasNewTimeline = organization.features.includes('session-replay-new-timeline');
+  const isFullscreen = useIsFullscreen();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
-    <PanelNoMargin ref={containerRef} isFullscreen={isFullscreen}>
-      <PanelHeader>
-        <ReplayCurrentUrl />
-      </PanelHeader>
-      <PanelHeader ref={playerRef} disablePadding noBorder>
-        <ReplayPlayer height={isFullscreen ? Infinity : playerHeight} />
-      </PanelHeader>
-      <HorizontalMouseTracking>
-        <PlayerScrubber />
-      </HorizontalMouseTracking>
-      <ReplayControllerWrapper>
+    <Fragment>
+      <PlayerBreadcrumbContainer>
+        <PlayerContainer>
+          <ContextContainer>
+            <ReplayCurrentUrl />
+            <BrowserOSIcons />
+            {isFullscreen ? (
+              <Button
+                size="sm"
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                icon={<IconChevron direction={isSidebarOpen ? 'right' : 'left'} />}
+              >
+                {isSidebarOpen ? t('Collapse Sidebar') : t('Open Sidebar')}
+              </Button>
+            ) : null}
+          </ContextContainer>
+          <Panel>
+            <ReplayPlayer />
+          </Panel>
+        </PlayerContainer>
+        {isFullscreen && isSidebarOpen ? (
+          <BreadcrumbContainer>
+            <Breadcrumbs />
+          </BreadcrumbContainer>
+        ) : null}
+      </PlayerBreadcrumbContainer>
+      {isFullscreen || !hasNewTimeline ? (
         <ReplayController toggleFullscreen={toggleFullscreen} />
-      </ReplayControllerWrapper>
-    </PanelNoMargin>
+      ) : null}
+    </Fragment>
   );
 }
 
-const ReplayControllerWrapper = styled(PanelBody)`
-  padding: ${space(1)};
+const Panel = styled(FluidHeight)`
+  background: ${p => p.theme.background};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
+  box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
-const PanelNoMargin = styled(Panel)<{isFullscreen: boolean}>`
-  margin-bottom: 0;
-
-  ${p =>
-    p.isFullscreen
-      ? `height: 100%;
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      `
-      : ''}
+const ContextContainer = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: 1fr max-content max-content;
+  align-items: center;
+  gap: ${space(1)};
 `;
 
-const PanelHeader = styled(_PanelHeader)<{noBorder?: boolean}>`
-  display: block;
-  padding: 0;
-  ${p => (p.noBorder ? 'border-bottom: none;' : '')}
+const PlayerContainer = styled('div')`
+  display: grid;
+  grid-auto-flow: row;
+  grid-template-rows: auto 1fr;
+  gap: ${space(1)};
+  flex-grow: 1;
+`;
+
+const BreadcrumbContainer = styled('div')`
+  width: 25%;
+`;
+
+const PlayerBreadcrumbContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  gap: ${space(1)};
 `;
 
 export default ReplayView;

@@ -1,8 +1,10 @@
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_request_change import OrganizationRequestChangeEndpoint
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.utils.email import MessageBuilder
@@ -13,7 +15,12 @@ class OrganizationRequestProjectCreationSerializer(CamelSnakeSerializer):
     target_user_email = serializers.EmailField(required=True)
 
 
+@region_silo_endpoint
 class OrganizationRequestProjectCreation(OrganizationRequestChangeEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     def post(self, request: Request, organization) -> Response:
         """
         Send an email requesting a project be created

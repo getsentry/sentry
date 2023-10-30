@@ -1,7 +1,10 @@
-from sentry.models import AuthIdentity, AuthProvider
-from sentry.testutils import APITestCase
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class DeleteUserIdentityTest(APITestCase):
     endpoint = "sentry-api-0-user-identity-details"
     method = "delete"
@@ -12,7 +15,7 @@ class DeleteUserIdentityTest(APITestCase):
 
     def test_simple(self):
         auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
+            organization_id=self.organization.id, provider="dummy"
         )
         auth_identity = AuthIdentity.objects.create(
             auth_provider=auth_provider,

@@ -1,127 +1,208 @@
-import {css} from '@emotion/react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {
+  useDeleteEventAttachmentOptimistic,
+  useFetchEventAttachments,
+} from 'sentry/actionCreators/events';
+import {openModal} from 'sentry/actionCreators/modal';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {DataSection} from 'sentry/components/events/styles';
-import space from 'sentry/styles/space';
+import Link from 'sentry/components/links/link';
+import {t, tn} from 'sentry/locale';
+import {EventAttachment} from 'sentry/types/group';
+import {objectIsEmpty} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {SCREENSHOT_TYPE} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
+import Modal, {modalCss} from './screenshot/modal';
 import Screenshot from './screenshot';
 import Tags from './tags';
 
-type ScreenshotProps = React.ComponentProps<typeof Screenshot>;
+const SCREENSHOT_NAMES = [
+  'screenshot.jpg',
+  'screenshot.png',
+  'screenshot-1.jpg',
+  'screenshot-1.png',
+  'screenshot-2.jpg',
+  'screenshot-2.png',
+];
 
-type Props = Omit<React.ComponentProps<typeof Tags>, 'projectSlug' | 'hasContext'> & {
-  attachments: ScreenshotProps['screenshot'][];
-  onDeleteScreenshot: ScreenshotProps['onDelete'];
-  projectId: string;
-  hasContext?: boolean;
-  isBorderless?: boolean;
+type Props = Omit<
+  React.ComponentProps<typeof Tags>,
+  'projectSlug' | 'hasEventContext'
+> & {
+  projectSlug: string;
   isShare?: boolean;
 };
 
-function EventTagsAndScreenshots({
-  projectId: projectSlug,
+export function EventTagsAndScreenshot({
+  projectSlug,
   location,
   event,
-  attachments,
-  onDeleteScreenshot,
   organization,
   isShare = false,
-  isBorderless = false,
-  hasContext = false,
 }: Props) {
   const {tags = []} = event;
-
-  const screenshot = attachments.find(
-    ({name}) => name === 'screenshot.jpg' || name === 'screenshot.png'
+  const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
+  const {data: attachments} = useFetchEventAttachments(
+    {
+      orgSlug: organization.slug,
+      projectSlug,
+      eventId: event.id,
+    },
+    {enabled: !isShare}
   );
+  const {mutate: deleteAttachment} = useDeleteEventAttachmentOptimistic();
+  const screenshots =
+    attachments?.filter(({name}) => SCREENSHOT_NAMES.includes(name)) ?? [];
 
-  if (!tags.length && !hasContext && (isShare || !screenshot)) {
+  const [screenshotInFocus, setScreenshotInFocus] = useState<number>(0);
+
+  if (!tags.length && !hasContext && (isShare || !screenshots.length)) {
     return null;
   }
 
-  const showScreenshot = !isShare && !!screenshot;
+  const showScreenshot = !isShare && !!screenshots.length;
+  const screenshot = screenshots[screenshotInFocus];
+  // Check for context bailout condition. No context is rendered if only user is provided
+  const hasEventContext = hasContext && !objectIsEmpty(event.contexts);
   const showTags = !!tags.length || hasContext;
 
-  return (
-    <Wrapper
-      isBorderless={isBorderless}
-      showScreenshot={showScreenshot}
-      showTags={showTags}
+  const handleDeleteScreenshot = (attachmentId: string) => {
+    deleteAttachment({
+      orgSlug: organization.slug,
+      projectSlug,
+      eventId: event.id,
+      attachmentId,
+    });
+  };
+
+  function handleOpenVisualizationModal(
+    eventAttachment: EventAttachment,
+    downloadUrl: string
+  ) {
+    trackAnalytics('issue_details.issue_tab.screenshot_modal_opened', {
+      organization,
+    });
+    function handleDelete() {
+      trackAnalytics('issue_details.issue_tab.screenshot_modal_deleted', {
+        organization,
+      });
+      handleDeleteScreenshot(eventAttachment.id);
+    }
+
+    openModal(
+      modalProps => (
+        <Modal
+          {...modalProps}
+          event={event}
+          orgSlug={organization.slug}
+          projectSlug={projectSlug}
+          eventAttachment={eventAttachment}
+          downloadUrl={downloadUrl}
+          onDelete={handleDelete}
+          onDownload={() =>
+            trackAnalytics('issue_details.issue_tab.screenshot_modal_download', {
+              organization,
+            })
+          }
+          attachments={screenshots}
+          attachmentIndex={screenshotInFocus}
+        />
+      ),
+      {modalCss}
+    );
+  }
+
+  const screenshotLink = (
+    <Link
+      to={{
+        pathname: `${location.pathname}${TabPaths[Tab.ATTACHMENTS]}`,
+        query: {...location.query, types: SCREENSHOT_TYPE},
+      }}
     >
+      {tn('Screenshot', 'Screenshots', screenshots.length)}
+    </Link>
+  );
+
+  return (
+    <Wrapper showScreenshot={showScreenshot} showTags={showTags}>
+      <TagWrapper>
+        {showTags && (
+          <Tags
+            organization={organization}
+            event={event}
+            projectSlug={projectSlug}
+            location={location}
+            hasEventContext={hasEventContext}
+          />
+        )}
+      </TagWrapper>
       {showScreenshot && (
-        <Screenshot
-          organization={organization}
-          event={event}
-          projectSlug={projectSlug}
-          screenshot={screenshot}
-          onDelete={onDeleteScreenshot}
-        />
-      )}
-      {showScreenshot && showTags && <Divider />}
-      {showTags && (
-        <Tags
-          organization={organization}
-          event={event}
-          projectSlug={projectSlug}
-          hasContext={hasContext}
-          location={location}
-        />
+        <div>
+          <ScreenshotWrapper>
+            <StyledScreenshotDataSection
+              title={screenshotLink}
+              showPermalink={false}
+              help={t('This image was captured around the time that the event occurred.')}
+              type="screenshot-data-section"
+              data-test-id="screenshot-data-section"
+            >
+              <Screenshot
+                organization={organization}
+                eventId={event.id}
+                projectSlug={projectSlug}
+                screenshot={screenshot}
+                onDelete={handleDeleteScreenshot}
+                onNext={() => setScreenshotInFocus(screenshotInFocus + 1)}
+                onPrevious={() => setScreenshotInFocus(screenshotInFocus - 1)}
+                screenshotInFocus={screenshotInFocus}
+                totalScreenshots={screenshots.length}
+                openVisualizationModal={handleOpenVisualizationModal}
+              />
+            </StyledScreenshotDataSection>
+          </ScreenshotWrapper>
+        </div>
       )}
     </Wrapper>
   );
 }
 
-export default EventTagsAndScreenshots;
-
+/**
+ * Used to adjust padding based on which 3 elements are shown
+ * - screenshot
+ * - context
+ * - tags
+ */
 const Wrapper = styled(DataSection)<{
-  isBorderless: boolean;
   showScreenshot: boolean;
   showTags: boolean;
 }>`
-  > * {
-    :first-child,
-    :last-child {
-      border: 0;
-      padding: 0;
-    }
-  }
+  padding: 0;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
+    padding: 0;
     display: grid;
     grid-template-columns: ${p =>
-      p.showScreenshot && p.showTags ? 'max-content auto 1fr' : '1fr'};
-    padding-top: 0;
-    padding-bottom: 0;
-    && {
-      > * {
-        :first-child,
-        :last-child {
-          border: 0;
-          padding: ${space(3)} 0;
-        }
-      }
-    }
+      p.showScreenshot && p.showTags ? 'auto max-content' : '1fr'};
   }
-
-  ${p =>
-    p.isBorderless &&
-    css`
-      && {
-        padding-left: 0;
-        padding-right: 0;
-      }
-    `}
 `;
 
-const Divider = styled('div')`
-  background: ${p => p.theme.innerBorder};
-  height: 1px;
-  width: 100%;
-  margin: ${space(3)} 0;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    height: 100%;
-    width: 1px;
-    margin: 0 ${space(3)};
+const StyledScreenshotDataSection = styled(EventDataSection)`
+  h3 a {
+    color: ${p => p.theme.linkColor};
   }
+`;
+
+const ScreenshotWrapper = styled('div')`
+  & > div {
+    border: 0;
+    height: 100%;
+  }
+`;
+
+const TagWrapper = styled('div')`
+  overflow: hidden;
 `;

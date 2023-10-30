@@ -1,6 +1,4 @@
-import {keyframes} from '@emotion/react';
-
-import {Theme} from 'sentry/utils/theme';
+import {keyframes, Theme} from '@emotion/react';
 
 export const growIn = keyframes`
   0% {
@@ -123,4 +121,28 @@ export const alertHighlight = (priority: string, theme: Theme) => keyframes`
     background: ${theme.alert[priority].backgroundLight};
     border-color: ${theme.alert[priority].border};
   }
+`;
+
+export const makeShake = (distance: number = 3) => keyframes`
+${new Array(50)
+  .fill(0)
+  .map(
+    (_, i) => `${i * 2}% {
+  transform: translate(${Math.round(Math.random() * distance)}px, ${Math.round(
+    Math.random() * distance
+  )}px);
+}`
+  )
+  .join('\n')}
+`;
+
+export const makeOpacityJitter = () => keyframes`
+${new Array(50)
+  .fill(0)
+  .map(
+    (_, i) => `${i * 2}% {
+  opacity: ${Math.round(Math.random() * 10) / 10};
+}`
+  )
+  .join('\n')}
 `;

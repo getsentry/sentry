@@ -1,73 +1,67 @@
-import {Component} from 'react';
+import {useCallback, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
-import NoteInput from 'sentry/components/activity/note/input';
+import {NoteInput} from 'sentry/components/activity/note/input';
 import {MentionChangeEvent} from 'sentry/components/activity/note/types';
 import {NoteType} from 'sentry/types/alerts';
 import localStorage from 'sentry/utils/localStorage';
-
-const defaultProps = {
-  /**
-   * Triggered when local storage has been loaded and parsed.
-   */
-  onLoad: (data: string) => data,
-  onSave: (data: string) => data,
-};
 
 type InputProps = React.ComponentProps<typeof NoteInput>;
 
 type Props = {
   itemKey: string;
   storageKey: string;
+  onLoad?: (data: string) => string;
+  onSave?: (data: string) => string;
   text?: string;
-} & InputProps &
-  typeof defaultProps;
+} & InputProps;
 
-class NoteInputWithStorage extends Component<Props> {
-  static defaultProps = defaultProps;
-
-  fetchFromStorage() {
-    const {storageKey} = this.props;
-
-    const storage = localStorage.getItem(storageKey);
-    if (!storage) {
-      return null;
-    }
-
-    try {
-      return JSON.parse(storage);
-    } catch (err) {
-      Sentry.withScope(scope => {
-        scope.setExtra('storage', storage);
-        Sentry.captureException(err);
-      });
-      return null;
-    }
+function fetchFromStorage(storageKey: string) {
+  const storage = localStorage.getItem(storageKey);
+  if (!storage) {
+    return null;
   }
 
-  saveToStorage(obj: Record<string, any>) {
-    const {storageKey} = this.props;
-
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(obj));
-    } catch (err) {
+  try {
+    return JSON.parse(storage);
+  } catch (err) {
+    Sentry.withScope(scope => {
+      scope.setExtra('storage', storage);
       Sentry.captureException(err);
-      Sentry.withScope(scope => {
-        scope.setExtra('storage', obj);
-        Sentry.captureException(err);
-      });
-    }
+    });
+    return null;
   }
+}
 
-  getValue() {
-    const {itemKey, text, onLoad} = this.props;
+function saveToStorage(storageKey: string, obj: Record<string, any>) {
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(obj));
+  } catch (err) {
+    Sentry.captureException(err);
+    Sentry.withScope(scope => {
+      scope.setExtra('storage', obj);
+      Sentry.captureException(err);
+    });
+  }
+}
 
+function NoteInputWithStorage({
+  itemKey,
+  storageKey,
+  onChange,
+  onCreate,
+  onLoad,
+  onSave,
+  text,
+  ...props
+}: Props) {
+  const value = useMemo(() => {
     if (text) {
       return text;
     }
 
-    const storageObj = this.fetchFromStorage();
+    const storageObj = fetchFromStorage(storageKey);
 
     if (!storageObj) {
       return '';
@@ -81,66 +75,65 @@ class NoteInputWithStorage extends Component<Props> {
     }
 
     return onLoad(storageObj[itemKey]);
-  }
+  }, [itemKey, onLoad, storageKey, text]);
 
-  save = debounce(value => {
-    const {itemKey, onSave} = this.props;
+  const save = useMemo(
+    () =>
+      debounce((newValue: string) => {
+        const currentObj = fetchFromStorage(storageKey) ?? {};
 
-    const currentObj = this.fetchFromStorage() || {};
-    this.saveToStorage({...currentObj, [itemKey]: onSave(value)});
-  }, 150);
+        const newObject = {
+          ...currentObj,
+          [itemKey]: onSave?.(newValue) ?? newValue,
+        };
 
-  handleChange = (e: MentionChangeEvent, options: {updating?: boolean} = {}) => {
-    const {onChange} = this.props;
+        saveToStorage(storageKey, newObject);
+      }, 150),
+    [itemKey, onSave, storageKey]
+  );
 
-    if (onChange) {
-      onChange(e, options);
-    }
+  const handleChange = useCallback(
+    (e: MentionChangeEvent, options: {updating?: boolean} = {}) => {
+      onChange?.(e, options);
 
-    if (options.updating) {
-      return;
-    }
+      if (options.updating) {
+        return;
+      }
 
-    this.save(e.target.value);
-  };
+      save(e.target.value);
+    },
+    [onChange, save]
+  );
 
   /**
    * Handler when note is created.
    *
    * Remove in progress item from local storage if it exists
    */
-  handleCreate = (data: NoteType) => {
-    const {itemKey, onCreate} = this.props;
+  const handleCreate = useCallback(
+    (data: NoteType) => {
+      onCreate?.(data);
 
-    if (onCreate) {
-      onCreate(data);
-    }
+      // Remove from local storage
+      const storageObj = fetchFromStorage(storageKey) ?? {};
 
-    // Remove from local storage
-    const storageObj = this.fetchFromStorage() || {};
+      // Nothing from this `itemKey` is saved to storage, do nothing
+      if (!storageObj.hasOwnProperty(itemKey)) {
+        return;
+      }
 
-    // Nothing from this `itemKey` is saved to storage, do nothing
-    if (!storageObj.hasOwnProperty(itemKey)) {
-      return;
-    }
+      // Remove `itemKey` from stored object and save to storage
+      // eslint-disable-next-line no-unused-vars
+      const {[itemKey]: _oldItem, ...newStorageObj} = storageObj;
+      saveToStorage(storageKey, newStorageObj);
+    },
+    [itemKey, onCreate, storageKey]
+  );
 
-    // Remove `itemKey` from stored object and save to storage
-    // eslint-disable-next-line no-unused-vars
-    const {[itemKey]: _oldItem, ...newStorageObj} = storageObj;
-    this.saveToStorage(newStorageObj);
-  };
-
-  render() {
-    // Make sure `this.props` does not override `onChange` and `onCreate`
-    return (
-      <NoteInput
-        {...this.props}
-        text={this.getValue()}
-        onCreate={this.handleCreate}
-        onChange={this.handleChange}
-      />
-    );
-  }
+  // Make sure `this.props` does not override `onChange` and `onCreate`
+  return (
+    <NoteInput {...props} text={value} onCreate={handleCreate} onChange={handleChange} />
+  );
 }
 
-export default NoteInputWithStorage;
+export {NoteInputWithStorage};

@@ -6,41 +6,23 @@ from django.contrib.auth import logout
 from django.http import HttpResponse, HttpResponseServerError
 from django.urls import reverse
 from django.utils.decorators import method_decorator
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
+from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings
+from onelogin.saml2.constants import OneLogin_Saml2_Constants
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import options
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
 from sentry.auth.view import AuthView
-from sentry.models import AuthProvider, Organization, OrganizationStatus
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils.auth import get_login_url
 from sentry.utils.http import absolute_uri
-from sentry.web.frontend.base import BaseView
-
-try:
-    from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings
-    from onelogin.saml2.constants import OneLogin_Saml2_Constants
-
-    HAS_SAML2 = True
-except ImportError:
-    HAS_SAML2 = False
-
-    def OneLogin_Saml2_Auth(*args, **kwargs):
-        raise NotImplementedError("Missing SAML libraries")
-
-    def OneLogin_Saml2_Settings(*args, **kwargs):
-        raise NotImplementedError("Missing SAML libraries")
-
-    class OneLogin_Saml2_ConstantsType(type):
-        def __getattr__(self, attr):
-            raise NotImplementedError("Missing SAML libraries")
-
-    class OneLogin_Saml2_Constants(metaclass=OneLogin_Saml2_ConstantsType):
-        pass
-
+from sentry.web.frontend.base import BaseView, control_silo_view
 
 ERR_NO_SAML_SSO = _("The organization does not exist or does not have SAML SSO enabled.")
 ERR_SAML_FAILED = _("SAML SSO failed, {reason}")
@@ -48,15 +30,15 @@ ERR_SAML_FAILED = _("SAML SSO failed, {reason}")
 
 def get_provider(organization_slug):
     try:
-        organization = Organization.objects.get(slug=organization_slug)
-    except Organization.DoesNotExist:
+        mapping = OrganizationMapping.objects.get(slug=organization_slug)
+    except OrganizationMapping.DoesNotExist:
         return None
 
-    if organization.status != OrganizationStatus.VISIBLE:
+    if mapping.status != OrganizationStatus.ACTIVE:
         return None
 
     try:
-        provider = AuthProvider.objects.get(organization=organization).get_provider()
+        provider = AuthProvider.objects.get(organization_id=mapping.organization_id).get_provider()
     except AuthProvider.DoesNotExist:
         return None
 
@@ -67,7 +49,7 @@ def get_provider(organization_slug):
 
 
 class SAML2LoginView(AuthView):
-    def dispatch(self, request: Request, helper) -> Response:
+    def dispatch(self, request: Request, helper) -> HttpResponse:
         if "SAMLResponse" in request.POST:
             return helper.next_step()
 
@@ -77,6 +59,10 @@ class SAML2LoginView(AuthView):
         # so build the config first from the state.
         if not provider.config:
             provider.config = provider.build_config(helper.fetch_state())
+
+        if request.subdomain:
+            # See auth.helper.handle_existing_identity()
+            helper.bind_state("subdomain", request.subdomain)
 
         saml_config = build_saml_config(provider.config, helper.organization.slug)
         auth = build_auth(request, saml_config)
@@ -89,6 +75,7 @@ class SAML2LoginView(AuthView):
 # the auth assertion is directly posted to the ACS URL. Because the user will
 # not have initiated their SSO flow we must provide a endpoint similar to
 # auth_provider_login, but with support for initializing the auth flow.
+@control_silo_view
 class SAML2AcceptACSView(BaseView):
     @method_decorator(csrf_exempt)
     def dispatch(self, request: Request, organization_slug):
@@ -106,21 +93,22 @@ class SAML2AcceptACSView(BaseView):
         # IdP initiated authentication. The organization_slug must be valid and
         # an auth provider must exist for this organization to proceed with
         # IdP initiated SAML auth.
-        try:
-            organization = Organization.objects.get(slug=organization_slug)
-        except Organization.DoesNotExist:
+        org_context = organization_service.get_organization_by_slug(
+            slug=organization_slug, only_visible=False
+        )
+        if org_context is None:
             messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
             return self.redirect(reverse("sentry-login"))
 
         try:
-            auth_provider = AuthProvider.objects.get(organization=organization)
+            auth_provider = AuthProvider.objects.get(organization_id=org_context.organization.id)
         except AuthProvider.DoesNotExist:
             messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
             return self.redirect(reverse("sentry-login"))
 
         helper = AuthHelper(
             request=request,
-            organization=organization,
+            organization=(org_context.organization),
             auth_provider=auth_provider,
             flow=AuthHelper.FLOW_LOGIN,
         )
@@ -131,7 +119,7 @@ class SAML2AcceptACSView(BaseView):
 
 class SAML2ACSView(AuthView):
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, helper) -> Response:
+    def dispatch(self, request: Request, helper) -> HttpResponse:
         provider = helper.provider
 
         # If we're authenticating during the setup pipeline the provider will
@@ -249,6 +237,8 @@ class SAML2Provider(Provider, abc.ABC):
       constants to the Identity Provider attribute keys.
     """
 
+    # SAML does nothing with refresh state -- don't waste resources calling it in check_auth job.
+    requires_refresh = False
     required_feature = "organizations:sso-saml2"
 
     def get_auth_pipeline(self):

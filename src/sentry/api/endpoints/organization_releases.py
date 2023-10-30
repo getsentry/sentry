@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from datetime import datetime, timedelta
 
@@ -8,7 +10,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, release_health
-from sentry.api.base import EnvironmentMixin, ReleaseAnalyticsMixin
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import EnvironmentMixin, ReleaseAnalyticsMixin, region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ConflictError, InvalidRepository
@@ -21,10 +24,12 @@ from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializerDeprecated,
     ReleaseWithVersionSerializer,
 )
+from sentry.api.utils import get_auth_api_token_type
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import (
-    Activity,
-    Project,
+from sentry.models.activity import Activity
+from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
+from sentry.models.project import Project
+from sentry.models.release import (
     Release,
     ReleaseCommitError,
     ReleaseProject,
@@ -187,6 +192,10 @@ def debounce_update_release_health_data(organization, project_ids):
                 # should not happen
                 continue
 
+            # Ignore versions that were saved with an empty string before validation was added
+            if not Release.is_valid_version(version):
+                continue
+
             # We might have never observed the release.  This for instance can
             # happen if the release only had health data so far.  For these cases
             # we want to create the release the first time we observed it on the
@@ -203,9 +212,14 @@ def debounce_update_release_health_data(organization, project_ids):
     cache.set_many(dict(zip(should_update.values(), [True] * len(should_update))), 60)
 
 
+@region_silo_endpoint
 class OrganizationReleasesEndpoint(
     OrganizationReleasesBaseEndpoint, EnvironmentMixin, ReleaseAnalyticsMixin
 ):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     SESSION_SORTS = frozenset(
         [
             "crash_free_sessions",
@@ -216,6 +230,14 @@ class OrganizationReleasesEndpoint(
             "users_24h",
         ]
     )
+
+    def get_projects(self, request: Request, organization, project_ids=None):
+        return super().get_projects(
+            request,
+            organization,
+            project_ids=project_ids,
+            include_all_accessible="GET" != request.method,
+        )
 
     def get(self, request: Request, organization) -> Response:
         """
@@ -268,7 +290,7 @@ class OrganizationReleasesEndpoint(
             else:
                 queryset = queryset.filter(status=status_int)
 
-        queryset = queryset.select_related("owner").annotate(date=F("date_added"))
+        queryset = queryset.annotate(date=F("date_added"))
 
         queryset = add_environment_to_queryset(queryset, filter_params)
         if query:
@@ -449,6 +471,9 @@ class OrganizationReleasesEndpoint(
                     projects.append(allowed_projects[slug])
 
                 new_status = result.get("status")
+                owner_id: int | None = None
+                if owner := result.get("owner"):
+                    owner_id = owner.id
 
                 # release creation is idempotent to simplify user
                 # experiences
@@ -459,9 +484,10 @@ class OrganizationReleasesEndpoint(
                         defaults={
                             "ref": result.get("ref"),
                             "url": result.get("url"),
-                            "owner": result.get("owner"),
+                            "owner_id": owner_id,
                             "date_released": result.get("dateReleased"),
                             "status": new_status or ReleaseStatus.OPEN,
+                            "user_agent": request.META.get("HTTP_USER_AGENT", "")[:256],
                         },
                     )
                 except IntegrityError:
@@ -515,7 +541,7 @@ class OrganizationReleasesEndpoint(
                     ]
                 scope.set_tag("has_refs", bool(refs))
                 if refs:
-                    if not request.user.is_authenticated:
+                    if not request.user.is_authenticated and not request.auth:
                         scope.set_tag("failure_reason", "user_not_authenticated")
                         return Response(
                             {"refs": ["You must use an authenticated API token to fetch refs"]},
@@ -523,7 +549,7 @@ class OrganizationReleasesEndpoint(
                         )
                     fetch_commits = not commit_list
                     try:
-                        release.set_refs(refs, request.user, fetch=fetch_commits)
+                        release.set_refs(refs, request.user.id, fetch=fetch_commits)
                     except InvalidRepository as e:
                         scope.set_tag("failure_reason", "InvalidRepository")
                         return Response({"refs": [str(e)]}, status=400)
@@ -544,7 +570,13 @@ class OrganizationReleasesEndpoint(
                     project_ids=[project.id for project in projects],
                     user_agent=request.META.get("HTTP_USER_AGENT", ""),
                     created_status=status,
+                    auth_type=get_auth_api_token_type(request.auth),
                 )
+
+                if is_org_auth_token_auth(request.auth):
+                    update_org_auth_token_last_used(
+                        request.auth, [project.id for project in projects]
+                    )
 
                 scope.set_tag("success_status", status)
                 return Response(serialize(release, request.user), status=status)
@@ -552,7 +584,12 @@ class OrganizationReleasesEndpoint(
             return Response(serializer.errors, status=400)
 
 
+@region_silo_endpoint
 class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization) -> Response:
         """
         List an Organization's Releases specifically for building timeseries

@@ -8,11 +8,16 @@ from requests.exceptions import HTTPError, SSLError
 
 from sentry import digests, ratelimits
 from sentry.exceptions import InvalidIdentity, PluginError
-from sentry.models import NotificationSetting
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.notifications.helpers import should_use_notifications_v2
+from sentry.notifications.notificationcontroller import NotificationController
+from sentry.notifications.types import NotificationSettingEnum
 from sentry.plugins.base import Notification, Plugin
 from sentry.plugins.base.configuration import react_plugin_config
+from sentry.services.hybrid_cloud.actor import ActorType
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
 class NotificationConfigurationForm(forms.Form):
@@ -86,7 +91,6 @@ class NotificationPlugin(Plugin):
     def rule_notify(self, event, futures):
         rules = []
         extra = {"event_id": event.event_id, "group_id": event.group_id, "plugin": self.slug}
-        log_event = "dispatched"
         for future in futures:
             rules.append(future.rule)
             extra["rule_id"] = future.rule.id
@@ -100,7 +104,7 @@ class NotificationPlugin(Plugin):
         extra["project_id"] = project.id
         notification = Notification(event=event, rules=rules)
         self.notify(notification)
-        self.logger.info("notification.%s" % log_event, extra=extra)
+        self.logger.info("notification.dispatched", extra=extra)
 
     def notify_users(self, group, event, triggering_rules, fail_silently=False, **kwargs):
         raise NotImplementedError
@@ -109,11 +113,11 @@ class NotificationPlugin(Plugin):
         pass
 
     def get_notification_recipients(self, project, user_option: str) -> Set:
-        from sentry.models import UserOption
+        from sentry.models.options.user_option import UserOption
 
         alert_settings = {
             o.user_id: int(o.value)
-            for o in UserOption.objects.filter(project=project, key=user_option)
+            for o in UserOption.objects.filter(project_id=project.id, key=user_option)
         }
 
         disabled = {u for u, v in alert_settings.items() if v == 0}
@@ -142,9 +146,23 @@ class NotificationPlugin(Plugin):
         notifications for the provided project.
         """
         if self.get_conf_key() == "mail":
-            return NotificationSetting.objects.get_notification_recipients(project)[
-                ExternalProviders.EMAIL
-            ]
+            if should_use_notifications_v2(self.project.organization):
+                user_ids = list(project.member_set.values_list("user_id", flat=True))
+                users = user_service.get_many(filter={"user_ids": user_ids})
+                notification_controller = NotificationController(
+                    recipients=users,
+                    project_ids=[project.id],
+                    organization_id=project.organization_id,
+                    provider=ExternalProviderEnum.EMAIL,
+                )
+                return notification_controller.get_notification_recipients(
+                    type=NotificationSettingEnum.ISSUE_ALERTS,
+                    actor_type=ActorType.USER,
+                )[ExternalProviders.EMAIL]
+            else:
+                return NotificationSetting.objects.get_notification_recipients(project)[
+                    ExternalProviders.EMAIL
+                ]
 
         return self.get_notification_recipients(project, f"{self.get_conf_key()}:alert")
 

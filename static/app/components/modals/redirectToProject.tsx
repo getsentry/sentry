@@ -1,12 +1,14 @@
 import {Component, Fragment} from 'react';
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Text from 'sentry/components/text';
 import {t, tct} from 'sentry/locale';
 import recreateRoute from 'sentry/utils/recreateRoute';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 type Props = ModalRenderProps &
   WithRouterProps & {
@@ -88,7 +90,7 @@ class RedirectToProjectModal extends Component<Props, State> {
   }
 }
 
-export default withRouter(RedirectToProjectModal);
+export default withSentryRouter(RedirectToProjectModal);
 export {RedirectToProjectModal};
 
 const ButtonWrapper = styled('div')`

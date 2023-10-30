@@ -1,31 +1,50 @@
 # Avoid shadowing the standard library json module
 
-# XXX(epurkhiser): We import JSONDecodeError just to have it be exported as
-# part of this module. We don't use it directly within the module, but modules
-# that import it from here will. Do not remove.
+from __future__ import annotations
 
 import datetime
 import decimal
 import uuid
+from contextlib import nullcontext
 from enum import Enum
-from typing import Any
+from typing import IO, TYPE_CHECKING, Any, Generator, Mapping, NoReturn, TypeVar, overload
 
 import rapidjson
 import sentry_sdk
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.functional import Promise
-from django.utils.safestring import mark_safe
+from django.utils.safestring import SafeString, mark_safe
 from django.utils.timezone import is_aware
-from simplejson import JSONDecodeError, JSONEncoder, _default_decoder  # NOQA
+from simplejson import _default_decoder  # type: ignore[attr-defined]  # noqa: S003
+from simplejson import JSONDecodeError, JSONEncoder  # noqa: S003
 
 from bitfield.types import BitHandler
 
+# A more traditional raw import from django_stubs_ext.aliases here breaks monkeypatching,
+# So we jump through hoops to get only the exact types
+if TYPE_CHECKING:
+    from django.db.models.query import _QuerySetAny
 
-def better_default_encoder(o):
+    QuerySetAny = _QuerySetAny
+else:
+    from django.db.models.query import QuerySet
+
+    QuerySetAny = QuerySet
+
+TKey = TypeVar("TKey")
+TValue = TypeVar("TValue")
+
+
+def datetime_to_str(o: datetime.datetime) -> str:
+    return o.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+
+
+def better_default_encoder(o: object) -> object:
+
     if isinstance(o, uuid.UUID):
         return o.hex
     elif isinstance(o, datetime.datetime):
-        return o.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        return datetime_to_str(o)
     elif isinstance(o, datetime.date):
         return o.isoformat()
     elif isinstance(o, datetime.time):
@@ -45,22 +64,24 @@ def better_default_encoder(o):
         return int(o)
     elif callable(o):
         return "<function>"
+    elif isinstance(o, QuerySetAny):
+        return list(o)
     # serialization for certain Django objects here: https://docs.djangoproject.com/en/1.8/topics/serialization/
     elif isinstance(o, Promise):
-        return force_text(o)
+        return force_str(o)
     raise TypeError(repr(o) + " is not JSON serializable")
 
 
 class JSONEncoderForHTML(JSONEncoder):
     # Our variant of JSONEncoderForHTML that also accounts for apostrophes
     # See: https://github.com/simplejson/simplejson/blob/master/simplejson/encoder.py
-    def encode(self, o):
+    def encode(self, o: object) -> str:
         # Override JSONEncoder.encode because it has hacks for
         # performance that make things more complicated.
         chunks = self.iterencode(o, True)
         return "".join(chunks)
 
-    def iterencode(self, o, _one_shot=False):
+    def iterencode(self, o: object, _one_shot: bool = False) -> Generator[str, None, None]:
         chunks = super().iterencode(o, _one_shot)
         for chunk in chunks:
             chunk = chunk.replace("&", "\\u0026")
@@ -90,35 +111,51 @@ _default_escaped_encoder = JSONEncoderForHTML(
 JSONData = Any  # https://github.com/python/typing/issues/182
 
 
-def dump(value: JSONData, fp, **kwargs):
+# NoReturn here is to make this a mypy error to pass kwargs, since they are currently silently dropped
+def dump(value: JSONData, fp: IO[str], **kwargs: NoReturn) -> None:
     for chunk in _default_encoder.iterencode(value):
         fp.write(chunk)
 
 
-def dumps(value: JSONData, escape: bool = False, **kwargs) -> str:
+# NoReturn here is to make this a mypy error to pass kwargs, since they are currently silently dropped
+def dumps(value: JSONData, escape: bool = False, **kwargs: NoReturn) -> str:
     # Legacy use. Do not use. Use dumps_htmlsafe
     if escape:
         return _default_escaped_encoder.encode(value)
     return _default_encoder.encode(value)
 
 
-def load(fp, **kwargs) -> JSONData:
+# NoReturn here is to make this a mypy error to pass kwargs, since they are currently silently dropped
+def load(fp: IO[str] | IO[bytes], **kwargs: NoReturn) -> JSONData:
     return loads(fp.read())
 
 
-def loads(value: str, use_rapid_json: bool = False, **kwargs) -> JSONData:
-    with sentry_sdk.start_span(op="sentry.utils.json.loads"):
+# NoReturn here is to make this a mypy error to pass kwargs, since they are currently silently dropped
+def loads(
+    value: str | bytes, use_rapid_json: bool = False, skip_trace: bool = False, **kwargs: NoReturn
+) -> JSONData:
+    with sentry_sdk.start_span(op="sentry.utils.json.loads") if not skip_trace else nullcontext():  # type: ignore
         if use_rapid_json is True:
             return rapidjson.loads(value)
         else:
             return _default_decoder.decode(value)
 
 
-def dumps_htmlsafe(value):
+def dumps_htmlsafe(value: object) -> SafeString:
     return mark_safe(_default_escaped_encoder.encode(value))
 
 
-def prune_empty_keys(obj):
+@overload
+def prune_empty_keys(obj: None) -> None:
+    ...
+
+
+@overload
+def prune_empty_keys(obj: Mapping[TKey, TValue | None]) -> dict[TKey, TValue]:
+    ...
+
+
+def prune_empty_keys(obj: None | Mapping[TKey, TValue | None]) -> None | dict[TKey, TValue]:
     if obj is None:
         return None
 
@@ -133,3 +170,16 @@ def prune_empty_keys(obj):
     # message has no params" and `None` means "this message is already
     # formatted".
     return {k: v for k, v in obj.items() if v is not None}
+
+
+__all__ = (
+    "JSONData",
+    "JSONDecodeError",
+    "JSONEncoder",
+    "dump",
+    "dumps",
+    "dumps_htmlsafe",
+    "load",
+    "loads",
+    "prune_empty_keys",
+)

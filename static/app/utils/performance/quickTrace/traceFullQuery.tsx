@@ -9,16 +9,17 @@ import {
   TraceFull,
   TraceFullDetailed,
   TraceRequestProps,
+  TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {
   getTraceRequestPayload,
   makeEventView,
 } from 'sentry/utils/performance/quickTrace/utils';
-import withApi from 'sentry/utils/withApi';
 
 type AdditionalQueryProps = {
   detailed?: boolean;
   eventId?: string;
+  limit?: number;
 };
 
 type TraceFullQueryChildrenProps<T> = BaseTraceChildrenProps &
@@ -38,6 +39,7 @@ type QueryProps<T> = Omit<TraceRequestProps, 'eventView'> &
 function getTraceFullRequestPayload({
   detailed,
   eventId,
+  limit,
   ...props
 }: DiscoverQueryProps & AdditionalQueryProps) {
   const additionalApiPayload: any = getTraceRequestPayload(props);
@@ -45,6 +47,11 @@ function getTraceFullRequestPayload({
   if (eventId) {
     additionalApiPayload.event_id = eventId;
   }
+
+  if (limit) {
+    additionalApiPayload.limit = limit;
+  }
+
   return additionalApiPayload;
 }
 
@@ -97,14 +104,24 @@ function GenericTraceFullQuery<T>({
   );
 }
 
-export const TraceFullQuery = withApi(
-  (props: Omit<QueryProps<TraceFull[]>, 'detailed'>) => (
-    <GenericTraceFullQuery<TraceFull[]> {...props} detailed={false} />
-  )
-);
+export function TraceFullQuery(
+  props: Omit<QueryProps<TraceSplitResults<TraceFull>>, 'detailed'>
+) {
+  return (
+    <GenericTraceFullQuery<TraceSplitResults<TraceFull>> {...props} detailed={false} />
+  );
+}
 
-export const TraceFullDetailedQuery = withApi(
-  (props: Omit<QueryProps<TraceFullDetailed[]>, 'detailed'>) => (
-    <GenericTraceFullQuery<TraceFullDetailed[]> {...props} detailed />
-  )
-);
+export function TraceFullDetailedQuery(
+  props: Omit<
+    QueryProps<TraceFullDetailed[] | TraceSplitResults<TraceFullDetailed>>,
+    'detailed'
+  >
+) {
+  return (
+    <GenericTraceFullQuery<TraceFullDetailed[] | TraceSplitResults<TraceFullDetailed>>
+      {...props}
+      detailed
+    />
+  );
+}

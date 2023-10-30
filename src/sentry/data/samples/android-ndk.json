@@ -6,6 +6,7 @@
       {
         "type": "SIGSEGV",
         "value": "Segfault",
+        "thread_id": 1,
         "mechanism": {
           "type": "signalhandler",
           "synthetic": true,
@@ -129,6 +130,14 @@
             }
           ]
         }
+      }
+    ]
+  },
+  "threads": {
+    "values": [
+      {
+        "id": 1,
+        "main": true
       }
     ]
   },

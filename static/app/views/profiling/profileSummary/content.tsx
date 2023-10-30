@@ -1,81 +1,168 @@
-import {useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {SectionHeading} from 'sentry/components/charts/styles';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
-import {FunctionsTable} from 'sentry/components/profiling/functionsTable';
-import {ProfilesTable} from 'sentry/components/profiling/profilesTable';
+import {AggregateFlamegraphPanel} from 'sentry/components/profiling/aggregateFlamegraphPanel';
+import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
+import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
+import {mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {PageFilters, Project} from 'sentry/types';
-import {useFunctions} from 'sentry/utils/profiling/hooks/useFunctions';
-import {useProfiles} from 'sentry/utils/profiling/hooks/useProfiles';
+import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import {formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
-
-const PROFILES_COLUMN_ORDER = [
-  'failed',
-  'id',
-  'timestamp',
-  'version_name',
-  'device_model',
-  'device_classification',
-  'trace_duration_ms',
-] as const;
+import {ProfilesChart} from 'sentry/views/profiling/landing/profileCharts';
 
 interface ProfileSummaryContentProps {
   location: Location;
   project: Project;
   query: string;
+  selection: PageFilters;
   transaction: string;
-  selection?: PageFilters;
 }
 
 function ProfileSummaryContent(props: ProfileSummaryContentProps) {
-  const cursor = useMemo(
+  const fields = useMemo(
+    () => getProfilesTableFields(props.project.platform),
+    [props.project]
+  );
+
+  const profilesCursor = useMemo(
     () => decodeScalar(props.location.query.cursor),
     [props.location.query.cursor]
   );
 
-  const profiles = useProfiles({
-    cursor,
-    limit: 5,
+  const sort = formatSort<ProfilingFieldType>(
+    decodeScalar(props.location.query.sort),
+    fields,
+    {
+      key: 'timestamp',
+      order: 'desc',
+    }
+  );
+
+  const profiles = useProfileEvents<ProfilingFieldType>({
+    cursor: profilesCursor,
+    fields,
     query: props.query,
-    selection: props.selection,
+    sort,
+    limit: 5,
+    referrer: 'api.profiling.profile-summary-table',
   });
 
-  const functions = useFunctions({
-    project: props.project,
-    query: props.query,
-    selection: props.selection,
-    transaction: props.transaction,
-  });
+  const handleFilterChange = useCallback(
+    value => {
+      browserHistory.push({
+        ...props.location,
+        query: {...props.location.query, cursor: undefined, sort: value},
+      });
+    },
+    [props.location]
+  );
 
   return (
-    <Layout.Main fullWidth>
-      <TableHeader>
-        <SectionHeading>{t('Recent Profiles')}</SectionHeading>
-        <StyledPagination
-          pageLinks={profiles.type === 'resolved' ? profiles.data.pageLinks : null}
-          size="xsmall"
+    <Fragment>
+      <Layout.Main fullWidth>
+        <ProfilesChart
+          referrer="api.profiling.profile-summary-chart"
+          query={props.query}
+          hideCount
+          compact
         />
-      </TableHeader>
-      <ProfilesTable
-        error={profiles.type === 'errored' ? profiles.error : null}
-        isLoading={profiles.type === 'initial' || profiles.type === 'loading'}
-        traces={profiles.type === 'resolved' ? profiles.data.traces : []}
-        columnOrder={PROFILES_COLUMN_ORDER}
-      />
-      <FunctionsTable
-        error={functions.type === 'errored' ? functions.error : null}
-        functionCalls={functions.type === 'resolved' ? functions.data : []}
-        isLoading={functions.type === 'initial' || functions.type === 'loading'}
-        project={props.project}
-      />
-    </Layout.Main>
+        <AggregateFlamegraphPanel transaction={props.transaction} />
+        <SuspectFunctionsTable
+          project={props.project}
+          transaction={props.transaction}
+          analyticsPageSource="profiling_transaction"
+        />
+        <TableHeader>
+          <CompactSelect
+            triggerProps={{prefix: t('Filter'), size: 'xs'}}
+            value={sort.order === 'asc' ? sort.key : `-${sort.key}`}
+            options={FILTER_OPTIONS}
+            onChange={opt => handleFilterChange(opt.value)}
+          />
+          <StyledPagination
+            pageLinks={
+              profiles.status === 'success'
+                ? profiles.getResponseHeader?.('Link') ?? null
+                : null
+            }
+            size="xs"
+          />
+        </TableHeader>
+        <ProfileEventsTable
+          columns={fields}
+          data={profiles.status === 'success' ? profiles.data : null}
+          error={profiles.status === 'error' ? t('Unable to load profiles') : null}
+          isLoading={profiles.status === 'loading'}
+          sort={sort}
+        />
+      </Layout.Main>
+    </Fragment>
   );
 }
+
+const ALL_FIELDS = [
+  'profile.id',
+  'timestamp',
+  'release',
+  'device.model',
+  'device.classification',
+  'device.arch',
+  'transaction.duration',
+  'p75()',
+  'p95()',
+  'p99()',
+  'count()',
+  'last_seen()',
+] as const;
+
+export type ProfilingFieldType = (typeof ALL_FIELDS)[number];
+
+export function getProfilesTableFields(platform: Project['platform']) {
+  if (mobile.includes(platform as any)) {
+    return MOBILE_FIELDS;
+  }
+
+  return DEFAULT_FIELDS;
+}
+
+const MOBILE_FIELDS: ProfilingFieldType[] = [
+  'profile.id',
+  'timestamp',
+  'release',
+  'device.model',
+  'device.classification',
+  'device.arch',
+  'transaction.duration',
+];
+const DEFAULT_FIELDS: ProfilingFieldType[] = [
+  'profile.id',
+  'timestamp',
+  'release',
+  'transaction.duration',
+];
+
+const FILTER_OPTIONS = [
+  {
+    label: t('Recent Profiles'),
+    value: '-timestamp',
+  },
+  {
+    label: t('Slowest Profiles'),
+    value: '-transaction.duration',
+  },
+  {
+    label: t('Fastest Profiles'),
+    value: 'transaction.duration',
+  },
+];
 
 const TableHeader = styled('div')`
   display: flex;

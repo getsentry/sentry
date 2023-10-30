@@ -8,7 +8,6 @@ from redis.exceptions import ResponseError
 
 from sentry.digests import Record, ScheduleEntry
 from sentry.digests.backends.base import Backend, InvalidState
-from sentry.utils.compat import map
 from sentry.utils.locking.backends.redis import RedisLockBackend
 from sentry.utils.locking.lock import Lock
 from sentry.utils.locking.manager import LockManager
@@ -96,7 +95,9 @@ class RedisBackend(Backend):
 
     def _get_timeline_lock(self, key: str, duration: int) -> Lock:
         lock_key = f"{self.namespace}:t:{key}"
-        return self.locks.get(lock_key, duration=duration, routing_key=lock_key)
+        return self.locks.get(
+            lock_key, duration=duration, routing_key=lock_key, name="digest_timeline_lock"
+        )
 
     def add(
         self,
@@ -141,17 +142,15 @@ class RedisBackend(Backend):
     def __schedule_partition(
         self, host: int, deadline: float, timestamp: float
     ) -> Iterable[Tuple[bytes, float]]:
-        # Explicitly typing to satisfy mypy.
-        partitions: Iterable[Tuple[bytes, float]] = script(
+        return script(
             self.cluster.get_local_client(host),
             ["-"],
             ["SCHEDULE", self.namespace, self.ttl, timestamp, deadline],
         )
-        return partitions
 
     def schedule(
         self, deadline: float, timestamp: Optional[float] = None
-    ) -> Optional[Iterable[ScheduleEntry]]:
+    ) -> Iterable[ScheduleEntry]:
         if timestamp is None:
             timestamp = time.time()
 
@@ -216,16 +215,14 @@ class RedisBackend(Backend):
                 else:
                     raise
 
-            records = map(
-                lambda key__value__timestamp: Record(
-                    key__value__timestamp[0].decode("utf-8"),
-                    self.codec.decode(key__value__timestamp[1])
-                    if key__value__timestamp[1] is not None
-                    else None,
-                    float(key__value__timestamp[2]),
-                ),
-                response,
-            )
+            records = [
+                Record(
+                    key.decode(),
+                    self.codec.decode(value) if value is not None else None,
+                    float(timestamp),
+                )
+                for key, value, timestamp in response
+            ]
 
             # If the record value is `None`, this means the record data was
             # missing (it was presumably evicted by Redis) so we don't need to

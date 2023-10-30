@@ -1,24 +1,27 @@
+from functools import cached_property
 from unittest.mock import patch
 
 import responses
-from exam import fixture
 
-from sentry.models import Integration, OrganizationIntegration, Repository
-from sentry.testutils import TestCase
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.repository import Repository
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
-from sentry_plugins.github.client import GitHubAppsClient, GitHubClient
+from sentry_plugins.github.client import GithubPluginAppsClient, GithubPluginClient
 from sentry_plugins.github.plugin import GitHubAppsRepositoryProvider, GitHubRepositoryProvider
 from sentry_plugins.github.testutils import (
     COMPARE_COMMITS_EXAMPLE,
     GET_LAST_COMMITS_EXAMPLE,
-    INTSTALLATION_REPOSITORIES_API_RESPONSE,
+    INSTALLATION_REPOSITORIES_API_RESPONSE,
     LIST_INSTALLATION_API_RESPONSE,
 )
-from social_auth.models import UserSocialAuth
 
 
+@region_silo_test(stable=True)
 class GitHubPluginTest(TestCase):
-    @fixture
+    @cached_property
     def provider(self):
         return GitHubRepositoryProvider("github")
 
@@ -61,7 +64,7 @@ class GitHubPluginTest(TestCase):
         )
         user = self.create_user()
         organization = self.create_organization()
-        UserSocialAuth.objects.create(
+        self.create_usersocialauth(
             user=user, provider="github", extra_data={"access_token": "abcdefg"}
         )
         data = {"name": "getsentry/example-repo", "external_id": "654321"}
@@ -99,7 +102,7 @@ class GitHubPluginTest(TestCase):
         )
         user = self.create_user()
         organization = self.create_organization()
-        UserSocialAuth.objects.create(
+        self.create_usersocialauth(
             user=user, provider="github", extra_data={"access_token": "abcdefg"}
         )
         repo = Repository.objects.create(
@@ -124,7 +127,7 @@ class GitHubPluginTest(TestCase):
         )
         user = self.create_user()
         organization = self.create_organization()
-        UserSocialAuth.objects.create(
+        self.create_usersocialauth(
             user=user, provider="github", extra_data={"access_token": "abcdefg"}
         )
         repo = Repository.objects.create(
@@ -148,7 +151,7 @@ class GitHubPluginTest(TestCase):
         )
         user = self.create_user()
         organization = self.create_organization()
-        UserSocialAuth.objects.create(
+        self.create_usersocialauth(
             user=user, provider="github", extra_data={"access_token": "abcdefg"}
         )
         repo = Repository.objects.create(
@@ -168,38 +171,46 @@ class GitHubPluginTest(TestCase):
         assert repo.config["webhook_events"] == ["push", "pull_request"]
 
 
+@region_silo_test(stable=True)
 class GitHubAppsProviderTest(TestCase):
-    @fixture
+    @cached_property
     def provider(self):
         return GitHubAppsRepositoryProvider("github_apps")
 
     @patch.object(
-        GitHubAppsClient,
+        GithubPluginAppsClient,
         "get_repositories",
-        return_value=json.loads(INTSTALLATION_REPOSITORIES_API_RESPONSE),
+        return_value=json.loads(INSTALLATION_REPOSITORIES_API_RESPONSE),
     )
     @patch.object(
-        GitHubClient, "get_installations", return_value=json.loads(LIST_INSTALLATION_API_RESPONSE)
+        GithubPluginClient,
+        "get_installations",
+        return_value=json.loads(LIST_INSTALLATION_API_RESPONSE),
     )
     def test_link_auth(self, *args):
         user = self.create_user()
         organization = self.create_organization()
-        UserSocialAuth.objects.create(
+        self.create_usersocialauth(
             user=user, provider="github_apps", extra_data={"access_token": "abcdefg"}
         )
 
-        integration = Integration.objects.create(provider="github_apps", external_id="1")
+        integration = self.create_integration(
+            organization=organization, provider="github_apps", external_id="1"
+        )
 
         self.provider.link_auth(user, organization, {"integration_id": integration.id})
 
-        assert OrganizationIntegration.objects.filter(
-            organization=organization, integration=integration
-        ).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert OrganizationIntegration.objects.filter(
+                organization_id=organization.id, integration=integration
+            ).exists()
 
     def test_delete_repository(self):
         user = self.create_user()
         organization = self.create_organization()
-        integration = Integration.objects.create(provider="github_apps", external_id="1")
+        integration = self.create_integration(
+            organization=organization, provider="github_apps", external_id="1"
+        )
         repo = Repository.objects.create(
             name="example-repo",
             provider="github_apps",
@@ -210,10 +221,12 @@ class GitHubAppsProviderTest(TestCase):
         # just check that it doesn't throw / try to delete a webhook
         assert self.provider.delete_repository(repo=repo, actor=user) is None
 
-    @patch.object(GitHubAppsClient, "get_last_commits", return_value=[])
+    @patch.object(GithubPluginAppsClient, "get_last_commits", return_value=[])
     def test_compare_commits_no_start(self, mock_get_last_commits):
         organization = self.create_organization()
-        integration = Integration.objects.create(provider="github_apps", external_id="1")
+        integration = self.create_integration(
+            organization=organization, provider="github_apps", external_id="1"
+        )
         repo = Repository.objects.create(
             name="example-repo",
             provider="github_apps",
@@ -226,10 +239,12 @@ class GitHubAppsProviderTest(TestCase):
 
         assert mock_get_last_commits.called
 
-    @patch.object(GitHubAppsClient, "compare_commits", return_value={"commits": []})
+    @patch.object(GithubPluginAppsClient, "compare_commits", return_value={"commits": []})
     def test_compare_commits(self, mock_compare_commits):
         organization = self.create_organization()
-        integration = Integration.objects.create(provider="github_apps", external_id="1")
+        integration = self.create_integration(
+            organization=organization, provider="github_apps", external_id="1"
+        )
         repo = Repository.objects.create(
             name="example-repo",
             provider="github_apps",

@@ -1,21 +1,31 @@
+from __future__ import annotations
+
 import html
 import re
 from datetime import timedelta
-from typing import Any, List, Mapping, Optional
+from typing import Any, Mapping
 from urllib.parse import urlparse
 
 from django.http.request import HttpRequest, QueryDict
 
 from sentry import analytics, features
 from sentry.api import client
-from sentry.charts import generate_chart
+from sentry.charts import backend as charts
 from sentry.charts.types import ChartType
 from sentry.discover.arithmetic import is_equation
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
-from sentry.models import ApiKey, Integration
+from sentry.models.apikey import ApiKey
+from sentry.models.integrations.integration import Integration
+from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.search.events.filter import to_list
-from sentry.utils.dates import parse_stats_period
+from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.utils.dates import (
+    get_interval_from_range,
+    parse_stats_period,
+    parse_timestamp,
+    validate_interval,
+)
 
 from ..utils import logger
 from . import Handler, UnfurlableUrl, UnfurledUrl
@@ -28,7 +38,7 @@ display_modes: Mapping[str, ChartType] = {
     "top5line": ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE,
     "dailytop5": ChartType.SLACK_DISCOVER_TOP5_DAILY,
     "previous": ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD,
-    "worldmap": ChartType.SLACK_DISCOVER_WORLDMAP,
+    "bar": ChartType.SLACK_DISCOVER_TOTAL_DAILY,
 }
 
 # All `multiPlotType: line` fields in /static/app/utils/discover/fields.tsx
@@ -55,6 +65,10 @@ DEFAULT_PERIOD = "14d"
 DEFAULT_AXIS_OPTION = "count()"
 AGGREGATE_PATTERN = r"^(\w+)\((.*)?\)$"
 AGGREGATE_BASE = r"(\w+)\((.*)?\)"
+
+
+class IntervalException(Exception):
+    pass
 
 
 def get_double_period(period: str) -> str:
@@ -88,12 +102,18 @@ def is_aggregate(field: str) -> bool:
 
 
 def unfurl_discover(
-    data: HttpRequest,
+    request: HttpRequest,
     integration: Integration,
-    links: List[UnfurlableUrl],
-    user: Optional["User"],
+    links: list[UnfurlableUrl],
+    user: User | None = None,
 ) -> UnfurledUrl:
-    orgs_by_slug = {org.slug: org for org in integration.organizations.all()}
+    org_integrations = integration_service.get_organization_integrations(
+        integration_id=integration.id
+    )
+    organizations = Organization.objects.filter(
+        id__in=[oi.organization_id for oi in org_integrations]
+    )
+    orgs_by_slug = {org.slug: org for org in organizations}
     unfurls = {}
 
     for link in links:
@@ -113,7 +133,7 @@ def unfurl_discover(
         if query_id:
             try:
                 response = client.get(
-                    auth=ApiKey(organization=org, scope_list=["org:read"]),
+                    auth=ApiKey(organization_id=org.id, scope_list=["org:read"]),
                     path=f"/organizations/{org_slug}/discover/saved/{query_id}/",
                 )
 
@@ -129,7 +149,7 @@ def unfurl_discover(
         params.setlist(
             "order",
             params.getlist("sort")
-            or (to_list(saved_query.get("orderby")) if saved_query.get("orderby") else []),
+            or (to_list(saved_query["orderby"]) if saved_query.get("orderby") else []),
         )
         params.setlist("name", params.getlist("name") or to_list(saved_query.get("name")))
 
@@ -157,9 +177,6 @@ def unfurl_discover(
 
         display_mode = str(params.get("display") or saved_query.get("display", "default"))
 
-        if "daily" in display_mode:
-            params.setlist("interval", ["1d"])
-
         if "top5" in display_mode:
             params.setlist(
                 "topEvents",
@@ -169,11 +186,44 @@ def unfurl_discover(
             y_axis = params.getlist("yAxis")[0]
             if display_mode != "dailytop5":
                 display_mode = get_top5_display_mode(y_axis)
-
+            top_events = params.getlist("topEvents")[0]
         else:
             # topEvents param persists in the URL in some cases, we want to discard
             # it if it's not a top n display type.
             params.pop("topEvents", None)
+            top_events = 0
+
+        if "daily" in display_mode:
+            params.setlist("interval", ["1d"])
+        else:
+            interval = saved_query.get("interval")
+            validated_interval = None
+            delta = timedelta(days=90)
+            if "statsPeriod" in params:
+                if (parsed_period := parse_stats_period(params["statsPeriod"])) is not None:
+                    delta = parsed_period
+            elif "start" in params and "end" in params:
+                start, end = parse_timestamp(params["start"]), parse_timestamp(params["end"])
+                if start is not None and end is not None:
+                    delta = end - start
+            if interval:
+                try:
+                    if (parsed_interval := parse_stats_period(interval)) is not None:
+                        validate_interval(
+                            parsed_interval,
+                            IntervalException("Invalid interval"),
+                            delta,
+                            top_events,
+                        )
+                        validated_interval = interval
+                except IntervalException:
+                    pass
+            if validated_interval is None:
+                if delta:
+                    validated_interval = get_interval_from_range(delta, False)
+                else:
+                    validated_interval = "1h"
+            params.setlist("interval", [validated_interval])
 
         if "previous" in display_mode:
             stats_period = params.getlist("statsPeriod", [DEFAULT_PERIOD])[0]
@@ -183,14 +233,10 @@ def unfurl_discover(
                 params.setlist("statsPeriod", [stats_period])
 
         endpoint = "events-stats/"
-        if "worldmap" in display_mode:
-            endpoint = "events-geo/"
-            params.setlist("field", params.getlist("yAxis"))
-            params.pop("sort", None)
 
         try:
             resp = client.get(
-                auth=ApiKey(organization=org, scope_list=["org:read"]),
+                auth=ApiKey(organization_id=org.id, scope_list=["org:read"]),
                 user=user,
                 path=f"/organizations/{org_slug}/{endpoint}",
                 params=params,
@@ -207,7 +253,7 @@ def unfurl_discover(
         style = display_modes.get(display_mode, display_modes["default"])
 
         try:
-            url = generate_chart(style, chart_data)
+            url = charts.generate_chart(style, chart_data)
         except RuntimeError as exc:
             logger.error(
                 f"Failed to generate chart for discover unfurl: {exc}",
@@ -220,11 +266,11 @@ def unfurl_discover(
             chart_url=url,
         ).build()
 
-    org_model = integration.organizations.first()
-    if org_model is not None and hasattr(org_model, "id"):
+    first_org_integration = org_integrations[0] if len(org_integrations) > 0 else None
+    if first_org_integration is not None and hasattr(first_org_integration, "id"):
         analytics.record(
             "integrations.slack.chart_unfurl",
-            organization_id=org_model.id,
+            organization_id=first_org_integration.organization_id,
             user_id=user.id if user else None,
             unfurls_count=len(unfurls),
         )
@@ -232,7 +278,7 @@ def unfurl_discover(
     return unfurls
 
 
-def map_discover_query_args(url: str, args: Mapping[str, str]) -> Mapping[str, Any]:
+def map_discover_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[str, Any]:
     """
     Extracts discover arguments from the discover link's query string
     """
@@ -248,8 +294,16 @@ def map_discover_query_args(url: str, args: Mapping[str, str]) -> Mapping[str, A
     return dict(**args, query=query)
 
 
-handler: Handler = Handler(
+discover_link_regex = re.compile(
+    r"^https?\://(?#url_prefix)[^/]+/organizations/(?P<org_slug>[^/]+)/discover/(results|homepage)"
+)
+
+customer_domain_discover_link_regex = re.compile(
+    r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/discover/(results|homepage)"
+)
+
+handler = Handler(
     fn=unfurl_discover,
-    matcher=re.compile(r"^https?\://[^/]+/organizations/(?P<org_slug>[^/]+)/discover/results"),
+    matcher=[discover_link_regex, customer_domain_discover_link_regex],
     arg_mapper=map_discover_query_args,
 )

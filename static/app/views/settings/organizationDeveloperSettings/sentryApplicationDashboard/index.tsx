@@ -6,18 +6,24 @@ import {BarChart} from 'sentry/components/charts/barChart';
 import {LineChart, LineChartSeries} from 'sentry/components/charts/lineChart';
 import DateTime from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
-import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelFooter from 'sentry/components/panels/panelFooter';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {SentryApp} from 'sentry/types';
-import AsyncView from 'sentry/views/asyncView';
+import {space} from 'sentry/styles/space';
+import {Organization, SentryApp} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import RequestLog from './requestLog';
 
-type Props = RouteComponentProps<{appSlug: string; orgId: string}, {}>;
+type Props = RouteComponentProps<{appSlug: string}, {}> & {
+  organization: Organization;
+};
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   app: SentryApp;
   interactions: {
     componentInteractions: {
@@ -33,8 +39,8 @@ type State = AsyncView['state'] & {
   };
 };
 
-export default class SentryApplicationDashboard extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+class SentryApplicationDashboard extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {appSlug} = this.props.params;
 
     // Default time range for now: 90 days ago to now
@@ -74,11 +80,11 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
               <DateTime dateOnly date={app.datePublished} />
             </StatsSection>
           ) : null}
-          <StatsSection>
+          <StatsSection data-test-id="installs">
             <StatsHeader>{t('Total installs')}</StatsHeader>
             <p>{totalInstalls}</p>
           </StatsSection>
-          <StatsSection>
+          <StatsSection data-test-id="uninstalls">
             <StatsHeader>{t('Total uninstalls')}</StatsHeader>
             <p>{totalUninstalls}</p>
           </StatsSection>
@@ -132,7 +138,8 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
 
   renderIntegrationViews() {
     const {views} = this.state.interactions;
-    const {appSlug, orgId} = this.props.params;
+    const {organization} = this.props;
+    const {appSlug} = this.props.params;
 
     return (
       <Panel>
@@ -148,7 +155,9 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
               {t('external installation page')}
             </Link>
             {t(' and views on the Learn More/Install modal on the ')}
-            <Link to={`/settings/${orgId}/integrations/`}>{t('integrations page')}</Link>
+            <Link to={`/settings/${organization.slug}/integrations/`}>
+              {t('integrations page')}
+            </Link>
           </StyledFooter>
         </PanelFooter>
       </Panel>
@@ -205,12 +214,14 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
   }
 }
 
+export default withOrganization(SentryApplicationDashboard);
+
 type InteractionsChartProps = {
   data: {
     [key: string]: [number, number][];
   };
 };
-const InteractionsChart = ({data}: InteractionsChartProps) => {
+function InteractionsChart({data}: InteractionsChartProps) {
   const elementInteractionsSeries: LineChartSeries[] = Object.keys(data).map(
     (key: string) => {
       const seriesData = data[key].map(point => ({
@@ -238,7 +249,7 @@ const InteractionsChart = ({data}: InteractionsChartProps) => {
       />
     </ChartWrapper>
   );
-};
+}
 
 const Row = styled('div')`
   display: flex;

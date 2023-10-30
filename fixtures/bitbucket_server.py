@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 EXAMPLE_PRIVATE_KEY = """-----BEGIN RSA PRIVATE KEY-----
 MIICWwIBAAKBgQC1cd9t8sA03awggLiX2gjZxyvOVUPJksLly1E662tttTeR3Wm9
 eo6onNeI8HRD+O4wubUp4h4Chc7DtLDmFEPhUZ8Qkwztiifm99Xo3s0nUq4Pygp5
@@ -113,72 +111,23 @@ REPO = {
     "state": "AVAILABLE",
     "statusMessage": "Available",
     "forkable": True,
-    "project": OrderedDict(
-        [
-            ("key", "laurynsentry"),
-            ("id", 75),
-            ("name", "laurynsentry"),
-            ("description", ""),
-            ("public", False),
-            ("type", "Normal"),
-            (
-                "links",
-                OrderedDict(
-                    [
-                        (
-                            "self",
-                            OrderedDict(
-                                [("href", "https://bitbucket.example.org/projects/laurynsentry")]
-                            ),
-                        )
-                    ]
-                ),
-            ),
-        ]
-    ),
+    "project": {
+        "key": "laurynsentry",
+        "id": 75,
+        "name": "laurynsentry",
+        "description": "",
+        "public": False,
+        "type": "Normal",
+        "links": {"self": {"href": "https://bitbucket.example.org/projects/laurynsentry"}},
+    },
     "public": False,
-    "links": OrderedDict(
-        [
-            (
-                "clone",
-                OrderedDict(
-                    [
-                        OrderedDict(
-                            [
-                                (
-                                    "href",
-                                    "https://bitbucket.example.org/scm/laurynsentry/helloworld.git",
-                                ),
-                                ("name", "http"),
-                            ]
-                        ),
-                        OrderedDict(
-                            [
-                                (
-                                    "href",
-                                    "ssh://git@bitbucket.example.org:7999/laurynsentry/helloworld.git",
-                                ),
-                                ("name", "ssh"),
-                            ]
-                        ),
-                    ]
-                ),
-            ),
-            (
-                "self",
-                OrderedDict(
-                    [
-                        (
-                            "href",
-                            "https://bitbucket.example.org/projects/laurynsentry/repos/helloworld/browse",
-                        )
-                    ]
-                ),
-            ),
-        ]
-    ),
+    "links": {
+        "clone": {"href": "name"},
+        "self": {
+            "href": "https://bitbucket.example.org/projects/laurynsentry/repos/helloworld/browse"
+        },
+    },
 }
-
 
 COMPARE_COMMITS_WITH_PAGES_1_2_EXAMPLE = {
     "values": [

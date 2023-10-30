@@ -1,22 +1,26 @@
-from django.conf.urls import url
+from django.urls import re_path
 
 from sentry.web.frontend.vercel_extension_configuration import VercelExtensionConfigurationView
 
-from .generic_webhook import VercelGenericWebhookEndpoint
 from .webhook import VercelWebhookEndpoint
 
 urlpatterns = [
-    url(r"^webhook/$", VercelWebhookEndpoint.as_view(), name="sentry-extensions-vercel-webhook"),
-    url(
+    re_path(
         r"^configure/$",
         VercelExtensionConfigurationView.as_view(),
         name="sentry-extensions-vercel-configure",
     ),
-    # XXX(meredith): This route has become our generic hook, in
-    # the future we'll need to update the route name to reflect that.
-    url(
+    # Since we've been endorsing using `/delete` as the endpoint for Self-Hosted, we need to
+    # keep it operational for existing integrations. This is purely aesthetic, as both routes
+    # will use the same webhook (Previously known as 'Generic Webhook' - See #26185)
+    re_path(
         r"^delete/$",
-        VercelGenericWebhookEndpoint.as_view(),
-        name="sentry-extensions-vercel-generic-webhook",
+        VercelWebhookEndpoint.as_view(),
+        name="sentry-extensions-vercel-delete",
+    ),
+    re_path(
+        r"^webhook/$",
+        VercelWebhookEndpoint.as_view(),
+        name="sentry-extensions-vercel-webhook",
     ),
 ]

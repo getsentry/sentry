@@ -5,7 +5,7 @@ import pytest
 from sentry.digests import Record
 from sentry.digests.backends.base import InvalidState
 from sentry.digests.backends.redis import RedisBackend
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class RedisBackendTestCase(TestCase):

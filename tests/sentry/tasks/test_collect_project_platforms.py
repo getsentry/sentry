@@ -1,10 +1,12 @@
 from django.utils import timezone
 
-from sentry.models import ProjectPlatform
+from sentry.models.projectplatform import ProjectPlatform
 from sentry.tasks.collect_project_platforms import collect_project_platforms
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class CollectProjectPlatformsTest(TestCase):
     def test_simple(self):
         now = timezone.now()
@@ -16,7 +18,7 @@ class CollectProjectPlatformsTest(TestCase):
         self.create_group(project=project2, last_seen=now, platform="python")
 
         with self.tasks():
-            collect_project_platforms()
+            collect_project_platforms(1)
 
         assert ProjectPlatform.objects.filter(project_id=project1.id, platform="php").exists()
         assert ProjectPlatform.objects.filter(project_id=project1.id, platform="perl").exists()

@@ -1,19 +1,24 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
+from functools import cached_property
+from typing import Any
 
 from django.utils import timezone
-from exam import fixture
-from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.search_common import SearchType
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class RecentSearchesListTest(APITestCase):
     endpoint = "sentry-api-0-organization-recent-searches"
 
-    @fixture
+    @cached_property
     def user(self):
         return self.create_user("test@test.com")
 
@@ -31,19 +36,19 @@ class RecentSearchesListTest(APITestCase):
         self.create_team(members=[self.user])
         RecentSearch.objects.create(
             organization=self.organization,
-            user=self.create_user("other@user.com"),
+            user_id=self.create_user("other@user.com").id,
             type=SearchType.ISSUE.value,
             query="some test",
         )
         RecentSearch.objects.create(
             organization=self.create_organization(),
-            user=self.user,
+            user_id=self.user.id,
             type=SearchType.ISSUE.value,
             query="some test",
         )
         event_recent_search = RecentSearch.objects.create(
             organization=self.organization,
-            user=self.user,
+            user_id=self.user.id,
             type=SearchType.EVENT.value,
             query="some test",
             last_seen=timezone.now(),
@@ -51,8 +56,16 @@ class RecentSearchesListTest(APITestCase):
         )
         session_recent_search = RecentSearch.objects.create(
             organization=self.organization,
-            user=self.user,
+            user_id=self.user.id,
             type=SearchType.SESSION.value,
+            query="some test",
+            last_seen=timezone.now(),
+            date_added=timezone.now(),
+        )
+        metric_recent_search = RecentSearch.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            type=SearchType.METRIC.value,
             query="some test",
             last_seen=timezone.now(),
             date_added=timezone.now(),
@@ -60,7 +73,7 @@ class RecentSearchesListTest(APITestCase):
         issue_recent_searches = [
             RecentSearch.objects.create(
                 organization=self.organization,
-                user=self.user,
+                user_id=self.user.id,
                 type=SearchType.ISSUE.value,
                 query="some test",
                 last_seen=timezone.now(),
@@ -68,7 +81,7 @@ class RecentSearchesListTest(APITestCase):
             ),
             RecentSearch.objects.create(
                 organization=self.organization,
-                user=self.user,
+                user_id=self.user.id,
                 type=SearchType.ISSUE.value,
                 query="older query",
                 last_seen=timezone.now() - timedelta(minutes=30),
@@ -76,7 +89,7 @@ class RecentSearchesListTest(APITestCase):
             ),
             RecentSearch.objects.create(
                 organization=self.organization,
-                user=self.user,
+                user_id=self.user.id,
                 type=SearchType.ISSUE.value,
                 query="oldest query",
                 last_seen=timezone.now() - timedelta(hours=1),
@@ -86,10 +99,11 @@ class RecentSearchesListTest(APITestCase):
         self.check_results(issue_recent_searches, search_type=SearchType.ISSUE)
         self.check_results([event_recent_search], search_type=SearchType.EVENT)
         self.check_results([session_recent_search], search_type=SearchType.SESSION)
+        self.check_results([metric_recent_search], search_type=SearchType.METRIC)
 
     def test_param_validation(self):
         self.login_as(user=self.user)
-        error_cases = [
+        error_cases: list[tuple[dict[str, Any], str]] = [
             ({"type": 5}, "Invalid input for `type`"),
             ({"type": "hi"}, "Invalid input for `type`"),
             ({"limit": "hi"}, "Invalid input for `limit`"),
@@ -103,7 +117,7 @@ class RecentSearchesListTest(APITestCase):
         issue_recent_searches = [
             RecentSearch.objects.create(
                 organization=self.organization,
-                user=self.user,
+                user_id=self.user.id,
                 type=SearchType.ISSUE.value,
                 query="some test",
                 last_seen=timezone.now(),
@@ -111,7 +125,7 @@ class RecentSearchesListTest(APITestCase):
             ),
             RecentSearch.objects.create(
                 organization=self.organization,
-                user=self.user,
+                user_id=self.user.id,
                 type=SearchType.ISSUE.value,
                 query="older query",
                 last_seen=timezone.now() - timedelta(minutes=30),
@@ -119,7 +133,7 @@ class RecentSearchesListTest(APITestCase):
             ),
             RecentSearch.objects.create(
                 organization=self.organization,
-                user=self.user,
+                user_id=self.user.id,
                 type=SearchType.ISSUE.value,
                 query="oldest query",
                 last_seen=timezone.now() - timedelta(hours=1),
@@ -133,11 +147,11 @@ class RecentSearchesCreateTest(APITestCase):
     endpoint = "sentry-api-0-organization-recent-searches"
     method = "post"
 
-    @fixture
+    @cached_property
     def organization(self):
         return self.create_organization()
 
-    @fixture
+    @cached_property
     def user(self):
         user = self.create_user("test@test.com")
         self.create_team(members=[user], organization=self.organization)
@@ -153,7 +167,7 @@ class RecentSearchesCreateTest(APITestCase):
             assert response.status_code == 201
             assert RecentSearch.objects.filter(
                 organization=self.organization,
-                user=self.user,
+                user_id=self.user.id,
                 type=search_type,
                 query=query,
                 last_seen=the_date,
@@ -164,7 +178,7 @@ class RecentSearchesCreateTest(APITestCase):
             assert response.status_code == 204, response.content
             assert RecentSearch.objects.filter(
                 organization=self.organization,
-                user=self.user,
+                user_id=self.user.id,
                 type=search_type,
                 query=query,
                 last_seen=the_date,

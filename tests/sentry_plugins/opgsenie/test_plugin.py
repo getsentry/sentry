@@ -1,15 +1,16 @@
-import responses
-from exam import fixture
+from functools import cached_property
 
-from sentry.models import Rule
+import responses
+
+from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
-from sentry.testutils import PluginTestCase
+from sentry.testutils.cases import PluginTestCase
 from sentry.utils import json
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 
 
 class OpsGeniePluginTest(PluginTestCase):
-    @fixture
+    @cached_property
     def plugin(self):
         return OpsGeniePlugin()
 
@@ -43,6 +44,7 @@ class OpsGeniePluginTest(PluginTestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
 
         rule = Rule.objects.create(project=self.project, label="my rule")
 

@@ -1,6 +1,6 @@
 import calendar
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.http import HttpResponse
 from django.utils import timezone
@@ -9,8 +9,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
-from sentry.models import Organization, Project, PromptsActivity
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.promptsactivity import PromptsActivity
 from sentry.utils.prompts import prompt_config
 
 VALID_STATUSES = frozenset(("snoozed", "dismissed"))
@@ -31,7 +34,12 @@ class PromptsActivitySerializer(serializers.Serializer):
         return value
 
 
+@region_silo_endpoint
 class PromptsActivityEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (IsAuthenticated,)
 
     def get(self, request: Request) -> Response:
@@ -54,7 +62,7 @@ class PromptsActivityEndpoint(Endpoint):
             condition = Q(feature=feature, **filters)
             conditions = condition if conditions is None else (conditions | condition)
 
-        result = PromptsActivity.objects.filter(conditions, user=request.user)
+        result = PromptsActivity.objects.filter(conditions, user_id=request.user.id)
         featuredata = {k.feature: k.data for k in result}
         if len(features) == 1:
             result = result.first()
@@ -100,9 +108,9 @@ class PromptsActivityEndpoint(Endpoint):
             data["dismissed_ts"] = now
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(PromptsActivity)):
                 PromptsActivity.objects.create_or_update(
-                    feature=feature, user=request.user, values={"data": data}, **fields
+                    feature=feature, user_id=request.user.id, values={"data": data}, **fields
                 )
         except IntegrityError:
             pass

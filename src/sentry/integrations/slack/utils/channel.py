@@ -1,11 +1,14 @@
+from __future__ import annotations
+
 import time
 from typing import List, Optional, Tuple
 
 from django.core.exceptions import ValidationError
-from django.http import Http404
 
 from sentry.integrations.slack.client import SlackClient
-from sentry.models import Integration, Organization
+from sentry.models.integrations.integration import Integration
+from sentry.models.organization import Organization
+from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiRateLimitedError,
@@ -33,8 +36,8 @@ def strip_channel_name(name: str) -> str:
 
 
 def get_channel_id(
-    organization: "Organization",
-    integration: "Integration",
+    organization: Organization,
+    integration: Integration | RpcIntegration,
     channel_name: str,
     use_async_lookup: bool = False,
 ) -> Tuple[str, Optional[str], bool]:
@@ -58,11 +61,12 @@ def get_channel_id(
     else:
         timeout = SLACK_DEFAULT_TIMEOUT
 
-    # XXX(meredith): For large accounts that have many, many channels it's
-    # possible for us to timeout while attempting to paginate through to find the channel id
+    # XXX(meredith): For large accounts that have many, many users it's
+    # possible for us to timeout while attempting to paginate through to find the user id
     # This means some users are unable to create/update alert rules. To avoid this, we attempt
     # to find the channel id asynchronously if it takes longer than a certain amount of time,
     # which I have set as the SLACK_DEFAULT_TIMEOUT - arbitrarily - to 10 seconds.
+
     return get_channel_id_with_timeout(integration, channel_name, timeout)
 
 
@@ -71,18 +75,11 @@ def validate_channel_id(name: str, integration_id: Optional[int], input_channel_
     In the case that the user is creating an alert via the API and providing the channel ID and name
     themselves, we want to make sure both values are correct.
     """
+    # The empty string should be converted to None
+    payload = {"channel": input_channel_id or None}
+    client = SlackClient(integration_id=integration_id)
     try:
-        integration = Integration.objects.get(id=integration_id)
-    except Integration.DoesNotExist:
-        raise Http404
-
-    token = integration.metadata["access_token"]
-    headers = {"Authorization": f"Bearer {token}"}
-    payload = {"channel": input_channel_id}
-    client = SlackClient()
-
-    try:
-        results = client.get("/conversations.info", headers=headers, params=payload)
+        results = client.get("/conversations.info", params=payload)
     except ApiError as e:
         if e.text == "channel_not_found":
             raise ValidationError("Channel not found. Invalid ID provided.")
@@ -93,20 +90,23 @@ def validate_channel_id(name: str, integration_id: Optional[int], input_channel_
         raise IntegrationError("Bad slack channel list response.")
 
     stripped_channel_name = strip_channel_name(name)
-    if not stripped_channel_name == results["channel"]["name"]:
-        channel_name = results["channel"]["name"]
+    results_channel_name = results.get("channel", {}).get("name")
+    if not results_channel_name:
+        raise ValidationError("Did not receive channel name from API results")
+    if stripped_channel_name != results_channel_name:
+        channel_name = results_channel_name
         raise ValidationError(
             f"Received channel name {channel_name} does not match inputted channel name {stripped_channel_name}."
         )
 
 
 def get_channel_id_with_timeout(
-    integration: "Integration",
+    integration: Integration | RpcIntegration,
     name: Optional[str],
     timeout: int,
 ) -> Tuple[str, Optional[str], bool]:
     """
-    Fetches the internal slack id of a channel.
+    Fetches the internal slack id of a channel using scheduled message.
     :param integration: The slack integration
     :param name: The name of the channel
     :param timeout: Our self-imposed time limit.
@@ -116,56 +116,63 @@ def get_channel_id_with_timeout(
         3. timed_out: boolean (whether we hit our self-imposed time limit)
     """
 
-    headers = {"Authorization": f"Bearer {integration.metadata['access_token']}"}
-
     payload = {
         "exclude_archived": False,
         "exclude_members": True,
         "types": "public_channel,private_channel",
     }
 
-    list_types = LIST_TYPES
-
     time_to_quit = time.time() + timeout
 
-    client = SlackClient()
+    client = SlackClient(integration_id=integration.id)
     id_data: Optional[Tuple[str, Optional[str], bool]] = None
     found_duplicate = False
     prefix = ""
-    for list_type, result_name, prefix in list_types:
+    channel_id = None
+    try:  # Check for channel
+        channel_id = check_for_channel(client, name)
+        prefix = "#"
+    except ApiError as e:
+        if str(e) != "channel_not_found":
+            raise e
+        # Check if user
         cursor = ""
         while True:
-            endpoint = f"/{list_type}.list"
+            # Slack limits the response of `<list_type>.list` to 1000 channels
             try:
-                # Slack limits the response of `<list_type>.list` to 1000 channels
-                items = client.get(
-                    endpoint, headers=headers, params=dict(payload, cursor=cursor, limit=1000)
-                )
+                items = client.get("/users.list", params=dict(payload, cursor=cursor, limit=1000))
             except ApiRateLimitedError as e:
-                logger.info(f"rule.slack.{list_type}_list_rate_limited", extra={"error": str(e)})
+                logger.info(
+                    "rule.slack.user_list_rate_limited",
+                    extra={"error": str(e), "integration_id": integration.id},
+                )
                 raise e
             except ApiError as e:
-                logger.info(f"rule.slack.{list_type}_list_rate_limited", extra={"error": str(e)})
+                logger.info(
+                    "rule.slack.user_list_other_error",
+                    extra={"error": str(e), "integration_id": integration.id},
+                )
                 return prefix, None, False
 
             if not isinstance(items, dict):
                 continue
 
-            for c in items[result_name]:
+            for c in items["members"]:
                 # The "name" field is unique (this is the username for users)
                 # so we return immediately if we find a match.
                 # convert to lower case since all names in Slack are lowercase
                 if name and c["name"].lower() == name.lower():
+                    prefix = "@"
                     return prefix, c["id"], False
                 # If we don't get a match on a unique identifier, we look through
                 # the users' display names, and error if there is a repeat.
-                if list_type == "users":
-                    profile = c.get("profile")
-                    if profile and profile.get("display_name") == name:
-                        if id_data:
-                            found_duplicate = True
-                        else:
-                            id_data = (prefix, c["id"], False)
+                profile = c.get("profile")
+                if profile and profile.get("display_name") == name:
+                    if id_data:
+                        found_duplicate = True
+                    else:
+                        prefix = "@"
+                        id_data = (prefix, c["id"], False)
 
             cursor = items.get("response_metadata", {}).get("next_cursor", None)
             if time.time() > time_to_quit:
@@ -173,9 +180,35 @@ def get_channel_id_with_timeout(
 
             if not cursor:
                 break
+
         if found_duplicate:
             raise DuplicateDisplayNameError(name)
         elif id_data:
             return id_data
 
-    return prefix, None, False
+    return prefix, channel_id, False
+
+
+def check_for_channel(client: SlackClient, name: str) -> str | None:
+    msg_response = client.post(
+        "/chat.scheduleMessage",
+        data={
+            "channel": name,
+            "text": "Sentry is verifying your channel is accessible for sending you alert rule notifications",
+            "post_at": int(time.time() + 500),
+        },
+    )
+
+    if "channel" in msg_response:
+        client.post(
+            "/chat.deleteScheduledMessage",
+            params=dict(
+                {
+                    "channel": msg_response["channel"],
+                    "scheduled_message_id": msg_response["scheduled_message_id"],
+                }
+            ),
+        )
+
+        return msg_response["channel"]
+    return None

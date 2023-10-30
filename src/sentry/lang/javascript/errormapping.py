@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import random
 import re
@@ -9,6 +11,7 @@ from django.core.cache import cache
 
 from sentry import http
 from sentry.utils import json
+from sentry.utils.meta import Meta
 from sentry.utils.safe import get_path
 from sentry.utils.strings import count_sprintf_parameters
 
@@ -22,7 +25,7 @@ REACT_MAPPING_URL = (
     "https://raw.githubusercontent.com/facebook/" "react/master/scripts/error-codes/codes.json"
 )
 
-error_processors = {}
+error_processors: dict[str, Processor] = {}
 
 
 def is_expired(ts):
@@ -30,8 +33,8 @@ def is_expired(ts):
 
 
 class Processor:
-    def __init__(self, vendor, mapping_url, regex, func):
-        self.vendor = vendor
+    def __init__(self, vendor: str, mapping_url, regex, func):
+        self.vendor: str = vendor
         self.mapping_url = mapping_url
         self.regex = re.compile(regex)
         self.func = func
@@ -94,15 +97,13 @@ def process_react_exception(exc, match, mapping):
     args = []
     for k, v in parse_qsl(qs, keep_blank_values=True):
         if k == "args[]":
-            if isinstance(v, bytes):
-                v = v.decode("utf-8", "replace")
             args.append(v)
 
     # Due to truncated error messages we sometimes might not be able to
     # get all arguments.  In that case we fill up missing parameters for
     # the format string with <redacted>.
-    args = tuple(args + ["<redacted>"] * (arg_count - len(args)))[:arg_count]
-    exc["value"] = msg_format % args
+    args_t = tuple(args + ["<redacted>"] * (arg_count - len(args)))[:arg_count]
+    exc["value"] = msg_format % args_t
 
     return True
 
@@ -112,15 +113,28 @@ def rewrite_exception(data):
     in place and returns `True` if a modification was performed or `False`
     otherwise.
     """
+    meta = Meta(data.get("_meta"))
     rv = False
-    for exc in get_path(data, "exception", "values", filter=True, default=()):
+
+    values_meta = meta.enter("exception", "values")
+    for index, exc in enumerate(get_path(data, "exception", "values", default=())):
+        if exc is None:
+            continue
+
         for processor in error_processors.values():
             try:
+                original_value = exc.get("value")
                 if processor.try_process(exc):
+                    values_meta.enter(index, "value").add_remark(
+                        {"rule_id": f"@processing:{processor.vendor}", "type": "s"}, original_value
+                    )
                     rv = True
                     break
             except Exception as e:
                 logger.error('Failed to run processor "%s": %s', processor.vendor, e, exc_info=True)
                 data.setdefault("_metrics", {})["flag.processing.error"] = True
+
+    if meta.raw():
+        data["_meta"] = meta.raw()
 
     return rv

@@ -5,7 +5,7 @@ from sentry.new_migrations.monkey.executor import (
     MissingDatabaseRoutingInfo,
     SentryMigrationExecutor,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class SentryMigrationExecutorTest(TestCase):
@@ -51,6 +51,7 @@ class SentryMigrationExecutorTest(TestCase):
 
         SentryMigrationExecutor._check_db_routing(TestMigration(name="test", app_label="sentry"))
 
+    def test_check_db_routing_pass_2(self):
         class TestMigration(migrations.Migration):
             operations = [
                 migrations.SeparateDatabaseAndState(
@@ -130,6 +131,7 @@ class SentryMigrationExecutorTest(TestCase):
                 TestMigration(name="test", app_label="sentry")
             )
 
+    def test_check_db_routing_missing_hints_2(self):
         class TestMigration(migrations.Migration):
             operations = [
                 migrations.RunSQL("TEST SQL"),
@@ -140,6 +142,7 @@ class SentryMigrationExecutorTest(TestCase):
                 TestMigration(name="test", app_label="getsentry")
             )
 
+    def test_check_db_routing_missing_hints_3(self):
         class TestMigration(migrations.Migration):
             operations = [
                 migrations.RunPython(

@@ -2,15 +2,22 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.sentryapps import COMPONENT_TYPES, SentryAppBaseEndpoint
 from sentry.constants import SentryAppStatus
-from sentry.mediators.sentry_apps import Updater
-from sentry.models import SentryAppAvatar
-from sentry.models.avatars.sentry_app_avatar import SentryAppAvatarTypes
+from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar, SentryAppAvatarTypes
+from sentry.sentry_apps.apps import SentryAppUpdater
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import email
 
 
+@control_silo_endpoint
 class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     def has_ui_component(self, sentry_app):
         """Determine if the sentry app supports issue linking or stack trace linking."""
         elements = (sentry_app.schema or {}).get("elements", [])
@@ -45,18 +52,21 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
                 status=400,
             )
 
-        Updater.run(
-            user=request.user,
+        SentryAppUpdater(
             sentry_app=sentry_app,
             status=SentryAppStatus.PUBLISH_REQUEST_INPROGRESS_STR,
-        )
+        ).run(user=request.user)
 
-        message = f"User {request.user.email} of organization {sentry_app.owner.slug} wants to publish {sentry_app.slug}\n"
+        org_context = organization_service.get_organization_by_id(
+            id=sentry_app.owner_id, user_id=None
+        )
+        org_slug = "<unknown>" if org_context is None else org_context.organization.slug
+        message = f"User {request.user.email} of organization {org_slug} wants to publish {sentry_app.slug}\n"
 
         for question_pair in request.data.get("questionnaire"):
             message += "\n\n>{}\n{}".format(question_pair["question"], question_pair["answer"])
 
-        subject = "Sentry Integration Publication Request from %s" % sentry_app.owner.slug
+        subject = "Sentry Integration Publication Request from %s" % org_slug
 
         email.send_mail(
             subject,

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import AutoComplete from 'sentry/components/autoComplete';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import {Result} from './sources/types';
 import SearchResult from './searchResult';
@@ -120,7 +120,7 @@ const ResultRow = memo(
     ...renderItemProps
   }: SearchItemProps) => {
     const {item, index} = renderItemProps;
-    useEffect(() => registerVisibleItem(index, item), [registerVisibleItem, item]);
+    useEffect(() => registerVisibleItem(index, item), [registerVisibleItem, index, item]);
 
     const itemProps = useMemo(
       () => getItemProps({item, index}),
@@ -136,12 +136,12 @@ export default List;
 const DropdownBox = styled('div')`
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.modalBorderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   position: absolute;
   top: 36px;
   right: 0;
   width: 400px;
-  border-radius: 5px;
   overflow: auto;
   max-height: 60vh;
 `;

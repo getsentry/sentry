@@ -1,39 +1,42 @@
+from unittest.mock import call as mock_call
 from unittest.mock import patch
 
 import pytest
+from django.core.exceptions import ValidationError
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.api.exceptions import InvalidRepository
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
+from sentry.dynamic_sampling import ProjectBoostedReleases
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import (
-    Commit,
-    CommitAuthor,
-    Environment,
-    ExternalIssue,
-    Group,
-    GroupInbox,
-    GroupInboxReason,
-    GroupLink,
-    GroupRelease,
-    GroupResolution,
-    GroupStatus,
-    Integration,
-    OrganizationIntegration,
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.environment import Environment
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
+from sentry.models.grouplink import GroupLink
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.release import (
     Release,
-    ReleaseCommit,
-    ReleaseEnvironment,
-    ReleaseHeadCommit,
     ReleaseProject,
-    ReleaseProjectEnvironment,
+    ReleaseProjectModelManager,
     ReleaseStatus,
-    Repository,
-    add_group_to_inbox,
     follows_semver_versioning_scheme,
 )
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releaseheadcommit import ReleaseHeadCommit
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.repository import Repository
 from sentry.search.events.filter import parse_semver
-from sentry.testutils import SetRefsTestCase, TestCase
+from sentry.signals import receivers_raise_on_send
+from sentry.testutils.cases import SetRefsTestCase, TestCase, TransactionTestCase
+from sentry.testutils.factories import Factories
+from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.strings import truncatechars
 
 
@@ -65,7 +68,9 @@ def test_version_is_semver_invalid(release_version):
     assert Release.is_semver_version(release_version) is False
 
 
+@region_silo_test(stable=True)
 class MergeReleasesTest(TestCase):
+    @receivers_raise_on_send()
     def test_simple(self):
         org = self.create_organization()
         commit = Commit.objects.create(organization_id=org.id, repository_id=5)
@@ -194,9 +199,11 @@ class MergeReleasesTest(TestCase):
         assert not Release.objects.filter(id=release3.id).exists()
 
 
+@region_silo_test(stable=True)
 class SetCommitsTestCase(TestCase):
+    @receivers_raise_on_send()
     def test_simple(self):
-        org = self.create_organization()
+        org = self.create_organization(owner=Factories.create_user())
         project = self.create_project(organization=org, name="foo")
         group = self.create_group(project=project)
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
@@ -250,8 +257,9 @@ class SetCommitsTestCase(TestCase):
 
         assert not GroupInbox.objects.filter(group=group).exists()
 
+    @receivers_raise_on_send()
     def test_backfilling_commits(self):
-        org = self.create_organization()
+        org = self.create_organization(owner=Factories.create_user())
         project = self.create_project(organization=org, name="foo")
         group = self.create_group(project=project)
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
@@ -337,8 +345,9 @@ class SetCommitsTestCase(TestCase):
         assert not GroupInbox.objects.filter(group=group).exists()
 
     @freeze_time()
+    @receivers_raise_on_send()
     def test_using_saved_data(self):
-        org = self.create_organization()
+        org = self.create_organization(owner=Factories.create_user())
         project = self.create_project(organization=org, name="foo")
 
         repo = Repository.objects.create(organization_id=org.id, name="test/repo")
@@ -347,6 +356,7 @@ class SetCommitsTestCase(TestCase):
             name="foo bar baz", email="foo@example.com", organization_id=org.id
         )
 
+        author.preload_users()
         Commit.objects.create(
             repository_id=repo.id,
             organization_id=org.id,
@@ -388,8 +398,9 @@ class SetCommitsTestCase(TestCase):
 
     @patch("sentry.models.Commit.update")
     @freeze_time()
+    @receivers_raise_on_send()
     def test_multiple_releases_only_updates_once(self, mock_update):
-        org = self.create_organization()
+        org = self.create_organization(owner=Factories.create_user())
         project = self.create_project(organization=org, name="foo")
 
         repo = Repository.objects.create(organization_id=org.id, name="test/repo")
@@ -407,6 +418,7 @@ class SetCommitsTestCase(TestCase):
         release.set_commits([{"id": "b" * 40, "repository": repo.name, "message": "new message"}])
         assert mock_update.call_count == 1
 
+    @receivers_raise_on_send()
     def test_resolution_support_full_featured(self):
         org = self.create_organization(owner=self.user)
         project = self.create_project(organization=org, name="foo")
@@ -417,6 +429,7 @@ class SetCommitsTestCase(TestCase):
         author = CommitAuthor.objects.create(
             organization_id=org.id, name="Foo Bar", email=self.user.email
         )
+        author.preload_users()
         commit = Commit.objects.create(
             organization_id=org.id,
             repository_id=repo.id,
@@ -441,6 +454,7 @@ class SetCommitsTestCase(TestCase):
             group_id=group.id, linked_type=GroupLink.LinkedType.commit, linked_id=commit.id
         ).exists()
 
+        # Pull the object from the DB again to test updated attributes
         resolution = GroupResolution.objects.get(group=group)
         assert resolution.status == GroupResolution.Status.resolved
         assert resolution.release == release
@@ -450,8 +464,9 @@ class SetCommitsTestCase(TestCase):
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
         assert not GroupInbox.objects.filter(group=group).exists()
 
+    @receivers_raise_on_send()
     def test_resolution_support_without_author(self):
-        org = self.create_organization()
+        org = self.create_organization(owner=Factories.create_user())
         project = self.create_project(organization=org, name="foo")
         group = self.create_group(project=project)
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
@@ -481,21 +496,23 @@ class SetCommitsTestCase(TestCase):
         assert not GroupInbox.objects.filter(group=group).exists()
 
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
+    @receivers_raise_on_send()
     def test_resolution_support_with_integration(self, mock_sync_status_outbound):
-        org = self.create_organization()
-        integration = Integration.objects.create(provider="example", name="Example")
-        integration.add_organization(org, self.user)
-
-        OrganizationIntegration.objects.filter(
-            integration_id=integration.id, organization_id=org.id
-        ).update(
-            config={
-                "sync_comments": True,
-                "sync_status_outbound": True,
-                "sync_status_inbound": True,
-                "sync_assignee_outbound": True,
-                "sync_assignee_inbound": True,
-            }
+        org = self.create_organization(owner=Factories.create_user())
+        integration = self.create_integration(
+            organization=org,
+            external_id="example:1",
+            provider="example",
+            name="Example",
+            oi_params={
+                "config": {
+                    "sync_comments": True,
+                    "sync_status_outbound": True,
+                    "sync_status_inbound": True,
+                    "sync_assignee_outbound": True,
+                    "sync_assignee_inbound": True,
+                }
+            },
         )
         project = self.create_project(organization=org, name="foo")
         group = self.create_group(project=project)
@@ -542,8 +559,9 @@ class SetCommitsTestCase(TestCase):
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
         assert not GroupInbox.objects.filter(group=group).exists()
 
+    @receivers_raise_on_send()
     def test_long_email(self):
-        org = self.create_organization()
+        org = self.create_organization(owner=Factories.create_user())
         project = self.create_project(organization=org, name="foo")
 
         repo = Repository.objects.create(organization_id=org.id, name="test/repo")
@@ -566,6 +584,7 @@ class SetCommitsTestCase(TestCase):
         assert commit.author.email == truncatechars(commit_email, 75)
 
 
+@region_silo_test(stable=True)
 class SetRefsTest(SetRefsTestCase):
     def setUp(self):
         super().setUp()
@@ -573,6 +592,7 @@ class SetRefsTest(SetRefsTestCase):
         self.release.add_project(self.project)
 
     @patch("sentry.tasks.commits.fetch_commits")
+    @receivers_raise_on_send()
     def test_simple(self, mock_fetch_commit):
         refs = [
             {
@@ -587,7 +607,7 @@ class SetRefsTest(SetRefsTestCase):
             },
         ]
 
-        self.release.set_refs(refs, self.user, True)
+        self.release.set_refs(refs, self.user.id, True)
 
         commits = Commit.objects.all().order_by("id")
         self.assert_commit(commits[0], refs[0]["commit"])
@@ -599,6 +619,7 @@ class SetRefsTest(SetRefsTestCase):
         self.assert_fetch_commits(mock_fetch_commit, None, self.release.id, refs)
 
     @patch("sentry.tasks.commits.fetch_commits")
+    @receivers_raise_on_send()
     def test_invalid_repos(self, mock_fetch_commit):
         refs = [
             {
@@ -614,12 +635,13 @@ class SetRefsTest(SetRefsTestCase):
         ]
 
         with pytest.raises(InvalidRepository):
-            self.release.set_refs(refs, self.user)
+            self.release.set_refs(refs, self.user.id)
 
         assert len(Commit.objects.all()) == 0
         assert len(ReleaseHeadCommit.objects.all()) == 0
 
     @patch("sentry.tasks.commits.fetch_commits")
+    @receivers_raise_on_send()
     def test_handle_commit_ranges(self, mock_fetch_commit):
         refs = [
             {
@@ -635,7 +657,7 @@ class SetRefsTest(SetRefsTestCase):
             {"repository": "test/repo", "commit": "previous-commit-id-3..current-commit-id-3"},
         ]
 
-        self.release.set_refs(refs, self.user, True)
+        self.release.set_refs(refs, self.user.id, True)
 
         commits = Commit.objects.all().order_by("id")
         self.assert_commit(commits[0], "current-commit-id")
@@ -648,6 +670,7 @@ class SetRefsTest(SetRefsTestCase):
         self.assert_fetch_commits(mock_fetch_commit, None, self.release.id, refs)
 
     @patch("sentry.tasks.commits.fetch_commits")
+    @receivers_raise_on_send()
     def test_fetch_false(self, mock_fetch_commit):
         refs = [
             {
@@ -662,7 +685,7 @@ class SetRefsTest(SetRefsTestCase):
             },
         ]
 
-        self.release.set_refs(refs, self.user, False)
+        self.release.set_refs(refs, self.user.id, False)
 
         commits = Commit.objects.all().order_by("id")
         self.assert_commit(commits[0], refs[0]["commit"])
@@ -673,12 +696,21 @@ class SetRefsTest(SetRefsTestCase):
 
         assert len(mock_fetch_commit.method_calls) == 0
 
-    def test_invalid_version(self):
-        release = Release.objects.create(organization=self.org)
-        assert not release.is_valid_version(None)
+    def test_invalid_version_none_value(self):
+        assert not Release.is_valid_version(None)
 
-    @staticmethod
-    def test_invalid_chars_in_version():
+    def test_invalid_version(self):
+        cases = ["", "latest", ".", "..", "\t", "\n", "  "]
+
+        for case in cases:
+            with pytest.raises(ValidationError):
+                Release.objects.create(version=case, organization=self.org)
+
+        with pytest.raises(ValidationError):
+            Release.objects.create(organization=self.org)
+
+    # @staticmethod
+    def test_invalid_chars_in_version(self):
         version = (
             "\n> rfrontend@0.1.0 release:version\n> echo "
             "'dev-19be1b7e-dirty'\n\ndev-19be1b7e-dirty"
@@ -704,6 +736,7 @@ class SetRefsTest(SetRefsTestCase):
         assert not Release.is_valid_version(version)
 
 
+@region_silo_test(stable=True)
 class SemverReleaseParseTestCase(TestCase):
     def setUp(self):
         self.org = self.create_organization()
@@ -886,6 +919,7 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.build_code == "-2020"
 
 
+@region_silo_test(stable=True)
 class ReleaseFilterBySemverTest(TestCase):
     def test_invalid_query(self):
         with pytest.raises(
@@ -984,6 +1018,7 @@ class ReleaseFilterBySemverTest(TestCase):
         self.run_test(">=", "test@1.2.3", [release_3, release_4], projects=[project_2])
 
 
+@region_silo_test(stable=True)
 class ReleaseFilterBySemverBuildTest(TestCase):
     def run_test(self, operator, build, expected_releases, organization_id=None, projects=None):
         organization_id = organization_id if organization_id else self.organization.id
@@ -1029,6 +1064,7 @@ class ReleaseFilterBySemverBuildTest(TestCase):
         self.run_test("exact", "123abc", [release_3])
 
 
+@region_silo_test(stable=True)
 class FollowsSemverVersioningSchemeTestCase(TestCase):
     def setUp(self):
         self.org = self.create_organization()
@@ -1220,9 +1256,11 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
         )
 
 
+@region_silo_test(stable=True)
 class ClearCommitsTestCase(TestCase):
+    @receivers_raise_on_send()
     def test_simple(self):
-        org = self.create_organization()
+        org = self.create_organization(owner=Factories.create_user())
         project = self.create_project(organization=org, name="foo")
         group = self.create_group(project=project)
 
@@ -1236,6 +1274,8 @@ class ClearCommitsTestCase(TestCase):
             name="foo bar boo", email="baroo@example.com", organization_id=org.id
         )
 
+        author.preload_users()
+        author2.preload_users()
         commit = Commit.objects.create(
             organization_id=org.id,
             repository_id=repo.id,
@@ -1292,3 +1332,56 @@ class ClearCommitsTestCase(TestCase):
         assert Commit.objects.filter(
             id=commit2.id, organization_id=org.id, repository_id=repo.id
         ).exists()
+
+
+@region_silo_test(stable=True)
+class ReleaseProjectManagerTestCase(TransactionTestCase):
+    def test_custom_manager(self):
+        self.assertIsInstance(ReleaseProject.objects, ReleaseProjectModelManager)
+
+    @receivers_raise_on_send()
+    def test_post_save_signal_runs_if_dynamic_sampling_is_disabled(self):
+        project = self.create_project(name="foo")
+        release = Release.objects.create(organization_id=project.organization_id, version="42")
+
+        with patch("sentry.models.release.schedule_invalidate_project_config") as mock_task:
+            release.add_project(project)
+            assert mock_task.mock_calls == []
+
+    @receivers_raise_on_send()
+    def test_post_save_signal_runs_if_dynamic_sampling_is_enabled_and_latest_release_rule_does_not_exist(
+        self,
+    ):
+        with Feature(
+            {
+                "organizations:dynamic-sampling": True,
+            }
+        ):
+            project = self.create_project(name="foo")
+            release = Release.objects.create(organization_id=project.organization_id, version="42")
+
+            with patch("sentry.models.release.schedule_invalidate_project_config") as mock_task:
+                release.add_project(project)
+                assert mock_task.mock_calls == []
+
+    @receivers_raise_on_send()
+    def test_post_save_signal_runs_if_dynamic_sampling_is_enabled_and_latest_release_rule_exists(
+        self,
+    ):
+        with Feature(
+            {
+                "organizations:dynamic-sampling": True,
+            }
+        ):
+            project = self.create_project(name="foo")
+            release = Release.objects.create(organization_id=project.organization_id, version="42")
+            project_boosted_releases = ProjectBoostedReleases(project.id)
+            # We store a boosted release for this project.
+            project_boosted_releases.add_boosted_release(release.id, None)
+            assert project_boosted_releases.has_boosted_releases
+
+            with patch("sentry.models.release.schedule_invalidate_project_config") as mock_task:
+                release.add_project(project)
+                assert mock_task.mock_calls == [
+                    mock_call(project_id=project.id, trigger="releaseproject.post_save")
+                ]

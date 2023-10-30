@@ -1,27 +1,27 @@
 from datetime import timedelta
+from functools import cached_property
 
 from django.utils import timezone
-from exam import fixture
 
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import IncidentStatus
-from sentry.snuba.models import QueryDatasets
-from sentry.testutils import APITestCase
+from sentry.snuba.dataset import Dataset
+from sentry.testutils.cases import APITestCase
 
 
 class IncidentListEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-incident-index"
 
-    @fixture
+    @cached_property
     def organization(self):
         return self.create_organization()
 
-    @fixture
+    @cached_property
     def project(self):
         return self.create_project(organization=self.organization)
 
-    @fixture
+    @cached_property
     def user(self):
         return self.create_user()
 
@@ -83,7 +83,7 @@ class IncidentListEndpointTest(APITestCase):
     def test_no_perf_alerts(self):
         self.create_team(organization=self.organization, members=[self.user])
         # alert_rule = self.create_alert_rule()
-        perf_alert_rule = self.create_alert_rule(query="p95", dataset=QueryDatasets.TRANSACTIONS)
+        perf_alert_rule = self.create_alert_rule(query="p95", dataset=Dataset.Transactions)
 
         perf_incident = self.create_incident(alert_rule=perf_alert_rule)
         incident = self.create_incident()

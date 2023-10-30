@@ -1,5 +1,8 @@
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 
+import {SpanBarProps} from './spanBar';
+import {SpanDescendantGroupBarProps} from './spanDescendantGroupBar';
+import {SpanSiblingGroupBarProps} from './spanSiblingGroupBar';
 import SpanTreeModel from './spanTreeModel';
 
 export type GapSpanType = {
@@ -22,10 +25,26 @@ export type RawSpanType = {
   exclusive_time?: number;
   hash?: string;
   op?: string;
+  origin?: string;
   parent_span_id?: string;
   same_process_as_parent?: boolean;
   status?: string;
   tags?: {[key: string]: string};
+};
+
+export type AggregateSpanType = RawSpanType & {
+  count: number;
+  frequency: number;
+  samples: Array<[string, string]>;
+  total: number;
+  type: 'aggregate';
+};
+
+/**
+ * Extendeds the Raw type from json with a type for discriminating the union.
+ */
+type BaseSpanType = RawSpanType & {
+  type?: undefined;
 };
 
 export const rawSpanKeys: Set<keyof RawSpanType> = new Set([
@@ -36,6 +55,7 @@ export const rawSpanKeys: Set<keyof RawSpanType> = new Set([
   'timestamp',
   'same_process_as_parent',
   'op',
+  'origin',
   'description',
   'status',
   'data',
@@ -44,11 +64,11 @@ export const rawSpanKeys: Set<keyof RawSpanType> = new Set([
   'exclusive_time',
 ]);
 
-export type OrphanSpanType = {
+export type OrphanSpanType = RawSpanType & {
   type: 'orphan';
-} & RawSpanType;
+};
 
-export type SpanType = RawSpanType | OrphanSpanType;
+export type SpanType = BaseSpanType | OrphanSpanType | AggregateSpanType;
 
 // this type includes natural spans which are part of the transaction event payload,
 // and as well as pseudo-spans (e.g. gap spans)
@@ -80,9 +100,7 @@ type CommonEnhancedProcessedSpanType = {
   isLastSibling: boolean;
   numOfSpanChildren: number;
   showEmbeddedChildren: boolean;
-  toggleEmbeddedChildren:
-    | ((props: {eventSlug: string; orgSlug: string}) => void)
-    | undefined;
+  toggleEmbeddedChildren: ((orgSlug: string, eventSlugs: string[]) => void) | undefined;
   treeDepth: number;
   groupOccurrence?: number;
   isFirstSiblingOfGroup?: boolean;
@@ -128,11 +146,6 @@ export type EnhancedProcessedSpanType =
       type: 'span_group_siblings';
     } & SpanSiblingGroupProps);
 
-export type SpanEntry = {
-  data: Array<RawSpanType>;
-  type: 'spans';
-};
-
 // map span_id to children whose parent_span_id is equal to span_id
 export type SpanChildrenLookupType = {[span_id: string]: Array<SpanType>};
 
@@ -145,26 +158,32 @@ export type ParsedTraceType = {
   traceEndTimestamp: number;
   traceID: string;
   traceStartTimestamp: number;
+  count?: number;
   description?: string;
   exclusiveTime?: number;
+  frequency?: number;
   hash?: string;
   parentSpanID?: string;
+  total?: number;
 };
 
 export enum TickAlignment {
-  Left,
-  Right,
-  Center,
+  LEFT,
+  RIGHT,
+  CENTER,
 }
 
 export type TraceContextType = {
+  count?: number;
   description?: string;
   exclusive_time?: number;
+  frequency?: number;
   hash?: string;
   op?: string;
   parent_span_id?: string;
   span_id?: string;
   status?: string;
+  total?: number;
   trace_id?: string;
   type?: 'trace';
 };
@@ -207,3 +226,62 @@ export enum GroupType {
   DESCENDANTS,
   SIBLINGS,
 }
+
+export enum SpanTreeNodeType {
+  SPAN,
+  DESCENDANT_GROUP,
+  SIBLING_GROUP,
+  MESSAGE,
+}
+
+type SpanBarNode = {
+  props: Omit<
+    SpanBarProps,
+    | 'measure'
+    | 'didAnchoredSpanMount'
+    | 'markAnchoredSpanIsMounted'
+    | 'addExpandedSpan'
+    | 'removeExpandedSpan'
+    | 'isSpanExpanded'
+    | 'cellMeasurerCache'
+    | 'listRef'
+  >;
+  type: SpanTreeNodeType.SPAN;
+};
+
+type SpanSiblingNode = {
+  props: Omit<
+    SpanSiblingGroupBarProps,
+    | 'measure'
+    | 'didAnchoredSpanMount'
+    | 'markAnchoredSpanIsMounted'
+    | 'addExpandedSpan'
+    | 'removeExpandedSpan'
+    | 'isSpanExpanded'
+  >;
+  type: SpanTreeNodeType.SIBLING_GROUP;
+};
+
+type SpanDescendantNode = {
+  props: Omit<
+    SpanDescendantGroupBarProps,
+    | 'measure'
+    | 'didAnchoredSpanMount'
+    | 'markAnchoredSpanIsMounted'
+    | 'addExpandedSpan'
+    | 'removeExpandedSpan'
+    | 'isSpanExpanded'
+  >;
+  type: SpanTreeNodeType.DESCENDANT_GROUP;
+};
+
+type SpanMessageNode = {
+  element: JSX.Element;
+  type: SpanTreeNodeType.MESSAGE;
+};
+
+export type SpanTreeNode =
+  | SpanBarNode
+  | SpanSiblingNode
+  | SpanDescendantNode
+  | SpanMessageNode;

@@ -1,132 +1,121 @@
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {Fragment, useCallback, useEffect, useState} from 'react';
+import {browserHistory} from 'react-router';
+import * as Sentry from '@sentry/react';
+import {Location} from 'history';
 
-import {t} from 'sentry/locale';
-import {AuditLog, Organization} from 'sentry/types';
-import routeTitleGen from 'sentry/utils/routeTitle';
-import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {CursorHandler} from 'sentry/components/pagination';
+import {AuditLog} from 'sentry/types';
+import {decodeScalar} from 'sentry/utils/queryString';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import AuditLogList from './auditLogList';
 
-// Please keep this list sorted
-const EVENT_TYPES = [
-  'member.invite',
-  'member.add',
-  'member.accept-invite',
-  'member.remove',
-  'member.edit',
-  'member.join-team',
-  'member.leave-team',
-  'member.pending',
-  'team.create',
-  'team.edit',
-  'team.remove',
-  'project.create',
-  'project.edit',
-  'project.remove',
-  'project.set-public',
-  'project.set-private',
-  'project.request-transfer',
-  'project.accept-transfer',
-  'org.create',
-  'org.edit',
-  'org.remove',
-  'org.restore',
-  'tagkey.remove',
-  'projectkey.create',
-  'projectkey.edit',
-  'projectkey.remove',
-  'projectkey.enable',
-  'projectkey.disable',
-  'sso.enable',
-  'sso.disable',
-  'sso.edit',
-  'sso-identity.link',
-  'api-key.create',
-  'api-key.edit',
-  'api-key.remove',
-  'alertrule.create',
-  'alertrule.edit',
-  'alertrule.remove',
-  'rule.create',
-  'rule.edit',
-  'rule.remove',
-  'servicehook.create',
-  'servicehook.edit',
-  'servicehook.remove',
-  'servicehook.enable',
-  'servicehook.disable',
-  'integration.add',
-  'integration.edit',
-  'integration.remove',
-  'ondemand.edit',
-  'trial.started',
-  'plan.changed',
-  'plan.cancelled',
-  'sentry-app.add',
-  'sentry-app.remove',
-  'sentry-app.install',
-  'sentry-app.uninstall',
-];
-
-type Props = RouteComponentProps<{orgId: string}, {}> &
-  AsyncView['props'] & {
-    organization: Organization;
-  };
-
-type State = AsyncView['state'] & {
-  entryList: AuditLog[] | null;
-  entryListPageLinks: string | null;
+type Props = {
+  location: Location;
 };
 
-class OrganizationAuditLog extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    return [
-      [
-        'entryList',
-        `/organizations/${this.props.params.orgId}/audit-logs/`,
+type State = {
+  entryList: AuditLog[] | null;
+  entryListPageLinks: string | null;
+  eventType: string | undefined;
+  eventTypes: string[] | null;
+  isLoading: boolean;
+  currentCursor?: string;
+};
+
+function OrganizationAuditLog({location}: Props) {
+  const [state, setState] = useState<State>({
+    entryList: [],
+    entryListPageLinks: null,
+    eventType: decodeScalar(location.query.event),
+    eventTypes: [],
+    isLoading: true,
+  });
+  const organization = useOrganization();
+  const api = useApi();
+
+  const handleCursor: CursorHandler = resultsCursor => {
+    setState(prevState => ({
+      ...prevState,
+      currentCursor: resultsCursor,
+    }));
+  };
+
+  useEffect(() => {
+    // Watch the location for changes so we can re-fetch data.
+    const eventType = decodeScalar(location.query.event);
+    setState(prevState => ({...prevState, eventType}));
+  }, [location.query]);
+
+  const fetchAuditLogData = useCallback(async () => {
+    setState(prevState => ({...prevState, isLoading: true}));
+
+    try {
+      const payload = {cursor: state.currentCursor, event: state.eventType};
+      if (!payload.cursor) {
+        delete payload.cursor;
+      }
+      if (!payload.event) {
+        delete payload.event;
+      }
+      setState(prevState => ({...prevState, isLoading: true}));
+      const [data, _, response] = await api.requestPromise(
+        `/organizations/${organization.slug}/audit-logs/`,
         {
-          query: this.props.location.query,
-        },
-      ],
-    ];
-  }
-
-  getTitle() {
-    return routeTitleGen(t('Audit Log'), this.props.organization.slug, false);
-  }
-
-  handleEventSelect = (value: string) => {
-    // Dont update if event has not changed
-    if (this.props.location.query.event === value) {
-      return;
+          method: 'GET',
+          includeAllArgs: true,
+          query: payload,
+        }
+      );
+      setState(prevState => ({
+        ...prevState,
+        entryList: data.rows,
+        eventTypes: data.options,
+        isLoading: false,
+        entryListPageLinks: response?.getResponseHeader('Link') ?? null,
+      }));
+    } catch (err) {
+      if (err.status !== 401 && err.status !== 403) {
+        Sentry.captureException(err);
+      }
+      setState(prevState => ({
+        ...prevState,
+        isLoading: false,
+      }));
+      addErrorMessage('Unable to load audit logs.');
     }
+  }, [api, organization.slug, state.currentCursor, state.eventType]);
 
+  useEffect(() => {
+    fetchAuditLogData();
+  }, [fetchAuditLogData]);
+
+  const handleEventSelect = (value: string) => {
+    setState(prevState => ({
+      ...prevState,
+      eventType: value,
+    }));
     browserHistory.push({
-      pathname: this.props.location.pathname,
-      search: `?event=${value}`,
+      pathname: location.pathname,
+      query: {...location.query, event: value},
     });
   };
 
-  renderLoading() {
-    return this.renderBody();
-  }
-
-  renderBody() {
-    const {entryList, entryListPageLinks, loading, reloading} = this.state;
-    const currentEventType = this.props.location.query.event;
-    return (
+  return (
+    <Fragment>
       <AuditLogList
-        entries={entryList}
-        pageLinks={entryListPageLinks}
-        eventType={currentEventType}
-        eventTypes={EVENT_TYPES}
-        onEventSelect={this.handleEventSelect}
-        isLoading={loading || reloading}
-        {...this.props}
+        entries={state.entryList}
+        pageLinks={state.entryListPageLinks}
+        eventType={state.eventType}
+        eventTypes={state.eventTypes}
+        onEventSelect={handleEventSelect}
+        isLoading={state.isLoading}
+        onCursor={handleCursor}
       />
-    );
-  }
+    </Fragment>
+  );
 }
 
-export default withOrganization(OrganizationAuditLog);
+export default OrganizationAuditLog;

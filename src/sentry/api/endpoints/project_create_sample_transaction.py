@@ -1,12 +1,13 @@
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-import pytz
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers import serialize
 from sentry.constants import DATA_ROOT
@@ -36,7 +37,7 @@ def fix_event_data(data):
     """
     timestamp = datetime.utcnow() - timedelta(minutes=1)
     timestamp = timestamp - timedelta(microseconds=timestamp.microsecond % 1000)
-    timestamp = timestamp.replace(tzinfo=pytz.utc)
+    timestamp = timestamp.replace(tzinfo=timezone.utc)
     data["timestamp"] = to_timestamp(timestamp)
 
     start_timestamp = timestamp - timedelta(seconds=3)
@@ -64,7 +65,11 @@ def fix_event_data(data):
     return data
 
 
+@region_silo_endpoint
 class ProjectCreateSampleTransactionEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     # Members should be able to create sample events.
     # This is the same scope that allows members to view all issues for a project.
     permission_classes = (ProjectEventPermission,)

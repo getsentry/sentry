@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo} from 'react';
-import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -12,9 +11,11 @@ import CommandSource from 'sentry/components/search/sources/commandSource';
 import FormSource from 'sentry/components/search/sources/formSource';
 import RouteSource from 'sentry/components/search/sources/routeSource';
 import {t} from 'sentry/locale';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
+import {useParams} from 'sentry/utils/useParams';
+import useRouter from 'sentry/utils/useRouter';
 
 import {Result} from './sources/types';
 import List from './list';
@@ -25,7 +26,7 @@ type ListProps = React.ComponentProps<typeof List>;
 
 interface InputProps extends Pick<AutoCompleteOpts, 'getInputProps'> {}
 
-interface SearchProps extends WithRouterProps<{orgId: string}> {
+interface SearchProps {
   /**
    * For analytics
    */
@@ -80,11 +81,12 @@ function Search({
   resultFooter,
   searchOptions,
   sources,
-  router,
-  params,
 }: SearchProps): React.ReactElement {
+  const router = useRouter();
+
+  const params = useParams<{orgId: string}>();
   useEffect(() => {
-    trackAdvancedAnalyticsEvent(`${entryPoint}.open`, {
+    trackAnalytics(`${entryPoint}.open`, {
       organization: null,
     });
   }, [entryPoint]);
@@ -95,7 +97,7 @@ function Search({
         return;
       }
 
-      trackAdvancedAnalyticsEvent(`${entryPoint}.select`, {
+      trackAnalytics(`${entryPoint}.select`, {
         query: state?.inputValue,
         result_type: item.resultType,
         source_type: item.sourceType,
@@ -141,7 +143,7 @@ function Search({
         return;
       }
 
-      trackAdvancedAnalyticsEvent(`${entryPoint}.query`, {
+      trackAnalytics(`${entryPoint}.query`, {
         query,
         organization: null,
       });
@@ -159,6 +161,7 @@ function Search({
       defaultHighlightedIndex={0}
       onSelect={handleSelectItem}
       closeOnSelect={closeOnSelect ?? true}
+      isOpen
     >
       {({getInputProps, isOpen, inputValue, ...autocompleteProps}) => {
         const searchQuery = inputValue.toLowerCase().trim();
@@ -167,7 +170,7 @@ function Search({
         debouncedSaveQueryMetrics(searchQuery);
 
         return (
-          <SearchWrapper>
+          <SearchWrapper role="search">
             {renderInput({getInputProps})}
 
             {isValidSearch && isOpen ? (
@@ -208,8 +211,7 @@ function Search({
   );
 }
 
-const WithRouterSearch = withRouter(Search);
-export {WithRouterSearch as Search, SearchProps};
+export {Search, SearchProps};
 
 const SearchWrapper = styled('div')`
   position: relative;

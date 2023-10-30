@@ -1,13 +1,18 @@
 from datetime import timedelta
 
+import pytest
 from django.urls import reverse
 
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
-from sentry.testutils import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
+pytestmark = pytest.mark.sentry_metrics
 
+
+@region_silo_test
 class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -297,6 +302,7 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
         }
 
 
+@region_silo_test
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPerformanceTestCase):
     METRIC_STRINGS = ["measurement_rating"]
 
@@ -342,7 +348,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
     def test_simple(self):
         for rating, lcp in [("good", 2000), ("meh", 3000), ("poor", 5000)]:
-            self.store_metric(
+            self.store_transaction_metric(
                 lcp,
                 metric="measurements.lcp",
                 tags={"transaction": "foo_transaction", "measurement_rating": rating},
@@ -369,7 +375,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         ]
         for rating, duration, count in counts:
             for _ in range(count):
-                self.store_metric(
+                self.store_transaction_metric(
                     duration,
                     metric="measurements.lcp",
                     tags={"transaction": "foo_transaction", "measurement_rating": rating},
@@ -397,7 +403,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             ("measurements.fp", 4000, "poor"),
         ]
         for vital, duration, rating in vitals:
-            self.store_metric(
+            self.store_transaction_metric(
                 duration,
                 metric=vital,
                 tags={"transaction": "foo_transaction", "measurement_rating": rating},

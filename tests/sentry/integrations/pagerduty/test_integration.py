@@ -5,12 +5,15 @@ import responses
 
 from sentry import options
 from sentry.integrations.pagerduty.integration import PagerDutyIntegrationProvider
-from sentry.models import Integration, OrganizationIntegration, PagerDutyService
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils import IntegrationTestCase
+from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
+@control_silo_test(stable=True)
 class PagerDutyIntegrationTest(IntegrationTestCase):
     provider = PagerDutyIntegrationProvider
     base_url = "https://app.pagerduty.com"
@@ -112,9 +115,10 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
             }
         ]
         oi = OrganizationIntegration.objects.get(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
-        assert oi.config == {}
+
+        assert oi.config["pagerduty_services"][0]["service_name"] == "Super Cool Service"
 
     @responses.activate
     def test_add_services_flow(self):
@@ -122,11 +126,10 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
             self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
-        service = PagerDutyService.objects.get(
-            organization_integration=OrganizationIntegration.objects.get(
-                integration=integration, organization=self.organization
-            )
+        oi = OrganizationIntegration.objects.get(
+            integration_id=integration.id, organization_id=self.organization.id
         )
+        service = OrganizationIntegration.services_in(oi.config)[0]
 
         url = "https://%s.pagerduty.com" % (integration.metadata["domain_name"])
         responses.add(
@@ -139,51 +142,92 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         with self.tasks():
             self.assert_add_service_flow(integration)
 
-        assert PagerDutyService.objects.filter(id=service.id).exists()
-        assert PagerDutyService.objects.filter(service_name="Additional Service").exists()
+        oi.refresh_from_db()
+        services = OrganizationIntegration.services_in(oi.config)
+        assert services[1]["id"]
+        del services[1]["id"]  # type: ignore
+        assert services == [
+            service,
+            dict(
+                integration_id=integration.id,
+                integration_key="additional-service",
+                service_name="Additional Service",
+            ),
+        ]
 
     @responses.activate
     def test_update_organization_config(self):
         with self.tasks():
             self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
-        service_id = PagerDutyService.objects.get(integration_key="key1").id
+        oi = OrganizationIntegration.objects.get(
+            integration_id=integration.id, organization_id=self.organization.id
+        )
+        service_id = OrganizationIntegration.services_in(oi.config)[0]["id"]
         config_data = {
             "service_table": [
-                {"service": "Mleep", "integration_key": "xxxxxxxxxxxxxxxx", "id": None},
-                {"service": "new_service", "integration_key": "new_key", "id": service_id},
+                {"service": "Mleep", "integration_key": "xxxxxxxxxxxxxxxx", "id": service_id},
+                {"service": "new_service", "integration_key": "new_key", "id": None},
             ]
         }
-        integration.get_installation(self.organization).update_organization_config(config_data)
-        assert len(PagerDutyService.objects.filter()) == 2
-        service_row = PagerDutyService.objects.get(id=service_id)
-        assert service_row.service_name == "new_service"
-        assert service_row.integration_key == "new_key"
+        integration.get_installation(self.organization.id).update_organization_config(config_data)
+        oi.refresh_from_db()
+        services = OrganizationIntegration.services_in(oi.config)
+
+        del services[1]["id"]  # type: ignore
+
+        assert services == [
+            dict(
+                id=service_id,
+                integration_key="xxxxxxxxxxxxxxxx",
+                integration_id=oi.integration_id,
+                service_name="Mleep",
+            ),
+            dict(
+                integration_key="new_key",
+                integration_id=oi.integration_id,
+                service_name="new_service",
+            ),
+        ]
 
     @responses.activate
     def test_delete_pagerduty_service(self):
         with self.tasks():
             self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
-        service_id = PagerDutyService.objects.get(integration_key="key1").id
+        oi = OrganizationIntegration.objects.get(
+            integration_id=integration.id, organization_id=self.organization.id
+        )
+        services = OrganizationIntegration.services_in(oi.config)
+        assert len(services) == 1
+        service_id = services[0]["id"]
         config_data = {
             "service_table": [{"service": "new_service", "integration_key": "new_key", "id": None}]
         }
-        integration.get_installation(self.organization).update_organization_config(config_data)
-        assert len(PagerDutyService.objects.all()) == 1
-        assert not PagerDutyService.objects.filter(id=service_id).exists()
+        integration.get_installation(self.organization.id).update_organization_config(config_data)
+
+        oi.refresh_from_db()
+        services = OrganizationIntegration.services_in(oi.config)
+        assert len(services) == 1
+        assert services[0]["id"] != service_id
 
     @responses.activate
     def test_no_name(self):
         with self.tasks():
             self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
-        service_id = PagerDutyService.objects.get(integration_key="key1").id
+        oi = OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
+        )
+        service = OrganizationIntegration.services_in(oi.config)[0]
+        service_id = service["id"]
         config_data = {
             "service_table": [{"service": "new_service", "integration_key": "", "id": service_id}]
         }
         with pytest.raises(IntegrationError) as error:
-            integration.get_installation(self.organization).update_organization_config(config_data)
+            integration.get_installation(self.organization.id).update_organization_config(
+                config_data
+            )
         assert str(error.value) == "Name and key are required"
 
     @responses.activate
@@ -192,18 +236,17 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
             self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
-        service = PagerDutyService.objects.get(
-            organization_integration=OrganizationIntegration.objects.get(
-                integration=integration, organization=self.organization
-            )
+        oi = OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
         )
-        config = integration.get_installation(self.organization).get_config_data()
+        service = OrganizationIntegration.services_in(oi.config)[0]
+        config = integration.get_installation(self.organization.id).get_config_data()
         assert config == {
             "service_table": [
                 {
-                    "id": service.id,
-                    "service": service.service_name,
-                    "integration_key": service.integration_key,
+                    "id": service["id"],
+                    "service": service["service_name"],
+                    "integration_key": service["integration_key"],
                 }
             ]
         }

@@ -4,8 +4,10 @@ import round from 'lodash/round';
 
 import {loadStatsForProject} from 'sentry/actionCreators/projects';
 import {Client} from 'sentry/api';
+import {Button} from 'sentry/components/button';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
+import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -17,13 +19,14 @@ import ScoreCard, {
   Trend,
 } from 'sentry/components/scoreCard';
 import {releaseHealth} from 'sentry/data/platformCategories';
-import {IconArrow} from 'sentry/icons';
+import {IconArrow, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -53,6 +56,7 @@ class ProjectCard extends Component<Props> {
       projectId: project.id,
       query: {
         transactionStats: this.hasPerformance ? '1' : undefined,
+        dataset: DiscoverDatasets.METRICS_ENHANCED,
         sessionStats: '1',
       },
     });
@@ -141,6 +145,13 @@ class ProjectCard extends Component<Props> {
                 avatarSize={32}
                 hideOverflow
                 disableLink={!hasProjectAccess}
+              />
+              <SettingsButton
+                borderless
+                size="zero"
+                icon={<IconSettings color="subText" />}
+                aria-label={t('Settings')}
+                to={`/settings/${organization.slug}/projects/${slug}/`}
               />
               <StyledBookmarkStar organization={organization} project={project} />
             </HeaderRow>
@@ -260,11 +271,11 @@ class ProjectCardContainer extends Component<ContainerProps, ContainerState> {
 
   listeners = [
     ProjectsStatsStore.listen(itemsBySlug => {
-      this.onProjectStoreUpdate(itemsBySlug);
+      this.onProjectStatsStoreUpdate(itemsBySlug);
     }, undefined),
   ];
 
-  onProjectStoreUpdate(itemsBySlug: typeof ProjectsStatsStore['itemsBySlug']) {
+  onProjectStatsStoreUpdate(itemsBySlug: (typeof ProjectsStatsStore)['itemsBySlug']) {
     const {project} = this.props;
 
     // Don't update state if we already have stats
@@ -305,6 +316,13 @@ const CardHeader = styled('div')`
   height: 32px;
 `;
 
+const SettingsButton = styled(Button)`
+  margin-left: auto;
+  margin-top: -${space(0.5)};
+  padding: 3px;
+  border-radius: 50%;
+`;
+
 const StyledBookmarkStar = styled(BookmarkStar)`
   padding: 0;
 `;
@@ -313,17 +331,15 @@ const HeaderRow = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 0 ${space(0.5)};
 
   ${p => p.theme.text.cardTitle};
   color: ${p => p.theme.headingColor};
 `;
 
-const StyledProjectCard = styled('div')`
-  background-color: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  box-shadow: ${p => p.theme.dropShadowLight};
+const StyledProjectCard = styled(Panel)`
   min-height: 330px;
+  margin: 0;
 `;
 
 const FooterWrapper = styled('div')`

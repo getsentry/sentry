@@ -1,118 +1,95 @@
+from __future__ import annotations
+
 import logging
+import secrets
 import warnings
-from typing import TYPE_CHECKING, Any, Sequence
+from string import ascii_letters, digits
+from typing import Any, List, Mapping, Optional, Tuple
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
 from django.contrib.auth.signals import user_logged_out
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.db.models import Count, Subquery
 from django.db.models.query import QuerySet
 from django.dispatch import receiver
+from django.forms import model_to_dict
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from bitfield import BitField
-from sentry.db.models import BaseManager, BaseModel, BoundedAutoField, FlexibleForeignKey, sane_repr
-from sentry.models import LostPasswordHash
+from bitfield import TypedClassBitField
+from sentry.auth.authenticators import available_authenticators
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
+from sentry.db.models import (
+    BaseManager,
+    BaseModel,
+    BoundedBigAutoField,
+    control_silo_only_model,
+    sane_repr,
+)
+from sentry.db.models.utils import unique_db_instance
+from sentry.locks import locks
+from sentry.models.authenticator import Authenticator
+from sentry.models.avatars import UserAvatar
+from sentry.models.lostpasswordhash import LostPasswordHash
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.outbox import ControlOutboxBase, OutboxCategory, outbox_context
+from sentry.services.hybrid_cloud.organization import RpcRegionUser, organization_service
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.types.region import find_regions_for_user
 from sentry.utils.http import absolute_uri
+from sentry.utils.retries import TimedRetryPolicy
 
 audit_logger = logging.getLogger("sentry.audit.user")
 
-if TYPE_CHECKING:
-    from sentry.models import Group, Organization, Team
+MAX_USERNAME_LENGTH = 128
+RANDOM_PASSWORD_ALPHABET = ascii_letters + digits
+RANDOM_PASSWORD_LENGTH = 32
 
 
 class UserManager(BaseManager, DjangoUserManager):
-    def get_team_members_with_verified_email_for_projects(
-        self, projects: Sequence[Any]
-    ) -> QuerySet:
-        from sentry.models import ProjectTeam, Team
-
-        return self.filter(
-            emails__is_verified=True,
-            sentry_orgmember_set__teams__in=Team.objects.filter(
-                id__in=ProjectTeam.objects.filter(project__in=projects).values_list(
-                    "team_id", flat=True
-                )
-            ),
-            is_active=True,
-        ).distinct()
-
-    def get_from_group(self, group: "Group") -> QuerySet:
-        """Get a queryset of all users in all teams in a given Group's project."""
-        return self.filter(
-            sentry_orgmember_set__organization=group.organization,
-            sentry_orgmember_set__teams__in=group.project.teams.all(),
-            is_active=True,
-        )
-
-    def get_from_teams(self, organization_id: int, teams: Sequence["Team"]) -> QuerySet:
-        return self.filter(
-            sentry_orgmember_set__organization_id=organization_id,
-            sentry_orgmember_set__organizationmemberteam__team__in=teams,
-            sentry_orgmember_set__organizationmemberteam__is_active=True,
-            is_active=True,
-        )
-
-    def get_from_projects(self, organization_id, projects):
-        """
-        Returns users associated with a project based on their teams.
-        """
-        return self.filter(
-            sentry_orgmember_set__organization_id=organization_id,
-            sentry_orgmember_set__organizationmemberteam__team__projectteam__project__in=projects,
-            sentry_orgmember_set__organizationmemberteam__is_active=True,
-            is_active=True,
-        )
-
-    def get_from_organizations(self, organization_ids):
-        """Returns users associated with an Organization based on their teams."""
-        return self.filter(
-            sentry_orgmember_set__organization_id__in=organization_ids,
-            sentry_orgmember_set__organizationmemberteam__is_active=True,
-            is_active=True,
-        )
-
     def get_users_with_only_one_integration_for_provider(
-        self, provider: ExternalProviders, organization: "Organization"
+        self, provider: ExternalProviders, organization_id: int
     ) -> QuerySet:
         """
         For a given organization, get the list of members that are only
         connected to a single integration.
         """
-        return (
-            self.filter(
-                sentry_orgmember_set__organization__organizationintegration__integration__provider=EXTERNAL_PROVIDERS[
-                    provider
-                ],
-                id__in=Subquery(
-                    self.filter(
-                        is_active=True,
-                        sentry_orgmember_set__organization=organization,
-                    ).values("id")
+        from sentry.models.integrations.organization_integration import OrganizationIntegration
+        from sentry.models.organizationmembermapping import OrganizationMemberMapping
+
+        org_user_ids = OrganizationMemberMapping.objects.filter(
+            organization_id=organization_id
+        ).values("user_id")
+        org_members_with_provider = (
+            OrganizationMemberMapping.objects.values("user_id")
+            .annotate(org_counts=Count("organization_id"))
+            .filter(
+                user_id__in=Subquery(org_user_ids),
+                organization_id__in=Subquery(
+                    OrganizationIntegration.objects.filter(
+                        integration__provider=EXTERNAL_PROVIDERS[provider]
+                    ).values("organization_id")
                 ),
+                org_counts=1,
             )
-            .annotate(row_count=Count("id"))
-            .filter(row_count=1)
+            .values("user_id")
         )
-
-    def get_for_email(self, email: str, case_sensitive: bool = True) -> Sequence["User"]:
-        if not case_sensitive:
-            kwargs = dict(emails__email__iexact=email)
-        else:
-            kwargs = dict(emails__email=email)
-
-        return self.filter(emails__is_verified=True, is_active=True, **kwargs)
+        return self.filter(id__in=Subquery(org_members_with_provider))
 
 
+@control_silo_only_model
 class User(BaseModel, AbstractBaseUser):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.User
+    replication_version: int = 2
 
-    id = BoundedAutoField(primary_key=True)
-    username = models.CharField(_("username"), max_length=128, unique=True)
+    id = BoundedBigAutoField(primary_key=True)
+    username = models.CharField(_("username"), max_length=MAX_USERNAME_LENGTH, unique=True)
     # this column is called first_name for legacy reasons, but it is the entire
     # display name
     name = models.CharField(_("name"), max_length=200, blank=True, db_column="first_name")
@@ -128,6 +105,16 @@ class User(BaseModel, AbstractBaseUser):
         help_text=_(
             "Designates whether this user should be treated as "
             "active. Unselect this instead of deleting accounts."
+        ),
+    )
+    is_unclaimed = models.BooleanField(
+        _("unclaimed"),
+        default=False,
+        help_text=_(
+            "Designates that this user was imported via the relocation tool, but has not yet been "
+            "claimed by the owner of the associated email. Users in this state have randomized "
+            "passwords - when email owners claim the account, they are prompted to reset their "
+            "password and do a one-time update to their username."
         ),
     )
     is_superuser = models.BooleanField(
@@ -146,7 +133,7 @@ class User(BaseModel, AbstractBaseUser):
             "modifying their account (username, password, etc)."
         ),
     )
-    is_sentry_app = models.NullBooleanField(
+    is_sentry_app = models.BooleanField(
         _("is sentry app"),
         null=True,
         default=None,
@@ -169,20 +156,20 @@ class User(BaseModel, AbstractBaseUser):
         help_text=_("The date the password was changed last."),
     )
 
-    flags = BitField(
-        flags=(
-            ("newsletter_consent_prompt", "Do we need to ask this user for newsletter consent?"),
-        ),
-        default=0,
-        null=True,
-    )
+    class flags(TypedClassBitField):
+        # Do we need to ask this user for newsletter consent?
+        newsletter_consent_prompt: bool
+
+        bitfield_default = 0
+        bitfield_null = True
 
     session_nonce = models.CharField(max_length=12, null=True)
-    actor = FlexibleForeignKey(
-        "sentry.Actor", db_index=True, unique=True, null=True, on_delete=models.PROTECT
-    )
+
     date_joined = models.DateTimeField(_("date joined"), default=timezone.now)
     last_active = models.DateTimeField(_("last active"), default=timezone.now, null=True)
+
+    avatar_type = models.PositiveSmallIntegerField(default=0, choices=UserAvatar.AVATAR_TYPES)
+    avatar_url = models.CharField(_("avatar url"), max_length=120, null=True)
 
     objects = UserManager(cache_fields=["pk"])
 
@@ -197,18 +184,34 @@ class User(BaseModel, AbstractBaseUser):
 
     __repr__ = sane_repr("id")
 
+    def class_name(self):
+        return "User"
+
     def delete(self):
         if self.username == "sentry":
             raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
-        avatar = self.avatar.first()
-        if avatar:
-            avatar.delete()
-        return super().delete()
+        with outbox_context(transaction.atomic(using=router.db_for_write(User))):
+            avatar = self.avatar.first()
+            if avatar:
+                avatar.delete()
+            for outbox in self.outboxes_for_update():
+                outbox.save()
+            return super().delete()
+
+    def update(self, *args, **kwds):
+        with outbox_context(transaction.atomic(using=router.db_for_write(User))):
+            for outbox in self.outboxes_for_update():
+                outbox.save()
+            return super().update(*args, **kwds)
 
     def save(self, *args, **kwargs):
-        if not self.username:
-            self.username = self.email
-        return super().save(*args, **kwargs)
+        with outbox_context(transaction.atomic(using=router.db_for_write(User))):
+            if not self.username:
+                self.username = self.email
+            result = super().save(*args, **kwargs)
+            for outbox in self.outboxes_for_update():
+                outbox.save()
+            return result
 
     def has_perm(self, perm_name):
         warnings.warn("User.has_perm is deprecated", DeprecationWarning)
@@ -218,11 +221,19 @@ class User(BaseModel, AbstractBaseUser):
         warnings.warn("User.has_module_perms is deprecated", DeprecationWarning)
         return self.is_superuser
 
+    def has_2fa(self):
+        return Authenticator.objects.filter(
+            user_id=self.id, type__in=[a.type for a in available_authenticators(ignore_backup=True)]
+        ).exists()
+
     def get_unverified_emails(self):
         return self.emails.filter(is_verified=False)
 
     def get_verified_emails(self):
         return self.emails.filter(is_verified=True)
+
+    def has_verified_emails(self):
+        return self.get_verified_emails().exists()
 
     def has_unverified_emails(self):
         return self.get_unverified_emails().exists()
@@ -245,19 +256,16 @@ class User(BaseModel, AbstractBaseUser):
     def get_full_name(self):
         return self.name
 
-    def get_short_name(self):
-        return self.username
-
-    def get_salutation_name(self):
+    def get_salutation_name(self) -> str:
         name = self.name or self.username.split("@", 1)[0].split(".", 1)[0]
         first_name = name.split(" ", 1)[0]
         return first_name.capitalize()
 
     def get_avatar_type(self):
-        avatar = self.avatar.first()
-        if avatar:
-            return avatar.get_avatar_type_display()
-        return "letter_avatar"
+        return self.get_avatar_type_display()
+
+    def get_actor_identifier(self):
+        return f"user:{self.id}"
 
     def send_confirm_email_singular(self, email, is_new_user=False):
         from sentry import options
@@ -289,66 +297,44 @@ class User(BaseModel, AbstractBaseUser):
         for email in email_list:
             self.send_confirm_email_singular(email, is_new_user)
 
+    def outboxes_for_update(self) -> List[ControlOutboxBase]:
+        return User.outboxes_for_user_update(self.id)
+
+    @staticmethod
+    def outboxes_for_user_update(identifier: int) -> List[ControlOutboxBase]:
+        return OutboxCategory.USER_UPDATE.as_control_outboxes(
+            region_names=find_regions_for_user(identifier),
+            object_identifier=identifier,
+            shard_identifier=identifier,
+        )
+
     def merge_to(from_user, to_user):
         # TODO: we could discover relations automatically and make this useful
-        from sentry import roles
-        from sentry.models import (
-            Activity,
-            AuditLogEntry,
-            Authenticator,
-            AuthIdentity,
-            GroupAssignee,
-            GroupBookmark,
-            GroupSeen,
-            GroupShare,
-            GroupSubscription,
-            Identity,
-            OrganizationMember,
-            OrganizationMemberTeam,
-            UserAvatar,
-            UserEmail,
-            UserOption,
-        )
+        from sentry.models.auditlogentry import AuditLogEntry
+        from sentry.models.authenticator import Authenticator
+        from sentry.models.authidentity import AuthIdentity
+        from sentry.models.avatars.user_avatar import UserAvatar
+        from sentry.models.identity import Identity
+        from sentry.models.options.user_option import UserOption
+        from sentry.models.organizationmembermapping import OrganizationMemberMapping
+        from sentry.models.useremail import UserEmail
 
         audit_logger.info(
             "user.merge", extra={"from_user_id": from_user.id, "to_user_id": to_user.id}
         )
 
-        for obj in OrganizationMember.objects.filter(user=from_user):
-            try:
-                with transaction.atomic():
-                    obj.update(user=to_user)
-            # this will error if both users are members of obj.org
-            except IntegrityError:
-                pass
+        organization_ids: List[int]
+        organization_ids = OrganizationMemberMapping.objects.filter(
+            user_id=from_user.id
+        ).values_list("organization_id", flat=True)
 
-            # identify the highest priority membership
-            # only applies if both users are members of obj.org
-            # if roles are different, grants combined user the higher of the two
-            to_member = OrganizationMember.objects.get(
-                organization=obj.organization_id, user=to_user
+        for organization_id in organization_ids:
+            organization_service.merge_users(
+                organization_id=organization_id, from_user_id=from_user.id, to_user_id=to_user.id
             )
-            if roles.get(obj.role).priority > roles.get(to_member.role).priority:
-                to_member.update(role=obj.role)
 
-            for team in obj.teams.all():
-                try:
-                    with transaction.atomic():
-                        OrganizationMemberTeam.objects.create(
-                            organizationmember=to_member, team=team
-                        )
-                # this will error if both users are on the same team in obj.org,
-                # in which case, no need to update anything
-                except IntegrityError:
-                    pass
-
-        model_list = (
+        model_list: tuple[type[BaseModel], ...] = (
             Authenticator,
-            GroupAssignee,
-            GroupBookmark,
-            GroupSeen,
-            GroupShare,
-            GroupSubscription,
             Identity,
             UserAvatar,
             UserEmail,
@@ -356,28 +342,31 @@ class User(BaseModel, AbstractBaseUser):
         )
 
         for model in model_list:
-            for obj in model.objects.filter(user=from_user):
+            for obj in model.objects.filter(user_id=from_user.id):
                 try:
-                    with transaction.atomic():
-                        obj.update(user=to_user)
+                    with transaction.atomic(using=router.db_for_write(User)):
+                        obj.update(user_id=to_user.id)
                 except IntegrityError:
                     pass
 
-        Activity.objects.filter(user=from_user).update(user=to_user)
         # users can be either the subject or the object of actions which get logged
         AuditLogEntry.objects.filter(actor=from_user).update(actor=to_user)
         AuditLogEntry.objects.filter(target_user=from_user).update(target_user=to_user)
 
-        # remove any SSO identities that exist on from_user that might conflict
-        # with to_user's existing identities (only applies if both users have
-        # SSO identities in the same org), then pass the rest on to to_user
-        AuthIdentity.objects.filter(
-            user=from_user,
-            auth_provider__organization__in=AuthIdentity.objects.filter(user=to_user).values(
-                "auth_provider__organization"
-            ),
-        ).delete()
-        AuthIdentity.objects.filter(user=from_user).update(user=to_user)
+        with outbox_context(flush=False):
+            # remove any SSO identities that exist on from_user that might conflict
+            # with to_user's existing identities (only applies if both users have
+            # SSO identities in the same org), then pass the rest on to to_user
+            # NOTE: This could, become calls to identity_service.delete_ide
+            for ai in AuthIdentity.objects.filter(
+                user=from_user,
+                auth_provider__organization_id__in=AuthIdentity.objects.filter(
+                    user_id=to_user.id
+                ).values("auth_provider__organization_id"),
+            ):
+                ai.delete()
+            for ai in AuthIdentity.objects.filter(user_id=from_user.id):
+                ai.update(user=to_user)
 
     def set_password(self, raw_password):
         super().set_password(raw_password)
@@ -391,27 +380,138 @@ class User(BaseModel, AbstractBaseUser):
         if request is not None:
             request.session["_nonce"] = self.session_nonce
 
-    def get_orgs(self):
-        from sentry.models import Organization
+    def has_org_requiring_2fa(self) -> bool:
+        from sentry.models.organization import OrganizationStatus
 
-        return Organization.objects.get_for_user_ids({self.id})
-
-    def get_projects(self):
-        from sentry.models import Project
-
-        return Project.objects.get_for_user_ids({self.id})
-
-    def get_orgs_require_2fa(self):
-        from sentry.models import Organization, OrganizationStatus
-
-        return Organization.objects.filter(
-            flags=models.F("flags").bitor(Organization.flags.require_2fa),
-            status=OrganizationStatus.VISIBLE,
-            member_set__user=self,
-        )
+        return OrganizationMemberMapping.objects.filter(
+            user_id=self.id,
+            organization_id__in=Subquery(
+                OrganizationMapping.objects.filter(
+                    require_2fa=True,
+                    status=OrganizationStatus.ACTIVE,
+                ).values("organization_id")
+            ),
+        ).exists()
 
     def clear_lost_passwords(self):
         LostPasswordHash.objects.filter(user=self).delete()
+
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[int]:
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+
+        # Importing in any scope besides `Global` (which does a naive, blanket restore of all data)
+        # and `Config` (which is explicitly meant to import admin accounts) should strip all
+        # incoming users of their admin privileges.
+        if scope not in {ImportScope.Config, ImportScope.Global}:
+            self.is_staff = False
+            self.is_superuser = False
+            self.is_managed = False
+
+        # No need to mark users newly "unclaimed" when doing a global backup/restore.
+        if scope != ImportScope.Global or self.is_unclaimed:
+            # New users are marked unclaimed.
+            self.is_unclaimed = True
+
+            # Give the user a cryptographically secure random password. The purpose here is to have
+            # a password that NO ONE knows - the only way to log into this account is to use the
+            # "claim your account" flow to create a new password (or to click "lost password" and
+            # end up there anyway), at which point we'll detect the user's `is_unclaimed` status and
+            # prompt them to change their `username` as well.
+            self.set_password(
+                "".join(
+                    secrets.choice(RANDOM_PASSWORD_ALPHABET) for _ in range(RANDOM_PASSWORD_LENGTH)
+                )
+            )
+
+        return old_pk
+
+    def write_relocation_import(
+        self, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
+        # Internal function that factors our some common logic.
+        def do_write():
+            from sentry.api.endpoints.user_details import (
+                BaseUserSerializer,
+                SuperuserUserSerializer,
+                UserSerializer,
+            )
+            from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
+
+            serializer_cls = BaseUserSerializer
+            if scope not in {ImportScope.Config, ImportScope.Global}:
+                serializer_cls = UserSerializer
+            else:
+                serializer_cls = SuperuserUserSerializer
+
+            serializer_user = serializer_cls(instance=self, data=model_to_dict(self), partial=True)
+            serializer_user.is_valid(raise_exception=True)
+
+            self.save(force_insert=True)
+
+            if scope != ImportScope.Global:
+                # TODO(getsentry/team-ospo#190): the following is an RPC call which could fail for
+                # transient reasons (network etc). How do we handle that?
+                lost_password_hash_service.get_or_create(user_id=self.id)
+
+            # TODO(getsentry/team-ospo#191): we need to send an email informing the user of their
+            # new account with a resettable password - we'll need to figure out where in the process
+            # that actually goes, and how to prevent it from happening during the validation pass.
+            return (self.pk, ImportKind.Inserted)
+
+        # If there is no existing user with this `username`, no special renaming or merging
+        # shenanigans are needed, as we can just insert this exact model directly.
+        existing = User.objects.filter(username=self.username).first()
+        if not existing:
+            return do_write()
+
+        # Re-use the existing user if merging is enabled.
+        if flags.merge_users:
+            return (existing.pk, ImportKind.Existing)
+
+        # We already have a user with this `username`, but merging users has not been enabled. In
+        # this case, add a random suffix to the importing username.
+        lock = locks.get(f"user:username:{self.id}", duration=10, name="username")
+        with TimedRetryPolicy(10)(lock.acquire):
+            unique_db_instance(
+                self,
+                self.username,
+                max_length=MAX_USERNAME_LENGTH,
+                field_name="username",
+            )
+
+            # Perform the remainder of the write while we're still holding the lock.
+            return do_write()
+
+    @classmethod
+    def handle_async_deletion(
+        cls,
+        identifier: int,
+        region_name: str,
+        shard_identifier: int,
+        payload: Mapping[str, Any] | None,
+    ) -> None:
+        from sentry.hybridcloud.rpc.services.caching import region_caching_service
+        from sentry.services.hybrid_cloud.user.service import get_user
+
+        region_caching_service.clear_key(key=get_user.key_from(identifier), region_name=region_name)
+
+    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+        from sentry.hybridcloud.rpc.services.caching import region_caching_service
+        from sentry.services.hybrid_cloud.user.service import get_user
+
+        region_caching_service.clear_key(key=get_user.key_from(self.id), region_name=region_name)
+        organization_service.update_region_user(
+            user=RpcRegionUser(
+                id=self.id,
+                is_active=self.is_active,
+                email=self.email,
+            ),
+            region_name=region_name,
+        )
 
 
 # HACK(dcramer): last_login needs nullable for Django 1.8
@@ -426,3 +526,14 @@ def refresh_user_nonce(sender, request, user, **kwargs):
         return
     user.refresh_session_nonce()
     user.save(update_fields=["session_nonce"])
+
+
+@receiver(user_logged_out, sender=RpcUser)
+def refresh_api_user_nonce(sender, request, user, **kwargs):
+    if user is None:
+        return
+    user = User.objects.get(id=user.id)
+    refresh_user_nonce(sender, request, user, **kwargs)
+
+
+OutboxCategory.USER_UPDATE.connect_control_model_updates(User)

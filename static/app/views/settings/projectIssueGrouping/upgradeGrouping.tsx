@@ -2,16 +2,18 @@ import {Fragment, useEffect} from 'react';
 import {Location} from 'history';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
-import ProjectActions from 'sentry/actions/projectActions';
 import {Client} from 'sentry/api';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
-import Field from 'sentry/components/forms/field';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {EventGroupingConfig, Organization, Project} from 'sentry/types';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import marked from 'sentry/utils/marked';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -44,7 +46,7 @@ function UpgradeGrouping({
     groupingConfigs
   );
   const {riskNote, alertType} = getGroupingRisk(riskLevel);
-  const noUpdates = !latestGroupingConfig;
+  const noUpdates = project.groupingAutoUpdate || !latestGroupingConfig;
   const priority = riskLevel >= 2 ? 'danger' : 'primary';
 
   useEffect(() => {
@@ -57,6 +59,7 @@ function UpgradeGrouping({
       return;
     }
     handleOpenConfirmModal();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.hash]);
 
   if (!groupingConfigs) {
@@ -85,10 +88,10 @@ function UpgradeGrouping({
         }
       );
       clearIndicators();
-      ProjectActions.updateSuccess(response);
+      ProjectsStore.onUpdateSuccess(response);
       onUpgrade();
-    } catch {
-      handleXhrErrorResponse(t('Unable to upgrade config'));
+    } catch (err) {
+      handleXhrErrorResponse('Unable to upgrade config', err);
     }
   }
 
@@ -120,6 +123,10 @@ function UpgradeGrouping({
   }
 
   function getButtonTitle() {
+    if (project.groupingAutoUpdate) {
+      return t('Disabled because automatic upgrading is enabled');
+    }
+
     if (!hasProjectWriteAccess) {
       return t('You do not have sufficient permissions to do this');
     }
@@ -135,7 +142,7 @@ function UpgradeGrouping({
     <Panel id={upgradeGroupingId}>
       <PanelHeader>{t('Upgrade Grouping')}</PanelHeader>
       <PanelBody>
-        <Field
+        <FieldGroup
           label={t('Upgrade Grouping Strategy')}
           help={tct(
             'If the project uses an old grouping strategy an update is possible.[linebreak]Doing so will cause new events to group differently.',
@@ -150,13 +157,12 @@ function UpgradeGrouping({
               onClick={handleOpenConfirmModal}
               disabled={!hasProjectWriteAccess || noUpdates}
               title={getButtonTitle()}
-              type="button"
               priority={priority}
             >
               {t('Upgrade Grouping Strategy')}
             </Button>
           </div>
-        </Field>
+        </FieldGroup>
       </PanelBody>
     </Panel>
   );

@@ -1,6 +1,7 @@
 import {Component, Fragment} from 'react';
 
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import {Organization, Project} from 'sentry/types';
 import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
 import {replaceAtArrayIndex} from 'sentry/utils/replaceAtArrayIndex';
@@ -23,7 +24,6 @@ type Props = {
   currentProject: string;
   disabled: boolean;
   errors: Map<number, {[fieldName: string]: string}>;
-  hasAlertWizardV3: boolean;
   onChange: (
     triggers: Trigger[],
     triggerIndex?: number,
@@ -104,7 +104,6 @@ class Triggers extends Component<Props> {
       thresholdPeriod,
       comparisonType,
       resolveThreshold,
-      hasAlertWizardV3,
       onThresholdTypeChange,
       onResolveThresholdChange,
       onThresholdPeriodChange,
@@ -126,7 +125,6 @@ class Triggers extends Component<Props> {
               thresholdType={thresholdType}
               thresholdPeriod={thresholdPeriod}
               comparisonType={comparisonType}
-              hasAlertWizardV3={hasAlertWizardV3}
               onChange={this.handleChangeTrigger}
               onThresholdTypeChange={onThresholdTypeChange}
               onResolveThresholdChange={onResolveThresholdChange}
@@ -142,7 +140,6 @@ class Triggers extends Component<Props> {
           availableActions={availableActions}
           currentProject={currentProject}
           organization={organization}
-          hasAlertWizardV3={hasAlertWizardV3}
           projects={projects}
           triggers={triggers}
           onChange={this.handleChangeActions}

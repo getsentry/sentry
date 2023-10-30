@@ -3,12 +3,11 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import FeatureBadge from 'sentry/components/featureBadge';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
@@ -116,14 +115,11 @@ function SuspectSpansHeader(props: HeaderProps) {
 
   return (
     <Header>
-      <div>
-        <SectionHeading>{t('Suspect Spans')}</SectionHeading>
-        <FeatureBadge type="new" />
-      </div>
-      <Button to={viewAllTarget} size="xsmall" data-test-id="suspect-spans-open-tab">
+      <SectionHeading>{t('Suspect Spans')}</SectionHeading>
+      <Button to={viewAllTarget} size="xs" data-test-id="suspect-spans-open-tab">
         {t('View All Spans')}
       </Button>
-      <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="xsmall" />
+      <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="xs" />
     </Header>
   );
 }

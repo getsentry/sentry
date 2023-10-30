@@ -1,9 +1,8 @@
-from django.http import Http404, HttpResponse
-from rest_framework.request import Request
-from rest_framework.response import Response
+from django.http import Http404, HttpRequest, HttpResponse
 
 from sentry import eventstore
-from sentry.models import Group, GroupMeta, get_group_with_redirect
+from sentry.models.group import Group, get_group_with_redirect
+from sentry.models.groupmeta import GroupMeta
 from sentry.utils import json
 from sentry.web.frontend.base import OrganizationView
 
@@ -11,7 +10,7 @@ from sentry.web.frontend.base import OrganizationView
 class GroupEventJsonView(OrganizationView):
     required_scope = "event:read"
 
-    def get(self, request: Request, organization, group_id, event_id_or_latest) -> Response:
+    def get(self, request: HttpRequest, organization, group_id, event_id_or_latest) -> HttpResponse:
         try:
             # TODO(tkaemming): This should *actually* redirect, see similar
             # comment in ``GroupEndpoint.convert_args``.
@@ -22,7 +21,7 @@ class GroupEventJsonView(OrganizationView):
         if event_id_or_latest == "latest":
             event = group.get_latest_event()
         else:
-            event = eventstore.get_event_by_id(
+            event = eventstore.backend.get_event_by_id(
                 group.project.id, event_id_or_latest, group_id=group.id
             )
 

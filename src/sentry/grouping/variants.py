@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
 
 
 class BaseVariant:
     # The type of the variant that is reported to the UI.
-    type = None
+    type: str | None = None
 
     # This is true if `get_hash` does not return `None`.
     contributes = True
@@ -22,9 +24,6 @@ class BaseVariant:
         rv = {"type": self.type, "description": self.description, "hash": self.get_hash()}
         rv.update(self._get_metadata_as_dict())
         return rv
-
-    def encode_for_similarity(self):
-        raise NotImplementedError()
 
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.get_hash()!r} ({self.type})>"
@@ -45,9 +44,6 @@ class ChecksumVariant(BaseVariant):
             return "hashed legacy checksum"
         return "legacy checksum"
 
-    def encode_for_similarity(self):
-        return ()
-
     def get_hash(self):
         return self.hash
 
@@ -56,11 +52,37 @@ class FallbackVariant(BaseVariant):
     id = "fallback"
     contributes = True
 
-    def encode_for_similarity(self):
-        return ()
-
     def get_hash(self):
         return hash_from_values([])
+
+
+class PerformanceProblemVariant(BaseVariant):
+    """
+    Applies only to transaction events! Transactions are not subject to the
+    normal grouping pipeline. Instead, they are fingerprinted by
+    `PerformanceDetector` when the event is saved by `EventManager`. We detect
+    problems, generate some metadata called "evidence" and use that evidence
+    for fingerprinting. The evidence is then stored in `nodestore`. This
+        variant's hash is delegated to the `EventPerformanceProblem` that
+        contains the event and the evidence.
+    """
+
+    type = "performance-problem"
+    description = "performance problem"
+    contributes = True
+
+    def __init__(self, event_performance_problem):
+        self.event_performance_problem = event_performance_problem
+        self.problem = event_performance_problem.problem
+
+    def get_hash(self):
+        return self.problem.fingerprint
+
+    def _get_metadata_as_dict(self):
+        problem_data = self.problem.to_dict()
+        evidence_hashes = self.event_performance_problem.evidence_hashes
+
+        return {"evidence": {**problem_data, **evidence_hashes}}
 
 
 class ComponentVariant(BaseVariant):
@@ -84,9 +106,6 @@ class ComponentVariant(BaseVariant):
 
     def get_hash(self):
         return self.component.get_hash()
-
-    def encode_for_similarity(self):
-        return self.component.encode_for_similarity()
 
     def _get_metadata_as_dict(self):
         return {"component": self.component.as_dict(), "config": self.config.as_dict()}
@@ -130,10 +149,6 @@ class CustomFingerprintVariant(BaseVariant):
     def get_hash(self):
         return hash_from_values(self.values)
 
-    def encode_for_similarity(self):
-        for value in self.values:
-            yield ("fingerprint", "ident-shingle"), [value]
-
     def _get_metadata_as_dict(self):
         return expose_fingerprint_dict(self.values, self.info)
 
@@ -162,13 +177,6 @@ class SaltedComponentVariant(ComponentVariant):
             else:
                 final_values.append(value)
         return hash_from_values(final_values)
-
-    def encode_for_similarity(self):
-        yield from ComponentVariant.encode_for_similarity(self)
-
-        for value in self.values:
-            if not is_default_fingerprint_var(value):
-                yield ("fingerprint", "ident-shingle"), [value]
 
     def _get_metadata_as_dict(self):
         rv = ComponentVariant._get_metadata_as_dict(self)

@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -13,7 +14,7 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureTourModal, {
   TourImage,
@@ -21,10 +22,17 @@ import FeatureTourModal, {
   TourText,
 } from 'sentry/components/modals/featureTourModal';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
+import {SidebarPanelKey} from 'sentry/components/sidebar/types';
+import {withPerformanceOnboarding} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import useProjects from 'sentry/utils/useProjects';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 const performanceSetupUrl =
   'https://docs.sentry.io/performance-monitoring/getting-started/';
@@ -92,9 +100,27 @@ type Props = {
 
 function Onboarding({organization, project}: Props) {
   const api = useApi();
+  const {projects} = useProjects();
+  const location = useLocation();
+
+  const {projectsForOnboarding} = filterProjects(projects);
+
+  const showOnboardingChecklist = organization.features?.includes(
+    'performance-onboarding-checklist'
+  );
+
+  useEffect(() => {
+    if (
+      showOnboardingChecklist &&
+      location.hash === '#performance-sidequest' &&
+      projectsForOnboarding.some(p => p.id === project.id)
+    ) {
+      SidebarPanelStore.activatePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING);
+    }
+  }, [location.hash, projectsForOnboarding, project.id, showOnboardingChecklist]);
 
   function handleAdvance(step: number, duration: number) {
-    trackAdvancedAnalyticsEvent('performance_views.tour.advance', {
+    trackAnalytics('performance_views.tour.advance', {
       step,
       duration,
       organization,
@@ -102,11 +128,41 @@ function Onboarding({organization, project}: Props) {
   }
 
   function handleClose(step: number, duration: number) {
-    trackAdvancedAnalyticsEvent('performance_views.tour.close', {
+    trackAnalytics('performance_views.tour.close', {
       step,
       duration,
       organization,
     });
+  }
+
+  const currentPlatform = project.platform;
+  const hasPerformanceOnboarding = currentPlatform
+    ? withPerformanceOnboarding.has(currentPlatform)
+    : false;
+
+  let setupButton = (
+    <Button
+      priority="primary"
+      href="https://docs.sentry.io/performance-monitoring/getting-started/"
+      external
+    >
+      {t('Start Setup')}
+    </Button>
+  );
+
+  if (hasPerformanceOnboarding && showOnboardingChecklist) {
+    setupButton = (
+      <Button
+        priority="primary"
+        onClick={event => {
+          event.preventDefault();
+          window.location.hash = 'performance-sidequest';
+          SidebarPanelStore.activatePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING);
+        }}
+      >
+        {t('Start Checklist')}
+      </Button>
+    );
   }
 
   return (
@@ -118,17 +174,11 @@ function Onboarding({organization, project}: Props) {
         )}
       </p>
       <ButtonList gap={1}>
-        <Button
-          priority="primary"
-          target="_blank"
-          href="https://docs.sentry.io/performance-monitoring/getting-started/"
-        >
-          {t('Start Setup')}
-        </Button>
+        {setupButton}
         <Button
           data-test-id="create-sample-transaction-btn"
           onClick={async () => {
-            trackAdvancedAnalyticsEvent('performance_views.create_sample_transaction', {
+            trackAnalytics('performance_views.create_sample_transaction', {
               platform: project.platform,
               organization,
             });
@@ -139,7 +189,9 @@ function Onboarding({organization, project}: Props) {
             try {
               const eventData = await api.requestPromise(url, {method: 'POST'});
               browserHistory.push(
-                `/organizations/${organization.slug}/performance/${project.slug}:${eventData.eventID}/`
+                normalizeUrl(
+                  `/organizations/${organization.slug}/performance/${project.slug}:${eventData.eventID}/`
+                )
               );
               clearIndicators();
             } catch (error) {
@@ -167,7 +219,7 @@ function Onboarding({organization, project}: Props) {
           <Button
             priority="link"
             onClick={() => {
-              trackAdvancedAnalyticsEvent('performance_views.tour.start', {organization});
+              trackAnalytics('performance_views.tour.start', {organization});
               showModal();
             }}
           >

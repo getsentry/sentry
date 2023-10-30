@@ -4,15 +4,15 @@ import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
-import SelectControl from 'sentry/components/forms/selectControl';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {IconAdd, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project, SelectValue} from 'sentry/types';
 import {uniqueId} from 'sentry/utils/guid';
 import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
@@ -36,7 +36,6 @@ type Props = {
   currentProject: string;
   disabled: boolean;
   error: boolean;
-  hasAlertWizardV3: boolean;
   loading: boolean;
   onAdd: (triggerIndex: number, action: Action) => void;
   onChange: (triggerIndex: number, triggers: Trigger[], actions: Action[]) => void;
@@ -143,25 +142,45 @@ class ActionsPanel extends PureComponent<Props> {
     const {triggers} = this.props;
     const {actions} = triggers[triggerIndex];
     const newAction = {...actions[index]};
-    if (newAction.type !== 'slack') {
-      return null;
+    if (newAction.type === 'slack') {
+      return (
+        <MarginlessAlert
+          type="info"
+          showIcon
+          trailingItems={
+            <Button
+              href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error"
+              external
+              size="xs"
+            >
+              {t('Learn More')}
+            </Button>
+          }
+        >
+          {t('Having rate limiting problems? Enter a channel or user ID.')}
+        </MarginlessAlert>
+      );
     }
-    return (
-      <MarginlessAlert
-        type="info"
-        showIcon
-        trailingItems={
-          <Button
-            href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error"
-            size="xsmall"
-          >
-            {t('Learn More')}
-          </Button>
-        }
-      >
-        {t('Having rate limiting problems? Enter a channel or user ID.')}
-      </MarginlessAlert>
-    );
+    if (newAction.type === 'discord') {
+      return (
+        <MarginlessAlert
+          type="info"
+          showIcon
+          trailingItems={
+            <Button
+              href="https://docs.sentry.io/product/accounts/early-adopter-features/discord/#issue-alerts"
+              external
+              size="xs"
+            >
+              {t('Learn More')}
+            </Button>
+          }
+        >
+          {t('Note that you must enter a Discord channel ID, not a channel name.')}
+        </MarginlessAlert>
+      );
+    }
+    return null;
   }
 
   handleAddAction = () => {
@@ -273,7 +292,6 @@ class ActionsPanel extends PureComponent<Props> {
       organization,
       projects,
       triggers,
-      hasAlertWizardV3,
     } = this.props;
 
     const project = projects.find(({slug}) => slug === currentProject);
@@ -310,16 +328,7 @@ class ActionsPanel extends PureComponent<Props> {
 
     return (
       <Fragment>
-        <PerformActionsListItem>
-          {hasAlertWizardV3 ? t('Set actions') : t('Perform actions')}
-          {!hasAlertWizardV3 && (
-            <AlertParagraph>
-              {t(
-                'When any of the thresholds above are met, perform an action such as sending an email or using an integration.'
-              )}
-            </AlertParagraph>
-          )}
-        </PerformActionsListItem>
+        <PerformActionsListItem>{t('Set actions')}</PerformActionsListItem>
         {loading && <LoadingIndicator />}
         {actions.map(({action, actionIdx, triggerIndex, availableAction}) => {
           const actionDisabled =
@@ -377,7 +386,6 @@ class ActionsPanel extends PureComponent<Props> {
                       availableAction.settings ? (
                       <Button
                         icon={<IconSettings />}
-                        type="button"
                         disabled={actionDisabled}
                         onClick={() => {
                           openModal(
@@ -400,7 +408,7 @@ class ActionsPanel extends PureComponent<Props> {
                                 }
                               />
                             ),
-                            {allowClickClose: false}
+                            {closeEvents: 'escape-key'}
                           );
                         }}
                       >
@@ -446,7 +454,6 @@ class ActionsPanel extends PureComponent<Props> {
         })}
         <ActionSection>
           <Button
-            type="button"
             disabled={disabled || loading}
             icon={<IconAdd isCircled color="gray300" />}
             onClick={this.handleAddAction}
@@ -466,12 +473,6 @@ const ActionsPanelWithSpace = styled(ActionsPanel)`
 const ActionSection = styled('div')`
   margin-top: ${space(1)};
   margin-bottom: ${space(3)};
-`;
-
-const AlertParagraph = styled('p')`
-  color: ${p => p.theme.subText};
-  margin-bottom: ${space(1)};
-  font-size: ${p => p.theme.fontSizeLarge};
 `;
 
 const PanelItemGrid = styled(PanelItem)`

@@ -1,9 +1,14 @@
 from io import BytesIO
 
-from sentry.models import EventAttachment, File
-from sentry.testutils import APITestCase, PermissionTestCase
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.files.file import File
+from sentry.testutils.cases import APITestCase, PermissionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.response import close_streaming_response
+from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 class CreateAttachmentMixin:
@@ -35,6 +40,7 @@ class CreateAttachmentMixin:
         return self.attachment
 
 
+@region_silo_test(stable=True)
 class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -48,6 +54,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.attachment.id)
         assert response.data["mimetype"] == self.attachment.mimetype
+        assert response.data["event_id"] == self.event.event_id
 
     def test_download(self):
         self.login_as(user=self.user)
@@ -62,7 +69,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
         assert response.get("Content-Length") == str(self.file.size)
         assert response.get("Content-Type") == "application/octet-stream"
-        assert b"File contents here" == b"".join(response.streaming_content)
+        assert b"File contents here" == close_streaming_response(response)
 
     def test_delete(self):
         self.login_as(user=self.user)
@@ -77,6 +84,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert EventAttachment.objects.count() == 0
 
 
+@region_silo_test(stable=True)
 class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentMixin):
     def setUp(self):
         super().setUp()
@@ -93,6 +101,14 @@ class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentM
         with self.feature("organizations:event-attachments"):
             self.assert_member_cannot_access(self.path)
             close_streaming_response(self.assert_can_access(self.owner, self.path))
+
+    def test_member_on_owner_team_can_access_for_owner_role(self):
+        self.organization.update_option("sentry:attachments_role", "owner")
+        owner_team = self.create_team(organization=self.organization, org_role="owner")
+        user = self.create_user()
+        self.create_member(organization=self.organization, user=user, teams=[owner_team, self.team])
+        with self.feature("organizations:event-attachments"):
+            close_streaming_response(self.assert_can_access(user, self.path))
 
     def test_random_user_cannot_access(self):
         self.organization.update_option("sentry:attachments_role", "owner")

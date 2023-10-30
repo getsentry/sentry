@@ -1,28 +1,38 @@
+from __future__ import annotations
+
 from django.conf import settings
-from django.conf.urls import url
-from django.urls import reverse
+from django.urls import re_path, reverse
 from django.utils.html import format_html
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers.models.plugin import PluginSerializer
 
 # api compat
 from sentry.exceptions import PluginError  # NOQA
-from sentry.models import Activity, GroupMeta
+from sentry.models.activity import Activity
+from sentry.models.groupmeta import GroupMeta
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.plugins.base.v1 import Plugin
 from sentry.plugins.endpoints import PluginGroupEndpoint
+from sentry.services.hybrid_cloud.usersocialauth.model import RpcUserSocialAuth
+from sentry.services.hybrid_cloud.usersocialauth.service import usersocialauth_service
 from sentry.signals import issue_tracker_used
 from sentry.types.activity import ActivityType
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
-from social_auth.models import UserSocialAuth
 
 
 # TODO(dcramer): remove this in favor of GroupEndpoint
+@region_silo_endpoint
 class IssueGroupActionEndpoint(PluginGroupEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     view_method_name = None
     plugin = None
 
@@ -33,13 +43,13 @@ class IssueGroupActionEndpoint(PluginGroupEndpoint):
 
 
 class IssueTrackingPlugin2(Plugin):
-    auth_provider = None
+    auth_provider: str | None = None
 
     allowed_actions = ("create", "link", "unlink")
 
     # we default this to None to support legacy integrations, but newer style
     # should explicitly call out what is stored
-    issue_fields = None
+    issue_fields: frozenset[str] | None = None
     # issue_fields = frozenset(['id', 'title', 'url'])
 
     def configure(self, project, request):
@@ -78,26 +88,26 @@ class IssueTrackingPlugin2(Plugin):
         for action in self.allowed_actions:
             view_method_name = "view_%s" % action
             _urls.append(
-                url(
+                re_path(
                     r"^%s/" % action,
                     PluginGroupEndpoint.as_view(view=getattr(self, view_method_name)),
                 )
             )
         return _urls
 
-    def get_auth_for_user(self, user, **kwargs):
+    def get_auth_for_user(self, user, **kwargs) -> RpcUserSocialAuth:
         """
-        Return a ``UserSocialAuth`` object for the given user based on this plugins ``auth_provider``.
+        Return a ``RpcUserSocialAuth`` object for the given user based on this plugins ``auth_provider``.
         """
         assert self.auth_provider, "There is no auth provider configured for this plugin."
 
         if not user.is_authenticated:
             return None
 
-        try:
-            return UserSocialAuth.objects.filter(user=user, provider=self.auth_provider)[0]
-        except IndexError:
-            return None
+        auth = usersocialauth_service.get_one_or_none(
+            filter={"user_id": user.id, "provider": self.auth_provider}
+        )
+        return auth
 
     def needs_auth(self, request: Request, project, **kwargs):
         """
@@ -110,9 +120,10 @@ class IssueTrackingPlugin2(Plugin):
         if not request.user.is_authenticated:
             return True
 
-        return not UserSocialAuth.objects.filter(
-            user=request.user, provider=self.auth_provider
-        ).exists()
+        auth = usersocialauth_service.get_one_or_none(
+            filter={"user_id": request.user.id, "provider": self.auth_provider}
+        )
+        return not bool(auth)
 
     def get_new_issue_fields(self, request: Request, group, event, **kwargs):
         """
@@ -271,7 +282,7 @@ class IssueTrackingPlugin2(Plugin):
             project=group.project,
             group=group,
             type=ActivityType.CREATE_ISSUE.value,
-            user=request.user,
+            user_id=request.user.id,
             data=issue_information,
         )
 
@@ -338,7 +349,7 @@ class IssueTrackingPlugin2(Plugin):
             project=group.project,
             group=group,
             type=ActivityType.CREATE_ISSUE.value,
-            user=request.user,
+            user_id=request.user.id,
             data=issue_information,
         )
         return Response(
@@ -406,7 +417,9 @@ class IssueTrackingPlugin2(Plugin):
         if self.needs_auth(project=group.project, request=request):
             return {
                 "error_type": "auth",
-                "auth_url": reverse("socialauth_associate", args=[self.auth_provider]),
+                "auth_url": absolute_uri(
+                    reverse("socialauth_associate", args=[self.auth_provider])
+                ),
             }
 
     # TODO: should we get rid of this (move it to react?)

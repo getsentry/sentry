@@ -3,11 +3,12 @@ import logging
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features as feature_flags
 from sentry import similarity
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import Group
+from sentry.models.group import Group
 
 logger = logging.getLogger(__name__)
 
@@ -18,18 +19,14 @@ def _fix_label(label):
     return label
 
 
+@region_silo_endpoint
 class GroupSimilarIssuesEndpoint(GroupEndpoint):
-    def get(self, request: Request, group) -> Response:
-        version = request.GET.get("version", None)
-        if version == "2":
-            if not feature_flags.has("projects:similarity-view-v2", group.project):
-                return Response({"error": "Project does not have Similarity V2 feature."})
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
 
-            features = similarity.features2
-        elif version in ("1", None):
-            features = similarity.features
-        else:
-            return Response({"error": "Invalid value for version parameter."})
+    def get(self, request: Request, group) -> Response:
+        features = similarity.features
 
         limit = request.GET.get("limit", None)
         if limit is not None:

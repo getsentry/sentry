@@ -1,52 +1,48 @@
 import {cloneElement, isValidElement, useState} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {joinTeam} from 'sentry/actionCreators/teams';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import IdBadge from 'sentry/components/idBadge';
 import ListLink from 'sentry/components/links/listLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NavTabs from 'sentry/components/navTabs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import TeamStore from 'sentry/stores/teamStore';
-import {Team} from 'sentry/types';
-import recreateRoute from 'sentry/utils/recreateRoute';
 import useApi from 'sentry/utils/useApi';
-import useTeams from 'sentry/utils/useTeams';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
 
 type Props = {
   children: React.ReactNode;
-} & RouteComponentProps<{orgId: string; teamId: string}, {}>;
+} & RouteComponentProps<{teamId: string}, {}>;
 
-function TeamDetails({children, ...props}: Props) {
+function TeamDetails({children}: Props) {
   const api = useApi();
-  const [currentTeam, setCurrentTeam] = useState(
-    TeamStore.getBySlug(props.params.teamId)
-  );
+  const params = useParams();
+  const orgSlug = useOrganization().slug;
   const [requesting, setRequesting] = useState(false);
+  const {teams, isLoading, isError} = useTeamsById({slugs: [params.teamId]});
+  const team = teams.find(({slug}) => slug === params.teamId);
 
-  function handleRequestAccess(team: Team) {
-    if (!team) {
-      return;
-    }
-
+  function handleRequestAccess(teamSlug: string) {
     setRequesting(true);
 
     joinTeam(
       api,
       {
-        orgId: props.params.orgId,
-        teamId: team.slug,
+        orgId: orgSlug,
+        teamId: teamSlug,
       },
       {
         success: () => {
           addSuccessMessage(
             tct('You have requested access to [team]', {
-              team: `#${team.slug}`,
+              team: `#${teamSlug}`,
             })
           );
           setRequesting(false);
@@ -54,7 +50,7 @@ function TeamDetails({children, ...props}: Props) {
         error: () => {
           addErrorMessage(
             tct('Unable to request access to [team]', {
-              team: `#${team.slug}`,
+              team: `#${teamSlug}`,
             })
           );
           setRequesting(false);
@@ -63,22 +59,7 @@ function TeamDetails({children, ...props}: Props) {
     );
   }
 
-  function onTeamChange(data: Team) {
-    if (currentTeam !== data) {
-      const orgId = props.params.orgId;
-      browserHistory.replace(`/organizations/${orgId}/teams/${data.slug}/settings/`);
-    } else {
-      setCurrentTeam({...currentTeam, ...data});
-    }
-  }
-
-  // `/organizations/${orgId}/teams/${teamId}`;
-  const routePrefix = recreateRoute('', {
-    routes: props.routes,
-    params: props.params,
-    stepBack: -1,
-  });
-
+  const routePrefix = `/settings/${orgSlug}/teams/${params.teamId}/`;
   const navigationTabs = [
     <ListLink key={0} to={`${routePrefix}members/`}>
       {t('Members')}
@@ -94,62 +75,48 @@ function TeamDetails({children, ...props}: Props) {
     </ListLink>,
   ];
 
-  const {teams, initiallyLoaded} = useTeams({slugs: [props.params.teamId]});
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (!team || isError) {
+    return (
+      <Alert type="warning">
+        <div>{t('This team does not exist, or you do not have access to it.')}</div>
+      </Alert>
+    );
+  }
 
   return (
     <div>
-      {initiallyLoaded ? (
-        teams.length ? (
-          teams.map((team, i) => {
-            if (!team || !team.hasAccess) {
-              return (
-                <Alert type="warning">
-                  {team ? (
-                    <RequestAccessWrapper>
-                      {tct('You do not have access to the [teamSlug] team.', {
-                        teamSlug: <strong>{`#${team.slug}`}</strong>,
-                      })}
-                      <Button
-                        disabled={requesting || team.isPending}
-                        size="small"
-                        onClick={() => handleRequestAccess(team)}
-                      >
-                        {team.isPending ? t('Request Pending') : t('Request Access')}
-                      </Button>
-                    </RequestAccessWrapper>
-                  ) : (
-                    <div>{t('You do not have access to this team.')}</div>
-                  )}
-                </Alert>
-              );
-            }
-            return (
-              <div key={i}>
-                <SentryDocumentTitle
-                  title={t('Team Details')}
-                  orgSlug={props.params.orgId}
-                />
-                <h3>
-                  <IdBadge hideAvatar team={team} avatarSize={36} />
-                </h3>
+      <SentryDocumentTitle title={t('Team Details')} orgSlug={orgSlug} />
+      {team.hasAccess ? (
+        <div>
+          <h3>
+            <IdBadge hideAvatar hideOverflow={false} team={team} avatarSize={36} />
+          </h3>
 
-                <NavTabs underlined>{navigationTabs}</NavTabs>
+          <NavTabs underlined>{navigationTabs}</NavTabs>
 
-                {isValidElement(children) &&
-                  cloneElement(children, {
-                    team,
-                    onTeamChange: () => onTeamChange(team),
-                  })}
-              </div>
-            );
-          })
-        ) : (
-          <Alert type="warning">
-            <div>{t('You do not have access to this team.')}</div>
-          </Alert>
-        )
+          {isValidElement(children) ? cloneElement<any>(children, {team}) : null}
+        </div>
       ) : (
-        <LoadingIndicator />
+        <Alert type="warning">
+          <RequestAccessWrapper>
+            <div>
+              {tct('You do not have access to the [teamSlug] team.', {
+                teamSlug: <strong>{`#${team.slug}`}</strong>,
+              })}
+            </div>
+            <Button
+              disabled={requesting || team.isPending}
+              size="sm"
+              onClick={() => handleRequestAccess(team.slug)}
+            >
+              {team.isPending ? t('Request Pending') : t('Request Access')}
+            </Button>
+          </RequestAccessWrapper>
+        </Alert>
       )}
     </div>
   );

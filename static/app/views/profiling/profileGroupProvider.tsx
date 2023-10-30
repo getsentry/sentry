@@ -1,90 +1,55 @@
-import {createContext, useContext, useEffect, useState} from 'react';
+import {createContext, useContext, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Client} from 'sentry/api';
-import {ProfileHeader} from 'sentry/components/profiling/profileHeader';
-import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
-import {RequestState} from 'sentry/types/core';
+import {Frame} from 'sentry/utils/profiling/frame';
 import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 
-function fetchFlamegraphs(
-  api: Client,
-  eventId: string,
-  projectId: Project['id'],
-  organization: Organization
-): Promise<ProfileGroup> {
-  return api
-    .requestPromise(
-      `/projects/${organization.slug}/${projectId}/profiling/profiles/${eventId}/`,
-      {
-        method: 'GET',
-        includeAllArgs: true,
-      }
-    )
-    .then(([data]) => importProfile(data, eventId));
-}
+type ProfileGroupContextValue = ProfileGroup;
 
-interface FlamegraphViewProps {
-  children: React.ReactNode;
-}
+const ProfileGroupContext = createContext<ProfileGroupContextValue | null>(null);
 
-const ProfileGroupContext = createContext<
-  | [
-      RequestState<ProfileGroup>,
-      React.Dispatch<React.SetStateAction<RequestState<ProfileGroup>>>
-    ]
-  | null
->(null);
-
-export const useProfileGroup = () => {
+export function useProfileGroup() {
   const context = useContext(ProfileGroupContext);
   if (!context) {
     throw new Error('useProfileGroup was called outside of ProfileGroupProvider');
   }
   return context;
+}
+
+const LoadingGroup: ProfileGroup = {
+  name: 'Loading',
+  activeProfileIndex: 0,
+  transactionID: null,
+  metadata: {},
+  measurements: {},
+  traceID: '',
+  profiles: [],
 };
 
-function ProfileGroupProvider(props: FlamegraphViewProps): React.ReactElement {
-  const api = useApi();
-  const organization = useOrganization();
-  const params = useParams();
+interface ProfileGroupProviderProps {
+  children: React.ReactNode;
+  input: Readonly<Profiling.ProfileInput> | null;
+  traceID: string;
+  type: 'flamegraph' | 'flamechart';
+  frameFilter?: (frame: Frame) => boolean;
+}
 
-  const [profileGroupState, setProfileGroupState] = useState<RequestState<ProfileGroup>>({
-    type: 'initial',
-  });
-
-  useEffect(() => {
-    if (!params.eventId || !params.projectId) {
-      return undefined;
+export function ProfileGroupProvider(props: ProfileGroupProviderProps) {
+  const profileGroup = useMemo(() => {
+    if (!props.input) {
+      return LoadingGroup;
     }
-
-    setProfileGroupState({type: 'loading'});
-
-    fetchFlamegraphs(api, params.eventId, params.projectId, organization)
-      .then(importedFlamegraphs => {
-        setProfileGroupState({type: 'resolved', data: importedFlamegraphs});
-      })
-      .catch(err => {
-        const message = err.toString() || t('Error: Unable to load profiles');
-        setProfileGroupState({type: 'errored', error: message});
-        Sentry.captureException(err);
-      });
-
-    return () => {
-      api.clear();
-    };
-  }, [params.eventId, params.projectId, api, organization]);
+    try {
+      return importProfile(props.input, props.traceID, props.type, props.frameFilter);
+    } catch (err) {
+      Sentry.captureException(err);
+      return LoadingGroup;
+    }
+  }, [props.input, props.traceID, props.type, props.frameFilter]);
 
   return (
-    <ProfileGroupContext.Provider value={[profileGroupState, setProfileGroupState]}>
-      <ProfileHeader />
+    <ProfileGroupContext.Provider value={profileGroup}>
       {props.children}
     </ProfileGroupContext.Provider>
   );
 }
-
-export default ProfileGroupProvider;

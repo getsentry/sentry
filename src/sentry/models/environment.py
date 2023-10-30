@@ -1,10 +1,18 @@
 import re
+from urllib.parse import unquote
 
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import ENVIRONMENT_NAME_MAX_LENGTH, ENVIRONMENT_NAME_PATTERN
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    FlexibleForeignKey,
+    Model,
+    region_silo_only_model,
+    sane_repr,
+)
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
@@ -12,12 +20,13 @@ from sentry.utils.hashlib import md5_text
 OK_NAME_PATTERN = re.compile(ENVIRONMENT_NAME_PATTERN)
 
 
+@region_silo_only_model
 class EnvironmentProject(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Organization
 
     project = FlexibleForeignKey("sentry.Project")
     environment = FlexibleForeignKey("sentry.Environment")
-    is_hidden = models.NullBooleanField()
+    is_hidden = models.BooleanField(null=True)
 
     class Meta:
         app_label = "sentry"
@@ -25,13 +34,12 @@ class EnvironmentProject(Model):
         unique_together = (("project", "environment"),)
 
 
+@region_silo_only_model
 class Environment(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Organization
 
-    organization_id = BoundedPositiveIntegerField()
+    organization_id = BoundedBigIntegerField()
     projects = models.ManyToManyField("sentry.Project", through=EnvironmentProject)
-    # DEPRECATED, use projects
-    project_id = BoundedPositiveIntegerField(null=True)
     name = models.CharField(max_length=64)
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -46,7 +54,7 @@ class Environment(Model):
     def is_valid_name(cls, value):
         """Limit length and reject problematic bytes
 
-        If you change the rules here also update the event ingestion schema in Relay.
+        If you change the rules here also update the event + monitor check-in ingestion schema in Relay.
         """
         if len(value) > ENVIRONMENT_NAME_MAX_LENGTH:
             return False
@@ -99,7 +107,7 @@ class Environment(Model):
 
         if cache.get(cache_key) is None:
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(EnvironmentProject)):
                     EnvironmentProject.objects.create(
                         project=project, environment=self, is_hidden=is_hidden
                     )
@@ -115,4 +123,4 @@ class Environment(Model):
         # environment name for historic reasons (see commit b09858f.) In all
         # other contexts (incl. request query string parameters), the empty
         # string should be used.
-        return segment if segment != "none" else ""
+        return unquote(segment) if segment != "none" else ""

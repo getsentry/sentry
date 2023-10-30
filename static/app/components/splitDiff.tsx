@@ -14,7 +14,7 @@ type Props = {
   type?: keyof typeof diffFnMap;
 };
 
-const SplitDiff = ({className, type = 'lines', base, target}: Props) => {
+function SplitDiff({className, type = 'lines', base, target}: Props) {
   const diffFn = diffFnMap[type];
 
   const baseLines = base.split('\n');
@@ -28,7 +28,7 @@ const SplitDiff = ({className, type = 'lines', base, target}: Props) => {
   );
 
   return (
-    <SplitTable className={className}>
+    <SplitTable className={className} data-test-id="split-diff">
       <SplitBody>
         {results.map((line, j) => {
           const highlightAdded = line.find(result => result.added);
@@ -67,7 +67,7 @@ const SplitDiff = ({className, type = 'lines', base, target}: Props) => {
       </SplitBody>
     </SplitTable>
   );
-};
+}
 
 const SplitTable = styled('table')`
   table-layout: fixed;

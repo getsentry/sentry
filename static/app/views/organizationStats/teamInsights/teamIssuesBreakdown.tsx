@@ -1,220 +1,199 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import isEqual from 'lodash/isEqual';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {BarChart, BarChartSeries} from 'sentry/components/charts/barChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
+import LoadingError from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import type {Organization, Project} from 'sentry/types';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {barAxisLabel, convertDayValueObjectToSeries, sortSeriesByDay} from './utils';
 
-type StatusCounts = {
+interface StatusCounts {
   total: number;
+  archived?: number;
   deleted?: number;
   ignored?: number;
   new?: number;
   regressed?: number;
   resolved?: number;
+  unarchived?: number;
   unignored?: number;
-};
+}
 
-type IssuesBreakdown = Record<string, Record<string, StatusCounts>>;
+export type IssuesBreakdown = Record<string, Record<string, StatusCounts>>;
 
 type Statuses = keyof Omit<StatusCounts, 'total'>;
 
-type Props = AsyncComponent['props'] & {
+interface TeamIssuesBreakdownProps extends DateTimeObject {
   organization: Organization;
   projects: Project[];
   statuses: Statuses[];
   teamSlug: string;
   environment?: string;
-} & DateTimeObject;
-
-type State = AsyncComponent['state'] & {
-  issuesBreakdown: IssuesBreakdown | null;
-};
+}
 
 const keys = ['deleted', 'ignored', 'resolved', 'unignored', 'regressed', 'new', 'total'];
 
-class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
-  shouldRenderBadRequests = true;
-
-  getDefaultState(): State {
-    return {
-      ...super.getDefaultState(),
-      issuesBreakdown: null,
-    };
-  }
-
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization, start, end, period, utc, teamSlug, statuses, environment} =
-      this.props;
-    const datetime = {start, end, period, utc};
-
-    return [
-      [
-        'issuesBreakdown',
-        `/teams/${organization.slug}/${teamSlug}/issue-breakdown/`,
-        {
-          query: {
-            ...normalizeDateTimeParams(datetime),
-            statuses,
-            environment,
-          },
+function TeamIssuesBreakdown({
+  organization,
+  projects,
+  start,
+  end,
+  period,
+  utc,
+  teamSlug,
+  statuses,
+  environment,
+}: TeamIssuesBreakdownProps) {
+  const {
+    data: issuesBreakdown = {},
+    isLoading,
+    isError,
+    refetch,
+  } = useApiQuery<IssuesBreakdown>(
+    [
+      `/teams/${organization.slug}/${teamSlug}/issue-breakdown/`,
+      {
+        query: {
+          ...normalizeDateTimeParams({start, end, period, utc}),
+          statuses,
+          environment,
         },
-      ],
-    ];
-  }
+      },
+    ],
+    {staleTime: 5000}
+  );
 
-  componentDidUpdate(prevProps: Props) {
-    const {start, end, period, utc, teamSlug, projects, environment} = this.props;
+  const hasEscalatingIssues = organization.features.includes('escalating-issues');
 
-    if (
-      prevProps.start !== start ||
-      prevProps.end !== end ||
-      prevProps.period !== period ||
-      prevProps.utc !== utc ||
-      prevProps.teamSlug !== teamSlug ||
-      prevProps.environment !== environment ||
-      !isEqual(prevProps.projects, projects)
-    ) {
-      this.remountComponent();
-    }
-  }
+  const allReviewedByDay: Record<string, Record<string, number>> = {};
+  // Total statuses & total reviewed keyed by project ID
+  const projectTotals: Record<string, StatusCounts> = {};
 
-  renderLoading() {
-    return this.renderBody();
-  }
+  // The issues breakdown is keyed by projectId
+  for (const [projectId, entries] of Object.entries(issuesBreakdown)) {
+    // Each bucket is 1 day
+    for (const [bucket, counts] of Object.entries(entries)) {
+      if (!projectTotals[projectId]) {
+        projectTotals[projectId] = {
+          deleted: 0,
+          ignored: 0,
+          resolved: 0,
+          unignored: 0,
+          regressed: 0,
+          new: 0,
+          total: 0,
+        };
+      }
 
-  renderBody() {
-    const {loading} = this.state;
-    const issuesBreakdown = this.state.issuesBreakdown ?? {};
-    const {projects, statuses} = this.props;
+      for (const key of keys) {
+        projectTotals[projectId][key] += counts[key];
+      }
 
-    const allReviewedByDay: Record<string, Record<string, number>> = {};
-    // Total statuses & total reviewed keyed by project ID
-    const projectTotals: Record<string, StatusCounts> = {};
+      if (!allReviewedByDay[projectId]) {
+        allReviewedByDay[projectId] = {};
+      }
 
-    // The issues breakdown is keyed by projectId
-    for (const [projectId, entries] of Object.entries(issuesBreakdown)) {
-      // Each bucket is 1 day
-      for (const [bucket, counts] of Object.entries(entries)) {
-        if (!projectTotals[projectId]) {
-          projectTotals[projectId] = {
-            deleted: 0,
-            ignored: 0,
-            resolved: 0,
-            unignored: 0,
-            regressed: 0,
-            new: 0,
-            total: 0,
-          };
-        }
-
-        for (const key of keys) {
-          projectTotals[projectId][key] += counts[key];
-        }
-
-        if (!allReviewedByDay[projectId]) {
-          allReviewedByDay[projectId] = {};
-        }
-
-        if (allReviewedByDay[projectId][bucket] === undefined) {
-          allReviewedByDay[projectId][bucket] = counts.total;
-        } else {
-          allReviewedByDay[projectId][bucket] += counts.total;
-        }
+      if (allReviewedByDay[projectId][bucket] === undefined) {
+        allReviewedByDay[projectId][bucket] = counts.total;
+      } else {
+        allReviewedByDay[projectId][bucket] += counts.total;
       }
     }
-
-    const sortedProjectIds = Object.entries(projectTotals)
-      .map(([projectId, {total}]) => ({projectId, total}))
-      .sort((a, b) => b.total - a.total);
-
-    const allSeries = Object.keys(allReviewedByDay).map(
-      (projectId, idx): BarChartSeries => ({
-        seriesName: ProjectsStore.getById(projectId)?.slug ?? projectId,
-        data: sortSeriesByDay(convertDayValueObjectToSeries(allReviewedByDay[projectId])),
-        animationDuration: 500,
-        animationDelay: idx * 500,
-        silent: true,
-        barCategoryGap: '5%',
-      })
-    );
-
-    return (
-      <Fragment>
-        <IssuesChartWrapper>
-          {loading && <Placeholder height="200px" />}
-          {!loading && (
-            <BarChart
-              style={{height: 200}}
-              stacked
-              isGroupedByDate
-              useShortDate
-              legend={{right: 0, top: 0}}
-              xAxis={barAxisLabel(allSeries[0]?.data.length ?? 0)}
-              yAxis={{minInterval: 1}}
-              series={allSeries}
-            />
-          )}
-        </IssuesChartWrapper>
-        <CollapsePanel items={sortedProjectIds.length}>
-          {({isExpanded, showMoreButton}) => (
-            <Fragment>
-              <StyledPanelTable
-                numActions={statuses.length}
-                headers={[
-                  t('Project'),
-                  ...statuses.map(action => (
-                    <AlignRight key={action}>{t(action)}</AlignRight>
-                  )),
-                  <AlignRight key="total">
-                    {t('total')}{' '}
-                    <IconArrow direction="down" size="12px" color="gray300" />
-                  </AlignRight>,
-                ]}
-                isLoading={loading}
-              >
-                {sortedProjectIds.map(({projectId}, idx) => {
-                  const project = projects.find(p => p.id === projectId);
-
-                  if (idx >= COLLAPSE_COUNT && !isExpanded) {
-                    return null;
-                  }
-
-                  return (
-                    <Fragment key={projectId}>
-                      <ProjectBadgeContainer>
-                        {project && <ProjectBadge avatarSize={18} project={project} />}
-                      </ProjectBadgeContainer>
-                      {statuses.map(action => (
-                        <AlignRight key={action}>
-                          {projectTotals[projectId][action]}
-                        </AlignRight>
-                      ))}
-                      <AlignRight>{projectTotals[projectId].total}</AlignRight>
-                    </Fragment>
-                  );
-                })}
-              </StyledPanelTable>
-              {!loading && showMoreButton}
-            </Fragment>
-          )}
-        </CollapsePanel>
-      </Fragment>
-    );
   }
+
+  const sortedProjectIds = Object.entries(projectTotals)
+    .map(([projectId, {total}]) => ({projectId, total}))
+    .sort((a, b) => b.total - a.total);
+
+  const allSeries = Object.keys(allReviewedByDay).map(
+    (projectId, idx): BarChartSeries => ({
+      seriesName: ProjectsStore.getById(projectId)?.slug ?? projectId,
+      data: sortSeriesByDay(convertDayValueObjectToSeries(allReviewedByDay[projectId])),
+      animationDuration: 500,
+      animationDelay: idx * 500,
+      silent: true,
+      barCategoryGap: '5%',
+    })
+  );
+
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  return (
+    <Fragment>
+      <IssuesChartWrapper>
+        {isLoading && <Placeholder height="200px" />}
+        {!isLoading && (
+          <BarChart
+            style={{height: 200}}
+            stacked
+            isGroupedByDate
+            useShortDate
+            legend={{right: 0, top: 0}}
+            xAxis={barAxisLabel()}
+            yAxis={{minInterval: 1}}
+            series={allSeries}
+          />
+        )}
+      </IssuesChartWrapper>
+      <CollapsePanel items={sortedProjectIds.length}>
+        {({isExpanded, showMoreButton}) => (
+          <Fragment>
+            <StyledPanelTable
+              numActions={statuses.length}
+              headers={[
+                t('Project'),
+                ...statuses
+                  .map(action =>
+                    hasEscalatingIssues ? action.replace('ignore', 'archive') : action
+                  )
+                  .map(action => <AlignRight key={action}>{action}</AlignRight>),
+                <AlignRight key="total">
+                  {t('total')} <IconArrow direction="down" size="xs" color="gray300" />
+                </AlignRight>,
+              ]}
+              isLoading={isLoading}
+            >
+              {sortedProjectIds.map(({projectId}, idx) => {
+                const project = projects.find(p => p.id === projectId);
+
+                if (idx >= COLLAPSE_COUNT && !isExpanded) {
+                  return null;
+                }
+
+                return (
+                  <Fragment key={projectId}>
+                    <ProjectBadgeContainer>
+                      {project && <ProjectBadge avatarSize={18} project={project} />}
+                    </ProjectBadgeContainer>
+                    {statuses.map(action => (
+                      <AlignRight key={action}>
+                        {projectTotals[projectId][action]}
+                      </AlignRight>
+                    ))}
+                    <AlignRight>{projectTotals[projectId].total}</AlignRight>
+                  </Fragment>
+                );
+              })}
+            </StyledPanelTable>
+            {!isLoading && showMoreButton}
+          </Fragment>
+        )}
+      </CollapsePanel>
+    </Fragment>
+  );
 }
 
 export default TeamIssuesBreakdown;

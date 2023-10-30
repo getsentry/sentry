@@ -1,6 +1,6 @@
 import {Component} from 'react';
-import {withRouter, WithRouterProps} from 'react-router';
-import {withTheme} from '@emotion/react';
+import {WithRouterProps} from 'react-router';
+import {Theme, withTheme} from '@emotion/react';
 import {Query} from 'history';
 import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
@@ -16,9 +16,11 @@ import {escape} from 'sentry/utils';
 import {getFormattedDate, getUtcDateString} from 'sentry/utils/dates';
 import {formatVersion} from 'sentry/utils/formatters';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {Theme} from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 type ReleaseMetaBasic = {
   date: string;
@@ -60,7 +62,7 @@ function getOrganizationReleases(
   }) as Promise<[ReleaseMetaBasic[], any, ResponseMeta]>;
 }
 
-type Props = WithRouterProps & {
+export interface ReleaseSeriesProps extends WithRouterProps {
   api: Client;
   children: (s: State) => React.ReactNode;
   end: DateString;
@@ -78,14 +80,14 @@ type Props = WithRouterProps & {
   releases?: ReleaseMetaBasic[] | null;
   tooltip?: Exclude<Parameters<typeof MarkLine>[0], undefined>['tooltip'];
   utc?: boolean | null;
-};
+}
 
 type State = {
   releaseSeries: Series[];
   releases: ReleaseMetaBasic[] | null;
 };
 
-class ReleaseSeries extends Component<Props, State> {
+class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
   state: State = {
     releases: null,
     releaseSeries: [],
@@ -253,10 +255,14 @@ class ReleaseSeries extends Component<Props, State> {
         name: formatVersion(release.version, true),
         value: formatVersion(release.version, true),
         onClick: () => {
-          router.push({
-            pathname: `/organizations/${organization.slug}/releases/${release.version}/`,
-            query,
-          });
+          router.push(
+            normalizeUrl({
+              pathname: `/organizations/${
+                organization.slug
+              }/releases/${encodeURIComponent(release.version)}/`,
+              query,
+            })
+          );
         },
         label: {
           formatter: () => formatVersion(release.version, true),
@@ -265,6 +271,10 @@ class ReleaseSeries extends Component<Props, State> {
       tooltip: tooltip || {
         trigger: 'item',
         formatter: ({data}: any) => {
+          // Should only happen when navigating pages
+          if (!data) {
+            return '';
+          }
           // XXX using this.props here as this function does not get re-run
           // unless projects are changed. Using a closure variable would result
           // in stale values.
@@ -278,7 +288,7 @@ class ReleaseSeries extends Component<Props, State> {
               'Release'
             )}</strong></span> ${version}</div>`,
             '</div>',
-            '<div class="tooltip-date">',
+            '<div class="tooltip-footer">',
             time,
             '</div>',
             '</div>',
@@ -306,4 +316,4 @@ class ReleaseSeries extends Component<Props, State> {
   }
 }
 
-export default withRouter(withOrganization(withApi(withTheme(ReleaseSeries))));
+export default withSentryRouter(withOrganization(withApi(withTheme(ReleaseSeries))));

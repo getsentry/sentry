@@ -3,29 +3,42 @@ import styled from '@emotion/styled';
 
 import sentryPattern from 'sentry-images/pattern/sentry-pattern.png';
 
-import Alert from 'sentry/components/alert';
-import {ApiForm} from 'sentry/components/forms';
+import {Alert} from 'sentry/components/alert';
+import ApiForm from 'sentry/components/forms/apiForm';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
-import AsyncView from 'sentry/views/asyncView';
+import {space} from 'sentry/styles/space';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
-import {getForm, getOptionDefault, getOptionField} from '../options';
+import {Field, getForm, getOptionDefault, getOptionField} from '../options';
 
-type Props = AsyncView['props'] & {
+export type InstallWizardProps = DeprecatedAsyncView['props'] & {
   onConfigured: () => void;
 };
 
-type State = AsyncView['state'];
+export type InstallWizardOptions = Record<
+  string,
+  {
+    field: Field;
+    value?: unknown;
+  }
+>;
 
-export default class InstallWizard extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+type State = DeprecatedAsyncView['state'] & {
+  data: null | InstallWizardOptions;
+};
+
+export default class InstallWizard extends DeprecatedAsyncView<
+  InstallWizardProps,
+  State
+> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['data', '/internal/options/?query=is:required']];
   }
 
   renderFormFields() {
-    const options = this.state.data;
+    const options = this.state.data!;
 
     let missingOptions = new Set(
       Object.keys(options).filter(option => !options[option].field.isSet)
@@ -54,7 +67,7 @@ export default class InstallWizard extends AsyncView<Props, State> {
   }
 
   getInitialData() {
-    const options = this.state.data;
+    const options = this.state.data!;
     const data = {};
     Object.keys(options).forEach(optionName => {
       const option = options[optionName];

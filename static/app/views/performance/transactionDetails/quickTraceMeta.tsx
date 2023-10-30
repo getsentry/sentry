@@ -5,43 +5,29 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {Hovercard} from 'sentry/components/hovercard';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import QuickTrace from 'sentry/components/quickTrace';
-import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
-import {t, tct, tn} from 'sentry/locale';
-import {AvatarProject, OrganizationSummary} from 'sentry/types';
+import {t} from 'sentry/locale';
+import {AvatarProject} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {getConfigureTracingDocsLink} from 'sentry/utils/docs';
-import {getShortEventId} from 'sentry/utils/events';
 import {
   QuickTraceQueryChildrenProps,
   TraceMeta,
 } from 'sentry/utils/performance/quickTrace/types';
 import useOrganization from 'sentry/utils/useOrganization';
+import {TraceLink} from 'sentry/views/issueDetails/quickTrace/traceLink';
 
 import {MetaData} from './styles';
 
-type Props = Pick<
-  React.ComponentProps<typeof QuickTrace>,
-  'errorDest' | 'transactionDest'
-> & {
+interface Props
+  extends Pick<React.ComponentProps<typeof QuickTrace>, 'errorDest' | 'transactionDest'> {
   anchor: 'left' | 'right';
   event: Event;
   location: Location;
   quickTrace: QuickTraceQueryChildrenProps | null;
   traceMeta: TraceMeta | null;
   project?: AvatarProject;
-};
-
-function handleTraceLink(organization: OrganizationSummary) {
-  trackAnalyticsEvent({
-    eventKey: 'quick_trace.trace_id.clicked',
-    eventName: 'Quick Trace: Trace ID clicked',
-    organization_id: parseInt(organization.id, 10),
-    source: 'events',
-  });
 }
 
 export default function QuickTraceMeta({
@@ -62,12 +48,14 @@ export default function QuickTraceMeta({
   const docsLink = getConfigureTracingDocsLink(project);
 
   const traceId = event.contexts?.trace?.trace_id ?? null;
-  const traceTarget = generateTraceTarget(event, organization);
-
   let body: React.ReactNode;
   let footer: React.ReactNode;
 
-  if (!traceId || !quickTrace || quickTrace.trace === null) {
+  if (
+    !traceId ||
+    !quickTrace ||
+    (quickTrace.trace === null && !quickTrace.orphanErrors)
+  ) {
     // this platform doesn't support performance don't show anything here
     if (docsLink === null) {
       return null;
@@ -79,7 +67,7 @@ export default function QuickTraceMeta({
     footer = <ExternalLink href={docsLink}>{t('Read the docs')}</ExternalLink>;
   } else {
     if (quickTrace.isLoading) {
-      body = <Placeholder height="24px" />;
+      body = <Placeholder height="20px" />;
     } else if (quickTrace.error) {
       body = '\u2014';
     } else {
@@ -87,10 +75,7 @@ export default function QuickTraceMeta({
         <ErrorBoundary mini>
           <QuickTrace
             event={event}
-            quickTrace={{
-              type: quickTrace.type,
-              trace: quickTrace.trace,
-            }}
+            quickTrace={quickTrace}
             location={location}
             organization={organization}
             anchor={anchor}
@@ -102,14 +87,12 @@ export default function QuickTraceMeta({
     }
 
     footer = (
-      <Link to={traceTarget} onClick={() => handleTraceLink(organization)}>
-        {tct('View Full Trace: [id][events]', {
-          id: getShortEventId(traceId ?? ''),
-          events: traceMeta
-            ? tn(' (%s event)', ' (%s events)', traceMeta.transactions + traceMeta.errors)
-            : '',
-        })}
-      </Link>
+      <TraceLink
+        quickTrace={quickTrace}
+        event={event}
+        traceMeta={traceMeta}
+        source="events"
+      />
     );
   }
 

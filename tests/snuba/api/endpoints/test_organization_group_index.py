@@ -1,59 +1,61 @@
+import functools
 from datetime import timedelta
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 from uuid import uuid4
 
 from dateutil.parser import parse as parse_datetime
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
-from freezegun import freeze_time
 from rest_framework import status
 
 from sentry import options
-from sentry.models import (
-    GROUP_OWNER_TYPE,
-    Activity,
-    ApiToken,
-    ExternalIssue,
-    Group,
-    GroupAssignee,
-    GroupBookmark,
-    GroupHash,
-    GroupHistory,
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType, PerformanceSlowDBQueryGroupType
+from sentry.models.activity import Activity
+from sentry.models.apitoken import ApiToken
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupbookmark import GroupBookmark
+from sentry.models.grouphash import GroupHash
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_group_history
+from sentry.models.groupinbox import (
     GroupInbox,
     GroupInboxReason,
-    GroupLink,
-    GroupOwner,
-    GroupOwnerType,
-    GroupResolution,
-    GroupSeen,
-    GroupShare,
-    GroupSnooze,
-    GroupStatus,
-    GroupSubscription,
-    GroupTombstone,
-    Integration,
-    OrganizationIntegration,
-    Release,
-    ReleaseStages,
-    UserOption,
     add_group_to_inbox,
     remove_group_from_inbox,
 )
-from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupowner import GROUP_OWNER_TYPE, GroupOwner, GroupOwnerType
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupseen import GroupSeen
+from sentry.models.groupshare import GroupShare
+from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.grouptombstone import GroupTombstone
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.options.user_option import UserOption
+from sentry.models.release import Release
+from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
 )
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.silo import SiloMode
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.features import Feature, with_feature
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 
 
+@region_silo_test(stable=True)
 class GroupListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
 
@@ -89,7 +91,25 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group.id)
 
-    def test_sort_by_trend(self):
+    def test_query_for_archived(self):
+        event = self.store_event(
+            data={"event_id": "a" * 32, "timestamp": iso_format(before_now(seconds=1))},
+            project_id=self.project.id,
+        )
+        group = event.group
+        Group.objects.update_group_status(
+            groups=[group],
+            status=GroupStatus.IGNORED,
+            substatus=None,
+            activity_type=ActivityType.SET_IGNORED,
+        )
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(sort_by="date", query="is:archived")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(group.id)
+
+    def test_sort_by_priority(self):
         group = self.store_event(
             data={
                 "timestamp": iso_format(before_now(seconds=10)),
@@ -128,27 +148,26 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         self.login_as(user=self.user)
 
-        response = self.get_success_response(
-            sort="trend",
-            query="is:unresolved",
-            limit=1,
-            start=iso_format(before_now(days=1)),
-            end=iso_format(before_now(seconds=1)),
-        )
-        assert len(response.data) == 1
-        assert [item["id"] for item in response.data] == [str(group.id)]
+        aggregate_kwargs: dict = {
+            "log_level": "3",
+            "has_stacktrace": "5",
+            "relative_volume": "1",
+            "event_halflife_hours": "4",
+            "issue_halflife_hours": "4",
+            "v2": "true",
+            "norm": "False",
+        }
 
-        header_links = parse_link_header(response["Link"])
-        cursor = [link for link in header_links.values() if link["rel"] == "next"][0]["cursor"]
         response = self.get_success_response(
-            sort="trend",
+            sort="priority",
             query="is:unresolved",
-            limit=1,
+            limit=25,
             start=iso_format(before_now(days=1)),
             end=iso_format(before_now(seconds=1)),
-            cursor=cursor,
+            **aggregate_kwargs,
         )
-        assert [item["id"] for item in response.data] == [str(group_2.id)]
+        assert len(response.data) == 2
+        assert [item["id"] for item in response.data] == [str(group.id), str(group_2.id)]
 
     def test_sort_by_inbox(self):
         group_1 = self.store_event(
@@ -210,7 +229,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             project=self.project,
             organization=self.organization,
             type=GroupOwnerType.OWNERSHIP_RULE.value,
-            user=self.user,
+            user_id=self.user.id,
         )
         owner_by_other = self.store_event(
             data={
@@ -228,7 +247,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             project=self.project,
             organization=self.organization,
             type=GroupOwnerType.OWNERSHIP_RULE.value,
-            user=other_user,
+            user_id=other_user.id,
         )
 
         owned_me_assigned_to_other = self.store_event(
@@ -247,7 +266,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             project=self.project,
             organization=self.organization,
             type=GroupOwnerType.OWNERSHIP_RULE.value,
-            user=self.user,
+            user_id=self.user.id,
         )
 
         unowned_assigned_to_other = self.store_event(
@@ -308,6 +327,12 @@ class GroupListTest(APITestCase, SnubaTestCase):
         with self.feature("organizations:global-views"):
             response = self.get_response()
             assert response.status_code == 200
+
+    def test_replay_feature_gate(self):
+        # allow replays to query for backend
+        self.create_project(organization=self.project.organization)
+        self.login_as(user=self.user)
+        self.get_success_response(extra_headers={"HTTP_X-Sentry-Replay-Request": "1"})
 
     def test_with_all_projects(self):
         # ensure there are two or more projects
@@ -431,6 +456,21 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(environment="garbage")
         assert response.status_code == 404
 
+    def test_project(self):
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "timestamp": iso_format(self.min_ago),
+                "environment": "production",
+            },
+            project_id=self.project.id,
+        )
+        project = self.project
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(query=f"project:{project.slug}")
+        assert len(response.data) == 1
+
     def test_auto_resolved(self):
         project = self.project
         project.update_option("sentry:resolve_age", 1)
@@ -448,6 +488,18 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_success_response()
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group2.id)
+
+    def test_perf_issue(self):
+        perf_group = self.create_group(type=PerformanceNPlusOneGroupType.type_id)
+        self.login_as(user=self.user)
+        with self.feature(
+            [
+                "organizations:issue-search-allow-postgres-only-search",
+            ]
+        ):
+            response = self.get_success_response(query="issue.category:performance")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(perf_group.id)
 
     def test_lookup_by_event_id(self):
         project = self.project
@@ -523,6 +575,36 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_success_response(query=short_id, shortIdLookup=1)
         assert len(response.data) == 1
 
+    def test_lookup_by_short_id_alias(self):
+        event_id = "f" * 32
+        group = self.store_event(
+            data={"event_id": event_id, "timestamp": iso_format(before_now(seconds=1))},
+            project_id=self.project.id,
+        ).group
+        short_id = group.qualified_short_id
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(query=f"issue:{short_id}")
+        assert len(response.data) == 1
+
+    def test_lookup_by_multiple_short_id_alias(self):
+        self.login_as(self.user)
+        project = self.project
+        project2 = self.create_project(name="baz", organization=project.organization)
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=2))},
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=1))},
+            project_id=project2.id,
+        )
+        with self.feature("organizations:global-views"):
+            response = self.get_success_response(
+                query=f"issue:[{event.group.qualified_short_id},{event2.group.qualified_short_id}]"
+            )
+        assert len(response.data) == 2
+
     def test_lookup_by_short_id_ignores_project_list(self):
         organization = self.create_organization()
         project = self.create_project(organization=organization)
@@ -581,7 +663,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         release.add_project(project)
         release.add_project(project2)
         event = self.store_event(
-            data={"release": release.version, "timestamp": iso_format(before_now(seconds=1))},
+            data={"release": release.version, "timestamp": iso_format(before_now(seconds=2))},
             project_id=project.id,
         )
         event2 = self.store_event(
@@ -663,9 +745,9 @@ class GroupListTest(APITestCase, SnubaTestCase):
                     project_id=self.project.id,
                 )
             )
-        events[0].group.update(status=GroupStatus.PENDING_DELETION)
-        events[2].group.update(status=GroupStatus.DELETION_IN_PROGRESS)
-        events[3].group.update(status=GroupStatus.PENDING_MERGE)
+        events[0].group.update(status=GroupStatus.PENDING_DELETION, substatus=None)
+        events[2].group.update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)
+        events[3].group.update(status=GroupStatus.PENDING_MERGE, substatus=None)
 
         self.login_as(user=self.user)
 
@@ -684,7 +766,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 0
 
     def test_token_auth(self):
-        token = ApiToken.objects.create(user=self.user, scope_list=["event:read"])
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["event:read"])
         response = self.client.get(
             reverse("sentry-api-0-organization-group-index", args=[self.project.organization.slug]),
             format="json",
@@ -760,7 +843,9 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         assigned_groups = groups[:2]
         for ag in assigned_groups:
-            ag.update(status=GroupStatus.RESOLVED, resolved_at=before_now(seconds=5))
+            ag.update(
+                status=GroupStatus.RESOLVED, resolved_at=before_now(seconds=5), substatus=None
+            )
             GroupAssignee.objects.assign(ag, self.user)
 
         # This side_effect is meant to override the `calculate_hits` snuba query specifically.
@@ -1116,7 +1201,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         GroupAssignee.objects.create(
             group=assigned_to_other_event.group,
             project=assigned_to_other_event.group.project,
-            user=other_user,
+            user_id=other_user.id,
         )
         response = self.get_response(sort_by="date", limit=10, query="assigned_or_suggested:me")
         assert response.status_code == 200
@@ -1131,7 +1216,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert int(response.data[0]["id"]) == assigned_to_other_event.group.id
 
         GroupAssignee.objects.create(
-            group=assigned_event.group, project=assigned_event.group.project, user=self.user
+            group=assigned_event.group, project=assigned_event.group.project, user_id=self.user.id
         )
         response = self.get_response(
             sort_by="date", limit=10, query=f"assigned_or_suggested:{self.user.email}"
@@ -1212,7 +1297,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         GroupAssignee.objects.create(
             group=event.group,
             project=event.group.project,
-            user=other_user,
+            user_id=other_user.id,
         )
         response = self.get_response(
             sort_by="date", limit=10, query=f"assigned_or_suggested:#{self.team.slug}"
@@ -1501,6 +1586,9 @@ class GroupListTest(APITestCase, SnubaTestCase):
             release_2_g_1,
         ]
 
+        response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_BUILD_ALIAS}:[124]")
+        assert response.status_code == 400, response.content
+
     def test_aggregate_stats_regression_test(self):
         self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -1576,6 +1664,39 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.UNIGNORED.value
         assert response.data[0]["inbox"]["reason_details"] == snooze_details
 
+    @with_feature("organizations:escalating-issues")
+    def test_inbox_fields_issue_states(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        add_group_to_inbox(event.group, GroupInboxReason.NEW)
+        query = "status:unresolved"
+        self.login_as(user=self.user)
+        response = self.get_response(sort_by="date", limit=10, query=query, expand=["inbox"])
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
+        remove_group_from_inbox(event.group)
+        snooze_details = {
+            "until": None,
+            "count": 3,
+            "window": None,
+            "user_count": None,
+            "user_window": 5,
+        }
+        add_group_to_inbox(event.group, GroupInboxReason.ONGOING, snooze_details)
+        response = self.get_response(sort_by="date", limit=10, query=query, expand=["inbox"])
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert response.data[0]["inbox"] is not None
+        assert response.data[0]["inbox"]["reason"] == GroupInboxReason.ONGOING.value
+        assert response.data[0]["inbox"]["reason_details"] == snooze_details
+
     def test_expand_string(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -1612,7 +1733,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             project=event.project,
             organization=event.project.organization,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
-            user=self.user,
+            user_id=self.user.id,
         )
         GroupOwner.objects.create(
             group=event.group,
@@ -1621,20 +1742,37 @@ class GroupListTest(APITestCase, SnubaTestCase):
             type=GroupOwnerType.OWNERSHIP_RULE.value,
             team=self.team,
         )
+        GroupOwner.objects.create(
+            group=event.group,
+            project=event.project,
+            organization=event.project.organization,
+            type=GroupOwnerType.CODEOWNERS.value,
+            team=self.team,
+        )
+        GroupOwner.objects.create(
+            group=event.group,
+            project=event.project,
+            organization=event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=None,
+            team=None,
+        )
         response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
         assert response.status_code == 200
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
         assert response.data[0]["owners"] is not None
-        assert len(response.data[0]["owners"]) == 2
+        assert len(response.data[0]["owners"]) == 3
         assert response.data[0]["owners"][0]["owner"] == f"user:{self.user.id}"
         assert response.data[0]["owners"][1]["owner"] == f"team:{self.team.id}"
+        assert response.data[0]["owners"][2]["owner"] == f"team:{self.team.id}"
         assert (
             response.data[0]["owners"][0]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.SUSPECT_COMMIT]
         )
         assert (
             response.data[0]["owners"][1]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.OWNERSHIP_RULE]
         )
+        assert response.data[0]["owners"][2]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.CODEOWNERS]
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_ratelimit(self):
@@ -1649,7 +1787,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        event.group.update(status=GroupStatus.RESOLVED)
+        event.group.update(status=GroupStatus.RESOLVED, substatus=None)
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="!is:unresolved", expand="inbox", collapse="stats"
@@ -1662,7 +1800,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        self.create_group(status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", expand="inbox", collapse="stats"
@@ -1674,6 +1811,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert "firstSeen" not in response.data[0]
         assert "lastSeen" not in response.data[0]
         assert "count" not in response.data[0]
+        assert "userCount" not in response.data[0]
         assert "lifetime" not in response.data[0]
         assert "filtered" not in response.data[0]
 
@@ -1682,7 +1820,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        self.create_group(status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", collapse="lifetime"
@@ -1702,7 +1839,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        self.create_group(status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", collapse="filtered"
@@ -1722,7 +1858,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        self.create_group(status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", collapse=["filtered", "lifetime"]
@@ -1742,7 +1877,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        self.create_group(status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", collapse=["base"]
@@ -1783,7 +1917,131 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
 
+    @with_feature("organizations:issue-stream-performance")
+    def test_collapse_unhandled(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query="is:unresolved", collapse=["unhandled"]
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert "isUnhandled" not in response.data[0]
 
+    def test_query_status_and_substatus_overlapping(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        event.group.update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+        self.login_as(user=self.user)
+
+        get_query_response = functools.partial(
+            self.get_response, sort_by="date", limit=10, expand="inbox", collapse="stats"
+        )
+
+        response0 = get_query_response(
+            query="is:unresolved",
+        )
+
+        with Feature("organizations:escalating-issues"):
+            response1 = get_query_response(
+                query="is:ongoing"
+            )  # (status=unresolved, substatus=(ongoing))
+            response2 = get_query_response(
+                query="is:unresolved"
+            )  # (status=unresolved, substatus=*)
+            response3 = get_query_response(
+                query="is:unresolved is:ongoing !is:regressed"
+            )  # (status=unresolved, substatus=(ongoing, !regressed))
+            response4 = get_query_response(
+                query="is:unresolved is:ongoing !is:ignored"
+            )  # (status=unresolved, substatus=(ongoing, !ignored))
+            response5 = get_query_response(
+                query="!is:regressed is:unresolved"
+            )  # (status=unresolved, substatus=(!regressed))
+            response6 = get_query_response(
+                query="!is:until_escalating"
+            )  # (status=(!unresolved), substatus=(!until_escalating))
+
+        assert (
+            response0.status_code
+            == response1.status_code
+            == response2.status_code
+            == response3.status_code
+            == response4.status_code
+            == response5.status_code
+            == response6.status_code
+            == 200
+        )
+        assert (
+            [int(r["id"]) for r in response0.data]
+            == [int(r["id"]) for r in response1.data]
+            == [int(r["id"]) for r in response2.data]
+            == [int(r["id"]) for r in response3.data]
+            == [int(r["id"]) for r in response4.data]
+            == [int(r["id"]) for r in response5.data]
+            == [int(r["id"]) for r in response6.data]
+            == [event.group.id]
+        )
+
+    def test_query_status_and_substatus_nonoverlapping(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        event.group.update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+        self.login_as(user=self.user)
+
+        get_query_response = functools.partial(
+            self.get_response, sort_by="date", limit=10, expand="inbox", collapse="stats"
+        )
+
+        with Feature("organizations:escalating-issues"):
+            response1 = get_query_response(query="is:escalating")
+            response2 = get_query_response(query="is:new")
+            response3 = get_query_response(query="is:regressed")
+            response4 = get_query_response(query="is:forever")
+            response5 = get_query_response(query="is:until_condition_met")
+            response6 = get_query_response(query="is:until_escalating")
+            response7 = get_query_response(query="is:resolved")
+            response8 = get_query_response(query="is:ignored")
+            response9 = get_query_response(query="is:muted")
+            response10 = get_query_response(query="!is:unresolved")
+
+        assert (
+            response1.status_code
+            == response2.status_code
+            == response3.status_code
+            == response4.status_code
+            == response5.status_code
+            == response6.status_code
+            == response7.status_code
+            == response8.status_code
+            == response9.status_code
+            == response10.status_code
+            == 200
+        )
+        assert (
+            [int(r["id"]) for r in response1.data]
+            == [int(r["id"]) for r in response2.data]
+            == [int(r["id"]) for r in response3.data]
+            == [int(r["id"]) for r in response4.data]
+            == [int(r["id"]) for r in response5.data]
+            == [int(r["id"]) for r in response6.data]
+            == [int(r["id"]) for r in response7.data]
+            == [int(r["id"]) for r in response8.data]
+            == [int(r["id"]) for r in response9.data]
+            == [int(r["id"]) for r in response10.data]
+            == []
+        )
+
+
+@region_silo_test(stable=True)
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
     method = "put"
@@ -1823,14 +2081,14 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert new_group1.resolved_at is None
 
         # this wont exist because it wasn't affected
-        assert not GroupSubscription.objects.filter(user=self.user, group=new_group1).exists()
+        assert not GroupSubscription.objects.filter(user_id=self.user.id, group=new_group1).exists()
 
         new_group2 = Group.objects.get(id=group2.id)
         assert new_group2.status == GroupStatus.RESOLVED
         assert new_group2.resolved_at is not None
 
         assert GroupSubscription.objects.filter(
-            user=self.user, group=new_group2, is_active=True
+            user_id=self.user.id, group=new_group2, is_active=True
         ).exists()
 
         # the ignored entry should not be included
@@ -1838,13 +2096,13 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert new_group3.status == GroupStatus.IGNORED
         assert new_group3.resolved_at is None
 
-        assert not GroupSubscription.objects.filter(user=self.user, group=new_group3)
+        assert not GroupSubscription.objects.filter(user_id=self.user.id, group=new_group3)
 
         new_group4 = Group.objects.get(id=group4.id)
         assert new_group4.status == GroupStatus.UNRESOLVED
         assert new_group4.resolved_at is None
 
-        assert not GroupSubscription.objects.filter(user=self.user, group=new_group4)
+        assert not GroupSubscription.objects.filter(user_id=self.user.id, group=new_group4)
         assert not GroupHistory.objects.filter(
             group=group1, status=GroupHistoryStatus.RESOLVED
         ).exists()
@@ -1871,6 +2129,24 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
         assert response.status_code == 200
+
+    def test_resolve_ignored(self):
+        group = self.create_group(status=GroupStatus.IGNORED)
+        snooze = GroupSnooze.objects.create(
+            group=group, until=timezone.now() - timedelta(minutes=1)
+        )
+
+        member = self.create_user()
+        self.create_member(
+            organization=self.organization, teams=group.project.teams.all(), user=member
+        )
+
+        self.login_as(user=member)
+        response = self.get_success_response(
+            qs_params={"id": group.id, "project": self.project.id}, status="resolved"
+        )
+        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
+        assert not GroupSnooze.objects.filter(id=snooze.id).exists()
 
     def test_bulk_resolve(self):
         self.login_as(user=self.user)
@@ -1899,24 +2175,26 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         org = self.organization
 
-        integration = Integration.objects.create(provider="example", name="Example")
-        integration.add_organization(org, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(provider="example", name="Example")
+            integration.add_organization(org, self.user)
         event = self.store_event(
             data={"timestamp": iso_format(self.min_ago)}, project_id=self.project.id
         )
         group = event.group
 
-        OrganizationIntegration.objects.filter(
-            integration_id=integration.id, organization_id=group.organization.id
-        ).update(
-            config={
-                "sync_comments": True,
-                "sync_status_outbound": True,
-                "sync_status_inbound": True,
-                "sync_assignee_outbound": True,
-                "sync_assignee_inbound": True,
-            }
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.filter(
+                integration_id=integration.id, organization_id=group.organization.id
+            ).update(
+                config={
+                    "sync_comments": True,
+                    "sync_status_outbound": True,
+                    "sync_status_inbound": True,
+                    "sync_assignee_outbound": True,
+                    "sync_assignee_inbound": True,
+                }
+            )
         external_issue = ExternalIssue.objects.get_or_create(
             organization_id=org.id, integration_id=integration.id, key="APP-%s" % group.id
         )[0]
@@ -1952,20 +2230,21 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     def test_set_unresolved_with_integration(self, mock_sync_status_outbound):
         release = self.create_release(project=self.project, version="abc")
         group = self.create_group(status=GroupStatus.RESOLVED)
-        org = self.organization
-        integration = Integration.objects.create(provider="example", name="Example")
-        integration.add_organization(org, self.user)
-        OrganizationIntegration.objects.filter(
-            integration_id=integration.id, organization_id=group.organization.id
-        ).update(
-            config={
-                "sync_comments": True,
-                "sync_status_outbound": True,
-                "sync_status_inbound": True,
-                "sync_assignee_outbound": True,
-                "sync_assignee_inbound": True,
-            }
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org = self.organization
+            integration = Integration.objects.create(provider="example", name="Example")
+            integration.add_organization(org, self.user)
+            OrganizationIntegration.objects.filter(
+                integration_id=integration.id, organization_id=group.organization.id
+            ).update(
+                config={
+                    "sync_comments": True,
+                    "sync_status_outbound": True,
+                    "sync_status_inbound": True,
+                    "sync_assignee_outbound": True,
+                    "sync_assignee_inbound": True,
+                }
+            )
         GroupResolution.objects.create(group=group, release=release)
         external_issue = ExternalIssue.objects.get_or_create(
             organization_id=org.id, integration_id=integration.id, key="APP-%s" % group.id
@@ -1995,7 +2274,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 self.assertNoResolution(group)
 
                 assert GroupSubscription.objects.filter(
-                    user=self.user, group=group, is_active=True
+                    user_id=self.user.id, group=group, is_active=True
                 ).exists()
                 mock_sync_status_outbound.assert_called_once_with(
                     external_issue, False, group.project_id
@@ -2005,7 +2284,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group = self.create_group(status=GroupStatus.UNRESOLVED)
         user = self.user
 
-        uo1 = UserOption.objects.create(key="self_assign_issue", value="1", project=None, user=user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            uo1 = UserOption.objects.create(
+                key="self_assign_issue", value="1", project_id=None, user=user
+            )
 
         self.login_as(user=user)
         response = self.get_success_response(qs_params={"id": group.id}, status="resolved")
@@ -2013,11 +2295,14 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["assignedTo"]["type"] == "user"
         assert response.data["status"] == "resolved"
 
-        assert GroupAssignee.objects.filter(group=group, user=user).exists()
+        assert GroupAssignee.objects.filter(group=group, user_id=user.id).exists()
 
-        assert GroupSubscription.objects.filter(user=user, group=group, is_active=True).exists()
+        assert GroupSubscription.objects.filter(
+            user_id=user.id, group=group, is_active=True
+        ).exists()
 
-        uo1.delete()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            uo1.delete()
 
     def test_self_assign_issue_next_release(self):
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
@@ -2025,9 +2310,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
-        uo1 = UserOption.objects.create(
-            key="self_assign_issue", value="1", project=None, user=self.user
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            uo1 = UserOption.objects.create(
+                key="self_assign_issue", value="1", project_id=None, user=self.user
+            )
 
         self.login_as(user=self.user)
 
@@ -2045,14 +2331,15 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert GroupResolution.objects.filter(group=group, release=release).exists()
 
         assert GroupSubscription.objects.filter(
-            user=self.user, group=group, is_active=True
+            user_id=self.user.id, group=group, is_active=True
         ).exists()
 
         activity = Activity.objects.get(
             group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
         assert activity.data["version"] == ""
-        uo1.delete()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            uo1.delete()
 
     def test_in_semver_projects_group_resolution_stores_current_release_version(self):
         """
@@ -2227,7 +2514,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         """
         Test that ensures that if we basically know the next release when clicking on Resolved
         In Next Release because that release exists, then we can short circuit setting
-        GroupResolution to type "inNextRelease", and then having `clear_exrired_resolutions` run
+        GroupResolution to type "inNextRelease", and then having `clear_expired_resolutions` run
         once a new release is created to convert GroupResolution to in_release and set Activity.
         Basically we treat "ResolvedInNextRelease" as "ResolvedInRelease" when there is a release
         that was created after the last release associated with the group being resolved
@@ -2297,7 +2584,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert new_group2.status == GroupStatus.RESOLVED
 
         assert GroupSubscription.objects.filter(
-            user=self.user, group=new_group2, is_active=True
+            user_id=self.user.id, group=new_group2, is_active=True
         ).exists()
 
         new_group3 = Group.objects.get(id=group3.id)
@@ -2333,7 +2620,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert resolution.actor_id == self.user.id
 
         assert GroupSubscription.objects.filter(
-            user=self.user, group=group, is_active=True
+            user_id=self.user.id, group=group, is_active=True
         ).exists()
 
         activity = Activity.objects.get(
@@ -2374,7 +2661,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert resolution.actor_id == self.user.id
 
         assert GroupSubscription.objects.filter(
-            user=self.user, group=group, is_active=True
+            user_id=self.user.id, group=group, is_active=True
         ).exists()
 
         activity = Activity.objects.get(
@@ -2418,7 +2705,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert resolution.actor_id == self.user.id
 
         assert GroupSubscription.objects.filter(
-            user=self.user, group=group, is_active=True
+            user_id=self.user.id, group=group, is_active=True
         ).exists()
 
         activity = Activity.objects.get(
@@ -2455,7 +2742,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert resolution.actor_id == self.user.id
 
         assert GroupSubscription.objects.filter(
-            user=self.user, group=group, is_active=True
+            user_id=self.user.id, group=group, is_active=True
         ).exists()
 
         activity = Activity.objects.get(
@@ -2489,7 +2776,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert resolution.actor_id == self.user.id
 
         assert GroupSubscription.objects.filter(
-            user=self.user, group=group, is_active=True
+            user_id=self.user.id, group=group, is_active=True
         ).exists()
         assert GroupHistory.objects.filter(
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_RELEASE
@@ -2526,7 +2813,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert link.linked_id == commit.id
 
         assert GroupSubscription.objects.filter(
-            user=self.user, group=group, is_active=True
+            user_id=self.user.id, group=group, is_active=True
         ).exists()
 
         activity = Activity.objects.get(group=group, type=ActivityType.SET_RESOLVED_IN_COMMIT.value)
@@ -2564,7 +2851,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert link.linked_id == commit.id
 
         assert GroupSubscription.objects.filter(
-            user=self.user, group=group, is_active=True
+            user_id=self.user.id, group=group, is_active=True
         ).exists()
 
         activity = Activity.objects.get(group=group, type=ActivityType.SET_RESOLVED_IN_COMMIT.value)
@@ -2616,7 +2903,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         self.assertNoResolution(group)
 
         assert GroupSubscription.objects.filter(
-            user=self.user, group=group, is_active=True
+            user_id=self.user.id, group=group, is_active=True
         ).exists()
 
     def test_set_unresolved_on_snooze(self):
@@ -2668,6 +2955,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         now = timezone.now()
 
         assert snooze.count is None
+        assert snooze.until is not None
         assert snooze.until > now + timedelta(minutes=29)
         assert snooze.until < now + timedelta(minutes=31)
         assert snooze.user_count is None
@@ -2711,7 +2999,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
     def test_snooze_user_count(self):
-        event = {}
         for i in range(10):
             event = self.store_event(
                 data={
@@ -2722,8 +3009,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 project_id=self.project.id,
             )
 
+        assert event.group is not None
         group = Group.objects.get(id=event.group.id)
         group.status = GroupStatus.RESOLVED
+        group.substatus = None
         group.save()
 
         self.login_as(user=self.user)
@@ -2763,24 +3052,24 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             )
         assert response.data == {"isBookmarked": True}
 
-        bookmark1 = GroupBookmark.objects.filter(group=group1, user=self.user)
+        bookmark1 = GroupBookmark.objects.filter(group=group1, user_id=self.user.id)
         assert bookmark1.exists()
 
         assert GroupSubscription.objects.filter(
-            user=self.user, group=group1, is_active=True
+            user_id=self.user.id, group=group1, is_active=True
         ).exists()
 
-        bookmark2 = GroupBookmark.objects.filter(group=group2, user=self.user)
+        bookmark2 = GroupBookmark.objects.filter(group=group2, user_id=self.user.id)
         assert bookmark2.exists()
 
         assert GroupSubscription.objects.filter(
-            user=self.user, group=group2, is_active=True
+            user_id=self.user.id, group=group2, is_active=True
         ).exists()
 
-        bookmark3 = GroupBookmark.objects.filter(group=group3, user=self.user)
+        bookmark3 = GroupBookmark.objects.filter(group=group3, user_id=self.user.id)
         assert not bookmark3.exists()
 
-        bookmark4 = GroupBookmark.objects.filter(group=group4, user=self.user)
+        bookmark4 = GroupBookmark.objects.filter(group=group4, user_id=self.user.id)
         assert not bookmark4.exists()
 
     def test_subscription(self):
@@ -2797,16 +3086,16 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data == {"isSubscribed": True, "subscriptionDetails": {"reason": "unknown"}}
 
         assert GroupSubscription.objects.filter(
-            group=group1, user=self.user, is_active=True
+            group=group1, user_id=self.user.id, is_active=True
         ).exists()
 
         assert GroupSubscription.objects.filter(
-            group=group2, user=self.user, is_active=True
+            group=group2, user_id=self.user.id, is_active=True
         ).exists()
 
-        assert not GroupSubscription.objects.filter(group=group3, user=self.user).exists()
+        assert not GroupSubscription.objects.filter(group=group3, user_id=self.user.id).exists()
 
-        assert not GroupSubscription.objects.filter(group=group4, user=self.user).exists()
+        assert not GroupSubscription.objects.filter(group=group4, user_id=self.user.id).exists()
 
     def test_set_public(self):
         group1 = self.create_group()
@@ -2862,21 +3151,21 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             )
         assert response.data == {"hasSeen": True}
 
-        r1 = GroupSeen.objects.filter(group=group1, user=self.user)
+        r1 = GroupSeen.objects.filter(group=group1, user_id=self.user.id)
         assert r1.exists()
 
-        r2 = GroupSeen.objects.filter(group=group2, user=self.user)
+        r2 = GroupSeen.objects.filter(group=group2, user_id=self.user.id)
         assert r2.exists()
 
-        r3 = GroupSeen.objects.filter(group=group3, user=self.user)
+        r3 = GroupSeen.objects.filter(group=group3, user_id=self.user.id)
         assert not r3.exists()
 
-        r4 = GroupSeen.objects.filter(group=group4, user=self.user)
+        r4 = GroupSeen.objects.filter(group=group4, user_id=self.user.id)
         assert not r4.exists()
 
-    @patch("sentry.api.helpers.group_index.update.uuid4")
-    @patch("sentry.api.helpers.group_index.update.merge_groups")
-    @patch("sentry.api.helpers.group_index.update.eventstream")
+    @patch("sentry.issues.merge.uuid4")
+    @patch("sentry.issues.merge.merge_groups")
+    @patch("sentry.eventstream.backend")
     def test_merge(self, mock_eventstream, merge_groups, mock_uuid4):
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
@@ -2908,6 +3197,26 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             eventstream_state=eventstream_state,
         )
 
+    @patch("sentry.issues.merge.uuid4")
+    @patch("sentry.issues.merge.merge_groups")
+    @patch("sentry.eventstream.backend")
+    def test_merge_performance_issues(self, mock_eventstream, merge_groups, mock_uuid4):
+        eventstream_state = object()
+        mock_eventstream.start_merge = Mock(return_value=eventstream_state)
+
+        mock_uuid4.return_value = self.get_mock_uuid()
+        group1 = self.create_group(times_seen=1, type=PerformanceSlowDBQueryGroupType.type_id)
+        group2 = self.create_group(times_seen=50, type=PerformanceSlowDBQueryGroupType.type_id)
+        group3 = self.create_group(times_seen=2, type=PerformanceSlowDBQueryGroupType.type_id)
+        self.create_group()
+
+        self.login_as(user=self.user)
+        response = self.get_error_response(
+            qs_params={"id": [group1.id, group2.id, group3.id]}, merge="1"
+        )
+
+        assert response.status_code == 400, response.content
+
     def test_assign(self):
         group1 = self.create_group(is_public=True)
         group2 = self.create_group(is_public=True)
@@ -2917,26 +3226,28 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         response = self.get_success_response(qs_params={"id": group1.id}, assignedTo=user.username)
         assert response.data["assignedTo"]["id"] == str(user.id)
         assert response.data["assignedTo"]["type"] == "user"
-        assert GroupAssignee.objects.filter(group=group1, user=user).exists()
+        assert GroupAssignee.objects.filter(group=group1, user_id=user.id).exists()
         assert GroupHistory.objects.filter(
             group=group1, status=GroupHistoryStatus.ASSIGNED
         ).exists()
 
-        assert not GroupAssignee.objects.filter(group=group2, user=user).exists()
+        assert not GroupAssignee.objects.filter(group=group2, user_id=user.id).exists()
 
         assert (
             Activity.objects.filter(
-                group=group1, user=user, type=ActivityType.ASSIGNED.value
+                group=group1, user_id=user.id, type=ActivityType.ASSIGNED.value
             ).count()
             == 1
         )
 
-        assert GroupSubscription.objects.filter(user=user, group=group1, is_active=True).exists()
+        assert GroupSubscription.objects.filter(
+            user_id=user.id, group=group1, is_active=True
+        ).exists()
 
         response = self.get_success_response(qs_params={"id": group1.id}, assignedTo="")
         assert response.data["assignedTo"] is None
 
-        assert not GroupAssignee.objects.filter(group=group1, user=user).exists()
+        assert not GroupAssignee.objects.filter(group=group1, user_id=user.id).exists()
         assert GroupHistory.objects.filter(
             group=group1, status=GroupHistoryStatus.UNASSIGNED
         ).exists()
@@ -3068,6 +3379,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         ).exists()
 
 
+@region_silo_test(stable=True)
 class GroupDeleteTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
     method = "delete"
@@ -3079,11 +3391,10 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             org = args[0]
         return super().get_response(org, **kwargs)
 
-    @patch("sentry.api.helpers.group_index.delete.eventstream")
-    @patch("sentry.eventstream")
-    def test_delete_by_id(self, mock_eventstream_task, mock_eventstream_api):
+    @patch("sentry.eventstream.backend")
+    def test_delete_by_id(self, mock_eventstream):
         eventstream_state = {"event_stream_state": uuid4()}
-        mock_eventstream_api.start_delete_groups = Mock(return_value=eventstream_state)
+        mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
 
         group1 = self.create_group(status=GroupStatus.RESOLVED)
         group2 = self.create_group(status=GroupStatus.UNRESOLVED)
@@ -3105,7 +3416,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
                 qs_params={"id": [group1.id, group2.id], "group4": group4.id}
             )
 
-        mock_eventstream_api.start_delete_groups.assert_called_once_with(
+        mock_eventstream.start_delete_groups.assert_called_once_with(
             group1.project_id, [group1.id, group2.id]
         )
 
@@ -3131,7 +3442,13 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
                     qs_params={"id": [group1.id, group2.id], "group4": group4.id}
                 )
 
-        mock_eventstream_task.end_delete_groups.assert_called_once_with(eventstream_state)
+        # XXX(markus): Something is sending duplicated replacements to snuba --
+        # once from within tasks.deletions.groups and another time from
+        # sentry.deletions.defaults.groups
+        assert mock_eventstream.end_delete_groups.call_args_list == [
+            call(eventstream_state),
+            call(eventstream_state),
+        ]
 
         assert response.status_code == 204
 
@@ -3146,6 +3463,36 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
 
         assert Group.objects.filter(id=group4.id).exists()
         assert GroupHash.objects.filter(group_id=group4.id).exists()
+
+    @patch("sentry.eventstream.backend")
+    def test_delete_performance_issue_by_id(self, mock_eventstream):
+        eventstream_state = {"event_stream_state": uuid4()}
+        mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
+
+        group1 = self.create_group(
+            status=GroupStatus.RESOLVED, type=PerformanceSlowDBQueryGroupType.type_id
+        )
+        group2 = self.create_group(
+            status=GroupStatus.UNRESOLVED, type=PerformanceSlowDBQueryGroupType.type_id
+        )
+
+        hashes = []
+        for g in group1, group2:
+            hash = uuid4().hex
+            hashes.append(hash)
+            GroupHash.objects.create(project=g.project, hash=hash, group=g)
+
+        self.login_as(user=self.user)
+        with self.feature("organizations:global-views"):
+            response = self.get_response(qs_params={"id": [group1.id, group2.id]})
+
+        assert response.status_code == 400
+
+        assert Group.objects.filter(id=group1.id).exists()
+        assert GroupHash.objects.filter(group_id=group1.id).exists()
+
+        assert Group.objects.filter(id=group2.id).exists()
+        assert GroupHash.objects.filter(group_id=group2.id).exists()
 
     def test_bulk_delete(self):
         groups = []
@@ -3193,3 +3540,30 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             for i in range(5):
                 self.get_success_response()
             self.get_error_response(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_bulk_delete_performance_issues(self):
+        groups = []
+        for i in range(10, 41):
+            groups.append(
+                self.create_group(
+                    project=self.project,
+                    status=GroupStatus.RESOLVED,
+                    type=PerformanceSlowDBQueryGroupType.type_id,
+                )
+            )
+
+        hashes = []
+        for group in groups:
+            hash = uuid4().hex
+            hashes.append(hash)
+            GroupHash.objects.create(project=group.project, hash=hash, group=group)
+
+        self.login_as(user=self.user)
+
+        # if query is '' it defaults to is:unresolved
+        response = self.get_response(qs_params={"query": ""})
+        assert response.status_code == 400
+
+        for group in groups:
+            assert Group.objects.filter(id=group.id).exists()
+            assert GroupHash.objects.filter(group_id=group.id).exists()

@@ -1,8 +1,9 @@
-from typing import Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
+from sentry.utils import metrics
 from sentry.utils.functional import cached
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
@@ -63,7 +64,7 @@ def create_match_frame(frame_data: dict, platform: Optional[str]) -> dict:
         category=get_path(frame_data, "data", "category"),
         family=get_behavior_family_for_platform(frame_data.get("platform") or platform),
         function=_get_function_name(frame_data, platform),
-        in_app=frame_data.get("in_app"),
+        in_app=frame_data.get("in_app") or False,
         module=get_path(frame_data, "module"),
         package=frame_data.get("package"),
         path=frame_data.get("abs_path") or frame_data.get("filename"),
@@ -82,8 +83,6 @@ def create_match_frame(frame_data: dict, platform: Optional[str]) -> dict:
 
 
 class Match:
-    description = None
-
     def matches_frame(self, frames, idx, platform, exception_data, cache):
         raise NotImplementedError()
 
@@ -112,24 +111,29 @@ class Match:
         return FrameMatch.from_key(key, arg, negated)
 
 
+InstanceKey = Tuple[str, str, bool]
+
+
 class FrameMatch(Match):
 
     # Global registry of matchers
-    instances = {}
+    instances: Dict[InstanceKey, Match] = {}
+    field: Any = None
 
     @classmethod
-    def from_key(cls, key, pattern, negated):
+    def from_key(cls, key: str, pattern: str, negated: bool) -> Match:
 
         instance_key = (key, pattern, negated)
         if instance_key in cls.instances:
             instance = cls.instances[instance_key]
         else:
             instance = cls.instances[instance_key] = cls._from_key(key, pattern, negated)
+            metrics.gauge("grouping.enhancer.matchers.registry_size", len(cls.instances))
 
         return instance
 
     @classmethod
-    def _from_key(cls, key, pattern, negated):
+    def _from_key(cls, key: str, pattern: str, negated: bool) -> Match:
 
         subclass = {
             "package": PackageMatch,
@@ -157,7 +161,7 @@ class FrameMatch(Match):
         self.negated = negated
 
     @property
-    def description(self):
+    def description(self) -> str:
         return "{}:{}".format(
             self.key,
             self.pattern.split() != [self.pattern] and '"%s"' % self.pattern or self.pattern,
@@ -240,19 +244,20 @@ class InAppMatch(FrameMatch):
         return ref_val is not None and ref_val == match_frame["in_app"]
 
 
-class FunctionMatch(FrameMatch):
-    def _positive_frame_match(self, match_frame, platform, exception_data, cache):
-
-        return cached(cache, glob_match, match_frame["function"], self._encoded_pattern)
-
-
 class FrameFieldMatch(FrameMatch):
     def _positive_frame_match(self, match_frame, platform, exception_data, cache):
         field = match_frame[self.field]
         if field is None:
             return False
+        if field == self._encoded_pattern:
+            return True
 
         return cached(cache, glob_match, field, self._encoded_pattern)
+
+
+class FunctionMatch(FrameFieldMatch):
+
+    field = "function"
 
 
 class ModuleMatch(FrameFieldMatch):
@@ -266,6 +271,15 @@ class CategoryMatch(FrameFieldMatch):
 
 
 class ExceptionFieldMatch(FrameMatch):
+    field_path: List[str]
+
+    def matches_frame(self, frames, idx, platform, exception_data, cache):
+        match_frame = None
+        rv = self._positive_frame_match(match_frame, platform, exception_data, cache)
+        if self.negated:
+            rv = not rv
+        return rv
+
     def _positive_frame_match(self, frame_data, platform, exception_data, cache):
         field = get_path(exception_data, *self.field_path) or "<unknown>"
         return cached(cache, glob_match, field, self._encoded_pattern)
@@ -291,7 +305,7 @@ class CallerMatch(Match):
         self.caller = caller
 
     @property
-    def description(self):
+    def description(self) -> str:
         return f"[ {self.caller.description} ] |"
 
     def _to_config_structure(self, version):
@@ -308,7 +322,7 @@ class CalleeMatch(Match):
         self.caller = caller
 
     @property
-    def description(self):
+    def description(self) -> str:
         return f"| [ {self.caller.description} ]"
 
     def _to_config_structure(self, version):

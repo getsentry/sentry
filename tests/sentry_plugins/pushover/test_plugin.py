@@ -1,12 +1,12 @@
+from functools import cached_property
 from urllib.parse import parse_qs
 
 import responses
 from django.urls import reverse
-from exam import fixture
 
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
-from sentry.testutils import PluginTestCase
+from sentry.testutils.cases import PluginTestCase
 from sentry.utils import json
 from sentry_plugins.pushover.plugin import PushoverPlugin
 
@@ -14,7 +14,7 @@ SUCCESS = """{"status":1,"request":"e460545a8b333d0da2f3602aff3133d6"}"""
 
 
 class PushoverPluginTest(PluginTestCase):
-    @fixture
+    @cached_property
     def plugin(self):
         return PushoverPlugin()
 
@@ -40,6 +40,7 @@ class PushoverPluginTest(PluginTestCase):
         event = self.store_event(
             data={"message": "Hello world", "level": "warning"}, project_id=self.project.id
         )
+        assert event.group is not None
         group = event.group
 
         rule = Rule.objects.create(project=self.project, label="my rule")
@@ -77,6 +78,7 @@ class PushoverPluginTest(PluginTestCase):
         event = self.store_event(
             data={"message": "Hello world", "level": "warning"}, project_id=self.project.id
         )
+        assert event.group is not None
         group = event.group
 
         rule = Rule.objects.create(project=self.project, label="my rule")

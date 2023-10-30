@@ -1,65 +1,36 @@
-import {useCallback, useEffect} from 'react';
-
-import {getCommitters} from 'sentry/actionCreators/committers';
-import {Client} from 'sentry/api';
-import CommitterStore, {getCommitterStoreKey} from 'sentry/stores/committerStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {Committer, Group, Organization} from 'sentry/types';
-import useApi from 'sentry/utils/useApi';
+import type {Committer} from 'sentry/types';
+import {ApiQueryKey, useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
 
 import useOrganization from './useOrganization';
 
-interface Props {
+interface UseCommittersProps {
   eventId: string;
   projectSlug: string;
-  group?: Group;
 }
 
-interface Result {
+interface CommittersResponse {
   committers: Committer[];
-  fetching: boolean;
 }
 
-async function fetchCommitters(
-  api: Client,
-  organization: Organization,
+const makeCommittersQueryKey = (
+  orgSlug: string,
   projectSlug: string,
   eventId: string
+): ApiQueryKey => [`/projects/${orgSlug}/${projectSlug}/events/${eventId}/committers/`];
+
+function useCommitters(
+  {eventId, projectSlug}: UseCommittersProps,
+  options: Partial<UseApiQueryOptions<CommittersResponse>> = {}
 ) {
-  const repoData = CommitterStore.get(organization.slug, projectSlug, eventId);
-
-  if ((!repoData.committers && !repoData.committersLoading) || repoData.committersError) {
-    await getCommitters(api, {
-      orgSlug: organization.slug,
-      projectSlug,
-      eventId,
-    });
-  }
-}
-
-function useCommitters({group, eventId, projectSlug}: Props): Result {
-  const api = useApi();
-  const organization = useOrganization();
-  const store = useLegacyStore(CommitterStore);
-
-  const loadCommitters = useCallback(async () => {
-    await fetchCommitters(api, organization!, projectSlug, eventId);
-  }, [api, organization, projectSlug, eventId]);
-
-  useEffect(() => {
-    // No committers if group doesn't have any releases
-    if (!group?.firstRelease || !organization) {
-      return;
+  const org = useOrganization();
+  return useApiQuery<CommittersResponse>(
+    makeCommittersQueryKey(org.slug, projectSlug, eventId),
+    {
+      staleTime: Infinity,
+      retry: false,
+      ...options,
     }
-
-    loadCommitters();
-  }, [eventId, group?.firstRelease, loadCommitters, organization]);
-
-  const key = getCommitterStoreKey(organization?.slug ?? '', projectSlug, eventId);
-  return {
-    committers: store[key]?.committers ?? [],
-    fetching: store[key]?.committersLoading ?? false,
-  };
+  );
 }
 
 export default useCommitters;

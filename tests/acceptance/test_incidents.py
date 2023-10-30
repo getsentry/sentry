@@ -1,16 +1,19 @@
-import pytz
-from django.utils import timezone
+from datetime import timezone
+
+from django.utils import timezone as django_timezone
 
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import IncidentStatus, IncidentStatusMethod
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.silo import no_silo_test
 
 FEATURE_NAME = ["organizations:incidents", "organizations:performance-view"]
 
-event_time = before_now(days=3).replace(tzinfo=pytz.utc)
+event_time = before_now(days=3).replace(tzinfo=timezone.utc)
 
 
+@no_silo_test(stable=True)
 class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -21,15 +24,14 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.snapshot("incidents - empty state")
 
     def test_incidents_list(self):
         alert_rule = self.create_alert_rule(name="Alert Rule #1")
         incident = self.create_incident(
             self.organization,
             title="Incident #1",
-            date_started=timezone.now(),
-            date_detected=timezone.now(),
+            date_started=django_timezone.now(),
+            date_detected=django_timezone.now(),
             projects=[self.project],
             alert_rule=alert_rule,
         )
@@ -42,7 +44,6 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-            self.browser.snapshot("incidents - list")
 
             details_url = f'[href="/organizations/{self.organization.slug}/alerts/rules/details/{alert_rule.id}/?alert={incident.id}'
             self.browser.wait_until(details_url)
@@ -51,5 +52,3 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until_test_id("incident-rule-title")
 
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-            self.browser.blur()
-            self.browser.snapshot("incidents - details")

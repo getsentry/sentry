@@ -3,17 +3,18 @@ import math
 import random
 from collections import namedtuple
 from copy import deepcopy
-from datetime import timedelta
-from typing import Any, Dict, List, Optional, Sequence
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import sentry_sdk
-from dateutil.parser import parse as parse_datetime
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
 from typing_extensions import TypedDict
 
 from sentry.discover.arithmetic import categorize_columns
-from sentry.models import Group
+from sentry.exceptions import InvalidSearchQuery
+from sentry.models.group import Group
 from sentry.search.events.builder import (
     HistogramQueryBuilder,
     QueryBuilder,
@@ -22,17 +23,16 @@ from sentry.search.events.builder import (
 )
 from sentry.search.events.fields import (
     FIELD_ALIASES,
-    InvalidSearchQuery,
     get_function_alias,
     get_json_meta_type,
     is_function,
 )
-from sentry.search.events.types import HistogramParams, ParamsType
+from sentry.search.events.types import HistogramParams, ParamsType, QueryBuilderConfig
+from sentry.snuba.dataset import Dataset
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.dates import to_timestamp
 from sentry.utils.math import nice_int
 from sentry.utils.snuba import (
-    Dataset,
     SnubaTSResult,
     bulk_snql_query,
     get_array_column_alias,
@@ -49,21 +49,20 @@ from sentry.utils.snuba import (
 __all__ = (
     "PaginationResult",
     "InvalidSearchQuery",
-    "transform_results",
     "query",
     "timeseries_query",
     "top_events_timeseries",
     "get_facets",
-    "transform_data",
     "zerofill",
     "histogram_query",
     "check_multihistogram_fields",
 )
+DEFAULT_DATASET_REASON = "unchanged"
 
 
 logger = logging.getLogger(__name__)
 
-PreparedQuery = namedtuple("query", ["filter", "columns", "fields"])
+PreparedQuery = namedtuple("PreparedQuery", ["filter", "columns", "fields"])
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 
@@ -97,6 +96,35 @@ def is_real_column(col):
     return True
 
 
+def format_time(data, start, end, rollup, orderby):
+    rv = []
+    start = int(to_naive_timestamp(naiveify_datetime(start)) / rollup) * rollup
+    end = (int(to_naive_timestamp(naiveify_datetime(end)) / rollup) * rollup) + rollup
+    data_by_time = {}
+
+    for obj in data:
+        # This is needed for SnQL, and was originally done in utils.snuba.get_snuba_translators
+        if isinstance(obj["time"], str):
+            # `datetime.fromisoformat` is new in Python3.7 and before Python3.11, it is not a full
+            # ISO 8601 parser. It is only the inverse function of `datetime.isoformat`, which is
+            # the format returned by snuba. This is significantly faster when compared to other
+            # parsers like `dateutil.parser.parse` and `datetime.strptime`.
+            obj["time"] = int(to_timestamp(datetime.fromisoformat(obj["time"])))
+        if obj["time"] in data_by_time:
+            data_by_time[obj["time"]].append(obj)
+        else:
+            data_by_time[obj["time"]] = [obj]
+
+    for key in range(start, end, rollup):
+        if key in data_by_time and len(data_by_time[key]) > 0:
+            rv.extend(data_by_time[key])
+
+    if "-time" in orderby:
+        return list(reversed(rv))
+
+    return rv
+
+
 def zerofill(data, start, end, rollup, orderby):
     rv = []
     start = int(to_naive_timestamp(naiveify_datetime(start)) / rollup) * rollup
@@ -106,7 +134,11 @@ def zerofill(data, start, end, rollup, orderby):
     for obj in data:
         # This is needed for SnQL, and was originally done in utils.snuba.get_snuba_translators
         if isinstance(obj["time"], str):
-            obj["time"] = int(to_timestamp(parse_datetime(obj["time"])))
+            # `datetime.fromisoformat` is new in Python3.7 and before Python3.11, it is not a full
+            # ISO 8601 parser. It is only the inverse function of `datetime.isoformat`, which is
+            # the format returned by snuba. This is significantly faster when compared to other
+            # parsers like `dateutil.parser.parse` and `datetime.strptime`.
+            obj["time"] = int(to_timestamp(datetime.fromisoformat(obj["time"])))
         if obj["time"] in data_by_time:
             data_by_time[obj["time"]].append(obj)
         else:
@@ -114,8 +146,7 @@ def zerofill(data, start, end, rollup, orderby):
 
     for key in range(start, end, rollup):
         if key in data_by_time and len(data_by_time[key]) > 0:
-            rv = rv + data_by_time[key]
-            data_by_time[key] = []
+            rv.extend(data_by_time[key])
         else:
             rv.append({"time": key})
 
@@ -123,74 +154,6 @@ def zerofill(data, start, end, rollup, orderby):
         return list(reversed(rv))
 
     return rv
-
-
-def transform_results(
-    results, function_alias_map, translated_columns, snuba_filter
-) -> EventsResponse:
-    results = transform_data(results, translated_columns, snuba_filter)
-    results["meta"] = transform_meta(results, function_alias_map)
-    return results
-
-
-def transform_meta(results: EventsResponse, function_alias_map) -> Dict[str, str]:
-    meta: Dict[str, str] = {
-        value["name"]: get_json_meta_type(
-            value["name"], value.get("type"), function_alias_map.get(value["name"])
-        )
-        for value in results["meta"]
-    }
-    # Ensure all columns in the result have types.
-    if results["data"]:
-        for key in results["data"][0]:
-            if key not in meta:
-                meta[key] = "string"
-    return meta
-
-
-def transform_data(result, translated_columns, snuba_filter) -> EventsResponse:
-    """
-    Transform internal names back to the public schema ones.
-
-    When getting timeseries results via rollup, this function will
-    zerofill the output results.
-    """
-    final_result: EventsResponse = {"data": result["data"], "meta": result["meta"]}
-    for col in final_result["meta"]:
-        # Translate back column names that were converted to snuba format
-        col["name"] = translated_columns.get(col["name"], col["name"])
-
-    def get_row(row):
-        transformed = {}
-        for key, value in row.items():
-            if isinstance(value, float):
-                # 0 for nan, and none for inf were chosen arbitrarily, nan and inf are invalid json
-                # so needed to pick something valid to use instead
-                if math.isnan(value):
-                    value = 0
-                elif math.isinf(value):
-                    value = None
-            transformed[translated_columns.get(key, key)] = value
-
-        return transformed
-
-    final_result["data"] = [get_row(row) for row in final_result["data"]]
-
-    if snuba_filter and snuba_filter.rollup and snuba_filter.rollup > 0:
-        rollup = snuba_filter.rollup
-        with sentry_sdk.start_span(
-            op="discover.discover", description="transform_results.zerofill"
-        ) as span:
-            span.set_data("result_count", len(final_result.get("data", [])))
-            final_result["data"] = zerofill(
-                final_result["data"],
-                snuba_filter.start,
-                snuba_filter.end,
-                rollup,
-                snuba_filter.orderby,
-            )
-
-    return final_result
 
 
 def transform_tips(tips):
@@ -204,6 +167,7 @@ def query(
     selected_columns,
     query,
     params,
+    snuba_params=None,
     equations=None,
     orderby=None,
     offset=None,
@@ -217,6 +181,12 @@ def query(
     conditions=None,
     functions_acl=None,
     transform_alias_to_input_format=False,
+    sample=None,
+    has_metrics=False,
+    use_metrics_layer=False,
+    skip_tag_resolution=False,
+    extra_columns=None,
+    on_demand_metrics_enabled=False,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -247,6 +217,7 @@ def query(
                     any additional processing.
     transform_alias_to_input_format (bool) Whether aggregate columns should be returned in the originally
                                 requested function format.
+    sample (float) The sample rate to run the query with
     """
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
@@ -254,58 +225,48 @@ def query(
     builder = QueryBuilder(
         Dataset.Discover,
         params,
+        snuba_params=snuba_params,
         query=query,
         selected_columns=selected_columns,
         equations=equations,
         orderby=orderby,
-        auto_fields=auto_fields,
-        auto_aggregations=auto_aggregations,
-        use_aggregate_conditions=use_aggregate_conditions,
-        functions_acl=functions_acl,
         limit=limit,
         offset=offset,
-        equation_config={"auto_add": include_equation_fields},
+        sample_rate=sample,
+        config=QueryBuilderConfig(
+            auto_fields=auto_fields,
+            auto_aggregations=auto_aggregations,
+            use_aggregate_conditions=use_aggregate_conditions,
+            functions_acl=functions_acl,
+            equation_config={"auto_add": include_equation_fields},
+            has_metrics=has_metrics,
+            transform_alias_to_input_format=transform_alias_to_input_format,
+            skip_tag_resolution=skip_tag_resolution,
+        ),
     )
     if conditions is not None:
         builder.add_conditions(conditions)
-    result = builder.run_query(referrer)
-    with sentry_sdk.start_span(
-        op="discover.discover", description="query.transform_results"
-    ) as span:
-        span.set_data("result_count", len(result.get("data", [])))
-        translated_columns = {}
-        function_alias_map = builder.function_alias_map
-        if transform_alias_to_input_format:
-            translated_columns = {
-                column: function_details.field
-                for column, function_details in builder.function_alias_map.items()
-            }
-            function_alias_map = {
-                translated_columns.get(column): function_details
-                for column, function_details in builder.function_alias_map.items()
-            }
-            for index, equation in enumerate(equations):
-                translated_columns[f"equation[{index}]"] = f"equation|{equation}"
-        result = transform_results(
-            result,
-            function_alias_map,
-            translated_columns,
-            None,
-        )
-        result["tips"] = transform_tips(builder.tips)
+    if extra_columns is not None:
+        builder.columns.extend(extra_columns)
+
+    result = builder.process_results(builder.run_query(referrer))
+    result["meta"]["tips"] = transform_tips(builder.tips)
     return result
 
 
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: Dict[str, str],
+    params: Dict[str, Any],
     rollup: int,
     referrer: Optional[str] = None,
     zerofill_results: bool = True,
     comparison_delta: Optional[timedelta] = None,
-    functions_acl: Optional[Sequence[str]] = None,
+    functions_acl: Optional[List[str]] = None,
     allow_metric_aggregates=False,
+    has_metrics=False,
+    use_metrics_layer=False,
+    on_demand_metrics_enabled=False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -339,7 +300,10 @@ def timeseries_query(
             query=query,
             selected_columns=columns,
             equations=equations,
-            functions_acl=functions_acl,
+            config=QueryBuilderConfig(
+                functions_acl=functions_acl,
+                has_metrics=has_metrics,
+            ),
         )
         query_list = [base_builder]
         if comparison_delta:
@@ -364,27 +328,46 @@ def timeseries_query(
         results = []
         for snql_query, result in zip(query_list, query_results):
             results.append(
-                zerofill(
-                    result["data"],
-                    snql_query.params["start"],
-                    snql_query.params["end"],
-                    rollup,
-                    "time",
-                )
-                if zerofill_results
-                else result["data"]
+                {
+                    "data": zerofill(
+                        result["data"],
+                        snql_query.params.start,
+                        snql_query.params.end,
+                        rollup,
+                        "time",
+                    )
+                    if zerofill_results
+                    else result["data"],
+                    "meta": result["meta"],
+                }
             )
 
     if len(results) == 2 and comparison_delta:
         col_name = base_builder.aggregates[0].alias
         # If we have two sets of results then we're doing a comparison queries. Divide the primary
         # results by the comparison results.
-        for result, cmp_result in zip(results[0], results[1]):
+        for result, cmp_result in zip(results[0]["data"], results[1]["data"]):
             cmp_result_val = cmp_result.get(col_name, 0)
             result["comparisonCount"] = cmp_result_val
 
     result = results[0]
-    return SnubaTSResult({"data": result}, params["start"], params["end"], rollup)
+
+    return SnubaTSResult(
+        {
+            "data": result["data"],
+            "meta": {
+                "fields": {
+                    value["name"]: get_json_meta_type(
+                        value["name"], value.get("type"), base_builder
+                    )
+                    for value in result["meta"]
+                }
+            },
+        },
+        params["start"],
+        params["end"],
+        rollup,
+    )
 
 
 def create_result_key(result_row, fields, issues) -> str:
@@ -395,6 +378,8 @@ def create_result_key(result_row, fields, issues) -> str:
             if issue_id is None:
                 issue_id = "unknown"
             values.append(issue_id)
+        elif field == "transaction.status":
+            values.append(SPAN_STATUS_CODE_TO_NAME.get(result_row[field], "unknown"))
         else:
             value = result_row.get(field)
             if isinstance(value, list):
@@ -463,6 +448,7 @@ def top_events_timeseries(
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
                 include_equation_fields=True,
+                skip_tag_resolution=True,
             )
 
     top_events_builder = TopEventsQueryBuilder(
@@ -475,7 +461,10 @@ def top_events_timeseries(
         selected_columns=selected_columns,
         timeseries_columns=timeseries_columns,
         equations=equations,
-        functions_acl=functions_acl,
+        config=QueryBuilderConfig(
+            functions_acl=functions_acl,
+            skip_tag_resolution=True,
+        ),
     )
     if len(top_events["data"]) == limit and include_other:
         other_events_builder = TopEventsQueryBuilder(
@@ -515,7 +504,7 @@ def top_events_timeseries(
         op="discover.discover", description="top_events.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        result = transform_results(result, top_events_builder.function_alias_map, {}, None)
+        result = top_events_builder.process_results(result)
 
         issues = {}
         if "issue" in selected_columns:
@@ -569,7 +558,8 @@ def get_facets(
     query: str,
     params: ParamsType,
     referrer: str,
-    limit: Optional[int] = TOP_KEYS_DEFAULT_LIMIT,
+    per_page: Optional[int] = TOP_KEYS_DEFAULT_LIMIT,
+    cursor: Optional[int] = 0,
 ):
     """
     High-level API for getting 'facet map' results.
@@ -581,11 +571,13 @@ def get_facets(
     query (str) Filter query string to create conditions from.
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
     referrer (str) A referrer string to help locate the origin of this query.
-    limit (int) The number of records to fetch.
+    per_page (int) The number of records to fetch.
+    cursor (int) The number of records to skip.
 
     Returns Sequence[FacetResult]
     """
     sample = len(params["project_id"]) > 2
+    fetch_projects = len(params.get("project_id", [])) > 1
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
         key_name_builder = QueryBuilder(
@@ -594,7 +586,11 @@ def get_facets(
             query=query,
             selected_columns=["tags_key", "count()"],
             orderby=["-count()", "tags_key"],
-            limit=limit,
+            limit=per_page,
+            # Remove one from the cursor because if we fetch_projects then
+            # a result is popped off and replaced with projects, offsetting
+            # the pagination on subsequent pages
+            offset=cursor - 1 if fetch_projects and cursor > 0 else cursor,
             turbo=sample,
         )
         key_names = key_name_builder.run_query(referrer)
@@ -612,14 +608,13 @@ def get_facets(
     # Rescale the results if we're sampling
     multiplier = 1 / sample_rate if sample_rate is not None else 1
 
-    fetch_projects = False
-    if len(params.get("project_id", [])) > 1:
-        if len(top_tags) == limit:
-            top_tags.pop()
-        fetch_projects = True
+    if fetch_projects and len(top_tags) == per_page and cursor == 0:
+        top_tags.pop()
 
-    results = []
-    if fetch_projects:
+    top_tag_results = []
+    project_results = []
+    # Inject project data on the first page if multiple projects are selected
+    if fetch_projects and cursor == 0:
         with sentry_sdk.start_span(op="discover.discover", description="facets.projects"):
             project_value_builder = QueryBuilder(
                 Dataset.Discover,
@@ -632,7 +627,7 @@ def get_facets(
                 sample_rate=sample_rate,
             )
             project_values = project_value_builder.run_query(referrer=referrer)
-            results.extend(
+            project_results.extend(
                 [
                     FacetResult("project", r["project_id"], int(r["count"]) * multiplier)
                     for r in project_values["data"]
@@ -648,7 +643,7 @@ def get_facets(
         if tag == "environment":
             # Add here tags that you want to be individual
             individual_tags.append(tag)
-        elif i >= len(top_tags) - TOP_KEYS_DEFAULT_LIMIT:
+        elif i >= len(top_tags) - per_page:
             aggregate_tags.append(tag)
         else:
             individual_tags.append(tag)
@@ -671,7 +666,7 @@ def get_facets(
                 sample_rate=sample_rate,
             )
             tag_values = tag_value_builder.run_query(referrer)
-            results.extend(
+            top_tag_results.extend(
                 [
                     FacetResult(tag_name, r[tag], int(r["count"]) * multiplier)
                     for r in tag_values["data"]
@@ -688,12 +683,14 @@ def get_facets(
                 selected_columns=["count()", "tags_key", "tags_value"],
                 orderby=["tags_key", "-count()"],
                 limitby=("tags_key", TOP_VALUES_DEFAULT_LIMIT),
+                # Increase the limit to ensure we get results for each tag
+                limit=len(aggregate_tags) * TOP_VALUES_DEFAULT_LIMIT,
                 # Ensures Snuba will not apply FINAL
                 turbo=sample_rate is not None,
                 sample_rate=sample_rate,
             )
             aggregate_values = aggregate_value_builder.run_query(referrer)
-            results.extend(
+            top_tag_results.extend(
                 [
                     FacetResult(r["tags_key"], r["tags_value"], int(r["count"]) * multiplier)
                     for r in aggregate_values["data"]
@@ -701,7 +698,14 @@ def get_facets(
             )
 
     # Need to cast tuple values to str since the value might be None
-    return sorted(results, key=lambda result: (str(result.key), str(result.value)))
+    # Reverse sort the count so the highest values show up first
+    top_tag_results = sorted(
+        top_tag_results, key=lambda result: (str(result.key), -result.count, str(result.value))
+    )
+
+    # Ensure projects are at the beginning of the results so they are not
+    # truncated by the paginator
+    return [*project_results, *top_tag_results]
 
 
 def spans_histogram_query(
@@ -719,6 +723,8 @@ def spans_histogram_query(
     limit_by=None,
     extra_condition=None,
     normalize_results=True,
+    use_metrics_layer=False,
+    on_demand_metrics_enabled=False,
 ):
     """
     API for generating histograms for span exclusive time.
@@ -805,6 +811,8 @@ def histogram_query(
     histogram_rows=None,
     extra_conditions=None,
     normalize_results=True,
+    use_metrics_layer=False,
+    on_demand_metrics_enabled=False,
 ):
     """
     API for generating histograms for numeric columns.
@@ -837,6 +845,7 @@ def histogram_query(
         # We want the specified max_value to be exclusive, and the queried max_value
         # to be inclusive. So we adjust the specified max_value using the multiplier.
         max_value -= 0.1 / multiplier
+
     min_value, max_value = find_histogram_min_max(
         fields,
         min_value,
@@ -888,7 +897,7 @@ def histogram_query(
     )
     if extra_conditions is not None:
         builder.add_conditions(extra_conditions)
-    results = builder.run_query(referrer)
+    results = builder.process_results(builder.run_query(referrer))
 
     if not normalize_results:
         return results
@@ -925,7 +934,7 @@ def get_histogram_column(fields, key_column, histogram_params, array_column):
 def find_histogram_params(num_buckets, min_value, max_value, multiplier):
     """
     Compute the parameters to use for the histogram. Using the provided
-    arguments, ensure that the generated histogram encapsolates the desired range.
+    arguments, ensure that the generated histogram encapsulates the desired range.
 
     :param int num_buckets: The number of buckets the histogram should contain.
     :param float min_value: The minimum value allowed to be in the histogram inclusive.
@@ -1063,6 +1072,106 @@ def find_span_histogram_min_max(span, min_value, max_value, user_query, params, 
     return min_value, max_value
 
 
+def find_span_op_count_histogram_min_max(
+    span_op, min_value, max_value, user_query, params, data_filter=None
+):
+    """
+    Find the min/max value of the specified span op count. If either min/max is already
+    specified, it will be used and not queried for.
+
+    :param str span_op: A span op for which count you want to generate the histograms for.
+    :param float min_value: The minimum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param float max_value: The maximum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param str user_query: Filter query string to create conditions from.
+    :param {str: str} params: Filtering parameters with start, end, project_id, environment
+    :param str data_filter: Indicate the filter strategy to be applied to the data.
+    """
+    if min_value is not None and max_value is not None:
+        return min_value, max_value
+
+    selected_columns = []
+    min_column = ""
+    max_column = ""
+    outlier_lower_fence = ""
+    outlier_upper_fence = ""
+    if min_value is None:
+        min_column = f'fn_span_count("{span_op}", min)'
+        selected_columns.append(min_column)
+    if max_value is None:
+        max_column = f'fn_span_count("{span_op}", max)'
+        selected_columns.append(max_column)
+    if data_filter == "exclude_outliers":
+        outlier_lower_fence = f'fn_span_count("{span_op}", quantile(0.25))'
+        outlier_upper_fence = f'fn_span_count("{span_op}", quantile(0.75))'
+        selected_columns.append(outlier_lower_fence)
+        selected_columns.append(outlier_upper_fence)
+
+    results = query(
+        selected_columns=selected_columns,
+        query=user_query,
+        params=params,
+        limit=1,
+        referrer="api.organization-spans-histogram-min-max",
+        functions_acl=["fn_span_count"],
+    )
+
+    data = results.get("data")
+
+    # there should be exactly 1 row in the results, but if something went wrong here,
+    # we force the min/max to be None to coerce an empty histogram
+    if data is None or len(data) != 1:
+        return None, None
+
+    row = data[0]
+
+    if min_value is None:
+        calculated_min_value = row[get_function_alias(min_column)]
+        min_value = calculated_min_value if calculated_min_value else None
+        if max_value is not None and min_value is not None:
+            # max_value was provided by the user, and min_value was queried.
+            # If min_value > max_value, then we adjust min_value with respect to
+            # max_value. The rationale is that if the user provided max_value,
+            # then any and all data above max_value should be ignored since it is
+            # and upper bound.
+            min_value = min([max_value, min_value])
+
+    if max_value is None:
+        calculated_max_value = row[get_function_alias(max_column)]
+        max_value = calculated_max_value if calculated_max_value else None
+
+        max_fence_value = None
+        if data_filter == "exclude_outliers":
+            outlier_lower_fence_alias = get_function_alias(outlier_lower_fence)
+            outlier_upper_fence_alias = get_function_alias(outlier_upper_fence)
+
+            first_quartile = row[outlier_lower_fence_alias]
+            third_quartile = row[outlier_upper_fence_alias]
+
+            if (
+                first_quartile is not None
+                or third_quartile is not None
+                or not math.isnan(first_quartile)
+                or not math.isnan(third_quartile)
+            ):
+                interquartile_range = abs(third_quartile - first_quartile)
+                upper_outer_fence = third_quartile + 3 * interquartile_range
+                max_fence_value = upper_outer_fence
+
+        candidates = [max_fence_value, max_value]
+        candidates = list(filter(lambda v: v is not None, candidates))
+        max_value = min(candidates) if candidates else None
+        if max_value is not None and min_value is not None:
+            # min_value may be either queried or provided by the user. max_value was queried.
+            # If min_value > max_value, then max_value should be adjusted with respect to
+            # min_value, since min_value is a lower bound, and any and all data below
+            # min_value should be ignored.
+            max_value = max([max_value, min_value])
+
+    return min_value, max_value
+
+
 def find_histogram_min_max(
     fields, min_value, max_value, user_query, params, data_filter=None, query_fn=None
 ):
@@ -1086,6 +1195,7 @@ def find_histogram_min_max(
     min_columns = []
     max_columns = []
     quartiles = []
+
     for field in fields:
         if min_value is None:
             min_columns.append(f"min({field})")
@@ -1097,6 +1207,7 @@ def find_histogram_min_max(
 
     if query_fn is None:
         query_fn = query
+
     results = query_fn(
         selected_columns=min_columns + max_columns + quartiles,
         query=user_query,
@@ -1276,3 +1387,39 @@ def check_multihistogram_fields(fields):
         elif histogram_type == "span_op_breakdowns" and not is_span_op_breakdown(field):
             return False
     return histogram_type
+
+
+def corr_snuba_timeseries(
+    x: Sequence[Tuple[int, Sequence[Dict[str, float]]]],
+    y: Sequence[Tuple[int, Sequence[Dict[str, float]]]],
+):
+    """
+    Returns the Pearson's coefficient of two snuba timeseries.
+    """
+    if len(x) != len(y):
+        return
+
+    n = len(x)
+    sum_x, sum_y, sum_xy, sum_x_squared, sum_y_squared = 0, 0, 0, 0, 0
+    for i in range(n):
+        x_datum = x[i]
+        y_datum = y[i]
+
+        x_ = x_datum[1][0]["count"]
+        y_ = y_datum[1][0]["count"]
+
+        sum_x += x_
+        sum_y += y_
+        sum_xy += x_ * y_
+        sum_x_squared += x_ * x_
+        sum_y_squared += y_ * y_
+
+    denominator = math.sqrt(
+        (n * sum_x_squared - sum_x * sum_x) * (n * sum_y_squared - sum_y * sum_y)
+    )
+    if denominator == 0:
+        return
+
+    pearsons_corr_coeff = ((n * sum_xy) - (sum_x * sum_y)) / denominator
+
+    return pearsons_corr_coeff

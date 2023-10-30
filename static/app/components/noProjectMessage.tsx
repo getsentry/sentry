@@ -1,17 +1,17 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-/* TODO: replace with I/O when finished */
-import img from 'sentry-images/spot/hair-on-fire.svg';
-
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import PageHeading from 'sentry/components/pageHeading';
+import NoProjectEmptyState from 'sentry/components/illustrations/NoProjectEmptyState';
+import * as Layout from 'sentry/components/layouts/thirds';
+import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import useProjects from 'sentry/utils/useProjects';
+import {useTeams} from 'sentry/utils/useTeams';
 
 type Props = {
   organization: Organization;
@@ -25,9 +25,10 @@ function NoProjectMessage({
   superuserNeedsToBeProjectMember,
 }: Props) {
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
+  const {teams, initiallyLoaded: teamsLoaded} = useTeams();
 
   const orgSlug = organization.slug;
-  const canCreateProject = organization.access.includes('project:write');
+  const {canCreateProject} = useProjectCreationAccess({organization, teams});
   const canJoinTeam = organization.access.includes('team:read');
 
   const {isSuperuser} = ConfigStore.get('user');
@@ -38,7 +39,7 @@ function NoProjectMessage({
       ? !!projects?.some(p => p.hasAccess)
       : !!projects?.some(p => p.isMember && p.hasAccess);
 
-  if (hasProjectAccess || !projectsLoaded) {
+  if (hasProjectAccess || !projectsLoaded || !teamsLoaded) {
     return <Fragment>{children}</Fragment>;
   }
 
@@ -74,31 +75,27 @@ function NoProjectMessage({
 
   return (
     <Wrapper>
-      <HeightWrapper>
-        <img src={img} height={350} alt={t('Nothing to see')} />
-        <Content>
-          <StyledPageHeading>{t('Remain Calm')}</StyledPageHeading>
-          <HelpMessage>{t('You need at least one project to use this view')}</HelpMessage>
-          <Actions gap={1}>
-            {!orgHasProjects ? (
-              createProjectAction
-            ) : (
-              <Fragment>
-                {joinTeamAction}
-                {createProjectAction}
-              </Fragment>
-            )}
-          </Actions>
-        </Content>
-      </HeightWrapper>
+      <NoProjectEmptyState />
+
+      <Content>
+        <Layout.Title>{t('Remain Calm')}</Layout.Title>
+        <HelpMessage>{t('You need at least one project to use this view')}</HelpMessage>
+        <Actions gap={1}>
+          {!orgHasProjects ? (
+            createProjectAction
+          ) : (
+            <Fragment>
+              {joinTeamAction}
+              {createProjectAction}
+            </Fragment>
+          )}
+        </Actions>
+      </Content>
     </Wrapper>
   );
 }
 
-const StyledPageHeading = styled(PageHeading)`
-  font-size: 28px;
-  margin-bottom: ${space(1.5)};
-`;
+export default NoProjectMessage;
 
 const HelpMessage = styled('div')`
   margin-bottom: ${space(2)};
@@ -111,11 +108,6 @@ const Wrapper = styled('div')`
   justify-content: center;
 `;
 
-const HeightWrapper = styled('div')`
-  display: flex;
-  height: 350px;
-`;
-
 const Content = styled('div')`
   display: flex;
   flex-direction: column;
@@ -126,5 +118,3 @@ const Content = styled('div')`
 const Actions = styled(ButtonBar)`
   width: fit-content;
 `;
-
-export default NoProjectMessage;

@@ -8,6 +8,8 @@ from contextlib import contextmanager
 from queue import Full, PriorityQueue
 from time import time
 
+from sentry_sdk import Hub
+
 logger = logging.getLogger(__name__)
 
 
@@ -182,16 +184,17 @@ class ThreadedExecutor(Executor):
     def __worker(self):
         queue = self.__queue
         while True:
-            priority, (function, future) = queue.get(True)
-            if not future.set_running_or_notify_cancel():
-                continue
-            try:
-                result = function()
-            except Exception as e:
-                future.set_exception(e)
-            else:
-                future.set_result(result)
-            queue.task_done()
+            priority, (function, hub, future) = queue.get(True)
+            with Hub(hub):
+                if not future.set_running_or_notify_cancel():
+                    continue
+                try:
+                    result = function()
+                except Exception as e:
+                    future.set_exception(e)
+                else:
+                    future.set_result(result)
+                queue.task_done()
 
     def start(self):
         with self.__lock:
@@ -221,7 +224,7 @@ class ThreadedExecutor(Executor):
             self.start()
 
         future = self.Future()
-        task = PriorityTask(priority, (callable, future))
+        task = PriorityTask(priority, (callable, Hub.current, future))
         try:
             self.__queue.put(task, block=block, timeout=timeout)
         except Full as error:

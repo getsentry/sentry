@@ -3,15 +3,17 @@ import {RouteComponentProps} from 'react-router';
 import {Location} from 'history';
 
 import {CommitRow} from 'sentry/components/commitRow';
-import {Body, Main} from 'sentry/components/layouts/thirds';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {Commit, Organization, Project, Repository} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import {getCommitsByRepository, getQuery, getReposToRender} from '../utils';
 
@@ -19,27 +21,26 @@ import EmptyState from './emptyState';
 import RepositorySwitcher from './repositorySwitcher';
 import withReleaseRepos from './withReleaseRepos';
 
-type Props = RouteComponentProps<{orgId: string; release: string}, {}> & {
+type Props = RouteComponentProps<{release: string}, {}> & {
   location: Location;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
   release: string;
   releaseRepos: Repository[];
   activeReleaseRepo?: Repository;
-} & AsyncView['props'];
+} & DeprecatedAsyncView['props'];
 
 type State = {
   commits: Commit[];
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class Commits extends AsyncView<Props, State> {
+class Commits extends DeprecatedAsyncView<Props, State> {
   getTitle() {
-    const {params, projectSlug} = this.props;
-    const {orgId} = params;
+    const {params, orgSlug, projectSlug} = this.props;
 
     return routeTitleGen(
       t('Commits - Release %s', formatVersion(params.release)),
-      orgId,
+      orgSlug,
       false,
       projectSlug
     );
@@ -60,7 +61,7 @@ class Commits extends AsyncView<Props, State> {
     super.componentDidUpdate(prevProps, prevState);
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {
       projectSlug,
       activeReleaseRepo: activeRepository,
@@ -147,9 +148,9 @@ class Commits extends AsyncView<Props, State> {
 
   renderComponent() {
     return (
-      <Body>
-        <Main fullWidth>{super.renderComponent()}</Main>
-      </Body>
+      <Layout.Body>
+        <Layout.Main fullWidth>{super.renderComponent()}</Layout.Main>
+      </Layout.Body>
     );
   }
 }

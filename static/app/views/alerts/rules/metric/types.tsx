@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
-import type {SchemaFormConfig} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
+import {MEPAlertsQueryType} from 'sentry/views/alerts/wizard/options';
+import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 import type {Incident} from '../../types';
 
@@ -17,11 +18,14 @@ export enum AlertRuleTriggerType {
 export enum AlertRuleComparisonType {
   COUNT = 'count',
   CHANGE = 'change',
+  PERCENT = 'percent',
 }
 
 export enum Dataset {
   ERRORS = 'events',
   TRANSACTIONS = 'transactions',
+  /** Also used for performance alerts **/
+  GENERIC_METRICS = 'generic_metrics',
   SESSIONS = 'sessions',
   /** Also used for crash free alerts */
   METRICS = 'metrics',
@@ -69,7 +73,7 @@ export type ThresholdControlValue = {
   thresholdType: AlertRuleThresholdType;
 };
 
-type SavedTrigger = Omit<UnsavedTrigger, 'actions'> & {
+export type SavedTrigger = Omit<UnsavedTrigger, 'actions'> & {
   actions: Action[];
   dateCreated: string;
   id: string;
@@ -91,6 +95,7 @@ export type UnsavedMetricRule = {
   comparisonDelta?: number | null;
   eventTypes?: EventTypes[];
   owner?: string | null;
+  queryType?: MEPAlertsQueryType | null;
 };
 
 export interface SavedMetricRule extends UnsavedMetricRule {
@@ -98,6 +103,7 @@ export interface SavedMetricRule extends UnsavedMetricRule {
   dateModified: string;
   id: string;
   name: string;
+  snooze: boolean;
   status: number;
   createdBy?: {email: string; id: number; name: string} | null;
   errors?: {detail: string}[];
@@ -106,6 +112,8 @@ export interface SavedMetricRule extends UnsavedMetricRule {
    */
   latestIncident?: Incident | null;
   originalAlertRuleId?: number | null;
+  snoozeCreatedBy?: string;
+  snoozeForEveryone?: boolean;
 }
 
 export type MetricRule = Partial<SavedMetricRule> & UnsavedMetricRule;
@@ -137,6 +145,8 @@ export enum ActionType {
   SLACK = 'slack',
   PAGERDUTY = 'pagerduty',
   MSTEAMS = 'msteams',
+  OPSGENIE = 'opsgenie',
+  DISCORD = 'discord',
   SENTRY_APP = 'sentry_app',
 }
 
@@ -147,6 +157,8 @@ export const ActionLabel = {
   [ActionType.SLACK]: t('Slack'),
   [ActionType.PAGERDUTY]: t('Pagerduty'),
   [ActionType.MSTEAMS]: t('MS Teams'),
+  [ActionType.OPSGENIE]: t('Opsgenie'),
+  [ActionType.DISCORD]: t('Discord'),
   [ActionType.SENTRY_APP]: t('Notification'),
 };
 

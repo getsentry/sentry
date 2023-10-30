@@ -1,5 +1,5 @@
 import InputField from 'sentry/components/deprecatedforms/inputField';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {defined} from 'sentry/utils';
 
@@ -9,6 +9,11 @@ type State = InputField['state'] & {
   value: boolean;
 };
 
+// XXX: This is ONLY used in GenericField. If we can delete that this can go.
+
+/**
+ * @deprecated Do not use this
+ */
 export default class BooleanField extends InputField<Props, State> {
   coerceValue(initialValue: string | number) {
     const value = super.coerceValue(initialValue);

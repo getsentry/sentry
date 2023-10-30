@@ -1,5 +1,6 @@
 from sentry.api.serializers import Serializer, register
-from sentry.models import EventAttachment, File
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.files.file import File
 
 
 @register(EventAttachment)
@@ -19,4 +20,5 @@ class EventAttachmentSerializer(Serializer):
             "sha1": file.checksum,
             "dateCreated": file.timestamp,
             "type": obj.type,
+            "event_id": obj.event_id,
         }

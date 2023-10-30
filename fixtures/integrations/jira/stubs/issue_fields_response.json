@@ -1,0 +1,436 @@
+{
+  "maxResults": 50,
+  "startAt": 0,
+  "total": 19,
+  "isLast": true,
+  "values": [
+    {
+      "required": false,
+      "schema": {
+        "type": "user",
+        "system": "assignee"
+      },
+      "name": "Assignee",
+      "fieldId": "assignee",
+      "autoCompleteUrl": "https://example.com/rest/api/latest/user/assignable/search?issueKey=null&username=",
+      "hasDefaultValue": false,
+      "operations": ["set"]
+    },
+    {
+      "required": false,
+      "schema": {
+        "type": "array",
+        "items": "attachment",
+        "system": "attachment"
+      },
+      "name": "Attachment",
+      "fieldId": "attachment",
+      "hasDefaultValue": false,
+      "operations": []
+    },
+    {
+      "required": false,
+      "schema": {
+        "type": "array",
+        "items": "component",
+        "system": "components"
+      },
+      "name": "Component/s",
+      "fieldId": "components",
+      "hasDefaultValue": false,
+      "operations": ["add", "set", "remove"],
+      "allowedValues": [
+        {
+          "self": "https://example.com/rest/api/2/component/10000",
+          "id": "10000",
+          "name": "computers",
+          "description": "The computers"
+        },
+        {
+          "self": "https://example.com/rest/api/2/component/10001",
+          "id": "10001",
+          "name": "software",
+          "description": "The softwares"
+        }
+      ]
+    },
+    {
+      "required": false,
+      "schema": {
+        "type": "array",
+        "items": "string",
+        "custom": "com.pyxis.greenhopper.jira:gh-sprint",
+        "customId": 10100
+      },
+      "name": "Sprint",
+      "fieldId": "customfield_10100",
+      "hasDefaultValue": false,
+      "operations": ["set"]
+    },
+    {
+      "required": false,
+      "schema": {
+        "type": "any",
+        "custom": "com.pyxis.greenhopper.jira:gh-epic-link",
+        "customId": 10101
+      },
+      "name": "Epic Link",
+      "fieldId": "customfield_10101",
+      "hasDefaultValue": false,
+      "operations": ["set"]
+    },
+    {
+      "required": false,
+      "schema": {
+        "type": "option",
+        "custom": "com.codebarrel.jira.iconselectlist:icon-select-cf",
+        "customId": 10200
+      },
+      "name": "Mood",
+      "fieldId": "customfield_10200",
+      "autoCompleteUrl": "https://example.com/rest/iconselectoptions/1.0/option/context/10500",
+      "hasDefaultValue": false,
+      "operations": ["set"],
+      "allowedValues": [
+        {
+          "id": 10100,
+          "self": "https://example.com/rest/iconselectoptions/1.0/option/10100",
+          "label": "sad",
+          "iconUrl": "https://example.com/secure/viewavatar?size=xsmall&avatarId=10534&avatarType=iconselectlist",
+          "avatarId": 10534,
+          "sequence": 0,
+          "disabled": false
+        },
+        {
+          "id": 10101,
+          "self": "https://example.com/rest/iconselectoptions/1.0/option/10101",
+          "label": "happy",
+          "iconUrl": "https://example.com/secure/viewavatar?size=xsmall&avatarId=10513&avatarType=iconselectlist",
+          "avatarId": 10513,
+          "sequence": 1,
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "required": false,
+      "schema": {
+        "type": "array",
+        "items": "option",
+        "custom": "com.codebarrel.jira.iconselectlist:icon-multi-select-cf",
+        "customId": 10201
+      },
+      "name": "reactions",
+      "fieldId": "customfield_10201",
+      "autoCompleteUrl": "https://example.com/rest/iconselectoptions/1.0/option/context/10501",
+      "hasDefaultValue": false,
+      "operations": ["add", "set", "remove"],
+      "allowedValues": [
+        {
+          "id": 10102,
+          "self": "https://example.com/rest/iconselectoptions/1.0/option/10102",
+          "label": "wow",
+          "iconUrl": "https://example.com/secure/viewavatar?size=xsmall&avatarId=10541&avatarType=iconselectlist",
+          "avatarId": 10541,
+          "sequence": 0,
+          "disabled": false
+        },
+        {
+          "id": 10103,
+          "self": "https://example.com/rest/iconselectoptions/1.0/option/10103",
+          "label": "devil",
+          "iconUrl": "https://example.com/secure/viewavatar?size=xsmall&avatarId=10545&avatarType=iconselectlist",
+          "avatarId": 10545,
+          "sequence": 1,
+          "disabled": false
+        },
+        {
+          "id": 10104,
+          "self": "https://example.com/rest/iconselectoptions/1.0/option/10104",
+          "label": "metal",
+          "iconUrl": "https://example.com/secure/viewavatar?size=xsmall&avatarId=10547&avatarType=iconselectlist",
+          "avatarId": 10547,
+          "sequence": 2,
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "required": false,
+      "schema": {
+        "type": "array",
+        "items": "option",
+        "custom": "com.atlassian.jira.plugin.system.customfieldtypes:multiselect",
+        "customId": 10202
+      },
+      "name": "Feature",
+      "fieldId": "customfield_10202",
+      "hasDefaultValue": false,
+      "operations": ["add", "set", "remove"],
+      "allowedValues": [
+        {
+          "self": "https://example.com/rest/api/2/customFieldOption/10105",
+          "value": "Feature 1",
+          "id": "10105",
+          "disabled": false
+        },
+        {
+          "self": "https://example.com/rest/api/2/customFieldOption/10106",
+          "value": "Feature 2",
+          "id": "10106",
+          "disabled": false
+        },
+        {
+          "self": "https://example.com/rest/api/2/customFieldOption/10107",
+          "value": "Feature 3",
+          "id": "10107",
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "required": false,
+      "schema": {
+        "type": "string",
+        "system": "description"
+      },
+      "name": "Description",
+      "fieldId": "description",
+      "hasDefaultValue": false,
+      "operations": ["set"]
+    },
+    {
+      "required": false,
+      "schema": {
+        "type": "string",
+        "system": "environment"
+      },
+      "name": "Environment",
+      "fieldId": "environment",
+      "hasDefaultValue": false,
+      "operations": ["set"]
+    },
+    {
+      "required": false,
+      "schema": {
+        "type": "array",
+        "items": "version",
+        "system": "fixVersions"
+      },
+      "name": "Fix Version/s",
+      "fieldId": "fixVersions",
+      "hasDefaultValue": false,
+      "operations": ["set", "add", "remove"],
+      "allowedValues": [
+        {
+          "self": "https://example.com/rest/api/2/version/10000",
+          "id": "10000",
+          "name": "v1",
+          "archived": false,
+          "released": false,
+          "projectId": 10000
+        },
+        {
+          "self": "https://example.com/rest/api/2/version/10001",
+          "id": "10001",
+          "name": "v2",
+          "archived": false,
+          "released": false,
+          "projectId": 10000
+        },
+        {
+          "self": "https://example.com/rest/api/2/version/10002",
+          "id": "10002",
+          "name": "v3",
+          "archived": false,
+          "released": false,
+          "projectId": 10000
+        }
+      ]
+    },
+    {
+      "required": false,
+      "schema": {
+        "type": "array",
+        "items": "issuelinks",
+        "system": "issuelinks"
+      },
+      "name": "Linked Issues",
+      "fieldId": "issuelinks",
+      "autoCompleteUrl": "https://example.com/rest/api/2/issue/picker?currentProjectId=&showSubTaskParent=true&showSubTasks=true&currentIssueKey=null&query=",
+      "hasDefaultValue": false,
+      "operations": ["add"]
+    },
+    {
+      "required": true,
+      "schema": {
+        "type": "issuetype",
+        "system": "issuetype"
+      },
+      "name": "Issue Type",
+      "fieldId": "issuetype",
+      "hasDefaultValue": false,
+      "operations": [],
+      "allowedValues": [
+        {
+          "self": "https://example.com/rest/api/2/issuetype/10004",
+          "id": "10004",
+          "description": "A problem which impairs or prevents the functions of the product.",
+          "iconUrl": "https://example.com/secure/viewavatar?size=xsmall&avatarId=10303&avatarType=issuetype",
+          "name": "Bug",
+          "subtask": false,
+          "avatarId": 10303
+        }
+      ]
+    },
+    {
+      "required": false,
+      "schema": {
+        "type": "array",
+        "items": "string",
+        "system": "labels"
+      },
+      "name": "Labels",
+      "fieldId": "labels",
+      "autoCompleteUrl": "https://example.com/rest/api/1.0/labels/suggest?query=",
+      "hasDefaultValue": false,
+      "operations": ["add", "set", "remove"]
+    },
+    {
+      "required": false,
+      "schema": {
+        "type": "priority",
+        "system": "priority"
+      },
+      "name": "Priority",
+      "fieldId": "priority",
+      "hasDefaultValue": true,
+      "operations": ["set"],
+      "allowedValues": [
+        {
+          "self": "https://example.com/rest/api/2/priority/1",
+          "iconUrl": "https://example.com/images/icons/priorities/highest.svg",
+          "name": "Highest",
+          "id": "1"
+        },
+        {
+          "self": "https://example.com/rest/api/2/priority/2",
+          "iconUrl": "https://example.com/images/icons/priorities/high.svg",
+          "name": "High",
+          "id": "2"
+        },
+        {
+          "self": "https://example.com/rest/api/2/priority/3",
+          "iconUrl": "https://example.com/images/icons/priorities/medium.svg",
+          "name": "Medium",
+          "id": "3"
+        },
+        {
+          "self": "https://example.com/rest/api/2/priority/4",
+          "iconUrl": "https://example.com/images/icons/priorities/low.svg",
+          "name": "Low",
+          "id": "4"
+        },
+        {
+          "self": "https://example.com/rest/api/2/priority/5",
+          "iconUrl": "https://example.com/images/icons/priorities/lowest.svg",
+          "name": "Lowest",
+          "id": "5"
+        }
+      ],
+      "defaultValue": {
+        "self": "https://example.com/rest/api/2/priority/3",
+        "iconUrl": "https://example.com/images/icons/priorities/medium.svg",
+        "name": "Medium",
+        "id": "3"
+      }
+    },
+    {
+      "required": true,
+      "schema": {
+        "type": "project",
+        "system": "project"
+      },
+      "name": "Project",
+      "fieldId": "project",
+      "hasDefaultValue": false,
+      "operations": ["set"],
+      "allowedValues": [
+        {
+          "self": "https://example.com/rest/api/2/project/10000",
+          "id": "10000",
+          "key": "IS",
+          "name": "Initech Software",
+          "projectTypeKey": "software",
+          "avatarUrls": {
+            "48x48": "https://example.com/secure/projectavatar?avatarId=10324",
+            "24x24": "https://example.com/secure/projectavatar?size=small&avatarId=10324",
+            "16x16": "https://example.com/secure/projectavatar?size=xsmall&avatarId=10324",
+            "32x32": "https://example.com/secure/projectavatar?size=medium&avatarId=10324"
+          }
+        }
+      ]
+    },
+    {
+      "required": true,
+      "schema": {
+        "type": "user",
+        "system": "reporter"
+      },
+      "name": "Reporter",
+      "fieldId": "reporter",
+      "autoCompleteUrl": "https://example.com/rest/api/latest/user/search?username=",
+      "hasDefaultValue": false,
+      "operations": ["set"]
+    },
+    {
+      "required": true,
+      "schema": {
+        "type": "string",
+        "system": "summary"
+      },
+      "name": "Summary",
+      "fieldId": "summary",
+      "hasDefaultValue": false,
+      "operations": ["set"]
+    },
+    {
+      "required": false,
+      "schema": {
+        "type": "array",
+        "items": "version",
+        "system": "versions"
+      },
+      "name": "Affects Version/s",
+      "fieldId": "versions",
+      "hasDefaultValue": false,
+      "operations": ["set", "add", "remove"],
+      "allowedValues": [
+        {
+          "self": "https://example.com/rest/api/2/version/10000",
+          "id": "10000",
+          "name": "v1",
+          "archived": false,
+          "released": false,
+          "projectId": 10000
+        },
+        {
+          "self": "https://example.com/rest/api/2/version/10001",
+          "id": "10001",
+          "name": "v2",
+          "archived": false,
+          "released": false,
+          "projectId": 10000
+        },
+        {
+          "self": "https://example.com/rest/api/2/version/10002",
+          "id": "10002",
+          "name": "v3",
+          "archived": false,
+          "released": false,
+          "projectId": 10000
+        }
+      ]
+    }
+  ]
+}

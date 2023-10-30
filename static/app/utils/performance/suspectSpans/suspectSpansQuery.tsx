@@ -5,7 +5,6 @@ import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import withApi from 'sentry/utils/withApi';
 
 import {SuspectSpans} from './types';
 
@@ -66,4 +65,4 @@ function SuspectSpansQuery(props: Props) {
   );
 }
 
-export default withApi(SuspectSpansQuery);
+export default SuspectSpansQuery;

@@ -1,15 +1,17 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupList from 'sentry/components/issues/groupList';
 import LoadingError from 'sentry/components/loadingError';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {OrganizationSummary, Project} from 'sentry/types';
+import useRouter from 'sentry/utils/useRouter';
 import {
   RELATED_ISSUES_BOOLEAN_QUERY_ERROR,
   RelatedIssuesNotAvailable,
@@ -29,6 +31,20 @@ interface Props {
 }
 
 function RelatedIssues({rule, organization, projects, query, timePeriod}: Props) {
+  const router = useRouter();
+
+  // Add environment to the query parameters to be picked up by GlobalSelectionLink
+  // GlobalSelectionLink uses the current query parameters to build links to issue details
+  useEffect(() => {
+    const env = rule.environment ?? '';
+    if (env !== (router.location.query.environment ?? '')) {
+      router.replace({
+        pathname: router.location.pathname,
+        query: {...router.location.query, environment: env},
+      });
+    }
+  }, [rule.environment, router]);
+
   function renderErrorMessage({detail}: {detail: string}, retry: () => void) {
     if (
       detail === RELATED_ISSUES_BOOLEAN_QUERY_ERROR &&
@@ -81,14 +97,14 @@ function RelatedIssues({rule, organization, projects, query, timePeriod}: Props)
     <Fragment>
       <ControlsWrapper>
         <StyledSectionHeading>{t('Related Issues')}</StyledSectionHeading>
-        <Button data-test-id="issues-open" size="xsmall" to={issueSearch}>
+        <Button data-test-id="issues-open" size="xs" to={issueSearch}>
           {t('Open in Issues')}
         </Button>
       </ControlsWrapper>
 
       <TableWrapper>
         <GroupList
-          orgId={organization.slug}
+          orgSlug={organization.slug}
           endpointPath={path}
           queryParams={queryParams}
           query={`start=${start}&end=${end}&groupStatsPeriod=auto`}
@@ -100,6 +116,7 @@ function RelatedIssues({rule, organization, projects, query, timePeriod}: Props)
           useFilteredStats
           customStatsPeriod={timePeriod}
           useTintRow={false}
+          source="alerts-related-issues"
         />
       </TableWrapper>
     </Fragment>

@@ -1,19 +1,18 @@
+import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
-import {Theme} from 'sentry/utils/theme';
+import {space} from 'sentry/styles/space';
 
 export const DataSection = styled('div')`
   display: flex;
   flex-direction: column;
-  border-top: 1px solid ${p => p.theme.innerBorder};
   margin: 0;
 
   /* Padding aligns with Layout.Body */
-  padding: ${space(3)} ${space(2)} ${space(2)};
+  padding: ${space(1)} ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(3)} ${space(4)} ${space(3)};
+    padding: ${space(1.5)} ${space(4)};
   }
 `;
 
@@ -42,17 +41,12 @@ function getColors({priority, theme}: BannerProps & {theme: Theme}) {
 
 export const BannerContainer = styled('div')<BannerProps>`
   font-size: ${p => p.theme.fontSizeMedium};
-
   background: ${p => getColors(p).background};
   border-top: 1px solid ${p => getColors(p).border};
   border-bottom: 1px solid ${p => getColors(p).border};
 
   /* Muted box & processing errors are in different parts of the DOM */
-  &
-    + ${/* sc-selector */ DataSection}:first-child,
-    &
-    + div
-    > ${/* sc-selector */ DataSection}:first-child {
+  & + ${DataSection}:first-child, & + div > ${DataSection}:first-child {
     border-top: 0;
   }
 `;
@@ -89,15 +83,13 @@ export const CauseHeader = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(1)};
 
   & button,
   & h3 {
-    color: ${p => p.theme.gray300};
-    font-size: 14px;
+    color: ${p => p.theme.subText};
+    font-size: ${p => p.theme.fontSizeMedium};
     font-weight: 600;
-    line-height: 1.2;
-    text-transform: uppercase;
   }
 
   & h3 {

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import TimeSince from 'sentry/components/timeSince';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {InternetProtocol} from 'sentry/types';
 
 import {tableLayout} from './utils';
@@ -22,8 +22,12 @@ function SessionRow({
           <CountryCode>{`${countryCode} (${regionCode})`}</CountryCode>
         )}
       </IpAndLocation>
-      <StyledTimeSince date={firstSeen} />
-      <StyledTimeSince date={lastSeen} />
+      <div>
+        <StyledTimeSince date={firstSeen} />
+      </div>
+      <div>
+        <StyledTimeSince date={lastSeen} />
+      </div>
     </SessionPanelItem>
   );
 }

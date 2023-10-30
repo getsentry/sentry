@@ -15,32 +15,16 @@ const config: TransformOptions = {
       '@babel/preset-env',
       {
         useBuiltIns: 'usage',
-        corejs: '3.22',
+        corejs: '3.27',
       },
     ],
     '@babel/preset-typescript',
   ],
-  overrides: [
-    {
-      test: ['./docs-ui'],
-      presets: [
-        [
-          '@babel/preset-react',
-          {
-            runtime: 'automatic',
-          },
-        ],
-      ],
-    },
-  ],
+  overrides: [],
   plugins: [
     '@emotion/babel-plugin',
     '@babel/plugin-transform-runtime',
-    // NOTE: The order of the decorator and class-property plugins is important
-    // here. Decorators must be processed first before class properties, see:
-    // https://babeljs.io/docs/en/plugins#plugin-ordering
-    ['@babel/plugin-proposal-decorators', {legacy: true}],
-    '@babel/plugin-proposal-class-properties',
+    '@babel/plugin-transform-class-properties',
   ],
   env: {
     production: {
@@ -53,8 +37,8 @@ const config: TransformOptions = {
             classNameMatchers: [
               'SelectField',
               'FormField',
-              'AsyncComponent',
-              'AsyncView',
+              'DeprecatedAsyncComponent',
+              'DeprecatedAsyncView',
             ],
             additionalLibraries: [/app\/sentryTypes$/],
           },
@@ -70,8 +54,19 @@ const config: TransformOptions = {
       ],
     },
     test: {
-      // Required, see https://github.com/facebook/jest/issues/9430
-      plugins: ['dynamic-import-node'],
+      sourceMaps: process.env.CI ? false : true,
+      plugins: [
+        // Required, see https://github.com/facebook/jest/issues/9430
+        'dynamic-import-node',
+        // Disable emotion sourcemaps in tests
+        // Since emotion spends lots of time parsing and inserting sourcemaps
+        [
+          '@emotion/babel-plugin',
+          {
+            sourceMap: false,
+          },
+        ],
+      ],
     },
   },
 };

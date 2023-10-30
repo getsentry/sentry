@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import {Client} from 'sentry/api';
-import SelectControl from 'sentry/components/forms/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import IdBadge from 'sentry/components/idBadge';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {Member, Organization, Project, User} from 'sentry/types';
@@ -60,7 +60,7 @@ class SelectMembers extends Component<Props, State> {
     loading: false,
     inputValue: '',
     options: null,
-    memberListLoading: !MemberListStore.isLoaded(),
+    memberListLoading: MemberListStore.state.loading,
   };
 
   componentWillUnmount() {
@@ -68,11 +68,10 @@ class SelectMembers extends Component<Props, State> {
   }
 
   unlisteners = [
-    MemberListStore.listen(() => {
-      this.setState({
-        memberListLoading: !MemberListStore.isLoaded(),
-      });
-    }, undefined),
+    MemberListStore.listen(
+      () => this.setState({memberListLoading: MemberListStore.state.loading}),
+      undefined
+    ),
   ];
 
   renderUserBadge = (user: User) => (
@@ -160,7 +159,7 @@ class SelectMembers extends Component<Props, State> {
           // has not registered for sentry yet, but has been invited
           (members
             ? (members as Member[])
-                .filter(({user}) => user && usersInProjectById.indexOf(user.id) === -1)
+                .filter(({user}) => user && !usersInProjectById.includes(user.id))
                 .map(this.createUnmentionableUser)
             : []) as MentionableUser[]
       )
@@ -187,7 +186,6 @@ class SelectMembers extends Component<Props, State> {
           option?.data?.searchKey?.indexOf(filterText) > -1
         }
         loadOptions={this.handleLoadOptions}
-        isOptionDisabled={option => option.disabled}
         defaultOptions
         async
         isDisabled={this.props.disabled}

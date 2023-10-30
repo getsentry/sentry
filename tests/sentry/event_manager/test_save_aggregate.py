@@ -3,12 +3,17 @@ import time
 from threading import Thread
 
 import pytest
+from django.db import router, transaction
 
 from sentry.event_manager import _save_aggregate
-from sentry.eventstore.models import CalculatedHashes, Event
+from sentry.eventstore.models import Event
+from sentry.grouping.result import CalculatedHashes
+from sentry.models.grouphash import GroupHash
+from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.silo import region_silo_test
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 @pytest.mark.parametrize(
     "is_race_free",
     [
@@ -26,6 +31,7 @@ from sentry.eventstore.models import CalculatedHashes, Event
         False,
     ],
 )
+@region_silo_test(stable=True)
 def test_group_creation_race(monkeypatch, default_project, is_race_free):
     CONCURRENCY = 2
 
@@ -34,7 +40,7 @@ def test_group_creation_race(monkeypatch, default_project, is_race_free):
         class FakeTransactionModule:
             @staticmethod
             @contextlib.contextmanager
-            def atomic():
+            def atomic(*args, **kwds):
                 yield
 
         # Disable transaction isolation just within event manager, but not in
@@ -47,15 +53,14 @@ def test_group_creation_race(monkeypatch, default_project, is_race_free):
     return_values = []
 
     def save_event():
-        data = {"timestamp": time.time()}
-        evt = Event(
-            default_project.id,
-            "89aeed6a472e4c5fb992d14df4d7e1b6",
-            data=data,
-        )
-
-        return_values.append(
-            _save_aggregate(
+        try:
+            data = {"timestamp": time.time()}
+            evt = Event(
+                default_project.id,
+                "89aeed6a472e4c5fb992d14df4d7e1b6",
+                data=data,
+            )
+            ret = _save_aggregate(
                 evt,
                 hashes=CalculatedHashes(
                     hashes=["a" * 32, "b" * 32],
@@ -64,11 +69,14 @@ def test_group_creation_race(monkeypatch, default_project, is_race_free):
                 ),
                 release=None,
                 metadata={},
-                received_timestamp=None,
+                received_timestamp=0,
                 level=10,
                 culprit="",
             )
-        )
+            assert ret is not None
+            return_values.append(ret)
+        finally:
+            transaction.get_connection(router.db_for_write(GroupHash)).close()
 
     threads = []
     for _ in range(CONCURRENCY):
@@ -81,9 +89,9 @@ def test_group_creation_race(monkeypatch, default_project, is_race_free):
 
     if is_race_free:
         # assert one group is new
-        assert len({rv[0].id for rv in return_values}) == 1
-        assert sum(rv[1] for rv in return_values) == 1
+        assert len({rv.group.id for rv in return_values}) == 1
+        assert sum(rv.is_new for rv in return_values) == 1
     else:
         # assert many groups are new
-        assert 1 < len({rv[0].id for rv in return_values}) <= CONCURRENCY
-        assert 1 < sum(rv[1] for rv in return_values) <= CONCURRENCY
+        assert 1 < len({rv.group.id for rv in return_values}) <= CONCURRENCY
+        assert 1 < sum(rv.is_new for rv in return_values) <= CONCURRENCY

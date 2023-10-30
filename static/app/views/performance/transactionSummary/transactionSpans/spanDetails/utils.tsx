@@ -6,7 +6,7 @@ export function generateSpanDetailsRoute({
   orgSlug,
   spanSlug,
 }: {
-  orgSlug: String;
+  orgSlug: string;
   spanSlug: SpanSlug;
 }): string {
   const spanComponent = `${encodeURIComponent(spanSlug.op)}:${spanSlug.group}`;

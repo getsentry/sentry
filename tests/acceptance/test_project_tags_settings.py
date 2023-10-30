@@ -1,15 +1,15 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import patch
 
-import pytz
-
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import no_silo_test
 
-event_time = before_now(days=3).replace(tzinfo=pytz.utc)
-current_time = datetime.utcnow().replace(tzinfo=pytz.utc)
+event_time = before_now(days=3).replace(tzinfo=timezone.utc)
+current_time = datetime.utcnow().replace(tzinfo=timezone.utc)
 
 
+@no_silo_test(stable=True)
 class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -37,7 +37,6 @@ class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
 
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.snapshot("project settings - tags")
 
         self.browser.wait_until_test_id("tag-row")
         self.browser.click('[data-test-id="tag-row"] [data-test-id="delete"]')
@@ -45,4 +44,3 @@ class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
 
         self.browser.click("[role='dialog'] [data-test-id='confirm-button']")
         self.browser.wait_until_not('[data-test-id="tag-row"]')
-        self.browser.snapshot("project settings - tags - after remove")

@@ -1,7 +1,13 @@
-from sentry.models import GroupAssignee, GroupHistory, GroupHistoryStatus, get_prev_history
-from sentry.testutils import TestCase
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, get_prev_history
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = requires_snuba
 
 
+@region_silo_test(stable=True)
 class FilterToTeamTest(TestCase):
     def test(self):
         GroupAssignee.objects.assign(self.group, self.user)
@@ -13,7 +19,9 @@ class FilterToTeamTest(TestCase):
         other_team = self.create_team(other_org, members=[self.user])
         other_project = self.create_project(organization=other_org, teams=[other_team])
         other_group = self.store_event(data={}, project_id=other_project.id).group
+        assert other_group is not None
         other_group_2 = self.store_event(data={}, project_id=other_project.id).group
+        assert other_group_2 is not None
         GroupAssignee.objects.assign(other_group, self.user)
         GroupAssignee.objects.assign(other_group_2, other_team)
         other_history = set(GroupHistory.objects.filter(group__in=[other_group, other_group_2]))

@@ -1,0 +1,87 @@
+{
+  "event_id": "8198d867e4c84136a3588fa0a1a57e18",
+  "platform": "javascript",
+  "datetime": "2022-11-01T19:14:52.996900+00:00",
+  "tags": [
+    ["browser", "Chrome 107.0.0"],
+    ["browser.name", "Chrome"],
+    ["device", "Mac"],
+    ["device.family", "Mac"],
+    ["level", "info"],
+    ["os", "Mac OS X 10.15.7"],
+    ["os.name", "Mac OS X"],
+    ["transaction", "/organizations/:orgId/issues/"],
+    ["url", "https://sentry.io/organizations/sentry/issues/"]
+  ],
+  "culprit": "/organizations/:orgId/issues/",
+  "environment": "prod",
+  "location": "/organizations/:orgId/issues/",
+  "received": 1667330093.08279,
+  "request": {
+    "url": "https://sentry.io/organizations/sentry/issues/",
+    "headers": [
+      [
+        "User-Agent",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"
+      ]
+    ]
+  },
+  "sdk": {
+    "name": "sentry.javascript.react",
+    "version": "7.15.0",
+    "integrations": [
+      "InboundFilters",
+      "FunctionToString",
+      "TryCatch",
+      "Breadcrumbs",
+      "GlobalHandlers",
+      "LinkedErrors",
+      "Dedupe",
+      "HttpContext",
+      "ExtraErrorData",
+      "BrowserTracing"
+    ],
+    "packages": [{"name": "npm:@sentry/react", "version": "7.15.0"}]
+  },
+  "spans": [
+    {
+      "timestamp": 1667330086.5292,
+      "start_timestamp": 1667330086.2861,
+      "exclusive_time": 243.100167,
+      "description": "https://someother.site.com/asset.js",
+      "op": "resource.script",
+      "span_id": "b66a5642da1edb52",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "data": {
+        "http.decoded_response_content_length": 3,
+        "http.response_content_length": 2,
+        "http.response_transfer_size": 3
+      },
+      "hash": "b2978b51d54d9078"
+    },
+    {
+      "timestamp": 1667330086.9292,
+      "start_timestamp": 1667330086.2861,
+      "exclusive_time": 643.100167,
+      "description": "https://s1.sentry-cdn.com/_static/dist/sentry/chunks/app_components_charts_utils_tsx-app_utils_performance_quickTrace_utils_tsx-app_utils_withPage-3926ec.bc434924850c44d4057f.js",
+      "op": "resource.script",
+      "span_id": "b66a5642da1edb52",
+      "parent_span_id": "a0c39078d1570b00",
+      "trace_id": "0102834d0bf74d388ce0b1e15329f731",
+      "data": {
+        "http.decoded_response_content_length": 571733,
+        "http.response_content_length": 571733,
+        "http.response_transfer_size": 571833
+      },
+      "hash": "a2978b51d54d9079"
+    }
+  ],
+  "start_timestamp": 1667330085.6959,
+  "timestamp": 1667330092.9969,
+  "title": "/organizations/:orgId/issues/",
+  "transaction": "/organizations/:orgId/issues/",
+  "transaction_info": {"source": "route", "changes": [], "propagations": 41},
+  "type": "transaction",
+  "version": "7"
+}

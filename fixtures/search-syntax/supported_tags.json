@@ -1,0 +1,83 @@
+[
+  {
+    "desc": "test with unsupported text field",
+    "query": "browser:\"chrome\" os:*windows*",
+    "additionalConfig": {
+      "validateKeys": true,
+      "supportedTags": {
+        "browser": {
+          "key": "browser",
+          "kind": "field"
+        }
+      }
+    },
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "browser", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "chrome", "quoted": true}
+      },
+      {"type": "spaces", "value": " "},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "invalid": {
+          "type": "invalid-key",
+          "reason": "Invalid key. \"os\" is not a supported search key."
+        },
+        "key": {"type": "keySimple", "value": "os", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "*windows*", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "test with unsupported numeric field",
+    "query": "browser:\"chrome\" transaction.duration:>0",
+    "additionalConfig": {
+      "validateKeys": true,
+      "supportedTags": {
+        "browser": {
+          "key": "browser",
+          "kind": "field"
+        }
+      }
+    },
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "browser", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "chrome", "quoted": true}
+      },
+      {"type": "spaces", "value": " "},
+      {
+        "type": "filter",
+        "filter": "numeric",
+        "negated": false,
+        "invalid": {
+          "type": "invalid-key",
+          "reason": "Invalid key. \"transaction.duration\" is not a supported search key."
+        },
+        "key": {"type": "keySimple", "value": "transaction.duration", "quoted": false},
+        "operator": ">",
+        "value": {
+          "type": "valueNumber",
+          "rawValue": 0,
+          "value": "0",
+          "unit": null
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

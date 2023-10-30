@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import {IconSentry} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 const BODY_CLASSES = ['narrow'];
 
@@ -61,7 +61,7 @@ const AuthSidebar = styled('div')`
 const SentryButton = styled(
   (p: Omit<React.ComponentPropsWithoutRef<typeof Link>, 'to'>) => (
     <Link to="/" {...p}>
-      <IconSentry size="24px" />
+      <IconSentry size="lg" />
     </Link>
   )
 )`

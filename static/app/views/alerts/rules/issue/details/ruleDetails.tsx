@@ -3,14 +3,19 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
-import Alert from 'sentry/components/alert';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import Access from 'sentry/components/acl/access';
+import {Alert} from 'sentry/components/alert';
+import SnoozeAlert from 'sentry/components/alerts/snoozeAlert';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import Button from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -18,27 +23,35 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import TimeSince from 'sentry/components/timeSince';
 import {IconCopy, IconEdit} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {DateString, Member, Organization, Project} from 'sentry/types';
-import {IssueAlertRule} from 'sentry/types/alerts';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import type {DateString} from 'sentry/types';
+import type {IssueAlertRule} from 'sentry/types/alerts';
+import {RuleActionsCategories} from 'sentry/types/alerts';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {
+  ApiQueryKey,
+  setApiQueryData,
+  useApiQuery,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
+import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
+import {findIncompatibleRules} from 'sentry/views/alerts/rules/issue';
 import {ALERT_DEFAULT_CHART_PERIOD} from 'sentry/views/alerts/rules/metric/details/constants';
+import {getRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 
-import AlertChart from './alertChart';
+import {IssueAlertDetailsChart} from './alertChart';
 import AlertRuleIssuesList from './issuesList';
 import Sidebar from './sidebar';
 
-type Props = AsyncComponent['props'] & {
-  organization: Organization;
-  project: Project;
-} & RouteComponentProps<{orgId: string; projectId: string; ruleId: string}, {}>;
-
-type State = AsyncComponent['state'] & {
-  memberList: Member[];
-  rule: IssueAlertRule | null;
-};
+interface AlertRuleDetailsProps
+  extends RouteComponentProps<{projectId: string; ruleId: string}, {}> {}
 
 const PAGE_QUERY_PARAMS = [
   'pageStatsPeriod',
@@ -48,52 +61,42 @@ const PAGE_QUERY_PARAMS = [
   'cursor',
 ];
 
-class AlertRuleDetails extends AsyncComponent<Props, State> {
-  shouldRenderBadRequests = true;
+const getIssueAlertDetailsQueryKey = ({
+  orgSlug,
+  projectSlug,
+  ruleId,
+}: {
+  orgSlug: string;
+  projectSlug: string;
+  ruleId: string;
+}): ApiQueryKey => [
+  `/projects/${orgSlug}/${projectSlug}/rules/${ruleId}/`,
+  {query: {expand: 'lastTriggered'}},
+];
 
-  componentDidMount() {
-    const {organization, params} = this.props;
-    trackAdvancedAnalyticsEvent('issue_alert_rule_details.viewed', {
-      organization,
-      rule_id: parseInt(params.ruleId, 10),
-    });
-  }
+function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
+  const queryClient = useQueryClient();
+  const organization = useOrganization();
+  const api = useApi();
+  const {projects, fetching: projectIsLoading} = useProjects();
+  const project = projects.find(({slug}) => slug === params.projectId);
+  const {projectId: projectSlug, ruleId} = params;
+  const {
+    data: rule,
+    isLoading,
+    isError,
+  } = useApiQuery<IssueAlertRule>(
+    getIssueAlertDetailsQueryKey({orgSlug: organization.slug, projectSlug, ruleId}),
+    {staleTime: 0}
+  );
+  useRouteAnalyticsEventNames(
+    'issue_alert_rule_details.viewed',
+    'Issue Alert Rule Details: Viewed'
+  );
+  useRouteAnalyticsParams({rule_id: parseInt(params.ruleId, 10)});
 
-  componentDidUpdate(prevProps: Props) {
-    const {params: prevParams} = prevProps;
-    const {params: currParams} = this.props;
-
-    if (
-      prevParams.ruleId !== currParams.ruleId ||
-      prevParams.orgId !== currParams.orgId ||
-      prevParams.projectId !== currParams.projectId
-    ) {
-      this.reloadData();
-    }
-  }
-
-  getDefaultState(): State {
-    return {
-      ...super.getDefaultState(),
-      rule: null,
-      memberList: [],
-    };
-  }
-
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {orgId, ruleId, projectId} = this.props.params;
-    return [
-      [
-        'rule',
-        `/projects/${orgId}/${projectId}/rules/${ruleId}/`,
-        {query: {expand: 'lastTriggered'}},
-      ],
-      ['memberList', `/organizations/${orgId}/users/`, {query: {projectSlug: projectId}}],
-    ];
-  }
-
-  getDataDatetime(): DateTimeObject {
-    const query = this.props.location?.query ?? {};
+  function getDataDatetime(): DateTimeObject {
+    const query = location?.query ?? {};
 
     const {
       start,
@@ -133,7 +136,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     return {period: ALERT_DEFAULT_CHART_PERIOD};
   }
 
-  setStateOnUrl(nextState: {
+  function setStateOnUrl(nextState: {
     cursor?: string;
     pageEnd?: DateString;
     pageStart?: DateString;
@@ -141,22 +144,88 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     pageUtc?: boolean | null;
     team?: string;
   }) {
-    return this.props.router.push({
-      ...this.props.location,
+    return router.push({
+      ...location,
       query: {
-        ...this.props.location.query,
+        ...location.query,
         ...pick(nextState, PAGE_QUERY_PARAMS),
       },
     });
   }
 
-  handleUpdateDatetime = (datetime: ChangeData) => {
+  function onSnooze({
+    snooze,
+    snoozeCreatedBy,
+    snoozeForEveryone,
+  }: {
+    snooze: boolean;
+    snoozeCreatedBy?: string;
+    snoozeForEveryone?: boolean;
+  }) {
+    setApiQueryData<IssueAlertRule>(
+      queryClient,
+      getIssueAlertDetailsQueryKey({orgSlug: organization.slug, projectSlug, ruleId}),
+      alertRule => ({...alertRule, snooze, snoozeCreatedBy, snoozeForEveryone})
+    );
+  }
+
+  async function handleKeepAlertAlive() {
+    try {
+      await api.requestPromise(
+        `/projects/${organization.slug}/${projectSlug}/rules/${ruleId}/`,
+        {
+          method: 'PUT',
+          data: {
+            ...rule,
+            optOutExplicit: true,
+          },
+        }
+      );
+
+      // Update alert rule to remove disableDate
+      setApiQueryData<IssueAlertRule>(
+        queryClient,
+        getIssueAlertDetailsQueryKey({orgSlug: organization.slug, projectSlug, ruleId}),
+        alertRule => ({...alertRule, disableDate: undefined})
+      );
+
+      addSuccessMessage(t('Successfully updated'));
+    } catch (err) {
+      addErrorMessage(t('Unable to update alert rule'));
+    }
+  }
+
+  async function handleReEnable() {
+    try {
+      await api.requestPromise(
+        `/projects/${organization.slug}/${projectSlug}/rules/${ruleId}/enable/`,
+        {method: 'PUT'}
+      );
+
+      // Update alert rule to remove disableDate
+      setApiQueryData<IssueAlertRule>(
+        queryClient,
+        getIssueAlertDetailsQueryKey({orgSlug: organization.slug, projectSlug, ruleId}),
+        alertRule => ({...alertRule, disableDate: undefined, status: 'active'})
+      );
+
+      addSuccessMessage(t('Successfully re-enabled'));
+    } catch (err) {
+      addErrorMessage(
+        typeof err.responseJSON?.detail === 'string'
+          ? err.responseJSON.detail
+          : t('Unable to update alert rule')
+      );
+    }
+  }
+
+  function handleUpdateDatetime(datetime: ChangeData) {
     const {start, end, relative, utc} = datetime;
 
     if (start && end) {
       const parser = utc ? moment.utc : moment;
 
-      return this.setStateOnUrl({
+      return setStateOnUrl({
         pageStatsPeriod: undefined,
         pageStart: parser(start).format(),
         pageEnd: parser(end).format(),
@@ -165,16 +234,16 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
       });
     }
 
-    return this.setStateOnUrl({
+    return setStateOnUrl({
       pageStatsPeriod: relative || undefined,
       pageStart: undefined,
       pageEnd: undefined,
       pageUtc: undefined,
       cursor: undefined,
     });
-  };
+  }
 
-  renderLoading() {
+  if (isLoading || projectIsLoading) {
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
@@ -184,125 +253,248 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     );
   }
 
-  renderBody() {
-    const {params, location, organization, project} = this.props;
-    const {orgId, ruleId, projectId} = params;
-    const {cursor} = location.query;
-    const {period, start, end, utc} = this.getDataDatetime();
-    const {rule, memberList} = this.state;
+  if (!rule || isError) {
+    return (
+      <StyledLoadingError
+        message={t('The alert rule you were looking for was not found.')}
+      />
+    );
+  }
 
-    if (!rule) {
-      return <LoadingError message={t('There was an error loading the alert rule.')} />;
-    }
+  if (!project) {
+    return (
+      <StyledLoadingError
+        message={t('The project you were looking for was not found.')}
+      />
+    );
+  }
 
-    if (!project) {
+  const isSnoozed = rule.snooze;
+
+  const ruleActionCategory = getRuleActionCategory(rule);
+
+  const duplicateLink = {
+    pathname: `/organizations/${organization.slug}/alerts/new/issue/`,
+    query: {
+      project: project.slug,
+      duplicateRuleId: rule.id,
+      createFromDuplicate: true,
+      referrer: 'issue_rule_details',
+    },
+  };
+  function renderIncompatibleAlert() {
+    const incompatibleRule = findIncompatibleRules(rule);
+    if (incompatibleRule.conditionIndices || incompatibleRule.filterIndices) {
       return (
-        <Alert type="warning">
-          {t('The project you were looking for was not found.')}
+        <Alert type="error" showIcon>
+          {tct(
+            'The conditions in this alert rule conflict and might not be working properly. [link:Edit alert rule]',
+            {
+              link: (
+                <Link
+                  to={`/organizations/${organization.slug}/alerts/rules/${projectSlug}/${ruleId}/`}
+                />
+              ),
+            }
+          )}
+        </Alert>
+      );
+    }
+    return null;
+  }
+
+  function renderDisabledAlertBanner() {
+    // Rule has been disabled and has a disabled date indicating it was disabled due to lack of activity
+    if (rule?.status === 'disabled' && moment(new Date()).isAfter(rule.disableDate)) {
+      return (
+        <Alert type="warning" showIcon>
+          {tct(
+            'This alert was disabled due to lack of activity. Please [keepAlive] to enable this alert.',
+            {
+              keepAlive: (
+                <BoldButton priority="link" size="sm" onClick={handleReEnable}>
+                  {t('click here')}
+                </BoldButton>
+              ),
+            }
+          )}
         </Alert>
       );
     }
 
-    const duplicateLink = {
-      pathname: `/organizations/${orgId}/alerts/new/issue/`,
-      query: {
-        project: project.slug,
-        duplicateRuleId: rule.id,
-        createFromDuplicate: true,
-        referrer: 'issue_rule_details',
-      },
-    };
+    // Generic rule disabled banner
+    if (rule?.status === 'disabled') {
+      return (
+        <Alert type="warning" showIcon>
+          {rule.actions?.length === 0
+            ? t(
+                'This alert is disabled due to missing actions. Please edit the alert rule to enable this alert.'
+              )
+            : t(
+                'This alert is disabled due to its configuration and needs to be edited to be enabled.'
+              )}
+        </Alert>
+      );
+    }
 
-    return (
-      <PageFiltersContainer
-        skipInitializeUrlParams
-        skipLoadLastUsed
-        shouldForceProject
-        forceProject={project}
-      >
-        <SentryDocumentTitle title={rule.name} orgSlug={orgId} projectSlug={projectId} />
+    // Rule to be disabled soon
+    if (rule?.disableDate && moment(rule.disableDate).isAfter(new Date())) {
+      return (
+        <Alert type="warning" showIcon>
+          {tct(
+            'This alert is scheduled to be disabled [date] due to lack of activity. Please [keepAlive] to keep this alert active. [docs:Learn more]',
+            {
+              date: <TimeSince date={rule.disableDate} />,
+              keepAlive: (
+                <BoldButton priority="link" size="sm" onClick={handleKeepAlertAlive}>
+                  {t('click here')}
+                </BoldButton>
+              ),
+              docs: (
+                <ExternalLink href="https://docs.sentry.io/product/alerts/#disabled-alerts" />
+              ),
+            }
+          )}
+        </Alert>
+      );
+    }
 
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                {label: t('Alerts'), to: `/organizations/${orgId}/alerts/rules/`},
-                {
-                  label: rule.name,
-                  to: null,
-                },
-              ]}
-            />
-            <Layout.Title>
-              <RuleName>
-                <IdBadge
-                  project={project}
-                  avatarSize={28}
-                  hideName
-                  avatarProps={{hasTooltip: true, tooltip: project.slug}}
-                />
-                {rule.name}
-              </RuleName>
-            </Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              <Button icon={<IconCopy />} to={duplicateLink}>
-                {t('Duplicate')}
-              </Button>
-              <Button
-                icon={<IconEdit />}
-                to={`/organizations/${orgId}/alerts/rules/${projectId}/${ruleId}/`}
-                onClick={() =>
-                  trackAdvancedAnalyticsEvent('issue_alert_rule_details.edit_clicked', {
-                    organization,
-                    rule_id: parseInt(ruleId, 10),
-                  })
-                }
-              >
-                {t('Edit Rule')}
-              </Button>
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
-        <Layout.Body>
-          <Layout.Main>
-            <StyledPageTimeRangeSelector
-              organization={organization}
-              relative={period ?? ''}
-              start={start ?? null}
-              end={end ?? null}
-              utc={utc ?? null}
-              onUpdate={this.handleUpdateDatetime}
-            />
-            <AlertChart
-              organization={organization}
-              orgId={orgId}
-              project={project}
-              rule={rule}
-              period={period ?? ''}
-              start={start ?? null}
-              end={end ?? null}
-              utc={utc ?? null}
-            />
-            <AlertRuleIssuesList
-              organization={organization}
-              project={project}
-              rule={rule}
-              period={period ?? ''}
-              start={start ?? null}
-              end={end ?? null}
-              utc={utc ?? null}
-              cursor={cursor}
-            />
-          </Layout.Main>
-          <Layout.Side>
-            <Sidebar rule={rule} memberList={memberList} teams={project.teams} />
-          </Layout.Side>
-        </Layout.Body>
-      </PageFiltersContainer>
-    );
+    return null;
   }
+
+  const {period, start, end, utc} = getDataDatetime();
+  const {cursor} = location.query;
+  return (
+    <PageFiltersContainer
+      skipInitializeUrlParams
+      skipLoadLastUsed
+      shouldForceProject
+      forceProject={project}
+    >
+      <SentryDocumentTitle
+        title={rule.name}
+        orgSlug={organization.slug}
+        projectSlug={projectSlug}
+      />
+
+      <Layout.Header>
+        <Layout.HeaderContent>
+          <Breadcrumbs
+            crumbs={[
+              {
+                label: t('Alerts'),
+                to: `/organizations/${organization.slug}/alerts/rules/`,
+              },
+              {
+                label: rule.name,
+                to: null,
+              },
+            ]}
+          />
+          <Layout.Title>
+            <IdBadge
+              project={project}
+              avatarSize={28}
+              hideName
+              avatarProps={{hasTooltip: true, tooltip: project.slug}}
+            />
+            {rule.name}
+          </Layout.Title>
+        </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            <Access access={['alerts:write']}>
+              {({hasAccess}) => (
+                <SnoozeAlert
+                  isSnoozed={isSnoozed}
+                  onSnooze={onSnooze}
+                  ruleId={rule.id}
+                  projectSlug={projectSlug}
+                  ruleActionCategory={ruleActionCategory}
+                  hasAccess={hasAccess}
+                  type="issue"
+                  disabled={rule.status === 'disabled'}
+                />
+              )}
+            </Access>
+            <LinkButton
+              size="sm"
+              icon={<IconCopy />}
+              to={duplicateLink}
+              disabled={rule.status === 'disabled'}
+            >
+              {t('Duplicate')}
+            </LinkButton>
+            <Button
+              size="sm"
+              icon={<IconEdit />}
+              to={`/organizations/${organization.slug}/alerts/rules/${projectSlug}/${ruleId}/`}
+              onClick={() =>
+                trackAnalytics('issue_alert_rule_details.edit_clicked', {
+                  organization,
+                  rule_id: parseInt(ruleId, 10),
+                })
+              }
+            >
+              {rule.status === 'disabled' ? t('Edit to enable') : t('Edit Rule')}
+            </Button>
+          </ButtonBar>
+        </Layout.HeaderActions>
+      </Layout.Header>
+      <Layout.Body>
+        <Layout.Main>
+          {renderIncompatibleAlert()}
+          {renderDisabledAlertBanner()}
+          {isSnoozed && (
+            <Alert showIcon>
+              {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
+                ? tct(
+                    "[creator] muted this alert so these notifications won't be sent in the future.",
+                    {creator: rule.snoozeCreatedBy}
+                  )
+                : tct(
+                    "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
+                    {
+                      creator: rule.snoozeCreatedBy,
+                      forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
+                    }
+                  )}
+            </Alert>
+          )}
+          <StyledPageTimeRangeSelector
+            relative={period ?? ''}
+            start={start ?? null}
+            end={end ?? null}
+            utc={utc ?? null}
+            onChange={handleUpdateDatetime}
+          />
+          <ErrorBoundary>
+            <IssueAlertDetailsChart
+              project={project}
+              rule={rule}
+              period={period ?? ''}
+              start={start ?? null}
+              end={end ?? null}
+              utc={utc ?? null}
+            />
+          </ErrorBoundary>
+          <AlertRuleIssuesList
+            organization={organization}
+            project={project}
+            rule={rule}
+            period={period ?? ''}
+            start={start ?? null}
+            end={end ?? null}
+            utc={utc ?? null}
+            cursor={cursor}
+          />
+        </Layout.Main>
+        <Layout.Side>
+          <Sidebar rule={rule} projectSlug={project.slug} teams={project.teams} />
+        </Layout.Side>
+      </Layout.Body>
+    </PageFiltersContainer>
+  );
 }
 
 export default AlertRuleDetails;
@@ -311,9 +503,10 @@ const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
   margin-bottom: ${space(2)};
 `;
 
-const RuleName = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  grid-column-gap: ${space(1)};
-  align-items: center;
+const StyledLoadingError = styled(LoadingError)`
+  margin: ${space(2)};
+`;
+
+const BoldButton = styled(Button)`
+  font-weight: 600;
 `;

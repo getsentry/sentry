@@ -3,28 +3,30 @@ import styled from '@emotion/styled';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   examples: Array<string>;
   sourceName: string;
 };
 
-const SourceSuggestionExamples = ({examples, sourceName}: Props) => (
-  <Wrapper>
-    <ExampleCard
-      position="right"
-      header={t('Examples for %s in current event', <code>{sourceName}</code>)}
-      body={examples.map(example => (
-        <pre key={example}>{example}</pre>
-      ))}
-    >
-      <Content>
-        {t('See Example')} <IconQuestion size="xs" />
-      </Content>
-    </ExampleCard>
-  </Wrapper>
-);
+function SourceSuggestionExamples({examples, sourceName}: Props) {
+  return (
+    <Wrapper>
+      <ExampleCard
+        position="right"
+        header={t('Examples for %s in current event', <code>{sourceName}</code>)}
+        body={examples.map(example => (
+          <pre key={example}>{example}</pre>
+        ))}
+      >
+        <Content>
+          {t('See Example')} <IconQuestion size="xs" />
+        </Content>
+      </ExampleCard>
+    </Wrapper>
+  );
+}
 
 export default SourceSuggestionExamples;
 

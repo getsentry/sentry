@@ -11,11 +11,11 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import Sparklines from 'sentry/components/sparklines';
+import {Sparklines} from 'sentry/components/sparklines';
 import SparklinesLine from 'sentry/components/sparklines/line';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
@@ -25,8 +25,8 @@ import {
   Column,
   generateFieldAsString,
   getAggregateAlias,
-  WebVital,
 } from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import VitalsCardsDiscoverQuery, {
   VitalData,
@@ -34,6 +34,7 @@ import VitalsCardsDiscoverQuery, {
 } from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
+import toArray from 'sentry/utils/toArray';
 import useApi from 'sentry/utils/useApi';
 
 import ColorBar from '../vitalDetail/colorBar';
@@ -390,7 +391,7 @@ export function VitalBar(props: VitalBarProps) {
     good: 0,
     total: 0,
   };
-  const vitals = Array.isArray(vital) ? vital : [vital];
+  const vitals = toArray(vital);
   vitals.forEach(vitalName => {
     const c = data?.[vitalName] ?? {};
     Object.keys(counts).forEach(countKey => (counts[countKey] += c[countKey]));
@@ -466,7 +467,7 @@ function VitalCard(props: VitalCardProps) {
   return (
     <StyledCard interactive={!isNotInteractive} minHeight={minHeight}>
       <HeaderTitle>
-        <OverflowEllipsis>{t(title)}</OverflowEllipsis>
+        <OverflowEllipsis>{title}</OverflowEllipsis>
         <QuestionTooltip size="sm" position="top" title={tooltip} />
       </HeaderTitle>
       <CardContent horizontal={horizontal}>

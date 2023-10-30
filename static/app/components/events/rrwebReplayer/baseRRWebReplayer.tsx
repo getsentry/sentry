@@ -1,8 +1,8 @@
-import {useEffect, useRef} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
-import RRWebPlayer from 'rrweb-player';
+import RRWebPlayer from '@sentry-internal/rrweb-player';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type RRWebEvents = ConstructorParameters<typeof RRWebPlayer>[0]['props']['events'];
 
@@ -11,10 +11,10 @@ interface Props {
   events?: RRWebEvents;
 }
 
-const BaseRRWebReplayerComponent = ({events, className}: Props) => {
+function BaseRRWebReplayerComponent({events, className}: Props) {
   const playerEl = useRef<HTMLDivElement>(null);
 
-  const initPlayer = () => {
+  const initPlayer = useCallback(() => {
     if (events === undefined) {
       return;
     }
@@ -28,19 +28,21 @@ const BaseRRWebReplayerComponent = ({events, className}: Props) => {
       target: playerEl.current,
       props: {events, autoPlay: false},
     });
-  };
+  }, [events]);
 
-  useEffect(() => void initPlayer(), [events]);
+  useEffect(() => void initPlayer(), [initPlayer]);
 
   return <div ref={playerEl} className={className} />;
-};
+}
 
 const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
   .replayer-mouse {
     position: absolute;
     width: 32px;
     height: 32px;
-    transition: left 0.05s linear, top 0.05s linear;
+    transition:
+      left 0.05s linear,
+      top 0.05s linear;
     background-size: contain;
     background-repeat: no-repeat;
     background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTkiIHZpZXdCb3g9IjAgMCAxMiAxOSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTAgMTZWMEwxMS42IDExLjZINC44TDQuNCAxMS43TDAgMTZaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNOS4xIDE2LjdMNS41IDE4LjJMMC43OTk5OTkgNy4xTDQuNSA1LjZMOS4xIDE2LjdaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNNC42NzQ1MSA4LjYxODUxTDIuODMwMzEgOS4zOTI3MUw1LjkyNzExIDE2Ljc2OTVMNy43NzEzMSAxNS45OTUzTDQuNjc0NTEgOC42MTg1MVoiIGZpbGw9ImJsYWNrIi8+CjxwYXRoIGQ9Ik0xIDIuNFYxMy42TDQgMTAuN0w0LjQgMTAuNkg5LjJMMSAyLjRaIiBmaWxsPSJibGFjayIvPgo8L3N2Zz4K');
@@ -67,11 +69,17 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
     margin-left: -37px;
     margin-top: -37px;
     border: 4px solid rgba(73, 80, 246, 0);
-    transition: left 0s linear, top 0s linear, border-color 0.2s ease-in-out;
+    transition:
+      left 0s linear,
+      top 0s linear,
+      border-color 0.2s ease-in-out;
   }
   .replayer-mouse.touch-device.touch-active {
     border-color: ${p => p.theme.purple200};
-    transition: left 0.25s linear, top 0.25s linear, border-color 0.2s ease-in-out;
+    transition:
+      left 0.25s linear,
+      top 0.25s linear,
+      border-color 0.2s ease-in-out;
   }
   .replayer-mouse.touch-device:after {
     opacity: 0;

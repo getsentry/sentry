@@ -1,35 +1,28 @@
 import unittest
-from collections import OrderedDict
 
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
 
 
 class CanonicalKeyViewTests(unittest.TestCase):
-    canonical_data = OrderedDict(
-        [
-            ("release", "asdf"),
-            ("exception", {"type": "DemoException"}),
-            ("user", {"id": "DemoUser"}),
-        ]
-    )
+    canonical_data = {
+        "release": "asdf",
+        "exception": {"type": "DemoException"},
+        "user": {"id": "DemoUser"},
+    }
 
-    legacy_data = OrderedDict(
-        [
-            ("release", "asdf"),
-            ("sentry.interfaces.Exception", {"type": "DemoException"}),
-            ("sentry.interfaces.User", {"id": "DemoUser"}),
-        ]
-    )
+    legacy_data = {
+        "release": "asdf",
+        "sentry.interfaces.Exception": {"type": "DemoException"},
+        "sentry.interfaces.User": {"id": "DemoUser"},
+    }
 
-    mixed_data = OrderedDict(
-        [
-            ("release", "asdf"),
-            ("sentry.interfaces.User", {"id": "INVALID"}),
-            ("exception", {"type": "DemoException"}),
-            ("user", {"id": "DemoUser"}),
-            ("sentry.interfaces.Exception", {"type": "INVALID"}),
-        ]
-    )
+    mixed_data = {
+        "release": "asdf",
+        "sentry.interfaces.User": {"id": "INVALID"},
+        "exception": {"type": "DemoException"},
+        "user": {"id": "DemoUser"},
+        "sentry.interfaces.Exception": {"type": "INVALID"},
+    }
 
     def test_len(self):
         assert len(CanonicalKeyView(self.canonical_data)) == 3

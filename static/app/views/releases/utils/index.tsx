@@ -1,3 +1,4 @@
+import {Theme} from '@emotion/react';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 import round from 'lodash/round';
@@ -7,11 +8,16 @@ import {DateTimeObject} from 'sentry/components/charts/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
-import {desktop, mobile, PlatformKey} from 'sentry/data/platformCategories';
+import {desktop, mobile} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import {Release, ReleaseStatus} from 'sentry/types';
+import {
+  PlatformKey,
+  Release,
+  ReleaseStatus,
+  SemverVerison,
+  VersionInfo,
+} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {Theme} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -39,13 +45,14 @@ export const getCrashFreePercent = (
 export const displayCrashFreePercent = (
   percent: number,
   decimalThreshold = CRASH_FREE_DECIMAL_THRESHOLD,
-  decimalPlaces = 3
+  decimalPlaces = 3,
+  formatLessThanOnePercent = true
 ): string => {
   if (isNaN(percent)) {
     return '\u2015';
   }
 
-  if (percent < 1 && percent > 0) {
+  if (formatLessThanOnePercent && percent < 1 && percent > 0) {
     return `<1\u0025`;
   }
 
@@ -126,7 +133,7 @@ export const getReleaseHandledIssuesUrl = (
 };
 
 export const isReleaseArchived = (release: Release) =>
-  release.status === ReleaseStatus.Archived;
+  release.status === ReleaseStatus.ARCHIVED;
 
 export type ReleaseBounds = {
   type: 'normal' | 'clamped' | 'ancient';
@@ -235,3 +242,18 @@ export const ADOPTION_STAGE_LABELS: Record<
 
 export const isMobileRelease = (releaseProjectPlatform: PlatformKey) =>
   ([...mobile, ...desktop] as string[]).includes(releaseProjectPlatform);
+
+/**
+ * Helper that escapes quotes and formats release version into release search
+ * ex - com.sentry.go_app@"1.0.0-chore"
+ */
+export function searchReleaseVersion(version: string): string {
+  // Wrap with quotes and escape any quotes inside
+  return `release:"${version.replace(/"/g, '\\"')}"`;
+}
+
+export function isVersionInfoSemver(
+  versionInfo: VersionInfo['version']
+): versionInfo is SemverVerison {
+  return versionInfo.hasOwnProperty('components');
+}

@@ -6,13 +6,13 @@ from typing import TYPE_CHECKING, List
 
 from django.db import models
 
-from sentry.db.models import FlexibleForeignKey
+from sentry.db.models import FlexibleForeignKey, control_silo_only_model
 from sentry.db.models.manager import BaseManager
 
-from . import AvatarBase
+from . import ControlAvatarBase
 
 if TYPE_CHECKING:
-    from sentry.models import SentryApp
+    from sentry.models.integrations.sentry_app import SentryApp
 
 
 class SentryAppAvatarTypes(Enum):
@@ -36,7 +36,8 @@ class SentryAppAvatarManager(BaseManager):
         return avatar_to_app_map
 
 
-class SentryAppAvatar(AvatarBase):
+@control_silo_only_model
+class SentryAppAvatar(ControlAvatarBase):
     """
     A SentryAppAvatar associates a SentryApp with a logo photo File
     and specifies which type of logo it is.
@@ -56,6 +57,8 @@ class SentryAppAvatar(AvatarBase):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_sentryappavatar"
+
+    url_path = "sentry-app-avatar"
 
     def get_cache_key(self, size):
         color_identifier = "color" if self.color else "simple"

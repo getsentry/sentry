@@ -1,7 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   /**
@@ -33,7 +33,8 @@ const PanelHeader = styled('div')<Props>`
   font-weight: 600;
   text-transform: uppercase;
   border-bottom: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  border-radius: calc(${p => p.theme.panelBorderRadius} - 1px)
+    calc(${p => p.theme.panelBorderRadius} - 1px) 0 0;
   background: ${p => p.theme.backgroundSecondary};
   line-height: 1;
   position: relative;

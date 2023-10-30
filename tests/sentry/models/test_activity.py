@@ -1,19 +1,17 @@
-from typing import Sequence
-
-from sentry.models import Activity
-from sentry.testutils import TestCase
+from sentry.models.activity import Activity
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.utils.iterators import chunked
 
 
+@region_silo_test(stable=True)
 class ActivityTest(TestCase):
     def test_get_activities_for_group_none(self):
         project = self.create_project(name="test_activities_group")
         group = self.create_group(project)
 
-        act_for_group: Sequence[Activity] = Activity.objects.get_activities_for_group(
-            group=group, num=100
-        )
+        act_for_group = Activity.objects.get_activities_for_group(group=group, num=100)
         assert len(act_for_group) == 1
         assert act_for_group[0].type == ActivityType.FIRST_SEEN.value
 
@@ -39,9 +37,7 @@ class ActivityTest(TestCase):
             ),
         ]
 
-        act_for_group: Sequence[Activity] = Activity.objects.get_activities_for_group(
-            group=group, num=100
-        )
+        act_for_group = Activity.objects.get_activities_for_group(group=group, num=100)
         assert len(act_for_group) == 3
         assert act_for_group[0] == activities[-1]
         assert act_for_group[1] == activities[-2]
@@ -134,9 +130,7 @@ class ActivityTest(TestCase):
             ),
         ]
 
-        act_for_group: Sequence[Activity] = Activity.objects.get_activities_for_group(
-            group=group, num=100
-        )
+        act_for_group = Activity.objects.get_activities_for_group(group=group, num=100)
         assert len(act_for_group) == 7
         assert act_for_group[0] == activities[-1]
         assert act_for_group[1] == activities[-2]
@@ -240,9 +234,7 @@ class ActivityTest(TestCase):
             ),
         ]
 
-        act_for_group: Sequence[Activity] = Activity.objects.get_activities_for_group(
-            group=group, num=100
-        )
+        act_for_group = Activity.objects.get_activities_for_group(group=group, num=100)
 
         assert len(act_for_group) == len(activities) + 1
         assert act_for_group[-1].type == ActivityType.FIRST_SEEN.value

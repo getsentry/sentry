@@ -1,10 +1,10 @@
 from typing import Any, List, Mapping
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import DocIntegration, DocIntegrationAvatar, IntegrationFeature
-from sentry.models.integrations.integration_feature import IntegrationTypes
+from sentry.models.avatars.doc_integration_avatar import DocIntegrationAvatar
+from sentry.models.integrations.doc_integration import DocIntegration
+from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.models.user import User
-from sentry.utils.compat import map
 from sentry.utils.json import JSONData
 
 
@@ -44,7 +44,7 @@ class DocIntegrationSerializer(Serializer):
             "url": obj.url,
             "popularity": obj.popularity,
             "isDraft": obj.is_draft,
-            "features": map(lambda x: serialize(x, user), attrs.get("features")),
+            "features": [serialize(x, user) for x in attrs.get("features")],
             "avatar": serialize(attrs.get("avatar"), user),
         }
 

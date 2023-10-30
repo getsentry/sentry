@@ -3,22 +3,22 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
-import Button from 'sentry/components/button';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {Button} from 'sentry/components/button';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
+import SearchBar from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import categoryList, {filterAliases, PlatformKey} from 'sentry/data/platformCategories';
-import platforms from 'sentry/data/platforms';
-import {IconClose, IconProject, IconSearch} from 'sentry/icons';
+import categoryList, {
+  createablePlatforms,
+  filterAliases,
+} from 'sentry/data/platformPickerCategories';
+import platforms, {otherPlatform} from 'sentry/data/platforms';
+import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {inputStyles} from 'sentry/styles/input';
-import space from 'sentry/styles/space';
-import {Organization, PlatformIntegration} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
-
-const PLATFORM_CATEGORIES = [...categoryList, {id: 'all', name: t('All')}] as const;
+import {space} from 'sentry/styles/space';
+import {Organization, PlatformIntegration, PlatformKey} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 const PlatformList = styled('div')`
   display: grid;
@@ -27,10 +27,18 @@ const PlatformList = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-type Category = typeof PLATFORM_CATEGORIES[number]['id'];
+const selectablePlatforms = platforms.filter(platform =>
+  createablePlatforms.has(platform.id)
+);
+
+export type Category = (typeof categoryList)[number]['id'];
+
+export type Platform = PlatformIntegration & {
+  category: Category;
+};
 
 interface PlatformPickerProps {
-  setPlatform: (key: PlatformKey | null) => void;
+  setPlatform: (props: Platform | null) => void;
   defaultCategory?: Category;
   listClassName?: string;
   listProps?: React.HTMLAttributes<HTMLDivElement>;
@@ -52,12 +60,13 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
   };
 
   state: State = {
-    category: this.props.defaultCategory ?? PLATFORM_CATEGORIES[0].id,
+    category: this.props.defaultCategory ?? categoryList[0].id,
     filter: this.props.noAutoFilter ? '' : (this.props.platform || '').split('-')[0],
   };
 
   get platformList() {
     const {category} = this.state;
+
     const currentCategory = categoryList.find(({id}) => id === category);
 
     const filter = this.state.filter.toLowerCase();
@@ -67,11 +76,11 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
       platform.name.toLowerCase().includes(filter) ||
       filterAliases[platform.id as PlatformKey]?.some(alias => alias.includes(filter));
 
-    const categoryMatch = (platform: PlatformIntegration) =>
-      category === 'all' ||
-      (currentCategory?.platforms as undefined | string[])?.includes(platform.id);
+    const categoryMatch = (platform: PlatformIntegration) => {
+      return currentCategory?.platforms?.has(platform.id);
+    };
 
-    const filtered = platforms
+    const filtered = selectablePlatforms
       .filter(this.state.filter ? subsetMatch : categoryMatch)
       .sort((a, b) => a.id.localeCompare(b.id));
 
@@ -80,7 +89,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
 
   logSearch = debounce(() => {
     if (this.state.filter) {
-      trackAdvancedAnalyticsEvent('growth.platformpicker_search', {
+      trackAnalytics('growth.platformpicker_search', {
         search: this.state.filter.toLowerCase(),
         num_results: this.platformList.length,
         source: this.props.source,
@@ -98,11 +107,11 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
       <Fragment>
         <NavContainer>
           <CategoryNav>
-            {PLATFORM_CATEGORIES.map(({id, name}) => (
+            {categoryList.map(({id, name}) => (
               <ListLink
                 key={id}
                 onClick={(e: React.MouseEvent) => {
-                  trackAdvancedAnalyticsEvent('growth.platformpicker_category', {
+                  trackAnalytics('growth.platformpicker_category', {
                     category: id,
                     source: this.props.source,
                     organization: this.props.organization ?? null,
@@ -117,37 +126,36 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
               </ListLink>
             ))}
           </CategoryNav>
-          <SearchBar>
-            <IconSearch size="xs" />
-            <input
-              type="text"
-              value={filter}
-              placeholder={t('Filter Platforms')}
-              onChange={e => this.setState({filter: e.target.value}, this.logSearch)}
-            />
-          </SearchBar>
+          <StyledSearchBar
+            size="sm"
+            query={filter}
+            placeholder={t('Filter Platforms')}
+            onChange={val => this.setState({filter: val}, this.logSearch)}
+          />
         </NavContainer>
         <PlatformList className={listClassName} {...listProps}>
-          {platformList.map(platform => (
-            <PlatformCard
-              data-test-id={`platform-${platform.id}`}
-              key={platform.id}
-              platform={platform}
-              selected={this.props.platform === platform.id}
-              onClear={(e: React.MouseEvent) => {
-                setPlatform(null);
-                e.stopPropagation();
-              }}
-              onClick={() => {
-                trackAdvancedAnalyticsEvent('growth.select_platform', {
-                  platform_id: platform.id,
-                  source: this.props.source,
-                  organization: this.props.organization ?? null,
-                });
-                setPlatform(platform.id as PlatformKey);
-              }}
-            />
-          ))}
+          {platformList.map(platform => {
+            return (
+              <PlatformCard
+                data-test-id={`platform-${platform.id}`}
+                key={platform.id}
+                platform={platform}
+                selected={this.props.platform === platform.id}
+                onClear={(e: React.MouseEvent) => {
+                  setPlatform(null);
+                  e.stopPropagation();
+                }}
+                onClick={() => {
+                  trackAnalytics('growth.select_platform', {
+                    platform_id: platform.id,
+                    source: this.props.source,
+                    organization: this.props.organization ?? null,
+                  });
+                  setPlatform({...platform, category});
+                }}
+              />
+            );
+          })}
         </PlatformList>
         {platformList.length === 0 && (
           <EmptyMessage
@@ -155,14 +163,17 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
             title={t("We don't have an SDK for that yet!")}
           >
             {tct(
-              `Not finding your platform? You can still create your project,
-              but looks like we don't have an official SDK for your platform
-              yet. However, there's a rich ecosystem of community supported
-              SDKs (including Perl, CFML, Clojure, and ActionScript). Try
-              [search:searching for Sentry clients] or contacting support.`,
+              `Sure you haven't misspelled? If you're using a lesser-known platform, consider choosing a more generic SDK like Browser JavaScript, Python, Node, .NET & Java or create a generic project, by selecting [linkOther:“Other”].`,
               {
-                search: (
-                  <ExternalLink href="https://github.com/search?q=-org%3Agetsentry+topic%3Asentry&type=Repositories" />
+                linkOther: (
+                  <Button
+                    aria-label={t("Select 'Other'")}
+                    priority="link"
+                    onClick={() => {
+                      this.setState({filter: otherPlatform.name});
+                      setPlatform({...otherPlatform, category});
+                    }}
+                  />
                 ),
               }
             )}
@@ -182,27 +193,14 @@ const NavContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const SearchBar = styled('div')`
-  ${p => inputStyles(p)};
-  padding: 0 8px;
-  color: ${p => p.theme.subText};
-  display: flex;
-  align-items: center;
-  font-size: 15px;
-  margin-top: -${space(0.75)};
-
-  input {
-    border: none;
-    background: none;
-    padding: 2px 4px;
-    width: 100%;
-    /* Ensure a consistent line height to keep the input the desired height */
-    line-height: 24px;
-
-    &:focus {
-      outline: none;
-    }
-  }
+const StyledSearchBar = styled(SearchBar)`
+  min-width: 6rem;
+  max-width: 12rem;
+  margin-top: -${space(0.25)};
+  margin-left: auto;
+  flex-shrink: 0;
+  flex-basis: 0;
+  flex-grow: 1;
 `;
 
 const CategoryNav = styled(NavTabs)`
@@ -218,6 +216,8 @@ const CategoryNav = styled(NavTabs)`
 
 const StyledPlatformIcon = styled(PlatformIcon)`
   margin: ${space(2)};
+  border: 1px solid ${p => p.theme.gray200};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const ClearButton = styled(Button)`
@@ -238,7 +238,7 @@ const ClearButton = styled(Button)`
 ClearButton.defaultProps = {
   icon: <IconClose isCircled size="xs" />,
   borderless: true,
-  size: 'xsmall',
+  size: 'xs',
 };
 
 const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
@@ -250,7 +250,6 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
       withLanguageIcon
       format="lg"
     />
-
     <h3>{platform.name}</h3>
     {selected && <ClearButton onClick={onClear} aria-label={t('Clear')} />}
   </div>
@@ -261,8 +260,8 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
   align-items: center;
   padding: 0 0 14px;
   border-radius: 4px;
-  cursor: pointer;
   background: ${p => p.selected && p.theme.alert.info.backgroundLight};
+  cursor: pointer;
 
   &:hover {
     background: ${p => p.theme.alert.muted.backgroundLight};

@@ -1,13 +1,11 @@
-from sentry.models import (
-    Identity,
-    IdentityProvider,
-    Integration,
-    OrganizationIntegration,
-    Repository,
-    ScheduledDeletion,
-)
-from sentry.testutils import APITestCase
-from sentry.testutils.helpers import with_feature
+from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.repository import Repository
+from sentry.models.scheduledeletion import ScheduledDeletion
+from sentry.silo import SiloMode
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 class OrganizationIntegrationDetailsTest(APITestCase):
@@ -30,20 +28,23 @@ class OrganizationIntegrationDetailsTest(APITestCase):
             self.organization, self.user, default_auth_id=self.identity.id
         )
 
-        self.repo = Repository.objects.create(
-            provider="gitlab",
-            name="getsentry/sentry",
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.repo = Repository.objects.create(
+                provider="gitlab",
+                name="getsentry/sentry",
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+            )
 
 
+@control_silo_test(stable=True)
 class OrganizationIntegrationDetailsGetTest(OrganizationIntegrationDetailsTest):
     def test_simple(self):
         response = self.get_success_response(self.organization.slug, self.integration.id)
         assert response.data["id"] == str(self.integration.id)
 
 
+@control_silo_test(stable=True)
 class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest):
     method = "post"
 
@@ -52,12 +53,13 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
         self.get_success_response(self.organization.slug, self.integration.id, **config)
 
         org_integration = OrganizationIntegration.objects.get(
-            integration=self.integration, organization=self.organization
+            integration=self.integration, organization_id=self.organization.id
         )
 
         assert org_integration.config == config
 
 
+@control_silo_test(stable=True)
 class OrganizationIntegrationDetailsDeleteTest(OrganizationIntegrationDetailsTest):
     method = "delete"
 
@@ -66,59 +68,8 @@ class OrganizationIntegrationDetailsDeleteTest(OrganizationIntegrationDetailsTes
         assert Integration.objects.filter(id=self.integration.id).exists()
 
         org_integration = OrganizationIntegration.objects.get(
-            integration=self.integration, organization=self.organization
+            integration=self.integration, organization_id=self.organization.id
         )
         assert ScheduledDeletion.objects.filter(
             model_name="OrganizationIntegration", object_id=org_integration.id
         )
-
-
-class OrganizationIntegrationDetailsPutTest(OrganizationIntegrationDetailsTest):
-    method = "put"
-
-    def test_no_access_put_request(self):
-        self.get_error_response(
-            self.organization.slug, self.integration.id, **{"name": "Example Name"}, status_code=404
-        )
-
-    @with_feature("organizations:integrations-custom-scm")
-    def test_valid_put_request(self):
-        integration = Integration.objects.create(
-            provider="custom_scm", name="A Name", external_id="1232948573948579127"
-        )
-        integration.add_organization(self.organization, self.user)
-
-        self.get_success_response(
-            self.organization.slug,
-            integration.id,
-            **{"name": "New Name", "domain": "https://example.com/"},
-        )
-
-        updated = Integration.objects.get(id=integration.id)
-        assert updated.name == "New Name"
-        assert updated.metadata["domain_name"] == "https://example.com/"
-
-    @with_feature("organizations:integrations-custom-scm")
-    def test_partial_updates(self):
-        integration = Integration.objects.create(
-            provider="custom_scm", name="A Name", external_id="1232948573948579127"
-        )
-        integration.add_organization(self.organization, self.user)
-
-        self.get_success_response(
-            self.organization.slug, integration.id, **{"domain": "https://example.com/"}
-        )
-
-        updated = Integration.objects.get(id=integration.id)
-        assert updated.name == "A Name"
-        assert updated.metadata["domain_name"] == "https://example.com/"
-
-        self.get_success_response(self.organization.slug, integration.id, **{"name": "Newness"})
-        updated = Integration.objects.get(id=integration.id)
-        assert updated.name == "Newness"
-        assert updated.metadata["domain_name"] == "https://example.com/"
-
-        self.get_success_response(self.organization.slug, integration.id, **{"domain": ""})
-        updated = Integration.objects.get(id=integration.id)
-        assert updated.name == "Newness"
-        assert updated.metadata["domain_name"] == ""

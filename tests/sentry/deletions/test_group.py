@@ -4,21 +4,21 @@ from uuid import uuid4
 from sentry import nodestore
 from sentry.deletions.defaults.group import EventDataDeletionTask
 from sentry.eventstore.models import Event
-from sentry.models import (
-    EventAttachment,
-    File,
-    Group,
-    GroupAssignee,
-    GroupHash,
-    GroupMeta,
-    GroupRedirect,
-    UserReport,
-)
-from sentry.tasks.deletion import delete_groups
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.files.file import File
+from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.grouphash import GroupHash
+from sentry.models.groupmeta import GroupMeta
+from sentry.models.groupredirect import GroupRedirect
+from sentry.models.userreport import UserReport
+from sentry.tasks.deletion.groups import delete_groups
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class DeleteGroupTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -47,7 +47,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        self.store_event(
+        self.keep_event = self.store_event(
             data={
                 "event_id": self.event_id3,
                 "timestamp": iso_format(before_now(minutes=1)),
@@ -71,7 +71,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             type=file.type,
             name="hello.png",
         )
-        GroupAssignee.objects.create(group=group, project=self.project, user=self.user)
+        GroupAssignee.objects.create(group=group, project=self.project, user_id=self.user.id)
         GroupHash.objects.create(project=self.project, group=group, hash=uuid4().hex)
         GroupMeta.objects.create(group=group, key="foo", value="bar")
         GroupRedirect.objects.create(group_id=group.id, previous_group_id=1)
@@ -83,9 +83,9 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
     def test_simple(self):
         EventDataDeletionTask.DEFAULT_CHUNK_SIZE = 1  # test chunking logic
         group = self.event.group
-        assert nodestore.get(self.node_id)
-        assert nodestore.get(self.node_id2)
-        assert nodestore.get(self.node_id3)
+        assert nodestore.backend.get(self.node_id)
+        assert nodestore.backend.get(self.node_id2)
+        assert nodestore.backend.get(self.node_id3)
 
         with self.tasks():
             delete_groups(object_ids=[group.id])
@@ -97,9 +97,34 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
         assert not Group.objects.filter(id=group.id).exists()
-        assert not nodestore.get(self.node_id)
-        assert not nodestore.get(self.node_id2)
-        assert nodestore.get(self.node_id3), "Does not remove from second group"
+        assert not nodestore.backend.get(self.node_id)
+        assert not nodestore.backend.get(self.node_id2)
+        assert nodestore.backend.get(self.node_id3), "Does not remove from second group"
+        assert Group.objects.filter(id=self.keep_event.group_id).exists()
+
+    def test_simple_multiple_groups(self):
+        other_event = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group3"],
+            },
+            project_id=self.project.id,
+        )
+        other_node_id = Event.generate_node_id(self.project.id, other_event.event_id)
+        keep_node_id = Event.generate_node_id(self.project.id, self.keep_event.event_id)
+
+        group = self.event.group
+        with self.tasks():
+            delete_groups(object_ids=[group.id, other_event.group_id])
+
+        assert not Group.objects.filter(id=group.id).exists()
+        assert not Group.objects.filter(id=other_event.group_id).exists()
+        assert not nodestore.backend.get(self.node_id)
+        assert not nodestore.backend.get(other_node_id)
+
+        assert Group.objects.filter(id=self.keep_event.group_id).exists()
+        assert nodestore.backend.get(keep_node_id)
 
     @mock.patch("os.environ.get")
     @mock.patch("sentry.nodestore.delete_multi")

@@ -1,7 +1,11 @@
-from django.conf.urls import url
+from django.urls import re_path
 
-from .endpoints.webhook import BitbucketWebhookEndpoint
+from .endpoints.webhook import BitbucketPluginWebhookEndpoint
 
 urlpatterns = [
-    url(r"^organizations/(?P<organization_id>[^\/]+)/webhook/$", BitbucketWebhookEndpoint.as_view())
+    re_path(
+        r"^organizations/(?P<organization_id>[^\/]+)/webhook/$",
+        BitbucketPluginWebhookEndpoint.as_view(),
+        name="sentry-plugins-bitbucket-webhook",
+    )
 ]

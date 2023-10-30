@@ -1,9 +1,11 @@
-from django.db import transaction
+from django.db import router, transaction
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import ProjectTransactionThresholdOverridePermission
 from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
 from sentry.api.serializers import serialize
@@ -53,7 +55,13 @@ class ProjectTransactionThresholdOverrideSerializer(serializers.Serializer):
         return data
 
 
+@region_silo_endpoint
 class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectTransactionThresholdOverridePermission,)
 
     def get_project(self, request: Request, organization):
@@ -104,7 +112,7 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsV2EndpointBa
 
         data = serializer.validated_data
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(ProjectTransactionThresholdOverride)):
             (
                 transaction_threshold,
                 created,
@@ -115,7 +123,7 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsV2EndpointBa
                 defaults={
                     "threshold": data["threshold"],
                     "metric": data["metric"],
-                    "edited_by": request.user,
+                    "edited_by_id": request.user.id,
                 },
             )
 

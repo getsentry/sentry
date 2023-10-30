@@ -1,11 +1,15 @@
+from __future__ import annotations
+
+from typing import Any
 from unittest import mock
 
 import pytest
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.providers.saml2.provider import Attributes, SAML2Provider
-from sentry.models import AuthProvider
-from sentry.testutils import TestCase
+from sentry.models.authprovider import AuthProvider
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import control_silo_test
 
 dummy_provider_config = {
     "attribute_mapping": {
@@ -24,12 +28,13 @@ class DummySAML2Provider(SAML2Provider):
         pass
 
 
+@control_silo_test(stable=True)
 class SAML2ProviderTest(TestCase):
     def setUp(self):
-        self.auth_provider = AuthProvider.objects.create(
-            provider="saml2", organization=self.organization
+        auth_provider = AuthProvider.objects.create(
+            provider="saml2", organization_id=self.organization.id
         )
-        self.provider = DummySAML2Provider(key=self.auth_provider.provider)
+        self.provider = DummySAML2Provider(key=auth_provider.provider)
         super().setUp()
 
     def test_build_config_adds_attributes(self):
@@ -46,7 +51,7 @@ class SAML2ProviderTest(TestCase):
 
     def test_build_identity_invalid(self):
         self.provider.config = dummy_provider_config
-        state = {"auth_attributes": {}}
+        state: dict[str, dict[str, Any]] = {"auth_attributes": {}}
 
         with pytest.raises(IdentityNotValid):
             self.provider.build_identity(state)

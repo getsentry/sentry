@@ -1,16 +1,17 @@
-import {createRef, PureComponent} from 'react';
+import {createRef, memo, useEffect, useState} from 'react';
 import {Observer} from 'mobx-react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import {CustomerProfiler} from 'sentry/utils/performanceForSentry';
+import {TracePerformanceIssue} from 'sentry/utils/performance/quickTrace/types';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import DragManager, {DragManagerChildrenProps} from './dragManager';
 import TraceViewHeader from './header';
 import * as ScrollbarManager from './scrollbarManager';
+import * as SpanContext from './spanContext';
 import SpanTree from './spanTree';
 import {getTraceContext} from './utils';
 import WaterfallModel from './waterfallModel';
@@ -18,26 +19,43 @@ import WaterfallModel from './waterfallModel';
 type Props = {
   organization: Organization;
   waterfallModel: WaterfallModel;
+  isAggregate?: boolean;
+  isEmbedded?: boolean;
+  performanceIssues?: TracePerformanceIssue[];
 };
 
-class TraceView extends PureComponent<Props> {
-  traceViewRef = createRef<HTMLDivElement>();
-  virtualScrollBarContainerRef = createRef<HTMLDivElement>();
-  minimapInteractiveRef = createRef<HTMLDivElement>();
+function TraceView(props: Props) {
+  const traceViewRef = createRef<HTMLDivElement>();
+  const traceViewHeaderRef = createRef<HTMLDivElement>();
+  const virtualScrollBarContainerRef = createRef<HTMLDivElement>();
+  const minimapInteractiveRef = createRef<HTMLDivElement>();
 
-  renderHeader = (dragProps: DragManagerChildrenProps) => (
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Since this component is memoized, we need this hook here.
+  // renderHeader performs some expensive calculations and so we only want to render once, hence why we memoize.
+  // However, the virtualScrollbar will not be visible unless we have this effect here. This is a bit of a hack that will
+  // cause the component to rerender by setting the isMounted state, so we will re-render only once the scrollbar ref is present.
+  useEffect(() => {
+    if (virtualScrollBarContainerRef.current && !isMounted) {
+      setIsMounted(true);
+    }
+  }, [virtualScrollBarContainerRef, isMounted]);
+
+  const renderHeader = (dragProps: DragManagerChildrenProps) => (
     <Observer>
       {() => {
-        const {waterfallModel} = this.props;
+        const {waterfallModel} = props;
 
         return (
           <TraceViewHeader
-            organization={this.props.organization}
-            minimapInteractiveRef={this.minimapInteractiveRef}
+            traceViewHeaderRef={traceViewHeaderRef}
+            organization={props.organization}
+            minimapInteractiveRef={minimapInteractiveRef}
             dragProps={dragProps}
             trace={waterfallModel.parsedTrace}
             event={waterfallModel.event}
-            virtualScrollBarContainerRef={this.virtualScrollBarContainerRef}
+            virtualScrollBarContainerRef={virtualScrollBarContainerRef}
             operationNameFilters={waterfallModel.operationNameFilters}
             rootSpan={waterfallModel.rootSpan.span}
             spans={waterfallModel.getWaterfall({
@@ -54,45 +72,60 @@ class TraceView extends PureComponent<Props> {
     </Observer>
   );
 
-  render() {
-    const {organization, waterfallModel} = this.props;
+  const {organization, waterfallModel, isEmbedded, performanceIssues} = props;
 
-    if (!getTraceContext(waterfallModel.event)) {
-      return (
-        <EmptyStateWarning>
-          <p>{t('There is no trace for this transaction')}</p>
-        </EmptyStateWarning>
-      );
-    }
-
+  if (!getTraceContext(waterfallModel.event)) {
     return (
-      <DragManager interactiveLayerRef={this.minimapInteractiveRef}>
-        {(dragProps: DragManagerChildrenProps) => (
-          <Observer>
-            {() => {
-              const parsedTrace = waterfallModel.parsedTrace;
-              return (
-                <CursorGuideHandler.Provider
-                  interactiveLayerRef={this.minimapInteractiveRef}
-                  dragProps={dragProps}
-                  trace={parsedTrace}
-                >
-                  <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
-                    <DividerHandlerManager.Consumer>
-                      {dividerHandlerChildrenProps => {
-                        return (
-                          <ScrollbarManager.Provider
-                            dividerPosition={dividerHandlerChildrenProps.dividerPosition}
-                            interactiveLayerRef={this.virtualScrollBarContainerRef}
-                            dragProps={dragProps}
-                          >
-                            {this.renderHeader(dragProps)}
-                            <Observer>
-                              {() => {
-                                return (
-                                  <CustomerProfiler id="SpanTree">
+      <EmptyStateWarning>
+        <p>{t('There is no trace for this transaction')}</p>
+      </EmptyStateWarning>
+    );
+  }
+  if (
+    (!waterfallModel.affectedSpanIds || !waterfallModel.affectedSpanIds.length) &&
+    performanceIssues
+  ) {
+    const suspectSpans = performanceIssues.map(issue => issue.suspect_spans).flat();
+    if (suspectSpans.length) {
+      waterfallModel.affectedSpanIds = performanceIssues
+        .map(issue => [...issue.suspect_spans, ...issue.span])
+        .flat();
+    }
+  }
+
+  return (
+    <SpanContext.Provider>
+      <SpanContext.Consumer>
+        {spanContextProps => (
+          <DragManager interactiveLayerRef={minimapInteractiveRef}>
+            {(dragProps: DragManagerChildrenProps) => (
+              <Observer>
+                {() => {
+                  const parsedTrace = waterfallModel.parsedTrace;
+                  return (
+                    <CursorGuideHandler.Provider
+                      interactiveLayerRef={minimapInteractiveRef}
+                      dragProps={dragProps}
+                      trace={parsedTrace}
+                    >
+                      <DividerHandlerManager.Provider interactiveLayerRef={traceViewRef}>
+                        <DividerHandlerManager.Consumer>
+                          {dividerHandlerChildrenProps => {
+                            return (
+                              <ScrollbarManager.Provider
+                                dividerPosition={
+                                  dividerHandlerChildrenProps.dividerPosition
+                                }
+                                interactiveLayerRef={virtualScrollBarContainerRef}
+                                dragProps={dragProps}
+                                isEmbedded={isEmbedded}
+                              >
+                                {renderHeader(dragProps)}
+                                <Observer>
+                                  {() => (
                                     <SpanTree
-                                      traceViewRef={this.traceViewRef}
+                                      traceViewRef={traceViewRef}
+                                      traceViewHeaderRef={traceViewHeaderRef}
                                       dragProps={dragProps}
                                       organization={organization}
                                       waterfallModel={waterfallModel}
@@ -101,24 +134,29 @@ class TraceView extends PureComponent<Props> {
                                         viewStart: dragProps.viewWindowStart,
                                         viewEnd: dragProps.viewWindowEnd,
                                       })}
+                                      focusedSpanIds={waterfallModel.focusedSpanIds}
+                                      spanContextProps={spanContextProps}
+                                      operationNameFilters={
+                                        waterfallModel.operationNameFilters
+                                      }
                                     />
-                                  </CustomerProfiler>
-                                );
-                              }}
-                            </Observer>
-                          </ScrollbarManager.Provider>
-                        );
-                      }}
-                    </DividerHandlerManager.Consumer>
-                  </DividerHandlerManager.Provider>
-                </CursorGuideHandler.Provider>
-              );
-            }}
-          </Observer>
+                                  )}
+                                </Observer>
+                              </ScrollbarManager.Provider>
+                            );
+                          }}
+                        </DividerHandlerManager.Consumer>
+                      </DividerHandlerManager.Provider>
+                    </CursorGuideHandler.Provider>
+                  );
+                }}
+              </Observer>
+            )}
+          </DragManager>
         )}
-      </DragManager>
-    );
-  }
+      </SpanContext.Consumer>
+    </SpanContext.Provider>
+  );
 }
 
-export default TraceView;
+export default memo(TraceView);

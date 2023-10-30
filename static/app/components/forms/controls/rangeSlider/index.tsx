@@ -1,6 +1,7 @@
-import {forwardRef as reactFowardRef, useEffect, useState} from 'react';
+import {forwardRef as reactForwardRef, useEffect, useState} from 'react';
 
-import Input from 'sentry/components/forms/controls/input';
+import Input from 'sentry/components/input';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
@@ -29,6 +30,8 @@ type SliderProps = {
   className?: string;
 
   disabled?: boolean;
+
+  disabledReason?: React.ReactNode;
   /**
    * Render prop for slider's label
    * Is passed the value as an argument
@@ -38,14 +41,19 @@ type SliderProps = {
   forwardRef?: React.Ref<HTMLDivElement>;
 
   /**
+   * HTML id of the range input
+   */
+  id?: string;
+
+  /**
    * max allowed value, not needed if using `allowedValues`
    */
   max?: number;
-
   /**
    * min allowed value, not needed if using `allowedValues`
    */
   min?: number;
+
   /**
    * This is called when *any* MouseUp or KeyUp event happens.
    * Used for "smart" Fields to trigger a "blur" event. `onChange` can
@@ -59,7 +67,6 @@ type SliderProps = {
     value: SliderProps['value'],
     event: React.ChangeEvent<HTMLInputElement>
   ) => void;
-
   /**
    * Placeholder for custom input
    */
@@ -76,6 +83,7 @@ type SliderProps = {
 };
 
 function RangeSlider({
+  id,
   value,
   allowedValues,
   showCustomInput,
@@ -87,6 +95,7 @@ function RangeSlider({
   onBlur,
   onChange,
   forwardRef,
+  disabledReason,
   showLabel = true,
   ...props
 }: SliderProps) {
@@ -96,6 +105,7 @@ function RangeSlider({
 
   useEffect(() => {
     updateSliderValue();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
   function updateSliderValue() {
@@ -124,13 +134,13 @@ function RangeSlider({
   }
 
   function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
-    const newSliderValue = parseInt(e.target.value, 10);
+    const newSliderValue = parseFloat(e.target.value);
     setSliderValue(newSliderValue);
     onChange?.(getActualValue(newSliderValue), e);
   }
 
   function handleCustomInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setSliderValue(parseInt(e.target.value, 10) || 0);
+    setSliderValue(parseFloat(e.target.value) || 0);
   }
 
   function handleBlur(
@@ -167,42 +177,44 @@ function RangeSlider({
   }
 
   const {min, max, step, actualValue, displayValue} = getSliderData();
+  const labelText = formatLabel?.(actualValue) ?? displayValue;
 
   return (
     <div className={className} ref={forwardRef}>
-      {!showCustomInput && showLabel && (
-        <SliderLabel htmlFor={name}>
-          {formatLabel?.(actualValue) ?? displayValue}
-        </SliderLabel>
-      )}
-      <SliderAndInputWrapper showCustomInput={showCustomInput}>
-        <Slider
-          type="range"
-          name={name}
-          min={min}
-          max={max}
-          step={step}
-          disabled={disabled}
-          onInput={handleInput}
-          onMouseUp={handleBlur}
-          onKeyUp={handleBlur}
-          value={sliderValue}
-          hasLabel={!showCustomInput}
-        />
-        {showCustomInput && (
-          <Input
-            placeholder={placeholder}
+      {!showCustomInput && showLabel && <SliderLabel>{labelText}</SliderLabel>}
+      <Tooltip title={disabledReason} disabled={!disabled} skipWrapper isHoverable>
+        <SliderAndInputWrapper showCustomInput={showCustomInput}>
+          <Slider
+            type="range"
+            name={name}
+            id={id}
+            min={min}
+            max={max}
+            step={step}
+            disabled={disabled}
+            onChange={handleInput}
+            onInput={handleInput}
+            onMouseUp={handleBlur}
+            onKeyUp={handleBlur}
             value={sliderValue}
-            onChange={handleCustomInputChange}
-            onBlur={handleInput}
+            hasLabel={!showCustomInput}
+            aria-valuetext={labelText}
           />
-        )}
-      </SliderAndInputWrapper>
+          {showCustomInput && (
+            <Input
+              placeholder={placeholder}
+              value={sliderValue}
+              onChange={handleCustomInputChange}
+              onBlur={handleInput}
+            />
+          )}
+        </SliderAndInputWrapper>
+      </Tooltip>
     </div>
   );
 }
 
-const RangeSliderContainer = reactFowardRef(function RangeSliderContainer(
+const RangeSliderContainer = reactForwardRef(function RangeSliderContainer(
   props: SliderProps,
   ref: React.Ref<any>
 ) {

@@ -1,18 +1,27 @@
-from django.db import transaction
+from django.db import router, transaction
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.validators import ServiceHookValidator
 from sentry.constants import ObjectStatus
-from sentry.models import ServiceHook
+from sentry.models.servicehook import ServiceHook
 
 
+@region_silo_endpoint
 class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, project, hook_id) -> Response:
         """
         Retrieve a Service Hook
@@ -73,7 +82,7 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         elif result.get("isActive") is False:
             updates["status"] = ObjectStatus.DISABLED
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(ServiceHook)):
             hook.update(**updates)
 
             self.create_audit_entry(
@@ -106,7 +115,7 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         except ServiceHook.DoesNotExist:
             raise ResourceDoesNotExist
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(ServiceHook)):
             hook.delete()
 
             self.create_audit_entry(

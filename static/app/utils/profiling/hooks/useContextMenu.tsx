@@ -1,7 +1,7 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 
 import {clamp} from 'sentry/utils/profiling/colors/utils';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 import {useKeyboardNavigation} from './useKeyboardNavigation';
 
@@ -36,6 +36,7 @@ export function useContextMenu({container}: UseContextMenuOptions) {
   const [containerCoordinates, setContainerCoordinates] = useState<Rect | null>(null);
 
   const itemProps = useKeyboardNavigation();
+  const subMenuRef = useRef<HTMLElement | null>(null);
 
   // We wrap the setOpen function in a useEffect so that we also clear the keyboard
   // tabIndex when a menu is closed. This prevents tabIndex from being persisted between render
@@ -63,19 +64,35 @@ export function useContextMenu({container}: UseContextMenuOptions) {
     };
   }, [itemProps, wrapSetOpen]);
 
-  const getMenuItemProps = useCallback(() => {
-    const menuItemProps = itemProps.getItemProps();
+  const getMenuItemProps = useCallback(
+    ({onClick, ref}: {onClick?: () => void; ref?: (node: any) => void} = {}) => {
+      const menuItemProps = itemProps.getItemProps();
 
-    return {
-      ...menuItemProps,
-      onKeyDown: (evt: React.KeyboardEvent) => {
-        if (evt.key === 'Escape') {
-          wrapSetOpen(false);
-        }
-        menuItemProps.onKeyDown(evt);
-      },
-    };
-  }, [itemProps, wrapSetOpen]);
+      return {
+        ...menuItemProps,
+        ref: (node: any) => {
+          if (ref) {
+            ref(node);
+          }
+          menuItemProps.ref(node);
+        },
+        onClick: (evt: React.MouseEvent) => {
+          evt.preventDefault();
+          onClick?.();
+        },
+        onKeyDown: (evt: React.KeyboardEvent) => {
+          if (evt.key === 'Escape') {
+            wrapSetOpen(false);
+          }
+          if (evt.key === 'Enter') {
+            onClick?.();
+          }
+          menuItemProps.onKeyDown(evt);
+        },
+      };
+    },
+    [itemProps, wrapSetOpen]
+  );
 
   const handleContextMenu = useCallback(
     (evt: React.MouseEvent) => {
@@ -103,7 +120,11 @@ export function useContextMenu({container}: UseContextMenuOptions) {
   useEffect(() => {
     const listener = (event: MouseEvent | TouchEvent) => {
       // Do nothing if clicking ref's element or descendent elements
-      if (!itemProps.menuRef || itemProps.menuRef.contains(event.target as Node)) {
+      if (
+        !itemProps.menuRef ||
+        itemProps.menuRef.contains(event.target as Node) ||
+        (subMenuRef.current && subMenuRef.current?.contains(event.target as Node))
+      ) {
         return;
       }
 
@@ -170,6 +191,7 @@ export function useContextMenu({container}: UseContextMenuOptions) {
     containerCoordinates,
     contextMenuCoordinates: position,
     menuRef: itemProps.menuRef,
+    subMenuRef,
     handleContextMenu,
     getMenuProps,
     getMenuItemProps,

@@ -1,16 +1,19 @@
 import re
 from datetime import datetime, timedelta
+from enum import Enum
 
 from django.db.models import Max
 from rest_framework import serializers
 
+from sentry import features
 from sentry.api.issue_search import parse_search_query
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import (
-    Dashboard,
+from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
@@ -18,7 +21,9 @@ from sentry.models import (
 )
 from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.fields import is_function
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
+from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils.dates import parse_stats_period
 
 AGGREGATE_PATTERN = r"^(\w+)\((.*)?\)$"
@@ -164,8 +169,16 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
             # Subtract one because the equation is injected to fields
             orderby = f"{orderby_prefix}equation[{len(equations) - 1}]"
 
+        params = {
+            "start": datetime.now() - timedelta(days=1),
+            "end": datetime.now(),
+            "project_id": [p.id for p in self.context.get("projects")],
+            "organization_id": self.context.get("organization").id,
+            "environment": self.context.get("environment"),
+        }
+
         try:
-            parse_search_query(conditions)
+            parse_search_query(conditions, params=params)
         except InvalidSearchQuery as err:
             # We don't know if the widget that this query belongs to is an
             # Issue widget or Discover widget. Pass the error back to the
@@ -178,25 +191,23 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
             # or to provide the start/end so that the interval can be computed.
             # This uses a hard coded start/end to ensure the validation succeeds
             # since the values themselves don't matter.
-            params = {
-                "start": datetime.now() - timedelta(days=1),
-                "end": datetime.now(),
-                "project_id": [p.id for p in self.context.get("projects")],
-                "organization_id": self.context.get("organization").id,
-            }
-
             builder = UnresolvedQuery(
                 dataset=Dataset.Discover,
                 params=params,
-                equation_config={
-                    "auto_add": not is_table or injected_orderby_equation,
-                    "aggregates_only": not is_table,
-                },
+                config=QueryBuilderConfig(
+                    equation_config={
+                        "auto_add": not is_table or injected_orderby_equation,
+                        "aggregates_only": not is_table,
+                    },
+                    use_aggregate_conditions=True,
+                ),
             )
 
             builder.resolve_time_conditions()
-            builder.resolve_conditions(conditions, use_aggregate_conditions=True)
-            builder.resolve_params()
+            builder.resolve_conditions(conditions)
+            # We need to resolve params to set time range params here since some
+            # field aliases might those params to be resolved (total.count)
+            builder.where = builder.resolve_params()
         except InvalidSearchQuery as err:
             data["discover_query_error"] = {"conditions": [f"Invalid conditions: {err}"]}
             return data
@@ -227,10 +238,19 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
         return empty_value
 
 
+class ThresholdMaxKeys(Enum):
+    MAX_1 = "max1"
+    MAX_2 = "max2"
+
+
 class DashboardWidgetSerializer(CamelSnakeSerializer):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
     title = serializers.CharField(required=False, max_length=255)
+    description = serializers.CharField(
+        required=False, max_length=255, allow_null=True, allow_blank=True
+    )
+    thresholds = serializers.JSONField(required=False, allow_null=True)
     display_type = serializers.ChoiceField(
         choices=DashboardWidgetDisplayTypes.as_text_choices(), required=False
     )
@@ -288,6 +308,49 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
                 raise serializers.ValidationError(
                     {"displayType": "displayType is required during creation."}
                 )
+
+        # Validate widget thresholds
+        thresholds = data.get("thresholds")
+        if thresholds:
+            max_values = thresholds.get("max_values")
+            allowed_max_keys = [key.value for key in ThresholdMaxKeys]
+            if max_values:
+                for i in range(len(max_values)):
+                    max_key = f"max{i+1}"
+
+                    if max_key not in allowed_max_keys:
+                        raise serializers.ValidationError(
+                            {"thresholds": f"Invalid maximum key {max_key}"}
+                        )
+
+                    if max_values.get(max_key):
+                        if max_values.get(max_key) < 0:
+                            raise serializers.ValidationError(
+                                {"thresholds": {max_key: "Maximum values can not be negative"}}
+                            )
+                        elif i > 0:
+                            prev_max_key = f"max{i}"
+                            if max_values.get(prev_max_key) and max_values.get(
+                                prev_max_key
+                            ) >= max_values.get(max_key):
+                                raise serializers.ValidationError(
+                                    {
+                                        "thresholds": {
+                                            max_key: "Maximum value must be greater than minimum."
+                                        }
+                                    }
+                                )
+
+                if len(max_values) < len(ThresholdMaxKeys):
+                    for key in allowed_max_keys:
+                        if max_values.get(key) is None:
+                            raise serializers.ValidationError(
+                                {
+                                    "thresholds": {
+                                        key: "Must set all threshold maximums or none at all."
+                                    }
+                                }
+                            )
         return data
 
 
@@ -296,8 +359,63 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
     id = serializers.CharField(required=False)
     title = serializers.CharField(required=False, max_length=255)
     widgets = DashboardWidgetSerializer(many=True, required=False)
+    projects = serializers.ListField(child=serializers.IntegerField(), required=False, default=[])
+    environment = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_null=True
+    )
+    period = serializers.CharField(required=False, allow_null=True)
+    start = serializers.DateTimeField(required=False, allow_null=True)
+    end = serializers.DateTimeField(required=False, allow_null=True)
+    filters = serializers.DictField(required=False)
+    utc = serializers.BooleanField(required=False)
 
     validate_id = validate_id
+
+    def validate_projects(self, projects):
+        from sentry.api.validators import validate_project_ids
+
+        return validate_project_ids(projects, {project.id for project in self.context["projects"]})
+
+    def validate(self, data):
+        start = data.get("start")
+        end = data.get("end")
+
+        if start and end and start >= end:
+            raise serializers.ValidationError("start must be before end")
+
+        if len(data.get("widgets", [])) > Dashboard.MAX_WIDGETS:
+            raise serializers.ValidationError(
+                f"Number of widgets must be less than {Dashboard.MAX_WIDGETS}"
+            )
+
+        return data
+
+    def update_dashboard_filters(self, instance, validated_data):
+        page_filter_keys = ["environment", "period", "start", "end", "utc"]
+        dashboard_filter_keys = ["release", "release_id"]
+
+        filters = {}
+
+        if "projects" in validated_data:
+            if validated_data["projects"] == ALL_ACCESS_PROJECTS:
+                filters["all_projects"] = True
+                instance.projects.clear()
+            else:
+                if instance.filters and instance.filters.get("all_projects"):
+                    filters["all_projects"] = False
+                instance.projects.set(validated_data["projects"])
+
+        for key in page_filter_keys:
+            if key in validated_data:
+                filters[key] = validated_data[key]
+
+        for key in dashboard_filter_keys:
+            if "filters" in validated_data and key in validated_data["filters"]:
+                filters[key] = validated_data["filters"][key]
+
+        if filters:
+            instance.filters = filters
+            instance.save()
 
     def create(self, validated_data):
         """
@@ -309,11 +427,15 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         self.instance = Dashboard.objects.create(
             organization=self.context.get("organization"),
             title=validated_data["title"],
-            created_by=self.context.get("request").user,
+            created_by_id=self.context.get("request").user.id,
         )
 
         if "widgets" in validated_data:
             self.update_widgets(self.instance, validated_data["widgets"])
+
+        self.update_dashboard_filters(self.instance, validated_data)
+
+        schedule_update_project_configs(self.instance)
 
         return self.instance
 
@@ -334,6 +456,10 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
 
         if "widgets" in validated_data:
             self.update_widgets(instance, validated_data["widgets"])
+
+        self.update_dashboard_filters(instance, validated_data)
+
+        schedule_update_project_configs(self.instance)
 
         return instance
 
@@ -373,6 +499,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             dashboard=dashboard,
             display_type=widget_data["display_type"],
             title=widget_data["title"],
+            description=widget_data.get("description", None),
+            thresholds=widget_data.get("thresholds", None),
             interval=widget_data.get("interval", "5m"),
             widget_type=widget_data.get("widget_type", DashboardWidgetTypes.DISCOVER),
             order=order,
@@ -399,6 +527,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
     def update_widget(self, widget, data, order):
         prev_layout = widget.detail.get("layout") if widget.detail else None
         widget.title = data.get("title", widget.title)
+        widget.description = data.get("description", widget.description)
+        widget.thresholds = data.get("thresholds", widget.thresholds)
         widget.display_type = data.get("display_type", widget.display_type)
         widget.interval = data.get("interval", widget.interval)
         widget.widget_type = data.get("widget_type", widget.widget_type)
@@ -460,3 +590,22 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
 
 class DashboardSerializer(DashboardDetailsSerializer):
     title = serializers.CharField(required=True, max_length=255)
+
+
+def schedule_update_project_configs(dashboard: Dashboard):
+    """
+    Schedule a task to update project configs for all projects of an organization when a dashboard is updated.
+    """
+    org = dashboard.organization
+
+    on_demand_metrics = features.has("organizations:on-demand-metrics-extraction", org)
+    dashboard_on_demand_metrics = features.has(
+        "organizations:on-demand-metrics-extraction-experimental", org
+    )
+
+    if not on_demand_metrics or not dashboard_on_demand_metrics:
+        return
+
+    schedule_invalidate_project_config(
+        trigger="dashboards:create-on-demand-metric", organization_id=org.id
+    )

@@ -2,14 +2,14 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import Tag from 'sentry/components/tag';
 import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {IntegrationFeature, Organization, SentryApp} from 'sentry/types';
 import {toPermissions} from 'sentry/utils/consolidatedScopes';
 import {
@@ -25,14 +25,17 @@ type Props = {
   onInstall: () => Promise<void>;
   organization: Organization;
   sentryApp: SentryApp;
-} & AsyncComponent['props'];
+} & DeprecatedAsyncComponent['props'];
 
 type State = {
   featureData: IntegrationFeature[];
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
 // No longer a modal anymore but yea :)
-export default class SentryAppDetailsModal extends AsyncComponent<Props, State> {
+export default class SentryAppDetailsModal extends DeprecatedAsyncComponent<
+  Props,
+  State
+> {
   componentDidUpdate(prevProps: Props) {
     // if the user changes org, count this as a fresh event to track
     if (this.props.organization.id !== prevProps.organization.id) {
@@ -41,6 +44,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
   }
 
   componentDidMount() {
+    super.componentDidMount();
     this.trackOpened();
   }
 
@@ -62,7 +66,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     );
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {sentryApp} = this.props;
     return [['featureData', `/sentry-apps/${sentryApp.slug}/features/`]];
   }
@@ -173,15 +177,15 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
                 <Author>{t('Authored By %s', sentryApp.author)}</Author>
                 <div>
                   {disabled && <DisabledNotice reason={disabledReason} />}
-                  <Button size="small" onClick={closeModal}>
+                  <Button size="sm" onClick={closeModal}>
                     {t('Cancel')}
                   </Button>
 
-                  <Access organization={organization} access={['org:integrations']}>
+                  <Access access={['org:integrations']} organization={organization}>
                     {({hasAccess}) =>
                       hasAccess && (
                         <Button
-                          size="small"
+                          size="sm"
                           priority="primary"
                           disabled={isInstalled || disabled}
                           onClick={() => this.onInstall()}
@@ -236,7 +240,7 @@ const Author = styled('div')`
 
 const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   <div {...p}>
-    <IconFlag color="red300" size="1.5em" />
+    <IconFlag color="errorText" size="md" />
     {reason}
   </div>
 ))`
@@ -244,7 +248,7 @@ const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   align-items: center;
   flex: 1;
   grid-template-columns: max-content 1fr;
-  color: ${p => p.theme.red300};
+  color: ${p => p.theme.errorText};
   font-size: 0.9em;
 `;
 

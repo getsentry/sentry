@@ -1,17 +1,30 @@
-from django.db import transaction
+from typing import Any, Mapping
+
+from django.db import router, transaction
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import UserNotificationsSerializer
-from sentry.models import NotificationSetting, Project, UserEmail, UserOption
-from sentry.notifications.types import FineTuningAPIKey
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.options.user_option import UserOption
+from sentry.models.useremail import UserEmail
+from sentry.notifications.types import (
+    FineTuningAPIKey,
+    NotificationScopeEnum,
+    NotificationSettingEnum,
+    NotificationSettingsOptionEnum,
+)
 from sentry.notifications.utils.legacy_mappings import (
     get_option_value_from_int,
     get_type_from_fine_tuning_key,
 )
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders
 
 INVALID_EMAIL_MSG = (
@@ -22,7 +35,13 @@ INVALID_USER_MSG = (
 )
 
 
+@control_silo_endpoint
 class UserNotificationFineTuningEndpoint(UserEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, user, notification_type) -> Response:
         try:
             notification_type = FineTuningAPIKey(notification_type)
@@ -78,7 +97,8 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
 
         # Validate that all of the IDs are integers.
         try:
-            ids_to_update = {int(i) for i in request.data.keys()}
+            for k in request.data.keys():
+                int(k)
         except ValueError:
             return Response(
                 {"detail": "Invalid id value provided. Id values should be integers."},
@@ -87,28 +107,11 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
 
         # Make sure that the IDs we are going to update are a subset of the
         # user's list of organizations or projects.
-        parents = (
-            user.get_orgs() if notification_type == FineTuningAPIKey.DEPLOY else user.get_projects()
-        )
-        parent_ids = {parent.id for parent in parents}
-        if not ids_to_update.issubset(parent_ids):
-            bad_ids = ids_to_update - parent_ids
-            return Response(
-                {
-                    "detail": "At least one of the requested projects is not \
-                    available to this user, because the user does not belong \
-                    to the necessary teams. (ids of unavailable projects: %s)"
-                    % bad_ids
-                },
-                status=status.HTTP_403_FORBIDDEN,
-            )
 
         if notification_type == FineTuningAPIKey.EMAIL:
             return self._handle_put_emails(user, request.data)
 
-        return self._handle_put_notification_settings(
-            user, notification_type, parents, request.data
-        )
+        return self._handle_put_notification_settings(user, notification_type, request.data)
 
     @staticmethod
     def _handle_put_reports(user, data):
@@ -120,7 +123,7 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
         value = set(user_option.value or [])
 
         # The set of IDs of the organizations of which the user is a member.
-        org_ids = {organization.id for organization in user.get_orgs()}
+        org_ids = {o.id for o in user_service.get_organizations(user_id=user.id, only_visible=True)}
         for org_id, enabled in data.items():
             org_id = int(org_id)
             # We want "0" to be falsey
@@ -140,6 +143,18 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
             elif not enabled:
                 value.add(org_id)
 
+            NotificationSettingOption.objects.create_or_update(
+                scope_type=NotificationScopeEnum.ORGANIZATION.value,
+                scope_identifier=org_id,
+                user_id=user.id,
+                type=NotificationSettingEnum.REPORTS.value,
+                values={
+                    "value": NotificationSettingsOptionEnum.ALWAYS.value
+                    if enabled
+                    else NotificationSettingsOptionEnum.NEVER.value,
+                },
+            )
+
         user_option.update(value=list(value))
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -153,44 +168,39 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
         if len(emails) != len(emails_to_check):
             return Response({"detail": INVALID_EMAIL_MSG}, status=status.HTTP_400_BAD_REQUEST)
 
-        project_ids = [int(id) for id in data.keys()]
-        projects_map = {
-            int(project.id): project for project in Project.objects.filter(id__in=project_ids)
-        }
-
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(UserOption)):
             for id, value in data.items():
                 user_option, CREATED = UserOption.objects.get_or_create(
                     user=user,
                     key="mail:email",
-                    project=projects_map[int(id)],
+                    project_id=int(id),
                 )
                 user_option.update(value=str(value))
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @staticmethod
-    def _handle_put_notification_settings(user, notification_type: FineTuningAPIKey, parents, data):
-        with transaction.atomic():
-            for parent in parents:
-                # We fetched every available parent but only care about the ones in `request.data`.
-                if str(parent.id) not in data:
-                    continue
+    def _handle_put_notification_settings(
+        user, notification_type: FineTuningAPIKey, data: Mapping[str, Any]
+    ):
+        with transaction.atomic(using=router.db_for_write(NotificationSetting)):
+            for setting_obj_id_str, value_str in data.items():
+                setting_obj_id_int = int(setting_obj_id_str)
 
                 # This partitioning always does the same thing because notification_type stays constant.
                 project_option, organization_option = (
-                    (None, parent)
+                    (None, setting_obj_id_int)
                     if notification_type == FineTuningAPIKey.DEPLOY
-                    else (parent, None)
+                    else (setting_obj_id_int, None)
                 )
 
                 type = get_type_from_fine_tuning_key(notification_type)
-                value = int(data[str(parent.id)])
+                value_int = int(value_str)
                 NotificationSetting.objects.update_settings(
                     ExternalProviders.EMAIL,
                     type,
-                    get_option_value_from_int(type, value),
-                    user=user,
+                    get_option_value_from_int(type, value_int),
+                    user_id=user.id,
                     project=project_option,
                     organization=organization_option,
                 )

@@ -1,21 +1,26 @@
 from uuid import uuid4
 
-from sentry.models import Integration, Repository
-from sentry.testutils import APITestCase
+from sentry.models.integrations.integration import Integration
+from sentry.models.repository import Repository
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry_plugins.github.testutils import INSTALLATION_REPO_EVENT
 
 
+@region_silo_test(stable=True)
 class InstallationRepoInstallEventWebhookTest(APITestCase):
     def test_simple(self):
         project = self.project  # force creation
 
         url = "/plugins/github/installations/webhook/"
 
-        integration = Integration.objects.create(
-            provider="github_apps", external_id="2", name="octocat"
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(
+                provider="github_apps", external_id="2", name="octocat"
+            )
 
-        integration.add_organization(project.organization)
+            integration.add_organization(project.organization)
 
         response = self.client.post(
             path=url,
@@ -40,11 +45,12 @@ class InstallationRepoInstallEventWebhookTest(APITestCase):
 
         url = "/plugins/github/installations/webhook/"
 
-        integration = Integration.objects.create(
-            provider="github_apps", external_id="2", name="octocat"
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(
+                provider="github_apps", external_id="2", name="octocat"
+            )
 
-        integration.add_organization(project.organization)
+            integration.add_organization(project.organization)
 
         repo = Repository.objects.create(
             provider="github",

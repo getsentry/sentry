@@ -1,7 +1,11 @@
-from sentry.models import Team
-from sentry.testutils import AcceptanceTestCase
+from selenium.webdriver.common.by import By
+
+from sentry.models.team import Team
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 
 
+@no_silo_test(stable=True)
 class CreateTeamTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -27,5 +31,5 @@ class CreateTeamTest(AcceptanceTestCase):
         self.browser.wait_until_not("[role='dialog']")
 
         # New team should be in dom
-        assert self.browser.find_element_by_xpath("//span[contains(text(), 'new-team')]")
+        assert self.browser.find_element(by=By.XPATH, value="//span[contains(text(), 'new-team')]")
         assert Team.objects.filter(slug="new-team", organization=self.org).exists()

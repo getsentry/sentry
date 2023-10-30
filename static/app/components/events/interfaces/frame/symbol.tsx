@@ -1,14 +1,14 @@
 import styled from '@emotion/styled';
 
-import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'sentry/components/stacktracePreview';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
+import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Frame} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
-import FunctionName from './functionName';
+import {FunctionName} from './functionName';
 import GroupingIndicator from './groupingIndicator';
 import {getFrameHint} from './utils';
 
@@ -21,21 +21,19 @@ type Props = {
    */
   isHoverPreviewed?: boolean;
   isUsedForGrouping?: boolean;
-  nativeStackTraceV2?: boolean;
   onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
   showCompleteFunctionName?: boolean;
 };
 
-const Symbol = ({
+function Symbol({
   frame,
   absoluteFilePaths,
   onFunctionNameToggle,
   showCompleteFunctionName,
-  nativeStackTraceV2,
   isHoverPreviewed,
   isUsedForGrouping,
   className,
-}: Props) => {
+}: Props) {
   const hasFunctionNameHiddenDetails =
     defined(frame.rawFunction) &&
     defined(frame.function) &&
@@ -54,9 +52,8 @@ const Symbol = ({
   };
 
   const [hint, hintIcon] = getFrameHint(frame);
-  const enablePathTooltip = defined(frame.absPath) && frame.absPath !== frame.filename;
   const functionNameTooltipTitle = getFunctionNameTooltipTitle();
-  const tooltipDelay = isHoverPreviewed ? STACKTRACE_PREVIEW_TOOLTIP_DELAY : undefined;
+  const tooltipDelay = isHoverPreviewed ? SLOW_TOOLTIP_DELAY : undefined;
 
   return (
     <Wrapper className={className}>
@@ -87,33 +84,19 @@ const Symbol = ({
             </Tooltip>
           </HintStatus>
         )}
-        {frame.filename &&
-          (nativeStackTraceV2 ? (
-            <Filename>
-              {'('}
-              {absoluteFilePaths ? frame.absPath : frame.filename}
-              {frame.lineNo && `:${frame.lineNo}`}
-              {')'}
-            </Filename>
-          ) : (
-            <FileNameTooltip
-              title={frame.absPath}
-              disabled={!enablePathTooltip}
-              delay={tooltipDelay}
-            >
-              <Filename>
-                {'('}
-                {frame.filename}
-                {frame.lineNo && `:${frame.lineNo}`}
-                {')'}
-              </Filename>
-            </FileNameTooltip>
-          ))}
+        {frame.filename && (
+          <Filename>
+            {'('}
+            {absoluteFilePaths ? frame.absPath : frame.filename}
+            {frame.lineNo && `:${frame.lineNo}`}
+            {')'}
+          </Filename>
+        )}
         {isUsedForGrouping && <GroupingIndicator />}
       </Data>
     </Wrapper>
   );
-};
+}
 
 const Wrapper = styled('div')`
   text-align: left;
@@ -154,12 +137,8 @@ const HintStatus = styled('span')`
   margin: 0 ${space(0.75)} 0 -${space(0.25)};
 `;
 
-const FileNameTooltip = styled(Tooltip)`
-  margin-right: ${space(0.75)};
-`;
-
 const Filename = styled('span')`
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.activeText};
 `;
 
 export const FunctionNameToggleIcon = styled(IconFilter, {

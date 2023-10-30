@@ -1,17 +1,18 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {TeamWithProjects} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import localStorage from 'sentry/utils/localStorage';
+import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useOrganization from 'sentry/utils/useOrganization';
-import useTeams from 'sentry/utils/useTeams';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 
 import Header from '../header';
 
@@ -23,11 +24,13 @@ import TeamReleases from './teamReleases';
 import TeamStability from './teamStability';
 import {dataDatetime} from './utils';
 
-type Props = RouteComponentProps<{orgId: string}, {}>;
+type Props = RouteComponentProps<{}, {}>;
 
 function TeamStatsHealth({location, router}: Props) {
   const organization = useOrganization();
-  const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
+  const {teams, isLoading, isError} = useUserTeams();
+
+  useRouteAnalyticsEventNames('team_insights.viewed', 'Team Insights: Viewed');
 
   const query = location?.query ?? {};
   const localStorageKey = `teamInsightsSelectedTeamId:${organization.slug}`;
@@ -43,18 +46,16 @@ function TeamStatsHealth({location, router}: Props) {
     | undefined;
   const projects = currentTeam?.projects ?? [];
 
-  useEffect(() => {
-    trackAdvancedAnalyticsEvent('team_insights.viewed', {
-      organization,
-    });
-  }, []);
-
   const {period, start, end, utc} = dataDatetime(query);
 
   if (teams.length === 0) {
     return (
       <NoProjectMessage organization={organization} superuserNeedsToBeProjectMember />
     );
+  }
+
+  if (isError) {
+    return <LoadingError />;
   }
 
   return (
@@ -69,8 +70,8 @@ function TeamStatsHealth({location, router}: Props) {
           currentTeam={currentTeam}
         />
 
-        {!initiallyLoaded && <LoadingIndicator />}
-        {initiallyLoaded && (
+        {isLoading && <LoadingIndicator />}
+        {!isLoading && (
           <Layout.Main fullWidth>
             <DescriptionCard
               title={t('Crash Free Sessions')}
@@ -116,7 +117,6 @@ function TeamStatsHealth({location, router}: Props) {
                 period={period}
                 start={start?.toString()}
                 end={end?.toString()}
-                location={location}
               />
             </DescriptionCard>
 

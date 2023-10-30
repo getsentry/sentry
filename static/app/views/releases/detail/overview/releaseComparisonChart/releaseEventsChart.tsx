@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import type {ToolboxComponentOption} from 'echarts';
 
@@ -17,10 +16,15 @@ import {
   ReleaseWithHealth,
 } from 'sentry/types';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
+import EventView from 'sentry/utils/discover/eventView';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import useRouter from 'sentry/utils/useRouter';
 import withOrganization from 'sentry/utils/withOrganization';
-import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
+import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 
 import {
   generateReleaseMarkLines,
@@ -28,7 +32,7 @@ import {
   releaseMarkLinesLabels,
 } from '../../utils';
 
-type Props = WithRouterProps & {
+type Props = {
   chartType: ReleaseComparisonChartType;
   diff: React.ReactNode;
   organization: Organization;
@@ -48,13 +52,13 @@ function ReleaseEventsChart({
   value,
   diff,
   organization,
-  router,
   period,
   start,
   end,
   utc,
-  location,
 }: Props) {
+  const location = useLocation();
+  const router = useRouter();
   const api = useApi();
   const theme = useTheme();
 
@@ -77,10 +81,7 @@ function ReleaseEventsChart({
 
     switch (chartType) {
       case ReleaseComparisonChartType.ERROR_COUNT:
-        return new MutableSearch([
-          '!event.type:transaction',
-          releaseFilter,
-        ]).formatString();
+        return new MutableSearch(['event.type:error', releaseFilter]).formatString();
       case ReleaseComparisonChartType.TRANSACTION_COUNT:
         return new MutableSearch([
           'event.type:transaction',
@@ -125,14 +126,15 @@ function ReleaseEventsChart({
   function getHelp() {
     switch (chartType) {
       case ReleaseComparisonChartType.FAILURE_RATE:
-        return getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE);
+        return getTermHelp(organization, PerformanceTerm.FAILURE_RATE);
       default:
         return null;
     }
   }
 
-  const projects = location.query.project;
-  const environments = location.query.environment;
+  const eventView = EventView.fromSavedQueryOrLocation(undefined, location);
+  const projects = eventView.project as number[];
+  const environments = eventView.environment as string[];
   const markLines = generateReleaseMarkLines(release, project, theme, location);
 
   return (
@@ -173,6 +175,7 @@ function ReleaseEventsChart({
           disablePrevious
           showLegend
           projects={projects}
+          dataset={DiscoverDatasets.METRICS_ENHANCED}
           environments={environments}
           start={start ?? null}
           end={end ?? null}
@@ -212,7 +215,7 @@ function ReleaseEventsChart({
                   return '';
                 }
 
-                return tooltipFormatter(val, getYAxis());
+                return tooltipFormatter(val, aggregateOutputType(getYAxis()));
               },
             } as ToolboxComponentOption,
           }}
@@ -232,4 +235,4 @@ function ReleaseEventsChart({
   );
 }
 
-export default withOrganization(withRouter(ReleaseEventsChart));
+export default withOrganization(ReleaseEventsChart);

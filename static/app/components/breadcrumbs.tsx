@@ -1,18 +1,17 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
+import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import Link, {LinkProps} from 'sentry/components/links/link';
 import {IconChevron} from 'sentry/icons';
-import space from 'sentry/styles/space';
-import {Theme} from 'sentry/utils/theme';
+import {space} from 'sentry/styles/space';
 import BreadcrumbDropdown, {
   BreadcrumbDropdownProps,
 } from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 
-const BreadcrumbList = styled('div')`
+const BreadcrumbList = styled('nav')`
   display: flex;
   align-items: center;
   padding: ${space(1)} 0;
@@ -81,7 +80,7 @@ function isCrumbDropdown(crumb: Crumb | CrumbDropdown): crumb is CrumbDropdown {
 /**
  * Page breadcrumbs used for navigation, not to be confused with sentry's event breadcrumbs
  */
-const Breadcrumbs = ({crumbs, linkLastItem = false, ...props}: Props) => {
+function Breadcrumbs({crumbs, linkLastItem = false, ...props}: Props) {
   if (crumbs.length === 0) {
     return null;
   }
@@ -135,11 +134,11 @@ const Breadcrumbs = ({crumbs, linkLastItem = false, ...props}: Props) => {
       })}
     </BreadcrumbList>
   );
-};
+}
 
 const getBreadcrumbListItemStyles = (p: {theme: Theme}) => css`
   ${p.theme.overflowEllipsis}
-  color: ${p.theme.gray300};
+  color: ${p.theme.subText};
   width: auto;
 
   &:last-child {
@@ -175,7 +174,7 @@ const BreadcrumbItem = styled('span')`
 `;
 
 const BreadcrumbDividerIcon = styled(IconChevron)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin: 0 ${space(1)};
   flex-shrink: 0;
 `;

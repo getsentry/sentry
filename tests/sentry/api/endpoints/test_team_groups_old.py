@@ -1,11 +1,16 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
-from django.utils import timezone
+from sentry.models.group import GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 
-from sentry.models import GroupAssignee, GroupEnvironment, GroupStatus
-from sentry.testutils import APITestCase
+pytestmark = [requires_snuba]
 
 
+@region_silo_test(stable=True)
 class TeamGroupsOldTest(APITestCase):
     endpoint = "sentry-api-0-team-oldest-issues"
 

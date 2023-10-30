@@ -1,7 +1,13 @@
 /* global process */
 
 import {t} from 'sentry/locale';
-import {DataCategory, OrgRole, PermissionResource, Scope} from 'sentry/types';
+import {
+  DataCategoryExact,
+  DataCategoryInfo,
+  OrgRole,
+  PermissionResource,
+  Scope,
+} from 'sentry/types';
 
 /**
  * Common constants here
@@ -10,44 +16,43 @@ import {DataCategory, OrgRole, PermissionResource, Scope} from 'sentry/types';
 // This is the element id where we render our React application to
 export const ROOT_ELEMENT = 'blk_router';
 
+export const usingCustomerDomain =
+  typeof window !== 'undefined' ? Boolean(window?.__initialData?.customerDomain) : false;
+
+export const customerDomain =
+  typeof window !== 'undefined'
+    ? window?.__initialData?.customerDomain?.subdomain
+    : undefined;
+
 // This is considered the "default" route/view that users should be taken
 // to when the application does not have any further context
 //
 // e.g. loading app root or switching organization
-export const DEFAULT_APP_ROUTE = '/organizations/:orgSlug/issues/';
+export const DEFAULT_APP_ROUTE = usingCustomerDomain
+  ? '/issues/'
+  : '/organizations/:orgSlug/issues/';
 
 export const API_ACCESS_SCOPES = [
-  'project:read',
-  'project:write',
-  'project:admin',
-  'project:releases',
-  'team:read',
-  'team:write',
-  'team:admin',
-  'event:read',
-  'event:write',
-  'event:admin',
-  'org:read',
-  'org:write',
-  'org:admin',
-  'org:integrations',
-  'member:read',
-  'member:write',
-  'member:admin',
   'alerts:read',
   'alerts:write',
-] as const;
-
-// Default API scopes when adding a new API token or org API token
-export const DEFAULT_API_ACCESS_SCOPES = [
-  'event:read',
   'event:admin',
+  'event:read',
+  'event:write',
+  'member:admin',
+  'member:read',
+  'member:write',
+  'org:admin',
+  'org:integrations',
+  'org:read',
+  'org:write',
+  'project:admin',
   'project:read',
   'project:releases',
-  'org:read',
+  'project:write',
+  'team:admin',
   'team:read',
-  'member:read',
-];
+  'team:write',
+] as const;
 
 // These should only be used in the case where we cannot obtain roles through
 // the members endpoint (primarily in cases where a user is admining a
@@ -152,7 +157,10 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
       'no-access': {label: 'No Access', scopes: []},
       read: {label: 'Read', scopes: ['org:read']},
       write: {label: 'Read & Write', scopes: ['org:read', 'org:write']},
-      admin: {label: 'Admin', scopes: ['org:read', 'org:write', 'org:admin']},
+      admin: {
+        label: 'Admin',
+        scopes: ['org:read', 'org:write', 'org:admin', 'org:integrations'],
+      },
     },
   },
   {
@@ -185,6 +193,8 @@ export const AVATAR_URL_MAP = {
 
 export const MENU_CLOSE_DELAY = 200;
 
+export const SLOW_TOOLTIP_DELAY = 1000;
+
 export const MAX_PICKABLE_DAYS = 90;
 
 export const DEFAULT_STATS_PERIOD = '14d';
@@ -210,10 +220,64 @@ export const DEFAULT_RELATIVE_PERIODS_PAGE_FILTER = {
   '30d': t('30D'),
 };
 
-export const DATA_CATEGORY_NAMES = {
-  [DataCategory.ERRORS]: t('Errors'),
-  [DataCategory.TRANSACTIONS]: t('Transactions'),
-  [DataCategory.ATTACHMENTS]: t('Attachments'),
+// https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
+export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
+  [DataCategoryExact.ERROR]: {
+    name: DataCategoryExact.ERROR,
+    apiName: 'error',
+    plural: 'errors',
+    displayName: 'error',
+    titleName: t('Errors'),
+    uid: 1,
+  },
+  [DataCategoryExact.TRANSACTION]: {
+    name: DataCategoryExact.TRANSACTION,
+    apiName: 'transaction',
+    plural: 'transactions',
+    displayName: 'transaction',
+    titleName: t('Transactions'),
+    uid: 2,
+  },
+  [DataCategoryExact.ATTACHMENT]: {
+    name: DataCategoryExact.ATTACHMENT,
+    apiName: 'attachment',
+    plural: 'attachments',
+    displayName: 'attachment',
+    titleName: t('Attachments'),
+    uid: 4,
+  },
+  [DataCategoryExact.PROFILE]: {
+    name: DataCategoryExact.PROFILE,
+    apiName: 'profile',
+    plural: 'profiles',
+    displayName: 'profile',
+    titleName: t('Profiles'),
+    uid: 6,
+  },
+  [DataCategoryExact.REPLAY]: {
+    name: DataCategoryExact.REPLAY,
+    apiName: 'replay',
+    plural: 'replays',
+    displayName: 'replay',
+    titleName: t('Session Replays'),
+    uid: 7,
+  },
+  [DataCategoryExact.TRANSACTION_PROCESSED]: {
+    name: DataCategoryExact.TRANSACTION_PROCESSED,
+    apiName: 'transactions',
+    plural: 'transactions',
+    displayName: 'transaction',
+    titleName: t('Transactions'),
+    uid: 8,
+  },
+  [DataCategoryExact.TRANSACTION_INDEXED]: {
+    name: DataCategoryExact.TRANSACTION_INDEXED,
+    apiName: 'transactionIndexed',
+    plural: 'indexed transactions',
+    displayName: 'indexed transaction',
+    titleName: t('Indexed Transactions'),
+    uid: 9,
+  },
 };
 
 // Special Search characters
@@ -261,9 +325,9 @@ export const DISCOVER2_DOCS_URL = 'https://docs.sentry.io/product/discover-queri
 
 export const IS_ACCEPTANCE_TEST = !!process.env.IS_ACCEPTANCE_TEST;
 export const NODE_ENV = process.env.NODE_ENV;
-export const DISABLE_RR_WEB = !!process.env.DISABLE_RR_WEB;
 export const SPA_DSN = process.env.SPA_DSN;
 export const SENTRY_RELEASE_VERSION = process.env.SENTRY_RELEASE_VERSION;
+export const UI_DEV_ENABLE_PROFILING = process.env.UI_DEV_ENABLE_PROFILING;
 
 export const DEFAULT_ERROR_JSON = {
   detail: t('Unknown error. Please try again.'),

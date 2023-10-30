@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Mapping, Sequence
-
-from typing_extensions import Literal
+from typing import Any, Literal, Mapping, Sequence
 
 
 @dataclass

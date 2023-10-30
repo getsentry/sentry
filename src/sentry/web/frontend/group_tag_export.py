@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry.api.base import EnvironmentMixin
 from sentry.data_export.base import ExportError
 from sentry.data_export.processors.issues_by_tag import IssuesByTagProcessor
-from sentry.models import Environment
+from sentry.models.environment import Environment
 from sentry.web.frontend.base import ProjectView
 from sentry.web.frontend.mixins.csv import CsvMixin
 
@@ -31,7 +31,11 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
 
         try:
             processor = IssuesByTagProcessor(
-                project_id=project.id, group_id=group_id, key=key, environment_id=environment_id
+                project_id=project.id,
+                group_id=group_id,
+                key=key,
+                environment_id=environment_id,
+                tenant_ids={"organization_id": project.organization_id},
             )
         except ExportError:
             raise Http404

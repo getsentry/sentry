@@ -3,8 +3,9 @@
 This is an attempt to have all the interactions with JWT in once place, so that we have once
 central place which handles JWT in a uniform way.
 """
+from __future__ import annotations
 
-from typing import List, Mapping, Optional, Union
+from typing import Mapping
 
 import jwt as pyjwt
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
@@ -47,9 +48,9 @@ def decode(
     token: str,
     key: str,
     *,  # Force passing optional arguments by keyword
-    audience: Optional[Union[str, bool]] = None,
-    algorithms: Optional[List[str]] = None,
-) -> JSONData:
+    audience: str | bool | None = None,
+    algorithms: list[str] | None = None,
+) -> dict[str, JSONData]:
     """Returns the claims (payload) in the JWT token.
 
     This will raise an exception if the claims can not be validated with the provided key.
@@ -64,8 +65,8 @@ def decode(
     """
     # TODO: We do not currently have type-safety for keys suitable for decoding *and*
     # encoding vs those only suitable for decoding.
-    # TODO(flub): The algorithms parameter really does not need to be Optional and should be
-    # a straight List[str].  However this is used by some unclear code in
+    # TODO(flub): The algorithms parameter really does not need to be optional and should be
+    # a straight list[str].  However this is used by some unclear code in
     # sentry.integrations.msteams.webhook.verify_signature which isn't checked by mypy yet,
     # and I am too afraid to change this.  One day (hah!) all will be checked by mypy and
     # this can be safely fixed.
@@ -87,7 +88,7 @@ def encode(
     key: str,
     *,  # Force passing optional arguments by keyword
     algorithm: str = "HS256",
-    headers: Optional[JSONData] = None,
+    headers: JSONData | None = None,
 ) -> str:
     """Encode a JWT token containing the provided payload/claims.
 
@@ -105,7 +106,7 @@ def encode(
     if headers is None:
         headers = {}
     # This type is checked in the tests so this is fine.
-    return pyjwt.encode(payload, key, algorithm=algorithm, headers=headers)  # type: ignore
+    return pyjwt.encode(payload, key, algorithm=algorithm, headers=headers)
 
 
 def authorization_header(token: str, *, scheme: str = "Bearer") -> Mapping[str, str]:
@@ -135,9 +136,9 @@ def rsa_key_from_jwk(jwk: str) -> str:
     key = pyjwt.algorithms.RSAAlgorithm.from_jwk(jwk)
     if isinstance(key, RSAPrivateKey):
         # The return type is verified in our own tests, this is fine.
-        return key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()).decode("UTF-8")  # type: ignore
+        return key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()).decode("UTF-8")
     elif isinstance(key, RSAPublicKey):
         # The return type is verified in our own tests, this is fine.
-        return key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo).decode("UTF-8")  # type: ignore
+        return key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo).decode("UTF-8")
     else:
         raise ValueError("Unknown RSA JWK key")

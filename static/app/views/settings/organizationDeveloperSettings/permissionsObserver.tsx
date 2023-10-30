@@ -1,6 +1,8 @@
 import {Component, Fragment} from 'react';
 
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {Permissions, Scope, WebhookEvent} from 'sentry/types';
 import {toResourcePermissions} from 'sentry/utils/consolidatedScopes';

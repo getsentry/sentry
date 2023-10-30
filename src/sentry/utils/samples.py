@@ -1,10 +1,10 @@
+import logging
 import os.path
 import random
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-import pytz
 from django.core.exceptions import SuspiciousFileOperation
 
 from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA
@@ -15,6 +15,7 @@ from sentry.utils import json
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_timestamp
 
+logger = logging.getLogger(__name__)
 epoch = datetime.utcfromtimestamp(0)
 
 
@@ -113,6 +114,8 @@ def load_data(
     span_id=None,
     spans=None,
     trace_context=None,
+    fingerprint=None,
+    event_id=None,
 ):
     # NOTE: Before editing this data, make sure you understand the context
     # in which its being used. It is NOT only used for local development and
@@ -182,14 +185,14 @@ def load_data(
     if timestamp is None:
         timestamp = datetime.utcnow() - timedelta(minutes=1)
         timestamp = timestamp - timedelta(microseconds=timestamp.microsecond % 1000)
-    timestamp = timestamp.replace(tzinfo=pytz.utc)
+    timestamp = timestamp.replace(tzinfo=timezone.utc)
     data.setdefault("timestamp", to_timestamp(timestamp))
 
     if data.get("type") == "transaction":
         if start_timestamp is None:
             start_timestamp = timestamp - timedelta(seconds=3)
         else:
-            start_timestamp = start_timestamp.replace(tzinfo=pytz.utc)
+            start_timestamp = start_timestamp.replace(tzinfo=timezone.utc)
         data["start_timestamp"] = to_timestamp(start_timestamp)
 
         if trace is None:
@@ -231,11 +234,32 @@ def load_data(
         if measurements:
             measurement_markers = {}
             for key, entry in measurements.items():
-                if key in ["fp", "fcp", "lcp", "fid"]:
+                if key in [
+                    "fp",
+                    "fcp",
+                    "lcp",
+                    "fid",
+                    "time_to_initial_display",
+                    "time_to_full_display",
+                ]:
                     measurement_markers[f"mark.{key}"] = {
-                        "value": round(data["start_timestamp"] + entry["value"] / 1000, 3)
+                        "unit": "none",
+                        "value": round(data["start_timestamp"] + entry["value"] / 1000, 3),
                     }
             measurements.update(measurement_markers)
+
+        if fingerprint is not None:
+            for f in fingerprint:
+                f_data = f.split("-", 1)
+                if len(f_data) < 2:
+                    raise ValueError(
+                        "Invalid performance fingerprint data. Format must be 'group_type-fingerprint'."
+                    )
+
+            data["fingerprint"] = fingerprint
+
+    if event_id is not None:
+        data["event_id"] = event_id
 
     data["platform"] = platform
     # XXX: Message is a legacy alias for logentry. Do not overwrite if set.
@@ -278,6 +302,85 @@ def load_data(
     return data
 
 
+def create_n_plus_one_issue(data):
+    timestamp = datetime.fromtimestamp(data["start_timestamp"])
+    n_plus_one_db_duration = timedelta(milliseconds=100)
+    n_plus_one_db_current_offset = timestamp
+    parent_span_id = data["spans"][0]["parent_span_id"]
+    trace_id = data["contexts"]["trace"]["trace_id"]
+    data["spans"].append(
+        {
+            "timestamp": (timestamp + n_plus_one_db_duration).timestamp(),
+            "start_timestamp": (timestamp + timedelta(milliseconds=10)).timestamp(),
+            "description": "SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` ORDER BY `books_book`.`id` DESC LIMIT 10",
+            "op": "db",
+            "parent_span_id": parent_span_id,
+            "span_id": uuid4().hex[:16],
+            "hash": "858fea692d4d93e8",
+            "trace_id": trace_id,
+        }
+    )
+    for i in range(200):
+        n_plus_one_db_duration += timedelta(milliseconds=200) + timedelta(milliseconds=1)
+        n_plus_one_db_current_offset = timestamp + n_plus_one_db_duration
+        data["spans"].append(
+            {
+                "timestamp": (
+                    n_plus_one_db_current_offset + timedelta(milliseconds=200)
+                ).timestamp(),
+                "start_timestamp": (
+                    n_plus_one_db_current_offset + timedelta(milliseconds=1)
+                ).timestamp(),
+                "description": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+                "op": "db",
+                "span_id": uuid4().hex[:16],
+                "parent_span_id": parent_span_id,
+                "hash": "63f1e89e6a073441",
+                "trace_id": trace_id,
+            }
+        )
+    data["spans"].append(
+        {
+            "timestamp": (
+                timestamp + n_plus_one_db_duration + timedelta(milliseconds=200)
+            ).timestamp(),
+            "start_timestamp": timestamp.timestamp(),
+            "description": "new",
+            "op": "django.view",
+            "parent_span_id": uuid4().hex[:16],
+            "span_id": parent_span_id,
+            "hash": "0f43fb6f6e01ca52",
+            "trace_id": trace_id,
+        }
+    )
+
+
+def create_db_main_thread_issue(data):
+    timestamp = datetime.fromtimestamp(data["start_timestamp"])
+    span_duration = timedelta(milliseconds=100)
+    parent_span_id = data["spans"][0]["parent_span_id"]
+    trace_id = data["contexts"]["trace"]["trace_id"]
+    data["spans"].append(
+        {
+            "timestamp": (timestamp + span_duration).timestamp(),
+            "start_timestamp": (timestamp + timedelta(milliseconds=10)).timestamp(),
+            "description": "SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` ORDER BY `books_book`.`id` DESC LIMIT 10",
+            "op": "db",
+            "parent_span_id": parent_span_id,
+            "span_id": uuid4().hex[:16],
+            "hash": "858fea692d4d93e8",
+            "trace_id": trace_id,
+            "data": {"blocked_main_thread": True},
+        }
+    )
+
+
+PERFORMANCE_ISSUE_CREATORS = {
+    "n+1": create_n_plus_one_issue,
+    "db-main-thread": create_db_main_thread_issue,
+}
+
+
 def create_sample_event(
     project,
     platform=None,
@@ -290,6 +393,7 @@ def create_sample_event(
     span_id=None,
     spans=None,
     tagged=False,
+    performance_issues=None,
     **kwargs,
 ):
     if not platform and not default:
@@ -307,10 +411,21 @@ def create_sample_event(
     )
 
     if not data:
+        logger.info(
+            "create_sample_event: no data loaded",
+            extra={
+                "project_id": project.id,
+                "sample_event": True,
+            },
+        )
         return
     for key in ["parent_span_id", "hash", "exclusive_time"]:
         if key in kwargs:
             data["contexts"]["trace"][key] = kwargs.pop(key)
+    if performance_issues:
+        for issue in performance_issues:
+            if issue in PERFORMANCE_ISSUE_CREATORS:
+                PERFORMANCE_ISSUE_CREATORS[issue](data)
 
     data.update(kwargs)
     return create_sample_event_basic(data, project.id, raw=raw, tagged=tagged)
@@ -331,10 +446,13 @@ def create_sample_event_basic(
 def create_trace(slow, start_timestamp, timestamp, user, trace_id, parent_span_id, data):
     """A recursive function that creates the events of a trace"""
     frontend = data.get("frontend")
+    mobile = data.get("mobile")
+
     current_span_id = uuid4().hex[:16]
     spans = []
     new_start = start_timestamp + timedelta(milliseconds=random_normal(50, 25, 10))
     new_end = timestamp - timedelta(milliseconds=random_normal(50, 25, 10))
+
     for child in data["children"]:
         span_id = uuid4().hex[:16]
         description = f"GET {child['transaction']}"
@@ -365,10 +483,18 @@ def create_trace(slow, start_timestamp, timestamp, user, trace_id, parent_span_i
             span_id,
             child,
         )
+
+    if frontend:
+        platform = "javascript"
+    elif mobile:
+        platform = "android"
+    else:
+        platform = "python"
+
     for _ in range(data.get("errors", 0)):
         create_sample_event(
             project=data["project"],
-            platform="javascript" if frontend else "python",
+            platform=platform,
             user=user,
             transaction=data["transaction"],
             contexts={
@@ -379,28 +505,40 @@ def create_trace(slow, start_timestamp, timestamp, user, trace_id, parent_span_i
                 }
             },
         )
-    create_sample_event(
-        project=data["project"],
-        platform="javascript-transaction" if frontend else "transaction",
-        transaction=data["transaction"],
-        event_id=uuid4().hex,
-        user=user,
-        timestamp=timestamp,
-        start_timestamp=start_timestamp,
-        measurements={
+
+    if frontend:
+        txn_platform = "javascript-transaction"
+        measurements = {
             "fp": {"value": random_normal(1250 - 50, 200, 500)},
             "fcp": {"value": random_normal(1250 - 50, 200, 500)},
             "lcp": {"value": random_normal(2800 - 50, 400, 2000)},
             "fid": {"value": random_normal(5 - 0.125, 2, 1)},
         }
-        if frontend
-        else {},
+    elif mobile:
+        txn_platform = "android-transaction"
+        measurements = {
+            "time_to_initial_display": {"value": random_normal(2200 - 50, 400, 2000)},
+            "time_to_full_display": {"value": random_normal(3500 - 50, 400, 2000)},
+        }
+    else:
+        txn_platform = "transaction"
+        measurements = {}
+    create_sample_event(
+        project=data["project"],
+        platform=txn_platform,
+        transaction=data["transaction"],
+        event_id=uuid4().hex,
+        user=user,
+        timestamp=timestamp,
+        start_timestamp=start_timestamp,
+        measurements=measurements,
         # Root
         parent_span_id=parent_span_id,
         span_id=current_span_id,
         trace=trace_id,
         spans=spans,
         hash=hash_values([data["transaction"]]),
+        performance_issues=data.get("performance_issues"),
         # not the best but just set the exclusive time
         # equal to the duration to get some span data
         exclusive_time=(timestamp - start_timestamp).total_seconds(),

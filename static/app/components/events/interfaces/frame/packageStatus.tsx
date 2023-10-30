@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconCircle, IconFlag} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   status: 'error' | 'success' | 'empty';
@@ -13,12 +13,12 @@ function PackageStatus({status, tooltip}: Props) {
   const getIcon = () => {
     switch (status) {
       case 'success':
-        return <IconCheckmark isCircled color="green300" size="xs" />;
+        return <IconCheckmark isCircled color="successText" size="xs" />;
       case 'empty':
         return <IconCircle size="xs" />;
       case 'error':
       default:
-        return <IconFlag color="red300" size="xs" />;
+        return <IconFlag color="errorText" size="xs" />;
     }
   };
 

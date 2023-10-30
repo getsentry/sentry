@@ -1,0 +1,24 @@
+name: React to product-owners.yml changes
+on:
+  # This could be run manually, but the general expectation is that this fires
+  # from GHA in getsentry/security-as-code on changes there.
+
+  workflow_dispatch:
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    name: React to product-owners.yml changes
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: getsentry/action-setup-venv@v1.0.5
+        with:
+          python-version: 3.11.3
+
+      - name: React to product-owners.yml changes
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.BUMP_SENTRY_TOKEN }}
+          COMMITTER_NAME: getsentry-bot
+          COMMITTER_EMAIL: bot@sentry.io
+        run: ./bin/react-to-product-owners-yml-changes.sh

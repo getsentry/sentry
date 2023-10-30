@@ -4,18 +4,25 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import ProjectWithOrganizationSerializer, serialize
 from sentry.auth.superuser import is_active_superuser
+from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
-from sentry.models import Project, ProjectPlatform, ProjectStatus
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.project import Project
+from sentry.models.projectplatform import ProjectPlatform
 from sentry.search.utils import tokenize_query
 
 
+@region_silo_endpoint
 class ProjectIndexEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectPermission,)
 
     def get(self, request: Request) -> Response:
@@ -32,17 +39,17 @@ class ProjectIndexEndpoint(Endpoint):
 
         status = request.GET.get("status", "active")
         if status == "active":
-            queryset = queryset.filter(status=ProjectStatus.VISIBLE)
+            queryset = queryset.filter(status=ObjectStatus.ACTIVE)
         elif status == "deleted":
-            queryset = queryset.exclude(status=ProjectStatus.VISIBLE)
+            queryset = queryset.exclude(status=ObjectStatus.ACTIVE)
         elif status:
             queryset = queryset.none()
 
         if request.auth and not request.user.is_authenticated:
             if hasattr(request.auth, "project"):
                 queryset = queryset.filter(id=request.auth.project_id)
-            elif request.auth.organization is not None:
-                queryset = queryset.filter(organization=request.auth.organization.id)
+            elif request.auth.organization_id is not None:
+                queryset = queryset.filter(organization_id=request.auth.organization_id)
             else:
                 queryset = queryset.none()
         elif not (is_active_superuser(request) and request.GET.get("show") == "all"):
@@ -51,7 +58,11 @@ class ProjectIndexEndpoint(Endpoint):
                 if isinstance(queryset, EmptyQuerySet):
                     raise AuthenticationFailed("Token not found")
             else:
-                queryset = queryset.filter(teams__organizationmember__user=request.user)
+                queryset = queryset.filter(teams__organizationmember__user_id=request.user.id)
+
+            org_id_filter = request.GET.get("organizationId", None)
+            if org_id_filter:
+                queryset = queryset.filter(organization_id=org_id_filter)
 
         query = request.GET.get("query")
         if query:
@@ -70,6 +81,8 @@ class ProjectIndexEndpoint(Endpoint):
                             "project_id"
                         )
                     )
+                elif key == "dsn":
+                    queryset = queryset.filter(key_set__public_key__in=value)
                 elif key == "id":
                     queryset = queryset.filter(id__in=value)
                 else:

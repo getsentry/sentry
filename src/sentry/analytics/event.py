@@ -27,7 +27,7 @@ class Event:
     ) -> None:
         self.uuid = uuid1()
         self.datetime = datetime or timezone.now()
-        self.type = self._get_type(type)
+        self.type = self._get_type(type)  # type: ignore[misc]
         self.data = get_data(self.attributes, items)
 
     def _get_type(self, _type: Any | None = None) -> Any:

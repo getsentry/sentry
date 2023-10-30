@@ -1,7 +1,13 @@
+from __future__ import annotations
+
 from typing import Any, Mapping, MutableMapping, Sequence
 
 from sentry.integrations.slack.client import SlackClient
-from sentry.models import Integration, Organization, User
+from sentry.models.integrations.integration import Integration
+from sentry.models.organization import Organization
+from sentry.models.user import User
+from sentry.services.hybrid_cloud.integration import RpcIntegration
+from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError
 
 from ..utils import logger
@@ -11,11 +17,7 @@ SLACK_GET_USERS_PAGE_SIZE = 200
 
 
 def get_users(integration: Integration, organization: Organization) -> Sequence[Mapping[str, Any]]:
-    access_token = (
-        integration.metadata.get("user_access_token") or integration.metadata["access_token"]
-    )
-    headers = {"Authorization": f"Bearer {access_token}"}
-    client = SlackClient()
+    client = SlackClient(integration_id=integration.id)
 
     user_list = []
     next_cursor = None
@@ -23,7 +25,6 @@ def get_users(integration: Integration, organization: Organization) -> Sequence[
         try:
             next_users = client.get(
                 "/users.list",
-                headers=headers,
                 params={"limit": SLACK_GET_USERS_PAGE_SIZE, "cursor": next_cursor},
             )
         except ApiError as e:
@@ -60,8 +61,8 @@ def get_slack_info_by_email(
 
 
 def get_slack_data_by_user(
-    integration: Integration,
-    organization: Organization,
+    integration: Integration | RpcIntegration,
+    organization: Organization | RpcOrganization,
     emails_by_user: Mapping[User, Sequence[str]],
 ) -> Mapping[User, Mapping[str, str]]:
     slack_info_by_email = get_slack_info_by_email(integration, organization)

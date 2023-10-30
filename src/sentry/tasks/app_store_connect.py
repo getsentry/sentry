@@ -14,13 +14,11 @@ import sentry_sdk
 from django.utils import timezone
 
 from sentry.lang.native import appconnect
-from sentry.models import (
-    AppConnectBuild,
-    LatestAppConnectBuildsCheck,
-    Project,
-    ProjectOption,
-    debugfile,
-)
+from sentry.models.appconnectbuilds import AppConnectBuild
+from sentry.models.debugfile import create_files_from_dif_zip
+from sentry.models.latestappconnectbuildscheck import LatestAppConnectBuildsCheck
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics, sdk
 from sentry.utils.appleconnect import appstore_connect as appstoreconnect_api
@@ -32,7 +30,9 @@ logger = logging.getLogger(__name__)
 # typing annotations.  So we do all the work outside of the decorated task function to work
 # around this.
 # Since all these args must be pickled we keep them to built-in types as well.
-@instrumented_task(name="sentry.tasks.app_store_connect.dsym_download", queue="appstoreconnect", ignore_result=True)  # type: ignore
+@instrumented_task(
+    name="sentry.tasks.app_store_connect.dsym_download", queue="appstoreconnect", ignore_result=True
+)
 def dsym_download(project_id: int, config_id: str) -> None:
     inner_dsym_download(project_id=project_id, config_id=config_id)
 
@@ -108,7 +108,7 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
 def create_difs_from_dsyms_zip(dsyms_zip: str, project: Project) -> None:
     with sentry_sdk.start_span(op="dsym-difs", description="Extract difs dSYM zip"):
         with open(dsyms_zip, "rb") as fp:
-            created = debugfile.create_files_from_dif_zip(fp, project, accept_unknown=True)
+            created = create_files_from_dif_zip(fp, project, accept_unknown=True)
             for proj_debug_file in created:
                 logger.debug("Created %r for project %s", proj_debug_file, project.id)
 
@@ -124,7 +124,7 @@ def get_or_create_persisted_build(
     try:
         build_state = AppConnectBuild.objects.get(
             project=project,
-            app_id=int(build.app_id),
+            app_id=build.app_id,
             platform=build.platform,
             bundle_short_version=build.version,
             bundle_version=build.build_number,
@@ -132,7 +132,7 @@ def get_or_create_persisted_build(
     except AppConnectBuild.DoesNotExist:
         build_state = AppConnectBuild(
             project=project,
-            app_id=int(build.app_id),
+            app_id=build.app_id,
             bundle_id=config.bundleId,
             platform=build.platform,
             bundle_short_version=build.version,
@@ -176,7 +176,7 @@ def process_builds(
 
 # Untyped decorator would stop type-checking of entire function, split into an inner
 # function instead which can be type checked.
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.app_store_connect.refresh_all_builds",
     queue="appstoreconnect",
     ignore_result=True,

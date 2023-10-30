@@ -2,14 +2,21 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore, features
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import EventAttachment
+from sentry.models.eventattachment import EventAttachment, event_attachment_screenshot_filter
 from sentry.search.utils import tokenize_query
 
 
+@region_silo_endpoint
 class EventAttachmentsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, project, event_id) -> Response:
         """
         Retrieve attachments for an event
@@ -27,7 +34,7 @@ class EventAttachmentsEndpoint(ProjectEndpoint):
         ):
             return self.respond(status=404)
 
-        event = eventstore.get_event_by_id(project.id, event_id)
+        event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             return self.respond({"detail": "Event not found"}, status=404)
 
@@ -40,6 +47,10 @@ class EventAttachmentsEndpoint(ProjectEndpoint):
                 if key == "query":
                     value = " ".join(value)
                     queryset = queryset.filter(name__icontains=value)
+                elif key == "is":
+                    value = " ".join(value)
+                    if value in ["screenshot"]:
+                        queryset = event_attachment_screenshot_filter(queryset)
                 else:
                     queryset = queryset.none()
 

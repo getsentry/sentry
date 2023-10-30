@@ -3,9 +3,11 @@ from typing import Any, Mapping, Optional
 
 import responses
 
-from sentry.models import Identity, IdentityProvider, Integration
+from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.integrations.integration import Integration
 from sentry.tasks.integrations import kickoff_vsts_subscription_check
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import control_silo_test
 
 PROVIDER = "vsts"
 
@@ -36,6 +38,7 @@ def assert_subscription(
         assert check_time == subscription_data["check"]
 
 
+@control_silo_test(stable=True)
 class VstsSubscriptionCheckTest(TestCase):
     def setUp(self):
         responses.add(

@@ -14,6 +14,10 @@ export type TraceInfo = {
    */
   maxGeneration: number;
   /**
+   * The performance Issues on the trace
+   */
+  performanceIssues: Set<string>;
+  /**
    * The projects in the trace
    */
   projects: Set<string>;
@@ -21,6 +25,11 @@ export type TraceInfo = {
    * The very earliest start timestamp in the trace.
    */
   startTimestamp: number;
+  /**
+   * The number of events that are not transactions,
+   * appearing as it's own row in the trace view
+   */
+  trailingOrphansCount: number;
   /**
    * The transactions in the trace.
    */

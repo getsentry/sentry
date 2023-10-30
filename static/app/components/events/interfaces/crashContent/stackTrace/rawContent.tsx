@@ -81,6 +81,7 @@ export function getPythonFrame(frame: Frame): string {
 
 export function getJavaFrame(frame: Frame): string {
   let result = '    at';
+
   if (defined(frame.module)) {
     result += ' ' + frame.module + '.';
   }
@@ -163,7 +164,7 @@ function getFrame(frame: Frame, frameIdx: number, platform: string | undefined):
   }
 }
 
-export default function render(
+export default function displayRawContent(
   data: StacktraceType,
   platform?: string,
   exception?: ExceptionValue

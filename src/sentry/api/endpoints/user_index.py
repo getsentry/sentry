@@ -2,16 +2,21 @@ from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.permissions import SuperuserPermission
 from sentry.api.serializers import serialize
 from sentry.db.models.query import in_iexact
-from sentry.models import User
+from sentry.models.user import User
 from sentry.search.utils import tokenize_query
 
 
+@control_silo_endpoint
 class UserIndexEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:

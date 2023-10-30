@@ -5,6 +5,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.incident import IncidentPermission
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -24,7 +26,11 @@ from sentry.utils.dates import ensure_aware
 from .utils import parse_team_params
 
 
+@region_silo_endpoint
 class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (IncidentPermission,)
 
     def get(self, request: Request, organization) -> Response:

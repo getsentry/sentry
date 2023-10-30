@@ -1,23 +1,25 @@
-from exam import fixture
+from functools import cached_property
 
 from sentry.api.serializers import serialize
 from sentry.incidents.models import IncidentActivity, IncidentActivityType, IncidentSubscription
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class OrganizationIncidentCommentCreateEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-incident-comments"
     method = "post"
 
-    @fixture
+    @cached_property
     def organization(self):
         return self.create_organization()
 
-    @fixture
+    @cached_property
     def project(self):
         return self.create_project(organization=self.organization)
 
-    @fixture
+    @cached_property
     def user(self):
         return self.create_user()
 
@@ -34,7 +36,7 @@ class OrganizationIncidentCommentCreateEndpointTest(APITestCase):
             )
         activity = IncidentActivity.objects.get(id=resp.data["id"])
         assert activity.type == IncidentActivityType.COMMENT.value
-        assert activity.user == self.user
+        assert activity.user_id == self.user.id
         assert activity.comment == comment
         assert resp.data == serialize([activity], self.user)[0]
 
@@ -59,11 +61,11 @@ class OrganizationIncidentCommentCreateEndpointTest(APITestCase):
             )
         activity = IncidentActivity.objects.get(id=resp.data["id"])
         assert activity.type == IncidentActivityType.COMMENT.value
-        assert activity.user == self.user
+        assert activity.user_id == self.user.id
         assert activity.comment == comment
         assert resp.data == serialize([activity], self.user)[0]
         assert IncidentSubscription.objects.filter(
-            user=mentioned_member, incident=incident
+            user_id=mentioned_member.id, incident=incident
         ).exists()
 
     def test_access(self):

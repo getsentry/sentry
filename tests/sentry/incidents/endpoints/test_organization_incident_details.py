@@ -1,30 +1,32 @@
-from datetime import datetime
-from unittest import mock
-
-import pytz
-from exam import fixture
+from functools import cached_property
 
 from sentry.api.serializers import serialize
 from sentry.incidents.models import Incident, IncidentActivity, IncidentStatus
-from sentry.testutils import APITestCase
+from sentry.silo import SiloMode
+from sentry.testutils.abstract import Abstract
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-class BaseIncidentDetailsTest:
+class BaseIncidentDetailsTest(APITestCase):
+    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+
     endpoint = "sentry-api-0-organization-incident-details"
 
     def setUp(self):
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
-    @fixture
+    @cached_property
     def organization(self):
         return self.create_organization(owner=self.create_user())
 
-    @fixture
+    @cached_property
     def project(self):
         return self.create_project(organization=self.organization)
 
-    @fixture
+    @cached_property
     def user(self):
         return self.create_user()
 
@@ -41,18 +43,18 @@ class BaseIncidentDetailsTest:
         assert resp.status_code == 404
 
 
-class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest, APITestCase):
-    @mock.patch("django.utils.timezone.now")
-    def test_simple(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
-
+@region_silo_test(stable=True)
+class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest):
+    @freeze_time()
+    def test_simple(self):
         incident = self.create_incident(seen_by=[self.user])
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(incident.organization.slug, incident.identifier)
 
         expected = serialize(incident)
 
-        user_data = serialize(self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            user_data = serialize(self.user)
         seen_by = [user_data]
 
         assert resp.data["id"] == expected["id"]
@@ -64,7 +66,8 @@ class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest, APITestCase):
         assert [item["id"] for item in resp.data["seenBy"]] == [item["id"] for item in seen_by]
 
 
-class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest, APITestCase):
+@region_silo_test(stable=True)
+class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest):
     method = "put"
 
     def get_success_response(self, *args, **params):
@@ -104,7 +107,7 @@ class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest, APITestCase)
         activity = IncidentActivity.objects.filter(incident=incident).order_by("-id")[:1].get()
         assert activity.value == str(status)
         assert activity.comment == comment
-        assert activity.user == self.user
+        assert activity.user_id == self.user.id
 
     def test_invalid_status(self):
         incident = self.create_incident()

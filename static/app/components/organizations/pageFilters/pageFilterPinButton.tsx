@@ -1,27 +1,26 @@
 import styled from '@emotion/styled';
 
 import {pinFilter} from 'sentry/actionCreators/pageFilters';
-import Button, {ButtonProps} from 'sentry/components/button';
+import {Button, ButtonProps} from 'sentry/components/button';
 import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {PinnedPageFilter} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import useOrganization from 'sentry/utils/useOrganization';
+import {Organization, PinnedPageFilter} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = {
   filter: PinnedPageFilter;
-  size: Extract<ButtonProps['size'], 'xsmall' | 'zero'>;
+  organization: Organization;
+  size: Extract<ButtonProps['size'], 'xs' | 'zero'>;
   className?: string;
 };
 
-function PageFilterPinButton({filter, size, className}: Props) {
-  const organization = useOrganization();
+function PageFilterPinButton({organization, filter, size, className}: Props) {
   const {pinnedFilters} = usePageFilters();
   const pinned = pinnedFilters.has(filter);
 
   const onPin = () => {
-    trackAdvancedAnalyticsEvent('page_filters.pin_click', {
+    trackAnalytics('page_filters.pin_click', {
       organization,
       filter,
       pin: !pinned,
@@ -47,7 +46,7 @@ function PageFilterPinButton({filter, size, className}: Props) {
   );
 }
 
-const PinButton = styled(Button)<{pinned: boolean; size: 'xsmall' | 'zero'}>`
+const PinButton = styled(Button)<{pinned: boolean; size: 'xs' | 'zero'}>`
   display: block;
   color: ${p => p.theme.textColor};
 

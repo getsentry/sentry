@@ -1,5 +1,10 @@
+from __future__ import annotations
+
+import itertools
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Generator, List, Optional
+
+import sentry_sdk
 
 from sentry.eventstore.models import Event
 from sentry.grouping.component import GroupingComponent, calculate_tree_label
@@ -10,15 +15,14 @@ from sentry.grouping.strategies.base import (
     strategy,
 )
 from sentry.grouping.strategies.hierarchical import get_stacktrace_hierarchy
-from sentry.grouping.strategies.message import trim_message_for_grouping
-from sentry.grouping.strategies.similarity_encoders import ident_encoder, text_shingle_encoder
+from sentry.grouping.strategies.message import normalize_message_for_grouping
 from sentry.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
+from sentry.grouping.utils import hash_from_values
 from sentry.interfaces.exception import Exception as ChainedException
-from sentry.interfaces.exception import SingleException
+from sentry.interfaces.exception import Mechanism, SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
 from sentry.interfaces.threads import Threads
 from sentry.stacktraces.platform import get_behavior_family_for_platform
-from sentry.utils.iterators import shingle
 
 _ruby_erb_func = re.compile(r"__\d{4,}_\d{4,}$")
 _basename_re = re.compile(r"[/\\]")
@@ -46,6 +50,29 @@ _java_assist_enhancer_re = re.compile(r"""(\$\$_javassist)(?:_seam)?(?:_[0-9]+)?
 # Clojure anon functions are compiled down to myapp.mymodule$fn__12345
 _clojure_enhancer_re = re.compile(r"""(\$fn__)\d+""", re.X)
 
+# Java specific anonymous CGLIB Enhancer classes.
+# see: https://github.com/getsentry/sentry-java/issues/1018
+#   com.example.api.OutboundController$$EnhancerByGuice$$ae46b1bf
+#   com.example.api.OutboundController$EnhancerByGuice$ae46b1bf
+#   com.example.api.OutboundController$$EnhancerByGuice$$ae46b1bf$$FastClassByGuice$$caceacd2
+#   com.example.api.OutboundController$$EnhancerByGuice$$ae46b1bf$FastClassByGuice$caceacd2
+#   com.example.api.OutboundController$EnhancerByGuice$ae46b1bf$FastClassByGuice$caceacd2
+_java_enhancer_by_re = re.compile(r"""(\$\$?EnhancerBy[\w_]+?\$?\$)[a-fA-F0-9]+(_[0-9]+)?""", re.X)
+
+# Java specific anonymous CGLIB FastClass classes.
+# see: https://github.com/getsentry/sentry-java/issues/1018
+#   com.example.api.OutboundController$$EnhancerByGuice$$ae46b1bf$$FastClassByGuice$$caceacd2
+#   com.example.api.OutboundController$$EnhancerByGuice$$ae46b1bf$FastClassByGuice$caceacd2
+#   com.example.api.OutboundController$EnhancerByGuice$ae46b1bf$FastClassByGuice$caceacd2
+_java_fast_class_by_re = re.compile(
+    r"""(\$\$?FastClassBy[\w_]+?\$?\$)[a-fA-F0-9]+(_[0-9]+)?""", re.X
+)
+
+# Java specific anonymous Hibernate classes.
+# see: https://github.com/getsentry/sentry-java/issues/1018
+#   com.example.model.User$HibernateProxy$oRWxjAWT
+_java_hibernate_proxy_re = re.compile(r"""(\$\$?HibernateProxy\$?\$)\w+(_[0-9]+)?""", re.X)
+
 # fields that need to be the same between frames for them to be considered
 # recursive calls
 RECURSION_COMPARISON_FIELDS = [
@@ -62,7 +89,7 @@ RECURSION_COMPARISON_FIELDS = [
 StacktraceEncoderReturnValue = Any
 
 
-def is_recursion_v1(frame1: Frame, frame2: Frame) -> bool:
+def is_recursion_v1(frame1: Frame, frame2: Frame | None) -> bool:
     """
     Returns a boolean indicating whether frames are recursive calls.
     """
@@ -89,7 +116,8 @@ def get_package_component(package: str, platform: Optional[str]) -> GroupingComp
 
     package = get_basename(package).lower()
     package_component = GroupingComponent(
-        id="package", values=[package], similarity_encoder=ident_encoder
+        id="package",
+        values=[package],
     )
     return package_component
 
@@ -110,7 +138,8 @@ def get_filename_component(
     # lowercase it
     filename = _basename_re.split(filename)[-1].lower()
     filename_component = GroupingComponent(
-        id="filename", values=[filename], similarity_encoder=ident_encoder
+        id="filename",
+        values=[filename],
     )
 
     if has_url_origin(abs_path, allow_file_origin=allow_file_origin):
@@ -134,7 +163,10 @@ def get_filename_component(
 
 
 def get_module_component(
-    abs_path: Optional[str], module: Optional[str], platform: Optional[str]
+    abs_path: Optional[str],
+    module: Optional[str],
+    platform: Optional[str],
+    context: GroupingContext,
 ) -> GroupingComponent:
     """Given an absolute path, module and platform returns the module component
     with some necessary cleaning performed.
@@ -143,7 +175,8 @@ def get_module_component(
         return GroupingComponent(id="module")
 
     module_component = GroupingComponent(
-        id="module", values=[module], similarity_encoder=ident_encoder
+        id="module",
+        values=[module],
     )
 
     if platform == "javascript" and "/" in module and abs_path and abs_path.endswith(module):
@@ -166,6 +199,10 @@ def get_module_component(
             module = _java_cglib_enhancer_re.sub(r"\1<auto>", module)
             module = _java_assist_enhancer_re.sub(r"\1<auto>", module)
             module = _clojure_enhancer_re.sub(r"\1<auto>", module)
+            if context["java_cglib_hibernate_logic"]:
+                module = _java_enhancer_by_re.sub(r"\1<auto>", module)
+                module = _java_fast_class_by_re.sub(r"\1<auto>", module)
+                module = _java_hibernate_proxy_re.sub(r"\1<auto>", module)
             if module != old_module:
                 module_component.update(values=[module], hint="removed codegen marker")
 
@@ -224,7 +261,8 @@ def get_function_component(
         return GroupingComponent(id="function")
 
     function_component = GroupingComponent(
-        id="function", values=[func], similarity_encoder=ident_encoder
+        id="function",
+        values=[func],
     )
 
     if platform == "ruby":
@@ -280,7 +318,6 @@ def get_function_component(
         if sourcemap_used and context_line_available:
             function_component.update(
                 contributes=False,
-                contributes_to_similarity=True,
                 hint="ignored because sourcemap used and context line available",
             )
 
@@ -309,11 +346,9 @@ def frame(
 
     # if we have a module we use that for grouping.  This will always
     # take precedence over the filename if it contributes
-    module_component = get_module_component(frame.abs_path, frame.module, platform)
+    module_component = get_module_component(frame.abs_path, frame.module, platform, context)
     if module_component.contributes and filename_component.contributes:
-        filename_component.update(
-            contributes=False, contributes_to_similarity=True, hint="module takes precedence"
-        )
+        filename_component.update(contributes=False, hint="module takes precedence")
 
     context_line_component = None
 
@@ -442,7 +477,6 @@ def get_contextline_component(
     component = GroupingComponent(
         id="context-line",
         values=[line],
-        similarity_encoder=ident_encoder,
     )
     if line:
         if len(frame.context_line) > 120:
@@ -518,7 +552,6 @@ def _single_stacktrace_variant(
         frames_for_filtering,
         event.platform,
         exception_data=context["exception_data"],
-        similarity_self_encoder=_stacktrace_encoder,
     )
 
     if inverted_hierarchy is None:
@@ -546,36 +579,6 @@ def stacktrace_variant_processor(
     return remove_non_stacktrace_variants(variants)
 
 
-def _stacktrace_encoder(id: str, stacktrace: Stacktrace) -> StacktraceEncoderReturnValue:
-    encoded_frames = []
-
-    for frame in stacktrace.values:
-        encoded = {}
-        for (component_id, shingle_label), features in frame.encode_for_similarity():
-            assert (
-                shingle_label == "ident-shingle"
-            ), "Frames cannot use anything other than ident shingles for now"
-
-            if not features:
-                continue
-
-            assert (
-                len(features) == 1 and component_id not in encoded
-            ), "Frames cannot use anything other than ident shingles for now"
-            encoded[component_id] = features[0]
-
-        if encoded:
-            # add frozen dict
-            encoded_frames.append(tuple(sorted(encoded.items())))
-
-    if len(encoded_frames) < 2:
-        if encoded_frames:
-            yield (id, "frames-ident"), encoded_frames
-        return
-
-    yield (id, "frames-pairs"), shingle(2, encoded_frames)
-
-
 @strategy(
     ids=["single-exception:v1"],
     interface=SingleException,
@@ -586,7 +589,6 @@ def single_exception(
     type_component = GroupingComponent(
         id="type",
         values=[interface.type] if interface.type else [],
-        similarity_encoder=ident_encoder,
     )
     system_type_component = type_component.shallow_copy()
 
@@ -637,20 +639,19 @@ def single_exception(
 
         if context["with_exception_value_fallback"]:
             value_component = GroupingComponent(
-                id="value", similarity_encoder=text_shingle_encoder(5)
+                id="value",
             )
 
-            value_in = interface.value
-            if value_in is not None:
-                value_trimmed = trim_message_for_grouping(value_in)
-                hint = "stripped common values" if value_in != value_trimmed else None
-                if value_trimmed:
-                    value_component.update(values=[value_trimmed], hint=hint)
+            raw = interface.value
+            if raw is not None:
+                normalized = normalize_message_for_grouping(raw)
+                hint = "stripped event-specific values" if raw != normalized else None
+                if normalized:
+                    value_component.update(values=[normalized], hint=hint)
 
             if stacktrace_component.contributes and value_component.contributes:
                 value_component.update(
                     contributes=False,
-                    contributes_to_similarity=True,
                     hint="ignored because stacktrace takes precedence",
                 )
 
@@ -661,7 +662,6 @@ def single_exception(
             ):
                 value_component.update(
                     contributes=False,
-                    contributes_to_similarity=True,
                     hint="ignored because ns-error info takes precedence",
                 )
 
@@ -676,19 +676,40 @@ def single_exception(
 def chained_exception(
     interface: ChainedException, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
+
+    # Get all the exceptions to consider.
+    all_exceptions = interface.exceptions()
+
+    # Get the grouping components for all exceptions up front, as we'll need them in a few places and only want to compute them once.
+    exception_components = {
+        id(exception): context.get_grouping_component(exception, event=event, **meta)
+        for exception in all_exceptions
+    }
+
+    # Filter the exceptions according to rules for handling exception groups.
+    with sentry_sdk.start_span(
+        op="grouping.strategies.newstyle.filter_exceptions_for_exception_groups"
+    ) as span:
+        try:
+            exceptions = filter_exceptions_for_exception_groups(
+                all_exceptions, exception_components, event
+            )
+        except Exception:
+            # We shouldn't have exceptions here. But if we do, just record it and continue with the original list.
+            sentry_sdk.capture_exception()
+            span.set_status("internal_error")
+            exceptions = all_exceptions
+
     # Case 1: we have a single exception, use the single exception
     # component directly to avoid a level of nesting
-    exceptions = interface.exceptions()
     if len(exceptions) == 1:
-        return context.get_grouping_component(exceptions[0], event=event, **meta)
+        return exception_components[id(exceptions[0])]
 
     # Case 2: produce a component for each chained exception
     by_name: Dict[str, List[GroupingComponent]] = {}
 
     for exception in exceptions:
-        for name, component in context.get_grouping_component(
-            exception, event=event, **meta
-        ).items():
+        for name, component in exception_components[id(exception)].items():
             by_name.setdefault(name, []).append(component)
 
     rv = {}
@@ -701,6 +722,109 @@ def chained_exception(
         )
 
     return rv
+
+
+# See https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
+def filter_exceptions_for_exception_groups(
+    exceptions: List[SingleException],
+    exception_components: Dict[int, GroupingComponent],
+    event: Event,
+) -> List[SingleException]:
+
+    # This function only filters exceptions if there are at least two exceptions.
+    if len(exceptions) <= 1:
+        return exceptions
+
+    # Reconstruct the tree of exceptions if the required data is present.
+    class ExceptionTreeNode:
+        def __init__(
+            self,
+            exception: Optional[SingleException] = None,
+            children: Optional[List[SingleException]] = None,
+        ):
+            self.exception = exception
+            self.children = children if children else []
+
+    exception_tree: Dict[int, ExceptionTreeNode] = {}
+    for exception in reversed(exceptions):
+        mechanism: Mechanism = exception.mechanism
+        if mechanism and mechanism.exception_id is not None:
+            node = exception_tree.setdefault(
+                mechanism.exception_id, ExceptionTreeNode()
+            ).exception = exception
+            node.exception = exception
+            if mechanism.parent_id is not None:
+                parent_node = exception_tree.setdefault(mechanism.parent_id, ExceptionTreeNode())
+                parent_node.children.append(exception)
+        else:
+            # At least one exception is missing mechanism ids, so we can't continue with the filter.
+            # Exit early to not waste perf.
+            return exceptions
+
+    # This gets the child exceptions for an exception using the exception_id from the mechanism.
+    # That data is guaranteed to exist at this point.
+    def get_child_exceptions(exception: SingleException) -> List[SingleException]:
+        exception_id = exception.mechanism.exception_id
+        node = exception_tree.get(exception_id)
+        return node.children if node else []
+
+    # This recursive generator gets the "top-level exceptions", and is used below.
+    # "Top-level exceptions are those that are the first descendants of the root that are not exception groups.
+    # For examples, see https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
+    def get_top_level_exceptions(
+        exception: SingleException,
+    ) -> Generator[SingleException, None, None]:
+        if exception.mechanism.is_exception_group:
+            children = get_child_exceptions(exception)
+            yield from itertools.chain.from_iterable(
+                get_top_level_exceptions(child) for child in children
+            )
+        else:
+            yield exception
+
+    # This recursive generator gets the "first-path" of exceptions, and is used below.
+    # The first path follows from the root to a leaf node, but only following the first child of each node.
+    def get_first_path(exception: SingleException) -> Generator[SingleException, None, None]:
+        yield exception
+        children = get_child_exceptions(exception)
+        if children:
+            yield from get_first_path(children[0])
+
+    # Traverse the tree recursively from the root exception to get all "top-level exceptions" and sort for consistency.
+    top_level_exceptions = sorted(
+        get_top_level_exceptions(exception_tree[0].exception),
+        key=lambda exception: str(exception.type),
+        reverse=True,
+    )
+
+    # Figure out the distinct top-level exceptions, grouping by the hash of the grouping component values.
+    distinct_top_level_exceptions = [
+        next(group)
+        for _, group in itertools.groupby(
+            top_level_exceptions,
+            key=lambda exception: hash_from_values(exception_components[id(exception)].values())
+            or "",
+        )
+    ]
+
+    # If there's only one distinct top-level exception in the group,
+    # use it and its first-path children, but throw out the exception group and any copies.
+    # For example, Group<['Da', 'Da', 'Da']> should just be treated as a single 'Da'.
+    # We'll also set the main_exception_id, which is used in the extract_metadata function
+    # in src/sentry/eventtypes/error.py - which will ensure the issue is titled by this
+    # item rather than the exception group.
+    if len(distinct_top_level_exceptions) == 1:
+        main_exception = distinct_top_level_exceptions[0]
+        event.data["main_exception_id"] = main_exception.mechanism.exception_id
+        return list(get_first_path(main_exception))
+
+    # When there's more than one distinct top-level exception, return one of each of them AND the root exception group.
+    # NOTE: This deviates from the original RFC, because finding a common ancestor that shares
+    # one of each top-level exception that is _not_ the root is overly complicated.
+    # Also, it's more likely the stack trace of the root exception will be more meaningful
+    # than one of an inner exception group.
+    distinct_top_level_exceptions.append(exception_tree[0].exception)
+    return distinct_top_level_exceptions
 
 
 @chained_exception.variant_processor

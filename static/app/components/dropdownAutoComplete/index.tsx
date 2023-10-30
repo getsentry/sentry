@@ -9,26 +9,28 @@ type Props = {
   allowActorToggle?: boolean;
 } & MenuProps;
 
-const DropdownAutoComplete = ({allowActorToggle = false, children, ...props}: Props) => (
-  <Menu {...props}>
-    {renderProps => {
-      const {isOpen, actions, getActorProps} = renderProps;
-      // Don't pass `onClick` from `getActorProps`
-      const {onClick: _onClick, ...actorProps} = getActorProps<HTMLDivElement>();
-      return (
-        <Actor
-          isOpen={isOpen}
-          role="button"
-          tabIndex={0}
-          onClick={isOpen && allowActorToggle ? actions.close : actions.open}
-          {...actorProps}
-        >
-          {children(renderProps)}
-        </Actor>
-      );
-    }}
-  </Menu>
-);
+function DropdownAutoComplete({allowActorToggle = false, children, ...props}: Props) {
+  return (
+    <Menu {...props}>
+      {renderProps => {
+        const {isOpen, actions, getActorProps} = renderProps;
+        // Don't pass `onClick` from `getActorProps`
+        const {onClick: _onClick, ...actorProps} = getActorProps<HTMLDivElement>();
+        return (
+          <Actor
+            isOpen={isOpen}
+            role="button"
+            tabIndex={0}
+            onClick={isOpen && allowActorToggle ? actions.close : actions.open}
+            {...actorProps}
+          >
+            {children(renderProps)}
+          </Actor>
+        );
+      }}
+    </Menu>
+  );
+}
 
 const Actor = styled('div')<{isOpen: boolean}>`
   position: relative;

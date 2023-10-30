@@ -20,7 +20,7 @@ type ProviderProps = {
   project?: Project;
 };
 
-const Provider = ({children, project, organization}: ProviderProps) => {
+function Provider({children, project, organization}: ProviderProps) {
   const api = useApi();
 
   const [projectDetails, setProjectDetails] = useState<undefined | Project>();
@@ -96,7 +96,7 @@ const Provider = ({children, project, organization}: ProviderProps) => {
     return () => {
       unmounted = true;
     };
-  }, [projectDetails, organization, appStoreConnectSymbolSources]);
+  }, [projectDetails, organization, appStoreConnectSymbolSources, api]);
 
   function getUpdateAlertMessage(
     respository: NonNullable<Parameters<typeof getAppStoreValidationErrorMessage>[1]>,
@@ -135,7 +135,7 @@ const Provider = ({children, project, organization}: ProviderProps) => {
       {children}
     </AppStoreConnectContext.Provider>
   );
-};
+}
 
 export {Provider};
 

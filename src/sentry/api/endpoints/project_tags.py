@@ -2,13 +2,19 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tagstore
-from sentry.api.base import EnvironmentMixin
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.constants import DS_DENYLIST, PROTECTED_TAG_KEYS
-from sentry.models import Environment
+from sentry.models.environment import Environment
 
 
+@region_silo_endpoint
 class ProjectTagsEndpoint(ProjectEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, project) -> Response:
         try:
             environment_id = self._get_environment_id_from_request(request, project.organization_id)
@@ -25,7 +31,12 @@ class ProjectTagsEndpoint(ProjectEndpoint, EnvironmentMixin):
                 kwargs.update(denylist=DS_DENYLIST)
 
             tag_keys = sorted(
-                tagstore.get_tag_keys(project.id, environment_id, **kwargs),
+                tagstore.get_tag_keys(
+                    project.id,
+                    environment_id,
+                    tenant_ids={"organization_id": project.organization_id},
+                    **kwargs,
+                ),
                 key=lambda x: x.key,
             )
 

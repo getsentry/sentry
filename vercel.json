@@ -1,10 +1,15 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
 
   "rewrites": [
     {
       "source": "/(api|organization-avatar|avatar)/(.*)",
       "destination": "https://sentry.io/$1/$2"
+    },
+    {
+      "source": "/region/(\\w+)/(.*)",
+      "destination": "https://$1.sentry.io/$2"
     },
     {"source": "/_assets/(.*)", "destination": "/$1"},
     {"source": "/(.*)", "destination": "/index.html"}

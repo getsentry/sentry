@@ -1,11 +1,17 @@
-import type {Route, RouteComponentProps} from 'react-router';
+import type {Route, RouteComponentProps, RouteContextInterface} from 'react-router';
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
+import type {ButtonProps} from 'sentry/components/button';
+import {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
-import {CombinedMetricIssueAlerts} from 'sentry/views/alerts/types';
+import {SVGIconProps} from 'sentry/icons/svgIcon';
+import type {Group} from 'sentry/types';
+import {UseExperiment} from 'sentry/utils/useExperiment';
+import {OrganizationStatsProps} from 'sentry/views/organizationStats/index';
+import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 import type {ExperimentKey} from './experiments';
@@ -27,15 +33,20 @@ import type {User} from './user';
  * The Hooks type mapping is the master interface for all external Hooks into
  * the sentry frontend application.
  */
-export type Hooks = {_: any} & RouteHooks &
-  ComponentHooks &
-  CustomizationHooks &
-  AnalyticsHooks &
-  FeatureDisabledHooks &
-  InterfaceChromeHooks &
-  OnboardingHooks &
-  SettingsHooks &
-  CallbackHooks;
+export interface Hooks
+  extends RouteHooks,
+    ComponentHooks,
+    CustomizationHooks,
+    AnalyticsHooks,
+    FeatureDisabledHooks,
+    InterfaceChromeHooks,
+    OnboardingHooks,
+    SettingsHooks,
+    FeatureSpecificHooks,
+    ReactHooks,
+    CallbackHooks {
+  _: any;
+}
 
 export type HookName = keyof Hooks;
 
@@ -43,10 +54,9 @@ export type HookName = keyof Hooks;
  * Route hooks.
  */
 export type RouteHooks = {
-  routes: RoutesHook;
-  'routes:admin': RoutesHook;
   'routes:api': RoutesHook;
   'routes:organization': RoutesHook;
+  'routes:root': RoutesHook;
 };
 
 /**
@@ -64,12 +74,47 @@ type MemberListHeaderProps = {
   organization: Organization;
 };
 
-type DisabledAppStoreConnectMultiple = {organization: Organization};
-type DisabledCustomSymbolSources = {organization: Organization};
+type DisabledAppStoreConnectMultiple = {
+  children: React.ReactNode;
+  organization: Organization;
+};
+
+type DisabledCustomSymbolSources = {
+  children: React.ReactNode;
+  organization: Organization;
+};
 
 type DisabledMemberTooltipProps = {children: React.ReactNode};
 
 type DashboardHeadersProps = {organization: Organization};
+
+type ReplayFeedbackButton = {children: React.ReactNode};
+type ReplayListPageHeaderProps = {children?: React.ReactNode};
+type ReplayOnboardingAlertProps = {children: React.ReactNode};
+type ReplayOnboardingCTAProps = {children: React.ReactNode; organization: Organization};
+type ProductUnavailableCTAProps = {organization: Organization};
+
+type ProfilingBetaAlertBannerProps = {
+  organization: Organization;
+};
+
+type ProfilingUpgradePlanButtonProps = ButtonProps & {
+  children: React.ReactNode;
+  fallback: React.ReactNode;
+  organization: Organization;
+};
+
+type ProfilingAM1OrMMXUpgrade = {
+  fallback: React.ReactNode;
+  organization: Organization;
+};
+
+type ProductSelectionAvailabilityProps = Pick<
+  ProductSelectionProps,
+  'lazyLoader' | 'skipLazyLoader' | 'platform' | 'withBottomMargin'
+> & {
+  organization: Organization;
+};
 
 type FirstPartyIntegrationAlertProps = {
   integrations: Integration[];
@@ -81,42 +126,57 @@ type FirstPartyIntegrationAdditionalCTAProps = {
   integrations: Integration[];
 };
 
-type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
-
-type DefaultAlertRuleActionHook = (
-  callback: (showDefaultAction: boolean) => void,
-  organization: Organization
-) => void;
-
-type CodeOwnersCTAProps = {
-  organization: Organization;
-  project: Project;
-  addCodeOwner?: () => void;
-  handleRequest?: () => void;
+type AttemptCloseAttemptProps = {
+  handleRemoveAccount: () => void;
+  organizationSlugs: string[];
 };
 
-type AlertsHeaderProps = {
+type CodecovLinkProps = {
   organization: Organization;
-  ruleList: CombinedMetricIssueAlerts[] | null;
+};
+
+type QualitativeIssueFeedbackProps = {
+  group: Group;
+  organization: Organization;
+};
+
+type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
+
+type SentryLogoProps = SVGIconProps & {
+  pride?: boolean;
 };
 /**
  * Component wrapping hooks
  */
 export type ComponentHooks = {
-  'component:alerts-header': () => React.ComponentType<AlertsHeaderProps>;
-  'component:codeowners-cta': () => React.ComponentType<CodeOwnersCTAProps>;
+  'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
+  'component:codecov-integration-stacktrace-link': () => React.ComponentType<CodecovLinkProps>;
+  'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
+  'component:enhanced-org-stats': () => React.ComponentType<OrganizationStatsProps>;
+  'component:escalating-issues-banner-feedback': () => React.ComponentType<QualitativeIssueFeedbackProps>;
   'component:first-party-integration-additional-cta': () => React.ComponentType<FirstPartyIntegrationAdditionalCTAProps>;
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
+  'component:issue-priority-feedback': () => React.ComponentType<QualitativeIssueFeedbackProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
-  'component:superuser-access-category': React.FC<any>;
+  'component:product-selection-availability': () => React.ComponentType<ProductSelectionAvailabilityProps>;
+  'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
+  'component:profiling-am1-or-mmx-upgrade': () => React.ComponentType<ProfilingAM1OrMMXUpgrade>;
+  'component:profiling-billing-banner': () => React.ComponentType<ProfilingBetaAlertBannerProps>;
+  'component:profiling-upgrade-plan-button': () => React.ComponentType<ProfilingUpgradePlanButtonProps>;
+  'component:replay-feedback-button': () => React.ComponentType<ReplayFeedbackButton>;
+  'component:replay-list-page-header': () => React.ComponentType<ReplayListPageHeaderProps> | null;
+  'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
+  'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
+  'component:sentry-logo': () => React.ComponentType<SentryLogoProps>;
+  'component:superuser-access-category': React.ComponentType<any>;
 };
 
 /**
@@ -135,14 +195,9 @@ export type CustomizationHooks = {
  * Analytics / tracking / and operational metrics backend hooks.
  */
 export type AnalyticsHooks = {
-  // TODO(scefali): Below are deprecated and should be replaced
-  'analytics:event': LegacyAnalyticsEvent;
   'analytics:init-user': AnalyticsInitUser;
   'analytics:log-experiment': AnalyticsLogExperiment;
-  'analytics:track-adhoc-event': AnalyticsTrackAdhocEvent;
-
-  'analytics:track-event': AnalyticsTrackEvent;
-  'analytics:track-event-v2': AnalyticsTrackEventV2;
+  'analytics:raw-track-event': AnalyticsRawTrackEvent;
   'metrics:event': MetricsEvent;
 };
 
@@ -153,7 +208,7 @@ export type AnalyticsHooks = {
 export type FeatureDisabledHooks = {
   'feature-disabled:alert-wizard-performance': FeatureDisabledHook;
   'feature-disabled:alerts-page': FeatureDisabledHook;
-  'feature-disabled:configure-distributed-tracing': FeatureDisabledHook;
+  'feature-disabled:codecov-integration-setting': FeatureDisabledHook;
   'feature-disabled:custom-inbound-filters': FeatureDisabledHook;
   'feature-disabled:dashboards-edit': FeatureDisabledHook;
   'feature-disabled:dashboards-page': FeatureDisabledHook;
@@ -182,8 +237,10 @@ export type FeatureDisabledHooks = {
   'feature-disabled:project-selector-checkbox': FeatureDisabledHook;
   'feature-disabled:rate-limits': FeatureDisabledHook;
   'feature-disabled:relay': FeatureDisabledHook;
+  'feature-disabled:replay-sidebar-item': FeatureDisabledHook;
   'feature-disabled:sso-basic': FeatureDisabledHook;
   'feature-disabled:sso-saml2': FeatureDisabledHook;
+  'feature-disabled:starfish-view': FeatureDisabledHook;
   'feature-disabled:trace-view-link': FeatureDisabledHook;
 };
 
@@ -197,7 +254,6 @@ export type InterfaceChromeHooks = {
   'sidebar:bottom-items': SidebarBottomItemsHook;
   'sidebar:help-menu': GenericOrganizationComponentHook;
   'sidebar:item-label': SidebarItemLabelHook;
-  'sidebar:item-override': SidebarItemOverrideHook;
   'sidebar:organization-dropdown-menu': GenericOrganizationComponentHook;
   'sidebar:organization-dropdown-menu-bottom': GenericOrganizationComponentHook;
 };
@@ -207,6 +263,7 @@ export type InterfaceChromeHooks = {
  */
 export type OnboardingHooks = {
   'onboarding-wizard:skip-help': GenericOrganizationComponentHook;
+  'onboarding:block-hide-sidebar': () => boolean;
   'onboarding:extra-chrome': GenericComponentHook;
   'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;
 };
@@ -221,12 +278,35 @@ export type SettingsHooks = {
 };
 
 /**
+ * Feature Specific Hooks
+ */
+export interface FeatureSpecificHooks extends SpendVisibilityHooks {}
+
+/**
+ * Hooks related to Spend Visibitlity
+ * (i.e. Per-Project Spike Protection + Spend Allocations)
+ */
+export type SpendVisibilityHooks = {
+  'spend-visibility:spike-protection-project-settings': GenericProjectComponentHook;
+};
+
+/**
+ * Hooks that are actually React Hooks as well
+ */
+export type ReactHooks = {
+  'react-hook:route-activated': (
+    props: RouteContextInterface
+  ) => React.ContextType<typeof RouteAnalyticsContext>;
+  'react-hook:use-button-tracking': (props: ButtonProps) => () => void;
+  'react-hook:use-experiment': UseExperiment;
+};
+
+/**
  * Callback hooks.
  * These hooks just call a function that has no return value
  * and perform some sort of callback logic
  */
 type CallbackHooks = {
-  'callback:default-action-alert-rule': DefaultAlertRuleActionHook;
   'callback:on-guide-update': GuideUpdateCallback;
 };
 
@@ -246,6 +326,11 @@ type RoutesHook = () => Route[];
 type GenericOrganizationComponentHook = (opts: {
   organization: Organization;
 }) => React.ReactNode;
+
+/**
+ * Receives a project object and should return a React node.
+ */
+type GenericProjectComponentHook = (opts: {project: Project}) => React.ReactNode;
 
 // TODO(ts): We should correct the organization header hook to conform to the
 // GenericOrganizationComponentHook, passing org as a prop object, not direct
@@ -289,26 +374,7 @@ type AnalyticsInitUser = (user: User) => void;
 /**
  * Trigger analytics tracking in the hook store.
  */
-type AnalyticsTrackEvent = (opts: {
-  /**
-   * Arbitrary data to track
-   */
-  [key: string]: any;
-  /**
-   * The key used to identify the event.
-   */
-  eventKey: string;
-  /**
-   * The English string used as the name of the event.
-   */
-  eventName: string;
-  organization_id: string | number | null;
-}) => void;
-
-/**
- * Trigger analytics tracking in the hook store.
- */
-type AnalyticsTrackEventV2 = (
+type AnalyticsRawTrackEvent = (
   data: {
     /**
      * Arbitrary data to track
@@ -340,22 +406,13 @@ type AnalyticsTrackEventV2 = (
      * startSession set to true.
      */
     startSession?: boolean;
+
+    /**
+     * Optional unix timestamp
+     */
+    time?: number;
   }
 ) => void;
-
-/**
- * Trigger ad hoc analytics tracking in the hook store.
- */
-type AnalyticsTrackAdhocEvent = (opts: {
-  /**
-   * Arbitrary data to track
-   */
-  [key: string]: any;
-  /**
-   * The key used to identify the event.
-   */
-  eventKey: string;
-}) => void;
 
 /**
  * Trigger experiment observed logging.
@@ -370,24 +427,6 @@ type AnalyticsLogExperiment = (opts: {
    */
   organization?: Organization;
 }) => void;
-
-/**
- * Trigger analytics tracking in the hook store.
- *
- * Prefer using `analytics:track-event` or `analytics:track-adhock-event`.
- *
- * @deprecated This is the legacy interface.
- */
-type LegacyAnalyticsEvent = (
-  /**
-   * The key used to identify the event.
-   */
-  name: string,
-  /**
-   * Arbitrary data to track
-   */
-  data: {[key: string]: any}
-) => void;
 
 /**
  * Trigger recording a metric in the hook store.
@@ -435,14 +474,6 @@ type SidebarItemLabelHook = () => React.ComponentType<{
    * The key of the item label currently being rendered. If no id is provided
    * the hook will have no effect.
    */
-  id?: string;
-}>;
-
-type SidebarItemOverrideHook = () => React.ComponentType<{
-  /**
-   * The item label being wrapped
-   */
-  children: (props: Partial<React.ComponentProps<typeof SidebarItem>>) => React.ReactNode;
   id?: string;
 }>;
 

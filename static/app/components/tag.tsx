@@ -1,16 +1,18 @@
 import {cloneElement, isValidElement} from 'react';
+import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link, {LinkProps} from 'sentry/components/links/link';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
 import {IconClose, IconOpen} from 'sentry/icons';
+import {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import theme, {Color, Theme} from 'sentry/utils/theme';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import theme, {Color} from 'sentry/utils/theme';
 
 const TAG_HEIGHT = '20px';
 
@@ -42,9 +44,13 @@ interface Props extends React.HTMLAttributes<HTMLSpanElement> {
    */
   to?: LinkProps['to'];
   /**
+   * Additional properites for the Tooltip when `tooltipText` is set.
+   */
+  tooltipProps?: Omit<TooltipProps, 'children' | 'title' | 'skipWrapper'>;
+  /**
    * Text to show up on a hover.
    */
-  tooltipText?: React.ComponentProps<typeof Tooltip>['title'];
+  tooltipText?: TooltipProps['title'];
   /**
    * Dictates color scheme of the tag.
    */
@@ -55,6 +61,7 @@ function Tag({
   type = 'default',
   icon,
   tooltipText,
+  tooltipProps,
   to,
   onClick,
   href,
@@ -63,13 +70,13 @@ function Tag({
   textMaxWidth = 150,
   ...props
 }: Props) {
-  const iconsProps = {
-    size: '11px',
+  const iconsProps: SVGIconProps = {
+    size: 'xs',
     color: theme.tag[type].iconColor as Color,
   };
 
   const tag = (
-    <Tooltip title={tooltipText} containerDisplayMode="inline-flex">
+    <Tooltip title={tooltipText} containerDisplayMode="inline-flex" {...tooltipProps}>
       <Background type={type}>
         {tagIcon()}
 
@@ -83,9 +90,8 @@ function Tag({
             size="zero"
             priority="link"
             aria-label={t('Dismiss')}
-          >
-            <IconClose isCircled {...iconsProps} />
-          </DismissButton>
+            icon={<IconClose isCircled {...iconsProps} />}
+          />
         )}
       </Background>
     </Tooltip>
@@ -97,7 +103,7 @@ function Tag({
   }
 
   const trackClickEvent = () => {
-    trackAdvancedAnalyticsEvent('tag.clicked', {
+    trackAnalytics('tag.clicked', {
       is_clickable: defined(onClick) || defined(to) || defined(href),
       organization: null,
     });
@@ -178,6 +184,7 @@ const Text = styled('span')<{maxWidth: number; type: keyof Theme['tag']}>`
 
 const DismissButton = styled(Button)`
   margin-left: ${space(0.5)};
+  margin-right: -${space(0.5)};
   border: none;
 `;
 

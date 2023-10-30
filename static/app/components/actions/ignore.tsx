@@ -1,78 +1,77 @@
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import CustomIgnoreCountModal from 'sentry/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'sentry/components/customIgnoreDurationModal';
-import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
-import Duration from 'sentry/components/duration';
-import Tooltip from 'sentry/components/tooltip';
-import {IconChevron, IconMute} from 'sentry/icons';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {
-  ResolutionStatus,
-  ResolutionStatusDetails,
+  GroupStatus,
+  GroupStatusResolution,
+  GroupSubstatus,
+  IgnoredStatusDetails,
   SelectValue,
-  UpdateResolutionStatus,
 } from 'sentry/types';
+import {getDuration} from 'sentry/utils/formatters';
 
-const IGNORE_DURATIONS = [30, 120, 360, 60 * 24, 60 * 24 * 7];
-const IGNORE_COUNTS = [1, 10, 100, 1000, 10000, 100000];
-const IGNORE_WINDOWS: SelectValue<number>[] = [
-  {value: 60, label: t('per hour')},
-  {value: 24 * 60, label: t('per day')},
-  {value: 24 * 7 * 60, label: t('per week')},
+const ONE_HOUR = 60;
+
+/**
+ * Ignore durations are in munutes
+ */
+const IGNORE_DURATIONS = [
+  ONE_HOUR / 2,
+  ONE_HOUR * 2,
+  ONE_HOUR * 6,
+  ONE_HOUR * 24,
+  ONE_HOUR * 24 * 7,
 ];
 
-type Props = {
-  onUpdate: (params: UpdateResolutionStatus) => void;
-  confirmLabel?: string;
-  confirmMessage?: React.ReactNode;
-  disabled?: boolean;
-  isIgnored?: boolean;
-  shouldConfirm?: boolean;
-};
+const IGNORE_COUNTS = [1, 10, 100, 1000, 10000, 100000];
 
-const IgnoreActions = ({
-  onUpdate,
-  disabled,
-  shouldConfirm,
+const IGNORE_WINDOWS: SelectValue<number>[] = [
+  {value: ONE_HOUR, label: t('per hour')},
+  {value: ONE_HOUR * 24, label: t('per day')},
+  {value: ONE_HOUR * 24 * 7, label: t('per week')},
+];
+
+/**
+ * Create the dropdown submenus
+ */
+export function getIgnoreActions({
+  confirmLabel,
   confirmMessage,
-  confirmLabel = t('Ignore'),
-  isIgnored = false,
-}: Props) => {
-  const onIgnore = (statusDetails?: ResolutionStatusDetails) => {
+  shouldConfirm,
+  onUpdate,
+}: Pick<
+  IgnoreActionProps,
+  'shouldConfirm' | 'confirmMessage' | 'confirmLabel' | 'onUpdate'
+>) {
+  const onIgnore = (
+    statusDetails: IgnoredStatusDetails | undefined = {},
+    {bypassConfirm} = {bypassConfirm: false}
+  ) => {
     openConfirmModal({
-      bypass: !shouldConfirm,
+      bypass: bypassConfirm || !shouldConfirm,
       onConfirm: () =>
         onUpdate({
-          status: ResolutionStatus.IGNORED,
+          status: GroupStatus.IGNORED,
           statusDetails,
+          substatus: GroupSubstatus.ARCHIVED_UNTIL_CONDITION_MET,
         }),
-      message: confirmMessage,
+      message: confirmMessage?.() ?? null,
       confirmText: confirmLabel,
     });
   };
 
-  const onCustomIgnore = (statusDetails: ResolutionStatusDetails) => {
-    onIgnore(statusDetails);
+  const onCustomIgnore = (statusDetails: IgnoredStatusDetails) => {
+    onIgnore(statusDetails, {bypassConfirm: true});
   };
-
-  if (isIgnored) {
-    return (
-      <Tooltip title={t('Change status to unresolved')}>
-        <Button
-          priority="primary"
-          size="xsmall"
-          onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
-          aria-label={t('Unignore')}
-          icon={<IconMute size="xs" />}
-        />
-      </Tooltip>
-    );
-  }
 
   const openCustomIgnoreDuration = () =>
     openModal(deps => (
@@ -108,7 +107,8 @@ const IgnoreActions = ({
       />
     ));
 
-  const dropdownItems = [
+  // Move submenu placement when ignore used in top right menu
+  const dropdownItems: MenuItemProps[] = [
     {
       key: 'for',
       label: t('For\u2026'),
@@ -116,7 +116,7 @@ const IgnoreActions = ({
       children: [
         ...IGNORE_DURATIONS.map(duration => ({
           key: `for-${duration}`,
-          label: <Duration seconds={duration * 60} />,
+          label: getDuration(duration * 60),
           onAction: () => onIgnore({ignoreDuration: duration}),
         })),
         {
@@ -199,28 +199,76 @@ const IgnoreActions = ({
       ],
     },
   ];
+  return {dropdownItems, onIgnore};
+}
+
+type IgnoreActionProps = {
+  onUpdate: (params: GroupStatusResolution) => void;
+  className?: string;
+  confirmLabel?: string;
+  confirmMessage?: () => React.ReactNode;
+  disabled?: boolean;
+  isIgnored?: boolean;
+  shouldConfirm?: boolean;
+  size?: 'xs' | 'sm';
+};
+
+function IgnoreActions({
+  onUpdate,
+  disabled,
+  shouldConfirm,
+  confirmMessage,
+  className,
+  size = 'xs',
+  confirmLabel = t('Ignore'),
+  isIgnored = false,
+}: IgnoreActionProps) {
+  if (isIgnored) {
+    return (
+      <Tooltip title={t('Change status to unresolved')}>
+        <Button
+          priority="primary"
+          size="xs"
+          onClick={() =>
+            onUpdate({
+              status: GroupStatus.UNRESOLVED,
+              statusDetails: {},
+              substatus: GroupSubstatus.ONGOING,
+            })
+          }
+          aria-label={t('Unignore')}
+        />
+      </Tooltip>
+    );
+  }
+
+  const {dropdownItems, onIgnore} = getIgnoreActions({
+    confirmLabel,
+    onUpdate,
+    shouldConfirm,
+    confirmMessage,
+  });
 
   return (
-    <ButtonBar merged>
+    <ButtonBar className={className} merged>
       <IgnoreButton
-        size="xsmall"
+        size={size}
         tooltipProps={{delay: 300, disabled}}
         title={t(
           'Silences alerts for this issue and removes it from the issue stream by default.'
         )}
-        icon={<IconMute size="xs" />}
         onClick={() => onIgnore()}
         disabled={disabled}
       >
         {t('Ignore')}
       </IgnoreButton>
-      <DropdownMenuControlV2
-        trigger={({props: triggerProps, ref: triggerRef}) => (
+      <DropdownMenu
+        size="sm"
+        trigger={triggerProps => (
           <DropdownTrigger
-            ref={triggerRef}
             {...triggerProps}
             aria-label={t('Ignore options')}
-            size="xsmall"
+            size={size}
             icon={<IconChevron direction="down" size="xs" />}
             disabled={disabled}
           />
@@ -231,7 +279,7 @@ const IgnoreActions = ({
       />
     </ButtonBar>
   );
-};
+}
 
 export default IgnoreActions;
 

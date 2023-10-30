@@ -1,5 +1,8 @@
-from typing import Callable
+from __future__ import annotations
 
+import typing
+
+from typing_extensions import TypeGuard
 from yaml.parser import ParserError
 from yaml.scanner import ScannerError
 
@@ -7,23 +10,25 @@ from sentry.utils.yaml import safe_load
 
 __all__ = ("InvalidTypeError", "Any", "Bool", "Int", "Float", "String", "Dict", "Sequence")
 
+T = typing.TypeVar("T")
+
 
 class InvalidTypeError(TypeError):
     pass
 
 
-class Type:
+class Type(typing.Generic[T]):
     """Base Type that provides type coercion"""
 
     name = ""
     # Default value to be returned when initializing
-    default = None
+    default: T
     # Types that do not need to be coerced
-    expected_types = ()
+    expected_types: tuple[type[object], ...] = ()
     # Types that are acceptable for coercion
-    compatible_types = (str,)
+    compatible_types: tuple[type[object], ...] = (str,)
 
-    def __call__(self, value=None):
+    def __call__(self, value: object | None = None) -> T:
         if value is None:
             return self._default()
         if self.test(value):
@@ -39,26 +44,27 @@ class Type:
     def convert(self, value):
         return value
 
-    def _default(self):
+    def _default(self) -> T:
         return self.default
 
-    def test(self, value):
+    def test(self, value: object) -> TypeGuard[T]:
         """Check if the value is the correct type or not"""
         return isinstance(value, self.expected_types)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.name
 
 
-class AnyType(Type):
+class AnyType(Type[typing.Any]):
     """A type that accepts any value and does no coercion"""
 
     name = "any"
+    default = None
     expected_types = (object,)
     compatible_types = (object,)
 
 
-class BoolType(Type):
+class BoolType(Type[bool]):
     "Coerce a boolean from a string"
     name = "boolean"
     default = False
@@ -69,13 +75,15 @@ class BoolType(Type):
         if isinstance(value, int):
             return bool(value)
         value = value.lower()
-        if value in ("y", "yes", "t", "true", "1", "on"):
+        if value in ("y", "yes", "t", "true", "True", "1", "on"):
             return True
-        if value in ("n", "no", "f", "false", "0", "off"):
+        elif value in ("n", "no", "f", "false", "False", "0", "off"):
             return False
+        else:
+            return None
 
 
-class IntType(Type):
+class IntType(Type[int]):
     """Coerce an integer from a string"""
 
     name = "integer"
@@ -86,10 +94,10 @@ class IntType(Type):
         try:
             return int(value)
         except ValueError:
-            return
+            return None
 
 
-class FloatType(Type):
+class FloatType(Type[float]):
     """Coerce a float from a string or integer"""
 
     name = "float"
@@ -101,10 +109,10 @@ class FloatType(Type):
         try:
             return float(value)
         except ValueError:
-            return
+            return None
 
 
-class StringType(Type):
+class StringType(Type[str]):
     """String type without any coercion, must be a string"""
 
     name = "string"
@@ -113,13 +121,13 @@ class StringType(Type):
     compatible_types = (str,)
 
 
-class DictType(Type):
+class DictType(Type[dict]):
     """Coerce a dict out of a json/yaml string"""
 
     name = "dictionary"
     expected_types = (dict,)
 
-    def _default(self):
+    def _default(self) -> dict[str, typing.Any]:
         # make sure we create a fresh dict each time
         return {}
 
@@ -127,25 +135,28 @@ class DictType(Type):
         try:
             return safe_load(value)
         except (AttributeError, ParserError, ScannerError):
-            return
+            return None
 
 
-class SequenceType(Type):
-    """Coerce a tuple out of a json/yaml string or a list"""
+class SequenceType(Type[list]):
+    """Coerce a list out of a json/yaml string or a list"""
 
     name = "sequence"
-    default = ()
-    expected_types = (tuple, list)
+    expected_types = (list,)
     compatible_types = (str, tuple, list)
+
+    def _default(self) -> typing.List[typing.Any]:
+        # make sure we create a fresh list each time
+        return []
 
     def convert(self, value):
         if isinstance(value, str):
             try:
                 value = safe_load(value)
             except (AttributeError, ParserError, ScannerError):
-                return
-        if isinstance(value, list):
-            value = tuple(value)
+                return None
+        if isinstance(value, tuple):
+            value = list(value)
         return value
 
 
@@ -159,16 +170,49 @@ Dict = DictType()
 Sequence = SequenceType()
 
 # Mapping for basic types into what their Type is
-_type_mapping = {
+_type_mapping: dict[type[object], Type] = {
     bool: Bool,
     int: Int,
     float: Float,
     bytes: String,
     str: String,
     dict: Dict,
-    tuple: Sequence,
     list: Sequence,
 }
+
+
+# @typing.overload
+# def type_from_value(value: bool) -> BoolType:
+
+
+@typing.overload
+def type_from_value(value: int) -> IntType:
+    ...
+
+
+@typing.overload
+def type_from_value(value: float) -> FloatType:
+    ...
+
+
+@typing.overload
+def type_from_value(value: bytes) -> StringType:
+    ...
+
+
+@typing.overload
+def type_from_value(value: str) -> StringType:
+    ...
+
+
+@typing.overload
+def type_from_value(value: dict) -> DictType:
+    ...
+
+
+@typing.overload
+def type_from_value(value: list) -> SequenceType:
+    ...
 
 
 def type_from_value(value):
@@ -176,4 +220,4 @@ def type_from_value(value):
     return _type_mapping[type(value)]
 
 
-AnyCallable = Callable[..., AnyType]
+AnyCallable = typing.Callable[..., AnyType]

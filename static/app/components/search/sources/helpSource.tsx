@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import {
   Result as SearchResult,
   SentryGlobalSearch,
@@ -11,6 +11,8 @@ import debounce from 'lodash/debounce';
 import {Organization, Project} from 'sentry/types';
 import parseHtmlMarks from 'sentry/utils/parseHtmlMarks';
 import withLatestContext from 'sentry/utils/withLatestContext';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import {ChildProps, Result, ResultItem} from './types';
 
@@ -21,7 +23,7 @@ type Props = WithRouterProps & {
   children: (props: ChildProps) => React.ReactNode;
   organization: Organization;
   /**
-   * Specific platforms to filter reults to
+   * Specific platforms to filter results to
    */
   platforms: string[];
   project: Project;
@@ -65,9 +67,15 @@ class HelpSource extends Component<Props, State> {
     this.setState({loading: true});
     const {platforms = []} = this.props;
 
-    const searchResults = await this.search.query(query, {
-      platforms: platforms.map(platform => standardSDKSlug(platform)?.slug!),
-    });
+    const searchResults = await this.search.query(
+      query,
+      {
+        platforms: platforms.map(platform => standardSDKSlug(platform)?.slug!),
+      },
+      {
+        analyticsTags: ['source:dashboard'],
+      }
+    );
     const results = mapSearchResults(searchResults);
 
     this.setState({loading: false, results});
@@ -137,4 +145,4 @@ function mapSearchResults(results: SearchResult[]) {
 }
 
 export {HelpSource};
-export default withLatestContext(withRouter(HelpSource));
+export default withLatestContext(withSentryRouter(HelpSource));

@@ -1,8 +1,15 @@
-from sentry.models import Activity, Commit, Deploy, Environment, Release, ReleaseHeadCommit
-from sentry.testutils import TestCase
+from sentry.models.activity import Activity
+from sentry.models.commit import Commit
+from sentry.models.deploy import Deploy
+from sentry.models.environment import Environment
+from sentry.models.release import Release
+from sentry.models.releaseheadcommit import ReleaseHeadCommit
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 
 
+@region_silo_test(stable=True)
 class DeployNotifyTest(TestCase):
     def test_notify_if_ready_long_release(self):
         org = self.create_organization()

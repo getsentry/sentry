@@ -1,18 +1,22 @@
 import styled from '@emotion/styled';
 
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {Button} from 'sentry/components/button';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Plugin} from 'sentry/types';
 
 type Props = {
   onEnablePlugin: (plugin: Plugin) => void;
   plugins: Plugin[];
+  disabled?: boolean;
 };
 
-const InactivePlugins = ({plugins, onEnablePlugin}: Props) => {
+function InactivePlugins({disabled, plugins, onEnablePlugin}: Props) {
   if (plugins.length === 0) {
     return null;
   }
@@ -25,6 +29,10 @@ const InactivePlugins = ({plugins, onEnablePlugin}: Props) => {
         <Plugins>
           {plugins.map(plugin => (
             <IntegrationButton
+              disabled={disabled}
+              title={
+                disabled ? t('You do not have permission to set up an integration.') : ''
+              }
               key={plugin.id}
               onClick={() => onEnablePlugin(plugin)}
               className={`ref-plugin-enable-${plugin.id}`}
@@ -39,7 +47,7 @@ const InactivePlugins = ({plugins, onEnablePlugin}: Props) => {
       </PanelBody>
     </Panel>
   );
-};
+}
 
 const Plugins = styled('div')`
   display: flex;
@@ -48,7 +56,7 @@ const Plugins = styled('div')`
   flex-wrap: wrap;
 `;
 
-const IntegrationButton = styled('button')`
+const IntegrationButton = styled(Button)`
   margin: ${space(1)};
   width: 175px;
   text-align: center;

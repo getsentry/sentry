@@ -4,7 +4,7 @@ import 'echarts/lib/component/toolbox';
 import 'zrender/lib/svg/svg';
 
 import {forwardRef, useMemo} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, Global, Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {
   AxisPointerComponentOption,
@@ -21,12 +21,12 @@ import type {
   XAXisComponentOption,
   YAXisComponentOption,
 } from 'echarts';
+import {AriaComponent} from 'echarts/components';
 import * as echarts from 'echarts/core';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
-import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   EChartChartReadyHandler,
   EChartClickHandler,
@@ -42,15 +42,19 @@ import {
   Series,
 } from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
-import type {Theme} from 'sentry/utils/theme';
 
 import Grid from './components/grid';
 import Legend from './components/legend';
-import Tooltip from './components/tooltip';
+import {ChartTooltip, TooltipSubLabel} from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
-import {getDiffInMinutes, getDimensionValue, lightenHexToRgb} from './utils';
+import {
+  getDiffInMinutes,
+  getDimensionValue,
+  lightenHexToRgb,
+  useEchartsAriaLabels,
+} from './utils';
 
 // TODO(ts): What is the series type? EChartOption.Series's data cannot have
 // `onClick` since it's typically an array.
@@ -66,6 +70,8 @@ const handleClick = (clickSeries: any, instance: ECharts) => {
     clickSeries.data.onClick?.(clickSeries, instance);
   }
 };
+
+echarts.use(AriaComponent);
 
 type ReactEchartProps = React.ComponentProps<typeof ReactEchartsCore>;
 type ReactEChartOpts = NonNullable<ReactEchartProps['opts']>;
@@ -94,12 +100,12 @@ interface TooltipOption
     bucketSize: number | undefined,
     seriesParamsOrParam: TooltipComponentFormatterCallbackParams
   ) => string;
-  /**
-   * Array containing seriesNames that need to be indented
-   */
-  indentLabels?: string[];
   markerFormatter?: (marker: string, label?: string) => string;
   nameFormatter?: (name: string) => string;
+  /**
+   * Array containing data that is used to display indented sublabels.
+   */
+  subLabels?: TooltipSubLabel[];
   valueFormatter?: (
     value: number,
     label?: string,
@@ -107,7 +113,7 @@ interface TooltipOption
   ) => string;
 }
 
-type Props = {
+export interface BaseChartProps {
   /**
    * Additional Chart Series
    * This is to pass series to BaseChart bypassing the wrappers like LineChart, AreaChart etc.
@@ -271,7 +277,7 @@ type Props = {
    * Pass `true` to have 2 x-axes with default properties.  Can pass an array
    * of multiple objects to customize xAxis properties
    */
-  xAxes?: true | Props['xAxis'][];
+  xAxes?: true | BaseChartProps['xAxis'][];
   /**
    * Must be explicitly `null` to disable xAxis
    *
@@ -283,13 +289,13 @@ type Props = {
    * Pass `true` to have 2 y-axes with default properties. Can pass an array of
    * objects to customize yAxis properties
    */
-  yAxes?: true | Props['yAxis'][];
+  yAxes?: true | BaseChartProps['yAxis'][];
 
   /**
    * Must be explicitly `null` to disable yAxis
    */
   yAxis?: YAXisComponentOption | null;
-};
+}
 
 function BaseChartUnwrapped({
   colors,
@@ -344,7 +350,7 @@ function BaseChartUnwrapped({
   transformSinglePointToLine = false,
   onChartReady = () => {},
   'data-test-id': dataTestId,
-}: Props) {
+}: BaseChartProps) {
   const theme = useTheme();
 
   const hasSinglePoints = (series as LineSeriesOption[] | undefined)?.every(
@@ -465,21 +471,34 @@ function BaseChartUnwrapped({
       : undefined;
   const bucketSize = seriesData ? seriesData[1][0] - seriesData[0][0] : undefined;
 
+  const isTooltipPortalled = tooltip?.appendToBody;
+
   const tooltipOrNone =
     tooltip !== null
-      ? Tooltip({
+      ? ChartTooltip({
           showTimeInTooltip,
           isGroupedByDate,
           addSecondsToTimeFormat,
           utc,
           bucketSize,
           ...tooltip,
+          className: isTooltipPortalled
+            ? `${tooltip?.className ?? ''} chart-tooltip-portal`
+            : tooltip?.className,
         })
       : undefined;
 
+  const aria = useEchartsAriaLabels(
+    {
+      ...options,
+      series: resolvedSeries,
+      useUTC: utc,
+    },
+    isGroupedByDate
+  );
+
   const chartOption = {
     ...options,
-    animation: IS_ACCEPTANCE_TEST ? false : options.animation ?? true,
     useUTC: utc,
     color,
     grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
@@ -492,6 +511,7 @@ function BaseChartUnwrapped({
     axisPointer,
     dataZoom,
     graphic,
+    aria,
   };
 
   const chartStyles = {
@@ -522,7 +542,7 @@ function BaseChartUnwrapped({
         rendered: (props, instance) => onRendered?.(props, instance),
         legendselectchanged: (props, instance) =>
           onLegendSelectChanged?.(props, instance),
-      } as ReactEchartProps['onEvents']),
+      }) as ReactEchartProps['onEvents'],
     [
       onClick,
       onHighlight,
@@ -538,6 +558,7 @@ function BaseChartUnwrapped({
 
   return (
     <ChartContainer autoHeightResize={autoHeightResize} data-test-id={dataTestId}>
+      {isTooltipPortalled && <Global styles={getPortalledTooltipStyles({theme})} />}
       <ReactEchartsCore
         ref={forwardedRef}
         echarts={echarts}
@@ -559,48 +580,57 @@ function BaseChartUnwrapped({
   );
 }
 
-// Contains styling for chart elements as we can't easily style those
-// elements directly
-const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
-  ${p => p.autoHeightResize && 'height: 100%;'}
-
+// Tooltip styles shared for regular and portalled tooltips
+const getTooltipStyles = (p: {theme: Theme}) => css`
   /* Tooltip styling */
   .tooltip-series,
-  .tooltip-date {
-    color: ${p => p.theme.subText};
-    font-family: ${p => p.theme.text.family};
+  .tooltip-footer {
+    color: ${p.theme.subText};
+    font-family: ${p.theme.text.family};
     font-variant-numeric: tabular-nums;
     padding: ${space(1)} ${space(2)};
-    border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+    border-radius: ${p.theme.borderRadius} ${p.theme.borderRadius} 0 0;
   }
   .tooltip-series {
     border-bottom: none;
   }
   .tooltip-series-solo {
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p.theme.borderRadius};
   }
   .tooltip-label {
     margin-right: ${space(1)};
   }
   .tooltip-label strong {
     font-weight: normal;
-    color: ${p => p.theme.textColor};
+    color: ${p.theme.textColor};
+  }
+  .tooltip-label-value {
+    color: ${p.theme.textColor};
   }
   .tooltip-label-indent {
-    margin-left: ${space(3)};
+    margin-left: 18px;
   }
   .tooltip-series > div {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
   }
-  .tooltip-date {
-    border-top: solid 1px ${p => p.theme.innerBorder};
+  .tooltip-footer {
+    border-top: solid 1px ${p.theme.innerBorder};
     text-align: center;
     position: relative;
     width: auto;
-    border-radius: ${p => p.theme.borderRadiusBottom};
+    border-radius: ${p.theme.borderRadiusBottom};
+    display: flex;
+    justify-content: space-between;
+    gap: ${space(3)};
   }
+
+  .tooltip-footer-centered {
+    justify-content: center;
+    gap: 0;
+  }
+
   .tooltip-arrow {
     top: 100%;
     left: 50%;
@@ -608,12 +638,12 @@ const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
     pointer-events: none;
     border-left: 8px solid transparent;
     border-right: 8px solid transparent;
-    border-top: 8px solid ${p => p.theme.backgroundElevated};
+    border-top: 8px solid ${p.theme.backgroundElevated};
     margin-left: -8px;
     &:before {
       border-left: 8px solid transparent;
       border-right: 8px solid transparent;
-      border-top: 8px solid ${p => p.theme.translucentBorder};
+      border-top: 8px solid ${p.theme.translucentBorder};
       content: '';
       display: block;
       position: absolute;
@@ -623,26 +653,18 @@ const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
     }
   }
 
-  .echarts-for-react div:first-of-type {
-    width: 100% !important;
-  }
-
-  .echarts-for-react text {
-    font-variant-numeric: tabular-nums !important;
-  }
-
   /* Tooltip description styling */
   .tooltip-description {
-    color: ${p => p.theme.white};
-    border-radius: ${p => p.theme.borderRadius};
+    color: ${p.theme.white};
+    border-radius: ${p.theme.borderRadius};
     background: #000;
     opacity: 0.9;
     padding: 5px 10px;
     position: relative;
     font-weight: bold;
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p.theme.fontSizeSmall};
     line-height: 1.4;
-    font-family: ${p => p.theme.text.family};
+    font-family: ${p.theme.text.family};
     max-width: 230px;
     min-width: 230px;
     white-space: normal;
@@ -662,7 +684,29 @@ const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
   }
 `;
 
-const BaseChart = forwardRef<ReactEchartsRef, Props>((props, ref) => (
+// Contains styling for chart elements as we can't easily style those
+// elements directly
+const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
+  ${p => p.autoHeightResize && 'height: 100%;'}
+
+  .echarts-for-react div:first-of-type {
+    width: 100% !important;
+  }
+
+  .echarts-for-react text {
+    font-variant-numeric: tabular-nums !important;
+  }
+
+  ${p => getTooltipStyles(p)}
+`;
+
+const getPortalledTooltipStyles = (p: {theme: Theme}) => css`
+  .chart-tooltip-portal {
+    ${getTooltipStyles(p)};
+  }
+`;
+
+const BaseChart = forwardRef<ReactEchartsRef, BaseChartProps>((props, ref) => (
   <BaseChartUnwrapped forwardedRef={ref} {...props} />
 ));
 

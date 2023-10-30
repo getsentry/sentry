@@ -1,18 +1,17 @@
 import datetime
 
+from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
-from rest_framework.request import Request
-from rest_framework.response import Response
 
-from sentry.models import Authenticator
+from sentry.models.authenticator import Authenticator
 from sentry.security.emails import generate_security_email
 
 from .mail import MailPreview
 
 
 class DebugMfaAddedEmailView(View):
-    def get(self, request: Request) -> Response:
-        authenticator = Authenticator(id=0, type=3, user=request.user)  # u2f
+    def get(self, request: HttpRequest) -> HttpResponse:
+        authenticator = Authenticator(id=0, type=3, user_id=request.user.id)  # u2f
 
         email = generate_security_email(
             account=request.user,

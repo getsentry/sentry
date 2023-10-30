@@ -2,8 +2,9 @@
 This file is intended for unit tests that don't require fixtures or a live
 service. Most tests live in tests/symbolicator/
 """
+from __future__ import annotations
 
-
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -11,14 +12,15 @@ import pytest
 from sentry.lang.native.processing import (
     _merge_image,
     get_frames_for_symbolication,
-    process_payload,
+    process_native_stacktraces,
 )
 from sentry.models.eventerror import EventError
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path
 
 
 def test_merge_symbolicator_image_empty():
-    data = {}
+    data: dict[str, Any] = {}
     _merge_image({}, {}, None, data)
     assert not data.get("errors")
 
@@ -33,7 +35,7 @@ def test_merge_symbolicator_image_basic():
         "arch": "unknown",
     }
 
-    data = {}
+    data: dict[str, Any] = {}
 
     _merge_image(raw_image, complete_image, sdk_info, data)
 
@@ -56,7 +58,7 @@ def test_merge_symbolicator_image_basic_success():
         "other2": "bar",
         "arch": "foo",
     }
-    data = {}
+    data: dict[str, Any] = {}
 
     _merge_image(raw_image, complete_image, sdk_info, data)
 
@@ -75,7 +77,7 @@ def test_merge_symbolicator_image_remove_unknown_arch():
     raw_image = {"instruction_addr": 0xFEEBEE}
     sdk_info = {"sdk_name": "linux"}
     complete_image = {"debug_status": "found", "unwind_status": "found", "arch": "unknown"}
-    data = {}
+    data: dict[str, Any] = {}
 
     _merge_image(raw_image, complete_image, sdk_info, data)
 
@@ -106,7 +108,7 @@ def test_merge_symbolicator_image_errors(code_file, error):
         "other2": "bar",
         "arch": "unknown",
     }
-    data = {}
+    data: dict[str, Any] = {}
 
     _merge_image(raw_image, complete_image, sdk_info, data)
 
@@ -125,7 +127,7 @@ def test_merge_symbolicator_image_errors(code_file, error):
     }
 
 
-@pytest.mark.django_db
+@django_db_all
 @mock.patch("sentry.lang.native.processing.Symbolicator")
 def test_cocoa_function_name(mock_symbolicator, default_project):
 
@@ -152,7 +154,7 @@ def test_cocoa_function_name(mock_symbolicator, default_project):
         "modules": [],
     }
 
-    process_payload(data)
+    process_native_stacktraces(mock_symbolicator, data)
 
     function_name = get_path(data, "exception", "values", 0, "stacktrace", "frames", 0, "function")
     assert function_name == "thunk for closure"
@@ -178,7 +180,55 @@ def test_filter_frames():
     assert len(filtered_frames) == 0
 
 
-@pytest.mark.django_db
+def test_instruction_addr_adjustment_auto():
+    frames = [
+        {"instruction_addr": "0xdeadbeef", "platform": "native"},
+        {"instruction_addr": "0xbeefdead", "platform": "native"},
+    ]
+
+    processed_frames = get_frames_for_symbolication(frames, None, None, None)
+
+    assert "adjust_instruction_addr" not in processed_frames[0].keys()
+    assert "adjust_instruction_addr" not in processed_frames[1].keys()
+
+
+def test_instruction_addr_adjustment_all():
+    frames = [
+        {"instruction_addr": "0xdeadbeef", "platform": "native"},
+        {"instruction_addr": "0xbeefdead", "platform": "native"},
+    ]
+
+    processed_frames = get_frames_for_symbolication(frames, None, None, "all")
+
+    assert processed_frames[0]["adjust_instruction_addr"]
+    assert "adjust_instruction_addr" not in processed_frames[1].keys()
+
+
+def test_instruction_addr_adjustment_all_but_first():
+    frames = [
+        {"instruction_addr": "0xdeadbeef", "platform": "native"},
+        {"instruction_addr": "0xbeefdead", "platform": "native"},
+    ]
+
+    processed_frames = get_frames_for_symbolication(frames, None, None, "all_but_first")
+
+    assert not processed_frames[0]["adjust_instruction_addr"]
+    assert "adjust_instruction_addr" not in processed_frames[1].keys()
+
+
+def test_instruction_addr_adjustment_none():
+    frames = [
+        {"instruction_addr": "0xdeadbeef", "platform": "native"},
+        {"instruction_addr": "0xbeefdead", "platform": "native"},
+    ]
+
+    processed_frames = get_frames_for_symbolication(frames, None, None, "none")
+
+    assert not processed_frames[0]["adjust_instruction_addr"]
+    assert not processed_frames[1]["adjust_instruction_addr"]
+
+
+@django_db_all
 @mock.patch("sentry.lang.native.processing.Symbolicator")
 def test_il2cpp_symbolication(mock_symbolicator, default_project):
 
@@ -304,7 +354,7 @@ def test_il2cpp_symbolication(mock_symbolicator, default_project):
         ],
     }
 
-    process_payload(data)
+    process_native_stacktraces(mock_symbolicator, data)
 
     frame = get_path(data, "exception", "values", 0, "stacktrace", "frames", 3)
 

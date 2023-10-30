@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import {RelayActivity} from 'sentry/types';
 
@@ -10,19 +10,21 @@ type Props = {
   activities: Array<RelayActivity>;
 };
 
-const ActivityList = ({activities}: Props) => (
-  <StyledPanelTable headers={[t('Version'), t('First Used'), t('Last Used')]}>
-    {activities.map(({relayId, version, firstSeen, lastSeen}) => {
-      return (
-        <Fragment key={relayId}>
-          <Version>{version}</Version>
-          <DateTime date={firstSeen} seconds={false} />
-          <DateTime date={lastSeen} seconds={false} />
-        </Fragment>
-      );
-    })}
-  </StyledPanelTable>
-);
+function ActivityList({activities}: Props) {
+  return (
+    <StyledPanelTable headers={[t('Version'), t('First Used'), t('Last Used')]}>
+      {activities.map(({relayId, version, firstSeen, lastSeen}) => {
+        return (
+          <Fragment key={relayId}>
+            <Version>{version}</Version>
+            <DateTime date={firstSeen} seconds={false} />
+            <DateTime date={lastSeen} seconds={false} />
+          </Fragment>
+        );
+      })}
+    </StyledPanelTable>
+  );
+}
 
 export default ActivityList;
 

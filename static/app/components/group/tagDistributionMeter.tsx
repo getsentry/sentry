@@ -7,6 +7,7 @@ import {Group, Organization, TagWithTopValues} from 'sentry/types';
 type Props = {
   group: Group;
   name: string;
+  onTagClick: React.ComponentProps<typeof TagDistributionMeter>['onTagClick'];
   organization: Organization;
   projectId: string;
   tag: string;
@@ -25,8 +26,8 @@ class GroupTagDistributionMeter extends Component<Props> {
   }
 
   render() {
-    const {organization, group, tag, totalValues, topValues} = this.props;
-    const url = `/organizations/${organization.slug}/issues/${group.id}/tags/${tag}/`;
+    const {organization, group, tag, totalValues, topValues, onTagClick} = this.props;
+    const url = `/organizations/${organization.slug}/issues/${group.id}/tags/${tag}/?referrer=tag-distribution-meter`;
 
     const segments = topValues
       ? topValues.map(value => ({
@@ -43,6 +44,7 @@ class GroupTagDistributionMeter extends Component<Props> {
         isLoading={false}
         hasError={false}
         segments={segments}
+        onTagClick={onTagClick}
       />
     );
   }

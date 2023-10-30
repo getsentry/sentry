@@ -5,13 +5,14 @@ web-server
 
 import logging
 import os.path
-from collections import OrderedDict, namedtuple
+from collections import namedtuple
 from datetime import timedelta
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple, cast
 
-import sentry_relay
+import sentry_relay.consts
+import sentry_relay.processing
 from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry.utils.geo import rust_geoip
 from sentry.utils.integrationdocs import load_doc
@@ -29,7 +30,7 @@ def get_all_languages() -> List[str]:
     return results
 
 
-MODULE_ROOT = os.path.dirname(__import__("sentry").__file__)
+MODULE_ROOT = os.path.dirname(cast(str, __import__("sentry").__file__))
 DATA_ROOT = os.path.join(MODULE_ROOT, "data")
 
 BAD_RELEASE_CHARS = "\r\n\f\x0c\t/\\"
@@ -40,18 +41,18 @@ COMMIT_RANGE_DELIMITER = ".."
 # semver constants
 SEMVER_FAKE_PACKAGE = "__sentry_fake__"
 
-SORT_OPTIONS = OrderedDict(
-    (
-        ("priority", _("Priority")),
-        ("date", _("Last Seen")),
-        ("new", _("First Seen")),
-        ("freq", _("Frequency")),
-    )
-)
+SORT_OPTIONS = {
+    "priority": _("Priority"),
+    "date": _("Last Seen"),
+    "new": _("First Seen"),
+    "freq": _("Frequency"),
+}
 
-SEARCH_SORT_OPTIONS = OrderedDict(
-    (("score", _("Score")), ("date", _("Last Seen")), ("new", _("First Seen")))
-)
+SEARCH_SORT_OPTIONS = {
+    "score": _("Score"),
+    "date": _("Last Seen"),
+    "new": _("First Seen"),
+}
 
 # XXX: Deprecated: use GroupStatus instead
 STATUS_UNRESOLVED = 0
@@ -63,7 +64,6 @@ STATUS_IGNORED = 2
 # accuracy provided.
 MINUTE_NORMALIZATION = 15
 
-MAX_TAG_KEY_LENGTH = 32
 MAX_TAG_VALUE_LENGTH = 200
 MAX_CULPRIT_LENGTH = 200
 MAX_EMAIL_FIELD_LENGTH = 75
@@ -82,75 +82,113 @@ MAX_ROLLUP_POINTS = 10000
 # which we don't want to worry about conflicts on.
 RESERVED_ORGANIZATION_SLUGS = frozenset(
     (
-        "admin",
-        "manage",
-        "login",
-        "account",
-        "register",
-        "api",
-        "accept",
-        "organizations",
-        "teams",
-        "projects",
-        "help",
-        "docs",
-        "logout",
         "404",
         "500",
-        "_static",
-        "out",
-        "debug",
-        "remote",
-        "get-cli",
-        "blog",
-        "welcome",
-        "features",
-        "customers",
-        "integrations",
-        "signup",
-        "pricing",
-        "subscribe",
-        "enterprise",
-        "about",
-        "jobs",
-        "thanks",
-        "guide",
-        "privacy",
-        "security",
-        "terms",
-        "from",
-        "sponsorship",
-        "for",
-        "at",
-        "platforms",
-        "branding",
-        "vs",
-        "answers",
         "_admin",
-        "support",
+        "_experiment",
+        "_static",
+        "about",
+        "accept",
+        "access",
+        "account",
+        "accountspayable",
+        "acl",
+        "admin",
+        "answers",
+        "ap",
+        "api",
+        "app",
+        "at",
+        "au1",
+        "auth",
+        "authentication",
+        "avatar",
+        "billing",
+        "blog",
+        "branding",
+        "careers",
+        "client",
+        "clients",
+        "community",
         "contact",
-        "onboarding",
+        "corp",
+        "customers",
+        "de",
+        "debug",
+        "devinfra",
+        "docs",
+        "enterprise",
+        "eu",
+        "events",
+        "expenses",
         "ext",
         "extension",
         "extensions",
-        "plugins",
-        "themonitor",
-        "settings",
-        "legal",
-        "avatar",
-        "organization-avatar",
-        "project-avatar",
-        "team-avatar",
-        "careers",
-        "_experiment",
-        "sentry-apps",
-        "resources",
+        "features",
+        "finance",
+        "for",
+        "from",
+        "get-cli",
+        "github-deployment-gate",
+        "guide",
+        "help",
+        "ingest",
+        "ingest-beta",
         "integration-platform",
-        "trust",
+        "integrations",
+        "invoice",
+        "invoices",
+        "ja",
+        "jobs",
         "legal",
-        "community",
+        "login",
+        "logout",
+        "lp",
+        "mail",
+        "manage",
+        "my",
+        "onboarding",
+        "organization-avatar",
+        "organizations",
+        "out",
+        "payment",
+        "payments",
+        "platforms",
+        "plugins",
+        "policy",
+        "pricing",
+        "privacy",
+        "project-avatar",
+        "projects",
+        "receipt",
+        "receipts",
         "referrals",
-        "demo",
+        "register",
+        "remote",
+        "resources",
+        "sa1",
+        "sales",
+        "security",
+        "sentry-apps",
+        "settings",
+        "signup",
+        "sponsorship",
+        "ssh",
+        "sso",
+        "staff",
+        "subscribe",
+        "support",
+        "syntax",
+        "syntaxfm",
+        "team-avatar",
+        "teams",
+        "terms",
+        "thanks",
+        "themonitor",
+        "trust",
+        "us",
+        "vs",
+        "welcome",
     )
 )
 
@@ -221,7 +259,6 @@ _SENTRY_RULES = (
     "sentry.rules.actions.notify_event.NotifyEventAction",
     "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
     "sentry.rules.actions.sentry_apps.notify_event.NotifyEventSentryAppAction",
-    "sentry.rules.conditions.active_release.ActiveReleaseEventCondition",
     "sentry.rules.conditions.every_event.EveryEventCondition",
     "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
     "sentry.rules.conditions.regression_event.RegressionEventCondition",
@@ -236,6 +273,8 @@ _SENTRY_RULES = (
     "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",
     "sentry.rules.filters.assigned_to.AssignedToFilter",
     "sentry.rules.filters.latest_release.LatestReleaseFilter",
+    "sentry.rules.filters.issue_category.IssueCategoryFilter",
+    "sentry.rules.filters.issue_severity.IssueSeverityFilter",
     # The following filters are duplicates of their respective conditions and are conditionally shown if the user has issue alert-filters
     "sentry.rules.filters.event_attribute.EventAttributeFilter",
     "sentry.rules.filters.tagged_event.TaggedEventFilter",
@@ -253,6 +292,7 @@ MIGRATED_CONDITIONS = frozenset(
 TICKET_ACTIONS = frozenset(
     [
         "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+        "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
         "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
     ]
 )
@@ -265,7 +305,7 @@ SENTRY_APP_ACTIONS = frozenset(
 HTTP_METHODS = ("GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH")
 
 # See https://github.com/getsentry/relay/blob/master/relay-general/src/protocol/constants.rs
-VALID_PLATFORMS = sentry_relay.VALID_PLATFORMS
+VALID_PLATFORMS = sentry_relay.processing.VALID_PLATFORMS
 
 OK_PLUGIN_ENABLED = _("The {name} integration has been enabled.")
 
@@ -273,7 +313,7 @@ OK_PLUGIN_DISABLED = _("The {name} integration has been disabled.")
 
 OK_PLUGIN_SAVED = _("Configuration for the {name} integration has been saved.")
 
-WARN_SESSION_EXPIRED = "Your session has expired."  # TODO: translate this
+WARN_SESSION_EXPIRED = _("Your session has expired.")
 
 # Maximum length of a symbol
 MAX_SYM = 256
@@ -291,6 +331,7 @@ KNOWN_DIF_FORMATS: Dict[str, str] = {
     "application/x-bcsymbolmap": "bcsymbolmap",
     "application/x-debugid-map": "uuidmap",
     "application/x-il2cpp-json": "il2cpp",
+    "application/x-portable-pdb": "portablepdb",
 }
 
 NATIVE_UNKNOWN_STRING = "<unknown>"
@@ -301,6 +342,7 @@ NATIVE_UNKNOWN_STRING = "<unknown>"
 # LIMIT-OFFSET database queries.
 # These problems should be solved after we implement artifact bundles workflow.
 MAX_RELEASE_FILES_OFFSET = 20000
+MAX_ARTIFACT_BUNDLE_FILES_OFFSET = MAX_RELEASE_FILES_OFFSET
 
 # to go from an integration id (in _platforms.json) to the platform
 # data, such as documentation url or humanized name.
@@ -358,7 +400,7 @@ MARKETING_SLUG_TO_INTEGRATION_ID = {
     "pyramid": "python-pyramid",
     "pylons": "python-pylons",
     "laravel": "php-laravel",
-    "symfony": "php-symfony2",
+    "symfony": "php-symfony",
     "rails": "ruby-rails",
     "sinatra": "ruby-sinatra",
     "dotnet": "csharp",
@@ -421,12 +463,11 @@ def get_integration_id_for_event(
 
 
 class ObjectStatus:
-    VISIBLE = 0
+    ACTIVE = 0
     HIDDEN = 1
     PENDING_DELETION = 2
     DELETION_IN_PROGRESS = 3
 
-    ACTIVE = 0
     DISABLED = 1
 
     @classmethod
@@ -444,10 +485,12 @@ class SentryAppStatus:
     PUBLISHED = 1
     INTERNAL = 2
     PUBLISH_REQUEST_INPROGRESS = 3
+    DELETION_IN_PROGRESS = 4
     UNPUBLISHED_STR = "unpublished"
     PUBLISHED_STR = "published"
     INTERNAL_STR = "internal"
     PUBLISH_REQUEST_INPROGRESS_STR = "publish_request_inprogress"
+    DELETION_IN_PROGRESS_STR = "deletion_in_progress"
 
     @classmethod
     def as_choices(cls) -> Sequence[Tuple[int, str]]:
@@ -456,10 +499,11 @@ class SentryAppStatus:
             (cls.PUBLISHED, cls.PUBLISHED_STR),
             (cls.INTERNAL, cls.INTERNAL_STR),
             (cls.PUBLISH_REQUEST_INPROGRESS, cls.PUBLISH_REQUEST_INPROGRESS_STR),
+            (cls.DELETION_IN_PROGRESS, cls.DELETION_IN_PROGRESS_STR),
         )
 
     @classmethod
-    def as_str(cls, status: int) -> Optional[str]:
+    def as_str(cls, status: int) -> str:
         if status == cls.UNPUBLISHED:
             return cls.UNPUBLISHED_STR
         elif status == cls.PUBLISHED:
@@ -468,8 +512,25 @@ class SentryAppStatus:
             return cls.INTERNAL_STR
         elif status == cls.PUBLISH_REQUEST_INPROGRESS:
             return cls.PUBLISH_REQUEST_INPROGRESS_STR
+        elif status == cls.DELETION_IN_PROGRESS:
+            return cls.DELETION_IN_PROGRESS_STR
         else:
-            return None
+            raise ValueError(f"Not a SentryAppStatus int: {status!r}")
+
+    @classmethod
+    def as_int(cls, status: str) -> int:
+        if status == cls.UNPUBLISHED_STR:
+            return cls.UNPUBLISHED
+        elif status == cls.PUBLISHED_STR:
+            return cls.PUBLISHED
+        elif status == cls.INTERNAL_STR:
+            return cls.INTERNAL
+        elif status == cls.PUBLISH_REQUEST_INPROGRESS_STR:
+            return cls.PUBLISH_REQUEST_INPROGRESS
+        elif status == cls.DELETION_IN_PROGRESS_STR:
+            return cls.DELETION_IN_PROGRESS
+        else:
+            raise ValueError(f"Not a SentryAppStatus str: {status!r}")
 
 
 class SentryAppInstallationStatus:
@@ -486,13 +547,13 @@ class SentryAppInstallationStatus:
         )
 
     @classmethod
-    def as_str(cls, status: int) -> Optional[str]:
+    def as_str(cls, status: int) -> str:
         if status == cls.PENDING:
             return cls.PENDING_STR
         elif status == cls.INSTALLED:
             return cls.INSTALLED_STR
         else:
-            return None
+            raise ValueError(f"Not a SentryAppInstallationStatus int: {status!r}")
 
 
 class ExportQueryType:
@@ -513,22 +574,22 @@ class ExportQueryType:
         )
 
     @classmethod
-    def as_str(cls, integer: int) -> Optional[str]:
+    def as_str(cls, integer: int) -> str:
         if integer == cls.ISSUES_BY_TAG:
             return cls.ISSUES_BY_TAG_STR
         elif integer == cls.DISCOVER:
             return cls.DISCOVER_STR
         else:
-            return None
+            raise ValueError(f"Not an ExportQueryType int: {integer!r}")
 
     @classmethod
-    def from_str(cls, string: str) -> Optional[int]:
+    def from_str(cls, string: str) -> int:
         if string == cls.ISSUES_BY_TAG_STR:
             return cls.ISSUES_BY_TAG
         elif string == cls.DISCOVER_STR:
             return cls.DISCOVER
         else:
-            return None
+            raise ValueError(f"Not an ExportQueryType str: {string!r}")
 
 
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
@@ -572,13 +633,15 @@ SCRAPE_JAVASCRIPT_DEFAULT = True
 TRUSTED_RELAYS_DEFAULT = None
 JOIN_REQUESTS_DEFAULT = True
 APDEX_THRESHOLD_DEFAULT = 300
+AI_SUGGESTED_SOLUTION = True
+GITHUB_COMMENT_BOT_DEFAULT = True
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True
 ALERTS_MEMBER_WRITE_DEFAULT = True
 
 # Defined at https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
-DataCategory = sentry_relay.DataCategory
+DataCategory = sentry_relay.consts.DataCategory
 
 CRASH_RATE_ALERT_SESSION_COUNT_ALIAS = "_total_count"
 CRASH_RATE_ALERT_AGGREGATE_ALIAS = "_crash_rate_alert_aggregate"
@@ -625,3 +688,226 @@ DS_DENYLIST = frozenset(
         "url",
     ]
 )
+
+
+# DESCRIBES the globs used to check if a transaction is for a healthcheck endpoint
+# https://kubernetes.io/docs/reference/using-api/health-checks/
+# Also it covers: livez, readyz
+HEALTH_CHECK_GLOBS = [
+    "*healthcheck*",
+    "*healthy*",
+    "live",
+    "live[z/-]*",
+    "*[/-]live",
+    "*[/-]live[z/-]*",
+    "ready",
+    "ready[z/-]*",
+    "*[/-]ready",
+    "*[/-]ready[z/-]*",
+    "*heartbeat*",
+    "*/health",
+    "*/healthz",
+    "*/ping",
+]
+
+# Generated from https://raw.githubusercontent.com/github-linguist/linguist/master/lib/linguist/languages.yml and our list of platforms/languages
+EXTENSION_LANGUAGE_MAP = {
+    "c": "c",
+    "cats": "c",
+    "h": "objective-c",
+    "idc": "c",
+    "cs": "c#",
+    "cake": "coffeescript",
+    "csx": "c#",
+    "linq": "c#",
+    "cpp": "c++",
+    "c++": "c++",
+    "cc": "c++",
+    "cp": "c++",
+    "cppm": "c++",
+    "cxx": "c++",
+    "h++": "c++",
+    "hh": "c++",
+    "hpp": "c++",
+    "hxx": "c++",
+    "inc": "php",
+    "inl": "c++",
+    "ino": "c++",
+    "ipp": "c++",
+    "ixx": "c++",
+    "re": "c++",
+    "tcc": "c++",
+    "tpp": "c++",
+    "txx": "c++",
+    "chs": "c2hs haskell",
+    "clj": "clojure",
+    "bb": "clojure",
+    "boot": "clojure",
+    "cl2": "clojure",
+    "cljc": "clojure",
+    "cljs": "clojure",
+    "cljs.hl": "clojure",
+    "cljscm": "clojure",
+    "cljx": "clojure",
+    "hic": "clojure",
+    "coffee": "coffeescript",
+    "_coffee": "coffeescript",
+    "cjsx": "coffeescript",
+    "iced": "coffeescript",
+    "cfm": "coldfusion",
+    "cfml": "coldfusion",
+    "cfc": "coldfusion cfc",
+    "cr": "crystal",
+    "dart": "dart",
+    "ex": "elixir",
+    "exs": "elixir",
+    "fs": "f#",
+    "fsi": "f#",
+    "fsx": "f#",
+    "go": "go",
+    "groovy": "groovy",
+    "grt": "groovy",
+    "gtpl": "groovy",
+    "gvy": "groovy",
+    "gsp": "groovy server pages",
+    "hcl": "hcl",
+    "nomad": "hcl",
+    "tf": "hcl",
+    "tfvars": "hcl",
+    "workflow": "hcl",
+    "hs": "haskell",
+    "hs-boot": "haskell",
+    "hsc": "haskell",
+    "java": "java",
+    "jav": "java",
+    "jsh": "java",
+    "jsp": "java server pages",
+    "tag": "java server pages",
+    "js": "javascript",
+    "_js": "javascript",
+    "bones": "javascript",
+    "cjs": "javascript",
+    "es": "javascript",
+    "es6": "javascript",
+    "frag": "javascript",
+    "gs": "javascript",
+    "jake": "javascript",
+    "javascript": "javascript",
+    "jsb": "javascript",
+    "jscad": "javascript",
+    "jsfl": "javascript",
+    "jslib": "javascript",
+    "jsm": "javascript",
+    "jspre": "javascript",
+    "jss": "javascript",
+    "jsx": "javascript",
+    "mjs": "javascript",
+    "njs": "javascript",
+    "pac": "javascript",
+    "sjs": "javascript",
+    "ssjs": "javascript",
+    "xsjs": "javascript",
+    "xsjslib": "javascript",
+    "js.erb": "javascript+erb",
+    "kt": "kotlin",
+    "ktm": "kotlin",
+    "kts": "kotlin",
+    "litcoffee": "literate coffeescript",
+    "coffee.md": "literate coffeescript",
+    "lhs": "literate haskell",
+    "lua": "lua",
+    "fcgi": "ruby",
+    "nse": "lua",
+    "p8": "lua",
+    "pd_lua": "lua",
+    "rbxs": "lua",
+    "rockspec": "lua",
+    "wlua": "lua",
+    "numpy": "numpy",
+    "numpyw": "numpy",
+    "numsc": "numpy",
+    "ml": "ocaml",
+    "eliom": "ocaml",
+    "eliomi": "ocaml",
+    "ml4": "ocaml",
+    "mli": "ocaml",
+    "mll": "ocaml",
+    "mly": "ocaml",
+    "m": "objective-c",
+    "mm": "objective-c++",
+    "cl": "opencl",
+    "opencl": "opencl",
+    "php": "php",
+    "aw": "php",
+    "ctp": "php",
+    "php3": "php",
+    "php4": "php",
+    "php5": "php",
+    "phps": "php",
+    "phpt": "php",
+    "pl": "perl",
+    "al": "perl",
+    "cgi": "python",
+    "perl": "perl",
+    "ph": "perl",
+    "plx": "perl",
+    "pm": "perl",
+    "psgi": "perl",
+    "t": "perl",
+    "py": "python",
+    "gyp": "python",
+    "gypi": "python",
+    "lmi": "python",
+    "py3": "python",
+    "pyde": "python",
+    "pyi": "python",
+    "pyp": "python",
+    "pyt": "python",
+    "pyw": "python",
+    "rpy": "python",
+    "spec": "ruby",
+    "tac": "python",
+    "wsgi": "python",
+    "xpy": "python",
+    "rb": "ruby",
+    "builder": "ruby",
+    "eye": "ruby",
+    "gemspec": "ruby",
+    "god": "ruby",
+    "jbuilder": "ruby",
+    "mspec": "ruby",
+    "pluginspec": "ruby",
+    "podspec": "ruby",
+    "prawn": "ruby",
+    "rabl": "ruby",
+    "rake": "ruby",
+    "rbi": "ruby",
+    "rbuild": "ruby",
+    "rbw": "ruby",
+    "rbx": "ruby",
+    "ru": "ruby",
+    "ruby": "ruby",
+    "thor": "ruby",
+    "watchr": "ruby",
+    "rs": "rust",
+    "rs.in": "rust",
+    "scala": "scala",
+    "kojo": "scala",
+    "sbt": "scala",
+    "sc": "scala",
+    "smk": "snakemake",
+    "snakefile": "snakemake",
+    "swift": "swift",
+    "tsx": "tsx",
+    "ts": "typescript",
+    "cts": "typescript",
+    "mts": "typescript",
+    "upc": "unified parallel c",
+    "vb": "visual basic .net",
+    "vbhtml": "visual basic .net",
+    "bas": "visual basic 6.0",
+    "cls": "visual basic 6.0",
+    "ctl": "visual basic 6.0",
+    "dsr": "visual basic 6.0",
+    "frm": "visual basic 6.0",
+}

@@ -2,9 +2,9 @@ from django.http import HttpResponse
 from django.views.decorators.cache import cache_control
 from django.views.generic.base import View as BaseView
 from rest_framework.request import Request
-from rest_framework.response import Response
 
-from sentry.models import Project
+from sentry.models.project import Project
+from sentry.silo.base import SiloMode
 from sentry.utils import json
 from sentry.utils.http import get_origins
 from sentry.web.client_config import get_client_config
@@ -12,7 +12,7 @@ from sentry.web.helpers import render_to_response
 
 
 class ClientConfigView(BaseView):
-    def get(self, request: Request) -> Response:
+    def get(self, request: Request) -> HttpResponse:
         return HttpResponse(json.dumps(get_client_config(request)), content_type="application/json")
 
 
@@ -23,7 +23,7 @@ def robots_txt(request):
 
 @cache_control(max_age=60)
 def crossdomain_xml(request, project_id):
-    if not project_id.isdigit():
+    if SiloMode.get_current_mode() == SiloMode.CONTROL or (not project_id.isdigit()):
         return HttpResponse(status=404)
 
     try:
@@ -36,3 +36,8 @@ def crossdomain_xml(request, project_id):
     response["Content-Type"] = "application/xml"
 
     return response
+
+
+@cache_control(max_age=3600, public=True)
+def not_found(request):
+    return HttpResponse(status=404)

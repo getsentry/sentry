@@ -1,273 +1,233 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useCallback, useMemo, useRef} from 'react';
 import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import classNames from 'classnames';
 import type {LocationDescriptor} from 'history';
 
 import AssigneeSelector from 'sentry/components/assigneeSelector';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Checkbox from 'sentry/components/checkbox';
 import Count from 'sentry/components/count';
-import DropdownMenu from 'sentry/components/dropdownMenu';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import {GroupListColumn} from 'sentry/components/issues/groupList';
 import Link from 'sentry/components/links/link';
-import MenuItem from 'sentry/components/menuItem';
 import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import ProgressBar from 'sentry/components/progressBar';
+import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import GroupChart from 'sentry/components/stream/groupChart';
-import GroupCheckBox from 'sentry/components/stream/groupCheckBox';
 import TimeSince from 'sentry/components/timeSince';
+import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
+import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
-import space from 'sentry/styles/space';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {space} from 'sentry/styles/space';
 import {
   Group,
   GroupReprocessing,
   InboxDetails,
+  IssueCategory,
   NewQuery,
   Organization,
-  PageFilters,
   User,
 } from 'sentry/types';
-import {defined, percent, valueIsEqual} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
+import {defined, percent} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventView from 'sentry/utils/discover/eventView';
-import {queryToObj} from 'sentry/utils/stream';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import withOrganization from 'sentry/utils/withOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
 import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getTabs,
   isForReviewQuery,
-  Query,
 } from 'sentry/views/issueList/utils';
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
 
-const defaultProps = {
-  statsPeriod: DEFAULT_STREAM_GROUP_STATS_PERIOD,
-  canSelect: true,
-  withChart: true,
-  useFilteredStats: false,
-  useTintRow: true,
-  narrowGroups: false,
-};
-
 type Props = {
   id: string;
   organization: Organization;
-  selection: PageFilters;
+  canSelect?: boolean;
   customStatsPeriod?: TimePeriodType;
   displayReprocessingLayout?: boolean;
   hasGuideAnchor?: boolean;
   index?: number;
   memberList?: User[];
+  narrowGroups?: boolean;
   query?: string;
-  // TODO(ts): higher order functions break defaultprops export types
   queryFilterDescription?: string;
   showInboxTime?: boolean;
-} & Partial<typeof defaultProps>;
-
-type State = {
-  actionTaken: boolean;
-  data: Group;
-  reviewed: boolean;
+  showLastTriggered?: boolean;
+  source?: string;
+  statsPeriod?: string;
+  useFilteredStats?: boolean;
+  useTintRow?: boolean;
+  withChart?: boolean;
+  withColumns?: GroupListColumn[];
 };
 
-class StreamGroup extends Component<Props, State> {
-  static defaultProps = defaultProps;
+function BaseGroupRow({
+  id,
+  organization,
+  customStatsPeriod,
+  displayReprocessingLayout,
+  hasGuideAnchor,
+  index,
+  memberList,
+  query,
+  queryFilterDescription,
+  showInboxTime,
+  source,
+  statsPeriod = DEFAULT_STREAM_GROUP_STATS_PERIOD,
+  canSelect = true,
+  withChart = true,
+  withColumns = ['graph', 'event', 'users', 'assignee', 'lastTriggered'],
+  useFilteredStats = false,
+  useTintRow = true,
+  narrowGroups = false,
+  showLastTriggered = false,
+}: Props) {
+  const groups = useLegacyStore(GroupStore);
+  const group = groups.find(item => item.id === id) as Group;
+  const issueTypeConfig = getConfigForIssueType(group);
 
-  state: State = this.getInitialState();
+  const selectedGroups = useLegacyStore(SelectedGroupStore);
+  const isSelected = selectedGroups[id];
 
-  getInitialState(): State {
-    const {id, useFilteredStats} = this.props;
+  const {selection} = usePageFilters();
 
-    const data = GroupStore.get(id) as Group;
+  const originalInboxState = useRef(group.inbox as InboxDetails | null);
 
-    return {
-      data: {
-        ...data,
-        filtered: useFilteredStats ? data.filtered : null,
-      },
-      reviewed: false,
-      actionTaken: false,
-    };
-  }
+  const referrer = source ? `${source}-issue-stream` : 'issue-stream';
 
-  componentWillReceiveProps(nextProps: Props) {
-    if (
-      nextProps.id !== this.props.id ||
-      nextProps.useFilteredStats !== this.props.useFilteredStats
-    ) {
-      const data = GroupStore.get(this.props.id) as Group;
+  const reviewed =
+    // Original state had an inbox reason
+    originalInboxState.current?.reason !== undefined &&
+    // Updated state has been removed from inbox
+    !group.inbox &&
+    // Only apply reviewed on the "for review" tab
+    isForReviewQuery(query);
 
-      this.setState({
-        data: {
-          ...data,
-          filtered: nextProps.useFilteredStats ? data.filtered : null,
-        },
-      });
-    }
-  }
+  const {period, start, end} = selection.datetime || {};
+  const summary =
+    customStatsPeriod?.label.toLowerCase() ??
+    (!!start && !!end
+      ? 'time range'
+      : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase());
 
-  shouldComponentUpdate(nextProps: Props, nextState: State) {
-    if (nextProps.statsPeriod !== this.props.statsPeriod) {
-      return true;
-    }
-    if (!valueIsEqual(this.state.data, nextState.data)) {
-      return true;
-    }
-    return false;
-  }
-
-  componentWillUnmount() {
-    callIfFunction(this.listener);
-  }
-
-  listener = GroupStore.listen(itemIds => this.onGroupChange(itemIds), undefined);
-
-  onGroupChange(itemIds: Set<string>) {
-    const {id, query} = this.props;
-    if (!itemIds.has(id)) {
-      return;
-    }
-
-    const actionTaken = this.state.data.status !== 'unresolved';
-    const data = GroupStore.get(id) as Group;
-    this.setState(state => {
-      // When searching is:for_review and the inbox reason is removed
-      const reviewed =
-        state.reviewed ||
-        (isForReviewQuery(query) &&
-          (state.data.inbox as InboxDetails)?.reason !== undefined &&
-          data.inbox === false);
-      return {data, reviewed, actionTaken};
-    });
-  }
-
-  /** Shared between two events */
-  sharedAnalytics() {
-    const {query, organization} = this.props;
-    const {data} = this.state;
+  const sharedAnalytics = useMemo(() => {
     const tab = getTabs(organization).find(([tabQuery]) => tabQuery === query)?.[1];
-    const owners = data?.owners || [];
+    const owners = group.owners ?? [];
     return {
       organization,
-      group_id: data.id,
+      group_id: group.id,
       tab: tab?.analyticsName || 'other',
       was_shown_suggestion: owners.length > 0,
     };
-  }
+  }, [organization, group.id, group.owners, query]);
 
-  trackClick = () => {
-    const {query, organization} = this.props;
-    const {data} = this.state;
-    if (query === Query.FOR_REVIEW) {
-      trackAdvancedAnalyticsEvent('inbox_tab.issue_clicked', {
-        organization,
-        group_id: data.id,
-      });
-    }
+  const trackAssign: React.ComponentProps<typeof AssigneeSelector>['onAssign'] =
+    useCallback(
+      (type, _assignee, suggestedAssignee) => {
+        if (query !== undefined) {
+          trackAnalytics('issues_stream.issue_assigned', {
+            ...sharedAnalytics,
+            did_assign_suggestion: !!suggestedAssignee,
+            assigned_suggestion_reason: suggestedAssignee?.suggestedReason,
+            assigned_type: type,
+          });
+        }
+      },
+      [query, sharedAnalytics]
+    );
 
-    if (query !== undefined) {
-      trackAdvancedAnalyticsEvent('issues_stream.issue_clicked', this.sharedAnalytics());
-    }
-  };
+  const wrapperToggle = useCallback(
+    (evt: React.MouseEvent<HTMLDivElement>) => {
+      const targetElement = evt.target as Partial<HTMLElement>;
 
-  trackAssign: React.ComponentProps<typeof AssigneeSelector>['onAssign'] = (
-    type,
-    _assignee,
-    suggestedAssignee
-  ) => {
-    const {query} = this.props;
-    if (query !== undefined) {
-      trackAdvancedAnalyticsEvent('issues_stream.issue_assigned', {
-        ...this.sharedAnalytics(),
-        did_assign_suggestion: !!suggestedAssignee,
-        assigned_suggestion_reason: suggestedAssignee?.suggestedReason,
-        assigned_type: type,
-      });
-    }
-  };
-
-  toggleSelect = (evt: React.MouseEvent<HTMLDivElement>) => {
-    const targetElement = evt.target as Partial<HTMLElement>;
-
-    if (targetElement?.tagName?.toLowerCase() === 'a') {
-      return;
-    }
-
-    if (targetElement?.tagName?.toLowerCase() === 'input') {
-      return;
-    }
-
-    let e = targetElement;
-    while (e.parentElement) {
-      if (e?.tagName?.toLowerCase() === 'a') {
+      // Ignore clicks on links
+      if (targetElement?.tagName?.toLowerCase() === 'a') {
         return;
       }
-      e = e.parentElement!;
-    }
 
-    SelectedGroupStore.toggleSelect(this.state.data.id);
-  };
+      // Ignore clicks on the selection checkbox
+      if (targetElement?.tagName?.toLowerCase() === 'input') {
+        return;
+      }
 
-  getDiscoverUrl(isFiltered?: boolean): LocationDescriptor {
-    const {organization, query, selection, customStatsPeriod} = this.props;
-    const {data} = this.state;
+      let e = targetElement;
+      while (e.parentElement) {
+        if (e?.tagName?.toLowerCase() === 'a') {
+          return;
+        }
+        e = e.parentElement!;
+      }
 
+      if (evt.shiftKey) {
+        SelectedGroupStore.shiftToggleItems(group.id);
+        window.getSelection()?.removeAllRanges();
+      } else {
+        SelectedGroupStore.toggleSelect(group.id);
+      }
+    },
+    [group.id]
+  );
+
+  const checkboxToggle = useCallback(
+    (evt: React.ChangeEvent<HTMLInputElement>) => {
+      const mouseEvent = evt.nativeEvent as MouseEvent;
+
+      if (mouseEvent.shiftKey) {
+        SelectedGroupStore.shiftToggleItems(group.id);
+      } else {
+        SelectedGroupStore.toggleSelect(group.id);
+      }
+    },
+    [group.id]
+  );
+
+  const getDiscoverUrl = (isFiltered?: boolean): LocationDescriptor => {
     // when there is no discover feature open events page
     const hasDiscoverQuery = organization.features.includes('discover-basic');
 
-    const queryTerms: string[] = [];
+    const parsedResult = parseSearch(
+      isFiltered && typeof query === 'string' ? query : ''
+    );
+    const filteredTerms = parsedResult?.filter(
+      p => !(p.type === Token.FILTER && DISCOVER_EXCLUSION_FIELDS.includes(p.key.text))
+    );
+    const filteredQuery = joinQuery(filteredTerms, true);
 
-    if (isFiltered && typeof query === 'string') {
-      const queryObj = queryToObj(query);
-      for (const queryTag in queryObj) {
-        if (!DISCOVER_EXCLUSION_FIELDS.includes(queryTag)) {
-          const queryVal = queryObj[queryTag].includes(' ')
-            ? `"${queryObj[queryTag]}"`
-            : queryObj[queryTag];
-          queryTerms.push(`${queryTag}:${queryVal}`);
-        }
-      }
-
-      if (queryObj.__text) {
-        queryTerms.push(queryObj.__text);
-      }
-    }
-
-    const commonQuery = {projects: [Number(data.project.id)]};
-
-    const searchQuery = (queryTerms.length ? ' ' : '') + queryTerms.join(' ');
+    const commonQuery = {projects: [Number(group.project.id)]};
 
     if (hasDiscoverQuery) {
-      const {period, start, end, utc} = customStatsPeriod ?? (selection.datetime || {});
+      const stats = customStatsPeriod ?? (selection.datetime || {});
 
       const discoverQuery: NewQuery = {
         ...commonQuery,
         id: undefined,
-        name: data.title || data.type,
+        name: group.title || group.type,
         fields: ['title', 'release', 'environment', 'user', 'timestamp'],
         orderby: '-timestamp',
-        query: `issue.id:${data.id}${searchQuery}`,
+        query: `issue:${group.shortId}${filteredQuery}`,
         version: 2,
       };
 
-      if (!!start && !!end) {
-        discoverQuery.start = new Date(start).toISOString();
-        discoverQuery.end = new Date(end).toISOString();
-        if (utc) {
+      if (!!stats.start && !!stats.end) {
+        discoverQuery.start = new Date(stats.start).toISOString();
+        discoverQuery.end = new Date(stats.end).toISOString();
+        if (stats.utc) {
           discoverQuery.utc = true;
         }
       } else {
-        discoverQuery.range = period || DEFAULT_STATS_PERIOD;
+        discoverQuery.range = stats.period || DEFAULT_STATS_PERIOD;
       }
 
       const discoverView = EventView.fromSavedQuery(discoverQuery);
@@ -275,17 +235,18 @@ class StreamGroup extends Component<Props, State> {
     }
 
     return {
-      pathname: `/organizations/${organization.slug}/issues/${data.id}/events/`,
+      pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
       query: {
+        referrer,
+        stream_index: index,
         ...commonQuery,
-        query: searchQuery,
+        query: filteredQuery,
       },
     };
-  }
+  };
 
-  renderReprocessingColumns() {
-    const {data} = this.state;
-    const {statusDetails, count} = data as GroupReprocessing;
+  const renderReprocessingColumns = () => {
+    const {statusDetails, count} = group as GroupReprocessing;
     const {info, pendingEvents} = statusDetails;
 
     if (!info) {
@@ -321,246 +282,205 @@ class StreamGroup extends Component<Props, State> {
         </ProgressColumn>
       </Fragment>
     );
-  }
+  };
 
-  render() {
-    const {data, reviewed, actionTaken} = this.state;
-    const {
-      index,
-      query,
-      hasGuideAnchor,
-      canSelect,
-      memberList,
-      withChart,
-      statsPeriod,
-      selection,
-      organization,
-      displayReprocessingLayout,
-      showInboxTime,
-      useFilteredStats,
-      useTintRow,
-      customStatsPeriod,
-      queryFilterDescription,
-      narrowGroups,
-    } = this.props;
+  // Use data.filtered to decide on which value to use
+  // In case of the query has filters but we avoid showing both sets of filtered/unfiltered stats
+  // we use useFilteredStats param passed to Group for deciding
+  const primaryCount = group.filtered ? group.filtered.count : group.count;
+  const secondaryCount = group.filtered ? group.count : undefined;
+  const primaryUserCount = group.filtered ? group.filtered.userCount : group.userCount;
+  const secondaryUserCount = group.filtered ? group.userCount : undefined;
+  // preview stats
+  const lastTriggeredDate = group.lastTriggered;
 
-    const {period, start, end} = selection.datetime || {};
-    const summary =
-      customStatsPeriod?.label.toLowerCase() ??
-      (!!start && !!end
-        ? 'time range'
-        : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase());
+  const showSecondaryPoints = Boolean(
+    withChart && group && group.filtered && statsPeriod && useFilteredStats
+  );
 
-    // Use data.filtered to decide on which value to use
-    // In case of the query has filters but we avoid showing both sets of filtered/unfiltered stats
-    // we use useFilteredStats param passed to Group for deciding
-    const primaryCount = data.filtered ? data.filtered.count : data.count;
-    const secondaryCount = data.filtered ? data.count : undefined;
-    const primaryUserCount = data.filtered ? data.filtered.userCount : data.userCount;
-    const secondaryUserCount = data.filtered ? data.userCount : undefined;
+  const groupCategoryCountTitles: Record<IssueCategory, string> = {
+    [IssueCategory.ERROR]: t('Error Events'),
+    [IssueCategory.PERFORMANCE]: t('Transaction Events'),
+    [IssueCategory.PROFILE]: t('Profile Events'),
+    [IssueCategory.CRON]: t('Cron Events'),
+  };
 
-    const showSecondaryPoints = Boolean(
-      withChart && data && data.filtered && statsPeriod && useFilteredStats
-    );
-
-    return (
-      <Wrapper
-        data-test-id="group"
-        onClick={displayReprocessingLayout ? undefined : this.toggleSelect}
-        reviewed={reviewed}
-        unresolved={data.status === 'unresolved'}
-        actionTaken={actionTaken}
-        useTintRow={useTintRow ?? true}
-      >
-        {canSelect && (
-          <GroupCheckBoxWrapper>
-            <GroupCheckBox id={data.id} disabled={!!displayReprocessingLayout} />
-          </GroupCheckBoxWrapper>
-        )}
-        <GroupSummary canSelect={!!canSelect}>
-          <EventOrGroupHeader
-            index={index}
-            organization={organization}
-            includeLink
-            data={data}
-            query={query}
-            size="normal"
-            onClick={this.trackClick}
-          />
-          <EventOrGroupExtraDetails data={data} showInboxTime={showInboxTime} />
-        </GroupSummary>
-        {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
-        {withChart && !displayReprocessingLayout && (
-          <ChartWrapper
-            className={`hidden-xs hidden-sm ${narrowGroups ? 'hidden-md' : ''}`}
-          >
-            {!data.filtered?.stats && !data.stats ? (
-              <Placeholder height="24px" />
-            ) : (
-              <GroupChart
-                statsPeriod={statsPeriod!}
-                data={data}
-                showSecondaryPoints={showSecondaryPoints}
-                showMarkLine
-              />
+  const groupCount = !defined(primaryCount) ? (
+    <Placeholder height="18px" />
+  ) : (
+    <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
+      <Tooltip
+        disabled={!useFilteredStats}
+        isHoverable
+        title={
+          <CountTooltipContent>
+            <h4>{groupCategoryCountTitles[group.issueCategory]}</h4>
+            {group.filtered && (
+              <Fragment>
+                <div>{queryFilterDescription ?? t('Matching filters')}</div>
+                <Link to={getDiscoverUrl(true)}>
+                  <Count value={group.filtered?.count} />
+                </Link>
+              </Fragment>
             )}
-          </ChartWrapper>
+            <Fragment>
+              <div>{t('Total in %s', summary)}</div>
+              <Link to={getDiscoverUrl()}>
+                <Count value={group.count} />
+              </Link>
+            </Fragment>
+            {group.lifetime && (
+              <Fragment>
+                <div>{t('Since issue began')}</div>
+                <Count value={group.lifetime.count} />
+              </Fragment>
+            )}
+          </CountTooltipContent>
+        }
+      >
+        <PrimaryCount value={primaryCount} />
+        {secondaryCount !== undefined && useFilteredStats && (
+          <SecondaryCount value={secondaryCount} />
         )}
-        {displayReprocessingLayout ? (
-          this.renderReprocessingColumns()
-        ) : (
+      </Tooltip>
+    </GuideAnchor>
+  );
+
+  const groupUsersCount = !defined(primaryUserCount) ? (
+    <Placeholder height="18px" />
+  ) : (
+    <Tooltip
+      isHoverable
+      disabled={!usePageFilters}
+      title={
+        <CountTooltipContent>
+          <h4>{t('Affected Users')}</h4>
+          {group.filtered && (
+            <Fragment>
+              <div>{queryFilterDescription ?? t('Matching filters')}</div>
+              <Link to={getDiscoverUrl(true)}>
+                <Count value={group.filtered?.userCount} />
+              </Link>
+            </Fragment>
+          )}
           <Fragment>
-            <EventUserWrapper>
-              {!defined(primaryCount) ? (
-                <Placeholder height="18px" />
-              ) : (
-                <DropdownMenu isNestedDropdown>
-                  {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
-                    const topLevelCx = classNames('dropdown', {
-                      'anchor-middle': true,
-                      open: isOpen,
-                    });
+            <div>{t('Total in %s', summary)}</div>
+            <Link to={getDiscoverUrl()}>
+              <Count value={group.userCount} />
+            </Link>
+          </Fragment>
+          {group.lifetime && (
+            <Fragment>
+              <div>{t('Since issue began')}</div>
+              <Count value={group.lifetime.userCount} />
+            </Fragment>
+          )}
+        </CountTooltipContent>
+      }
+    >
+      <PrimaryCount value={primaryUserCount} />
+      {secondaryUserCount !== undefined && useFilteredStats && (
+        <SecondaryCount dark value={secondaryUserCount} />
+      )}
+    </Tooltip>
+  );
 
-                    return (
-                      <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
-                        <span
-                          {...getRootProps({
-                            className: topLevelCx,
-                          })}
-                        >
-                          <span {...getActorProps({})}>
-                            <div className="dropdown-actor-title">
-                              <PrimaryCount value={primaryCount} />
-                              {secondaryCount !== undefined && useFilteredStats && (
-                                <SecondaryCount value={secondaryCount} />
-                              )}
-                            </div>
-                          </span>
-                          {useFilteredStats && (
-                            <StyledDropdownList
-                              {...getMenuProps({className: 'dropdown-menu inverted'})}
-                            >
-                              {data.filtered && (
-                                <Fragment>
-                                  <StyledMenuItem to={this.getDiscoverUrl(true)}>
-                                    <MenuItemText>
-                                      {queryFilterDescription ??
-                                        t('Matching search filters')}
-                                    </MenuItemText>
-                                    <MenuItemCount value={data.filtered.count} />
-                                  </StyledMenuItem>
-                                  <MenuItem divider />
-                                </Fragment>
-                              )}
+  const lastTriggered = !defined(lastTriggeredDate) ? (
+    <Placeholder height="18px" />
+  ) : (
+    <TimeSince
+      tooltipPrefix={t('Last Triggered')}
+      date={lastTriggeredDate}
+      suffix={t('ago')}
+      unitStyle="short"
+    />
+  );
 
-                              <StyledMenuItem to={this.getDiscoverUrl()}>
-                                <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
-                                <MenuItemCount value={data.count} />
-                              </StyledMenuItem>
+  const issueStreamAnchor = isDemoWalkthrough() ? (
+    <GuideAnchor target="issue_stream" disabled={!DemoWalkthroughStore.get('issue')} />
+  ) : (
+    <GuideAnchor target="issue_stream" />
+  );
 
-                              {data.lifetime && (
-                                <Fragment>
-                                  <MenuItem divider />
-                                  <StyledMenuItem>
-                                    <MenuItemText>{t('Since issue began')}</MenuItemText>
-                                    <MenuItemCount value={data.lifetime.count} />
-                                  </StyledMenuItem>
-                                </Fragment>
-                              )}
-                            </StyledDropdownList>
-                          )}
-                        </span>
-                      </GuideAnchor>
-                    );
-                  }}
-                </DropdownMenu>
-              )}
-            </EventUserWrapper>
-            <EventUserWrapper>
-              {!defined(primaryUserCount) ? (
-                <Placeholder height="18px" />
-              ) : (
-                <DropdownMenu isNestedDropdown>
-                  {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
-                    const topLevelCx = classNames('dropdown', {
-                      'anchor-middle': true,
-                      open: isOpen,
-                    });
+  return (
+    <Wrapper
+      data-test-id="group"
+      data-test-reviewed={reviewed}
+      onClick={displayReprocessingLayout || !canSelect ? undefined : wrapperToggle}
+      reviewed={reviewed}
+      useTintRow={useTintRow ?? true}
+    >
+      {canSelect && (
+        <GroupCheckBoxWrapper>
+          <Checkbox
+            id={group.id}
+            aria-label={t('Select Issue')}
+            checked={isSelected}
+            disabled={!!displayReprocessingLayout}
+            onChange={checkboxToggle}
+          />
+        </GroupCheckBoxWrapper>
+      )}
+      <GroupSummary canSelect={canSelect}>
+        <EventOrGroupHeader
+          index={index}
+          organization={organization}
+          data={group}
+          query={query}
+          size="normal"
+          source={referrer}
+        />
+        <EventOrGroupExtraDetails data={group} showInboxTime={showInboxTime} />
+      </GroupSummary>
+      {hasGuideAnchor && issueStreamAnchor}
 
-                    return (
-                      <span
-                        {...getRootProps({
-                          className: topLevelCx,
-                        })}
-                      >
-                        <span {...getActorProps({})}>
-                          <div className="dropdown-actor-title">
-                            <PrimaryCount value={primaryUserCount} />
-                            {secondaryUserCount !== undefined && useFilteredStats && (
-                              <SecondaryCount dark value={secondaryUserCount} />
-                            )}
-                          </div>
-                        </span>
-                        {useFilteredStats && (
-                          <StyledDropdownList
-                            {...getMenuProps({className: 'dropdown-menu inverted'})}
-                          >
-                            {data.filtered && (
-                              <Fragment>
-                                <StyledMenuItem to={this.getDiscoverUrl(true)}>
-                                  <MenuItemText>
-                                    {queryFilterDescription ??
-                                      t('Matching search filters')}
-                                  </MenuItemText>
-                                  <MenuItemCount value={data.filtered.userCount} />
-                                </StyledMenuItem>
-                                <MenuItem divider />
-                              </Fragment>
-                            )}
-
-                            <StyledMenuItem to={this.getDiscoverUrl()}>
-                              <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
-                              <MenuItemCount value={data.userCount} />
-                            </StyledMenuItem>
-
-                            {data.lifetime && (
-                              <Fragment>
-                                <MenuItem divider />
-                                <StyledMenuItem>
-                                  <MenuItemText>{t('Since issue began')}</MenuItemText>
-                                  <MenuItemCount value={data.lifetime.userCount} />
-                                </StyledMenuItem>
-                              </Fragment>
-                            )}
-                          </StyledDropdownList>
-                        )}
-                      </span>
-                    );
-                  }}
-                </DropdownMenu>
-              )}
-            </EventUserWrapper>
-            <AssigneeWrapper className="hidden-xs hidden-sm">
+      {withChart && !displayReprocessingLayout && issueTypeConfig.stats.enabled && (
+        <ChartWrapper narrowGroups={narrowGroups}>
+          {!group.filtered?.stats && !group.stats ? (
+            <Placeholder height="24px" />
+          ) : (
+            <GroupChart
+              statsPeriod={statsPeriod!}
+              data={group}
+              showSecondaryPoints={showSecondaryPoints}
+              showMarkLine
+            />
+          )}
+        </ChartWrapper>
+      )}
+      {displayReprocessingLayout ? (
+        renderReprocessingColumns()
+      ) : (
+        <Fragment>
+          {withColumns.includes('event') && issueTypeConfig.stats.enabled && (
+            <EventCountsWrapper>{groupCount}</EventCountsWrapper>
+          )}
+          {withColumns.includes('users') && issueTypeConfig.stats.enabled && (
+            <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>
+          )}
+          {withColumns.includes('assignee') && (
+            <AssigneeWrapper narrowGroups={narrowGroups}>
               <AssigneeSelector
-                id={data.id}
+                id={group.id}
                 memberList={memberList}
-                onAssign={this.trackAssign}
+                onAssign={trackAssign}
               />
             </AssigneeWrapper>
-          </Fragment>
-        )}
-      </Wrapper>
-    );
-  }
+          )}
+          {showLastTriggered && <EventCountsWrapper>{lastTriggered}</EventCountsWrapper>}
+        </Fragment>
+      )}
+    </Wrapper>
+  );
 }
 
-export default withPageFilters(withOrganization(StreamGroup));
+const StreamGroup = withOrganization(BaseGroupRow);
+
+export default StreamGroup;
 
 // Position for wrapper is relative for overlay actions
 const Wrapper = styled(PanelItem)<{
-  actionTaken: boolean;
   reviewed: boolean;
-  unresolved: boolean;
   useTintRow: boolean;
 }>`
   position: relative;
@@ -569,8 +489,7 @@ const Wrapper = styled(PanelItem)<{
 
   ${p =>
     p.useTintRow &&
-    (p.reviewed || !p.unresolved) &&
-    !p.actionTaken &&
+    p.reviewed &&
     css`
       animation: tintRow 0.2s linear forwards;
       position: relative;
@@ -622,11 +541,6 @@ const GroupCheckBoxWrapper = styled('div')`
   height: 15px;
   display: flex;
   align-items: center;
-
-  & input[type='checkbox'] {
-    margin: 0;
-    display: block;
-  }
 `;
 
 const primaryStatStyle = (theme: Theme) => css`
@@ -654,65 +568,34 @@ const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)
   ${p => secondaryStatStyle(p.theme)}
 `;
 
-const StyledDropdownList = styled('ul')`
-  z-index: ${p => p.theme.zIndex.hovercard};
-`;
-
-interface MenuItemProps extends React.HTMLAttributes<HTMLDivElement> {
-  to?: LocationDescriptor;
-}
-
-const StyledMenuItem = styled(({to, children, ...p}: MenuItemProps) => (
-  <MenuItem noAnchor>
-    {to ? (
-      // @ts-expect-error allow target _blank for this link to open in new window
-      <Link to={to} target="_blank">
-        <div {...p}>{children}</div>
-      </Link>
-    ) : (
-      <div className="dropdown-toggle">
-        <div {...p}>{children}</div>
-      </div>
-    )}
-  </MenuItem>
-))`
-  margin: 0;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-`;
-
-const menuItemStatStyles = css`
-  text-align: right;
-  font-weight: bold;
-  font-variant-numeric: tabular-nums;
-  padding-left: ${space(1)};
-`;
-
-const MenuItemCount = styled(({value, ...p}) => (
-  <div {...p}>
-    <Count value={value} />
-  </div>
-))`
-  ${menuItemStatStyles};
-  color: ${p => p.theme.subText};
-`;
-
-const MenuItemText = styled('div')`
-  white-space: nowrap;
-  font-weight: normal;
+const CountTooltipContent = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  gap: ${space(1)} ${space(3)};
   text-align: left;
-  padding-right: ${space(1)};
-  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.fontSizeMedium};
+  align-items: center;
+
+  h4 {
+    color: ${p => p.theme.gray300};
+    font-size: ${p => p.theme.fontSizeExtraSmall};
+    text-transform: uppercase;
+    grid-column: 1 / -1;
+    margin-bottom: ${space(0.25)};
+  }
 `;
 
-const ChartWrapper = styled('div')`
+const ChartWrapper = styled('div')<{narrowGroups: boolean}>`
   width: 200px;
-  margin: 0 ${space(2)};
   align-self: center;
+
+  @media (max-width: ${p =>
+      p.narrowGroups ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
+    display: none;
+  }
 `;
 
-const EventUserWrapper = styled('div')`
+const EventCountsWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
   align-self: center;
@@ -724,10 +607,15 @@ const EventUserWrapper = styled('div')`
   }
 `;
 
-const AssigneeWrapper = styled('div')`
+const AssigneeWrapper = styled('div')<{narrowGroups: boolean}>`
   width: 80px;
   margin: 0 ${space(2)};
   align-self: center;
+
+  @media (max-width: ${p =>
+      p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
+    display: none;
+  }
 `;
 
 // Reprocessing

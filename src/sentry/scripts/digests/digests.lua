@@ -8,7 +8,7 @@ local function identity(...)
     return ...
 end
 
-function table.extend(t, items, length)
+local function table_extend(t, items, length)
     -- The table length can be provided if you know the length of the table
     -- beforehand to avoid a potentially expensive length operator call.
     if length == nil then
@@ -123,7 +123,7 @@ local function zrange_move_slice(source, destination, threshold, callback)
         local zadd_args = {}
         local zrem_args = {}
         for i, key, score in chunk_iterator do
-            table.extend(zadd_args, {score, key}, (i - 1) * 2)
+            table_extend(zadd_args, {score, key}, (i - 1) * 2)
             zrem_args[i] = key
             callback(key, score)
         end

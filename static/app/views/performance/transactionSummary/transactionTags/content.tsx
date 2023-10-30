@@ -1,22 +1,23 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import DatePageFilter from 'sentry/components/datePageFilter';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import SegmentExplorerQuery, {
   TableData,
@@ -27,6 +28,7 @@ import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import {SpanOperationBreakdownFilter} from '../filter';
 import {getTransactionField} from '../transactionOverview/tagExplorer';
 
+import {X_AXIS_SELECT_OPTIONS} from './constants';
 import TagsDisplay, {TAG_PAGE_TABLE_CURSOR} from './tagsDisplay';
 import {decodeSelectedTagKey} from './utils';
 
@@ -40,13 +42,11 @@ type Props = {
 
 type TagOption = string;
 
-const TagsPageContent = (props: Props) => {
+function TagsPageContent(props: Props) {
   const {eventView, location, organization, projects} = props;
 
-  const aggregateColumn = getTransactionField(
-    SpanOperationBreakdownFilter.None,
-    projects,
-    eventView
+  const [aggregateColumn, setAggregateColumn] = useState(
+    getTransactionField(SpanOperationBreakdownFilter.NONE, projects, eventView)
   );
 
   return (
@@ -61,12 +61,20 @@ const TagsPageContent = (props: Props) => {
         allTagKeys
       >
         {({isLoading, tableData}) => {
-          return <InnerContent {...props} isLoading={isLoading} tableData={tableData} />;
+          return (
+            <InnerContent
+              {...props}
+              isLoading={isLoading}
+              tableData={tableData}
+              aggregateColumn={aggregateColumn}
+              onChangeAggregateColumn={setAggregateColumn}
+            />
+          );
         }}
       </SegmentExplorerQuery>
     </Layout.Main>
   );
-};
+}
 
 function getTagKeyOptions(tableData: TableData) {
   const suspectTags: TagOption[] = [];
@@ -82,10 +90,23 @@ function getTagKeyOptions(tableData: TableData) {
   };
 }
 
-const InnerContent = (
-  props: Props & {tableData: TableData | null; isLoading?: boolean}
-) => {
-  const {eventView: _eventView, location, organization, tableData, isLoading} = props;
+function InnerContent(
+  props: Props & {
+    aggregateColumn: string;
+    onChangeAggregateColumn: (aggregateColumn: string) => void;
+    tableData: TableData | null;
+    isLoading?: boolean;
+  }
+) {
+  const {
+    eventView: _eventView,
+    location,
+    organization,
+    tableData,
+    aggregateColumn,
+    onChangeAggregateColumn,
+    isLoading,
+  } = props;
   const eventView = _eventView.clone();
 
   const tagOptions = tableData ? getTagKeyOptions(tableData) : null;
@@ -104,27 +125,33 @@ const InnerContent = (
   const initialTag = decodedTagFromOptions ?? defaultTag;
 
   const [tagSelected, _changeTagSelected] = useState(initialTag);
+  const lastTag = useRef('');
 
-  const changeTagSelected = (tagKey: string) => {
-    const queryParams = normalizeDateTimeParams({
-      ...(location.query || {}),
-      tagKey,
-      [TAG_PAGE_TABLE_CURSOR]: undefined,
-    });
+  const changeTagSelected = useCallback(
+    (tagKey: string) => {
+      if (lastTag.current !== tagKey) {
+        const queryParams = normalizeDateTimeParams({
+          ...(location.query || {}),
+          tagKey,
+          [TAG_PAGE_TABLE_CURSOR]: undefined,
+        });
 
-    browserHistory.replace({
-      pathname: location.pathname,
-      query: queryParams,
-    });
-    _changeTagSelected(tagKey);
-  };
+        browserHistory.replace({
+          pathname: location.pathname,
+          query: queryParams,
+        });
+        _changeTagSelected(tagKey);
+        lastTag.current = decodeScalar(location.query.tagKey, '');
+      }
+    },
+    [location.query, location.pathname]
+  );
 
   useEffect(() => {
     if (initialTag) {
       changeTagSelected(initialTag);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialTag]);
+  }, [initialTag, changeTagSelected]);
 
   const handleSearch = (query: string) => {
     const queryParams = normalizeDateTimeParams({
@@ -139,7 +166,7 @@ const InnerContent = (
   };
 
   const changeTag = (tag: string, isOtherTag: boolean) => {
-    trackAdvancedAnalyticsEvent('performance_views.tags.change_tag', {
+    trackAnalytics('performance_views.tags.change_tag', {
       organization,
       from_tag: tagSelected!,
       to_tag: tag,
@@ -167,29 +194,41 @@ const InnerContent = (
         <FilterActions>
           <PageFilterBar condensed>
             <EnvironmentPageFilter />
-            <DatePageFilter alignDropdown="left" />
+            <DatePageFilter />
           </PageFilterBar>
-          <SearchBar
+          <StyledSearchBar
             organization={organization}
             projectIds={eventView.project}
             query={query}
             fields={eventView.fields}
             onSearch={handleSearch}
           />
+          <CompactSelect
+            value={aggregateColumn}
+            options={X_AXIS_SELECT_OPTIONS}
+            onChange={opt => {
+              trackAnalytics('performance_views.tags.change_aggregate_column', {
+                organization,
+                value: opt.value,
+              });
+              onChangeAggregateColumn(opt.value);
+            }}
+            triggerProps={{prefix: t('X-Axis')}}
+          />
         </FilterActions>
         <TagsDisplay {...props} tagKey={tagSelected} />
       </StyledMain>
     </ReversedLayoutBody>
   );
-};
+}
 
-const TagsSideBar = (props: {
+function TagsSideBar(props: {
   changeTag: (tag: string, isOtherTag: boolean) => void;
   otherTags: TagOption[];
   suspectTags: TagOption[];
   isLoading?: boolean;
   tagSelected?: string;
-}) => {
+}) {
   const {suspectTags, otherTags, changeTag, tagSelected, isLoading} = props;
   return (
     <StyledSide>
@@ -202,9 +241,7 @@ const TagsSideBar = (props: {
         />
       </StyledSectionHeading>
       {isLoading ? (
-        <Center>
-          <LoadingIndicator mini />
-        </Center>
+        <Placeholder height="200px" />
       ) : suspectTags.length ? (
         suspectTags.map(tag => (
           <RadioLabel key={tag}>
@@ -231,9 +268,7 @@ const TagsSideBar = (props: {
       </StyledSectionHeading>
 
       {isLoading ? (
-        <Center>
-          <LoadingIndicator mini />
-        </Center>
+        <Placeholder height="200px" />
       ) : otherTags.length ? (
         otherTags.map(tag => (
           <RadioLabel key={tag}>
@@ -250,13 +285,7 @@ const TagsSideBar = (props: {
       )}
     </StyledSide>
   );
-};
-
-const Center = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
+}
 
 const RadioLabel = styled('label')`
   cursor: pointer;
@@ -304,13 +333,25 @@ const StyledMain = styled('div')`
   max-width: 100%;
 `;
 
+const StyledSearchBar = styled(SearchBar)`
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    order: 1;
+    grid-column: 1/6;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    order: initial;
+    grid-column: auto;
+  }
+`;
+
 const FilterActions = styled('div')`
   display: grid;
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto 1fr auto;
   }
 `;
 

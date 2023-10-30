@@ -18,10 +18,10 @@ export enum SymbolType {
 }
 
 export enum ImageFeature {
-  has_sources = 'has_sources',
-  has_debug_info = 'has_debug_info',
-  has_unwind_info = 'has_unwind_info',
-  has_symbols = 'has_symbols',
+  HAS_SOURCES = 'has_sources',
+  HAS_DEBUG_INFO = 'has_debug_info',
+  HAS_UNWIND_INFO = 'has_unwind_info',
+  HAS_SYMBOLS = 'has_symbols',
 }
 
 type CandidateProcessingInfoOkStatus = {
@@ -49,10 +49,10 @@ export enum CandidateDownloadStatus {
 }
 
 type ImageFeatures = {
-  [ImageFeature.has_sources]: boolean;
-  [ImageFeature.has_debug_info]: boolean;
-  [ImageFeature.has_unwind_info]: boolean;
-  [ImageFeature.has_symbols]: boolean;
+  [ImageFeature.HAS_SOURCES]: boolean;
+  [ImageFeature.HAS_DEBUG_INFO]: boolean;
+  [ImageFeature.HAS_UNWIND_INFO]: boolean;
+  [ImageFeature.HAS_SYMBOLS]: boolean;
 };
 
 type CandidateFeatures = ImageFeatures;
@@ -94,51 +94,48 @@ export type CandidateDownload =
   | CandidateDownloadUnAppliedStatus
   | CandidateDownloadOtherStatus;
 
-type ImageCandidateBase = {
+interface ImageCandidateBase {
+  location: string;
   source: string;
-  location?: string;
   source_name?: string;
-};
+}
 
 type InternalSource = {
-  cpuName: string;
   dateCreated: string;
-  fileType: string | null;
   filename: string;
   location: string;
+  prettyFileType: string;
   size: number;
   symbolType: SymbolType;
 };
 
-export type ImageCandidateOk = ImageCandidateBase & {
+export interface ImageCandidateOk extends ImageCandidateBase {
   download: CandidateDownloadOkStatus;
   debug?: CandidateProcessingInfo;
   unwind?: CandidateProcessingInfo;
-};
+}
 
-export type ImageCandidateInternalOk = ImageCandidateBase &
-  InternalSource & {
-    download: CandidateDownloadOkStatus;
-    debug?: CandidateProcessingInfo;
-    unwind?: CandidateProcessingInfo;
-  };
+export interface ImageCandidateInternalOk extends ImageCandidateBase, InternalSource {
+  download: CandidateDownloadOkStatus;
+  debug?: CandidateProcessingInfo;
+  unwind?: CandidateProcessingInfo;
+}
 
-export type ImageCandidateUnApplied = ImageCandidateBase &
-  InternalSource & {
-    download: CandidateDownloadUnAppliedStatus;
-    source: string;
-    source_name?: string;
-  };
+export interface ImageCandidateUnApplied extends ImageCandidateBase, InternalSource {
+  download: CandidateDownloadUnAppliedStatus;
+  source: string;
+  source_name?: string;
+}
 
-type ImageCandidateOthers = ImageCandidateBase & {
+interface ImageCandidateOthers extends ImageCandidateBase {
   download:
     | CandidateDownloadNotFoundStatus
     | CandidateDownloadDeletedStatus
     | CandidateDownloadOtherStatus;
+  location: string;
   source: string;
-  location?: string;
   source_name?: string;
-};
+}
 
 export type ImageCandidate =
   | ImageCandidateOk
@@ -169,6 +166,7 @@ export type Image = {
   debug_status?: ImageStatus | null;
   image_addr?: string;
   image_size?: number;
+  image_vmaddr?: string;
   unwind_status?: ImageStatus | null;
   uuid?: string;
 };

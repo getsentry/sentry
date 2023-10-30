@@ -626,3 +626,144 @@ Crashed Thread: 0\n\n\
 Application Specific Information:\n\
 Attempted to dereference garbage pointer 0x10."
     )
+
+
+def test__get_crashed_thread_registers_no_exception():
+    acr = AppleCrashReport(
+        exceptions=[],
+        threads=[{"id": 1, "crashed": True, "stacktrace": {"registers": {}}}],
+    )
+
+    assert acr._get_crashed_thread_registers() == ""
+
+
+def test__get_crashed_thread_registers_no_thread_registers():
+    acr = AppleCrashReport(
+        exceptions=[{"thread_id": 1}],
+        threads=[],
+    )
+
+    assert acr._get_crashed_thread_registers() == ""
+
+
+def test__get_crashed_thread_registers_arm64():
+    acr = AppleCrashReport(
+        exceptions=[{"thread_id": 1}],
+        context={"device": {"arch": "arm64"}},
+        threads=[
+            {
+                "id": 1,
+                "crashed": True,
+                "stacktrace": {
+                    "registers": {
+                        "cpsr": "0x40000000",
+                        "fp": "0x16b7d0f50",
+                        "lr": "0x183ea5748",
+                        "pc": "0x104987b9c",
+                        "sp": "0x16b7d0f10",
+                        "x0": "0x104a4e210",
+                        "x1": "0x10466538f",
+                        "x10": "0x0",
+                        "x11": "0x2816c3608",
+                        "x12": "0x0",
+                        "x13": "0x0",
+                        "x14": "0x181370000",
+                        "x15": "0x20c494000",
+                        "x16": "0x104a4e23a",
+                        "x17": "0x104987b88",
+                        "x18": "0x0",
+                        "x19": "0x280dc4a80",
+                        "x2": "0x106147480",
+                        "x20": "0x106147480",
+                        "x21": "0x104665395",
+                        "x22": "0x10611e8d0",
+                        "x23": "0x104665395",
+                        "x24": "0x1f6aa3500",
+                        "x25": "0x0",
+                        "x26": "0x19bd91161",
+                        "x27": "0x280dc4a80",
+                        "x28": "0x1",
+                        "x3": "0x280dc4a80",
+                        "x4": "0x280dc4a80",
+                        "x5": "0x280dc4a80",
+                        "x6": "0x25",
+                        "x7": "0x19c1a5ab2",
+                        "x8": "0x0",
+                        "x9": "0x0",
+                    }
+                },
+            }
+        ],
+    )
+
+    assert (
+        acr._get_crashed_thread_registers()
+        == """Thread 1 crashed with ARM Thread State (64-bit):
+    x0: 0x0000000104a4e210   x1: 0x000000010466538f   x2: 0x0000000106147480   x3: 0x0000000280dc4a80
+    x4: 0x0000000280dc4a80   x5: 0x0000000280dc4a80   x6: 0x0000000000000025   x7: 0x000000019c1a5ab2
+    x8: 0x0000000000000000   x9: 0x0000000000000000  x10: 0x0000000000000000  x11: 0x00000002816c3608
+   x12: 0x0000000000000000  x13: 0x0000000000000000  x14: 0x0000000181370000  x15: 0x000000020c494000
+   x16: 0x0000000104a4e23a  x17: 0x0000000104987b88  x18: 0x0000000000000000  x19: 0x0000000280dc4a80
+   x20: 0x0000000106147480  x21: 0x0000000104665395  x22: 0x000000010611e8d0  x23: 0x0000000104665395
+   x24: 0x00000001f6aa3500  x25: 0x0000000000000000  x26: 0x000000019bd91161  x27: 0x0000000280dc4a80
+   x28: 0x0000000000000001   fp: 0x000000016b7d0f50   lr: 0x0000000183ea5748   sp: 0x000000016b7d0f10
+    pc: 0x0000000104987b9c cpsr: 0x0000000040000000"""
+    )
+
+
+def test__get_crashed_thread_registers_x86():
+    acr = AppleCrashReport(
+        exceptions=[{"thread_id": 1}],
+        context={"device": {"arch": "x86"}},
+        threads=[
+            {
+                "id": 1,
+                "crashed": True,
+                "stacktrace": {
+                    "registers": {
+                        "eax": "0x40000000",
+                        "ecx": "0x16b7d0f50",
+                        "edx": "0x183ea5748",
+                        "esp": "0x104987b9c",
+                        "esi": "0x16b7d0f10",
+                    }
+                },
+            }
+        ],
+    )
+
+    assert (
+        acr._get_crashed_thread_registers()
+        == """Thread 1 crashed with x86 Thread State (32-bit):
+   eax: 0x0000000040000000  ecx: 0x000000016b7d0f50  edx: 0x0000000183ea5748  esp: 0x0000000104987b9c
+   esi: 0x000000016b7d0f10"""
+    )
+
+
+def test__get_crashed_thread_registers_unknown_arch():
+    acr = AppleCrashReport(
+        exceptions=[{"thread_id": 1}],
+        context={"device": {"arch": "ABC"}},
+        threads=[
+            {
+                "id": 1,
+                "crashed": True,
+                "stacktrace": {
+                    "registers": {
+                        "eax": "0x40000000",
+                        "ecx": "0x16b7d0f50",
+                        "edx": "0x183ea5748",
+                        "esp": "0x104987b9c",
+                        "esi": "0x16b7d0f10",
+                    }
+                },
+            }
+        ],
+    )
+
+    assert (
+        acr._get_crashed_thread_registers()
+        == """Thread 1 crashed with ABC Thread State (32-bit):
+   eax: 0x0000000040000000  ecx: 0x000000016b7d0f50  edx: 0x0000000183ea5748  esp: 0x0000000104987b9c
+   esi: 0x000000016b7d0f10"""
+    )

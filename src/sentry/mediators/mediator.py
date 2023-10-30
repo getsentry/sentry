@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import logging
 from contextlib import contextmanager
@@ -17,7 +19,7 @@ class Mediator:
 
     Mediators provide a layer between User accessible components like Endpoints
     and the database. They encapsulate the logic necessary to create domain
-    objects, including all dependant objects, cross-object validations, etc.
+    objects, including all dependent objects, cross-object validations, etc.
 
     Mediators are intended to be composable and make it obvious where a piece
     of domain logic resides.
@@ -126,6 +128,8 @@ class Mediator:
     # class.
     _params_prepared = False
 
+    using: str | None = "default"
+
     @classmethod
     def _prepare_params(cls):
         if sentry.mediators.mediator.Mediator in cls.__bases__ and not cls._params_prepared:
@@ -136,15 +140,21 @@ class Mediator:
 
     @classmethod
     def run(cls, *args, **kwargs):
-        with transaction.atomic():
+        def _inner():
             obj = cls(*args, **kwargs)
 
             with obj.log():
                 result = obj.call()
                 obj.audit()
                 obj.record_analytics()
-        obj.post_commit()
-        return result
+            obj.post_commit()
+            return result
+
+        if cls.using:
+            with transaction.atomic(cls.using):
+                return _inner()
+        else:
+            return _inner()
 
     def __init__(self, *args, **kwargs):
         self.kwargs = kwargs
@@ -214,9 +224,9 @@ class Mediator:
         from sentry.app import env
 
         if (
-            not env.request
+            env.request is None
             or not hasattr(env.request, "resolver_match")
-            or not hasattr(env.request.resolver_match, "kwargs")
+            or env.request.resolver_match is None
         ):
             return {}
 

@@ -1,0 +1,91 @@
+---
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "990ec5d380997ca482658d52a98b8502"
+  tree_label: "runMicrotasks"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "axiosinterceptor.js"
+            function*
+              "runMicrotasks"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "b3d321fab1665166fb7cacfa975db4bb"
+  tree_label: "runMicrotasks | processTicksAndRejections"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "task_queues"
+            filename (module takes precedence)
+              "task_queues"
+            function*
+              "processTicksAndRejections"
+          frame*
+            filename*
+              "axiosinterceptor.js"
+            function*
+              "runMicrotasks"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "b3d321fab1665166fb7cacfa975db4bb"
+  tree_label: "runMicrotasks | processTicksAndRejections"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "task_queues"
+            filename (module takes precedence)
+              "task_queues"
+            function*
+              "processTicksAndRejections"
+          frame*
+            filename*
+              "axiosinterceptor.js"
+            function*
+              "runMicrotasks"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+system:
+  hash: "b3d321fab1665166fb7cacfa975db4bb"
+  tree_label: "runMicrotasks | processTicksAndRejections"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "task_queues"
+            filename (module takes precedence)
+              "task_queues"
+            function*
+              "processTicksAndRejections"
+          frame*
+            filename*
+              "axiosinterceptor.js"
+            function*
+              "runMicrotasks"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"

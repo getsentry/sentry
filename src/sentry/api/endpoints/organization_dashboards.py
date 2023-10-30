@@ -1,17 +1,20 @@
 import re
 
-from django.db import IntegrityError, transaction
-from django.db.models import Case, When
+from django.db import IntegrityError, router, transaction
+from django.db.models import Case, IntegerField, When
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.dashboard import DashboardListSerializer
 from sentry.api.serializers.rest_framework import DashboardSerializer
-from sentry.models import Dashboard
+from sentry.models.dashboard import Dashboard
 
 MAX_RETRIES = 10
 DUPLICATE_TITLE_PATTERN = r"(.*) copy(?:$|\s(\d+))"
@@ -26,7 +29,13 @@ class OrganizationDashboardsPermission(OrganizationPermission):
     }
 
 
+@region_silo_endpoint
 class OrganizationDashboardsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.DISCOVER_N_DASHBOARDS
     permission_classes = (OrganizationDashboardsPermission,)
 
     def get(self, request: Request, organization) -> Response:
@@ -46,9 +55,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:dashboards-basic", organization, actor=request.user):
             return Response(status=404)
 
-        dashboards = Dashboard.objects.filter(organization_id=organization.id).select_related(
-            "created_by"
-        )
+        dashboards = Dashboard.objects.filter(organization_id=organization.id)
         query = request.GET.get("query")
         if query:
             dashboards = dashboards.filter(title__icontains=query)
@@ -80,7 +87,11 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
         elif sort_by == "mydashboards":
             order_by = [
-                Case(When(created_by_id=request.user.id, then=-1), default="created_by_id"),
+                Case(
+                    When(created_by_id=request.user.id, then=-1),
+                    default="created_by_id",
+                    output_field=IntegerField(),
+                ),
                 "-date_added",
             ]
 
@@ -143,6 +154,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 "organization": organization,
                 "request": request,
                 "projects": self.get_projects(request, organization),
+                "environment": self.request.GET.getlist("environment"),
             },
         )
 
@@ -150,9 +162,9 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Dashboard)):
                 dashboard = serializer.save()
-                return Response(serialize(dashboard, request.user), status=201)
+            return Response(serialize(dashboard, request.user), status=201)
         except IntegrityError:
             pass
 

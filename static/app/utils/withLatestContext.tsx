@@ -39,7 +39,7 @@ function withLatestContext<P extends InjectedLatestContextProps>(
       latestContext: LatestContextStore.get(),
     };
 
-    componentWillUmount() {
+    componentWillUnmount() {
       this.unsubscribe();
     }
     unsubscribe = LatestContextStore.listen(

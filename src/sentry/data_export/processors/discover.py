@@ -1,10 +1,13 @@
 import logging
 
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
+
 from sentry.api.utils import get_date_range_from_params
-from sentry.models import Environment, Group, Project
+from sentry.models.environment import Environment
+from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.search.events.fields import get_function_alias
 from sentry.snuba import discover
-from sentry.utils.compat import map
 
 from ..base import ExportError
 
@@ -32,9 +35,7 @@ class DiscoverProcessor:
             self.params["environment"] = self.environments
 
         equations = discover_query.get("equations", [])
-        self.header_fields = (
-            map(lambda x: get_function_alias(x), discover_query["field"]) + equations
-        )
+        self.header_fields = [get_function_alias(x) for x in discover_query["field"]] + equations
         self.equation_aliases = {
             f"equation[{index}]": equation for index, equation in enumerate(equations)
         }
@@ -111,6 +112,13 @@ class DiscoverProcessor:
             for result in new_result_list:
                 if "issue.id" in result:
                     result["issue"] = issues.get(result["issue.id"], "unknown")
+
+        if "transaction.status" in self.header_fields:
+            for result in new_result_list:
+                if "transaction.status" in result:
+                    result["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(
+                        result["transaction.status"], "unknown"
+                    )
 
         # Map equations back to their unaliased forms
         if self.equation_aliases:

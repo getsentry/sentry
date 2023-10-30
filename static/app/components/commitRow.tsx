@@ -4,18 +4,20 @@ import * as Sentry from '@sentry/react';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
+import {Button} from 'sentry/components/button';
 import CommitLink from 'sentry/components/commitLink';
 import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import ConfigStore from 'sentry/stores/configStore';
+import {space} from 'sentry/styles/space';
 import {Commit} from 'sentry/types';
 
-function formatCommitMessage(message: string | null) {
+export function formatCommitMessage(message: string | null) {
   if (!message) {
     return t('No message provided');
   }
@@ -23,13 +25,19 @@ function formatCommitMessage(message: string | null) {
   return message.split(/\n/)[0];
 }
 
-interface CommitRowProps {
+export interface CommitRowProps {
   commit: Commit;
-  className?: string;
   customAvatar?: React.ReactNode;
+  onCommitClick?: (commit: Commit) => void;
+  onPullRequestClick?: () => void;
 }
 
-function CommitRow({commit, customAvatar, className}: CommitRowProps) {
+function CommitRow({
+  commit,
+  customAvatar,
+  onPullRequestClick,
+  onCommitClick,
+}: CommitRowProps) {
   const handleInviteClick = useCallback(() => {
     if (!commit.author?.email) {
       Sentry.captureException(
@@ -48,13 +56,17 @@ function CommitRow({commit, customAvatar, className}: CommitRowProps) {
     });
   }, [commit.author]);
 
+  const user = ConfigStore.get('user');
+  const isUser = user?.id === commit.author?.id;
+
   return (
-    <PanelItem key={commit.id} className={className} data-test-id="commit-row">
+    <StyledPanelItem key={commit.id} data-test-id="commit-row">
       {customAvatar ? (
         customAvatar
       ) : commit.author && commit.author.id === undefined ? (
         <AvatarWrapper>
           <Hovercard
+            skipWrapper
             body={
               <EmailWarning>
                 {tct(
@@ -75,32 +87,60 @@ function CommitRow({commit, customAvatar, className}: CommitRowProps) {
           </Hovercard>
         </AvatarWrapper>
       ) : (
-        <AvatarWrapper>
+        <div>
           <UserAvatar size={36} user={commit.author} />
-        </AvatarWrapper>
+        </div>
       )}
 
       <CommitMessage>
         <Message>{formatCommitMessage(commit.message)}</Message>
         <Meta>
-          {tct('[author] committed [timeago]', {
-            author: <strong>{commit.author?.name ?? t('Unknown author')}</strong>,
-            timeago: <TimeSince date={commit.dateCreated} />,
+          {tct('[author] committed [commitLink] \u2022 [date]', {
+            author: (
+              <strong>
+                {isUser ? t('You') : commit.author?.name ?? t('Unknown author')}
+              </strong>
+            ),
+            commitLink: (
+              <CommitLink
+                inline
+                showIcon={false}
+                commitId={commit.id}
+                repository={commit.repository}
+                onClick={onCommitClick ? () => onCommitClick(commit) : undefined}
+              />
+            ),
+            date: (
+              <TimeSince
+                tooltipSuffix={commit.suspectCommitType}
+                date={commit.dateCreated}
+              />
+            ),
           })}
         </Meta>
       </CommitMessage>
 
-      <div>
-        <CommitLink commitId={commit.id} repository={commit.repository} />
-      </div>
-    </PanelItem>
+      {commit.pullRequest && commit.pullRequest.externalUrl && (
+        <Button
+          external
+          href={commit.pullRequest.externalUrl}
+          onClick={onPullRequestClick}
+        >
+          {t('View Pull Request')}
+        </Button>
+      )}
+    </StyledPanelItem>
   );
 }
 
+const StyledPanelItem = styled(PanelItem)`
+  display: flex;
+  align-items: center;
+  gap: ${space(2)};
+`;
+
 const AvatarWrapper = styled('div')`
   position: relative;
-  align-self: flex-start;
-  margin-right: ${space(2)};
 `;
 
 const EmailWarning = styled('div')`
@@ -137,9 +177,8 @@ const CommitMessage = styled('div')`
 `;
 
 const Message = styled(TextOverflow)`
-  font-size: 15px;
-  line-height: 1.1;
-  font-weight: bold;
+  font-size: ${p => p.theme.fontSizeLarge};
+  line-height: 1.2;
 `;
 
 const Meta = styled(TextOverflow)`
@@ -149,8 +188,4 @@ const Meta = styled(TextOverflow)`
   color: ${p => p.theme.subText};
 `;
 
-const StyledCommitRow = styled(CommitRow)`
-  align-items: center;
-`;
-
-export {StyledCommitRow as CommitRow};
+export {CommitRow};

@@ -1,11 +1,13 @@
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
 
+@region_silo_test
 class OrganizationEventsHasMeasurementsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

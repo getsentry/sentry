@@ -4,17 +4,22 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationDataExportPermission, OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import Project
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.utils import metrics
-from sentry.utils.compat import map
 
 from ..models import ExportedData
 
 
+@region_silo_endpoint
 class DataExportDetailsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationDataExportPermission,)
 
     def get(self, request: Request, organization: Organization, data_export_id: str) -> Response:
@@ -32,7 +37,7 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
             return Response(status=404)
         # Check data export permissions
         if data_export.query_info.get("project"):
-            project_ids = map(int, data_export.query_info.get("project", []))
+            project_ids = [int(project) for project in data_export.query_info.get("project", [])]
             projects = Project.objects.filter(organization=organization, id__in=project_ids)
             if any(p for p in projects if not request.access.has_project_access(p)):
                 raise PermissionDenied(

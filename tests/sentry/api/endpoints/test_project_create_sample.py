@@ -1,10 +1,15 @@
 from django.urls import reverse
 
 from sentry.models.groupinbox import GroupInbox
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
+pytestmark = [requires_snuba]
 
+
+@region_silo_test(stable=True)
 class ProjectCreateSampleTest(APITestCase):
     def setUp(self):
         self.login_as(user=self.user)

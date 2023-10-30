@@ -2,7 +2,8 @@ import {memo} from 'react';
 import styled from '@emotion/styled';
 
 import Highlight from 'sentry/components/highlight';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
@@ -25,7 +26,7 @@ const Time = memo(function Time({
     return <div />;
   }
 
-  const {date, time, displayTime} = getFormattedTimestamp(
+  const {date, timeWithMilliseconds, time, displayTime} = getFormattedTimestamp(
     timestamp,
     relativeTime,
     displayRelativeTime
@@ -35,13 +36,13 @@ const Time = memo(function Time({
     <Wrapper>
       <Tooltip
         title={
-          <div>
+          <Title>
             <div>{date}</div>
-            {time !== '\u2014' && <div>{time}</div>}
-          </div>
+            <div>{timeWithMilliseconds}</div>
+            {time !== '\u2014' && !!time && <div>{time}</div>}
+          </Title>
         }
         containerDisplayMode="inline-flex"
-        disableForVisualTest
       >
         {getDynamicText({
           value: <Highlight text={searchTerm}>{displayTime}</Highlight>,
@@ -57,4 +58,9 @@ export default Time;
 const Wrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.textColor};
+`;
+
+const Title = styled('div')`
+  display: grid;
+  gap: ${space(0.75)};
 `;

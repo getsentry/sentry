@@ -1,15 +1,25 @@
+from django.db import router
+
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators import Mediator, Param, external_issues, external_requests
+from sentry.mediators.external_issues.creator import Creator
+from sentry.mediators.external_requests.issue_link_requester import IssueLinkRequester
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param
+from sentry.models.group import Group
+from sentry.models.platformexternalissue import PlatformExternalIssue
+from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils.cache import memoize
 
 
 class IssueLinkCreator(Mediator):
-    install = Param("sentry.models.SentryAppInstallation")
-    group = Param("sentry.models.Group")
-    action = Param((str,))
+    install = Param(RpcSentryAppInstallation)
+    group = Param(Group)
+    action = Param(str)
     fields = Param(object)
-    uri = Param((str,))
-    user = Param("sentry.models.User")
+    uri = Param(str)
+    user = Param(RpcUser)
+    using = router.db_for_write(PlatformExternalIssue)
 
     def call(self):
         self._verify_action()
@@ -22,7 +32,7 @@ class IssueLinkCreator(Mediator):
             raise APIUnauthorized(f"Invalid action '{self.action}'")
 
     def _make_external_request(self):
-        self.response = external_requests.IssueLinkRequester.run(
+        self.response = IssueLinkRequester.run(
             install=self.install,
             uri=self.uri,
             group=self.group,
@@ -32,7 +42,7 @@ class IssueLinkCreator(Mediator):
         )
 
     def _create_external_issue(self):
-        self.external_issue = external_issues.Creator.run(
+        self.external_issue = Creator.run(
             install=self.install,
             group=self.group,
             web_url=self.response["webUrl"],

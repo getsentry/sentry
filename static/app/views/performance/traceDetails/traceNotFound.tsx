@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -12,7 +12,7 @@ import {
   ErrorTitle,
 } from 'sentry/components/performance/waterfall/rowDetails';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -51,7 +51,6 @@ function TraceNotFound({
         orgSlug={organization.slug}
         location={location}
         referrer="api.trace-view.errors-view"
-        useEvents
       >
         {({isLoading, tableData, error}) => {
           if (isLoading) {
@@ -84,7 +83,7 @@ function TraceNotFound({
                     <ErrorLevel>{data.level}</ErrorLevel>
                     <ErrorTitle>
                       <Link
-                        to={`/organizations/${organization.slug}/issues/${data['issue.id']}/events/${data.id}`}
+                        to={`/organizations/${organization.slug}/issues/${data['issue.id']}/events/${data.id}?referrer=performance-trace-not-found`}
                       >
                         {data.title}
                       </Link>

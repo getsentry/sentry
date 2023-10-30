@@ -1,18 +1,25 @@
-from typing import Any
+from __future__ import annotations
+
+from datetime import datetime, timedelta
+from typing import Any, Mapping, Optional
 
 import pytest
 from django.utils.functional import cached_property
 
+from sentry.eventstore.models import Event
 from sentry.incidents.models import IncidentActivityType
-from sentry.models import (
-    Activity,
-    Integration,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-)
+from sentry.models.activity import Activity
+from sentry.models.actor import Actor, get_actor_id_for_user
+from sentry.models.integrations.integration import Integration
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.user import User
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import assume_test_silo_mode
 
 # XXX(dcramer): this is a compatibility layer to transition to pytest-based fixtures
 # all of the memoized fixtures are copypasta due to our inability to use pytest fixtures
@@ -40,6 +47,7 @@ class Fixtures:
         return self.create_organization(name="baz", slug="baz", owner=self.user)
 
     @cached_property
+    @assume_test_silo_mode(SiloMode.REGION)
     def team(self):
         team = self.create_team(organization=self.organization, name="foo", slug="foo")
         # XXX: handle legacy team fixture
@@ -64,7 +72,6 @@ class Fixtures:
 
     @cached_property
     def group(self):
-        # こんにちは konichiwa
         return self.create_group(message="\u3053\u3093\u306b\u3061\u306f")
 
     @cached_property
@@ -79,24 +86,33 @@ class Fixtures:
         )
 
     @cached_property
+    @assume_test_silo_mode(SiloMode.REGION)
     def activity(self):
         return Activity.objects.create(
             group=self.group,
             project=self.project,
             type=ActivityType.NOTE.value,
-            user=self.user,
+            user_id=self.user.id,
             data={},
         )
 
     @cached_property
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def integration(self):
         integration = Integration.objects.create(
-            provider="github", name="GitHub", external_id="github:1"
+            provider="github",
+            name="GitHub",
+            external_id="github:1",
+            metadata={
+                "access_token": "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "expires_at": iso_format(datetime.utcnow() + timedelta(days=14)),
+            },
         )
         integration.add_organization(self.organization, self.user)
         return integration
 
     @cached_property
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def organization_integration(self):
         return self.integration.add_organization(self.organization, self.user)
 
@@ -105,6 +121,12 @@ class Fixtures:
 
     def create_member(self, *args, **kwargs):
         return Factories.create_member(*args, **kwargs)
+
+    def create_api_key(self, *args, **kwargs):
+        return Factories.create_api_key(*args, **kwargs)
+
+    def create_user_auth_token(self, *args, **kwargs):
+        return Factories.create_user_auth_token(*args, **kwargs)
 
     def create_team_membership(self, *args, **kwargs):
         return Factories.create_team_membership(*args, **kwargs)
@@ -121,7 +143,8 @@ class Fixtures:
         return Factories.create_environment(project=project, **kwargs)
 
     def create_project(self, **kwargs):
-        kwargs.setdefault("teams", [self.team])
+        if "teams" not in kwargs:
+            kwargs["teams"] = [self.team]
         return Factories.create_project(**kwargs)
 
     def create_project_bookmark(self, project=None, *args, **kwargs):
@@ -171,12 +194,8 @@ class Fixtures:
             release_id = self.release.id
         return Factories.create_release_file(release_id, file, name, dist_id)
 
-    def create_artifact_bundle(self, org=None, release=None, *args, **kwargs):
-        if org is None:
-            org = self.organization.slug
-        if release is None:
-            release = self.release.version
-        return Factories.create_artifact_bundle(org, release, *args, **kwargs)
+    def create_artifact_bundle_zip(self, org=None, release=None, *args, **kwargs):
+        return Factories.create_artifact_bundle_zip(org, release, *args, **kwargs)
 
     def create_release_archive(self, org=None, release=None, *args, **kwargs):
         if org is None:
@@ -184,6 +203,11 @@ class Fixtures:
         if release is None:
             release = self.release.version
         return Factories.create_release_archive(org, release, *args, **kwargs)
+
+    def create_artifact_bundle(self, org=None, *args, **kwargs):
+        if org is None:
+            org = self.organization
+        return Factories.create_artifact_bundle(org, *args, **kwargs)
 
     def create_code_mapping(self, project=None, repo=None, organization_integration=None, **kwargs):
         if project is None:
@@ -212,7 +236,20 @@ class Fixtures:
     def create_useremail(self, *args, **kwargs):
         return Factories.create_useremail(*args, **kwargs)
 
-    def store_event(self, *args, **kwargs):
+    def create_usersocialauth(
+        self,
+        user: User | None = None,
+        provider: str | None = None,
+        uid: str | None = None,
+        extra_data: Mapping[str, Any] | None = None,
+    ):
+        if not user:
+            user = self.user
+        return Factories.create_usersocialauth(
+            user=user, provider=provider, uid=uid, extra_data=extra_data
+        )
+
+    def store_event(self, *args, **kwargs) -> Event:
         return Factories.store_event(*args, **kwargs)
 
     def create_group(self, project=None, *args, **kwargs):
@@ -252,6 +289,9 @@ class Fixtures:
 
     def create_internal_integration_token(self, *args, **kwargs):
         return Factories.create_internal_integration_token(*args, **kwargs)
+
+    def create_org_auth_token(self, *args, **kwargs):
+        return Factories.create_org_auth_token(*args, **kwargs)
 
     def create_sentry_app_installation(self, *args, **kwargs):
         return Factories.create_sentry_app_installation(*args, **kwargs)
@@ -307,6 +347,9 @@ class Fixtures:
             incident, type=IncidentActivityType.COMMENT.value, *args, **kwargs
         )
 
+    def create_incident_trigger(self, incident, alert_rule_trigger, status):
+        return Factories.create_incident_trigger(incident, alert_rule_trigger, status=status)
+
     def create_alert_rule(self, organization=None, projects=None, *args, **kwargs):
         if not organization:
             organization = self.organization
@@ -338,6 +381,11 @@ class Fixtures:
 
         return Factories.create_alert_rule_trigger_action(
             alert_rule_trigger, target_identifier=target_identifier, **kwargs
+        )
+
+    def create_notification_action(self, organization=None, projects=None, **kwargs):
+        return Factories.create_notification_action(
+            organization=organization, projects=projects, **kwargs
         )
 
     def create_external_user(self, user=None, organization=None, integration=None, **kwargs):
@@ -373,17 +421,32 @@ class Fixtures:
 
     def create_slack_integration(
         self,
-        organization: "Organization",
+        organization: Organization,
         external_id: str = "TXXXXXXX1",
+        user: Optional[RpcUser] = None,
+        identity_external_id: str = "UXXXXXXX1",
         **kwargs: Any,
     ):
+        if user is None:
+            with assume_test_silo_mode(SiloMode.REGION):
+                user = organization.get_default_owner()
+
         integration = Factories.create_slack_integration(
             organization=organization, external_id=external_id, **kwargs
         )
         idp = Factories.create_identity_provider(integration=integration)
-        Factories.create_identity(organization.get_default_owner(), idp, "UXXXXXXX1")
+        Factories.create_identity(user, idp, identity_external_id)
 
         return integration
+
+    def create_integration(
+        self,
+        organization: Organization,
+        external_id: str,
+        oi_params: Mapping[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> Integration:
+        return Factories.create_integration(organization, external_id, oi_params, **kwargs)
 
     def create_identity(self, *args, **kwargs):
         return Factories.create_identity(*args, **kwargs)
@@ -393,11 +456,26 @@ class Fixtures:
 
     def create_group_history(self, *args, **kwargs):
         if "actor" not in kwargs:
-            kwargs["actor"] = self.user.actor
+            kwargs["actor"] = Actor.objects.get(id=get_actor_id_for_user(self.user))
         return Factories.create_group_history(*args, **kwargs)
 
     def create_comment(self, *args, **kwargs):
         return Factories.create_comment(*args, **kwargs)
+
+    def create_sentry_function(self, *args, **kwargs):
+        return Factories.create_sentry_function(*args, **kwargs)
+
+    def create_saved_search(self, *args, **kwargs):
+        return Factories.create_saved_search(*args, **kwargs)
+
+    def create_organization_mapping(self, *args, **kwargs):
+        return Factories.create_org_mapping(*args, **kwargs)
+
+    def create_basic_auth_header(self, *args, **kwargs):
+        return Factories.create_basic_auth_header(*args, **kwargs)
+
+    def snooze_rule(self, *args, **kwargs):
+        return Factories.snooze_rule(*args, **kwargs)
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):

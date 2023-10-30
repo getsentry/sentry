@@ -4,7 +4,7 @@ import logging
 import random
 import time
 from abc import ABC, abstractmethod
-from typing import Callable, Generic, Optional, TypeVar
+from typing import Callable, Optional, TypeVar
 
 from django.utils.encoding import force_bytes
 
@@ -30,7 +30,7 @@ class RetryException(Exception):
 T = TypeVar("T")
 
 
-class RetryPolicy(Generic[T], ABC):
+class RetryPolicy(ABC):
     @abstractmethod
     def __call__(self, function: Callable[[], T]) -> T:
         raise NotImplementedError
@@ -65,7 +65,7 @@ def exponential_delay(duration: float) -> Callable[[int], float]:
     return delay
 
 
-class ConditionalRetryPolicy(RetryPolicy[T]):
+class ConditionalRetryPolicy(RetryPolicy):
     """
     A basic policy that can be used to retry a callable based on the result
     of a test function that determines whether or not to retry after the

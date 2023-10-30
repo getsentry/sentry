@@ -57,7 +57,7 @@ function getHeight(
   return Math.min(minHeight, maxHeight);
 }
 
-const List = ({
+function List({
   virtualizedHeight,
   virtualizedLabelHeight,
   onScroll,
@@ -65,7 +65,7 @@ const List = ({
   highlightedIndex,
   maxHeight,
   ...rowProps
-}: Props) => {
+}: Props) {
   if (virtualizedHeight) {
     return (
       <AutoSizer disableHeight>
@@ -115,6 +115,6 @@ const List = ({
       ))}
     </Fragment>
   );
-};
+}
 
 export default List;

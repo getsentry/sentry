@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import os
 import shutil
 import zipfile
+from typing import IO
 
 
 def is_unsafe_path(path):
@@ -26,7 +29,9 @@ def find_common_prefix(members):
     return ""
 
 
-def safe_extract_zip(f, path, strip_toplevel=True):
+def safe_extract_zip(
+    f: str | IO[bytes] | zipfile.ZipFile, path: str, strip_toplevel: bool = True
+) -> None:
     """Safely extract a given zip file to a path.  The zipfile can either
     be an open file or a filename.  If the zip is unsafe an exception is
     raised.  Optionally the toplevel folder is stripped off.  If there are

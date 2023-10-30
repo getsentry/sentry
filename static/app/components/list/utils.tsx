@@ -1,7 +1,6 @@
-import {css} from '@emotion/react';
+import {css, Theme} from '@emotion/react';
 
-import space from 'sentry/styles/space';
-import {Theme} from 'sentry/utils/theme';
+import {space} from 'sentry/styles/space';
 
 const bulletStyle = (theme: Theme) => css`
   padding-left: ${space(3)};

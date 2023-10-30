@@ -1,0 +1,142 @@
+#!/usr/bin/env python
+from io import BytesIO
+from zlib import compress
+
+from sentry.runner import configure
+from sentry.utils.json import dumps_htmlsafe
+
+configure()
+import pathlib
+import uuid
+from datetime import datetime, timedelta
+
+import click
+import requests
+from django.conf import settings
+
+from sentry.models.files.file import File
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.team import Team
+from sentry.replays.models import ReplayRecordingSegment
+from sentry.replays.testutils import (
+    mock_replay,
+    mock_rrweb_div_helloworld,
+    mock_segment_click,
+    mock_segment_console,
+    mock_segment_fullsnapshot,
+    mock_segment_init,
+    mock_segment_nagivation,
+    mock_segment_rageclick,
+)
+
+
+def store_replay(replay):
+    response = requests.post(
+        settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=[replay]
+    )
+    assert response.status_code == 200
+
+
+def create_recording(replay_id, project_id, timestamp):
+    segments = [
+        mock_segment_init(timestamp),
+        mock_segment_fullsnapshot(timestamp, [mock_rrweb_div_helloworld()]),
+        mock_segment_console(timestamp),
+        mock_segment_nagivation(timestamp + timedelta(seconds=1), hrefFrom="/", hrefTo="/home/"),
+        mock_segment_nagivation(
+            timestamp + timedelta(seconds=2), hrefFrom="/home/", hrefTo="/profile/"
+        ),
+        mock_segment_rageclick(
+            timestamp + timedelta(seconds=2),
+            "nav.app-65yvxw.e1upz5ks6[aria-label='Primary Navigation'] > div.app-1v175cc.e1upz5ks4",
+            "sidebar-item-performance",
+            "a",
+            24,
+        ),
+        mock_segment_click(
+            timestamp + timedelta(seconds=2),
+            "nav.app-65yvxw.e1upz5ks6[aria-label='Primary Navigation'] > div.app-1v175cc.e1upz5ks4",
+            "sidebar-item-performance",
+            "a",
+        ),
+        mock_segment_nagivation(
+            timestamp + timedelta(seconds=6),
+            hrefFrom="/profile/",
+            hrefTo="/performance/",
+        ),
+        mock_segment_rageclick(
+            timestamp + timedelta(seconds=6),
+            "nav.app-65yvxw.e1upz5ks6[aria-label='Primary Navigation'] > div.app-1v175cc.e1upz5ks4",
+            "sidebar-item-performance",
+            "a",
+            24,
+        ),
+    ]
+    for (segment_id, segment) in enumerate(segments):
+        store_replay_segments(replay_id, project_id, segment_id, segment)
+
+
+def store_replay_segments(replay_id: str, project_id: str, segment_id: int, segment):
+    f = File.objects.create(name="rr:{segment_id}", type="replay.recording")
+    f.putfile(BytesIO(compress(dumps_htmlsafe(segment).encode())))
+    ReplayRecordingSegment.objects.create(
+        replay_id=replay_id,
+        project_id=project_id,
+        segment_id=segment_id,
+        file_id=f.id,
+    )
+
+
+def make_filename(filename: str) -> str:
+    parent_dir = pathlib.Path(__file__).parent.resolve()
+    return f"{parent_dir}/rrweb-output/{filename}"
+
+
+def main():
+    project_name = "Replay Test Project"
+
+    if not settings.SENTRY_FEATURES["organizations:session-replay"]:
+        click.echo(
+            'Session Replays is currently turned off! \nTo enable, add the following line to your local sentry.conf.py file: \nSENTRY_FEATURES["organizations:session-replay"] = True'
+        )
+        exit()
+
+    if settings.SENTRY_SINGLE_ORGANIZATION:
+        org = Organization.get_default()
+        click.echo(f"Mocking org {org.name}")
+    else:
+        click.echo("Mocking org {}".format("Default"))
+        org, _ = Organization.objects.get_or_create(slug="default")
+
+    click.echo(f"  > Mocking project {project_name}")
+
+    team, _ = Team.objects.get_or_create(
+        organization=org, slug="sentry", defaults={"name": "Sentry"}
+    )
+
+    project, _ = Project.objects.get_or_create(
+        name=project_name,
+        defaults={
+            "organization": org,
+            "flags": Project.flags.has_replays,
+        },
+        platform="javascript",
+    )
+
+    project.add_team(team)
+
+    replay_id = uuid.uuid4().hex
+    seq1_timestamp = datetime.now() - timedelta(seconds=15)
+    seq2_timestamp = datetime.now() - timedelta(seconds=5)
+
+    click.echo("Creating Replay events entries...")
+    store_replay(mock_replay(seq1_timestamp, project.id, replay_id, segment_id=0))
+    store_replay(mock_replay(seq2_timestamp, project.id, replay_id, segment_id=1))
+
+    click.echo("Creating Replay recording entries...")
+    create_recording(replay_id, project.id, seq1_timestamp)
+
+
+if __name__ == "__main__":
+    main()

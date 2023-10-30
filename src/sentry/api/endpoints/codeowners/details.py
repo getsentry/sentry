@@ -9,18 +9,27 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import projectcodeowners as projectcodeowners_serializers
-from sentry.models import Project, ProjectCodeOwners
+from sentry.models.project import Project
+from sentry.models.projectcodeowners import ProjectCodeOwners
 
 from . import ProjectCodeOwnerSerializer, ProjectCodeOwnersMixin
 
 logger = logging.getLogger(__name__)
 
 
-class ProjectCodeOwnersDetailsEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):  # type: ignore
+@region_silo_endpoint
+class ProjectCodeOwnersDetailsEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     def convert_args(
         self,
         request: Request,

@@ -2,32 +2,25 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import IdBadge from 'sentry/components/idBadge';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {Organization} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import withLatestContext from 'sentry/utils/withLatestContext';
+import {resolveRoute} from 'sentry/utils/resolveRoute';
+import useOrganization from 'sentry/utils/useOrganization';
 import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 import findFirstRouteWithoutRouteParam from 'sentry/views/settings/components/settingsBreadcrumb/findFirstRouteWithoutRouteParam';
 import MenuItem from 'sentry/views/settings/components/settingsBreadcrumb/menuItem';
 
-import {RouteWithName} from './types';
 import {CrumbLink} from '.';
 
-type Props = RouteComponentProps<{projectId?: string}, {}> & {
-  organization: Organization;
-  organizations: Organization[];
-  route: RouteWithName;
-  routes: RouteWithName[];
-};
+type Props = RouteComponentProps<{projectId?: string}, {}>;
 
-const OrganizationCrumb = ({
-  organization,
-  organizations,
-  params,
-  routes,
-  route,
-  ...props
-}: Props) => {
-  const handleSelect = (item: {value: string}) => {
+function OrganizationCrumb({params, routes, route, ...props}: Props) {
+  const organizations = useLegacyStore(OrganizationsStore);
+  const organization = useOrganization();
+
+  const handleSelect = (item: {value: Organization}) => {
     // If we are currently in a project context, and we're attempting to switch organizations,
     // then we need to default to index route (e.g. `route`)
     //
@@ -35,26 +28,31 @@ const OrganizationCrumb = ({
     // e.g. if you are on API details, we want the API listing
     // This fails if our route tree is not nested
     const hasProjectParam = !!params.projectId;
-    let destination = hasProjectParam
+    let destinationRoute = hasProjectParam
       ? route
       : findFirstRouteWithoutRouteParam(routes.slice(routes.indexOf(route)));
 
     // It's possible there is no route without route params (e.g. organization settings index),
     // in which case, we can use the org settings index route (e.g. `route`)
-    if (!hasProjectParam && typeof destination === 'undefined') {
-      destination = route;
+    if (!hasProjectParam && typeof destinationRoute === 'undefined') {
+      destinationRoute = route;
     }
 
-    if (destination === undefined) {
+    if (destinationRoute === undefined) {
       return;
     }
-
-    browserHistory.push(
-      recreateRoute(destination, {
-        routes,
-        params: {...params, orgId: item.value},
-      })
-    );
+    const itemOrg = item.value;
+    const path = recreateRoute(destinationRoute, {
+      routes,
+      params: {...params, orgId: itemOrg.slug},
+    });
+    const resolvedUrl = resolveRoute(path, organization, itemOrg);
+    // If we have a shift in domains, we can't use history
+    if (resolvedUrl.startsWith('http')) {
+      window.location.assign(resolvedUrl);
+    } else {
+      browserHistory.push(resolvedUrl);
+    }
   };
 
   if (!organization) {
@@ -62,16 +60,12 @@ const OrganizationCrumb = ({
   }
 
   const hasMenu = organizations.length > 1;
+  const orgSettings = `/settings/${organization.slug}/`;
 
   return (
     <BreadcrumbDropdown
       name={
-        <CrumbLink
-          to={recreateRoute(route, {
-            routes,
-            params: {...params, orgId: organization.slug},
-          })}
-        >
+        <CrumbLink to={orgSettings}>
           <BadgeWrapper>
             <IdBadge avatarSize={18} organization={organization} />
           </BadgeWrapper>
@@ -82,7 +76,7 @@ const OrganizationCrumb = ({
       route={route}
       items={organizations.map((org, index) => ({
         index,
-        value: org.slug,
+        value: org,
         label: (
           <MenuItem>
             <IdBadge organization={org} />
@@ -92,7 +86,7 @@ const OrganizationCrumb = ({
       {...props}
     />
   );
-};
+}
 
 const BadgeWrapper = styled('div')`
   display: flex;
@@ -100,4 +94,3 @@ const BadgeWrapper = styled('div')`
 `;
 
 export {OrganizationCrumb};
-export default withLatestContext(OrganizationCrumb);

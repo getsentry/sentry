@@ -41,7 +41,7 @@ const ZoomPropKeys = [
   'onFinished',
 ] as const;
 
-export type ZoomRenderProps = Pick<Props, typeof ZoomPropKeys[number]> & {
+export interface ZoomRenderProps extends Pick<Props, (typeof ZoomPropKeys)[number]> {
   dataZoom?: DataZoomComponentOption[];
   end?: Date;
   isGroupedByDate?: boolean;
@@ -49,7 +49,7 @@ export type ZoomRenderProps = Pick<Props, typeof ZoomPropKeys[number]> & {
   start?: Date;
   toolBox?: ToolboxComponentOption;
   utc?: boolean;
-};
+}
 
 type Props = {
   children: (props: ZoomRenderProps) => React.ReactNode;
@@ -63,6 +63,7 @@ type Props = {
   onZoom?: (period: Period) => void;
   period?: string | null;
   router?: InjectedRouter;
+  saveOnZoom?: boolean;
   showSlider?: boolean;
   start?: DateString;
   usePageDate?: boolean;
@@ -126,7 +127,7 @@ class ChartZoom extends Component<Props> {
    * Saves a callback function to be called after chart animation is completed
    */
   setPeriod = ({period, start, end}, saveHistory = false) => {
-    const {router, onZoom, usePageDate} = this.props;
+    const {router, onZoom, usePageDate, saveOnZoom} = this.props;
     const startFormatted = getDate(start);
     const endFormatted = getDate(end);
 
@@ -141,7 +142,7 @@ class ChartZoom extends Component<Props> {
     //
     // Parent container can use this to change into a loading state before
     // URL parameters are changed
-    callIfFunction(onZoom, {
+    onZoom?.({
       period,
       start: startFormatted,
       end: endFormatted,
@@ -172,7 +173,8 @@ class ChartZoom extends Component<Props> {
               : startFormatted,
             end: endFormatted ? getUtcToLocalDateObject(endFormatted) : endFormatted,
           },
-          router
+          router,
+          {save: saveOnZoom}
         );
       }
 
@@ -184,7 +186,7 @@ class ChartZoom extends Component<Props> {
    * Enable zoom immediately instead of having to toggle to zoom
    */
   handleChartReady = chart => {
-    callIfFunction(this.props.onChartReady, chart);
+    this.props.onChartReady?.(chart);
   };
 
   /**
@@ -202,7 +204,7 @@ class ChartZoom extends Component<Props> {
     // reset history
     this.history = [];
 
-    callIfFunction(this.props.onRestore, evt, chart);
+    this.props.onRestore?.(evt, chart);
   };
 
   handleDataZoom = (evt, chart) => {
@@ -227,7 +229,7 @@ class ChartZoom extends Component<Props> {
       this.setPeriod({period: null, start, end}, true);
     }
 
-    callIfFunction(this.props.onDataZoom, evt, chart);
+    this.props.onDataZoom?.(evt, chart);
   };
 
   /**

@@ -1,8 +1,9 @@
 import {css} from '@emotion/react';
 import color from 'color';
 
-import CHART_PALETTE from 'sentry/constants/chartPalette';
-import {DataCategory} from 'sentry/types';
+import {DATA_CATEGORY_INFO} from 'sentry/constants';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {Outcome} from 'sentry/types';
 
 /**
  * Exporting for use in Storybook only. Do not import this
@@ -12,23 +13,30 @@ export const lightColors = {
   black: '#1D1127',
   white: '#FFFFFF',
 
-  surface100: '#FAF9FB',
-  surface200: '#FFFFFF',
+  surface100: '#F5F3F7',
+  surface200: '#FAF9FB',
   surface300: '#FFFFFF',
-  surface400: '#F5F3F7',
+  surface400: '#FFFFFF',
+
+  /**
+   * Hover color. Deprecated – use <InteractionStateLayer /> instead for interaction
+   * (hover/press) states.
+   * @deprecated
+   */
+  surface500: '#F5F3F7',
 
   gray500: '#2B2233',
   gray400: '#3E3446',
   gray300: '#80708F',
-  gray200: '#DBD6E1',
-  gray100: '#EBE6EF',
+  gray200: '#E0DCE5',
+  gray100: '#F0ECF3',
 
   /**
    * Alternative version of gray200 that's translucent.
    * Useful for borders on tooltips, popovers, and dialogs.
    */
-  translucentGray200: 'rgba(58, 17, 95, 0.18)',
-  translucentGray100: 'rgba(45, 0, 85, 0.1)',
+  translucentGray200: 'rgba(58, 17, 95, 0.14)',
+  translucentGray100: 'rgba(45, 0, 85, 0.06)',
 
   purple400: '#584AC0',
   purple300: '#6C5FC7',
@@ -50,13 +58,13 @@ export const lightColors = {
   yellow200: 'rgba(245, 176, 0, 0.55)',
   yellow100: 'rgba(245, 176, 0, 0.08)',
 
-  red400: '#F32F35',
+  red400: '#DF3338',
   red300: '#F55459',
   red200: 'rgba(245, 84, 89, 0.5)',
   red100: 'rgba(245, 84, 89, 0.09)',
 
   pink400: '#E50675',
-  pink300: '#F91A8A',
+  pink300: '#F14499',
   pink200: 'rgba(249, 26, 138, 0.5)',
   pink100: 'rgba(249, 26, 138, 0.1)',
 };
@@ -69,64 +77,105 @@ export const darkColors = {
   black: '#1D1127',
   white: '#FFFFFF',
 
-  surface100: '#1A141F',
-  surface200: '#241D2A',
-  surface300: '#2C2433',
-  surface400: '#362E3E',
+  surface100: '#18121C',
+  surface200: '#1A141F',
+  surface300: '#241D2A',
+  surface400: '#2C2433',
+
+  /**
+   * Hover color. Deprecated – use <InteractionStateLayer /> instead for interaction
+   * (hover/press) states.
+   * @deprecated
+   */
+  surface500: '#362E3E',
 
   gray500: '#EBE6EF',
   gray400: '#D6D0DC',
   gray300: '#998DA5',
-  gray200: '#43384C',
-  gray100: '#342B3B',
+  gray200: '#393041',
+  gray100: '#302735',
 
   /**
    * Alternative version of gray200 that's translucent.
    * Useful for borders on tooltips, popovers, and dialogs.
    */
-  translucentGray200: 'rgba(218, 184, 245, 0.18)',
-  translucentGray100: 'rgba(208, 168, 240, 0.1)',
+  translucentGray200: 'rgba(218, 184, 245, 0.16)',
+  translucentGray100: 'rgba(208, 168, 240, 0.07)',
 
-  purple400: '#6859CF',
+  purple400: '#A397F7',
   purple300: '#7669D3',
-  purple200: 'rgba(108, 95, 199, 0.6)',
-  purple100: 'rgba(118, 105, 211, 0.1)',
+  purple200: 'rgba(118, 105, 211, 0.27)',
+  purple100: 'rgba(118, 105, 211, 0.12)',
 
-  blue400: '#4284FF',
-  blue300: '#5C95FF',
-  blue200: 'rgba(92, 149, 255, 0.4)',
-  blue100: 'rgba(92, 149, 255, 0.1)',
+  blue400: '#70A2FF',
+  blue300: '#3070E8',
+  blue200: 'rgba(48, 112, 232, 0.25)',
+  blue100: 'rgba(48, 112, 232, 0.12)',
 
-  green400: '#26B593',
-  green300: '#2AC8A3',
-  green200: 'rgba(42, 200, 163, 0.4)',
-  green100: 'rgba(42, 200, 163, 0.1)',
+  green400: '#1AB792',
+  green300: '#1D876E',
+  green200: 'rgba(29, 135, 110, 0.3)',
+  green100: 'rgba(29, 135, 110, 0.14)',
 
-  yellow400: '#F5B000',
-  yellow300: '#FFC227',
-  yellow200: 'rgba(255, 194, 39, 0.35)',
-  yellow100: 'rgba(255, 194, 39, 0.07)',
+  yellow400: '#E5A500',
+  yellow300: '#B28000',
+  yellow200: 'rgba(178, 128, 0, 0.25)',
+  yellow100: 'rgba(178, 128, 0, 0.1)',
 
-  red400: '#FA2E34',
-  red300: '#FA4F54',
-  red200: 'rgba(250, 79, 84, 0.4)',
-  red100: 'rgba(250, 79, 84, 0.1)',
+  red400: '#F87277',
+  red300: '#E12D33',
+  red200: 'rgba(225, 45, 51, 0.25)',
+  red100: 'rgba(225, 45, 51, 0.12)',
 
-  pink400: '#C4317A',
-  pink300: '#D1478C',
-  pink200: 'rgba(209, 71, 140, 0.55)',
-  pink100: 'rgba(209, 71, 140, 0.13)',
+  pink400: '#E674AD',
+  pink300: '#CE3B85',
+  pink200: 'rgba(206, 59, 133, 0.25)',
+  pink100: 'rgba(206, 59, 133, 0.1)',
+};
+
+const prismLight = {
+  '--prism-base': '#332B3B',
+  '--prism-selected': '#E9E0EB',
+  '--prism-inline-code': '#D25F7C',
+  '--prism-inline-code-background': '#F8F9FB',
+  '--prism-highlight-background': '#5C78A31C',
+  '--prism-highlight-accent': '#5C78A344',
+  '--prism-comment': '#72697C',
+  '--prism-punctuation': '#70697C',
+  '--prism-property': '#7A6229',
+  '--prism-selector': '#3C774A',
+  '--prism-operator': '#635D6F',
+  '--prism-variable': '#A8491A',
+  '--prism-function': '#106A9E',
+  '--prism-keyword': '#A7114A',
+};
+
+const prismDark = {
+  '--prism-base': '#F2EDF6',
+  '--prism-selected': '#865891',
+  '--prism-inline-code': '#D25F7C',
+  '--prism-inline-code-background': '#F8F9FB',
+  '--prism-highlight-background': '#A8A2C31C',
+  '--prism-highlight-accent': '#A8A2C344',
+  '--prism-comment': '#8B7A9E',
+  '--prism-punctuation': '#B3ACC1',
+  '--prism-property': '#EAB944',
+  '--prism-selector': '#7EBE8E',
+  '--prism-operator': '#A470A7',
+  '--prism-variable': '#E58759',
+  '--prism-function': '#6CC5F9',
+  '--prism-keyword': '#E386AA',
 };
 
 const lightShadows = {
-  dropShadowLightest: '0 0 2px rgba(43, 34, 51, 0.04)',
-  dropShadowLight: '0 1px 4px rgba(43, 34, 51, 0.04)',
+  dropShadowLight: '0 0 1px rgba(43, 34, 51, 0.04)',
+  dropShadowMedium: '0 1px 2px rgba(43, 34, 51, 0.04)',
   dropShadowHeavy: '0 4px 24px rgba(43, 34, 51, 0.12)',
 };
 
 const darkShadows = {
-  dropShadowLightest: '0 0 2px rgba(10, 8, 12, 0.2)',
-  dropShadowLight: '0 1px 4px rgba(10, 8, 12, 0.2)',
+  dropShadowLight: '0 0 1px rgba(10, 8, 12, 0.2)',
+  dropShadowMedium: '0 1px 2px rgba(10, 8, 12, 0.2)',
   dropShadowHeavy: '0 4px 24px rgba(10, 8, 12, 0.36)',
 };
 
@@ -161,27 +210,32 @@ const generateAliases = (colors: BaseColors) => ({
   /**
    * Background for the main content area of a page?
    */
-  bodyBackground: colors.surface100,
+  bodyBackground: colors.surface200,
 
   /**
    * Primary background color
    */
-  background: colors.surface200,
+  background: colors.surface300,
 
   /**
    * Elevated background color
    */
-  backgroundElevated: colors.surface300,
+  backgroundElevated: colors.surface400,
 
   /**
    * Secondary background color used as a slight contrast against primary background
    */
-  backgroundSecondary: colors.surface100,
+  backgroundSecondary: colors.surface200,
+
+  /**
+   * Tertiary background color used as a stronger contrast against primary background
+   */
+  backgroundTertiary: colors.surface100,
 
   /**
    * Background for the header of a page
    */
-  headerBackground: colors.surface200,
+  headerBackground: colors.surface300,
 
   /**
    * Primary border color
@@ -200,12 +254,28 @@ const generateAliases = (colors: BaseColors) => ({
    */
   success: colors.green300,
   successText: colors.green400,
+  successFocus: colors.green200,
 
   /**
    * A color that denotes an error, or something that is wrong
    */
   error: colors.red300,
   errorText: colors.red400,
+  errorFocus: colors.red200,
+
+  /**
+   * A color that denotes danger, for dangerous actions like deletion
+   */
+  danger: colors.red300,
+  dangerText: colors.red400,
+  dangerFocus: colors.red200,
+
+  /**
+   * A color that denotes a warning
+   */
+  warning: colors.yellow300,
+  warningText: colors.yellow400,
+  warningFocus: colors.yellow200,
 
   /**
    * A color that indicates something is disabled where user can not interact or use
@@ -215,9 +285,11 @@ const generateAliases = (colors: BaseColors) => ({
   disabledBorder: colors.gray200,
 
   /**
-   * Indicates a "hover" state, to suggest that an interactive element is clickable
+   * Indicates a "hover" state. Deprecated – use `InteractionStateLayer` instead for
+   * interaction (hover/press) states.
+   * @deprecated
    */
-  hover: colors.surface400,
+  hover: colors.surface500,
 
   /**
    * Indicates that something is "active" or "selected"
@@ -241,8 +313,8 @@ const generateAliases = (colors: BaseColors) => ({
   /**
    * Link color indicates that something is clickable
    */
-  linkColor: colors.blue300,
-  linkHoverColor: colors.blue300,
+  linkColor: colors.blue400,
+  linkHoverColor: colors.blue400,
   linkUnderline: colors.blue200,
   linkFocus: colors.blue300,
 
@@ -257,14 +329,9 @@ const generateAliases = (colors: BaseColors) => ({
   formText: colors.gray400,
 
   /**
-   * Form input border
-   */
-  formInputBorder: colors.gray200,
-
-  /**
    *
    */
-  rowBackground: colors.surface300,
+  rowBackground: colors.surface400,
 
   /**
    * Color of lines that flow across the background of the chart to indicate axes levels
@@ -295,7 +362,7 @@ const generateAliases = (colors: BaseColors) => ({
   /**
    * Overlay for partial opacity
    */
-  overlayBackgroundAlpha: color(colors.surface100).alpha(0.7).string(),
+  overlayBackgroundAlpha: color(colors.surface200).alpha(0.7).string(),
 
   /**
    * Tag progress bars
@@ -311,6 +378,8 @@ const generateAliases = (colors: BaseColors) => ({
     validActive: color(colors.blue100).opaquer(1.0).string(),
     invalid: colors.red100,
     invalidActive: color(colors.red100).opaquer(0.8).string(),
+    warning: colors.yellow100,
+    warningActive: color(colors.yellow100).opaquer(0.8).string(),
   },
 
   /**
@@ -321,6 +390,8 @@ const generateAliases = (colors: BaseColors) => ({
     validActive: color(colors.blue200).opaquer(1).string(),
     invalid: colors.red200,
     invalidActive: color(colors.red200).opaquer(1).string(),
+    warning: colors.yellow200,
+    warningActive: color(colors.yellow200).opaquer(1).string(),
   },
 
   /**
@@ -340,10 +411,19 @@ const generateAliases = (colors: BaseColors) => ({
 });
 
 const dataCategory = {
-  [DataCategory.ERRORS]: CHART_PALETTE[4][3],
-  [DataCategory.TRANSACTIONS]: CHART_PALETTE[4][2],
-  [DataCategory.ATTACHMENTS]: CHART_PALETTE[4][1],
-  [DataCategory.DEFAULT]: CHART_PALETTE[4][0],
+  [DATA_CATEGORY_INFO.error.plural]: CHART_PALETTE[4][3],
+  [DATA_CATEGORY_INFO.transaction.plural]: CHART_PALETTE[4][2],
+  [DATA_CATEGORY_INFO.attachment.plural]: CHART_PALETTE[4][1],
+  [DATA_CATEGORY_INFO.replay.plural]: CHART_PALETTE[4][4],
+};
+
+/**
+ * Default colors for data usage outcomes
+ */
+const outcome = {
+  [Outcome.ACCEPTED]: CHART_PALETTE[0][0],
+  [Outcome.FILTERED]: CHART_PALETTE[1][1],
+  [Outcome.DROPPED]: CHART_PALETTE[5][3],
 };
 
 const generateAlertTheme = (colors: BaseColors, alias: Aliases) => ({
@@ -360,7 +440,7 @@ const generateAlertTheme = (colors: BaseColors, alias: Aliases) => ({
     backgroundLight: colors.blue100,
     border: colors.blue200,
     borderHover: colors.blue300,
-    iconColor: colors.blue300,
+    iconColor: colors.blue400,
     iconHoverColor: colors.blue400,
   },
   warning: {
@@ -368,7 +448,7 @@ const generateAlertTheme = (colors: BaseColors, alias: Aliases) => ({
     backgroundLight: colors.yellow100,
     border: colors.yellow200,
     borderHover: colors.yellow300,
-    iconColor: colors.yellow300,
+    iconColor: colors.yellow400,
     iconHoverColor: colors.yellow400,
   },
   success: {
@@ -376,7 +456,7 @@ const generateAlertTheme = (colors: BaseColors, alias: Aliases) => ({
     backgroundLight: colors.green100,
     border: colors.green200,
     borderHover: colors.green300,
-    iconColor: colors.green300,
+    iconColor: colors.green400,
     iconHoverColor: colors.green400,
   },
   error: {
@@ -384,7 +464,7 @@ const generateAlertTheme = (colors: BaseColors, alias: Aliases) => ({
     backgroundLight: colors.red100,
     border: colors.red200,
     borderHover: colors.red300,
-    iconColor: colors.red300,
+    iconColor: colors.red400,
     iconHoverColor: colors.red400,
     textLight: colors.red200,
   },
@@ -411,10 +491,10 @@ const generateBadgeTheme = (colors: BaseColors) => ({
     indicatorColor: colors.green300,
     color: colors.white,
   },
-  review: {
-    background: colors.purple300,
-    indicatorColor: colors.purple300,
-    color: colors.white,
+  experimental: {
+    background: colors.gray100,
+    indicatorColor: colors.gray100,
+    color: colors.gray500,
   },
   warning: {
     background: colors.yellow300,
@@ -432,32 +512,32 @@ const generateTagTheme = (colors: BaseColors) => ({
   promotion: {
     background: colors.pink100,
     border: colors.pink200,
-    iconColor: colors.pink300,
+    iconColor: colors.pink400,
   },
   highlight: {
     background: colors.purple100,
     border: colors.purple200,
-    iconColor: colors.purple300,
+    iconColor: colors.purple400,
   },
   warning: {
     background: colors.yellow100,
     border: colors.yellow200,
-    iconColor: colors.yellow300,
+    iconColor: colors.yellow400,
   },
   success: {
     background: colors.green100,
     border: colors.green200,
-    iconColor: colors.green300,
+    iconColor: colors.green400,
   },
   error: {
     background: colors.red100,
     border: colors.red200,
-    iconColor: colors.red300,
+    iconColor: colors.red400,
   },
   info: {
     background: colors.purple100,
     border: colors.purple200,
-    iconColor: colors.purple300,
+    iconColor: colors.purple400,
   },
   white: {
     background: colors.white,
@@ -481,11 +561,10 @@ const generateLevelTheme = (colors: BaseColors) => ({
   error: '#FF7738',
   fatal: colors.red300,
   default: colors.gray300,
+  unknown: colors.gray200,
 });
 
 const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
-  borderRadius: '4px',
-
   default: {
     color: alias.textColor,
     colorActive: alias.textColor,
@@ -520,8 +599,8 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     focusShadow: colors.red200,
   },
   link: {
-    color: colors.blue300,
-    colorActive: colors.blue300,
+    color: alias.linkColor,
+    colorActive: alias.linkHoverColor,
     background: 'transparent',
     backgroundActive: 'transparent',
     border: 'transparent',
@@ -541,17 +620,6 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     focusBorder: 'transparent',
     focusShadow: 'transparent',
   },
-  form: {
-    color: alias.textColor,
-    colorActive: alias.textColor,
-    background: alias.background,
-    backgroundActive: alias.hover,
-    border: alias.formInputBorder,
-    borderActive: alias.formInputBorder,
-    borderTranslucent: alias.translucentBorder,
-    focusBorder: alias.focusBorder,
-    focusShadow: alias.focus,
-  },
 });
 
 const generateUtils = (colors: BaseColors, aliases: Aliases) => ({
@@ -570,6 +638,16 @@ const generateUtils = (colors: BaseColors, aliases: Aliases) => ({
     textOverflow: 'ellipsis',
   }),
 });
+
+const generatePrismVariables = (
+  prismColors: typeof prismLight,
+  blockBackground: string
+) =>
+  css({
+    // block background differs based on light/dark mode
+    '--prism-block-background': blockBackground,
+    ...prismColors,
+  });
 
 const iconSizes = {
   xs: '12px',
@@ -651,12 +729,6 @@ const commonTheme = {
     hovercard: 10002,
     tooltip: 10003,
 
-    // On mobile views org stats dropdowns overlap
-    orgStats: {
-      dataCategory: 2,
-      timeRange: 1,
-    },
-
     // On mobile views issue list dropdowns overlap
     issuesList: {
       stickyHeader: 1,
@@ -667,11 +739,15 @@ const commonTheme = {
 
   grid: 8,
 
-  borderRadius: '4px',
-  borderRadiusBottom: '0 0 4px 4px',
-  borderRadiusTop: '4px 4px 0 0',
-  borderRadiusLeft: '4px 0 0 4px',
-  borderRadiusRight: '0 4px 4px 0',
+  borderRadius: '6px',
+  borderRadiusBottom: '0 0 6px 6px',
+  borderRadiusTop: '6px 6px 0 0',
+  borderRadiusLeft: '6px 0 0 6px',
+  borderRadiusRight: '0 6px 6px 0',
+
+  panelBorderRadius: '6px',
+  modalBorderRadius: '8px',
+  linkBorderRadius: '2px',
 
   headerSelectorRowHeight: 44,
   headerSelectorLabelHeight: 28,
@@ -684,6 +760,7 @@ const commonTheme = {
   fontSizeMedium: '14px',
   fontSizeLarge: '16px',
   fontSizeExtraLarge: '18px',
+  codeFontSize: '13px',
   headerFontSize: '22px',
 
   settings: {
@@ -692,7 +769,7 @@ const commonTheme = {
     maxCrumbWidth: '240px',
 
     containerWidth: '1440px',
-    headerHeight: '69px',
+    headerHeight: '61px',
     sidebarWidth: '220px',
   },
 
@@ -709,8 +786,8 @@ const commonTheme = {
   },
 
   text: {
-    family: '"Rubik", "Avenir Next", sans-serif',
-    familyMono: '"Roboto Mono", Monaco, Consolas, "Courier New", monospace',
+    family: "'Rubik', 'Avenir Next', sans-serif",
+    familyMono: "'Roboto Mono', Monaco, Consolas, 'Courier New', monospace",
     lineHeightHeading: 1.2,
     lineHeightBody: 1.4,
     pageTitle: {
@@ -731,21 +808,21 @@ const commonTheme = {
    * Should be used to ensure consistent sizing among form elements.
    */
   form: {
-    default: {
-      height: 40,
-      minHeight: 40,
+    md: {
+      height: 38,
+      minHeight: 38,
       fontSize: '0.875rem',
       lineHeight: '1rem',
     },
-    small: {
-      height: 34,
-      minHeight: 34,
+    sm: {
+      height: 32,
+      minHeight: 32,
       fontSize: '0.875rem',
       lineHeight: '1rem',
     },
-    xsmall: {
-      height: 28,
-      minHeight: 28,
+    xs: {
+      height: 26,
+      minHeight: 26,
       fontSize: '0.75rem',
       lineHeight: '0.875rem',
     },
@@ -755,27 +832,52 @@ const commonTheme = {
    * Padding for buttons
    */
   buttonPadding: {
-    default: {
-      paddingTop: 10,
-      paddingBottom: 10,
+    md: {
       paddingLeft: 16,
       paddingRight: 16,
+      paddingTop: 10,
+      paddingBottom: 10,
     },
-    small: {
-      paddingTop: 8,
-      paddingBottom: 8,
+    sm: {
       paddingLeft: 12,
       paddingRight: 12,
+      paddingTop: 8,
+      paddingBottom: 8,
     },
-    xsmall: {
-      paddingTop: 6,
-      paddingBottom: 6,
+    xs: {
       paddingLeft: 8,
       paddingRight: 8,
+      paddingTop: 6,
+      paddingBottom: 6,
+    },
+  },
+
+  /**
+   * Padding for form inputs
+   */
+  formPadding: {
+    md: {
+      paddingLeft: 16,
+      paddingRight: 12,
+      paddingTop: 10,
+      paddingBottom: 10,
+    },
+    sm: {
+      paddingLeft: 12,
+      paddingRight: 10,
+      paddingTop: 8,
+      paddingBottom: 8,
+    },
+    xs: {
+      paddingLeft: 8,
+      paddingRight: 6,
+      paddingTop: 6,
+      paddingBottom: 6,
     },
   },
 
   dataCategory,
+  outcome,
 
   tag: generateTagTheme(lightColors),
 
@@ -808,6 +910,9 @@ const commonTheme = {
   // used as a gradient,
   businessIconColors: ['#EA5BC2', '#6148CE'],
 
+  barBreakdownColors: ['#EAE2F8', '#BBA6DF', '#9A81C4', '#694D99', '#402A65'],
+  barBreakdownFontColors: ['#564277', '#E8E2F1', '#E8E2F1', '#E8E2F1', '#E8E2F1'],
+
   demo: {
     headerSize: '70px',
   },
@@ -831,6 +936,10 @@ export const lightTheme = {
   button: generateButtonTheme(lightColors, lightAliases),
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(lightColors),
+  stacktraceActiveBackground: lightColors.gray500,
+  stacktraceActiveText: lightColors.white,
+  prismVariables: generatePrismVariables(prismLight, lightAliases.backgroundSecondary),
+  prismDarkVariables: generatePrismVariables(prismDark, darkAliases.backgroundElevated),
   sidebar: {
     ...commonTheme.sidebar,
     background: sidebarBackground.light,
@@ -854,6 +963,10 @@ export const darkTheme: Theme = {
   button: generateButtonTheme(darkColors, darkAliases),
   tag: generateTagTheme(darkColors),
   level: generateLevelTheme(darkColors),
+  prismVariables: generatePrismVariables(prismDark, darkAliases.backgroundSecondary),
+  prismDarkVariables: generatePrismVariables(prismDark, darkAliases.backgroundSecondary),
+  stacktraceActiveBackground: darkColors.gray200,
+  stacktraceActiveText: darkColors.white,
   sidebar: {
     ...commonTheme.sidebar,
     background: sidebarBackground.dark,
@@ -862,22 +975,25 @@ export const darkTheme: Theme = {
   sidebarBorder: darkAliases.border,
 };
 
-export type Theme = typeof lightTheme;
+type Theme = typeof lightTheme;
+
 export type Color = keyof typeof lightColors;
 export type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
 export type IconSize = keyof typeof iconSizes;
+export type FormSize = keyof Theme['form'];
 
 export default commonTheme;
 
-type MyTheme = Theme;
+// Be clear about what the [@emotion/React].THeme is extending
+type SentryTheme = Theme;
 
 /**
  * Configure Emotion to use our theme
  */
 declare module '@emotion/react' {
   // eslint-disable-next-line @typescript-eslint/no-shadow
-  export interface Theme extends MyTheme {}
+  export interface Theme extends SentryTheme {}
 }
 
 // This should never be used directly (except in storybook)

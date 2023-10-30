@@ -1,0 +1,31 @@
+---
+created: '2023-02-10T13:31:47.690454Z'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - attributes: {}
+    fingerprint:
+    - escaped
+    - '{{ message }}'
+    matchers:
+    - - message
+      - \{\[\*\?\]\}
+  version: 1
+fingerprint:
+- escaped
+- '{{ message }}'
+title: '{[*?]}'
+variants:
+  custom-fingerprint:
+    matched_rule: message:"\{\[\*\?\]\}" -> "escaped{{ message }}"
+    type: custom-fingerprint
+    values:
+    - escaped
+    - '{[*?]}'
+  default:
+    component:
+      contributes: false
+      hint: custom fingerprint takes precedence
+    type: component

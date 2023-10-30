@@ -1,8 +1,17 @@
-from sentry.models import UserRole
-from sentry.testutils import APITestCase
+from sentry.models.userrole import UserRole
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
-class PermissionTestMixin:
+class UserRolesDetailsTest(APITestCase):
+    endpoint = "sentry-api-0-userroles-details"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self.create_user(is_superuser=True)
+        self.login_as(user=self.user, superuser=True)
+        self.add_user_permission(self.user, "users.admin")
+
     def test_fails_without_superuser(self):
         self.user = self.create_user(is_superuser=False)
         self.login_as(self.user)
@@ -22,17 +31,8 @@ class PermissionTestMixin:
         assert resp.status_code == 403
 
 
-class UserRolesDetailsTest(APITestCase):
-    endpoint = "sentry-api-0-userroles-details"
-
-    def setUp(self):
-        super().setUp()
-        self.user = self.create_user(is_superuser=True)
-        self.login_as(user=self.user, superuser=True)
-        self.add_user_permission(self.user, "users.admin")
-
-
-class UserRolesDetailsGetTest(PermissionTestMixin, UserRolesDetailsTest):
+@control_silo_test(stable=True)
+class UserRolesDetailsGetTest(UserRolesDetailsTest):
     def test_simple(self):
         UserRole.objects.create(name="test-role")
         UserRole.objects.create(name="test-role2")
@@ -41,7 +41,8 @@ class UserRolesDetailsGetTest(PermissionTestMixin, UserRolesDetailsTest):
         assert resp.data["name"] == "test-role"
 
 
-class UserRolesDetailsPutTest(PermissionTestMixin, UserRolesDetailsTest):
+@control_silo_test(stable=True)
+class UserRolesDetailsPutTest(UserRolesDetailsTest):
     method = "PUT"
 
     def test_simple(self):
@@ -56,7 +57,8 @@ class UserRolesDetailsPutTest(PermissionTestMixin, UserRolesDetailsTest):
         assert role2.permissions == ["users.edit"]
 
 
-class UserRolesDetailsDeleteTest(PermissionTestMixin, UserRolesDetailsTest):
+@control_silo_test(stable=True)
+class UserRolesDetailsDeleteTest(UserRolesDetailsTest):
     method = "DELETE"
 
     def test_simple(self):

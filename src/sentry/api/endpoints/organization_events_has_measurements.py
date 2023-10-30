@@ -7,6 +7,8 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.snuba import discover
 from sentry.utils.hashlib import md5_text
@@ -45,7 +47,12 @@ class EventsHasMeasurementsQuerySerializer(serializers.Serializer):
         return data
 
 
+@region_silo_endpoint
 class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)

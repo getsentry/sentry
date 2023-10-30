@@ -1,9 +1,14 @@
+from __future__ import annotations
+
+from datetime import timezone
+from typing import Any, Mapping, Sequence
 from urllib.parse import urlparse
 
 from django import forms
-from django.utils.translation import ugettext_lazy as _
+from django.http import HttpResponse
+from django.utils.translation import gettext_lazy as _
+from isodate import parse_datetime
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import http
 from sentry.identity.github_enterprise import get_user_info
@@ -18,7 +23,11 @@ from sentry.integrations.github.integration import GitHubIntegrationProvider, bu
 from sentry.integrations.github.issues import GitHubIssueBasic
 from sentry.integrations.github.utils import get_jwt
 from sentry.integrations.mixins import RepositoryMixin
+from sentry.integrations.mixins.commit_context import CommitContextMixin
+from sentry.models.integrations.integration import Integration
+from sentry.models.repository import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt
@@ -53,6 +62,19 @@ FEATURES = [
         """,
         IntegrationFeatures.ISSUE_BASIC,
     ),
+    FeatureDescription(
+        """
+        Link your Sentry stack traces back to your GitHub source code with stack
+        trace linking.
+        """,
+        IntegrationFeatures.STACKTRACE_LINK,
+    ),
+    FeatureDescription(
+        """
+        Import your GitHub [CODEOWNERS file](https://docs.sentry.io/product/integrations/source-code-mgmt/github/#code-owners) and use it alongside your ownership rules to assign Sentry issues.
+        """,
+        IntegrationFeatures.CODEOWNERS,
+    ),
 ]
 
 
@@ -75,9 +97,10 @@ setup_alert = {
     "type": "warning",
     "icon": "icon-warning-sm",
     "text": "Your GitHub enterprise instance must be able to communicate with"
-    " Sentry. Sentry makes outbound requests from a [static set of IP"
-    " addresses](https://docs.sentry.io/ip-ranges/) that you may wish"
-    " to allow in your firewall to support this integration.",
+    " Sentry. Before you proceed, make sure that connections from [the static set"
+    " of IP addresses that Sentry makes outbound requests from]"
+    "(https://docs.sentry.io/product/security/ip-ranges/#outbound-requests)"
+    " are allowed in your firewall.",
 }
 
 metadata = IntegrationMetadata(
@@ -103,8 +126,11 @@ API_ERRORS = {
 }
 
 
-class GitHubEnterpriseIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin):
+class GitHubEnterpriseIntegration(
+    IntegrationInstallation, GitHubIssueBasic, RepositoryMixin, CommitContextMixin
+):
     repo_search = True
+    codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     def get_client(self):
         base_url = self.model.metadata["domain_name"].split("/")[0]
@@ -119,14 +145,23 @@ class GitHubEnterpriseIntegration(IntegrationInstallation, GitHubIssueBasic, Rep
     def get_repositories(self, query=None):
         if not query:
             return [
-                {"name": i["name"], "identifier": i["full_name"]}
+                {
+                    "name": i["name"],
+                    "identifier": i["full_name"],
+                    "default_branch": i.get("default_branch"),
+                }
                 for i in self.get_client().get_repositories()
             ]
 
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
         response = self.get_client().search_repositories(full_query)
         return [
-            {"name": i["name"], "identifier": i["full_name"]} for i in response.get("items", [])
+            {
+                "name": i["name"],
+                "identifier": i["full_name"],
+                "default_branch": i.get("default_branch"),
+            }
+            for i in response.get("items", [])
         ]
 
     def search_issues(self, query):
@@ -147,6 +182,59 @@ class GitHubEnterpriseIntegration(IntegrationInstallation, GitHubIssueBasic, Rep
             return f"Error Communicating with GitHub Enterprise (HTTP {exc.code}): {message}"
         else:
             return ERR_INTERNAL
+
+    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
+        # Must format the url ourselves since `check_file` is a head request
+        # "https://github.example.org/octokit/octokit.rb/blob/master/README.md"
+        return f"{repo.url}/blob/{branch}/{filepath}"
+
+    def get_commit_context(
+        self, repo: Repository, filepath: str, ref: str, event_frame: Mapping[str, Any]
+    ) -> Mapping[str, str] | None:
+        lineno = event_frame.get("lineno", 0)
+        if not lineno:
+            return None
+        try:
+            blame_range: Sequence[Mapping[str, Any]] | None = self.get_blame_for_file(
+                repo, filepath, ref, lineno
+            )
+
+            if blame_range is None:
+                return None
+        except ApiError as e:
+            raise e
+
+        try:
+            commit: Mapping[str, Any] = max(
+                (
+                    blame
+                    for blame in blame_range
+                    if blame.get("startingLine", 0) <= lineno <= blame.get("endingLine", 0)
+                    and blame.get("commit", {}).get("committedDate")
+                ),
+                key=lambda blame: parse_datetime(blame.get("commit", {}).get("committedDate")),
+                default={},
+            )
+            if not commit:
+                return None
+        except (ValueError, IndexError):
+            return None
+
+        commitInfo = commit.get("commit")
+        if not commitInfo:
+            return None
+        else:
+            committed_date = parse_datetime(commitInfo.get("committedDate")).astimezone(
+                timezone.utc
+            )
+
+            return {
+                "commitId": commitInfo.get("oid"),
+                "committedDate": committed_date,
+                "commitMessage": commitInfo.get("message"),
+                "commitAuthorName": commitInfo.get("author", {}).get("name"),
+                "commitAuthorEmail": commitInfo.get("author", {}).get("email"),
+            }
 
 
 class InstallationForm(forms.Form):
@@ -218,7 +306,7 @@ class InstallationForm(forms.Form):
 
 
 class InstallationConfigView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -258,7 +346,14 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
     name = "GitHub Enterprise"
     metadata = metadata
     integration_cls = GitHubEnterpriseIntegration
-    features = frozenset([IntegrationFeatures.COMMITS, IntegrationFeatures.ISSUE_BASIC])
+    features = frozenset(
+        [
+            IntegrationFeatures.COMMITS,
+            IntegrationFeatures.ISSUE_BASIC,
+            IntegrationFeatures.STACKTRACE_LINK,
+            IntegrationFeatures.CODEOWNERS,
+        ]
+    )
 
     def _make_identity_pipeline_view(self):
         """
@@ -290,7 +385,12 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             lambda: self._make_identity_pipeline_view(),
         ]
 
-    def post_install(self, integration, organization, extra=None):
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
+    ) -> None:
         pass
 
     def get_installation_info(self, installation_data, access_token, installation_id):
@@ -390,7 +490,7 @@ class GitHubEnterpriseInstallationRedirect(PipelineView):
         name = installation_data.get("name")
         return f"https://{url}/github-apps/{name}"
 
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
         installation_data = pipeline.fetch_state(key="installation_data")
         if "reinstall_id" in request.GET:
             pipeline.bind_state("reinstall_id", request.GET["reinstall_id"])

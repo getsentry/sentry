@@ -1,28 +1,25 @@
 from fido2 import cbor
 from fido2.ctap2 import AuthenticatorData
-from fido2.server import Fido2Server, U2FFido2Server
+from fido2.server import Fido2Server
 from fido2.webauthn import PublicKeyCredentialRpEntity
 
-from sentry.auth.authenticators import U2fInterface
 from sentry.auth.authenticators.base import ActivationChallengeResult
-from sentry.testutils import TestCase
+from sentry.auth.authenticators.u2f import U2fInterface
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
 def verifiy_origin(origin):
     return True
 
 
+@control_silo_test(stable=True)
 class U2FInterfaceTest(TestCase):
     def setUp(self):
         self.u2f = U2fInterface()
         self.login_as(user=self.user)
         rp = PublicKeyCredentialRpEntity("richardmasentry.ngrok.io", "Sentry")
         self.test_registration_server = Fido2Server(rp, verify_origin=verifiy_origin)
-        self.test_authentication_server = U2FFido2Server(
-            app_id="http://richardmasentry.ngrok.io/auth/2fa/u2fappid.json",
-            rp={"id": "richardmasentry.ngrok.io", "name": "Sentry"},
-            verify_u2f_origin=verifiy_origin,
-        )
 
     def test_start_enrollment_webauthn(self):
         self.u2f.webauthn_registration_server = self.test_registration_server
@@ -65,5 +62,6 @@ class U2FInterfaceTest(TestCase):
         self.test_try_enroll_webauthn()
         request = self.make_request(user=self.user)
         result = self.u2f.activate(request)
-        assert type(result) == ActivationChallengeResult
+        assert isinstance(result, ActivationChallengeResult)
         assert len(request.session["webauthn_authentication_state"]["challenge"]) == 43
+        assert request.session["webauthn_authentication_state"]["user_verification"] is None

@@ -1,0 +1,1223 @@
+{
+  "event_id": "c88e5373c0c24a6892e29ed72c6cd533",
+  "platform": "javascript",
+  "datetime": "2022-11-15T06:28:44.429000+00:00",
+  "tags": [
+    ["browser", "Firefox 106.0"],
+    ["browser.name", "Firefox"],
+    ["device", "Mac"],
+    ["device.family", "Mac"],
+    ["level", "info"],
+    ["os", "Mac OS X 10.15"],
+    ["os.name", "Mac OS X"],
+    ["transaction", "/organizations/:orgId/issues/:groupId/"],
+    ["url", "https://sentry.io/organizations/sentry/issues/1888481/"]
+  ],
+  "culprit": "/organizations/:orgId/issues/:groupId/",
+  "environment": "prod",
+  "location": "/organizations/:orgId/issues/:groupId/",
+  "received": 1668493725.254245,
+  "request": {
+    "url": "https://sentry.io/organizations/sentry/issues/1888481/",
+    "query_string": [
+      ["project", "555"],
+      ["referrer", "slack"]
+    ],
+    "headers": [
+      [
+        "User-Agent",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:106.0) Gecko/20100101 Firefox/106.0"
+      ]
+    ]
+  },
+  "sdk": {
+    "name": "sentry.javascript.react",
+    "version": "7.19.0",
+    "integrations": [
+      "InboundFilters",
+      "FunctionToString",
+      "TryCatch",
+      "Breadcrumbs",
+      "GlobalHandlers",
+      "LinkedErrors",
+      "Dedupe",
+      "HttpContext",
+      "ExtraErrorData",
+      "BrowserTracing"
+    ],
+    "packages": [{"name": "npm:@sentry/react", "version": "7.19.0"}]
+  },
+  "spans": [
+    {
+      "timestamp": 1668493709.83,
+      "start_timestamp": 1668493709.826,
+      "exclusive_time": 3.999948,
+      "description": "<OrganizationContextContainer>",
+      "op": "ui.react.mount",
+      "span_id": "96ead116def87096",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "d81f30cfc3785478"
+    },
+    {
+      "timestamp": 1668493710.061,
+      "start_timestamp": 1668493709.831,
+      "exclusive_time": 230.000019,
+      "description": "GET /api/0/organizations/?member=1",
+      "op": "http.client",
+      "span_id": "930a6f36f621c8ae",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {"http.method": "GET", "type": "fetch", "url": "/api/0/organizations/?member=1"},
+      "hash": "cbc1d1c7a6500a75"
+    },
+    {
+      "timestamp": 1668493710.391,
+      "start_timestamp": 1668493709.832,
+      "exclusive_time": 559.000015,
+      "description": "GET /api/0/internal/health/",
+      "op": "http.client",
+      "span_id": "9ae532ec8cc60a80",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {"http.method": "GET", "type": "fetch", "url": "/api/0/internal/health/"},
+      "hash": "61f17e17e6e505c4"
+    },
+    {
+      "timestamp": 1668493710.373,
+      "start_timestamp": 1668493709.833,
+      "exclusive_time": 539.999962,
+      "description": "GET /api/0/assistant/",
+      "op": "http.client",
+      "span_id": "99061fe7eed66b56",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {"http.method": "GET", "type": "fetch", "url": "/api/0/assistant/"},
+      "hash": "df65e7b0208b5678"
+    },
+    {
+      "timestamp": 1668493710.884,
+      "start_timestamp": 1668493709.858,
+      "exclusive_time": 1026.000022,
+      "description": "GET /api/0/organizations/sentry/client-state/",
+      "op": "http.client",
+      "span_id": "8f63becebded3dec",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/client-state/"
+      },
+      "hash": "65b42adbbc0dee5e"
+    },
+    {
+      "timestamp": 1668493709.907,
+      "start_timestamp": 1668493709.901,
+      "exclusive_time": 6.000042,
+      "description": "<LoadingIndicator>",
+      "op": "ui.react.mount",
+      "span_id": "941cae092ce0bf8f",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "f93d7e6580639d76"
+    },
+    {
+      "timestamp": 1668493710.303,
+      "start_timestamp": 1668493709.905,
+      "exclusive_time": 398.000002,
+      "description": "GET /api/0/subscriptions/sentry/",
+      "op": "http.client",
+      "span_id": "902e507b27ba76ef",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {"http.method": "GET", "type": "fetch", "url": "/api/0/subscriptions/sentry/"},
+      "hash": "d09dea4693554039"
+    },
+    {
+      "timestamp": 1668493710.29,
+      "start_timestamp": 1668493709.906,
+      "exclusive_time": 384.000063,
+      "description": "GET /api/0/organizations/sentry/broadcasts/",
+      "op": "http.client",
+      "span_id": "858201d465d37880",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/broadcasts/"
+      },
+      "hash": "75604a8e5ee18cc0"
+    },
+    {
+      "timestamp": 1668493709.907,
+      "start_timestamp": 1668493709.863,
+      "exclusive_time": 44.000148,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "bcaaaa071aeffcd8",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1668493709.948,
+      "start_timestamp": 1668493709.944,
+      "exclusive_time": 3.999949,
+      "description": "<GroupDetails>",
+      "op": "ui.react.mount",
+      "span_id": "8cd8d38910ca5bde",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "b9d2a96824acfd61"
+    },
+    {
+      "timestamp": 1668493709.945,
+      "start_timestamp": 1668493709.907,
+      "exclusive_time": 37.999869,
+      "description": "<LoadingIndicator>",
+      "op": "ui.react.render",
+      "span_id": "819937ed1a610795",
+      "parent_span_id": "941cae092ce0bf8f",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "f93d7e6580639d76"
+    },
+    {
+      "timestamp": 1668493710.505,
+      "start_timestamp": 1668493709.947,
+      "exclusive_time": 558.000088,
+      "description": "GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A1888481%20%21replayId%3A%22%22&statsPeriod=14d",
+      "op": "http.client",
+      "span_id": "847615ca522a6181",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A1888481%20%21replayId%3A%22%22&statsPeriod=14d"
+      },
+      "hash": "66c9f7e20f37ff88"
+    },
+    {
+      "timestamp": 1668493710.506,
+      "start_timestamp": 1668493709.947,
+      "exclusive_time": 559.000015,
+      "description": "GET /api/0/organizations/sentry/environments/",
+      "op": "http.client",
+      "span_id": "873b433cf788f4b7",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/environments/"
+      },
+      "hash": "baa9401ef80dd41e"
+    },
+    {
+      "timestamp": 1668493710.075,
+      "start_timestamp": 1668493710.063,
+      "exclusive_time": 12.000084,
+      "description": "<OrganizationContextContainer>",
+      "op": "ui.react.update",
+      "span_id": "bb27452619139328",
+      "parent_span_id": "96ead116def87096",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "data": {"changedProps": ["organizationsLoading", "organizations"]},
+      "hash": "d81f30cfc3785478"
+    },
+    {
+      "timestamp": 1668493710.109,
+      "start_timestamp": 1668493710.108,
+      "exclusive_time": 0.999927,
+      "description": "<GroupDetails>",
+      "op": "ui.react.update",
+      "span_id": "8f93be962d375350",
+      "parent_span_id": "8cd8d38910ca5bde",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "data": {"changedProps": ["projects"]},
+      "hash": "b9d2a96824acfd61"
+    },
+    {
+      "timestamp": 1668493710.115,
+      "start_timestamp": 1668493710.113,
+      "exclusive_time": 2.000093,
+      "description": "<GroupDetails>",
+      "op": "ui.react.update",
+      "span_id": "afa25727290a507e",
+      "parent_span_id": "8cd8d38910ca5bde",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "data": {"changedProps": ["environments", "isGlobalSelectionReady"]},
+      "hash": "b9d2a96824acfd61"
+    },
+    {
+      "timestamp": 1668493710.114,
+      "start_timestamp": 1668493710.113,
+      "exclusive_time": 1.000166,
+      "description": "<LoadingIndicator>",
+      "op": "ui.react.mount",
+      "span_id": "93a1f9ca6ba4e7c6",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "f93d7e6580639d76"
+    },
+    {
+      "timestamp": 1668493711.088,
+      "start_timestamp": 1668493710.114,
+      "exclusive_time": 973.999977,
+      "description": "GET /api/0/issues/1888481/events/latest/",
+      "op": "http.client",
+      "span_id": "bc55065b3853322b",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/issues/1888481/events/latest/"
+      },
+      "hash": "c58f380a0f7b350c"
+    },
+    {
+      "timestamp": 1668493711.184,
+      "start_timestamp": 1668493710.114,
+      "exclusive_time": 1069.999933,
+      "description": "GET /api/0/issues/1888481/?collapse=release&expand=inbox&expand=owners",
+      "op": "http.client",
+      "span_id": "9b6b3ef45966f889",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/issues/1888481/?collapse=release&expand=inbox&expand=owners"
+      },
+      "hash": "33a59c92255fb9b2"
+    },
+    {
+      "timestamp": 1668493712.155,
+      "start_timestamp": 1668493711.185,
+      "exclusive_time": 970.000029,
+      "description": "GET /api/0/issues/1888481/first-last-release/",
+      "op": "http.client",
+      "span_id": "ba64ba12169d40a1",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/issues/1888481/first-last-release/"
+      },
+      "hash": "d6c4b0be9dea3bdb"
+    },
+    {
+      "timestamp": 1668493712.141,
+      "start_timestamp": 1668493711.187,
+      "exclusive_time": 953.999996,
+      "description": "PUT /api/0/projects/sentry/javascript/issues/?id=1888481",
+      "op": "http.client",
+      "span_id": "90db84481b66d1d9",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "PUT",
+        "type": "fetch",
+        "url": "/api/0/projects/sentry/javascript/issues/?id=1888481"
+      },
+      "hash": "292344ccf90a8a6d"
+    },
+    {
+      "timestamp": 1668493711.208,
+      "start_timestamp": 1668493711.191,
+      "exclusive_time": 16.99996,
+      "description": "<OrganizationContextContainer>",
+      "op": "ui.react.update",
+      "span_id": "b325f24f87d7b329",
+      "parent_span_id": "96ead116def87096",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "data": {
+        "changedProps": ["location", "params", "routeParams", "routes", "children"]
+      },
+      "hash": "d81f30cfc3785478"
+    },
+    {
+      "timestamp": 1668493711.207,
+      "start_timestamp": 1668493711.207,
+      "exclusive_time": 0.0,
+      "description": "<GroupDetails>",
+      "op": "ui.react.update",
+      "span_id": "9a44b8129a6a4ee0",
+      "parent_span_id": "8cd8d38910ca5bde",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "data": {
+        "changedProps": [
+          "location",
+          "params",
+          "routeParams",
+          "routes",
+          "children",
+          "setDisableRouteAnalytics",
+          "setRouteAnalyticsParams",
+          "setEventNames"
+        ]
+      },
+      "hash": "b9d2a96824acfd61"
+    },
+    {
+      "timestamp": 1668493712.156,
+      "start_timestamp": 1668493711.21,
+      "exclusive_time": 945.99986,
+      "description": "GET /api/0/projects/sentry/javascript/",
+      "op": "http.client",
+      "span_id": "86bd3e85d61a6f4d",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/projects/sentry/javascript/"
+      },
+      "hash": "6cb3cc4f9620a9dc"
+    },
+    {
+      "timestamp": 1668493711.224,
+      "start_timestamp": 1668493711.21,
+      "exclusive_time": 13.999939,
+      "description": "<OrganizationContextContainer>",
+      "op": "ui.react.update",
+      "span_id": "a17948e44dd84206",
+      "parent_span_id": "96ead116def87096",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "data": {"changedProps": ["children"]},
+      "hash": "d81f30cfc3785478"
+    },
+    {
+      "timestamp": 1668493711.224,
+      "start_timestamp": 1668493711.222,
+      "exclusive_time": 2.000094,
+      "description": "<GroupDetails>",
+      "op": "ui.react.update",
+      "span_id": "82abfb8175d33e03",
+      "parent_span_id": "8cd8d38910ca5bde",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "data": {
+        "changedProps": [
+          "environments",
+          "setDisableRouteAnalytics",
+          "setRouteAnalyticsParams",
+          "setEventNames",
+          "previousUrl"
+        ]
+      },
+      "hash": "b9d2a96824acfd61"
+    },
+    {
+      "timestamp": 1668493711.228,
+      "start_timestamp": 1668493711.228,
+      "exclusive_time": 0.0,
+      "description": "<LoadingIndicator>",
+      "op": "ui.react.mount",
+      "span_id": "8919ddee9e936dc9",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "f93d7e6580639d76"
+    },
+    {
+      "timestamp": 1668493711.228,
+      "start_timestamp": 1668493710.114,
+      "exclusive_time": 1113.999843,
+      "description": "<LoadingIndicator>",
+      "op": "ui.react.render",
+      "span_id": "9b51bf36f3e7cec0",
+      "parent_span_id": "93a1f9ca6ba4e7c6",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "f93d7e6580639d76"
+    },
+    {
+      "timestamp": 1668493711.285,
+      "start_timestamp": 1668493711.228,
+      "exclusive_time": 57.00016,
+      "description": "<LoadingIndicator>",
+      "op": "ui.react.render",
+      "span_id": "9c66fd24f4b682a6",
+      "parent_span_id": "8919ddee9e936dc9",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "f93d7e6580639d76"
+    },
+    {
+      "timestamp": 1668493711.287,
+      "start_timestamp": 1668493711.231,
+      "exclusive_time": 55.999994,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "b242933a332b5cb8",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1668493711.314,
+      "start_timestamp": 1668493711.313,
+      "exclusive_time": 0.999928,
+      "description": "<LoadingIndicator>",
+      "op": "ui.react.mount",
+      "span_id": "bb112033b6ad335a",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "f93d7e6580639d76"
+    },
+    {
+      "timestamp": 1668493712.155,
+      "start_timestamp": 1668493711.577,
+      "exclusive_time": 578.000069,
+      "description": "GET /api/0/projects/sentry/javascript/events/2df376c1caa4352bdf3426d05af90bb8/grouping-info/",
+      "op": "http.client",
+      "span_id": "bbf0b428ab91f2f0",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/projects/sentry/javascript/events/2df376c1caa4352bdf3426d05af90bb8/grouping-info/"
+      },
+      "hash": "0842d25e54129af5"
+    },
+    {
+      "timestamp": 1668493712.155,
+      "start_timestamp": 1668493711.579,
+      "exclusive_time": 575.999975,
+      "description": "GET /api/0/projects/sentry/javascript/events/2df376c1caa4352bdf3426d05af90bb8/attachments/?query=rrweb",
+      "op": "http.client",
+      "span_id": "a663613f6eb5f7fd",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/projects/sentry/javascript/events/2df376c1caa4352bdf3426d05af90bb8/attachments/?query=rrweb"
+      },
+      "hash": "3500b52f5b4dfb20"
+    },
+    {
+      "timestamp": 1668493712.155,
+      "start_timestamp": 1668493711.586,
+      "exclusive_time": 569.000006,
+      "description": "GET /api/0/projects/sentry/javascript/events/2df376c1caa4352bdf3426d05af90bb8/owners/",
+      "op": "http.client",
+      "span_id": "ab756f31a8862345",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/projects/sentry/javascript/events/2df376c1caa4352bdf3426d05af90bb8/owners/"
+      },
+      "hash": "d49b990027d6db39"
+    },
+    {
+      "timestamp": 1668493712.155,
+      "start_timestamp": 1668493711.586,
+      "exclusive_time": 569.000006,
+      "description": "GET /api/0/projects/sentry/javascript/codeowners/",
+      "op": "http.client",
+      "span_id": "bfaaa125fc6fece8",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/projects/sentry/javascript/codeowners/"
+      },
+      "hash": "da36c35b30a525d6"
+    },
+    {
+      "timestamp": 1668493711.677,
+      "start_timestamp": 1668493711.587,
+      "exclusive_time": 90.000152,
+      "description": "<LoadingIndicator>",
+      "op": "ui.react.mount",
+      "span_id": "9bab7973d3dbe22d",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "f93d7e6580639d76"
+    },
+    {
+      "timestamp": 1668493712.156,
+      "start_timestamp": 1668493711.59,
+      "exclusive_time": 565.999984,
+      "description": "GET /api/0/groups/1888481/integrations/",
+      "op": "http.client",
+      "span_id": "8c680359d3327987",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/groups/1888481/integrations/"
+      },
+      "hash": "1ac7e8732c621835"
+    },
+    {
+      "timestamp": 1668493712.157,
+      "start_timestamp": 1668493711.59,
+      "exclusive_time": 567.00015,
+      "description": "GET /api/0/groups/1888481/external-issues/",
+      "op": "http.client",
+      "span_id": "993d399bdf539b4c",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/groups/1888481/external-issues/"
+      },
+      "hash": "3967f0337f13ff11"
+    },
+    {
+      "timestamp": 1668493711.618,
+      "start_timestamp": 1668493711.314,
+      "exclusive_time": 304.000139,
+      "description": "<LoadingIndicator>",
+      "op": "ui.react.render",
+      "span_id": "8218a752b411b491",
+      "parent_span_id": "bb112033b6ad335a",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "f93d7e6580639d76"
+    },
+    {
+      "timestamp": 1668493712.157,
+      "start_timestamp": 1668493711.621,
+      "exclusive_time": 536.000013,
+      "description": "GET /api/0/organizations/sentry/repos/",
+      "op": "http.client",
+      "span_id": "a79c6a570d8c82ff",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/repos/"
+      },
+      "hash": "75fbe245deb534fa"
+    },
+    {
+      "timestamp": 1668493712.196,
+      "start_timestamp": 1668493711.622,
+      "exclusive_time": 574.00012,
+      "description": "GET /api/0/projects/sentry/javascript/releases/x/",
+      "op": "http.client",
+      "span_id": "84649a317536362f",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/projects/sentry/javascript/releases/x/"
+      },
+      "hash": "e5cbb7d280c4a8ea"
+    },
+    {
+      "timestamp": 1668493712.157,
+      "start_timestamp": 1668493711.625,
+      "exclusive_time": 532.000064,
+      "description": "GET /api/0/organizations/sentry/releases/x/deploys/",
+      "op": "http.client",
+      "span_id": "ad0b031d64e53f60",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/releases/[x]/deploys/"
+      },
+      "hash": "3d4a7d4f3f1244f6"
+    },
+    {
+      "timestamp": 1668493712.158,
+      "start_timestamp": 1668493711.673,
+      "exclusive_time": 484.999895,
+      "description": "GET /api/0/prompts-activity/?feature=stacktrace_link&organization_id=97234&project_id=555",
+      "op": "http.client",
+      "span_id": "a840f877cc3686af",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/prompts-activity/?feature=stacktrace_link&organization_id=97234&project_id=555"
+      },
+      "hash": "60506deef614ecc2"
+    },
+    {
+      "timestamp": 1668493712.796,
+      "start_timestamp": 1668493711.677,
+      "exclusive_time": 1118.999958,
+      "description": "GET /api/0/issues/1888481/?collapse=release",
+      "op": "http.client",
+      "span_id": "895caf36a21300a2",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/issues/1888481/?collapse=release"
+      },
+      "hash": "33a59c92255fb9b2"
+    },
+    {
+      "timestamp": 1668493713.055,
+      "start_timestamp": 1668493711.679,
+      "exclusive_time": 1376.000166,
+      "description": "GET /api/0/issues/1888481/current-release/",
+      "op": "http.client",
+      "span_id": "8a69b65d237b1fd8",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/issues/1888481/current-release/"
+      },
+      "hash": "245e377ff621dfc4"
+    },
+    {
+      "timestamp": 1668493712.796,
+      "start_timestamp": 1668493711.68,
+      "exclusive_time": 1115.999937,
+      "description": "GET /api/0/issues/1888481/tags/?key=browser&key=browser.name&key=client_os&key=client_os.name&key=device&key=device.family&key=environment&key=level&key=python_version&key=release&key=request_id&key=server_name&key=site&key=transaction&key=url&key=user",
+      "op": "http.client",
+      "span_id": "910d93d2ee3eb3e1",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/issues/1888481/tags/?key=browser&key=browser.name&key=client_os&key=client_os.name&key=device&key=device.family&key=environment&key=level&key=python_version&key=release&key=request_id&key=server_name&key=site&key=transaction&key=url&key=user"
+      },
+      "hash": "17e3d366fc65c87e"
+    },
+    {
+      "timestamp": 1668493712.795,
+      "start_timestamp": 1668493711.681,
+      "exclusive_time": 1114.000082,
+      "description": "GET /api/0/projects/sentry/javascript/releases/completion/",
+      "op": "http.client",
+      "span_id": "b6beff3e77a9bcea",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/projects/sentry/javascript/releases/completion/"
+      },
+      "hash": "2591fbf0b1ceee73"
+    },
+    {
+      "timestamp": 1668493712.795,
+      "start_timestamp": 1668493711.682,
+      "exclusive_time": 1113.000155,
+      "description": "GET /api/0/organizations/sentry/sentry-app-installations/",
+      "op": "http.client",
+      "span_id": "849c87b09f7a5019",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/sentry-app-installations/"
+      },
+      "hash": "2e8ba430f39d3f46"
+    },
+    {
+      "timestamp": 1668493712.796,
+      "start_timestamp": 1668493711.736,
+      "exclusive_time": 1059.999942,
+      "description": "GET /api/0/organizations/sentry/sentry-app-components/?projectId=555",
+      "op": "http.client",
+      "span_id": "9aff31b01f292289",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/sentry-app-components/?projectId=555"
+      },
+      "hash": "c5ee3bc06f8bb639"
+    },
+    {
+      "timestamp": 1668493711.736,
+      "start_timestamp": 1668493711.497,
+      "exclusive_time": 239.000082,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "8a530f0899e0dfbb",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1668493712.795,
+      "start_timestamp": 1668493711.737,
+      "exclusive_time": 1058.000088,
+      "description": "GET /api/0/projects/sentry/javascript/",
+      "op": "http.client",
+      "span_id": "a9e3937e803fecce",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/projects/sentry/javascript/"
+      },
+      "hash": "6cb3cc4f9620a9dc"
+    },
+    {
+      "timestamp": 1668493712.795,
+      "start_timestamp": 1668493711.746,
+      "exclusive_time": 1049.000025,
+      "description": "GET /api/0/projects/sentry/javascript/events/2df376c1caa4352bdf3426d05af90bb8/committers/",
+      "op": "http.client",
+      "span_id": "99e0e4f94e5ad226",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/projects/sentry/javascript/events/2df376c1caa4352bdf3426d05af90bb8/committers/"
+      },
+      "hash": "1c7934110f589d1c"
+    },
+    {
+      "timestamp": 1668493713.056,
+      "start_timestamp": 1668493711.766,
+      "exclusive_time": 1289.999962,
+      "description": "GET /api/0/projects/sentry/javascript/events/2df376c1caa4352bdf3426d05af90bb8/attachments/",
+      "op": "http.client",
+      "span_id": "a6564292972ca6b1",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/projects/sentry/javascript/events/2df376c1caa4352bdf3426d05af90bb8/attachments/"
+      },
+      "hash": "3500b52f5b4dfb20"
+    },
+    {
+      "timestamp": 1668493713.056,
+      "start_timestamp": 1668493711.768,
+      "exclusive_time": 1288.000107,
+      "description": "GET /api/0/organizations/sentry/users/?project=555",
+      "op": "http.client",
+      "span_id": "963dab60ef2d7b1a",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/users/?project=555"
+      },
+      "hash": "a5366645ee11da21"
+    },
+    {
+      "timestamp": 1668493711.937,
+      "start_timestamp": 1668493711.787,
+      "exclusive_time": 150.000096,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "b059f4c4e311599c",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1668493712.098,
+      "start_timestamp": 1668493711.956,
+      "exclusive_time": 141.99996,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "bcfafbbea1ff3379",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1668493712.133,
+      "start_timestamp": 1668493712.107,
+      "exclusive_time": 25.999785,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "923c97aebc8513f0",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1668493712.297,
+      "start_timestamp": 1668493712.205,
+      "exclusive_time": 92.000008,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "b744623a94c361f9",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1668493712.392,
+      "start_timestamp": 1668493712.313,
+      "exclusive_time": 78.999996,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "9ecb0ee1e13a6417",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1668493712.402,
+      "start_timestamp": 1668493711.677,
+      "exclusive_time": 724.999905,
+      "description": "<LoadingIndicator>",
+      "op": "ui.react.render",
+      "span_id": "bc350fa4f8596155",
+      "parent_span_id": "9bab7973d3dbe22d",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "f93d7e6580639d76"
+    },
+    {
+      "timestamp": 1668493712.509,
+      "start_timestamp": 1668493712.422,
+      "exclusive_time": 87.000131,
+      "description": "<GroupDetails>",
+      "op": "ui.react.update",
+      "span_id": "9af40fbe14b8945f",
+      "parent_span_id": "8cd8d38910ca5bde",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "data": {"changedProps": ["projects"]},
+      "hash": "b9d2a96824acfd61"
+    },
+    {
+      "timestamp": 1668493712.509,
+      "start_timestamp": 1668493712.426,
+      "exclusive_time": 82.999944,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "99b1208972ac94f4",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1668493712.605,
+      "start_timestamp": 1668493712.518,
+      "exclusive_time": 87.000132,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "a38a6524c50a369a",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1668493712.699,
+      "start_timestamp": 1668493712.605,
+      "exclusive_time": 93.999862,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "b0a61a46da80a568",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1668493712.865,
+      "start_timestamp": 1668493712.8,
+      "exclusive_time": 65.000057,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "bb814f891ea9e6ea",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1668493712.95,
+      "start_timestamp": 1668493712.907,
+      "exclusive_time": 42.999983,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "916e25444711727b",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1668493713.379,
+      "start_timestamp": 1668493713.047,
+      "exclusive_time": 332.000017,
+      "description": "GET /api/0/projects/sentry/javascript/releases/x/",
+      "op": "http.client",
+      "span_id": "9ed1ab0c105b618e",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/projects/sentry/javascript/releases/x/"
+      },
+      "hash": "2612b13e7636c739"
+    },
+    {
+      "timestamp": 1668493713.294,
+      "start_timestamp": 1668493713.048,
+      "exclusive_time": 245.999813,
+      "description": "GET /api/0/organizations/sentry/releases/x/deploys/",
+      "op": "http.client",
+      "span_id": "8c6a5996f2c180b2",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/releases/x/deploys/"
+      },
+      "hash": "29932b92f92e71ba"
+    },
+    {
+      "timestamp": 1668493713.049,
+      "start_timestamp": 1668493713.016,
+      "exclusive_time": 32.999992,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "bef8a766ab37a888",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1668493713.191,
+      "start_timestamp": 1668493713.105,
+      "exclusive_time": 85.999965,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "8f64307f636a5957",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1668493717.91,
+      "start_timestamp": 1668493717.893,
+      "exclusive_time": 17.000198,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "873c614defa5b0ef",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1668493718.412,
+      "start_timestamp": 1668493718.237,
+      "exclusive_time": 174.999952,
+      "description": "<OrganizationContextContainer>",
+      "op": "ui.react.update",
+      "span_id": "af7f84e7c445692c",
+      "parent_span_id": "96ead116def87096",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "data": {"changedProps": ["children"]},
+      "hash": "d81f30cfc3785478"
+    },
+    {
+      "timestamp": 1668493718.412,
+      "start_timestamp": 1668493718.251,
+      "exclusive_time": 161.000013,
+      "description": "<GroupDetails>",
+      "op": "ui.react.update",
+      "span_id": "a695615e3ceb9da5",
+      "parent_span_id": "8cd8d38910ca5bde",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "data": {
+        "changedProps": [
+          "setDisableRouteAnalytics",
+          "setRouteAnalyticsParams",
+          "setEventNames"
+        ]
+      },
+      "hash": "b9d2a96824acfd61"
+    },
+    {
+      "timestamp": 1668493718.412,
+      "start_timestamp": 1668493718.271,
+      "exclusive_time": 141.000032,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "abbe4e8ad933945f",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1668493724.309,
+      "start_timestamp": 1668493724.033,
+      "exclusive_time": 276.000023,
+      "description": "PUT /api/0/projects/sentry/javascript/issues/?id=1888481",
+      "op": "http.client",
+      "span_id": "8865b2c82c693fb0",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "PUT",
+        "type": "fetch",
+        "url": "/api/0/projects/sentry/javascript/issues/?id=1888481"
+      },
+      "hash": "292344ccf90a8a6d"
+    },
+    {
+      "timestamp": 1668493724.19,
+      "start_timestamp": 1668493724.046,
+      "exclusive_time": 144.000054,
+      "description": "<LoadingIndicator>",
+      "op": "ui.react.mount",
+      "span_id": "9ffd7b1c24835270",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "f93d7e6580639d76"
+    },
+    {
+      "timestamp": 1668493724.225,
+      "start_timestamp": 1668493724.088,
+      "exclusive_time": 136.999845,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "8e5393942c1b8221",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1668493724.429,
+      "start_timestamp": 1668493724.33,
+      "exclusive_time": 98.999977,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "ae50ced3e4ccce4a",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1668493709.428,
+      "start_timestamp": 1668493709.426,
+      "exclusive_time": 1.999855,
+      "description": "domContentLoadedEvent",
+      "op": "browser",
+      "span_id": "aa3b6293a2dfbad9",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "b0e3ee8970392a6f"
+    },
+    {
+      "timestamp": 1668493709.856,
+      "start_timestamp": 1668493709.842,
+      "exclusive_time": 13.999939,
+      "description": "loadEvent",
+      "op": "browser",
+      "span_id": "86935b7ff9bfb760",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "39e89edd65c7c22a"
+    },
+    {
+      "timestamp": 1668493708.866,
+      "start_timestamp": 1668493708.49,
+      "exclusive_time": 375.999928,
+      "description": "connect",
+      "op": "browser",
+      "span_id": "b5e105338c7e1ca0",
+      "parent_span_id": "9e4e36110481b5b5",
+      "trace_id": "98be611cb95e24f72813487f12922a01",
+      "hash": "b640a0ce465fa2a4"
+    }
+  ],
+  "start_timestamp": 1668493708.38,
+  "timestamp": 1668493724.429,
+  "title": "/organizations/:orgId/issues/:groupId/",
+  "transaction": "/organizations/:orgId/issues/:groupId/",
+  "transaction_info": {"source": "route", "changes": [], "propagations": 40},
+  "type": "transaction",
+  "version": "7"
+}

@@ -1,18 +1,22 @@
 import {createContext, Fragment, Ref, useEffect, useRef} from 'react';
+import identity from 'lodash/identity';
 
 import {Client} from 'sentry/api';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {createDefinedContext} from './utils';
 
 type QueryObject = {
+  includeAllArgs: boolean | undefined;
   query: {
     [k: string]: any;
   };
 }; // TODO(k-fish): Fix to ensure exact types for all requests. Simplified type for now, need to pull this in from events file.
+
+export type Transform = (data: any, queryDefinition: BatchQueryDefinition) => any;
 
 type BatchQueryDefinition = {
   api: Client;
@@ -23,6 +27,7 @@ type BatchQueryDefinition = {
   requestQueryObject: QueryObject;
   // Intermediate promise functions
   resolve: (value: any) => void;
+  transform?: Transform;
 };
 
 type QueryBatch = {
@@ -132,14 +137,9 @@ function _handleMergeableQueries(mergeMap: MergeMap) {
       const result = await requestPromise;
       // Unmerge back into individual results
       mergeList.forEach(queryDefinition => {
-        const propertyName = Array.isArray(
-          queryDefinition.requestQueryObject.query[queryDefinition.batchProperty]
-        )
-          ? queryDefinition.requestQueryObject.query[queryDefinition.batchProperty][0]
-          : queryDefinition.requestQueryObject.query[queryDefinition.batchProperty];
-
-        const singleResult = result[propertyName];
-        queryDefinition.resolve(singleResult);
+        queryDefinition.resolve(
+          (queryDefinition.transform || identity)(result, queryDefinition)
+        );
       });
     } catch (e) {
       // On error fail all requests relying on this merged query (for now)
@@ -170,7 +170,7 @@ function handleBatching(
 
   const queriesSaved = queriesCollected - queriesSent;
 
-  trackAdvancedAnalyticsEvent('performance_views.landingv3.batch_queries', {
+  trackAnalytics('performance_views.landingv3.batch_queries', {
     organization,
     num_collected: queriesCollected,
     num_saved: queriesSaved,
@@ -178,7 +178,7 @@ function handleBatching(
   });
 }
 
-export const GenericQueryBatcher = ({children}: {children: React.ReactNode}) => {
+export function GenericQueryBatcher({children}: {children: React.ReactNode}) {
   const queries = useRef<Record<symbol, BatchQueryDefinition>>({});
 
   const timeoutRef = useRef<number | undefined>(undefined);
@@ -212,11 +212,11 @@ export const GenericQueryBatcher = ({children}: {children: React.ReactNode}) => 
       {children}
     </GenericQueryBatcherProvider>
   );
-};
+}
 
 type NodeContext = {
   batchProperty: string;
-  id: Ref<Symbol>;
+  id: Ref<symbol>;
 };
 
 const BatchNodeContext = createContext<NodeContext | undefined>(undefined);
@@ -230,9 +230,10 @@ export type QueryBatching = {
 export function QueryBatchNode(props: {
   batchProperty: string;
   children(_: any): React.ReactNode;
+  transform?: Transform;
 }) {
   const api = useApi();
-  const {batchProperty, children} = props;
+  const {batchProperty, children, transform} = props;
   const id = useRef(Symbol());
 
   let batchContext: QueryBatch;
@@ -251,6 +252,7 @@ export function QueryBatchNode(props: {
       const queryDefinition: BatchQueryDefinition = {
         resolve,
         reject,
+        transform,
         batchProperty,
         path,
         requestQueryObject,

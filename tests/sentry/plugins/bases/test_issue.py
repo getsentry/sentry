@@ -2,12 +2,14 @@ from unittest import mock
 
 import pytest
 
-from sentry.models import User
+from sentry.models.user import User
 from sentry.plugins.bases.issue import IssueTrackingPlugin
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import control_silo_test
 from social_auth.models import UserSocialAuth
 
 
+@control_silo_test(stable=True)
 class GetAuthForUserTest(TestCase):
     def _get_mock_user(self):
         user = mock.Mock(spec=User(id=1))
@@ -30,4 +32,4 @@ class GetAuthForUserTest(TestCase):
         auth = UserSocialAuth.objects.create(provider="test", user=user)
         p = IssueTrackingPlugin()
         p.auth_provider = "test"
-        self.assertEqual(p.get_auth_for_user(user), auth)
+        self.assertEqual(p.get_auth_for_user(user).id, auth.id)

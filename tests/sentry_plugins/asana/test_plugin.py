@@ -1,22 +1,24 @@
+from functools import cached_property
+
 import pytest
 import responses
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
-from exam import fixture
 
-from sentry.plugins.bases.issue2 import PluginError
-from sentry.testutils import PluginTestCase
+from sentry.exceptions import PluginError
+from sentry.testutils.cases import PluginTestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from sentry_plugins.asana.plugin import AsanaPlugin
-from social_auth.models import UserSocialAuth
 
 
+@region_silo_test(stable=True)
 class AsanaPluginTest(PluginTestCase):
-    @fixture
+    @cached_property
     def plugin(self):
         return AsanaPlugin()
 
-    @fixture
+    @cached_property
     def request(self):
         return RequestFactory()
 
@@ -59,7 +61,7 @@ class AsanaPluginTest(PluginTestCase):
 
         request.user = self.user
         self.login_as(self.user)
-        UserSocialAuth.objects.create(
+        self.create_usersocialauth(
             user=self.user, provider=self.plugin.auth_provider, extra_data={"access_token": "foo"}
         )
 
@@ -67,6 +69,27 @@ class AsanaPluginTest(PluginTestCase):
         request = responses.calls[0].request
         payload = json.loads(request.body)
         assert payload == {"data": {"notes": "Fix this.", "name": "Hello", "workspace": "12345678"}}
+
+    @responses.activate
+    def test_view_create_no_auth(self):
+        responses.add(
+            responses.POST,
+            "https://app.asana.com/api/1.0/tasks",
+            json={"data": {"name": "Hello world!", "notes": "Fix this.", "gid": 1}},
+        )
+
+        self.plugin.set_option("workspace", "12345678", self.project)
+        group = self.create_group(message="Hello world", culprit="foo.bar")
+
+        self.login_as(self.user)
+
+        request = self.request.get("/")
+        request.user = self.user
+        response = self.plugin.view_create(request, group)
+        assert response.status_code == 400
+        # URL needs to be absolute so that we don't get customer domains
+        # Asana redirect_urls are set to the root domain.
+        assert "http://testserver" in response.data["auth_url"]
 
     @responses.activate
     def test_link_issue(self):
@@ -92,7 +115,7 @@ class AsanaPluginTest(PluginTestCase):
 
         request.user = self.user
         self.login_as(self.user)
-        UserSocialAuth.objects.create(
+        self.create_usersocialauth(
             user=self.user, provider=self.plugin.auth_provider, extra_data={"access_token": "foo"}
         )
 

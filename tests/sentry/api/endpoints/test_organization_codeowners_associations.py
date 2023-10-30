@@ -1,10 +1,13 @@
 from rest_framework import status
 
 from sentry.api.validators.project_codeowners import validate_codeowners_associations
-from sentry.models import Integration, OrganizationIntegration
-from sentry.testutils import APITestCase
+from sentry.models.integrations.integration import Integration
+from sentry.silo import SiloMode
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
+@region_silo_test(stable=True)
 class OrganizationCodeOwnersAssociationsEndpointTest(APITestCase):
     method = "GET"
     endpoint = "sentry-api-0-organization-codeowners-associations"
@@ -103,19 +106,14 @@ class OrganizationCodeOwnersAssociationsEndpointTest(APITestCase):
             in response.data[self.project_2.slug]["errors"]["teams_without_access"]
         )
 
-    def test_no_access(self):
+    def test_member_can_access(self):
         """
-        Tests that users without the 'org:integrations' scope (i.e. Members) cannot access this endpoint.
+        Tests that users without the 'org:read' scope (i.e. Members) can access this endpoint.
         """
         member = self.create_user("hernando@life.com")
         self.create_member(user=member, organization=self.organization, role="member")
         self.login_as(member)
-        self.get_error_response(self.organization.slug, status=status.HTTP_403_FORBIDDEN)
-
-        admin = self.create_user("sean@life.com")
-        self.create_member(user=admin, organization=self.organization, role="admin")
-        self.login_as(admin)
-        self.get_success_response(self.organization.slug, status=status.HTTP_200_OK)
+        self.get_success_response(self.organization.slug)
 
     def test_query_by_provider(self):
         """
@@ -135,11 +133,9 @@ class OrganizationCodeOwnersAssociationsEndpointTest(APITestCase):
         assert len(response.data.keys()) == 2
 
         # Create a codeowners under the "life" provider, and check the query parameter again
-        integration = Integration.objects.create(provider="life", name="Life")
-        integration.add_organization(self.organization, self.user)
-        organization_integration = OrganizationIntegration.objects.get(
-            integration_id=integration.id
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(provider="life", name="Life")
+            organization_integration = integration.add_organization(self.organization, self.user)
         project_3 = self.create_project(
             organization=self.organization, teams=[self.team_1, self.team_2]
         )

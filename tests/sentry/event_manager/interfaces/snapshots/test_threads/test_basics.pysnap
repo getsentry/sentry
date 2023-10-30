@@ -1,12 +1,17 @@
 ---
-created: '2019-11-14T11:21:19.912555Z'
-creator: sentry
 source: tests/sentry/event_manager/interfaces/test_threads.py
 ---
 api_context:
   values:
   - crashed: false
     current: true
+    heldLocks:
+      '0x0d3a2f0a':
+        address: '0x0d3a2f0a'
+        class_name: Object
+        package_name: java.lang
+        thread_id: 11
+        type: 8
     id: 42
     name: Main Thread
     rawStacktrace:
@@ -20,10 +25,12 @@ api_context:
         inApp: true
         instructionAddr: null
         lineNo: 1
+        lock: null
         module: null
         package: null
         platform: null
         rawFunction: null
+        sourceLink: null
         symbol: null
         symbolAddr: null
         trust: null
@@ -42,10 +49,12 @@ api_context:
         inApp: true
         instructionAddr: null
         lineNo: 1
+        lock: null
         module: null
         package: null
         platform: null
         rawFunction: null
+        sourceLink: null
         symbol: null
         symbolAddr: null
         trust: null
@@ -53,11 +62,19 @@ api_context:
       framesOmitted: null
       hasSystemFrames: true
       registers: null
+    state: RUNNABLE
 errors: null
 to_json:
   values:
   - crashed: false
     current: true
+    held_locks:
+      '0x0d3a2f0a':
+        address: '0x0d3a2f0a'
+        class_name: Object
+        package_name: java.lang
+        thread_id: 11
+        type: 8
     id: 42
     name: Main Thread
     raw_stacktrace:
@@ -72,3 +89,4 @@ to_json:
         function: main
         in_app: true
         lineno: 1
+    state: RUNNABLE

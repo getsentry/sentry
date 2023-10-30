@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import logging
-from typing import Iterable, Mapping
+from typing import Iterable, List, Mapping
 
-from sentry.models import Project, User, UserEmail, UserOption
+from sentry.models.project import Project
+from sentry.models.useremail import UserEmail
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.services.hybrid_cloud.user_option import RpcUserOption, user_option_service
 
 from .faker import is_fake_email
 
@@ -21,18 +24,22 @@ def get_email_addresses(
     results = {}
 
     if project:
-        queryset = UserOption.objects.filter(project=project, user__in=pending, key="mail:email")
-        for option in (o for o in queryset if o.value and not is_fake_email(o.value)):
-            if UserEmail.objects.filter(user=option.user, email=option.value).exists():
+        to_delete: List[RpcUserOption] = []
+        options = user_option_service.get_many(
+            filter={"user_ids": pending, "project_id": project.id, "keys": ["mail:email"]}
+        )
+        for option in (o for o in options if o.value and not is_fake_email(o.value)):
+            if UserEmail.objects.filter(user_id=option.user_id, email=option.value).exists():
                 results[option.user_id] = option.value
                 pending.discard(option.user_id)
             else:
                 pending.discard(option.user_id)
-                option.delete()
+                to_delete.append(option)
+        user_option_service.delete_options(option_ids=[o.id for o in to_delete])
 
     if pending:
-        queryset = User.objects.filter(pk__in=pending, is_active=True)
-        for (user_id, email) in queryset.values_list("id", "email"):
+        users = user_service.get_many(filter={"user_ids": list(pending)})
+        for (user_id, email) in [(user.id, user.email) for user in users]:
             if email and not is_fake_email(email):
                 results[user_id] = email
                 pending.discard(user_id)

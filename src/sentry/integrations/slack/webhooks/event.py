@@ -7,6 +7,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, features
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.message_builder.prompt import SlackPromptLinkMessageBuilder
@@ -14,7 +16,8 @@ from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequest
 from sentry.integrations.slack.requests.event import COMMANDS, SlackEventRequest
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from sentry.integrations.slack.views.link_identity import build_linking_url
-from sentry.models import Integration
+from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.urls import parse_link
@@ -25,20 +28,24 @@ from .base import SlackDMEndpoint
 from .command import LINK_FROM_CHANNEL_MESSAGE
 
 
+@region_silo_endpoint
 class SlackEventEndpoint(SlackDMEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
     """
     XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will need refactoring
     """
 
     authentication_classes = ()
     permission_classes = ()
+    slack_request_class = SlackEventRequest
 
     def reply(self, slack_request: SlackDMRequest, message: str) -> Response:
-        headers = {"Authorization": f"Bearer {self._get_access_token(slack_request.integration)}"}
-        payload = {"channel": slack_request.channel_name, "text": message}
-        client = SlackClient()
+        payload = {"channel": slack_request.channel_id, "text": message}
+        client = SlackClient(integration_id=slack_request.integration.id)
         try:
-            client.post("/chat.postMessage", headers=headers, data=payload, json=True)
+            client.post("/chat.postMessage", data=payload, json=True)
         except ApiError as e:
             logger.error("slack.event.on-message-error", extra={"error": str(e)})
 
@@ -50,17 +57,6 @@ class SlackEventEndpoint(SlackDMEndpoint):
     def unlink_team(self, slack_request: SlackDMRequest) -> Response:
         return self.reply(slack_request, LINK_FROM_CHANNEL_MESSAGE)
 
-    def _get_access_token(self, integration: Integration) -> str:
-        """
-        The classic bot tokens must use the user auth token for URL unfurling we
-        stored the user_access_token there but for workspace apps and new Slack
-        bot tokens, we can just use access_token.
-        """
-        access_token: str = (
-            integration.metadata.get("user_access_token") or integration.metadata["access_token"]
-        )
-        return access_token
-
     def on_url_verification(self, request: Request, data: Mapping[str, str]) -> Response:
         return self.respond({"challenge": data["challenge"]})
 
@@ -71,18 +67,17 @@ class SlackEventEndpoint(SlackDMEndpoint):
             channel_id=slack_request.channel_id,
             response_url=slack_request.response_url,
         )
-        if not slack_request.channel_name:
+        if not slack_request.channel_id:
             return
 
         payload = {
-            "token": self._get_access_token(slack_request.integration),
-            "channel": slack_request.channel_name,
+            "channel": slack_request.channel_id,
             "user": slack_request.user_id,
             "text": "Link your Slack identity to Sentry to unfurl Discover charts.",
             **SlackPromptLinkMessageBuilder(associate_url).as_payload(),
         }
 
-        client = SlackClient()
+        client = SlackClient(integration_id=slack_request.integration.id)
         try:
             client.post("/chat.postEphemeral", data=payload)
         except ApiError as e:
@@ -93,14 +88,13 @@ class SlackEventEndpoint(SlackDMEndpoint):
         if slack_request.is_bot() or not command:
             return self.respond()
 
-        headers = {"Authorization": f"Bearer {self._get_access_token(slack_request.integration)}"}
         payload = {
-            "channel": slack_request.channel_name,
+            "channel": slack_request.channel_id,
             **SlackHelpMessageBuilder(command).as_payload(),
         }
-        client = SlackClient()
+        client = SlackClient(integration_id=slack_request.integration.id)
         try:
-            client.post("/chat.postMessage", headers=headers, data=payload, json=True)
+            client.post("/chat.postMessage", data=payload, json=True)
         except ApiError as e:
             logger.error("slack.event.on-message-error", extra={"error": str(e)})
 
@@ -132,7 +126,17 @@ class SlackEventEndpoint(SlackDMEndpoint):
             if link_type is None or args is None:
                 continue
 
-            organization = slack_request.integration.organizations.first()
+            ois = integration_service.get_organization_integrations(
+                integration_id=slack_request.integration.id, limit=1
+            )
+            organization_id = ois[0].organization_id if len(ois) > 0 else None
+            organization_context = (
+                organization_service.get_organization_by_id(id=organization_id, user_id=None)
+                if organization_id
+                else None
+            )
+            organization = organization_context.organization if organization_context else None
+
             if (
                 organization
                 and link_type == LinkType.DISCOVER
@@ -148,7 +152,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 return True
 
             # Don't unfurl the same thing multiple times
-            seen_marker = hash(json.dumps((link_type, args), sort_keys=True))
+            seen_marker = hash(json.dumps((link_type, args)))
             if seen_marker in links_seen:
                 continue
 
@@ -173,16 +177,13 @@ class SlackEventEndpoint(SlackDMEndpoint):
         if not results:
             return False
 
-        access_token = self._get_access_token(slack_request.integration)
-
         payload = {
-            "token": access_token,
             "channel": data["channel"],
             "ts": data["message_ts"],
             "unfurls": json.dumps(results),
         }
 
-        client = SlackClient()
+        client = SlackClient(integration_id=slack_request.integration.id)
         try:
             client.post("/chat.unfurl", data=payload)
         except ApiError as e:
@@ -194,7 +195,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
     @transaction_start("SlackEventEndpoint")
     def post(self, request: Request) -> Response:
         try:
-            slack_request = SlackEventRequest(request)
+            slack_request = self.slack_request_class(request)
             slack_request.validate()
         except SlackRequestError as e:
             return self.respond(status=e.status)
@@ -210,6 +211,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 return self.respond()
 
             command, _ = slack_request.get_command_and_args()
+
             if command in COMMANDS:
                 resp = super().post_dispatcher(slack_request)
 

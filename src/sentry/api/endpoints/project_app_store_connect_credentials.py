@@ -1,3 +1,7 @@
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
+
 """Sentry API to manage the App Store Connect credentials for a project.
 
 To create and manage these credentials, several API endpoints exist:
@@ -49,8 +53,10 @@ from sentry.api.exceptions import (
 )
 from sentry.api.fields.secret import SecretField, validate_secret
 from sentry.lang.native import appconnect
-from sentry.lang.native.symbolicator import redact_source_secrets, secret_fields
-from sentry.models import AppConnectBuild, LatestAppConnectBuildsCheck, Project
+from sentry.lang.native.sources import redact_source_secrets, secret_fields
+from sentry.models.appconnectbuilds import AppConnectBuild
+from sentry.models.latestappconnectbuildscheck import LatestAppConnectBuildsCheck
+from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.tasks.app_store_connect import dsym_download
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -64,7 +70,7 @@ logger = logging.getLogger(__name__)
 MULTIPLE_SOURCES_FEATURE_NAME = "organizations:app-store-connect-multiple"
 
 
-class AppStoreConnectCredentialsSerializer(serializers.Serializer):  # type: ignore
+class AppStoreConnectCredentialsSerializer(serializers.Serializer):
     """Input validation for :class:`AppStoreConnectAppsEndpoint."""
 
     # an IID with the XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
@@ -77,7 +83,11 @@ class AppStoreConnectCredentialsSerializer(serializers.Serializer):  # type: ign
     id = serializers.CharField(max_length=40, min_length=1, required=False)
 
 
-class AppStoreConnectAppsEndpoint(ProjectEndpoint):  # type: ignore
+@region_silo_endpoint
+class AppStoreConnectAppsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     """Retrieves available applications with provided credentials.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/apps/``
@@ -122,6 +132,7 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):  # type: ignore
     ```
     """
 
+    owner = ApiOwner.OWNERS_NATIVE
     permission_classes = [StrictProjectPermission]
 
     def post(self, request: Request, project: Project) -> Response:
@@ -177,7 +188,7 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):  # type: ignore
         return Response(result, status=200)
 
 
-class AppStoreCreateCredentialsSerializer(serializers.Serializer):  # type: ignore
+class AppStoreCreateCredentialsSerializer(serializers.Serializer):
     """Input validation for :class:`AppStoreConnectCreateCredentialsEndpoint`."""
 
     # an IID with the XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
@@ -191,7 +202,11 @@ class AppStoreCreateCredentialsSerializer(serializers.Serializer):  # type: igno
     bundleId = serializers.CharField(min_length=1, required=True)
 
 
-class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
+@region_silo_endpoint
+class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     """Returns all the App Store Connect symbol source settings ready to be saved.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/``
@@ -203,6 +218,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
     they receive the saved configuration.
     """
 
+    owner = ApiOwner.OWNERS_NATIVE
     permission_classes = [StrictProjectPermission]
 
     def post(self, request: Request, project: Project) -> Response:
@@ -246,7 +262,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         return Response({"id": validated_config.id}, status=200)
 
 
-class AppStoreUpdateCredentialsSerializer(serializers.Serializer):  # type: ignore
+class AppStoreUpdateCredentialsSerializer(serializers.Serializer):
     """Input validation for :class:`AppStoreConnectUpdateCredentialsEndpoint`."""
 
     # an IID with the XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
@@ -264,7 +280,11 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):  # type: igno
         return validate_secret(private_key_json)
 
 
-class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
+@region_silo_endpoint
+class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     """Updates a subset of the existing credentials.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/``
@@ -276,6 +296,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
     a sub-set. Useful for API key refreshes.
     """
 
+    owner = ApiOwner.OWNERS_NATIVE
     permission_classes = [StrictProjectPermission]
 
     def post(self, request: Request, project: Project, credentials_id: str) -> Response:
@@ -325,7 +346,11 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         return Response(symbol_source_config.to_redacted_json(), status=200)
 
 
-class AppStoreConnectRefreshEndpoint(ProjectEndpoint):  # type: ignore
+@region_silo_endpoint
+class AppStoreConnectRefreshEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     """Triggers an immediate check for new App Store Connect builds.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/refresh/``
@@ -339,8 +364,9 @@ class AppStoreConnectRefreshEndpoint(ProjectEndpoint):  # type: ignore
     headers, see the sentry.middleware.ratelimit module.
     """
 
+    owner = ApiOwner.OWNERS_NATIVE
     permission_classes = [StrictProjectPermission]
-    private = True
+
     enforce_rate_limit = True
 
     # At the time of writing the App Store Connect API has a rate limit of 3600 requests/h
@@ -374,7 +400,11 @@ class AppStoreConnectRefreshEndpoint(ProjectEndpoint):  # type: ignore
         return Response(status=200)
 
 
-class AppStoreConnectStatusEndpoint(ProjectEndpoint):  # type: ignore
+@region_silo_endpoint
+class AppStoreConnectStatusEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     """Returns a summary of the project's App Store Connect configuration
     and builds.
 
@@ -410,6 +440,7 @@ class AppStoreConnectStatusEndpoint(ProjectEndpoint):  # type: ignore
       of whether there were any or no builds in App Store Connect at the time.
     """
 
+    owner = ApiOwner.OWNERS_NATIVE
     permission_classes = [ProjectPermission]
 
     def get(self, request: Request, project: Project) -> Response:

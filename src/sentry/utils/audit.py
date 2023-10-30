@@ -1,43 +1,96 @@
+from __future__ import annotations
+
+from logging import Logger
+from typing import Any
+
+from django.http.request import HttpRequest
+
 from sentry import audit_log
-from sentry.models import (
-    ApiKey,
-    AuditLogEntry,
-    DeletedOrganization,
-    DeletedProject,
-    DeletedTeam,
-    Organization,
-    Project,
-    Team,
-)
+from sentry.models.apikey import ApiKey
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.deletedentry import DeletedEntry
+from sentry.models.deletedorganization import DeletedOrganization
+from sentry.models.deletedproject import DeletedProject
+from sentry.models.deletedteam import DeletedTeam
+from sentry.models.organization import Organization
+from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.project import Project
+from sentry.models.team import Team
+from sentry.models.user import User
+from sentry.services.hybrid_cloud.log import log_service
+from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
+from sentry.services.hybrid_cloud.organization.model import RpcAuditLogEntryActor
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.util import region_silo_function
 
 
-def create_audit_entry(request, transaction_id=None, logger=None, **kwargs):
+def create_audit_entry(
+    request: HttpRequest,
+    transaction_id: int | str | None = None,
+    logger: Logger | None = None,
+    **kwargs: Any,
+) -> AuditLogEntry:
     user = kwargs.pop("actor", request.user if request.user.is_authenticated else None)
     api_key = get_api_key_for_audit_log(request)
+    org_auth_token = get_org_auth_token_for_audit_log(request)
+
+    # We do not keep any user/key ID for this case for now, but only pass the token name as a label
+    # Without this, the AuditLogEntry fails on save because it cannot find an actor_label
+    if org_auth_token:
+        kwargs["actor_label"] = org_auth_token.name
 
     return create_audit_entry_from_user(
         user, api_key, request.META["REMOTE_ADDR"], transaction_id, logger, **kwargs
     )
 
 
+def actor_from_audit_entry(entry: AuditLogEntry) -> RpcAuditLogEntryActor:
+    return RpcAuditLogEntryActor(
+        actor_label=entry.actor_label[:64] if entry.actor_label else None,
+        actor_id=entry.actor_id,
+        actor_key=entry.actor_key,
+        ip_address=entry.ip_address,
+    )
+
+
 def create_audit_entry_from_user(
-    user, api_key=None, ip_address=None, transaction_id=None, logger=None, **kwargs
-):
-    entry = AuditLogEntry(actor=user, actor_key=api_key, ip_address=ip_address, **kwargs)
+    user: User | RpcUser | None,
+    api_key: ApiKey | None = None,
+    ip_address: str | None = None,
+    transaction_id: int | str | None = None,
+    logger: Logger | None = None,
+    organization: Organization | RpcOrganization | None = None,
+    organization_id: int | None = None,
+    **kwargs: Any,
+) -> AuditLogEntry:
+    if organization:
+        assert organization_id is None
+        organization_id = organization.id
+
+    entry = AuditLogEntry(
+        actor_id=user.id if user else None,
+        actor_key=api_key,
+        ip_address=ip_address,
+        organization_id=organization_id,
+        **kwargs,
+    )
 
     # Only create a real AuditLogEntry record if we are passing an event type
     # otherwise, we want to still log to our actual logging
     if entry.event is not None:
-        entry.save()
+        log_service.record_audit_log(event=entry.as_event())
 
     if entry.event == audit_log.get_event_id("ORG_REMOVE"):
-        create_org_delete_log(entry)
-
-    elif entry.event == audit_log.get_event_id("PROJECT_REMOVE"):
-        create_project_delete_log(entry)
+        organization_service.create_org_delete_log(
+            organization_id=organization_id, audit_log_actor=actor_from_audit_entry(entry)
+        )
+    elif entry.event == audit_log.get_event_id(
+        "PROJECT_REMOVE"
+    ) or entry.event == audit_log.get_event_id("PROJECT_REMOVE_WITH_ORIGIN"):
+        _create_project_delete_log(entry=entry, audit_log_actor=actor_from_audit_entry(entry))
 
     elif entry.event == audit_log.get_event_id("TEAM_REMOVE"):
-        create_team_delete_log(entry)
+        _create_team_delete_log(entry=entry, audit_log_actor=actor_from_audit_entry(entry))
 
     extra = {
         "ip_address": entry.ip_address,
@@ -64,22 +117,34 @@ def create_audit_entry_from_user(
     return entry
 
 
-def get_api_key_for_audit_log(request):
+def get_api_key_for_audit_log(request: HttpRequest) -> ApiKey | None:
     return request.auth if hasattr(request, "auth") and isinstance(request.auth, ApiKey) else None
 
 
-def create_org_delete_log(entry):
+def get_org_auth_token_for_audit_log(request: HttpRequest) -> OrgAuthToken | None:
+    return (
+        request.auth
+        if hasattr(request, "auth") and isinstance(request.auth, OrgAuthToken)
+        else None
+    )
+
+
+@region_silo_function
+def create_org_delete_log(organization_id: int, audit_log_actor: RpcAuditLogEntryActor) -> None:
     delete_log = DeletedOrganization()
-    organization = Organization.objects.get(id=entry.target_object)
+    organization = Organization.objects.get(id=organization_id)
 
     delete_log.name = organization.name
     delete_log.slug = organization.slug
     delete_log.date_created = organization.date_added
 
-    complete_delete_log(delete_log, entry)
+    _complete_delete_log(delete_log=delete_log, audit_log_actor=audit_log_actor)
 
 
-def create_project_delete_log(entry):
+@region_silo_function
+def _create_project_delete_log(
+    entry: AuditLogEntry, audit_log_actor: RpcAuditLogEntryActor
+) -> None:
     delete_log = DeletedProject()
 
     project = Project.objects.get(id=entry.target_object)
@@ -88,14 +153,16 @@ def create_project_delete_log(entry):
     delete_log.date_created = project.date_added
     delete_log.platform = project.platform
 
-    delete_log.organization_id = entry.organization.id
-    delete_log.organization_name = entry.organization.name
-    delete_log.organization_slug = entry.organization.slug
+    organization = Organization.objects.get(id=entry.organization_id)
+    delete_log.organization_id = organization.id
+    delete_log.organization_name = organization.name
+    delete_log.organization_slug = organization.slug
 
-    complete_delete_log(delete_log, entry)
+    _complete_delete_log(delete_log=delete_log, audit_log_actor=audit_log_actor)
 
 
-def create_team_delete_log(entry):
+@region_silo_function
+def _create_team_delete_log(entry: AuditLogEntry, audit_log_actor: RpcAuditLogEntryActor) -> None:
     delete_log = DeletedTeam()
 
     team = Team.objects.get(id=entry.target_object)
@@ -103,33 +170,46 @@ def create_team_delete_log(entry):
     delete_log.slug = team.slug
     delete_log.date_created = team.date_added
 
-    delete_log.organization_id = entry.organization.id
-    delete_log.organization_name = entry.organization.name
-    delete_log.organization_slug = entry.organization.slug
+    organization = Organization.objects.get(id=entry.organization_id)
+    delete_log.organization_id = organization.id
+    delete_log.organization_name = organization.name
+    delete_log.organization_slug = organization.slug
 
-    complete_delete_log(delete_log, entry)
+    _complete_delete_log(delete_log=delete_log, audit_log_actor=audit_log_actor)
 
 
-def complete_delete_log(delete_log, entry):
+@region_silo_function
+def _complete_delete_log(delete_log: DeletedEntry, audit_log_actor: RpcAuditLogEntryActor) -> None:
     """
     Adds common information on a delete log from an audit entry and
     saves that delete log.
     """
-    delete_log.actor_label = entry.actor_label
-    delete_log.actor_id = entry.actor_id
-    delete_log.actor_key = entry.actor_key
-    delete_log.ip_address = entry.ip_address
+    delete_log.actor_label = audit_log_actor.actor_label
+    delete_log.actor_id = audit_log_actor.actor_id
+    delete_log.actor_key = audit_log_actor.actor_key
+    delete_log.ip_address = audit_log_actor.ip_address
+
     delete_log.save()
 
 
-def create_system_audit_entry(transaction_id=None, logger=None, **kwargs):
+def create_system_audit_entry(
+    transaction_id: int | str | None = None,
+    logger: Logger | None = None,
+    organization: Organization | None = None,
+    organization_id: int | None = None,
+    **kwargs: Any,
+) -> AuditLogEntry:
     """
     Creates an audit log entry for events that are triggered by Sentry's
     systems and do not have an associated Sentry user as the "actor".
     """
-    entry = AuditLogEntry(actor_label="Sentry", **kwargs)
+    if organization:
+        assert organization_id is None
+        organization_id = organization.id
+
+    entry = AuditLogEntry(actor_label="Sentry", organization_id=organization_id, **kwargs)
     if entry.event is not None:
-        entry.save()
+        log_service.record_audit_log(event=entry.as_event())
 
     extra = {
         "organization_id": entry.organization_id,

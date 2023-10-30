@@ -1,78 +1,32 @@
-import {Component, Fragment, lazy, Suspense} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import congratsRobotsPlaceholder from 'sentry-images/spot/congrats-robots-placeholder.jpg';
+import zeroInboxIssuesImg from 'sentry-images/spot/zero-inbox-issues.svg';
 
-import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
-const Placeholder = () => (
-  <PlaceholderImage
-    alt={t('Congrats, you have no unresolved issues')}
-    src={congratsRobotsPlaceholder}
-  />
-);
-
-const Message = ({
-  title,
-  subtitle,
-}: {
-  subtitle: React.ReactNode;
-  title: React.ReactNode;
-}) => (
-  <Fragment>
-    <EmptyMessage>{title}</EmptyMessage>
-    <p>{subtitle}</p>
-  </Fragment>
-);
-
-const CongratsRobotsVideo = lazy(() => import('./congratsRobots'));
-
-type State = {hasError: boolean};
-
-/**
- * Error boundary for loading the robots video.
- * This can error because of the file size of the video
- *
- * Silently ignore the error, this isn't really important enough to
- * capture in Sentry
- */
-class ErrorBoundary extends Component<{children: React.ReactNode}, State> {
-  static getDerivedStateFromError(): State {
-    return {
-      hasError: true,
-    };
-  }
-
-  state: State = {
-    hasError: false,
-  };
-
-  render() {
-    if (this.state.hasError) {
-      return <Placeholder />;
-    }
-
-    return this.props.children;
-  }
+function Message({title, subtitle}: {subtitle: React.ReactNode; title: React.ReactNode}) {
+  return (
+    <Fragment>
+      <EmptyMessage>{title}</EmptyMessage>
+      <p>{subtitle}</p>
+    </Fragment>
+  );
 }
 
-const NoUnresolvedIssues = ({
-  title,
-  subtitle,
-}: {
+type Props = {
   subtitle: React.ReactNode;
   title: React.ReactNode;
-}) => (
-  <Wrapper>
-    <ErrorBoundary>
-      <Suspense fallback={<Placeholder />}>
-        <CongratsRobotsVideo />
-      </Suspense>
-    </ErrorBoundary>
-    <Message title={title} subtitle={subtitle} />
-  </Wrapper>
-);
+};
+
+function NoUnresolvedIssues({title, subtitle}: Props) {
+  return (
+    <Wrapper>
+      <img src={zeroInboxIssuesImg} alt="No issues found spot illustration" />
+      <Message title={title} subtitle={subtitle} />
+    </Wrapper>
+  );
+}
 
 const Wrapper = styled('div')`
   display: flex;
@@ -93,10 +47,6 @@ const EmptyMessage = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     font-size: ${p => p.theme.fontSizeExtraLarge};
   }
-`;
-
-const PlaceholderImage = styled('img')`
-  max-height: 320px; /* This should be same height as video in CongratsRobots */
 `;
 
 export default NoUnresolvedIssues;

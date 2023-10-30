@@ -1,8 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import patch
 from uuid import uuid4
 
-from django.utils import timezone
+import responses
 
 from fixtures.github_enterprise import (
     PULL_REQUEST_CLOSED_EVENT_EXAMPLE,
@@ -10,24 +10,36 @@ from fixtures.github_enterprise import (
     PULL_REQUEST_OPENED_EVENT_EXAMPLE,
     PUSH_EVENT_EXAMPLE_INSTALLATION,
 )
-from sentry.models import Commit, CommitAuthor, Integration, PullRequest, Repository
-from sentry.testutils import APITestCase
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class WebhookTest(APITestCase):
-    def test_get(self):
-        url = "/extensions/github-enterprise/webhook/"
+    def setUp(self):
+        self.url = "/extensions/github-enterprise/webhook/"
+        self.metadata = {
+            "url": "35.232.149.196",
+            "id": "2",
+            "name": "test-app",
+            "webhook_secret": "b3002c3e321d4b7880360d397db2ccfd",
+            "private_key": "private_key",
+            "verify_ssl": True,
+        }
 
-        response = self.client.get(url)
+    def test_get(self):
+        response = self.client.get(self.url)
         assert response.status_code == 405
 
     def test_unknown_host_event(self):
         # No integration defined in the database, so event should be rejected
         # because we can't find metadata and secret for it
-        url = "/extensions/github-enterprise/webhook/"
-
         response = self.client.post(
-            path=url,
+            path=self.url,
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
@@ -37,11 +49,8 @@ class WebhookTest(APITestCase):
         assert response.status_code == 400
 
     def test_unregistered_event(self):
-        project = self.project  # noqa force creation
-        url = "/extensions/github-enterprise/webhook/"
-
         response = self.client.post(
-            path=url,
+            path=self.url,
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="UnregisteredEvent",
@@ -53,18 +62,10 @@ class WebhookTest(APITestCase):
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
     def test_invalid_signature_event(self, mock_installation):
-        mock_installation.return_value = {
-            "url": "35.232.149.196",
-            "id": "2",
-            "name": "test-app",
-            "webhook_secret": "b3002c3e321d4b7880360d397db2ccfd",
-            "private_key": "private_key",
-            "verify_ssl": True,
-        }
-        url = "/extensions/github-enterprise/webhook/"
+        mock_installation.return_value = self.metadata
 
         response = self.client.post(
-            path=url,
+            path=self.url,
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
@@ -77,18 +78,10 @@ class WebhookTest(APITestCase):
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
     def test_missing_signature_ok(self, mock_installation):
         # Old Github:e doesn't send a signature, so we have to accept that.
-        mock_installation.return_value = {
-            "url": "35.232.149.196",
-            "id": "2",
-            "name": "test-app",
-            "webhook_secret": "b3002c3e321d4b7880360d397db2ccfd",
-            "private_key": "private_key",
-            "verify_ssl": True,
-        }
-        url = "/extensions/github-enterprise/webhook/"
+        mock_installation.return_value = self.metadata
 
         response = self.client.post(
-            path=url,
+            path=self.url,
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
@@ -98,16 +91,11 @@ class WebhookTest(APITestCase):
         assert response.status_code == 204
 
 
+@region_silo_test(stable=True)
 class PushEventWebhookTest(APITestCase):
-    @patch("sentry.integrations.github_enterprise.client.get_jwt")
-    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_simple(self, mock_get_installation_metadata, mock_get_jwt):
-        mock_get_jwt.return_value = b""
-
-        project = self.project  # force creation
-
-        url = "/extensions/github-enterprise/webhook/"
-        mock_get_installation_metadata.return_value = {
+    def setUp(self):
+        self.url = "/extensions/github-enterprise/webhook/"
+        self.metadata = {
             "url": "35.232.149.196",
             "id": "2",
             "name": "test-app",
@@ -115,15 +103,29 @@ class PushEventWebhookTest(APITestCase):
             "private_key": "private_key",
             "verify_ssl": True,
         }
-
         Repository.objects.create(
-            organization_id=project.organization.id,
+            organization_id=self.project.organization.id,
             external_id="35129377",
             provider="integrations:github_enterprise",
             name="baxterthehacker/public-repo",
         )
-        integration = Integration.objects.create(
+
+    @responses.activate
+    @patch("sentry.integrations.github_enterprise.client.get_jwt")
+    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
+    def test_simple(self, mock_get_installation_metadata, mock_get_jwt):
+        responses.add(
+            responses.POST,
+            "https://35.232.149.196/extensions/github-enterprise/webhook/",
+            status=204,
+        )
+
+        mock_get_jwt.return_value = b""
+        mock_get_installation_metadata.return_value = self.metadata
+
+        self.create_integration(
             external_id="35.232.149.196:12345",
+            organization=self.project.organization,
             provider="github_enterprise",
             metadata={
                 "domain_name": "35.232.149.196/baxterthehacker",
@@ -131,10 +133,9 @@ class PushEventWebhookTest(APITestCase):
                 "installation": {"id": "2", "private_key": "private_key", "verify_ssl": True},
             },
         )
-        integration.add_organization(project.organization, self.user)
 
         response = self.client.post(
-            path=url,
+            path=self.url,
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
@@ -175,45 +176,28 @@ class PushEventWebhookTest(APITestCase):
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
     def test_anonymous_lookup(self, mock_get_installation_metadata):
-        project = self.project  # force creation
+        mock_get_installation_metadata.return_value = self.metadata
 
-        url = "/extensions/github-enterprise/webhook/"
-        mock_get_installation_metadata.return_value = {
-            "url": "35.232.149.196",
-            "id": "2",
-            "name": "test-app",
-            "webhook_secret": "b3002c3e321d4b7880360d397db2ccfd",
-            "private_key": "private_key",
-            "verify_ssl": True,
-        }
-
-        integration = Integration.objects.create(
-            provider="github_enterprise",
+        self.create_integration(
             external_id="35.232.149.196:12345",
+            organization=self.project.organization,
+            provider="github_enterprise",
             name="octocat",
             metadata={
                 "domain_name": "35.232.149.196/baxterthehacker",
                 "installation": {"id": "2", "private_key": "private_key", "verify_ssl": True},
             },
         )
-        integration.add_organization(project.organization, self.user)
-
-        Repository.objects.create(
-            organization_id=project.organization.id,
-            external_id="35129377",
-            provider="integrations:github_enterprise",
-            name="baxterthehacker/public-repo",
-        )
 
         CommitAuthor.objects.create(
             external_id="github_enterprise:baxterthehacker",
-            organization_id=project.organization_id,
+            organization_id=self.project.organization_id,
             email="baxterthehacker@example.com",
             name="bàxterthehacker",
         )
 
         response = self.client.post(
-            path=url,
+            path=self.url,
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
@@ -225,7 +209,7 @@ class PushEventWebhookTest(APITestCase):
         assert response.status_code == 204
 
         commit_list = list(
-            Commit.objects.filter(organization_id=project.organization_id)
+            Commit.objects.filter(organization_id=self.project.organization_id)
             .select_related("author")
             .order_by("-date_added")
         )
@@ -249,31 +233,22 @@ class PushEventWebhookTest(APITestCase):
         assert commit.author.email == "baxterthehacker@example.com"
         assert commit.date_added == datetime(2015, 5, 5, 23, 40, 15, tzinfo=timezone.utc)
 
+    @responses.activate
     @patch("sentry.integrations.github_enterprise.client.get_jwt")
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
     def test_multiple_orgs(self, mock_get_installation_metadata, mock_get_jwt):
-        mock_get_jwt.return_value = b""
-
-        project = self.project  # force creation
-
-        url = "/extensions/github-enterprise/webhook/"
-        mock_get_installation_metadata.return_value = {
-            "url": "35.232.149.196",
-            "id": "2",
-            "name": "test-app",
-            "webhook_secret": "b3002c3e321d4b7880360d397db2ccfd",
-            "private_key": "private_key",
-            "verify_ssl": True,
-        }
-
-        Repository.objects.create(
-            organization_id=project.organization.id,
-            external_id="35129377",
-            provider="integrations:github_enterprise",
-            name="baxterthehacker/public-repo",
+        responses.add(
+            responses.POST,
+            "https://35.232.149.196/extensions/github-enterprise/webhook/",
+            status=204,
         )
-        integration = Integration.objects.create(
+
+        mock_get_jwt.return_value = b""
+        mock_get_installation_metadata.return_value = self.metadata
+
+        self.create_integration(
             external_id="35.232.149.196:12345",
+            organization=self.project.organization,
             provider="github_enterprise",
             metadata={
                 "domain_name": "35.232.149.196/baxterthehacker",
@@ -281,7 +256,6 @@ class PushEventWebhookTest(APITestCase):
                 "installation": {"id": "2", "private_key": "private_key", "verify_ssl": True},
             },
         )
-        integration.add_organization(project.organization, self.user)
 
         org2 = self.create_organization()
         project2 = self.create_project(organization=org2, name="bar")
@@ -292,8 +266,10 @@ class PushEventWebhookTest(APITestCase):
             provider="integrations:github_enterprise",
             name="another/repo",
         )
-        integration = Integration.objects.create(
+
+        self.create_integration(
             external_id="35.232.149.196:99",
+            organization=org2,
             provider="github_enterprise",
             metadata={
                 "domain_name": "35.232.149.196/another",
@@ -305,10 +281,9 @@ class PushEventWebhookTest(APITestCase):
                 },
             },
         )
-        integration.add_organization(org2, self.user)
 
         response = self.client.post(
-            path=url,
+            path=self.url,
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
@@ -320,7 +295,7 @@ class PushEventWebhookTest(APITestCase):
         assert response.status_code == 204
 
         commit_list = list(
-            Commit.objects.filter(organization_id=project.organization_id)
+            Commit.objects.filter(organization_id=self.project.organization_id)
             .select_related("author")
             .order_by("-date_added")
         )
@@ -335,13 +310,11 @@ class PushEventWebhookTest(APITestCase):
         assert len(commit_list) == 0
 
 
+@region_silo_test(stable=True)
 class PullRequestEventWebhook(APITestCase):
-    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_opened(self, mock_get_installation_metadata):
-        project = self.project  # force creation
-
-        url = "/extensions/github-enterprise/webhook/"
-        mock_get_installation_metadata.return_value = {
+    def setUp(self):
+        self.url = "/extensions/github-enterprise/webhook/"
+        self.metadata = {
             "url": "35.232.149.196",
             "id": "2",
             "name": "test-app",
@@ -349,27 +322,29 @@ class PullRequestEventWebhook(APITestCase):
             "private_key": "private_key",
             "verify_ssl": True,
         }
-
-        integration = Integration.objects.create(
-            provider="github_enterprise",
+        self.create_integration(
             external_id="35.232.149.196:234",
+            organization=self.project.organization,
+            provider="github_enterprise",
             name="octocat",
             metadata={
                 "domain_name": "35.232.149.196/baxterthehacker",
                 "installation": {"id": "2", "private_key": "private_key", "verify_ssl": True},
             },
         )
-        integration.add_organization(project.organization, self.user)
-
-        repo = Repository.objects.create(
-            organization_id=project.organization.id,
+        self.repo = Repository.objects.create(
+            organization_id=self.project.organization.id,
             external_id="35129377",
             provider="integrations:github_enterprise",
             name="baxterthehacker/public-repo",
         )
 
+    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
+    def test_opened(self, mock_get_installation_metadata):
+        mock_get_installation_metadata.return_value = self.metadata
+
         response = self.client.post(
-            path=url,
+            path=self.url,
             data=PULL_REQUEST_OPENED_EVENT_EXAMPLE,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
@@ -381,7 +356,7 @@ class PullRequestEventWebhook(APITestCase):
         assert response.status_code == 204
 
         prs = PullRequest.objects.filter(
-            repository_id=repo.id, organization_id=project.organization.id
+            repository_id=self.repo.id, organization_id=self.project.organization.id
         )
 
         assert len(prs) == 1
@@ -395,42 +370,14 @@ class PullRequestEventWebhook(APITestCase):
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
     def test_edited(self, mock_get_installation_metadata):
-        project = self.project  # force creation
-
-        url = "/extensions/github-enterprise/webhook/"
-        mock_get_installation_metadata.return_value = {
-            "url": "35.232.149.196",
-            "id": "2",
-            "name": "test-app",
-            "webhook_secret": "b3002c3e321d4b7880360d397db2ccfd",
-            "private_key": "private_key",
-            "verify_ssl": True,
-        }
-
-        integration = Integration.objects.create(
-            provider="github_enterprise",
-            external_id="35.232.149.196:234",
-            name="octocat",
-            metadata={
-                "domain_name": "35.232.149.196/baxterthehacker",
-                "installation": {"id": "2", "private_key": "private_key", "verify_ssl": True},
-            },
-        )
-        integration.add_organization(project.organization, self.user)
-
-        repo = Repository.objects.create(
-            organization_id=project.organization.id,
-            external_id="35129377",
-            provider="integrations:github_enterprise",
-            name="baxterthehacker/public-repo",
-        )
+        mock_get_installation_metadata.return_value = self.metadata
 
         pr = PullRequest.objects.create(
-            key="1", repository_id=repo.id, organization_id=project.organization.id
+            key="1", repository_id=self.repo.id, organization_id=self.project.organization.id
         )
 
         response = self.client.post(
-            path=url,
+            path=self.url,
             data=PULL_REQUEST_EDITED_EVENT_EXAMPLE,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
@@ -450,38 +397,10 @@ class PullRequestEventWebhook(APITestCase):
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
     def test_closed(self, mock_get_installation_metadata):
-        project = self.project  # force creation
-
-        url = "/extensions/github-enterprise/webhook/"
-        mock_get_installation_metadata.return_value = {
-            "url": "35.232.149.196",
-            "id": "2",
-            "name": "test-app",
-            "webhook_secret": "b3002c3e321d4b7880360d397db2ccfd",
-            "private_key": "private_key",
-            "verify_ssl": True,
-        }
-
-        integration = Integration.objects.create(
-            provider="github_enterprise",
-            external_id="35.232.149.196:234",
-            name="octocat",
-            metadata={
-                "domain_name": "35.232.149.196/baxterthehacker",
-                "installation": {"id": "2", "private_key": "private_key", "verify_ssl": True},
-            },
-        )
-        integration.add_organization(project.organization, self.user)
-
-        repo = Repository.objects.create(
-            organization_id=project.organization.id,
-            external_id="35129377",
-            provider="integrations:github_enterprise",
-            name="baxterthehacker/public-repo",
-        )
+        mock_get_installation_metadata.return_value = self.metadata
 
         response = self.client.post(
-            path=url,
+            path=self.url,
             data=PULL_REQUEST_CLOSED_EVENT_EXAMPLE,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
@@ -493,7 +412,7 @@ class PullRequestEventWebhook(APITestCase):
         assert response.status_code == 204
 
         prs = PullRequest.objects.filter(
-            repository_id=repo.id, organization_id=project.organization.id
+            repository_id=self.repo.id, organization_id=self.project.organization.id
         )
 
         assert len(prs) == 1

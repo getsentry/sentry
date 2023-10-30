@@ -5,11 +5,15 @@ from uuid import uuid4
 from django.test import override_settings
 from django.urls import reverse
 
-from sentry.models import Environment, UserReport
-from sentry.testutils import TestCase
+from sentry.models.environment import Environment
+from sentry.models.userreport import UserReport
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
+from sentry.types.region import get_local_region
 
 
+@region_silo_test(stable=True)
 @override_settings(ROOT_URLCONF="sentry.conf.urls")
 class ErrorPageEmbedTest(TestCase):
     def setUp(self):
@@ -71,7 +75,23 @@ class ErrorPageEmbedTest(TestCase):
             HTTP_ACCEPT="text/html, text/javascript",
         )
         assert resp.status_code == 200, resp.content
+        assert resp["Access-Control-Allow-Origin"] == "*"
         self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
+
+    def test_endpoint_reflects_region_url(self):
+        resp = self.client.get(
+            self.path_with_qs,
+            HTTP_REFERER="http://example.com",
+            HTTP_ACCEPT="text/html, text/javascript",
+        )
+        assert resp.status_code == 200, resp.content
+        assert resp["Access-Control-Allow-Origin"] == "*"
+        self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
+
+        region = get_local_region()
+        region_url = region.to_url(self.path_with_qs)
+        body = resp.content.decode("utf8")
+        assert f'endpoint = /**/"{region_url}";/**/' in body
 
     def test_uses_locale_from_header(self):
         resp = self.client.get(
@@ -173,6 +193,7 @@ class ErrorPageEmbedTest(TestCase):
         assert resp.status_code == 400, resp.content
 
 
+@region_silo_test(stable=True)
 @override_settings(ROOT_URLCONF="sentry.conf.urls")
 class ErrorPageEmbedEnvironmentTest(TestCase):
     def setUp(self):
@@ -186,7 +207,6 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
             quote(self.key.dsn_public),
         )
         self.environment = Environment.objects.create(
-            project_id=self.project.id,
             organization_id=self.project.organization_id,
             name="production",
         )

@@ -4,19 +4,22 @@ import pytest
 import responses
 from django.urls.base import reverse
 
-from sentry.charts import generate_chart, is_enabled
+from sentry.charts import backend as charts
 from sentry.charts.types import ChartType
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.response import close_streaming_response
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 
+@control_silo_test(stable=True)
 class ChartcuterieTest(TestCase):
     def test_enabled(self):
-        assert not is_enabled()
+        assert not charts.is_enabled()
 
         with self.options({"chart-rendering.enabled": True}):
-            assert is_enabled()
+            assert charts.is_enabled()
 
     @responses.activate
     @patch("sentry.charts.chartcuterie.uuid4")
@@ -50,7 +53,9 @@ class ChartcuterieTest(TestCase):
 
         # Don't upload our image anywhere
         with self.options(options):
-            data = generate_chart(ChartType.SLACK_DISCOVER_TOTAL_PERIOD, chart_data, upload=False)
+            data = charts.generate_chart(
+                ChartType.SLACK_DISCOVER_TOTAL_PERIOD, chart_data, upload=False
+            )
 
         assert data == image_data
 
@@ -64,12 +69,12 @@ class ChartcuterieTest(TestCase):
 
         # Test the image can be uploaded and we get a URL back
         with self.options(options):
-            url = generate_chart(ChartType.SLACK_DISCOVER_TOTAL_PERIOD, chart_data)
+            url = charts.generate_chart(ChartType.SLACK_DISCOVER_TOTAL_PERIOD, chart_data)
 
         assert url == absolute_uri(reverse("sentry-serve-media", args=["abc123.png"]))
 
         resp = self.client.get(url)
-        assert next(resp.streaming_content) == image_data
+        assert close_streaming_response(resp) == image_data
 
     @responses.activate
     def test_failed(self):
@@ -89,7 +94,7 @@ class ChartcuterieTest(TestCase):
         with self.options(options), pytest.raises(
             RuntimeError, match="Chartcuterie responded with 500: Service down"
         ):
-            generate_chart(ChartType.SLACK_DISCOVER_TOTAL_PERIOD, chart_data)
+            charts.generate_chart(ChartType.SLACK_DISCOVER_TOTAL_PERIOD, chart_data)
 
     @responses.activate
     @patch("sentry.charts.chartcuterie.uuid4")
@@ -122,7 +127,7 @@ class ChartcuterieTest(TestCase):
         }
 
         with self.options(options):
-            data = generate_chart(
+            data = charts.generate_chart(
                 ChartType.SLACK_DISCOVER_TOTAL_PERIOD,
                 chart_data,
                 upload=False,

@@ -1,15 +1,32 @@
+import logging
+from typing import Any
+
 from django.conf import settings
+from django.db import router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 import sentry
 from sentry import options
-from sentry.api.base import Endpoint
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
 from sentry.utils.email import is_smtp_enabled
 
+logger = logging.getLogger("sentry")
 
+SYSTEM_OPTIONS_ALLOWLIST = (
+    # Used during setup before the superadmin role with the options.admin permission is authed
+    "system.admin-email"
+)
+
+
+@all_silo_endpoint
 class SystemOptionsEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:
@@ -37,7 +54,7 @@ class SystemOptionsEndpoint(Endpoint):
 
             # TODO(mattrobenolt): help, placeholder, title, type
             results[k.name] = {
-                "value": options.get(k.name),
+                "value": options.get(k.name) if not self.__is_secret(k) else "[redacted]",
                 "field": {
                     "default": k.default(),
                     "required": bool(k.flags & options.FLAG_REQUIRED),
@@ -50,7 +67,26 @@ class SystemOptionsEndpoint(Endpoint):
 
         return Response(results)
 
+    def __is_secret(self, k: Any) -> bool:
+        keywords = ["secret", "private", "token"]
+        return (k.flags & options.FLAG_CREDENTIAL) or any(
+            [keyword in k.name for keyword in keywords]
+        )
+
+    def has_permission(self, request: Request):
+        if not request.access.has_permission("options.admin"):
+            # We ignore options.admin permission is all keys in the update match the allowlist.
+            if all([k in SYSTEM_OPTIONS_ALLOWLIST for k in request.data.keys()]):
+                return True
+
+            return False
+
+        return True
+
     def put(self, request: Request):
+        if not self.has_permission(request):
+            return Response(status=403)
+
         # TODO(dcramer): this should validate options before saving them
         for k, v in request.data.items():
             if v and isinstance(v, str):
@@ -64,10 +100,21 @@ class SystemOptionsEndpoint(Endpoint):
                 )
 
             try:
-                if not (option.flags & options.FLAG_ALLOW_EMPTY) and not v:
-                    options.delete(k)
-                else:
-                    options.set(k, v)
+                with transaction.atomic(router.db_for_write(options.default_store.model)):
+                    if not (option.flags & options.FLAG_ALLOW_EMPTY) and not v:
+                        options.delete(k)
+                    else:
+                        options.set(k, v, channel=options.UpdateChannel.APPLICATION)
+
+                    logger.info(
+                        "options.update",
+                        extra={
+                            "ip_address": request.META["REMOTE_ADDR"],
+                            "user_id": request.user.id,
+                            "option_key": k,
+                            "option_value": v,
+                        },
+                    )
             except (TypeError, AssertionError) as e:
                 # TODO(chadwhitacre): Use a custom exception for the
                 # immutability case, especially since asserts disappear with
@@ -81,5 +128,9 @@ class SystemOptionsEndpoint(Endpoint):
                 )
         # TODO(dcramer): this has nothing to do with configuring options and
         # should not be set here
-        options.set("sentry:version-configured", sentry.get_version())
+        options.set(
+            "sentry:version-configured",
+            sentry.get_version(),
+            channel=options.UpdateChannel.APPLICATION,
+        )
         return Response(status=200)

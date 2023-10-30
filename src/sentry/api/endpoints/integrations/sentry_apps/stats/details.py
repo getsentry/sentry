@@ -1,13 +1,18 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import StatsMixin
+from sentry import tsdb
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import StatsMixin, control_silo_endpoint
 from sentry.api.bases import SentryAppBaseEndpoint, SentryAppStatsPermission
-from sentry.app import tsdb
-from sentry.models import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 
 
+@control_silo_endpoint
 class SentryAppStatsEndpoint(SentryAppBaseEndpoint, StatsMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (SentryAppStatsPermission,)
 
     def get(self, request: Request, sentry_app) -> Response:
@@ -20,11 +25,13 @@ class SentryAppStatsEndpoint(SentryAppBaseEndpoint, StatsMixin):
         query_args = self._parse_args(request)
 
         installations = SentryAppInstallation.with_deleted.filter(
-            sentry_app=sentry_app, date_added__range=(query_args["start"], query_args["end"])
+            sentry_app_id=sentry_app.id, date_added__range=(query_args["start"], query_args["end"])
         ).values_list("date_added", "date_deleted", "organization_id")
-        install_count = SentryAppInstallation.with_deleted.filter(sentry_app=sentry_app).count()
+        install_count = SentryAppInstallation.with_deleted.filter(
+            sentry_app_id=sentry_app.id
+        ).count()
         uninstall_count = SentryAppInstallation.with_deleted.filter(
-            sentry_app=sentry_app, date_deleted__isnull=False
+            sentry_app_id=sentry_app.id, date_deleted__isnull=False
         ).count()
 
         rollup, series = tsdb.get_optimal_rollup_series(query_args["start"], query_args["end"])

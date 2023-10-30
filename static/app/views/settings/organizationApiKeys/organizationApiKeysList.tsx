@@ -3,26 +3,22 @@ import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import AlertLink from 'sentry/components/alertLink';
-import AutoSelectText from 'sentry/components/autoSelectText';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LinkWithConfirmation from 'sentry/components/links/linkWithConfirmation';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
+import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {inputStyles} from 'sentry/styles/input';
+import {Organization} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {DeprecatedApiKey} from './types';
 
-type RouteParams = {
-  orgId: string;
-};
-
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<{}, {}> & {
   /**
    * Busy differs from loading in that busy is a result of an action like removing
    */
@@ -37,10 +33,12 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   onAddApiKey: () => {};
 
   onRemove: (id: DeprecatedApiKey['id']) => {};
+  organization: Organization;
   routes: PlainRoute[];
 };
 
 function OrganizationApiKeysList({
+  organization,
   params,
   routes,
   keys,
@@ -54,7 +52,7 @@ function OrganizationApiKeysList({
   const action = (
     <Button
       priority="primary"
-      size="small"
+      size="sm"
       icon={<IconAdd size="xs" isCircled />}
       busy={busy}
       disabled={busy}
@@ -81,7 +79,7 @@ function OrganizationApiKeysList({
 
       <AlertLink to="/settings/account/api/auth-tokens/" priority="info">
         {tct(
-          'Until Sentry supports OAuth, you might want to switch to using [tokens:Auth Tokens] instead.',
+          'Until Sentry supports OAuth, you might want to switch to using [tokens:User Auth Tokens] instead.',
           {
             tokens: <u />,
           }
@@ -97,7 +95,7 @@ function OrganizationApiKeysList({
         {keys &&
           keys.map(({id, key, label}) => {
             const apiDetailsUrl = recreateRoute(`${id}/`, {
-              params,
+              params: {...params, orgId: organization.slug},
               routes,
             });
 
@@ -107,9 +105,9 @@ function OrganizationApiKeysList({
                   <Link to={apiDetailsUrl}>{label}</Link>
                 </Cell>
 
-                <div>
-                  <AutoSelectTextInput readOnly>{key}</AutoSelectTextInput>
-                </div>
+                <TextCopyInput size="sm" monospace>
+                  {key}
+                </TextCopyInput>
 
                 <Cell>
                   <LinkWithConfirmation
@@ -133,10 +131,6 @@ function OrganizationApiKeysList({
 const Cell = styled('div')`
   display: flex;
   align-items: center;
-`;
-
-const AutoSelectTextInput = styled(AutoSelectText)<{readOnly: boolean}>`
-  ${p => inputStyles(p)}
 `;
 
 export default OrganizationApiKeysList;

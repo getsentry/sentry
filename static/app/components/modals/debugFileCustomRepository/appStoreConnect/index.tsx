@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DEFAULT_TOAST_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {
   AppStoreConnectStatusData,
@@ -97,7 +97,7 @@ function AppStoreConnect({
         setStepTwoData({app: storeApps[0]});
       }
 
-      if (!!initialData) {
+      if (initialData) {
         updateCredentials();
         return;
       }
@@ -313,7 +313,7 @@ function AppStoreConnect({
           <StepsOverview>
             {tct('[currentStep] of [totalSteps]', {
               currentStep: activeStep + 1,
-              totalSteps: !!initialData ? 1 : steps.length,
+              totalSteps: initialData ? 1 : steps.length,
             })}
           </StepsOverview>
         </HeaderContent>
@@ -332,7 +332,7 @@ function AppStoreConnect({
                 <LoadingIndicator mini />
               </LoadingIndicatorWrapper>
             )}
-            {!!initialData
+            {initialData
               ? t('Update')
               : activeStep + 1 === steps.length
               ? t('Save')

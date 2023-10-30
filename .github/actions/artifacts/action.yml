@@ -10,17 +10,18 @@ inputs:
     description: "The type of change (frontend, backend)"
     default: "backend"
     required: false
+  token:
+    description: "The codecov token"
+    required: true
 
 runs:
   using: "composite"
   steps:
     - name: Upload to codecov
-      uses: codecov/codecov-action@v2
-      env:
-        # This is because of a bug in codecov's uploader
-        # See: https://github.com/codecov/uploader/issues/475
-        NODE_OPTIONS: ""
+      uses: codecov/codecov-action@81cd2dc8148241f03f5839d295e000b8f761e378  # v3.1.0
       with:
+        token: ${{ inputs.token }}
         flags: ${{ inputs.type }}
         files: ${{ inputs.files }}
         verbose: true
+      continue-on-error: true

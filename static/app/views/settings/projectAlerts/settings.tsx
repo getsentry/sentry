@@ -2,34 +2,34 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import AlertLink from 'sentry/components/alertLink';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import {PanelAlert} from 'sentry/components/panels';
+import PanelAlert from 'sentry/components/panels/panelAlert';
 import PluginList from 'sentry/components/pluginList';
 import {fields} from 'sentry/data/forms/projectAlerts';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Plugin, Project} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
-type RouteParams = {orgId: string; projectId: string};
+type RouteParams = {projectId: string};
+
 type Props = RouteComponentProps<RouteParams, {}> &
-  AsyncView['props'] & {
+  DeprecatedAsyncView['props'] & {
     canEditRule: boolean;
     organization: Organization;
-    project: Project;
   };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   pluginList: Array<Plugin> | null;
   project: Project | null;
 };
 
-class Settings extends AsyncView<Props, State> {
+class Settings extends DeprecatedAsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -37,17 +37,18 @@ class Settings extends AsyncView<Props, State> {
       pluginList: [],
     };
   }
-  getProjectEndpoint({orgId, projectId}: RouteParams) {
-    return `/projects/${orgId}/${projectId}/`;
+
+  getProjectEndpoint() {
+    const {organization, params} = this.props;
+    return `/projects/${organization.slug}/${params.projectId}/`;
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {params} = this.props;
-    const {orgId, projectId} = params;
-    const projectEndpoint = this.getProjectEndpoint(params);
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+    const {organization, params} = this.props;
+    const projectEndpoint = this.getProjectEndpoint();
     return [
       ['project', projectEndpoint],
-      ['pluginList', `/projects/${orgId}/${projectId}/plugins/`],
+      ['pluginList', `/projects/${organization.slug}/${params.projectId}/plugins/`],
     ];
   }
 
@@ -85,15 +86,14 @@ class Settings extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {canEditRule, organization, params} = this.props;
-    const {orgId} = params;
+    const {canEditRule, organization} = this.props;
     const {project, pluginList} = this.state;
 
     if (!project) {
       return null;
     }
 
-    const projectEndpoint = this.getProjectEndpoint(params);
+    const projectEndpoint = this.getProjectEndpoint();
 
     return (
       <Fragment>
@@ -102,16 +102,16 @@ class Settings extends AsyncView<Props, State> {
           action={
             <Button
               to={{
-                pathname: `/organizations/${orgId}/alerts/rules/`,
+                pathname: `/organizations/${organization.slug}/alerts/rules/`,
                 query: {project: project.id},
               }}
-              size="small"
+              size="sm"
             >
               {t('View Alert Rules')}
             </Button>
           }
         />
-        <PermissionAlert />
+        <PermissionAlert project={project} />
         <AlertLink to="/settings/account/notifications/" icon={<IconMail />}>
           {t(
             'Looking to fine-tune your personal notification preferences? Visit your Account Settings'

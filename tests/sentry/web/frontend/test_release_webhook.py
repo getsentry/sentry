@@ -1,16 +1,18 @@
 import hmac
+from functools import cached_property
 from hashlib import sha256
 from unittest.mock import patch
 
 from django.urls import reverse
-from exam import fixture
 
-from sentry.models import ProjectOption
-from sentry.testutils import TestCase
+from sentry.models.options.project_option import ProjectOption
+from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
 
 class ReleaseWebhookTestBase(TestCase):
+    plugin_id: str
+
     def setUp(self):
         super().setUp()
         self.organization = self.create_organization()
@@ -19,7 +21,7 @@ class ReleaseWebhookTestBase(TestCase):
         self.token = "a2587e3af83411e4a28634363b8514c2"
         ProjectOption.objects.set_value(self.project, "sentry:release-token", self.token)
 
-    @fixture
+    @cached_property
     def signature(self):
         return hmac.new(
             key=self.token.encode("utf-8"),
@@ -27,7 +29,7 @@ class ReleaseWebhookTestBase(TestCase):
             digestmod=sha256,
         ).hexdigest()
 
-    @fixture
+    @cached_property
     def path(self):
         return reverse(
             "sentry-release-hook",

@@ -5,7 +5,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {UpdateSdkSuggestion} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 
@@ -115,16 +115,13 @@ function getSdkUpdateSuggestion({
   }
 
   const alertContent = suggestion.enables
-    .map((subSuggestion, index) => {
+    .map(subSuggestion => {
       const subSuggestionContent = getSdkUpdateSuggestion({
         suggestion: subSuggestion,
         sdk,
         capitalized,
       });
-      if (!subSuggestionContent) {
-        return null;
-      }
-      return <ListItem key={index}>{subSuggestionContent}</ListItem>;
+      return subSuggestionContent || null;
     })
     .filter(content => !!content);
 
@@ -135,7 +132,11 @@ function getSdkUpdateSuggestion({
   return (
     <span>
       {tct('[title] so you can:', {title})}
-      <StyledList symbol="bullet">{alertContent}</StyledList>
+      <StyledList symbol="bullet">
+        {alertContent.map((content, index) => (
+          <ListItem key={index}>{content}</ListItem>
+        ))}
+      </StyledList>
     </span>
   );
 }

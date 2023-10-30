@@ -6,18 +6,21 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import Button from 'sentry/components/button';
-import Field from 'sentry/components/forms/field';
+import {Button} from 'sentry/components/button';
+import EmptyMessage from 'sentry/components/emptyMessage';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Link from 'sentry/components/links/link';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelAlert from 'sentry/components/panels/panelAlert';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import Switch from 'sentry/components/switchButton';
 import Truncate from 'sentry/components/truncate';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, ServiceHook} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type RowProps = {
@@ -29,7 +32,7 @@ type RowProps = {
 
 function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
   return (
-    <Field
+    <FieldGroup
       label={
         <Link
           data-test-id="project-service-hook"
@@ -49,26 +52,27 @@ function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
       }
     >
       <Switch isActive={hook.status === 'active'} size="lg" toggle={onToggleActive} />
-    </Field>
+    </FieldGroup>
   );
 }
 
-type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
+type Props = RouteComponentProps<{projectId: string}, {}> & {
   organization: Organization;
 };
 
 type State = {
   hookList: null | ServiceHook[];
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class ProjectServiceHooks extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId, projectId} = this.props.params;
-    return [['hookList', `/projects/${orgId}/${projectId}/hooks/`]];
+class ProjectServiceHooks extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+    const {organization, params} = this.props;
+    const projectId = params.projectId;
+    return [['hookList', `/projects/${organization.slug}/${projectId}/hooks/`]];
   }
 
   onToggleActive = (hook: ServiceHook) => {
-    const {orgId, projectId} = this.props.params;
+    const {organization, params} = this.props;
     const {hookList} = this.state;
     if (!hookList) {
       return;
@@ -76,29 +80,32 @@ class ProjectServiceHooks extends AsyncView<Props, State> {
 
     addLoadingMessage(t('Saving changes\u2026'));
 
-    this.api.request(`/projects/${orgId}/${projectId}/hooks/${hook.id}/`, {
-      method: 'PUT',
-      data: {
-        isActive: hook.status !== 'active',
-      },
-      success: data => {
-        clearIndicators();
-        this.setState({
-          hookList: hookList.map(h => {
-            if (h.id === data.id) {
-              return {
-                ...h,
-                ...data,
-              };
-            }
-            return h;
-          }),
-        });
-      },
-      error: () => {
-        addErrorMessage(t('Unable to remove application. Please try again.'));
-      },
-    });
+    this.api.request(
+      `/projects/${organization.slug}/${params.projectId}/hooks/${hook.id}/`,
+      {
+        method: 'PUT',
+        data: {
+          isActive: hook.status !== 'active',
+        },
+        success: data => {
+          clearIndicators();
+          this.setState({
+            hookList: hookList.map(h => {
+              if (h.id === data.id) {
+                return {
+                  ...h,
+                  ...data,
+                };
+              }
+              return h;
+            }),
+          });
+        },
+        error: () => {
+          addErrorMessage(t('Unable to remove application. Please try again.'));
+        },
+      }
+    );
   };
 
   renderEmpty() {
@@ -110,7 +117,7 @@ class ProjectServiceHooks extends AsyncView<Props, State> {
   }
 
   renderResults() {
-    const {orgId, projectId} = this.props.params;
+    const {organization, params} = this.props;
 
     return (
       <Fragment>
@@ -124,8 +131,8 @@ class ProjectServiceHooks extends AsyncView<Props, State> {
           {this.state.hookList?.map(hook => (
             <ServiceHookRow
               key={hook.id}
-              orgId={orgId}
-              projectId={projectId}
+              orgId={organization.slug}
+              projectId={params.projectId}
               hook={hook}
               onToggleActive={this.onToggleActive.bind(this, hook)}
             />
@@ -140,19 +147,18 @@ class ProjectServiceHooks extends AsyncView<Props, State> {
     const body =
       hookList && hookList.length > 0 ? this.renderResults() : this.renderEmpty();
 
-    const {orgId, projectId} = this.props.params;
-    const access = new Set(this.props.organization.access);
+    const {organization, params} = this.props;
 
     return (
       <Fragment>
         <SettingsPageHeader
           title={t('Service Hooks')}
           action={
-            access.has('project:write') ? (
+            organization.access.includes('project:write') ? (
               <Button
                 data-test-id="new-service-hook"
-                to={`/settings/${orgId}/projects/${projectId}/hooks/new/`}
-                size="small"
+                to={`/settings/${organization.slug}/projects/${params.projectId}/hooks/new/`}
+                size="sm"
                 priority="primary"
                 icon={<IconAdd size="xs" isCircled />}
               >

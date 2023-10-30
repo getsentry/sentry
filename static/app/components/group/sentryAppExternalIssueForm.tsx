@@ -1,5 +1,3 @@
-import {Component} from 'react';
-
 import {t} from 'sentry/locale';
 import ExternalIssueStore from 'sentry/stores/externalIssueStore';
 import {Group, PlatformExternalIssue, SentryAppInstallation} from 'sentry/types';
@@ -7,9 +5,8 @@ import {Event} from 'sentry/types/event';
 import getStacktraceBody from 'sentry/utils/getStacktraceBody';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import SentryAppExternalForm, {
-  FieldFromSchema,
   SchemaFormConfig,
-} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
+} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 type Props = {
   action: 'create' | 'link';
@@ -21,58 +18,53 @@ type Props = {
   sentryAppInstallation: SentryAppInstallation;
 };
 
-export class SentryAppExternalIssueForm extends Component<Props> {
-  onSubmitSuccess = (issue: PlatformExternalIssue) => {
-    ExternalIssueStore.add(issue);
-    this.props.onSubmitSuccess(issue);
-  };
+function SentryAppExternalIssueForm({
+  action,
+  appName,
+  config,
+  event,
+  group,
+  onSubmitSuccess,
+  sentryAppInstallation,
+}: Props) {
+  const contentArr = getStacktraceBody(event);
 
-  getStacktrace() {
-    const evt = this.props.event;
-    const contentArr = getStacktraceBody(evt);
+  const stackTrace =
+    contentArr && contentArr.length > 0 ? '\n\n```\n' + contentArr[0] + '\n```' : '';
 
-    if (contentArr && contentArr.length > 0) {
-      return '\n\n```\n' + contentArr[0] + '\n```';
-    }
-    return '';
-  }
-
-  getFieldDefault(field: FieldFromSchema) {
-    const {group, appName} = this.props;
-    if (field.type === 'textarea') {
-      field.maxRows = 10;
-      field.autosize = true;
-    }
-    switch (field.default) {
-      case 'issue.title':
-        return group.title;
-      case 'issue.description':
-        const stacktrace = this.getStacktrace();
-        const queryParams = {referrer: appName};
-        const url = addQueryParamsToExistingUrl(group.permalink, queryParams);
-        const shortId = group.shortId;
-        return t('Sentry Issue: [%s](%s)%s', shortId, url, stacktrace);
-      default:
-        return '';
-    }
-  }
-
-  render() {
-    return (
-      <SentryAppExternalForm
-        sentryAppInstallationUuid={this.props.sentryAppInstallation.uuid}
-        appName={this.props.appName}
-        config={this.props.config}
-        action={this.props.action}
-        element="issue-link"
-        extraFields={{groupId: this.props.group.id}}
-        extraRequestBody={{projectId: this.props.group.project.id}}
-        onSubmitSuccess={this.onSubmitSuccess}
-        // Needs to bind to access this.props
-        getFieldDefault={field => this.getFieldDefault(field)}
-      />
-    );
-  }
+  return (
+    <SentryAppExternalForm
+      sentryAppInstallationUuid={sentryAppInstallation.uuid}
+      appName={appName}
+      config={config}
+      action={action}
+      element="issue-link"
+      extraFields={{groupId: group.id}}
+      extraRequestBody={{projectId: group.project.id}}
+      onSubmitSuccess={issue => {
+        ExternalIssueStore.add(issue);
+        onSubmitSuccess(issue);
+      }}
+      // Needs to bind to access this.props
+      getFieldDefault={field => {
+        if (field.type === 'textarea') {
+          field.maxRows = 10;
+          field.autosize = true;
+        }
+        switch (field.default) {
+          case 'issue.title':
+            return group.title;
+          case 'issue.description':
+            const queryParams = {referrer: appName};
+            const url = addQueryParamsToExistingUrl(group.permalink, queryParams);
+            const shortId = group.shortId;
+            return t('Sentry Issue: [%s](%s)%s', shortId, url, stackTrace);
+          default:
+            return '';
+        }
+      }}
+    />
+  );
 }
 
 export default SentryAppExternalIssueForm;

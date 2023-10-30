@@ -2,24 +2,25 @@ import logging
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from django.conf import settings
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
+from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 
-from sentry.models import ApiApplication, ApiApplicationStatus, ApiAuthorization, ApiGrant, ApiToken
+from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
+from sentry.models.apiauthorization import ApiAuthorization
+from sentry.models.apigrant import ApiGrant
+from sentry.models.apitoken import ApiToken
+from sentry.utils import metrics
 from sentry.web.frontend.auth_login import AuthLoginView
 
-logger = logging.getLogger("sentry.api")
-
-
-from rest_framework.request import Request
-from rest_framework.response import Response
+logger = logging.getLogger("sentry.api.oauth_authorize")
 
 
 class OAuthAuthorizeView(AuthLoginView):
     auth_required = False
 
-    def get_next_uri(self, request: Request):
+    def get_next_uri(self, request: HttpRequest):
         return request.get_full_path()
 
     def redirect_response(self, response_type, redirect_uri, params):
@@ -67,11 +68,11 @@ class OAuthAuthorizeView(AuthLoginView):
 
         return self.redirect_response(response_type, redirect_uri, {"error": name, "state": state})
 
-    def respond_login(self, request: Request, context, application, **kwargs):
+    def respond_login(self, request: HttpRequest, context, application, **kwargs):
         context["banner"] = f"Connect Sentry to {application.name}"
         return self.respond("sentry/login.html", context)
 
-    def get(self, request: Request, **kwargs) -> Response:
+    def get(self, request: HttpRequest, **kwargs) -> HttpResponse:
         response_type = request.GET.get("response_type")
         client_id = request.GET.get("client_id")
         redirect_uri = request.GET.get("redirect_uri")
@@ -156,7 +157,7 @@ class OAuthAuthorizeView(AuthLoginView):
         if not force_prompt:
             try:
                 existing_auth = ApiAuthorization.objects.get(
-                    user=request.user, application=application
+                    user_id=request.user.id, application=application
                 )
             except ApiAuthorization.DoesNotExist:
                 pass
@@ -207,7 +208,7 @@ class OAuthAuthorizeView(AuthLoginView):
         }
         return self.respond("sentry/oauth-authorize.html", context)
 
-    def post(self, request: Request, **kwargs) -> Response:
+    def post(self, request: HttpRequest, **kwargs) -> HttpResponse:
         try:
             payload = request.session["oa2"]
         except KeyError:
@@ -271,26 +272,44 @@ class OAuthAuthorizeView(AuthLoginView):
         else:
             raise NotImplementedError
 
-    def approve(self, request: Request, application, **params):
+    def approve(self, request: HttpRequest, application, **params):
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(ApiAuthorization)):
                 ApiAuthorization.objects.create(
-                    application=application, user=request.user, scope_list=params["scopes"]
+                    application=application, user_id=request.user.id, scope_list=params["scopes"]
                 )
         except IntegrityError:
             if params["scopes"]:
-                auth = ApiAuthorization.objects.get(application=application, user=request.user)
+                auth = ApiAuthorization.objects.get(
+                    application=application, user_id=request.user.id
+                )
                 for scope in params["scopes"]:
                     if scope not in auth.scope_list:
                         auth.scope_list.append(scope)
                 auth.save()
 
+        metrics.incr(
+            "oauth_authorize.get.approve",
+            sample_rate=1.0,
+            tags={
+                "respose_type": params["response_type"],
+            },
+        )
+
         if params["response_type"] == "code":
             grant = ApiGrant.objects.create(
-                user=request.user,
+                user_id=request.user.id,
                 application=application,
                 redirect_uri=params["redirect_uri"],
                 scope_list=params["scopes"],
+            )
+            logger.info(
+                "approve.grant",
+                extra={
+                    "respose_type": params["response_type"],
+                    "redirect_uri": params["redirect_uri"],
+                    "scope": params["scopes"],
+                },
             )
             return self.redirect_response(
                 params["response_type"],
@@ -300,9 +319,19 @@ class OAuthAuthorizeView(AuthLoginView):
         elif params["response_type"] == "token":
             token = ApiToken.objects.create(
                 application=application,
-                user=request.user,
+                user_id=request.user.id,
                 refresh_token=None,
                 scope_list=params["scopes"],
+            )
+
+            logger.info(
+                "approve.token",
+                extra={
+                    "respose_type": params["response_type"],
+                    "redirect_uri": params["redirect_uri"],
+                    "scope": " ".join(token.get_scopes()),
+                    "state": params["state"],
+                },
             )
 
             return self.redirect_response(

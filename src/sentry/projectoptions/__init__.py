@@ -1,6 +1,6 @@
 from .manager import ProjectOptionsManager
 
-__all__ = ("get", "set", "delete", "register", "isset")
+__all__ = ("get", "set", "delete", "register", "isset", "LATEST_EPOCH")
 
 default_manager = ProjectOptionsManager()
 
@@ -23,4 +23,5 @@ def get_well_known_default(key, project=None, epoch=None):
 
 
 from . import defaults  # NOQA
-from .defaults import LATEST_EPOCH  # NOQA
+
+LATEST_EPOCH = defaults.LATEST_EPOCH

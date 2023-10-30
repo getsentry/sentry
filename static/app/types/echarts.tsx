@@ -1,4 +1,9 @@
-import type {AxisPointerComponentOption, ECharts, LineSeriesOption} from 'echarts';
+import type {
+  AxisPointerComponentOption,
+  ECharts,
+  LineSeriesOption,
+  PatternObject,
+} from 'echarts';
 import type ReactEchartsCore from 'echarts-for-react/lib/core';
 
 export type SeriesDataUnit = {
@@ -15,7 +20,7 @@ export type Series = {
   data: SeriesDataUnit[];
   seriesName: string;
   areaStyle?: {
-    color: string;
+    color: string | PatternObject;
     opacity: number;
   };
   color?: string;
@@ -28,9 +33,7 @@ export type Series = {
   z?: number;
 };
 
-export type ReactEchartsRef = ReactEchartsCore & {
-  getEchartsInstance: () => ECharts;
-};
+export type ReactEchartsRef = ReactEchartsCore;
 
 export type EChartEventHandler<P> = (params: P, instance: ECharts) => void;
 
@@ -46,6 +49,9 @@ export type EChartHighlightHandler = EChartEventHandler<any>;
 interface EChartMouseEventParam {
   // color of component (make sense when componentType is 'series')
   color: string;
+  // subtype of the component to which the clicked glyph belongs
+  // i.e. 'scatter', 'line', etc
+  componentSubType: string;
   // type of the component to which the clicked glyph belongs
   // i.e., 'series', 'markLine', 'markPoint', 'timeLine'
   componentType: string;
@@ -102,6 +108,8 @@ export type EChartDataZoomHandler = EChartEventHandler<{
    */
   startValue?: number;
 }>;
+
+export type DataPoint = Pick<SeriesDataUnit, 'name' | 'value'>;
 
 export type EChartRestoreHandler = EChartEventHandler<{type: 'restore'}>;
 

@@ -1,29 +1,32 @@
 import {RouteComponentProps} from 'react-router';
 
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
+import RangeField from 'sentry/components/forms/fields/rangeField';
 import Form from 'sentry/components/forms/form';
-import RangeField from 'sentry/components/forms/rangeField';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelAlert from 'sentry/components/panels/panelAlert';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type Props = RouteComponentProps<{}, {}> & {
+export type OrganizationRateLimitProps = RouteComponentProps<{}, {}> & {
   organization: Organization;
 };
 
 const getRateLimitValues = () => {
   const steps: number[] = [];
   let i = 0;
-  while (i <= 1000000) {
+  while (i <= 1_000_000) {
     steps.push(i);
-    if (i < 10000) {
-      i += 1000;
-    } else if (i < 100000) {
-      i += 10000;
+    if (i < 10_000) {
+      i += 1_000;
+    } else if (i < 100_000) {
+      i += 10_000;
     } else {
-      i += 100000;
+      i += 100_000;
     }
   }
   return steps;
@@ -32,7 +35,7 @@ const getRateLimitValues = () => {
 // We can just generate this once
 const ACCOUNT_RATE_LIMIT_VALUES = getRateLimitValues();
 
-const OrganizationRateLimit = ({organization}: Props) => {
+function OrganizationRateLimit({organization}: OrganizationRateLimitProps) {
   // TODO(billy): Update organization.quota in organizationStore with new values
 
   const {quota} = organization;
@@ -83,7 +86,7 @@ const OrganizationRateLimit = ({organization}: Props) => {
                 }
               />
             ) : (
-              <Field
+              <FieldGroup
                 label={t('Account Limit')}
                 help={t(
                   'The maximum number of events to accept across this entire organization.'
@@ -98,7 +101,7 @@ const OrganizationRateLimit = ({organization}: Props) => {
                     }
                   )}
                 </TextBlock>
-              </Field>
+              </FieldGroup>
             )}
             <RangeField
               name="projectRateLimit"
@@ -110,13 +113,7 @@ const OrganizationRateLimit = ({organization}: Props) => {
               min={50}
               max={100}
               formatLabel={value =>
-                value !== 100 ? (
-                  `${value}%`
-                ) : (
-                  <span
-                    dangerouslySetInnerHTML={{__html: `${t('No Limit')} &mdash; 100%`}}
-                  />
-                )
+                value !== 100 ? `${value}%` : t('No Limit \u2014 100%')
               }
             />
           </Form>
@@ -124,6 +121,6 @@ const OrganizationRateLimit = ({organization}: Props) => {
       </Panel>
     </div>
   );
-};
+}
 
 export default OrganizationRateLimit;

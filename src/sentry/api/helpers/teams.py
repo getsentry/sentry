@@ -1,8 +1,23 @@
+from typing import Optional
+
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.utils import InvalidParams
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import Team, TeamStatus
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import Team, TeamStatus
+
+
+def is_team_admin(org_member: OrganizationMember, team: Optional[Team] = None) -> bool:
+    """
+    Defaults to returning true is the member is a team admin in the
+    organization. Can also be scoped to a specific team.
+    """
+    omt = OrganizationMemberTeam.objects.filter(organizationmember=org_member, role="admin")
+    if team:
+        omt = omt.filter(team=team)
+    return omt.exists()
 
 
 def get_teams(request, organization, teams=None):
@@ -16,15 +31,15 @@ def get_teams(request, organization, teams=None):
         if is_active_superuser(request):
             # retrieve all teams within the organization
             myteams = Team.objects.filter(
-                organization=organization, status=TeamStatus.VISIBLE
+                organization=organization, status=TeamStatus.ACTIVE
             ).values_list("id", flat=True)
             verified_ids.update(myteams)
         else:
-            myteams = [t.id for t in request.access.teams]
+            myteams = request.access.team_ids_with_membership
             verified_ids.update(myteams)
 
     for team_id in requested_teams:  # Verify each passed Team id is numeric
-        if type(team_id) is not int and not team_id.isdigit():
+        if not isinstance(team_id, int) and not team_id.isdigit():
             raise InvalidParams(f"Invalid Team ID: {team_id}")
     requested_teams.update(verified_ids)
 

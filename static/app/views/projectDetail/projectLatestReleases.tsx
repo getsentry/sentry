@@ -4,9 +4,9 @@ import {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {fetchAnyReleaseExistence} from 'sentry/actionCreators/projects';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import DateTime from 'sentry/components/dateTime';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -14,10 +14,8 @@ import Version from 'sentry/components/version';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Release} from 'sentry/types';
-import {analytics} from 'sentry/utils/analytics';
-import {RELEASES_TOUR_STEPS} from 'sentry/views/releases/list/releasesPromo';
 
 import MissingReleasesButtons from './missingFeatureButtons/missingReleasesButtons';
 import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';
@@ -25,7 +23,7 @@ import {didProjectOrEnvironmentChange} from './utils';
 
 const PLACEHOLDER_AND_EMPTY_HEIGHT = '160px';
 
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   isProjectStabilized: boolean;
   location: Location;
   organization: Organization;
@@ -36,9 +34,9 @@ type Props = AsyncComponent['props'] & {
 type State = {
   releases: Release[] | null;
   hasOlderReleases?: boolean;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class ProjectLatestReleases extends AsyncComponent<Props, State> {
+class ProjectLatestReleases extends DeprecatedAsyncComponent<Props, State> {
   shouldComponentUpdate(nextProps: Props, nextState: State) {
     const {location, isProjectStabilized} = this.props;
     // TODO(project-detail): we temporarily removed refetching based on timeselector
@@ -64,7 +62,7 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
     }
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {location, organization, projectSlug, isProjectStabilized} = this.props;
 
     if (!isProjectStabilized) {
@@ -108,17 +106,6 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
 
     this.setState({hasOlderReleases, loading: false});
   }
-
-  handleTourAdvance = (index: number) => {
-    const {organization, projectId} = this.props;
-
-    analytics('releases.landing_card_clicked', {
-      org_id: parseInt(organization.id, 10),
-      project_id: projectId && parseInt(projectId, 10),
-      step_id: index,
-      step_title: RELEASES_TOUR_STEPS[index].title,
-    });
-  };
 
   get releasesLink() {
     const {organization} = this.props;

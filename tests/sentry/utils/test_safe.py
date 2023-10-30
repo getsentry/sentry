@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import unittest
-from collections import OrderedDict
 from functools import partial
+from typing import Any, MutableMapping
 from unittest.mock import Mock, patch
 
 import pytest
 
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.safe import (
     get_path,
@@ -39,8 +41,8 @@ class TrimTest(unittest.TestCase):
     def test_sorted_trim(self):
         # Trim should always trim the keys in alpha order
         # regardless of the original order.
-        alpha = OrderedDict([("a", "12345"), ("z", "12345")])
-        reverse = OrderedDict([("z", "12345"), ("a", "12345")])
+        alpha = {"a": "12345", "z": "12345"}
+        reverse = {"z": "12345", "a": "12345"}
         trm = partial(trim, max_size=12)
         expected = {"a": "12345", "z": "1..."}
 
@@ -49,7 +51,7 @@ class TrimTest(unittest.TestCase):
 
     def test_max_depth(self):
         trm = partial(trim, max_depth=2)
-        a = {"a": {"b": {"c": "d"}}}
+        a: dict[str, Any] = {"a": {"b": {"c": "d"}}}
         assert trm(a) == a
 
         a = {"a": {"b": {"c": "d"}}}
@@ -65,7 +67,7 @@ class TrimTest(unittest.TestCase):
 class SafeExecuteTest(TestCase):
     def test_with_nameless_function(self):
         assert safe_execute(lambda a: a, 1) == 1
-        assert safe_execute(lambda: a) is None  # NOQA
+        assert safe_execute(lambda: eval("a")) is None
 
     def test_with_simple_function(self):
         def simple(a):
@@ -73,6 +75,7 @@ class SafeExecuteTest(TestCase):
 
         assert safe_execute(simple, 1) == 1
 
+    def test_with_simple_function_raising_exception(self):
         def simple(a):
             raise Exception()
 
@@ -85,6 +88,7 @@ class SafeExecuteTest(TestCase):
 
         assert safe_execute(Foo().simple, 1) == 1
 
+    def test_with_instance_method_raising_exception(self):
         class Foo:
             def simple(self, a):
                 raise Exception()
@@ -108,9 +112,9 @@ class GetPathTest(unittest.TestCase):
     def test_get_none(self):
         assert get_path(None, "foo") is None
         assert get_path("foo", "foo") is None
-        assert get_path(42, "foo") is None
-        assert get_path(ValueError(), "foo") is None
-        assert get_path(True, "foo") is None
+        assert get_path(42, "foo") is None  # type: ignore[arg-type]
+        assert get_path(ValueError(), "foo") is None  # type: ignore[arg-type]
+        assert get_path(True, "foo") is None  # type: ignore[arg-type]
 
     def test_get_path_dict(self):
         assert get_path({}, "a") is None
@@ -168,7 +172,7 @@ class SetPathTest(unittest.TestCase):
         assert not set_path(True, "foo", value=42)
 
     def test_set_dict(self):
-        data = {}
+        data: MutableMapping[str, Any] = {}
         assert set_path(data, "a", value=42)
         assert data == {"a": 42}
 

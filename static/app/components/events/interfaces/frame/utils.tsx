@@ -1,6 +1,6 @@
 import {IconQuestion, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Frame, PlatformType} from 'sentry/types';
+import {Event, EventOrGroupType, Frame, PlatformKey} from 'sentry/types';
 import {defined, objectIsEmpty} from 'sentry/utils';
 
 import {SymbolicatorStatus} from '../types';
@@ -11,7 +11,7 @@ export function trimPackage(pkg: string) {
   return filename.replace(/\.(dylib|so|a|dll|exe)$/, '');
 }
 
-export function getPlatform(dataPlatform: PlatformType | null, platform: string) {
+export function getPlatform(dataPlatform: PlatformKey | null, platform: string) {
   // prioritize the frame platform but fall back to the platform
   // of the stack trace / exception
   return dataPlatform || platform;
@@ -106,4 +106,35 @@ export function isExpandable({
     hasContextRegisters(registers) ||
     hasAssembly(frame, platform)
   );
+}
+
+export function getLeadHint({
+  event,
+  hasNextFrame,
+}: {
+  event: Event;
+  hasNextFrame: boolean;
+}) {
+  if (hasNextFrame) {
+    return t('Called from');
+  }
+
+  switch (event.type) {
+    case EventOrGroupType.ERROR:
+      // ANRs/AppHangs are errors, but not crashes, so "Crashed in non-app" might be confusing as if
+      // there was a crash prior to ANR, hence special-casing them
+      return isAnrEvent(event) ? t('Occurred in non-app') : t('Crashed in non-app');
+    default:
+      return t('Occurred in non-app');
+  }
+}
+
+function isAnrEvent(event: Event) {
+  const mechanismTag = event.tags?.find(({key}) => key === 'mechanism')?.value;
+  const isANR =
+    mechanismTag === 'ANR' ||
+    mechanismTag === 'AppExitInfo' ||
+    mechanismTag === 'AppHang' ||
+    mechanismTag === 'mx_hang_diagnostic';
+  return isANR;
 }

@@ -8,16 +8,16 @@ import isEqual from 'lodash/isEqual';
 import {addTeamToProject} from 'sentry/actionCreators/projects';
 import {Client} from 'sentry/api';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import Button from 'sentry/components/button';
-import MultiSelectControl from 'sentry/components/deprecatedforms/multiSelectControl';
+import {Button} from 'sentry/components/button';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import IdBadge from 'sentry/components/idBadge';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Actor, Member, Organization, Project, Team, User} from 'sentry/types';
 import {buildTeamId, buildUserId} from 'sentry/utils';
 import withApi from 'sentry/utils/withApi';
@@ -175,7 +175,7 @@ class SelectOwners extends Component<Props, State> {
     const excludedTeamIds = teamsInProject.map(({actor}) => actor.id);
 
     return teams
-      .filter(team => excludedTeamIds.indexOf(team.id) === -1)
+      .filter(team => !excludedTeamIds.includes(team.id))
       .map(this.createUnmentionableTeam);
   }
 
@@ -272,7 +272,7 @@ class SelectOwners extends Component<Props, State> {
         // has not registered for sentry yet, but has been invited
         members
           ? (members as Member[])
-              .filter(({user}) => user && usersInProjectById.indexOf(user.id) === -1)
+              .filter(({user}) => user && !usersInProjectById.includes(user.id))
               .map(this.createUnmentionableUser)
           : []
       )
@@ -283,7 +283,8 @@ class SelectOwners extends Component<Props, State> {
 
   render() {
     return (
-      <MultiSelectControl
+      <SelectControl
+        multiple
         name="owners"
         filterOption={(option, filterText) =>
           option.data.searchKey.indexOf(filterText) > -1
@@ -295,14 +296,15 @@ class SelectOwners extends Component<Props, State> {
         clearable
         disabled={this.props.disabled}
         cache={false}
-        placeholder={t('owners')}
+        aria-label={t('Rule owner')}
+        placeholder={t('Owners')}
         components={{
           MultiValue: ValueComponent,
         }}
         onInputChange={this.handleInputChange}
         onChange={this.handleChange}
         value={this.props.value}
-        css={{width: 200}}
+        css={{width: 300}}
       />
     );
   }

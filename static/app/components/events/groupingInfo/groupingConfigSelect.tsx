@@ -1,25 +1,26 @@
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {EventGroupingConfig} from 'sentry/types';
 
 import {GroupingConfigItem} from '.';
 
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   configId: string;
   eventConfigId: string;
   onSelect: (selection: any) => void;
+  organizationSlug: string;
 };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   configs: EventGroupingConfig[];
 };
 
-class GroupingConfigSelect extends AsyncComponent<Props, State> {
+class GroupingConfigSelect extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -27,8 +28,9 @@ class GroupingConfigSelect extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    return [['configs', '/grouping-configs/']];
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
+    const {organizationSlug} = this.props;
+    return [['configs', `/organizations/${organizationSlug}/grouping-configs/`]];
   }
 
   renderLoading() {
@@ -52,7 +54,7 @@ class GroupingConfigSelect extends AsyncComponent<Props, State> {
       <DropdownAutoComplete onSelect={onSelect} items={options}>
         {({isOpen}) => (
           <Tooltip title={t('Click here to experiment with other grouping configs')}>
-            <StyledDropdownButton isOpen={isOpen} size="small">
+            <StyledDropdownButton isOpen={isOpen} size="sm">
               <GroupingConfigItem isActive={eventConfigId === configId}>
                 {configId}
               </GroupingConfigItem>

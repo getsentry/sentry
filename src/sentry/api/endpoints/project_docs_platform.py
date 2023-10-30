@@ -2,9 +2,11 @@ from django.urls import reverse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import ProjectKey
+from sentry.models.projectkey import ProjectKey
 from sentry.utils.http import absolute_uri
 from sentry.utils.integrationdocs import load_doc
 
@@ -35,7 +37,12 @@ def replace_keys(html, project_key):
     return html
 
 
+@region_silo_endpoint
 class ProjectDocsPlatformEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, project, platform) -> Response:
         data = load_doc(platform)
         if not data:
@@ -53,5 +60,6 @@ class ProjectDocsPlatformEndpoint(ProjectEndpoint):
                 "name": data["name"],
                 "html": replace_keys(data["html"], project_key),
                 "link": data["link"],
+                "wizardSetup": data.get("wizard_setup", None),
             }
         )

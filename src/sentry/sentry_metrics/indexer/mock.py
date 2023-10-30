@@ -1,64 +1,110 @@
 import itertools
 from collections import defaultdict
-from typing import DefaultDict, Dict, Mapping, Optional, Set
+from typing import Collection, DefaultDict, Dict, Mapping, Optional, Set
 
-from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.indexer.strings import REVERSE_SHARED_STRINGS, SHARED_STRINGS
+from sentry.sentry_metrics.indexer.base import (
+    FetchType,
+    OrgId,
+    StringIndexer,
+    UseCaseKeyCollection,
+    UseCaseKeyResult,
+    UseCaseKeyResults,
+    metric_path_key_compatible_resolve,
+    metric_path_key_compatible_rev_resolve,
+)
+from sentry.sentry_metrics.indexer.strings import StaticStringIndexer
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
-from .base import KeyResult, KeyResults, StringIndexer
 
-
-class SimpleIndexer(StringIndexer):
+class RawSimpleIndexer(StringIndexer):
 
     """Simple indexer with in-memory store. Do not use in production."""
 
     def __init__(self) -> None:
         self._counter = itertools.count(start=10000)
-        self._strings: DefaultDict[int, DefaultDict[str, int]] = defaultdict(
-            lambda: defaultdict(self._counter.__next__)
-        )
+        self._strings: DefaultDict[
+            UseCaseID, DefaultDict[OrgId, DefaultDict[str, Optional[int]]]
+        ] = defaultdict(lambda: defaultdict(lambda: defaultdict(self._counter.__next__)))
         self._reverse: Dict[int, str] = {}
 
     def bulk_record(
-        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
-    ) -> KeyResults:
-        acc = KeyResults()
-        for org_id, strs in org_strings.items():
-            strings_to_ints = {}
-            for string in strs:
-                if string in SHARED_STRINGS:
-                    strings_to_ints[string] = SHARED_STRINGS[string]
-                else:
-                    strings_to_ints[string] = self._record(org_id, string)
-                acc.add_key_result(KeyResult(org_id, string, strings_to_ints[string]))
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
+    ) -> UseCaseKeyResults:
+        db_read_keys = UseCaseKeyCollection(strings)
+        db_read_key_results = UseCaseKeyResults()
+        for use_case_id, org_strs in strings.items():
+            for org_id, strs in org_strs.items():
+                for string in strs:
+                    id = self._strings[use_case_id][org_id].get(string)
+                    if id is not None:
+                        db_read_key_results.add_use_case_key_result(
+                            UseCaseKeyResult(use_case_id, org_id=org_id, string=string, id=id),
+                            fetch_type=FetchType.DB_READ,
+                        )
 
-        return acc
+        db_write_keys = db_read_key_results.get_unmapped_use_case_keys(db_read_keys)
 
-    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> int:
-        if string in SHARED_STRINGS:
-            return SHARED_STRINGS[string]
-        return self._record(org_id, string)
+        if db_write_keys.size == 0:
+            return db_read_key_results
 
-    def resolve(
-        self, org_id: int, string: str, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
-    ) -> Optional[int]:
-        if string in SHARED_STRINGS:
-            return SHARED_STRINGS[string]
+        db_write_key_results = UseCaseKeyResults()
+        for use_case_id, org_id, string in db_write_keys.as_tuples():
+            db_write_key_results.add_use_case_key_result(
+                UseCaseKeyResult(
+                    use_case_id=use_case_id,
+                    org_id=org_id,
+                    string=string,
+                    id=self._record(use_case_id, org_id, string),
+                ),
+                fetch_type=FetchType.FIRST_SEEN,
+            )
 
-        strs = self._strings[org_id]
+        return db_read_key_results.merge(db_write_key_results)
+
+    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+        return self._record(use_case_id, org_id, string)
+
+    @metric_path_key_compatible_resolve
+    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+        strs = self._strings[use_case_id][org_id]
         return strs.get(string)
 
-    def reverse_resolve(
-        self, id: int, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
-    ) -> Optional[str]:
-        if id in REVERSE_SHARED_STRINGS:
-            return REVERSE_SHARED_STRINGS[id]
+    @metric_path_key_compatible_rev_resolve
+    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> Optional[str]:
         return self._reverse.get(id)
 
-    def _record(self, org_id: int, string: str) -> int:
-        index = self._strings[org_id][string]
-        self._reverse[index] = string
+    def bulk_reverse_resolve(
+        self, use_case_id: UseCaseID, org_id: int, ids: Collection[int]
+    ) -> Mapping[int, str]:
+        # Performance is not an issue for this indexer, so we can fall back on reverse_resolve
+
+        ret_val: Dict[int, str] = {}
+        for ident in ids:
+            val = self.reverse_resolve(use_case_id, org_id, ident)
+            if val is not None:
+                ret_val[ident] = val
+        return ret_val
+
+    def _record(self, use_case_id: UseCaseID, org_id: OrgId, string: str) -> Optional[int]:
+        index = self._strings[use_case_id][org_id][string]
+        if index is not None:
+            self._reverse[index] = string
         return index
+
+    def resolve_shared_org(self, string: str) -> Optional[int]:
+        raise NotImplementedError(
+            "This class should not be used directly, use the wrapping class SimpleIndexer"
+        )
+
+    def reverse_shared_org_resolve(self, id: int) -> Optional[str]:
+        raise NotImplementedError(
+            "This class should not be used directly, use the wrapping class SimpleIndexer"
+        )
+
+
+class SimpleIndexer(StaticStringIndexer):
+    def __init__(self) -> None:
+        super().__init__(RawSimpleIndexer())
 
 
 class MockIndexer(SimpleIndexer):

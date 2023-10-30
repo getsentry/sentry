@@ -1,8 +1,7 @@
-import React from 'react';
-import {useTheme} from '@emotion/react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {
   MajorGridlines,
@@ -11,82 +10,110 @@ import {
 import ReplayTimelineEvents from 'sentry/components/replays/breadcrumbs/replayTimelineEvents';
 import ReplayTimelineSpans from 'sentry/components/replays/breadcrumbs/replayTimelineSpans';
 import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
-import HorizontalMouseTracking from 'sentry/components/replays/player/horizontalMouseTracking';
-import {TimelineScubber} from 'sentry/components/replays/player/scrubber';
+import {
+  CompactTimelineScrubber,
+  TimelineScrubber,
+} from 'sentry/components/replays/player/scrubber';
+import {useTimelineScrubberMouseTracking} from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {Resizeable} from 'sentry/components/replays/resizeable';
-import TimelinePosition from 'sentry/components/replays/timelinePosition';
-import {BreadcrumbType} from 'sentry/types/breadcrumbs';
+import {divide} from 'sentry/components/replays/utils';
+import toPercent from 'sentry/utils/number/toPercent';
+import {useDimensions} from 'sentry/utils/useDimensions';
+import useOrganization from 'sentry/utils/useOrganization';
 
-type Props = {};
+type Props = {size: number};
 
-const USER_ACTIONS = [
-  BreadcrumbType.ERROR,
-  BreadcrumbType.NAVIGATION,
-  BreadcrumbType.UI,
-  BreadcrumbType.USER,
-];
+function ReplayTimeline({size}: Props) {
+  const {replay, currentTime} = useReplayContext();
 
-function ReplayTimeline({}: Props) {
-  const theme = useTheme();
-  const {currentHoverTime, currentTime, duration = 0, replay} = useReplayContext();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const mouseTrackingProps = useTimelineScrubberMouseTracking({elem: panelRef}, size);
+
+  const stackedRef = useRef<HTMLDivElement>(null);
+  const {width} = useDimensions<HTMLDivElement>({elementRef: stackedRef});
+
+  const organization = useOrganization();
+  const hasNewTimeline = organization.features.includes('session-replay-new-timeline');
 
   if (!replay) {
-    return <Placeholder height="86px" bottomGutter={2} />;
+    return <Placeholder height={hasNewTimeline ? '20px' : '54px'} />;
   }
 
-  const {startTimestamp} = replay.getEvent();
-  const crumbs = replay.getRawCrumbs() || [];
-  const spans = replay.getRawSpans() || [];
-  const userCrumbs = crumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
+  const durationMs = replay.getDurationMs();
+  const startTimestampMs = replay.getReplay().started_at.getTime();
+  const chapterFrames = replay.getChapterFrames();
+  const networkFrames = replay.getNetworkFrames();
 
-  const networkSpans = spans.filter(replay.isNotMemorySpan);
+  // start of the timeline is in the middle
+  const initialTranslatePercentage = 50 / size;
 
-  return (
-    <Panel>
-      <HorizontalMouseTracking>
-        <Resizeable>
-          {({width}) => (
-            <Stacked>
-              <MinorGridlines duration={duration} width={width} />
-              <MajorGridlines duration={duration} width={width} />
-              <TimelineScubber />
-              <TimelinePosition
-                color={theme.purple300}
-                currentTime={currentTime}
-                duration={duration}
-              />
-              {currentHoverTime ? (
-                <TimelinePosition
-                  color={theme.purple200}
-                  currentTime={currentHoverTime}
-                  duration={duration}
-                />
-              ) : null}
-              <UnderTimestamp>
-                <ReplayTimelineEvents
-                  crumbs={userCrumbs}
-                  duration={duration}
-                  startTimestamp={startTimestamp}
-                  width={width}
-                />
-                <ReplayTimelineSpans
-                  duration={duration}
-                  spans={networkSpans}
-                  startTimestamp={startTimestamp}
-                />
-              </UnderTimestamp>
-            </Stacked>
-          )}
-        </Resizeable>
-      </HorizontalMouseTracking>
-    </Panel>
+  const translatePercentage = toPercent(
+    initialTranslatePercentage -
+      (currentTime > durationMs ? 1 : divide(currentTime, durationMs))
+  );
+
+  return hasNewTimeline ? (
+    <VisiblePanel ref={panelRef} {...mouseTrackingProps}>
+      <Stacked
+        style={{
+          width: `${size}%`,
+          transform: `translate(${translatePercentage}, 0%)`,
+        }}
+        ref={stackedRef}
+      >
+        <MinorGridlines durationMs={durationMs} width={width} />
+        <MajorGridlines durationMs={durationMs} width={width} />
+        <CompactTimelineScrubber />
+        <TimelineEventsContainer>
+          <ReplayTimelineEvents
+            durationMs={durationMs}
+            frames={chapterFrames}
+            startTimestampMs={startTimestampMs}
+            width={width}
+          />
+        </TimelineEventsContainer>
+      </Stacked>
+    </VisiblePanel>
+  ) : (
+    <PanelNoMargin ref={panelRef} {...mouseTrackingProps}>
+      <Stacked ref={stackedRef}>
+        <MinorGridlines durationMs={durationMs} width={width} />
+        <MajorGridlines durationMs={durationMs} width={width} />
+        <TimelineScrubber />
+        <div style={{paddingTop: '36px'}}>
+          <ReplayTimelineSpans
+            durationMs={durationMs}
+            frames={networkFrames}
+            startTimestampMs={startTimestampMs}
+          />
+        </div>
+        <div style={{paddingTop: '26px'}}>
+          <ReplayTimelineEvents
+            durationMs={durationMs}
+            frames={chapterFrames}
+            startTimestampMs={startTimestampMs}
+            width={width}
+          />
+        </div>
+      </Stacked>
+    </PanelNoMargin>
   );
 }
 
-const UnderTimestamp = styled('div')`
-  /* Weird size to put equal space above/below a <small> node that MajorGridlines emits */
-  padding-top: 16px;
+const PanelNoMargin = styled(Panel)`
+  margin: 0;
+`;
+
+const VisiblePanel = styled(Panel)`
+  margin: 0;
+  border: 0;
+  overflow: hidden;
+  background: ${p => p.theme.translucentInnerBorder};
+`;
+
+const TimelineEventsContainer = styled('div')`
+  padding-top: 10px;
+  padding-bottom: 10px;
 `;
 
 export default ReplayTimeline;

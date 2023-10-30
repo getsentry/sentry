@@ -1,15 +1,24 @@
+from __future__ import annotations
+
 from enum import Enum
+from typing import TYPE_CHECKING, Any
 
 from django.core.cache import cache
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 
+from sentry import options
 from sentry.utils.otp import TOTP, generate_secret_key
+
+if TYPE_CHECKING:
+    from django.utils.functional import _StrPromise
+
+    from sentry.models.authenticator import Authenticator
 
 
 class ActivationResult:
-    type = None
+    type: str
 
 
 class ActivationMessageResult(ActivationResult):
@@ -39,16 +48,20 @@ class EnrollmentStatus(Enum):
     EXISTING = "existing"
 
 
+class NewEnrollmentDisallowed(Exception):
+    pass
+
+
 class AuthenticatorInterface:
     type = -1
-    interface_id = None
-    name = None
-    description = None
-    rotation_warning = None
+    interface_id: str
+    name: str | _StrPromise
+    description: str | _StrPromise
+    rotation_warning: str | _StrPromise | None = None
     is_backup_interface = False
     enroll_button = _("Enroll")
     configure_button = _("Info")
-    remove_button = _("Remove")
+    remove_button: str | _StrPromise | None = _("Remove")
     is_available = True
     allow_multi_enrollment = False
     allow_rotation_in_place = False
@@ -71,18 +84,29 @@ class AuthenticatorInterface:
         return self.authenticator is not None
 
     @property
+    def disallow_new_enrollment(self):
+        """If new enrollments of this 2FA interface type are no allowed
+        this returns `True`.
+
+        This value can be set with {interface_id}.disallow-new-enrollment.
+        For example, `sms.disallow-new-enrollment = True` would disable new
+        enrollments for text message 2FA.
+        """
+        return bool(options.get(f"{self.interface_id}.disallow-new-enrollment"))
+
+    @property
     def requires_activation(self):
         """If the interface has an activation method that needs to be
         called this returns `True`.
         """
-        return self.activate.__func__ is not AuthenticatorInterface.activate
+        return type(self).activate is not AuthenticatorInterface.activate
 
     @property
     def can_validate_otp(self):
         """If the interface is able to validate OTP codes then this returns
         `True`.
         """
-        return self.validate_otp.__func__ is not AuthenticatorInterface.validate_otp
+        return type(self).validate_otp is not AuthenticatorInterface.validate_otp
 
     @property
     def config(self):
@@ -116,12 +140,17 @@ class AuthenticatorInterface:
     def enroll(self, user):
         """Invoked to enroll a user for this interface.  If already enrolled
         an error is raised.
+
+        If `disallow_new_enrollment` is `True`, raises exception: `NewEnrollmentDisallowed`.
         """
-        from sentry.models import Authenticator
+        from sentry.models.authenticator import Authenticator
+
+        if self.disallow_new_enrollment:
+            raise NewEnrollmentDisallowed
 
         if self.authenticator is None:
             self.authenticator = Authenticator.objects.create(
-                user=user, type=self.type, config=self.config
+                user_id=user.id, type=self.type, config=self.config
             )
         else:
             if not self.allow_multi_enrollment:
@@ -157,17 +186,20 @@ class AuthenticatorInterface:
 
 
 class OtpMixin:
+    # mixed in from base class
+    config: dict[str, Any]
+    authenticator: Authenticator | None
+
     def generate_new_config(self):
         return {"secret": generate_secret_key()}
 
-    def _get_secret(self):
+    @property
+    def secret(self):
         return self.config["secret"]
 
-    def _set_secret(self, secret):
+    @secret.setter
+    def secret(self, secret):
         self.config["secret"] = secret
-
-    secret = property(_get_secret, _set_secret)
-    del _get_secret, _set_secret
 
     def make_otp(self):
         return TOTP(self.secret)

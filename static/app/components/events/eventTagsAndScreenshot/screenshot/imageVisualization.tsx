@@ -8,7 +8,6 @@ const ImageVisualization = styled(ImageViewer)`
   img {
     width: auto;
     height: 100%;
-    flex: 1;
   }
 `;
 

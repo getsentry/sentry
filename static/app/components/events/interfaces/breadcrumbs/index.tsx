@@ -1,17 +1,26 @@
-import {useEffect, useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
+import {
+  CompactSelect,
+  SelectOption,
+  SelectSection,
+} from 'sentry/components/compactSelect';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import EventDataSection from 'sentry/components/events/eventDataSection';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import {BreadcrumbWithMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
+import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {BreadcrumbLevelType, Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
-import {Event} from 'sentry/types/event';
+import {BreadcrumbLevelType, RawCrumb} from 'sentry/types/breadcrumbs';
+import {EntryType, Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 import SearchBarAction from '../searchBarAction';
 
@@ -20,65 +29,42 @@ import Type from './breadcrumb/type';
 import Breadcrumbs from './breadcrumbs';
 import {getVirtualCrumb, transformCrumbs} from './utils';
 
-type FilterOptions = NonNullable<
-  React.ComponentProps<typeof SearchBarAction>['filterOptions']
->;
+type SelectOptionWithLevels = SelectOption<string> & {levels?: BreadcrumbLevelType[]};
 
-type FilterOptionWithLevels = FilterOptions[0] & {levels?: BreadcrumbLevelType[]};
-
-type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
+type Props = {
   data: {
     values: Array<RawCrumb>;
   };
   event: Event;
   organization: Organization;
-  type: string;
 };
 
-type State = {
-  breadcrumbs: Crumb[];
-  displayRelativeTime: boolean;
-  filterOptions: FilterOptions;
-  filterSelections: FilterOptions;
-  filteredByFilter: Crumb[];
-  filteredBySearch: Crumb[];
-  searchTerm: string;
-  relativeTime?: string;
-};
+enum BreadcrumbSort {
+  NEWEST = 'newest',
+  OLDEST = 'oldest',
+}
 
-function BreadcrumbsContainer({
-  data,
-  event,
-  organization,
-  type: eventType,
-  route,
-  router,
-}: Props) {
-  const [state, setState] = useState<State>({
-    searchTerm: '',
-    breadcrumbs: [],
-    filteredByFilter: [],
-    filteredBySearch: [],
-    filterOptions: [],
-    filterSelections: [],
-    displayRelativeTime: false,
-  });
+const EVENT_BREADCRUMB_SORT_LOCALSTORAGE_KEY = 'event-breadcrumb-sort';
 
-  const {
-    filterOptions,
-    breadcrumbs,
-    searchTerm,
-    filteredBySearch,
-    displayRelativeTime,
-    relativeTime,
-    filteredByFilter,
-  } = state;
+const sortOptions = [
+  {label: t('Newest'), value: BreadcrumbSort.NEWEST},
+  {label: t('Oldest'), value: BreadcrumbSort.OLDEST},
+];
 
-  useEffect(() => {
-    loadBreadcrumbs();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+function BreadcrumbsContainer({data, event, organization}: Props) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterSelections, setFilterSelections] = useState<SelectOption<string>[]>([]);
+  const [displayRelativeTime, setDisplayRelativeTime] = useState(false);
+  const [sort, setSort] = useLocalStorageState<BreadcrumbSort>(
+    EVENT_BREADCRUMB_SORT_LOCALSTORAGE_KEY,
+    BreadcrumbSort.NEWEST
+  );
 
-  function loadBreadcrumbs() {
+  const entryIndex = event.entries.findIndex(
+    entry => entry.type === EntryType.BREADCRUMBS
+  );
+
+  const initialBreadcrumbs = useMemo(() => {
     let crumbs = data.values;
 
     // Add the (virtual) breadcrumb based on the error or message event if possible.
@@ -88,45 +74,40 @@ function BreadcrumbsContainer({
       crumbs = [...crumbs, virtualCrumb];
     }
 
-    const transformedCrumbs = transformCrumbs(crumbs);
+    return transformCrumbs(crumbs);
+  }, [data, event]);
 
-    setState({
-      ...state,
-      relativeTime: transformedCrumbs[transformedCrumbs.length - 1]?.timestamp,
-      breadcrumbs: transformedCrumbs,
-      filteredByFilter: transformedCrumbs,
-      filteredBySearch: transformedCrumbs,
-      filterOptions: getFilterOptions(transformedCrumbs),
-    });
-  }
+  const relativeTime = useMemo(() => {
+    return initialBreadcrumbs[initialBreadcrumbs.length - 1]?.timestamp ?? '';
+  }, [initialBreadcrumbs]);
 
-  function getFilterOptions(crumbs: ReturnType<typeof transformCrumbs>) {
-    const typeOptions = getFilterTypes(crumbs);
+  const filterOptions = useMemo(() => {
+    const typeOptions = getFilterTypes(initialBreadcrumbs);
     const levels = getFilterLevels(typeOptions);
 
-    const options: FilterOptions = [];
+    const options: SelectSection<string>[] = [];
 
-    if (!!typeOptions.length) {
+    if (typeOptions.length) {
       options.push({
-        value: 'types',
+        key: 'types',
         label: t('Types'),
         options: typeOptions.map(typeOption => omit(typeOption, 'levels')),
       });
     }
 
-    if (!!levels.length) {
+    if (levels.length) {
       options.push({
-        value: 'levels',
+        key: 'levels',
         label: t('Levels'),
         options: levels,
       });
     }
 
     return options;
-  }
+  }, [initialBreadcrumbs]);
 
   function getFilterTypes(crumbs: ReturnType<typeof transformCrumbs>) {
-    const filterTypes: FilterOptionWithLevels[] = [];
+    const filterTypes: SelectOptionWithLevels[] = [];
 
     for (const index in crumbs) {
       const breadcrumb = crumbs[index];
@@ -155,8 +136,8 @@ function BreadcrumbsContainer({
     return filterTypes;
   }
 
-  function getFilterLevels(types: FilterOptionWithLevels[]) {
-    const filterLevels: FilterOptions = [];
+  function getFilterLevels(types: SelectOptionWithLevels[]) {
+    const filterLevels: SelectOption<string>[] = [];
 
     for (const indexType in types) {
       for (const indexLevel in types[indexType].levels) {
@@ -168,6 +149,7 @@ function BreadcrumbsContainer({
 
         filterLevels.push({
           value: `level-${level}`,
+          textValue: level,
           label: (
             <LevelWrap>
               <Level level={level} />
@@ -180,23 +162,23 @@ function BreadcrumbsContainer({
     return filterLevels;
   }
 
-  function filterBySearch(newSearchTerm: string, crumbs: Crumb[]) {
+  function applySearchTerm(breadcrumbs: BreadcrumbWithMeta[], newSearchTerm: string) {
     if (!newSearchTerm.trim()) {
-      return crumbs;
+      return breadcrumbs;
     }
 
     // Slightly hacky, but it works
-    // the string is being `stringfy`d here in order to match exactly the same `stringfy`d string of the loop
+    // the string is being `stringify`d here in order to match exactly the same `stringify`d string of the loop
     const searchFor = JSON.stringify(newSearchTerm)
-      // it replaces double backslash generate by JSON.stringfy with single backslash
+      // it replaces double backslash generate by JSON.stringify with single backslash
       .replace(/((^")|("$))/g, '')
       .toLocaleLowerCase();
 
-    return crumbs.filter(obj =>
+    return breadcrumbs.filter(({breadcrumb}) =>
       Object.keys(
-        pick(obj, ['type', 'category', 'message', 'level', 'timestamp', 'data'])
+        pick(breadcrumb, ['type', 'category', 'message', 'level', 'timestamp', 'data'])
       ).some(key => {
-        const info = obj[key];
+        const info = breadcrumb[key];
 
         if (!defined(info) || !String(info).trim()) {
           return false;
@@ -211,7 +193,10 @@ function BreadcrumbsContainer({
     );
   }
 
-  function getFilteredCrumbsByFilter(selectedFilterOptions: FilterOptions) {
+  function applySelectedFilters(
+    breadcrumbs: BreadcrumbWithMeta[],
+    selectedFilterOptions: SelectOption<string>[]
+  ) {
     const checkedTypeOptions = new Set(
       selectedFilterOptions
         .filter(option => option.value.startsWith('type-'))
@@ -226,85 +211,68 @@ function BreadcrumbsContainer({
 
     if (!![...checkedTypeOptions].length && !![...checkedLevelOptions].length) {
       return breadcrumbs.filter(
-        filteredCrumb =>
-          checkedTypeOptions.has(filteredCrumb.type) &&
-          checkedLevelOptions.has(filteredCrumb.level)
+        ({breadcrumb}) =>
+          checkedTypeOptions.has(breadcrumb.type) &&
+          checkedLevelOptions.has(breadcrumb.level)
       );
     }
 
-    if (!![...checkedTypeOptions].length) {
-      return breadcrumbs.filter(filteredCrumb =>
-        checkedTypeOptions.has(filteredCrumb.type)
+    if ([...checkedTypeOptions].length) {
+      return breadcrumbs.filter(({breadcrumb}) =>
+        checkedTypeOptions.has(breadcrumb.type)
       );
     }
 
-    if (!![...checkedLevelOptions].length) {
-      return breadcrumbs.filter(filteredCrumb =>
-        checkedLevelOptions.has(filteredCrumb.level)
+    if ([...checkedLevelOptions].length) {
+      return breadcrumbs.filter(({breadcrumb}) =>
+        checkedLevelOptions.has(breadcrumb.level)
       );
     }
 
     return breadcrumbs;
   }
 
-  function handleSearch(value: string) {
-    setState({
-      ...state,
-      searchTerm: value,
-      filteredBySearch: filterBySearch(value, filteredByFilter),
-    });
-  }
+  const displayedBreadcrumbs = useMemo(() => {
+    const breadcrumbsWithMeta = initialBreadcrumbs.map((breadcrumb, index) => ({
+      breadcrumb,
+      meta: event._meta?.entries?.[entryIndex]?.data?.values?.[index],
+    }));
+    const filteredBreadcrumbs = applySearchTerm(
+      applySelectedFilters(breadcrumbsWithMeta, filterSelections),
+      searchTerm
+    );
 
-  function handleFilter(newfilterOptions: FilterOptions) {
-    const newfilteredByFilter = getFilteredCrumbsByFilter(newfilterOptions);
-    setState({
-      ...state,
-      filterSelections: newfilterOptions,
-      filteredByFilter: newfilteredByFilter,
-      filteredBySearch: filterBySearch(searchTerm, newfilteredByFilter),
-    });
-  }
-
-  function handleSwitchTimeFormat() {
-    setState({
-      ...state,
-      displayRelativeTime: !displayRelativeTime,
-    });
-  }
-
-  function handleResetFilter() {
-    setState({
-      ...state,
-      filterSelections: [],
-      filteredByFilter: breadcrumbs,
-      filteredBySearch: filterBySearch(searchTerm, breadcrumbs),
-    });
-  }
-
-  function handleResetSearchBar() {
-    setState({
-      ...state,
-      searchTerm: '',
-      filteredBySearch: breadcrumbs,
-    });
-  }
+    // Breadcrumbs come back from API sorted oldest -> newest.
+    // Need to `reverse()` instead of sort by timestamp because crumbs with
+    // exact same timestamp will appear out of order.
+    return sort === BreadcrumbSort.NEWEST
+      ? [...filteredBreadcrumbs].reverse()
+      : filteredBreadcrumbs;
+  }, [
+    entryIndex,
+    event._meta?.entries,
+    filterSelections,
+    initialBreadcrumbs,
+    searchTerm,
+    sort,
+  ]);
 
   function getEmptyMessage() {
-    if (!!filteredBySearch.length) {
+    if (displayedBreadcrumbs.length) {
       return {};
     }
 
-    if (searchTerm && !filteredBySearch.length) {
-      const hasActiveFilter = state.filterSelections.length > 0;
+    if (searchTerm && !displayedBreadcrumbs.length) {
+      const hasActiveFilter = filterSelections.length > 0;
 
       return {
         emptyMessage: t('Sorry, no breadcrumbs match your search query'),
         emptyAction: hasActiveFilter ? (
-          <Button onClick={handleResetFilter} priority="primary">
+          <Button onClick={() => setFilterSelections([])} priority="primary">
             {t('Reset filter')}
           </Button>
         ) : (
-          <Button onClick={handleResetSearchBar} priority="primary">
+          <Button onClick={() => setSearchTerm('')} priority="primary">
             {t('Clear search bar')}
           </Button>
         ),
@@ -316,49 +284,64 @@ function BreadcrumbsContainer({
     };
   }
 
+  const actions = (
+    <SearchAndSortWrapper>
+      <SearchBarAction
+        placeholder={t('Search breadcrumbs')}
+        onChange={setSearchTerm}
+        query={searchTerm}
+        filterOptions={filterOptions}
+        filterSelections={filterSelections}
+        onFilterChange={setFilterSelections}
+      />
+      <CompactSelect
+        triggerProps={{
+          icon: <IconSort />,
+          size: 'sm',
+        }}
+        onChange={selectedOption => {
+          setSort(selectedOption.value);
+        }}
+        value={sort}
+        options={sortOptions}
+      />
+    </SearchAndSortWrapper>
+  );
+
   return (
     <EventDataSection
-      type={eventType}
-      title={
-        <GuideAnchor target="breadcrumbs" position="right">
-          <h3>{t('Breadcrumbs')}</h3>
-        </GuideAnchor>
-      }
-      actions={
-        <StyledSearchBarAction
-          placeholder={t('Search breadcrumbs')}
-          onChange={handleSearch}
-          query={searchTerm}
-          filterOptions={filterOptions}
-          filterSelections={state.filterSelections}
-          onFilterChange={handleFilter}
-        />
-      }
-      wrapTitle={false}
-      isCentered
+      type={EntryType.BREADCRUMBS}
+      title={t('Breadcrumbs')}
+      actions={actions}
     >
       <ErrorBoundary>
-        <Breadcrumbs
-          router={router}
-          route={route}
-          emptyMessage={getEmptyMessage()}
-          breadcrumbs={filteredBySearch}
-          event={event}
-          organization={organization}
-          onSwitchTimeFormat={handleSwitchTimeFormat}
-          displayRelativeTime={displayRelativeTime}
-          searchTerm={searchTerm}
-          relativeTime={relativeTime!} // relativeTime has to be always available, as the last item timestamp is the event created time
-        />
+        <GuideAnchor target="breadcrumbs" position="bottom">
+          <Breadcrumbs
+            emptyMessage={getEmptyMessage()}
+            breadcrumbs={displayedBreadcrumbs}
+            event={event}
+            organization={organization}
+            onSwitchTimeFormat={() => setDisplayRelativeTime(old => !old)}
+            displayRelativeTime={displayRelativeTime}
+            searchTerm={searchTerm}
+            relativeTime={relativeTime}
+          />
+        </GuideAnchor>
       </ErrorBoundary>
     </EventDataSection>
   );
 }
 
-export default BreadcrumbsContainer;
+export {BreadcrumbsContainer as Breadcrumbs};
 
-const StyledSearchBarAction = styled(SearchBarAction)`
-  z-index: 2;
+const SearchAndSortWrapper = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: ${space(1)};
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const LevelWrap = styled('span')`

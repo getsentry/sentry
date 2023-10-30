@@ -1,7 +1,6 @@
 import {browserHistory} from 'react-router';
 import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
-import isUndefined from 'lodash/isUndefined';
 import * as qs from 'query-string';
 
 import {openSudo, redirectToProject} from 'sentry/actionCreators/modal';
@@ -11,10 +10,15 @@ import {
   SUDO_REQUIRED,
   SUPERUSER_REQUIRED,
 } from 'sentry/constants/apiErrorCodes';
+import controlsilopatterns from 'sentry/data/controlsiloUrlPatterns';
 import {metric} from 'sentry/utils/analytics';
 import getCsrfToken from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
-import createRequestError from 'sentry/utils/requestError/createRequestError';
+import RequestError from 'sentry/utils/requestError/requestError';
+import {sanitizePath} from 'sentry/utils/requestError/sanitizePath';
+
+import ConfigStore from './stores/configStore';
+import OrganizationStore from './stores/organizationStore';
 
 export class Request {
   /**
@@ -44,15 +48,17 @@ export class Request {
   }
 }
 
+export type ApiResult<Data = any> = [
+  data: Data,
+  statusText: string | undefined,
+  resp: ResponseMeta | undefined,
+];
+
 export type ResponseMeta<R = any> = {
   /**
    * Get a header value from the response
    */
   getResponseHeader: (header: string) => string | null;
-  /**
-   * The raw response
-   */
-  rawResponse: Response;
   /**
    * The response body decoded from json
    */
@@ -74,9 +80,37 @@ export type ResponseMeta<R = any> = {
 /**
  * Check if the requested method does not require CSRF tokens
  */
-function csrfSafeMethod(method?: string) {
+function csrfSafeMethod(method?: string): boolean {
   // these HTTP methods do not require CSRF protection
   return /^(GET|HEAD|OPTIONS|TRACE)$/.test(method ?? '');
+}
+
+/**
+ * Check if we a request is going to the same or similar origin.
+ * similar origins are those that share an ancestor. Example `sentry.sentry.io` and `us.sentry.io`
+ * are similar origins, but sentry.sentry.io and sentry.example.io are not.
+ */
+export function isSimilarOrigin(target: string, origin: string): boolean {
+  const targetUrl = new URL(target, origin);
+  const originUrl = new URL(origin);
+  // If one of the domains is a child of the other.
+  if (
+    originUrl.hostname.endsWith(targetUrl.hostname) ||
+    targetUrl.hostname.endsWith(originUrl.hostname)
+  ) {
+    return true;
+  }
+  // Check if the target and origin are on sibiling subdomains.
+  const targetHost = targetUrl.hostname.split('.');
+  const originHost = originUrl.hostname.split('.');
+
+  // Remove the subdomains. If don't have at least 2 segments we aren't subdomains.
+  targetHost.shift();
+  originHost.shift();
+  if (targetHost.length < 2 || originHost.length < 2) {
+    return false;
+  }
+  return targetHost.join('.') === originHost.join('.');
 }
 
 // TODO: Need better way of identifying anonymous pages that don't trigger redirect
@@ -144,21 +178,24 @@ export const initApiClientErrorHandling = () =>
 /**
  * Construct a full request URL
  */
-function buildRequestUrl(baseUrl: string, path: string, query: RequestOptions['query']) {
+function buildRequestUrl(baseUrl: string, path: string, options: RequestOptions) {
   let params: string;
   try {
-    params = qs.stringify(query ?? []);
+    params = qs.stringify(options.query ?? []);
   } catch (err) {
     Sentry.withScope(scope => {
       scope.setExtra('path', path);
-      scope.setExtra('query', query);
+      scope.setExtra('query', options.query);
       Sentry.captureException(err);
     });
     throw err;
   }
 
-  // Append the baseUrl
+  // Append the baseUrl if required
   let fullUrl = path.includes(baseUrl) ? path : baseUrl + path;
+
+  // Apply path and domain transforms for hybrid-cloud
+  fullUrl = resolveHostname(fullUrl, options.host);
 
   // Append query parameters
   if (params) {
@@ -217,6 +254,14 @@ export type RequestOptions = RequestCallbacks & {
    */
   data?: any;
   /**
+   * Headers add to the request.
+   */
+  headers?: Record<string, string>;
+  /**
+   * The host the request should be made to.
+   */
+  host?: string;
+  /**
    * The HTTP method to use when making the API request
    */
   method?: APIRequestMethod;
@@ -237,6 +282,14 @@ type ClientOptions = {
    * The base URL path to prepend to API request URIs.
    */
   baseUrl?: string;
+  /**
+   * Credentials policy to apply to each request
+   */
+  credentials?: RequestCredentials;
+  /**
+   * Base set of headers to apply to each request
+   */
+  headers?: HeadersInit;
 };
 
 type HandleRequestErrorOptions = {
@@ -253,10 +306,19 @@ type HandleRequestErrorOptions = {
 export class Client {
   baseUrl: string;
   activeRequests: Record<string, Request>;
+  headers: HeadersInit;
+  credentials?: RequestCredentials;
+
+  static JSON_HEADERS = {
+    Accept: 'application/json; charset=utf-8',
+    'Content-Type': 'application/json',
+  };
 
   constructor(options: ClientOptions = {}) {
     this.baseUrl = options.baseUrl ?? '/api/0';
+    this.headers = options.headers ?? Client.JSON_HEADERS;
     this.activeRequests = {};
+    this.credentials = options.credentials ?? 'include';
   }
 
   wrapCallback<T extends any[]>(
@@ -272,22 +334,18 @@ export class Client {
       }
 
       if (!req?.alive) {
-        return;
+        return undefined;
       }
 
       // Check if API response is a 302 -- means project slug was renamed and user
       // needs to be redirected
       // @ts-expect-error
       if (hasProjectBeenRenamed(...args)) {
-        return;
-      }
-
-      if (isUndefined(func)) {
-        return;
+        return undefined;
       }
 
       // Call success callback
-      return func.apply(req, args); // eslint-disable-line
+      return func?.apply(req, args);
     };
   }
 
@@ -345,11 +403,11 @@ export class Client {
   request(path: string, options: Readonly<RequestOptions> = {}): Request {
     const method = options.method || (options.data ? 'POST' : 'GET');
 
-    let fullUrl = buildRequestUrl(this.baseUrl, path, options.query);
+    let fullUrl = buildRequestUrl(this.baseUrl, path, options);
 
     let data = options.data;
 
-    if (!isUndefined(data) && method !== 'GET') {
+    if (data !== undefined && method !== 'GET') {
       data = JSON.stringify(data);
     }
 
@@ -360,7 +418,7 @@ export class Client {
       const queryString = typeof data === 'string' ? data : qs.stringify(data);
 
       if (queryString.length > 0) {
-        fullUrl = fullUrl + (fullUrl.indexOf('?') !== -1 ? '&' : '?') + queryString;
+        fullUrl = fullUrl + (fullUrl.includes('?') ? '&' : '?') + queryString;
       }
     }
 
@@ -382,7 +440,7 @@ export class Client {
         start: startMarker,
         data: {status: resp?.status},
       });
-      if (!isUndefined(options.success)) {
+      if (options.success !== undefined) {
         this.wrapCallback<[any, string, ResponseMeta]>(id, options.success)(
           responseData,
           textStatus,
@@ -430,102 +488,143 @@ export class Client {
     // GET requests may not have a body
     const body = method !== 'GET' ? data : undefined;
 
-    const headers = new Headers({
-      Accept: 'application/json; charset=utf-8',
-      'Content-Type': 'application/json',
-    });
+    const requestHeaders = new Headers({...this.headers, ...options.headers});
 
     // Do not set the X-CSRFToken header when making a request outside of the
-    // current domain
-    const absoluteUrl = new URL(fullUrl, window.location.origin);
-    const isSameOrigin = window.location.origin === absoluteUrl.origin;
-
-    if (!csrfSafeMethod(method) && isSameOrigin) {
-      headers.set('X-CSRFToken', getCsrfToken());
+    // current domain. Because we use subdomains we loosely compare origins
+    if (!csrfSafeMethod(method) && isSimilarOrigin(fullUrl, window.location.origin)) {
+      requestHeaders.set('X-CSRFToken', getCsrfToken());
     }
 
     const fetchRequest = fetch(fullUrl, {
       method,
       body,
-      headers,
-      credentials: 'same-origin',
+      headers: requestHeaders,
+      credentials: this.credentials,
       signal: aborter?.signal,
     });
 
     // XXX(epurkhiser): We migrated off of jquery, so for now we have a
     // compatibility layer which mimics that of the jquery response objects.
     fetchRequest
-      .then(async response => {
-        // The Response's body can only be resolved/used at most once.
-        // So we clone the response so we can resolve the body content as text content.
-        // Response objects need to be cloned before its body can be used.
-        let responseJSON: any;
-        let responseText: any;
+      .then(
+        async response => {
+          // The Response's body can only be resolved/used at most once.
+          // So we clone the response so we can resolve the body content as text content.
+          // Response objects need to be cloned before its body can be used.
+          let responseJSON: any;
+          let responseText: any;
 
-        const {status, statusText} = response;
-        let {ok} = response;
-        let errorReason = 'Request not OK'; // the default error reason
+          const {status, statusText} = response;
+          let {ok} = response;
+          let errorReason = 'Request not OK'; // the default error reason
+          let twoHundredErrorReason;
 
-        // Try to get text out of the response no matter the status
-        try {
-          responseText = await response.clone().text();
-        } catch (error) {
-          ok = false;
-          if (error.name === 'AbortError') {
-            errorReason = 'Request was aborted';
-          } else {
-            errorReason = error.toString();
-          }
-        }
-
-        const responseContentType = response.clone().headers.get('content-type');
-        const isResponseJSON = responseContentType?.includes('json');
-
-        const isStatus3XX = status >= 300 && status < 400;
-        if (status !== 204 && !isStatus3XX) {
+          // Try to get text out of the response no matter the status
           try {
-            responseJSON = await response.clone().json();
+            responseText = await response.text();
           } catch (error) {
+            twoHundredErrorReason = 'Failed awaiting response.text()';
+            ok = false;
             if (error.name === 'AbortError') {
-              ok = false;
               errorReason = 'Request was aborted';
-            } else if (isResponseJSON && error instanceof SyntaxError) {
-              // If the MIME type is `application/json` but decoding failed,
-              // this should be an error.
-              ok = false;
-              errorReason = 'JSON parse error';
+            } else {
+              errorReason = error.toString();
             }
           }
-        }
 
-        const responseMeta: ResponseMeta = {
-          status,
-          statusText,
-          responseJSON,
-          responseText,
-          getResponseHeader: (header: string) => response.headers.get(header),
-          rawResponse: response.clone(),
-        };
+          const responseContentType = response.headers.get('content-type');
+          const isResponseJSON = responseContentType?.includes('json');
+          const wasExpectingJson =
+            requestHeaders.get('Accept') === Client.JSON_HEADERS.Accept;
 
-        // Respect the response content-type header
-        const responseData = isResponseJSON ? responseJSON : responseText;
-
-        if (ok) {
-          successHandler(responseMeta, statusText, responseData);
-        } else {
-          const shouldSkipErrorHandler =
-            globalErrorHandlers.map(handler => handler(responseMeta)).filter(Boolean)
-              .length > 0;
-
-          if (!shouldSkipErrorHandler) {
-            errorHandler(responseMeta, statusText, errorReason);
+          const isStatus3XX = status >= 300 && status < 400;
+          if (status !== 204 && !isStatus3XX) {
+            try {
+              responseJSON = JSON.parse(responseText);
+            } catch (error) {
+              twoHundredErrorReason = 'Failed trying to parse responseText';
+              if (error.name === 'AbortError') {
+                ok = false;
+                errorReason = 'Request was aborted';
+              } else if (isResponseJSON && error instanceof SyntaxError) {
+                // If the MIME type is `application/json` but decoding failed,
+                // this should be an error.
+                ok = false;
+                errorReason = 'JSON parse error';
+              } else if (
+                // Empty responses from POST 201 requests are valid
+                responseText?.length > 0 &&
+                wasExpectingJson &&
+                error instanceof SyntaxError
+              ) {
+                // Was expecting json but was returned something else. Possibly HTML.
+                // Ideally this would not be a 200, but we should reject the promise
+                ok = false;
+                errorReason = 'JSON parse error. Possibly returned HTML';
+              }
+            }
           }
-        }
 
-        completeHandler(responseMeta, statusText);
-      })
-      .catch(() => {
-        // Ignore all failed requests
+          const responseMeta: ResponseMeta = {
+            status,
+            statusText,
+            responseJSON,
+            responseText,
+            getResponseHeader: (header: string) => response.headers.get(header),
+          };
+
+          // Respect the response content-type header
+          const responseData = isResponseJSON ? responseJSON : responseText;
+
+          if (ok) {
+            successHandler(responseMeta, statusText, responseData);
+          } else {
+            // There's no reason we should be here with a 200 response, but we get
+            // tons of events from this codepath with a 200 status nonetheless.
+            // Until we know why, let's do what is essentially some very fancy print debugging.
+            if (status === 200 && responseText) {
+              const parameterizedPath = sanitizePath(path);
+              const message = '200 treated as error';
+
+              const scope = new Sentry.Scope();
+              scope.setTags({endpoint: `${method} ${parameterizedPath}`, errorReason});
+              scope.setExtras({
+                twoHundredErrorReason,
+                responseJSON,
+                responseText,
+                responseContentType,
+                errorReason,
+              });
+              // Make sure all of these errors group, so we don't produce a bunch of noise
+              scope.setFingerprint([message]);
+
+              Sentry.captureException(
+                new Error(`${message}: ${method} ${parameterizedPath}`),
+                scope
+              );
+            }
+
+            const shouldSkipErrorHandler =
+              globalErrorHandlers.map(handler => handler(responseMeta)).filter(Boolean)
+                .length > 0;
+
+            if (!shouldSkipErrorHandler) {
+              errorHandler(responseMeta, statusText, errorReason);
+            }
+          }
+
+          completeHandler(responseMeta, statusText);
+        },
+        () => {
+          // Ignore failed fetch calls or errors in the fetch request itself (e.g. cancelled requests)
+          // Not related to errors in responses
+        }
+      )
+      .catch(error => {
+        // eslint-disable-next-line no-console
+        console.error(error);
+        Sentry.captureException(error);
       });
 
     const request = new Request(fetchRequest, aborter);
@@ -540,18 +639,14 @@ export class Client {
       includeAllArgs,
       ...options
     }: {includeAllArgs?: IncludeAllArgsType} & Readonly<RequestOptions> = {}
-  ): Promise<
-    IncludeAllArgsType extends true
-      ? [any, string | undefined, ResponseMeta | undefined]
-      : any
-  > {
+  ): Promise<IncludeAllArgsType extends true ? ApiResult : any> {
     // Create an error object here before we make any async calls so that we
     // have a helpful stack trace if it errors
     //
     // This *should* get logged to Sentry only if the promise rejection is not handled
     // (since SDK captures unhandled rejections). Ideally we explicitly ignore rejection
     // or handle with a user friendly error message
-    const preservedError = new Error();
+    const preservedError = new Error('API Request Error');
 
     return new Promise((resolve, reject) =>
       this.request(path, {
@@ -565,13 +660,12 @@ export class Client {
           }
         },
         error: (resp: ResponseMeta) => {
-          const errorObjectToUse = createRequestError(
-            resp,
-            preservedError.stack,
+          const errorObjectToUse = new RequestError(
             options.method,
-            path
+            path,
+            preservedError,
+            resp
           );
-          errorObjectToUse.removeFrames(2);
 
           // Although `this.request` logs all error responses, this error object can
           // potentially be logged by Sentry's unhandled rejection handler
@@ -580,4 +674,60 @@ export class Client {
       })
     );
   }
+}
+
+export function resolveHostname(path: string, hostname?: string): string {
+  const storeState = OrganizationStore.get();
+  const configLinks = ConfigStore.get('links');
+
+  hostname = hostname ?? '';
+  if (!hostname && storeState.organization?.features.includes('frontend-domainsplit')) {
+    const isControlSilo = detectControlSiloPath(path);
+    if (!isControlSilo && configLinks.regionUrl) {
+      hostname = configLinks.regionUrl;
+    }
+    if (isControlSilo && configLinks.sentryUrl) {
+      hostname = configLinks.sentryUrl;
+    }
+  }
+
+  // If we're making a request to the applications' root
+  // domain, we can drop the domain as webpack devserver will add one.
+  // TODO(hybridcloud) This can likely be removed when sentry.types.region.Region.to_url()
+  // loses the monolith mode condition.
+  if (window.__SENTRY_DEV_UI && hostname === configLinks.sentryUrl) {
+    hostname = '';
+  }
+
+  // When running as yarn dev-ui we can't spread requests across domains because
+  // of CORS. Instead we extract the subdomain from the hostname
+  // and prepend the URL with `/region/$name` so that webpack-devserver proxy
+  // can route requests to the regions.
+  if (hostname && window.__SENTRY_DEV_UI) {
+    const domainpattern = /https?\:\/\/([^.]*)\.sentry\.io/;
+    const domainmatch = hostname.match(domainpattern);
+    if (domainmatch) {
+      hostname = '';
+      path = `/region/${domainmatch[1]}${path}`;
+    }
+  }
+  if (hostname) {
+    path = `${hostname}${path}`;
+  }
+
+  return path;
+}
+
+function detectControlSiloPath(path: string): boolean {
+  // We sometimes include querystrings in paths.
+  // Using URL() to avoid handrolling URL parsing
+  const url = new URL(path, 'https://sentry.io');
+  path = url.pathname;
+  path = path.startsWith('/') ? path.substring(1) : path;
+  for (const pattern of controlsilopatterns) {
+    if (pattern.test(path)) {
+      return true;
+    }
+  }
+  return false;
 }

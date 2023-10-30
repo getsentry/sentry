@@ -1,13 +1,16 @@
+from functools import cached_property
 from unittest.mock import patch
 
 import pytest
 from django.conf import settings
 from django.core.cache.backends.locmem import LocMemCache
-from exam import around, fixture
+from django.test import override_settings
 
-from sentry.models import Option
 from sentry.options.manager import (
     DEFAULT_FLAGS,
+    FLAG_ADMIN_MODIFIABLE,
+    FLAG_AUTOMATOR_MODIFIABLE,
+    FLAG_CREDENTIAL,
     FLAG_IMMUTABLE,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
@@ -15,24 +18,27 @@ from sentry.options.manager import (
     FLAG_STOREONLY,
     OptionsManager,
     UnknownOption,
+    UpdateChannel,
 )
 from sentry.options.store import OptionsStore
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import all_silo_test
 from sentry.utils.types import Int, String
 
 
+@all_silo_test(stable=True)
 class OptionsManagerTest(TestCase):
-    @fixture
+    @cached_property
     def store(self):
         c = LocMemCache("test", {})
         c.clear()
         return OptionsStore(cache=c)
 
-    @fixture
+    @cached_property
     def manager(self):
         return OptionsManager(store=self.store)
 
-    @around
+    @pytest.fixture(autouse=True)
     def register(self):
         default_options = settings.SENTRY_DEFAULT_OPTIONS.copy()
         settings.SENTRY_DEFAULT_OPTIONS = {}
@@ -45,16 +51,30 @@ class OptionsManagerTest(TestCase):
     def test_simple(self):
         assert self.manager.get("foo") == ""
 
+        self.manager.delete("foo")
         with self.settings(SENTRY_OPTIONS={"foo": "bar"}):
             assert self.manager.get("foo") == "bar"
 
         self.manager.set("foo", "bar")
 
         assert self.manager.get("foo") == "bar"
+        assert self.manager.get_last_update_channel("foo") == UpdateChannel.UNKNOWN
+
+        self.manager.set("foo", "baz", channel=UpdateChannel.CLI)
+
+        assert (
+            self.manager.get(
+                "foo",
+            )
+            == "baz"
+        )
+        assert self.manager.get_last_update_channel("foo") == UpdateChannel.CLI
 
         self.manager.delete("foo")
 
         assert self.manager.get("foo") == ""
+
+        assert self.manager.get_last_update_channel("foo") is None
 
     def test_register(self):
         with pytest.raises(UnknownOption):
@@ -79,6 +99,27 @@ class OptionsManagerTest(TestCase):
 
         with pytest.raises(TypeError):
             self.manager.register("none-type", default=None, type=type(None))
+
+        with pytest.raises(ValueError):
+            self.manager.register("bad_flags", flags=FLAG_NOSTORE | FLAG_ADMIN_MODIFIABLE)
+
+        with pytest.raises(ValueError):
+            self.manager.register("bad_flags", flags=FLAG_NOSTORE | FLAG_AUTOMATOR_MODIFIABLE)
+
+        with pytest.raises(ValueError):
+            self.manager.register("bad_flags", flags=FLAG_CREDENTIAL | FLAG_ADMIN_MODIFIABLE)
+
+        with pytest.raises(ValueError):
+            self.manager.register("bad_flags", flags=FLAG_CREDENTIAL | FLAG_AUTOMATOR_MODIFIABLE)
+
+        with pytest.raises(ValueError):
+            self.manager.register("bad_flags", flags=FLAG_IMMUTABLE | FLAG_ADMIN_MODIFIABLE)
+
+        with pytest.raises(ValueError):
+            self.manager.register("bad_flags", flags=FLAG_IMMUTABLE | FLAG_AUTOMATOR_MODIFIABLE)
+
+        with pytest.raises(ValueError):
+            self.manager.register("bad_flags", flags=FLAG_REQUIRED | FLAG_AUTOMATOR_MODIFIABLE)
 
     def test_coerce(self):
         self.manager.register("some-int", type=Int)
@@ -148,7 +189,7 @@ class OptionsManagerTest(TestCase):
 
         # Make sure that we don't touch either of the stores
         with patch.object(self.store.cache, "get", side_effect=RuntimeError()):
-            with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
+            with patch.object(self.store.model.objects, "get_queryset", side_effect=RuntimeError()):
                 assert self.manager.get("nostore") == ""
                 self.store.flush_local_cache()
 
@@ -180,6 +221,19 @@ class OptionsManagerTest(TestCase):
         with self.settings(SENTRY_OPTIONS={"storeonly": "something-else!"}):
             assert self.manager.get("storeonly") == ""
 
+    def test_drifted(self):
+        self.manager.register("option", flags=FLAG_AUTOMATOR_MODIFIABLE)
+        # CLI should be able to update anything
+        self.manager.set("option", "value", channel=UpdateChannel.CLI)
+        assert self.manager.get("option") == "value"
+
+        with pytest.raises(AssertionError):
+            self.manager.set("option", "value2", channel=UpdateChannel.AUTOMATOR)
+
+        # Automator should be able to reset the channel of an option
+        # By leaving the value as it is.
+        self.manager.set("option", "value", channel=UpdateChannel.AUTOMATOR)
+
     def test_flag_prioritize_disk(self):
         self.manager.register("prioritize_disk", flags=FLAG_PRIORITIZE_DISK)
         assert self.manager.get("prioritize_disk") == ""
@@ -204,8 +258,9 @@ class OptionsManagerTest(TestCase):
         with self.settings(SENTRY_OPTIONS={"prioritize_disk": None}):
             assert self.manager.get("prioritize_disk") == "foo"
 
+    @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=False)
     def test_db_unavailable(self):
-        with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
+        with patch.object(self.store.model.objects, "get_queryset", side_effect=RuntimeError()):
             # we can't update options if the db is unavailable
             with pytest.raises(RuntimeError):
                 self.manager.set("foo", "bar")
@@ -213,7 +268,7 @@ class OptionsManagerTest(TestCase):
         self.manager.set("foo", "bar")
         self.store.flush_local_cache()
 
-        with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
+        with patch.object(self.store.model.objects, "get_queryset", side_effect=RuntimeError()):
             assert self.manager.get("foo") == "bar"
             self.store.flush_local_cache()
 
@@ -225,12 +280,14 @@ class OptionsManagerTest(TestCase):
                     assert self.manager.get("foo") == ""
                     self.store.flush_local_cache()
 
+    @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=False)
     def test_db_and_cache_unavailable(self):
+        self.store.cache.clear()
         self.manager.set("foo", "bar")
         self.store.flush_local_cache()
 
         with self.settings(SENTRY_OPTIONS={"foo": "baz"}):
-            with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
+            with patch.object(self.store.model.objects, "get_queryset", side_effect=RuntimeError()):
                 with patch.object(self.store.cache, "get", side_effect=RuntimeError()):
                     assert self.manager.get("foo") == "baz"
                     self.store.flush_local_cache()
@@ -239,6 +296,7 @@ class OptionsManagerTest(TestCase):
                         assert self.manager.get("foo") == "baz"
                         self.store.flush_local_cache()
 
+    @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=False)
     def test_cache_unavailable(self):
         self.manager.set("foo", "bar")
         self.store.flush_local_cache()
@@ -317,3 +375,11 @@ class OptionsManagerTest(TestCase):
 
         with self.settings(SENTRY_OPTIONS={"nostore": "awesome"}):
             assert self.manager.isset("nostore") is True
+
+    def test_flag_checking(self):
+        self.manager.register("option", flags=FLAG_NOSTORE)
+
+        opt = self.manager.lookup_key("option")
+        assert opt.has_any_flag({FLAG_NOSTORE})
+        assert opt.has_any_flag({FLAG_NOSTORE, FLAG_REQUIRED})
+        assert not opt.has_any_flag({FLAG_REQUIRED})

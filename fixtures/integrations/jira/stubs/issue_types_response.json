@@ -1,0 +1,48 @@
+{
+  "maxResults": 50,
+  "startAt": 0,
+  "total": 5,
+  "isLast": true,
+  "values": [
+    {
+      "self": "https://example.com/rest/api/2/issuetype/10000",
+      "id": "10000",
+      "description": "Created by Jira Software - do not edit or delete. Issue type for a big user story that needs to be broken down.",
+      "iconUrl": "https://example.com/images/icons/issuetypes/epic.svg",
+      "name": "Epic",
+      "subtask": false
+    },
+    {
+      "self": "https://example.com/rest/api/2/issuetype/10001",
+      "id": "10001",
+      "description": "Created by Jira Software - do not edit or delete. Issue type for a user story.",
+      "iconUrl": "https://example.com/images/icons/issuetypes/story.svg",
+      "name": "Story",
+      "subtask": false
+    },
+    {
+      "self": "https://example.com/rest/api/2/issuetype/10002",
+      "id": "10002",
+      "description": "A task that needs to be done.",
+      "iconUrl": "https://example.com/secure/viewavatar?size=xsmall&avatarId=10318&avatarType=issuetype",
+      "name": "Task",
+      "subtask": false
+    },
+    {
+      "self": "https://example.com/rest/api/2/issuetype/10003",
+      "id": "10003",
+      "description": "The sub-task of the issue",
+      "iconUrl": "https://example.com/secure/viewavatar?size=xsmall&avatarId=10316&avatarType=issuetype",
+      "name": "Sub-task",
+      "subtask": true
+    },
+    {
+      "self": "https://example.com/rest/api/2/issuetype/10004",
+      "id": "10004",
+      "description": "A problem which impairs or prevents the functions of the product.",
+      "iconUrl": "https://example.com/secure/viewavatar?size=xsmall&avatarId=10303&avatarType=issuetype",
+      "name": "Bug",
+      "subtask": false
+    }
+  ]
+}

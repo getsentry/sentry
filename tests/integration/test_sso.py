@@ -1,8 +1,10 @@
-from sentry.models import AuthIdentity, AuthProvider
-from sentry.testutils import AuthProviderTestCase
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.testutils.cases import AuthProviderTestCase
 from sentry.utils.auth import SsoSession
 
 
+# @control_silo_test(stable=True)
 class OrganizationAuthLoginTest(AuthProviderTestCase):
     def test_sso_auth_required(self):
         user = self.create_user("foo@example.com", is_superuser=False)
@@ -12,7 +14,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         member.save()
 
         auth_provider = AuthProvider.objects.create(
-            organization=organization, provider="dummy", flags=0
+            organization_id=organization.id, provider="dummy", flags=0
         )
 
         AuthIdentity.objects.create(auth_provider=auth_provider, user=user)

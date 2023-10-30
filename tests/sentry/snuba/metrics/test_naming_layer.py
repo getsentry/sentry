@@ -2,7 +2,16 @@ import re
 
 import pytest
 
-from sentry.snuba.metrics.naming_layer.mri import MRI_SCHEMA_REGEX, ParsedMRI, parse_mri
+from sentry.snuba.metrics.naming_layer import create_name_mapping_layers
+from sentry.snuba.metrics.naming_layer.mapping import MRI_TO_NAME, is_private_mri
+from sentry.snuba.metrics.naming_layer.mri import (
+    MRI_SCHEMA_REGEX,
+    ParsedMRI,
+    SessionMRI,
+    TransactionMRI,
+    is_custom_measurement,
+    parse_mri,
+)
 from sentry.snuba.metrics.naming_layer.public import PUBLIC_NAME_REGEX
 
 
@@ -93,8 +102,8 @@ def test_invalid_mri_schema_regex(name):
             ParsedMRI("d", "transactions", "measurements.stall_longest_time", "millisecond"),
         ),
         (
-            "d:transactions/breakdowns.span_ops.http@millisecond",
-            ParsedMRI("d", "transactions", "breakdowns.span_ops.http", "millisecond"),
+            "d:transactions/breakdowns.span_ops.ops.http@millisecond",
+            ParsedMRI("d", "transactions", "breakdowns.span_ops.ops.http", "millisecond"),
         ),
         (
             "c:transactions/measurements.db_calls@none",
@@ -107,4 +116,40 @@ def test_invalid_mri_schema_regex(name):
     ],
 )
 def test_parse_mri(name, expected):
-    assert parse_mri(name) == expected
+    parsed_mri = parse_mri(name)
+    assert parsed_mri == expected
+    assert parsed_mri.mri_string == name
+
+
+@pytest.mark.parametrize(
+    "parsed_mri, expected",
+    [
+        (
+            ParsedMRI("d", "transactions", "measurements.stall_longest_time", "millisecond"),
+            False,
+        ),
+        (
+            ParsedMRI("d", "transactions", "breakdowns.span_ops.ops.http", "millisecond"),
+            False,
+        ),
+        (
+            ParsedMRI("c", "transactions", "measurements.db_calls", "none"),
+            True,
+        ),
+        (
+            ParsedMRI("s", "sessions", "error", "none"),
+            False,
+        ),
+    ],
+)
+def test_is_custom_measurement(parsed_mri, expected):
+    assert is_custom_measurement(parsed_mri) == expected
+
+
+@pytest.mark.parametrize("mri", (list(TransactionMRI) + list(SessionMRI)))
+def test_is_private_mri(mri):
+    create_name_mapping_layers()
+
+    public_mris = set(MRI_TO_NAME.keys())
+    expected_private = False if mri.value in public_mris else True
+    assert is_private_mri(mri) == expected_private

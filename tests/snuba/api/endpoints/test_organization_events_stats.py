@@ -1,25 +1,30 @@
 import uuid
-from datetime import timedelta
+from datetime import timedelta, timezone
 from unittest import mock
 from uuid import uuid4
 
 import pytest
 from dateutil.parser import parse as parse_date
 from django.urls import reverse
-from pytz import utc
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
 
 from sentry.constants import MAX_TOP_EVENTS
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.snuba.discover import OTHER_KEY
-from sentry.testutils import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
+from tests.sentry.issues.test_utils import SearchIssueTestMixin
+
+pytestmark = pytest.mark.sentry_metrics
 
 
-class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
+@region_silo_test
+class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     endpoint = "sentry-api-0-organization-events-stats"
 
     def setUp(self):
@@ -84,9 +89,91 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 "interval": "1h",
             },
         )
-
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
+
+    def test_generic_issue(self):
+        _, _, group_info = self.store_search_issue(
+            self.project.id,
+            self.user.id,
+            [f"{ProfileFileIOGroupType.type_id}-group1"],
+            "prod",
+            self.day_ago.replace(tzinfo=timezone.utc),
+        )
+        assert group_info is not None
+        self.store_search_issue(
+            self.project.id,
+            self.user.id,
+            [f"{ProfileFileIOGroupType.type_id}-group1"],
+            "prod",
+            self.day_ago.replace(tzinfo=timezone.utc) + timedelta(hours=1, minutes=1),
+        )
+        self.store_search_issue(
+            self.project.id,
+            self.user.id,
+            [f"{ProfileFileIOGroupType.type_id}-group1"],
+            "prod",
+            self.day_ago.replace(tzinfo=timezone.utc) + timedelta(hours=1, minutes=2),
+        )
+        with self.feature(
+            [
+                "organizations:profiling",
+            ]
+        ):
+            response = self.do_request(
+                {
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "query": f"issue:{group_info.group.qualified_short_id}",
+                    "dataset": "issuePlatform",
+                },
+            )
+        assert response.status_code == 200, response.content
+        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
+
+    def test_generic_issue_calculated_interval(self):
+        """Test that a 4h interval returns the correct generic event stats.
+        This follows a different code path than 1h or 1d as the IssuePlatformTimeSeriesQueryBuilder
+        does some calculation to create the time column."""
+        _, _, group_info = self.store_search_issue(
+            self.project.id,
+            self.user.id,
+            [f"{ProfileFileIOGroupType.type_id}-group1"],
+            "prod",
+            self.day_ago.replace(tzinfo=timezone.utc) + timedelta(minutes=1),
+        )
+        assert group_info is not None
+        self.store_search_issue(
+            self.project.id,
+            self.user.id,
+            [f"{ProfileFileIOGroupType.type_id}-group1"],
+            "prod",
+            self.day_ago.replace(tzinfo=timezone.utc) + timedelta(minutes=1),
+        )
+        self.store_search_issue(
+            self.project.id,
+            self.user.id,
+            [f"{ProfileFileIOGroupType.type_id}-group1"],
+            "prod",
+            self.day_ago.replace(tzinfo=timezone.utc) + timedelta(minutes=2),
+        )
+        with self.feature(
+            [
+                "organizations:profiling",
+            ]
+        ):
+            response = self.do_request(
+                {
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=4)),
+                    "interval": "4h",
+                    "query": f"issue:{group_info.group.qualified_short_id}",
+                    "dataset": "issuePlatform",
+                },
+            )
+        assert response.status_code == 200, response.content
+        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 3}], [{"count": 0}]]
 
     def test_misaligned_last_bucket(self):
         response = self.do_request(
@@ -192,6 +279,44 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             },
         )
         assert response.status_code == 200, response.content
+
+    def test_apdex_divide_by_zero(self):
+        ProjectTransactionThreshold.objects.create(
+            project=self.project,
+            organization=self.project.organization,
+            threshold=600,
+            metric=TransactionMetric.LCP.value,
+        )
+
+        # Shouldn't count towards apdex
+        data = load_data(
+            "transaction",
+            start_timestamp=self.day_ago + timedelta(minutes=(1)),
+            timestamp=self.day_ago + timedelta(minutes=(3)),
+        )
+        data["transaction"] = "/apdex/new/"
+        data["user"] = {"email": "1@example.com"}
+        data["measurements"] = {}
+        self.store_event(data, project_id=self.project.id)
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "yAxis": "apdex()",
+                "project": [self.project.id],
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        data = response.data["data"]
+        # 0 transactions with LCP 0/0
+        assert [attrs for time, attrs in response.data["data"]] == [
+            [{"count": 0}],
+            [{"count": 0}],
+        ]
 
     def test_aggregate_function_apdex(self):
         project1 = self.create_project()
@@ -716,7 +841,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
 
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
-        mock_quantize.return_value = before_now(days=1).replace(tzinfo=utc)
+        mock_quantize.return_value = before_now(days=1).replace(tzinfo=timezone.utc)
         # Don't quantize short time periods
         self.do_request(
             data={"statsPeriod": "1h", "query": "", "interval": "30m", "yAxis": "count()"},
@@ -862,317 +987,102 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             [{"count": None}],
         ]
 
+    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+    def test_profiles_dataset_simple(self, mock_snql_query):
+        mock_snql_query.side_effect = [{"meta": {}, "data": []}]
 
-class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
-    MetricsEnhancedPerformanceTestCase
-):
-    endpoint = "sentry-api-0-organization-events-stats"
-    METRIC_STRINGS = ["foo_transaction"]
-
-    def setUp(self):
-        super().setUp()
-        self.login_as(user=self.user)
-        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
-        self.DEFAULT_METRIC_TIMESTAMP = self.day_ago
-
-        self.url = reverse(
-            "sentry-api-0-organization-events-stats",
-            kwargs={"organization_slug": self.project.organization.slug},
-        )
-        self.features = {
-            "organizations:performance-use-metrics": True,
+        query = {
+            "yAxis": [
+                "count()",
+                "p75()",
+                "p95()",
+                "p99()",
+                "p75(profile.duration)",
+                "p95(profile.duration)",
+                "p99(profile.duration)",
+            ],
+            "project": [self.project.id],
+            "dataset": "profiles",
         }
+        response = self.do_request(query, features={"organizations:profiling": True})
+        assert response.status_code == 200, response.content
 
-    def do_request(self, data, url=None, features=None):
-        if features is None:
-            features = {"organizations:discover-basic": True}
-        features.update(self.features)
-        with self.feature(features):
-            return self.client.get(self.url if url is None else url, data=data, format="json")
-
-    # These throughput tests should roughly match the ones in OrganizationEventsStatsEndpointTest
-    def test_throughput_epm_hour_rollup(self):
-        # Each of these denotes how many events to create in each hour
-        event_counts = [6, 0, 6, 3, 0, 3]
-        for hour, count in enumerate(event_counts):
-            for minute in range(count):
-                self.store_metric(1, timestamp=self.day_ago + timedelta(hours=hour, minutes=minute))
-
-        for axis in ["epm()", "tpm()"]:
-            response = self.do_request(
+    def test_tag_with_conflicting_function_alias_simple(self):
+        for _ in range(7):
+            self.store_event(
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=6)),
-                    "interval": "1h",
-                    "yAxis": axis,
-                    "project": self.project.id,
-                    "metricsEnhanced": "1",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "tags": {"count": "9001"},
                 },
+                project_id=self.project2.id,
             )
-            assert response.status_code == 200, response.content
-            data = response.data["data"]
-            assert len(data) == 6
-            assert response.data["isMetricsData"]
 
-            rows = data[0:6]
-            for test in zip(event_counts, rows):
-                assert test[1][1][0]["count"] == test[0] / (3600.0 / 60.0)
+        # Query for count and count()
+        data = {
+            "start": iso_format(self.day_ago),
+            "end": iso_format(self.day_ago + timedelta(minutes=3)),
+            "interval": "1h",
+            "yAxis": "count()",
+            "orderby": ["-count()"],
+            "field": ["count()", "count"],
+            "partial": 1,
+        }
+        response = self.client.get(self.url, data, format="json")
+        assert response.status_code == 200
+        # Expect a count of 8 because one event from setUp
+        assert response.data["data"][0][1] == [{"count": 8}]
 
-    def test_throughput_epm_day_rollup(self):
-        # Each of these denotes how many events to create in each minute
-        event_counts = [6, 0, 6, 3, 0, 3]
-        for hour, count in enumerate(event_counts):
-            for minute in range(count):
-                self.store_metric(1, timestamp=self.day_ago + timedelta(hours=hour, minutes=minute))
+        data["query"] = "count:9001"
+        response = self.client.get(self.url, data, format="json")
+        assert response.status_code == 200
+        assert response.data["data"][0][1] == [{"count": 7}]
 
-        for axis in ["epm()", "tpm()"]:
-            response = self.do_request(
-                data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=24)),
-                    "interval": "24h",
-                    "yAxis": axis,
-                    "project": self.project.id,
-                    "metricsEnhanced": "1",
-                },
-            )
-            assert response.status_code == 200, response.content
-            data = response.data["data"]
-            assert len(data) == 2
-            assert response.data["isMetricsData"]
+        data["query"] = "count:abc"
+        response = self.client.get(self.url, data, format="json")
+        assert response.status_code == 200
+        assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
 
-            assert data[0][1][0]["count"] == sum(event_counts) / (86400.0 / 60.0)
-
-    def test_throughput_epm_hour_rollup_offset_of_hour(self):
-        # Each of these denotes how many events to create in each hour
-        event_counts = [6, 0, 6, 3, 0, 3]
-        for hour, count in enumerate(event_counts):
-            for minute in range(count):
-                self.store_metric(
-                    1, timestamp=self.day_ago + timedelta(hours=hour, minutes=minute + 30)
-                )
-
-        for axis in ["tpm()", "epm()"]:
-            response = self.do_request(
-                data={
-                    "start": iso_format(self.day_ago + timedelta(minutes=30)),
-                    "end": iso_format(self.day_ago + timedelta(hours=6, minutes=30)),
-                    "interval": "1h",
-                    "yAxis": axis,
-                    "project": self.project.id,
-                    "metricsEnhanced": "1",
-                },
-            )
-            assert response.status_code == 200, response.content
-            data = response.data["data"]
-            assert len(data) == 6
-            assert response.data["isMetricsData"]
-
-            rows = data[0:6]
-            for test in zip(event_counts, rows):
-                assert test[1][1][0]["count"] == test[0] / (3600.0 / 60.0)
-
-    def test_throughput_eps_minute_rollup(self):
-        # Each of these denotes how many events to create in each minute
-        event_counts = [6, 0, 6, 3, 0, 3]
-        for minute, count in enumerate(event_counts):
-            for second in range(count):
-                self.store_metric(
-                    1, timestamp=self.day_ago + timedelta(minutes=minute, seconds=second)
-                )
-
-        for axis in ["eps()", "tps()"]:
-            response = self.do_request(
-                data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(minutes=6)),
-                    "interval": "1m",
-                    "yAxis": axis,
-                    "project": self.project.id,
-                    "metricsEnhanced": "1",
-                },
-            )
-            assert response.status_code == 200, response.content
-            data = response.data["data"]
-            assert len(data) == 6
-            assert response.data["isMetricsData"]
-
-            rows = data[0:6]
-            for test in zip(event_counts, rows):
-                assert test[1][1][0]["count"] == test[0] / 60.0
-
-    def test_failure_rate(self):
-        for hour in range(6):
-            timestamp = self.day_ago + timedelta(hours=hour, minutes=30)
-            self.store_metric(1, tags={"transaction.status": "ok"}, timestamp=timestamp)
-            if hour < 3:
-                self.store_metric(
-                    1, tags={"transaction.status": "internal_error"}, timestamp=timestamp
-                )
-
-        response = self.do_request(
-            data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=6)),
-                "interval": "1h",
-                "yAxis": ["failure_rate()"],
-                "project": self.project.id,
-                "metricsEnhanced": "1",
+    def test_group_id_tag_simple(self):
+        event_data = {
+            "data": {
+                "message": "poof",
+                "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                "user": {"email": self.user.email},
+                "tags": {"group_id": "testing"},
+                "fingerprint": ["group1"],
             },
-        )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 6
-        assert response.data["isMetricsData"]
-        assert [attrs for time, attrs in response.data["data"]] == [
-            [{"count": 0.5}],
-            [{"count": 0.5}],
-            [{"count": 0.5}],
-            [{"count": 0}],
-            [{"count": 0}],
-            [{"count": 0}],
-        ]
+            "project": self.project2,
+            "count": 7,
+        }
+        for i in range(event_data["count"]):
+            event_data["data"]["event_id"] = f"a{i}" * 16
+            self.store_event(event_data["data"], project_id=event_data["project"].id)
 
-    def test_percentiles_multi_axis(self):
-        for hour in range(6):
-            timestamp = self.day_ago + timedelta(hours=hour, minutes=30)
-            self.store_metric(111, timestamp=timestamp)
-            self.store_metric(222, metric="measurements.lcp", timestamp=timestamp)
+        data = {
+            "start": iso_format(self.day_ago),
+            "end": iso_format(self.day_ago + timedelta(hours=2)),
+            "interval": "1h",
+            "yAxis": "count()",
+            "orderby": ["-count()"],
+            "field": ["count()", "group_id"],
+            "partial": 1,
+        }
+        response = self.client.get(self.url, data, format="json")
+        assert response.status_code == 200
+        assert response.data["data"][0][1] == [{"count": 8}]
 
-        response = self.do_request(
-            data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=6)),
-                "interval": "1h",
-                "yAxis": ["p75(measurements.lcp)", "p75(transaction.duration)"],
-                "project": self.project.id,
-                "metricsEnhanced": "1",
-            },
-        )
-        assert response.status_code == 200, response.content
-        lcp = response.data["p75(measurements.lcp)"]
-        duration = response.data["p75(transaction.duration)"]
-        assert len(duration["data"]) == 6
-        assert duration["isMetricsData"]
-        assert len(lcp["data"]) == 6
-        assert lcp["isMetricsData"]
-        for item in duration["data"]:
-            assert item[1][0]["count"] == 111
-        for item in lcp["data"]:
-            assert item[1][0]["count"] == 222
+        data["query"] = "group_id:testing"
+        response = self.client.get(self.url, data, format="json")
+        assert response.status_code == 200
+        assert response.data["data"][0][1] == [{"count": 7}]
 
-    @mock.patch("sentry.snuba.metrics_enhanced_performance.timeseries_query", return_value={})
-    def test_multiple_yaxis_only_one_query(self, mock_query):
-        self.do_request(
-            data={
-                "project": self.project.id,
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
-                "interval": "1h",
-                "yAxis": ["epm()", "eps()", "tpm()", "p50(transaction.duration)"],
-                "metricsEnhanced": "1",
-            },
-        )
-
-        assert mock_query.call_count == 1
-
-    def test_aggregate_function_user_count(self):
-        self.store_metric(1, metric="user", timestamp=self.day_ago + timedelta(minutes=30))
-        self.store_metric(1, metric="user", timestamp=self.day_ago + timedelta(hours=1, minutes=30))
-        response = self.do_request(
-            data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
-                "interval": "1h",
-                "yAxis": "count_unique(user)",
-                "metricsEnhanced": "1",
-            },
-        )
-        assert response.status_code == 200, response.content
-        assert response.data["isMetricsData"]
-        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 1}]]
-
-    def test_non_mep_query_fallsback(self):
-        def get_mep(query):
-            response = self.do_request(
-                data={
-                    "project": self.project.id,
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
-                    "interval": "1h",
-                    "query": query,
-                    "yAxis": ["epm()"],
-                    "metricsEnhanced": "1",
-                },
-            )
-            assert response.status_code == 200, response.content
-            return response.data["isMetricsData"]
-
-        assert get_mep(""), "empty query"
-        assert get_mep("event.type:transaction"), "event type transaction"
-        assert not get_mep("event.type:error"), "event type error"
-        assert not get_mep("transaction.duration:<15min"), "outlier filter"
-        assert get_mep("epm():>0.01"), "throughput filter"
-        assert not get_mep(
-            "event.type:transaction OR event.type:error"
-        ), "boolean with non-mep filter"
-        assert get_mep(
-            "event.type:transaction OR transaction:foo_transaction"
-        ), "boolean with mep filter"
-
-    def test_having_condition_with_preventing_aggregates(self):
-        response = self.do_request(
-            data={
-                "project": self.project.id,
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
-                "interval": "1h",
-                "query": "p95():<5s",
-                "yAxis": ["epm()"],
-                "metricsEnhanced": "1",
-                "preventMetricAggregates": "1",
-            },
-        )
-        assert response.status_code == 200, response.content
-        assert not response.data["isMetricsData"]
-
-    def test_explicit_not_mep(self):
-        response = self.do_request(
-            data={
-                "project": self.project.id,
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
-                "interval": "1h",
-                # Should be a mep able query
-                "query": "",
-                "yAxis": ["epm()"],
-                "metricsEnhanced": "0",
-            },
-        )
-        assert response.status_code == 200, response.content
-        return not response.data["isMetricsData"]
-
-    def test_sum_transaction_duration(self):
-        self.store_metric(123, timestamp=self.day_ago + timedelta(minutes=30))
-        self.store_metric(456, timestamp=self.day_ago + timedelta(hours=1, minutes=30))
-        self.store_metric(789, timestamp=self.day_ago + timedelta(hours=1, minutes=30))
-        response = self.do_request(
-            data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
-                "interval": "1h",
-                "yAxis": "sum(transaction.duration)",
-                "metricsEnhanced": "1",
-            },
-        )
-        assert response.status_code == 200, response.content
-        assert response.data["isMetricsData"]
-        assert [attrs for time, attrs in response.data["data"]] == [
-            [{"count": 123}],
-            [{"count": 1245}],
-        ]
+        data["query"] = "group_id:abc"
+        response = self.client.get(self.url, data, format="json")
+        assert response.status_code == 200
+        assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
 
 
+@region_silo_test
 class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -1261,7 +1171,6 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         self.events = []
         for index, event_data in enumerate(self.event_data):
             data = event_data["data"].copy()
-            event = {}
             for i in range(event_data["count"]):
                 data["event_id"] = f"{index}{i}" * 16
                 event = self.store_event(data, project_id=event_data["project"].id)
@@ -1390,6 +1299,192 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
 
+    def test_tag_with_conflicting_function_alias_simple(self):
+        event_data = {
+            "data": {
+                "message": "poof",
+                "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                "user": {"email": self.user.email},
+                "tags": {"count": "9001"},
+                "fingerprint": ["group1"],
+            },
+            "project": self.project2,
+            "count": 7,
+        }
+        for i in range(event_data["count"]):
+            event_data["data"]["event_id"] = f"a{i}" * 16
+            self.store_event(event_data["data"], project_id=event_data["project"].id)
+
+        # Query for count and count()
+        data = {
+            "start": iso_format(self.day_ago),
+            "end": iso_format(self.day_ago + timedelta(hours=2)),
+            "interval": "1h",
+            "yAxis": "count()",
+            "orderby": ["-count()"],
+            "field": ["count()", "count"],
+            "topEvents": 5,
+            "partial": 1,
+        }
+        with self.feature(self.enabled_features):
+            response = self.client.get(self.url, data, format="json")
+            assert response.status_code == 200
+            assert response.data["9001"]["data"][0][1] == [{"count": 7}]
+
+        data["query"] = "count:9001"
+        with self.feature(self.enabled_features):
+            response = self.client.get(self.url, data, format="json")
+            assert response.status_code == 200
+            assert response.data["9001"]["data"][0][1] == [{"count": 7}]
+
+        data["query"] = "count:abc"
+        with self.feature(self.enabled_features):
+            response = self.client.get(self.url, data, format="json")
+            assert response.status_code == 200
+            assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
+
+    @pytest.mark.xfail(
+        reason="The response.data[Other] returns 15 locally and returns 16 or 15 remotely."
+    )
+    def test_tag_with_conflicting_function_alias_with_other_single_grouping(self):
+        event_data = [
+            {
+                "data": {
+                    "message": "poof",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "user": {"email": self.user.email},
+                    "tags": {"count": "9001"},
+                    "fingerprint": ["group1"],
+                },
+                "project": self.project2,
+                "count": 7,
+            },
+            {
+                "data": {
+                    "message": "poof2",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "user": {"email": self.user.email},
+                    "tags": {"count": "abc"},
+                    "fingerprint": ["group1"],
+                },
+                "project": self.project2,
+                "count": 3,
+            },
+        ]
+        for index, event in enumerate(event_data):
+            for i in range(event["count"]):
+                event["data"]["event_id"] = f"{index}{i}" * 16
+                self.store_event(event["data"], project_id=event["project"].id)
+
+        # Query for count and count()
+        data = {
+            "start": iso_format(self.day_ago),
+            "end": iso_format(self.day_ago + timedelta(hours=1)),
+            "interval": "1h",
+            "yAxis": "count()",
+            "orderby": ["-count"],
+            "field": ["count()", "count"],
+            "topEvents": 2,
+            "partial": 1,
+        }
+        with self.feature(self.enabled_features):
+            response = self.client.get(self.url, data, format="json")
+            assert response.status_code == 200
+            assert response.data["9001"]["data"][0][1] == [{"count": 7}]
+            assert response.data["abc"]["data"][0][1] == [{"count": 3}]
+            assert response.data["Other"]["data"][0][1] == [{"count": 16}]
+
+    def test_tag_with_conflicting_function_alias_with_other_multiple_groupings(self):
+        event_data = [
+            {
+                "data": {
+                    "message": "abc",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "user": {"email": self.user.email},
+                    "tags": {"count": "2"},
+                    "fingerprint": ["group1"],
+                },
+                "project": self.project2,
+                "count": 3,
+            },
+            {
+                "data": {
+                    "message": "def",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "user": {"email": self.user.email},
+                    "tags": {"count": "9001"},
+                    "fingerprint": ["group1"],
+                },
+                "project": self.project2,
+                "count": 7,
+            },
+        ]
+        for index, event in enumerate(event_data):
+            for i in range(event["count"]):
+                event["data"]["event_id"] = f"{index}{i}" * 16
+                self.store_event(event["data"], project_id=event["project"].id)
+
+        # Query for count and count()
+        data = {
+            "start": iso_format(self.day_ago),
+            "end": iso_format(self.day_ago + timedelta(hours=2)),
+            "interval": "2d",
+            "yAxis": "count()",
+            "orderby": ["-count"],
+            "field": ["count()", "count", "message"],
+            "topEvents": 2,
+            "partial": 1,
+        }
+        with self.feature(self.enabled_features):
+            response = self.client.get(self.url, data, format="json")
+            assert response.status_code == 200
+            assert response.data["abc,2"]["data"][0][1] == [{"count": 3}]
+            assert response.data["def,9001"]["data"][0][1] == [{"count": 7}]
+            assert response.data["Other"]["data"][0][1] == [{"count": 25}]
+
+    def test_group_id_tag_simple(self):
+        event_data = {
+            "data": {
+                "message": "poof",
+                "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                "user": {"email": self.user.email},
+                "tags": {"group_id": "the tag"},
+                "fingerprint": ["group1"],
+            },
+            "project": self.project2,
+            "count": 7,
+        }
+        for i in range(event_data["count"]):
+            event_data["data"]["event_id"] = f"a{i}" * 16
+            self.store_event(event_data["data"], project_id=event_data["project"].id)
+
+        data = {
+            "start": iso_format(self.day_ago),
+            "end": iso_format(self.day_ago + timedelta(hours=2)),
+            "interval": "1h",
+            "yAxis": "count()",
+            "orderby": ["-count()"],
+            "field": ["count()", "group_id"],
+            "topEvents": 5,
+            "partial": 1,
+        }
+        with self.feature(self.enabled_features):
+            response = self.client.get(self.url, data, format="json")
+            assert response.status_code == 200, response.content
+            assert response.data["the tag"]["data"][0][1] == [{"count": 7}]
+
+        data["query"] = 'group_id:"the tag"'
+        with self.feature(self.enabled_features):
+            response = self.client.get(self.url, data, format="json")
+            assert response.status_code == 200
+            assert response.data["the tag"]["data"][0][1] == [{"count": 7}]
+
+        data["query"] = "group_id:abc"
+        with self.feature(self.enabled_features):
+            response = self.client.get(self.url, data, format="json")
+            assert response.status_code == 200
+            assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
+
     def test_top_events_limits(self):
         data = {
             "start": iso_format(self.day_ago),
@@ -1488,6 +1583,28 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 1}] in [attrs for _, attrs in other["data"]]
 
+    def test_top_events_with_transaction_status(self):
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "transaction.status"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+
+        assert response.status_code == 200, response.content
+        assert len(data) == 1
+        assert "ok" in data
+
     @mock.patch("sentry.models.GroupManager.get_issues_mapping")
     def test_top_events_with_unknown_issue(self, mock_issues_mapping):
         event = self.events[0]
@@ -1521,7 +1638,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert [{"count": event_data["count"]}] in [attrs for time, attrs in results["data"]]
 
     @mock.patch(
-        "sentry.search.events.builder.raw_snql_query",
+        "sentry.search.events.builder.discover.raw_snql_query",
         side_effect=[{"data": [{"issue.id": 1}], "meta": []}, {"data": [], "meta": []}],
     )
     def test_top_events_with_issue_check_query_conditions(self, mock_query):
@@ -2080,14 +2197,10 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         data = response.data
 
-        assert len(data) == 3
-
-        results = data[""]
-        assert [attrs for time, attrs in results["data"]] == [[{"count": 19}], [{"count": 6}]]
-        assert results["order"] == 0
+        assert len(data) == 2
 
         results = data["1"]
-        assert [attrs for time, attrs in results["data"]] == [[{"count": 1}], [{"count": 0}]]
+        assert [attrs for time, attrs in results["data"]] == [[{"count": 20}], [{"count": 6}]]
 
         results = data["0"]
         assert [attrs for time, attrs in results["data"]] == [[{"count": 1}], [{"count": 0}]]
@@ -2204,7 +2317,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
     @mock.patch("sentry.snuba.discover.bulk_snql_query", return_value=[{"data": [], "meta": []}])
     @mock.patch(
-        "sentry.search.events.builder.raw_snql_query", return_value={"data": [], "meta": []}
+        "sentry.search.events.builder.discover.raw_snql_query",
+        return_value={"data": [], "meta": []},
     )
     def test_invalid_interval(self, mock_raw_query, mock_bulk_query):
         with self.feature(self.enabled_features):
@@ -2412,6 +2526,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         assert "Other" not in response.data
 
+    @pytest.mark.xfail(reason="Started failing on ClickHouse 21.8")
     def test_top_events_with_equation_including_unselected_fields_passes_field_validation(self):
         with self.feature(self.enabled_features):
             response = self.client.get(

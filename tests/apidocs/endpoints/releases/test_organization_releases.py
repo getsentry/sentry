@@ -4,9 +4,11 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
-from sentry.models import Release
+from sentry.models.release import Release
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class OrganizationReleasesDocsTest(APIDocsTestCase):
     def setUp(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -15,6 +17,8 @@ class OrganizationReleasesDocsTest(APIDocsTestCase):
 
         team1 = self.create_team(organization=org)
         team2 = self.create_team(organization=org)
+        self.create_team_membership(team1, user=user)
+        self.create_team_membership(team2, user=user)
 
         self.project1 = self.create_project(teams=[team1], organization=org)
         self.project2 = self.create_project(teams=[team2], organization=org2)

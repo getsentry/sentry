@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from typing import Any
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlparse
 
@@ -6,26 +9,22 @@ import responses
 
 from fixtures.vsts import CREATE_SUBSCRIPTION, VstsIntegrationTestCase
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
-from sentry.models import (
-    Integration,
-    IntegrationExternalProject,
-    OrganizationIntegration,
-    Repository,
-)
+from sentry.models.identity import Identity
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.integration_external_project import IntegrationExternalProject
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
+from sentry.silo import SiloMode
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 FULL_SCOPES = ["vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
 LIMITED_SCOPES = ["vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
 
 
+@control_silo_test(stable=True)
 class VstsIntegrationProviderTest(VstsIntegrationTestCase):
     # Test data setup in ``VstsIntegrationTestCase``
-
-    def setUp(self):
-        super().setUp()
-
-    def tearDown(self):
-        super().tearDown()
 
     def test_basic_flow(self):
         self.assert_installation()
@@ -46,31 +45,32 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert metadata["domain_name"] == self.vsts_base_url
 
     def test_migrate_repositories(self):
-        accessible_repo = Repository.objects.create(
-            organization_id=self.organization.id,
-            name=self.project_a["name"],
-            url=f"{self.vsts_base_url}/_git/{self.repo_name}",
-            provider="visualstudio",
-            external_id=self.repo_id,
-            config={"name": self.project_a["name"], "project": self.project_a["name"]},
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            accessible_repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name=self.project_a["name"],
+                url=f"{self.vsts_base_url}/_git/{self.repo_name}",
+                provider="visualstudio",
+                external_id=self.repo_id,
+                config={"name": self.project_a["name"], "project": self.project_a["name"]},
+            )
 
-        inaccessible_repo = Repository.objects.create(
-            organization_id=self.organization.id,
-            name="NotReachable",
-            url="https://randoaccount.visualstudio.com/Product/_git/NotReachable",
-            provider="visualstudio",
-            external_id="123456789",
-            config={"name": "NotReachable", "project": "NotReachable"},
-        )
+            inaccessible_repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="NotReachable",
+                url="https://randoaccount.visualstudio.com/Product/_git/NotReachable",
+                provider="visualstudio",
+                external_id="123456789",
+                config={"name": "NotReachable", "project": "NotReachable"},
+            )
 
         with self.tasks():
             self.assert_installation()
         integration = Integration.objects.get(provider="vsts")
 
-        assert Repository.objects.get(id=accessible_repo.id).integration_id == integration.id
-
-        assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert Repository.objects.get(id=accessible_repo.id).integration_id == integration.id
+            assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
 
     def test_accounts_list_failure(self):
         responses.replace(
@@ -143,7 +143,97 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         subscription = data["metadata"]["subscription"]
         assert subscription["id"] is not None and subscription["secret"] is not None
 
+    @responses.activate
+    def test_source_url_matches(self):
+        self.assert_installation()
+        integration = Integration.objects.get(provider="vsts")
+        installation = integration.get_installation(
+            integration.organizationintegration_set.first().organization_id
+        )
 
+        test_cases = [
+            (
+                "https://MyVSTSAccount.visualstudio.com/sentry-backend-monitoring/_git/sentry-backend-monitoring?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents",
+                True,
+            ),
+            (
+                "https://MyVSTSAccount.visualstudio.com/DefaultCollection/sentry-backend-monitoring/_git/sentry-backend-monitoring?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents",
+                True,
+            ),
+            (
+                "https://MyVSTSAccount.visualstudio.com/sentry-backend-monitoring/_git/sentry-backend-monitoring?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents",
+                True,
+            ),
+            (
+                "https://MyVSTSAccount.notvisualstudio.com/sentry-backend-monitoring/_git/sentry-backend-monitoring?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents",
+                False,
+            ),
+            (
+                "https://MyVSTSAccount.notvisualstudio.com/DefaultCollection/sentry-backend-monitoring/_git/sentry-backend-monitoring?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents",
+                False,
+            ),
+            ("https://jianyuan.io", False),
+        ]
+        for source_url, matches in test_cases:
+            assert installation.source_url_matches(source_url) == matches
+
+    @responses.activate
+    def test_extract_branch_from_source_url(self):
+        self.assert_installation()
+        integration = Integration.objects.get(provider="vsts")
+        installation = integration.get_installation(
+            integration.organizationintegration_set.first().organization_id
+        )
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name=self.project_a["name"],
+                url=f"{self.vsts_base_url}/_git/{self.repo_name}",
+                provider="visualstudio",
+                external_id=self.repo_id,
+                config={"name": self.project_a["name"], "project": self.project_a["name"]},
+            )
+
+        test_cases = [
+            f'{self.vsts_base_url}/{self.project_a["name"]}/_git/{self.repo_name}?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents',
+            f"{self.vsts_base_url}/DefaultCollection/_git/{self.repo_name}?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents",
+            f"{self.vsts_base_url}/_git/{self.repo_name}?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents",
+        ]
+        for source_url in test_cases:
+            assert installation.extract_branch_from_source_url(repo, source_url) == "master"
+
+    @responses.activate
+    def test_extract_source_path_from_source_url(self):
+        self.assert_installation()
+        integration = Integration.objects.get(provider="vsts")
+        installation = integration.get_installation(
+            integration.organizationintegration_set.first().organization_id
+        )
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name=self.project_a["name"],
+                url=f"{self.vsts_base_url}/_git/{self.repo_name}",
+                provider="visualstudio",
+                external_id=self.repo_id,
+                config={"name": self.project_a["name"], "project": self.project_a["name"]},
+            )
+
+        test_cases = [
+            f'{self.vsts_base_url}/{self.project_a["name"]}/_git/{self.repo_name}?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents',
+            f"{self.vsts_base_url}/DefaultCollection/_git/{self.repo_name}?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents",
+            f"{self.vsts_base_url}/_git/{self.repo_name}?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents",
+        ]
+        for source_url in test_cases:
+            assert (
+                installation.extract_source_path_from_source_url(repo, source_url)
+                == "myapp/views.py"
+            )
+
+
+@control_silo_test(stable=True)
 class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
     def test_success(self, mock_get_scopes):
@@ -199,10 +289,12 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
         }
 
         integration = VstsIntegrationProvider()
-
+        pipeline = Mock()
+        pipeline.organization = self.organization
+        integration.set_pipeline(pipeline)
         with pytest.raises(IntegrationProviderError) as err:
             integration.build_integration(state)
-        assert "sufficient account access to create webhooks" in str(err)
+        assert "ensure third-party app access via OAuth is enabled" in str(err)
 
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
     def test_create_subscription_unauthorized(self, mock_get_scopes):
@@ -232,19 +324,22 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
         }
 
         integration = VstsIntegrationProvider()
-
+        pipeline = Mock()
+        pipeline.organization = self.organization
+        integration.set_pipeline(pipeline)
         with pytest.raises(IntegrationProviderError) as err:
             integration.build_integration(state)
-        assert "sufficient account access to create webhooks" in str(err)
+        assert "ensure third-party app access via OAuth is enabled" in str(err)
 
 
+@control_silo_test(stable=True)
 class VstsIntegrationTest(VstsIntegrationTestCase):
     def test_get_organization_config(self):
         self.assert_installation()
         integration = Integration.objects.get(provider="vsts")
 
         fields = integration.get_installation(
-            integration.organizations.first().id
+            integration.organizationintegration_set.first().organization_id
         ).get_organization_config()
 
         assert [field["name"] for field in fields] == [
@@ -258,11 +353,15 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
     def test_get_organization_config_failure(self):
         self.assert_installation()
         integration = Integration.objects.get(provider="vsts")
-        installation = integration.get_installation(integration.organizations.first().id)
+        installation = integration.get_installation(
+            integration.organizationintegration_set.first().organization_id
+        )
 
         # Set the `default_identity` property and force token expiration
         installation.get_client()
-        installation.default_identity.data["expires"] = 1566851050
+        identity = Identity.objects.filter(id=installation.default_identity.id).first()
+        identity.data["expires"] = 1566851050
+        identity.save()
 
         responses.replace(
             responses.POST,
@@ -325,7 +424,9 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         integration = VstsIntegration(model, self.organization.id)
 
         # test validation
-        data = {"sync_status_forward": {1: {"on_resolve": "", "on_unresolve": "UnresolvedStatus1"}}}
+        data: dict[str, Any] = {
+            "sync_status_forward": {1: {"on_resolve": "", "on_unresolve": "UnresolvedStatus1"}}
+        }
         with pytest.raises(IntegrationError):
             integration.update_organization_config(data)
 
@@ -433,7 +534,10 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
 
         # Set the `default_identity` property and force token expiration
         installation.get_client()
-        installation.default_identity.data["expires"] = 1566851050
+        identity = Identity.objects.filter(id=installation.default_identity.id).first()
+        identity.data["expires"] = 1566851050
+        identity.save()
+
         responses.replace(
             responses.POST,
             "https://app.vssps.visualstudio.com/oauth2/token",

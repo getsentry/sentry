@@ -1,6 +1,7 @@
-from django.views.generic import View
-from rest_framework.request import Request
-from rest_framework.response import Response
+from unittest import mock
+from uuid import uuid4
+
+from django.utils import timezone
 
 from sentry.incidents.action_handlers import generate_incident_trigger_email_context
 from sentry.incidents.models import (
@@ -10,16 +11,27 @@ from sentry.incidents.models import (
     IncidentStatus,
     TriggerStatus,
 )
-from sentry.models import Organization, Project
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.user import User
 from sentry.snuba.models import SnubaQuery
 
-from .mail import MailPreview
+from .mail import MailPreviewView
 
 
-class DebugIncidentTriggerEmailView(View):
-    def get(self, request: Request) -> Response:
+class MockedIncidentTrigger:
+    date_added = timezone.now()
+
+
+class DebugIncidentTriggerEmailView(MailPreviewView):
+    @mock.patch(
+        "sentry.incidents.models.IncidentTrigger.objects.get", return_value=MockedIncidentTrigger()
+    )
+    @mock.patch("sentry.models.UserOption.objects.get_value", return_value="US/Pacific")
+    def get_context(self, request, incident_trigger_mock, user_option_mock):
         organization = Organization(slug="myorg")
         project = Project(slug="myproject", organization=organization)
+        user = User()
 
         query = SnubaQuery(
             time_window=60, query="transaction:/some/transaction", aggregate="count()"
@@ -35,12 +47,20 @@ class DebugIncidentTriggerEmailView(View):
         )
         trigger = AlertRuleTrigger(alert_rule=alert_rule)
 
-        context = generate_incident_trigger_email_context(
-            project, incident, trigger, TriggerStatus.ACTIVE, IncidentStatus(incident.status)
+        return generate_incident_trigger_email_context(
+            project,
+            incident,
+            trigger,
+            TriggerStatus.ACTIVE,
+            IncidentStatus(incident.status),
+            user,
+            notification_uuid=str(uuid4()),
         )
 
-        return MailPreview(
-            text_template="sentry/emails/incidents/trigger.txt",
-            html_template="sentry/emails/incidents/trigger.html",
-            context=context,
-        ).render(request)
+    @property
+    def html_template(self):
+        return "sentry/emails/incidents/trigger.html"
+
+    @property
+    def text_template(self):
+        return "sentry/emails/incidents/trigger.txt"

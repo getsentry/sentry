@@ -3,21 +3,24 @@ import {RouteComponentProps} from 'react-router';
 
 import {Client} from 'sentry/api';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import theme from 'sentry/utils/theme';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
   api: Client;
+  organization: Organization;
 } & Pick<
   RouteComponentProps<
     {
       keyId: string;
-      orgId: string;
       projectId: string;
     },
     {}
@@ -54,45 +57,49 @@ class KeyStats extends Component<Props, State> {
   }
 
   fetchData = () => {
-    const {keyId, orgId, projectId} = this.props.params;
-    this.props.api.request(`/projects/${orgId}/${projectId}/keys/${keyId}/stats/`, {
-      query: {
-        since: this.state.since,
-        until: this.state.until,
-        resolution: '1d',
-      },
-      success: data => {
-        let emptyStats = true;
-        const dropped: Series['data'] = [];
-        const accepted: Series['data'] = [];
-        data.forEach(p => {
-          if (p.total) {
-            emptyStats = false;
-          }
-          dropped.push({name: p.ts * 1000, value: p.dropped});
-          accepted.push({name: p.ts * 1000, value: p.accepted});
-        });
-        const series = [
-          {
-            seriesName: t('Accepted'),
-            data: accepted,
-          },
-          {
-            seriesName: t('Rate Limited'),
-            data: dropped,
-          },
-        ];
-        this.setState({
-          series,
-          emptyStats,
-          error: false,
-          loading: false,
-        });
-      },
-      error: () => {
-        this.setState({error: true, loading: false});
-      },
-    });
+    const {organization} = this.props;
+    const {keyId, projectId} = this.props.params;
+    this.props.api.request(
+      `/projects/${organization.slug}/${projectId}/keys/${keyId}/stats/`,
+      {
+        query: {
+          since: this.state.since,
+          until: this.state.until,
+          resolution: '1d',
+        },
+        success: data => {
+          let emptyStats = true;
+          const dropped: Series['data'] = [];
+          const accepted: Series['data'] = [];
+          data.forEach(p => {
+            if (p.total) {
+              emptyStats = false;
+            }
+            dropped.push({name: p.ts * 1000, value: p.dropped});
+            accepted.push({name: p.ts * 1000, value: p.accepted});
+          });
+          const series = [
+            {
+              seriesName: t('Accepted'),
+              data: accepted,
+            },
+            {
+              seriesName: t('Rate Limited'),
+              data: dropped,
+            },
+          ];
+          this.setState({
+            series,
+            emptyStats,
+            error: false,
+            loading: false,
+          });
+        },
+        error: () => {
+          this.setState({error: true, loading: false});
+        },
+      }
+    );
   };
 
   render() {

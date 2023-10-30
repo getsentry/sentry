@@ -7,6 +7,7 @@ from sentry.ownership.grammar import (
     convert_codeowners_syntax,
     convert_schema_to_rules_text,
     dump_schema,
+    get_source_code_path_from_stacktrace_path,
     load_schema,
     parse_code_owners,
     parse_rules,
@@ -70,6 +71,28 @@ def test_dump_schema():
     }
 
 
+def test_str_schema():
+    assert str(Rule(Matcher("path", "*.js"), [Owner("team", "frontend")])) == "path:*.js #frontend"
+    assert (
+        str(Rule(Matcher("url", "http://google.com/*"), [Owner("team", "backend")]))
+        == "url:http://google.com/* #backend"
+    )
+    assert (
+        str(Rule(Matcher("tags.foo", "bar"), [Owner("user", "tagperson@sentry.io")]))
+        == "tags.foo:bar tagperson@sentry.io"
+    )
+    assert (
+        str(Rule(Matcher("tags.foo", "bar baz"), [Owner("user", "tagperson@sentry.io")]))
+        == "tags.foo:bar baz tagperson@sentry.io"
+    )
+    assert (
+        str(
+            Rule(Matcher("codeowners", "/src/components/"), [Owner("user", "githubuser@sentry.io")])
+        )
+        == "codeowners:/src/components/ githubuser@sentry.io"
+    )
+
+
 def test_load_schema():
     assert load_schema(
         {
@@ -109,9 +132,11 @@ def test_matcher_test_url():
     assert not Matcher("url", "*.js").test({})
 
 
-def test_matcher_test_none():
-    data = {"request": {"url": None}}
-    assert not Matcher("url", "").test(data)
+def test_matcher_test_url_none():
+    assert not Matcher("url", "doesnt_matter").test(None)
+    assert not Matcher("url", "doesnt_matter").test({})
+    assert not Matcher("url", "doesnt_matter").test({"request": None})
+    assert not Matcher("url", "doesnt_matter").test({"request": {"url": None}})
 
 
 def test_matcher_test_exception():
@@ -861,6 +886,29 @@ def test_parse_code_owners():
         ["@getsentry/frontend", "@getsentry/docs", "@getsentry/ecosystem"],
         ["@NisanthanNanthakumar", "@AnotherUser", "@NisanthanNanthakumar"],
         ["nisanthan.nanthakumar@sentry.io"],
+    )
+
+
+def test_parse_code_owners_with_line_of_spaces():
+    data = f"{codeowners_fixture_data}\n                                                                                       \n"
+
+    assert parse_code_owners(data) == (
+        ["@getsentry/frontend", "@getsentry/docs", "@getsentry/ecosystem"],
+        ["@NisanthanNanthakumar", "@AnotherUser", "@NisanthanNanthakumar"],
+        ["nisanthan.nanthakumar@sentry.io"],
+    )
+
+
+def test_get_source_code_path_from_stacktrace_path():
+    code_mapping = type("", (), {})()
+    code_mapping.stack_root = "webpack://docs"
+    code_mapping.source_root = "docs"
+    assert (
+        get_source_code_path_from_stacktrace_path(
+            "webpack://docs/index.js",
+            code_mapping,
+        )
+        == "docs/index.js"
     )
 
 

@@ -1,30 +1,40 @@
-import {Fragment, useState} from 'react';
+import {Fragment, JSXElementConstructor, useState} from 'react';
 import styled from '@emotion/styled';
 import flatMap from 'lodash/flatMap';
 import uniqBy from 'lodash/uniqBy';
 
-import {CommitRow} from 'sentry/components/commitRow';
+import {CommitRowProps} from 'sentry/components/commitRow';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {IconAdd, IconSubtract} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import type {AvatarProject, Group} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import {t, tn} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {AvatarProject, Commit, Group} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getAnalyticsDataForGroup} from 'sentry/utils/events';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useCommitters from 'sentry/utils/useCommitters';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
-  event: Event;
+  commitRow: JSXElementConstructor<CommitRowProps>;
+  eventId: string;
   project: AvatarProject;
   group?: Group;
 }
 
-function EventCause({group, event, project}: Props) {
+export function EventCause({group, eventId, project, commitRow: CommitRow}: Props) {
+  const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(false);
-  const {committers} = useCommitters({
-    group,
-    eventId: event.id,
+  const {data, isLoading} = useCommitters({
+    eventId,
     projectSlug: project.slug,
+  });
+  const committers = data?.committers ?? [];
+
+  useRouteAnalyticsParams({
+    fetching: isLoading,
+    num_suspect_commits: committers.length,
   });
 
   function getUniqueCommitsWithAuthors() {
@@ -44,16 +54,36 @@ function EventCause({group, event, project}: Props) {
     return null;
   }
 
+  const handlePullRequestClick = () => {
+    trackAnalytics('issue_details.suspect_commits.pull_request_clicked', {
+      organization,
+      project_id: parseInt(project.id as string, 10),
+      ...getAnalyticsDataForGroup(group),
+    });
+  };
+
+  const handleCommitClick = (commit: Commit) => {
+    trackAnalytics('issue_details.suspect_commits.commit_clicked', {
+      organization,
+      project_id: parseInt(project.id as string, 10),
+      has_pull_request: commit.pullRequest?.id !== undefined,
+      ...getAnalyticsDataForGroup(group),
+    });
+  };
+
   const commits = getUniqueCommitsWithAuthors();
+
+  const commitHeading = tn('Suspect Commit', 'Suspect Commits (%s)', commits.length);
 
   return (
     <DataSection>
       <CauseHeader>
-        <h3 data-test-id="event-cause">
-          {t('Suspect Commits')} ({commits.length})
-        </h3>
+        <h3 data-test-id="event-cause">{commitHeading}</h3>
         {commits.length > 1 && (
-          <ExpandButton onClick={() => setIsExpanded(!isExpanded)}>
+          <ExpandButton
+            onClick={() => setIsExpanded(!isExpanded)}
+            data-test-id="expand-commit-list"
+          >
             {isExpanded ? (
               <Fragment>
                 {t('Show less')} <IconSubtract isCircled size="md" />
@@ -66,21 +96,26 @@ function EventCause({group, event, project}: Props) {
           </ExpandButton>
         )}
       </CauseHeader>
-      <Panel>
+      <StyledPanel>
         {commits.slice(0, isExpanded ? 100 : 1).map(commit => (
-          <CommitRow key={commit.id} commit={commit} />
+          <CommitRow
+            key={commit.id}
+            commit={commit}
+            onCommitClick={handleCommitClick}
+            onPullRequestClick={handlePullRequestClick}
+          />
         ))}
-      </Panel>
+      </StyledPanel>
     </DataSection>
   );
 }
 
+export const StyledPanel = styled(Panel)`
+  margin: 0;
+`;
+
 const ExpandButton = styled('button')`
   display: flex;
   align-items: center;
-  & > svg {
-    margin-left: ${space(0.5)};
-  }
+  gap: ${space(0.5)};
 `;
-
-export default EventCause;

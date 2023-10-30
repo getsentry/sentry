@@ -1,11 +1,12 @@
 from time import time
 
-from freezegun import freeze_time
-
 from sentry.ratelimits.redis import RedisRateLimiter
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class RedisRateLimiterTest(TestCase):
     def setUp(self):
         self.backend = RedisRateLimiter()
@@ -43,7 +44,7 @@ class RedisRateLimiterTest(TestCase):
                 self.backend.is_limited("foo", 1, window=10)
             assert self.backend.current_value("foo", window=10) == 10
 
-            frozen_time.tick(10)
+            frozen_time.shift(10)
             assert self.backend.current_value("foo", window=10) == 0
 
     def test_is_limited_with_value(self):
@@ -60,7 +61,7 @@ class RedisRateLimiterTest(TestCase):
             assert value == 2
             assert reset_time == expected_reset_time
 
-            frozen_time.tick(5)
+            frozen_time.shift(5)
             limited, value, reset_time = self.backend.is_limited_with_value("foo", 1, window=5)
             assert not limited
             assert value == 1

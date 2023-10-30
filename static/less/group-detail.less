@@ -13,7 +13,6 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
-    line-height: 1.1;
 
     em {
       font-style: normal;
@@ -135,226 +134,6 @@
   }
 }
 
-/*
-* Context callout
-* ============================================================================
-*/
-
-.context-summary {
-  .context-item {
-    .context-item-icon {
-      position: absolute;
-      left: 0;
-      width: 36px;
-      height: 36px;
-      background-repeat: no-repeat;
-      background-position: center 2px;
-      background-image: url(~sentry-logos/logo-unknown.svg);
-      background-size: 30px 32px; // magic number here because some logos are slightly cut off when at 32 x 32
-    }
-
-    &:first-child {
-      border: 0;
-    }
-
-    h3 {
-      .truncate;
-      font-size: 16px;
-      line-height: 1.2;
-      margin-bottom: 0;
-    }
-
-    p {
-      font-size: 13px;
-      line-height: 1.4;
-
-      &:last-child {
-        margin: 0;
-      }
-    }
-
-    &.arm .context-item-icon {
-      background-image: url(~sentry-logos/logo-arm.svg);
-      background-size: contain;
-    }
-
-    &.amd .context-item-icon,
-    &[class*='amd-'] .context-item-icon {
-      background-image: url(~sentry-logos/logo-amd.svg);
-      background-size: contain;
-    }
-
-    &.nvidia .context-item-icon,
-    &[class*='nvidia-'] .context-item-icon {
-      background-image: url(~sentry-logos/logo-nvidia.svg);
-      background-size: contain;
-    }
-
-    &.electron .context-item-icon {
-      background-image: url(~sentry-logos/logo-electron.svg);
-    }
-
-    &.crystal .context-item-icon {
-      background-image: url(~sentry-logos/logo-crystal.svg);
-    }
-
-    &.net-framework .context-item-icon {
-      background-image: url(~sentry-logos/logo-netframework.svg);
-    }
-
-    &.net-core .context-item-icon {
-      background-image: url(~sentry-logos/logo-netcore.svg);
-    }
-
-    &.net .context-item-icon {
-      background-image: url(~sentry-logos/logo-dotnet.svg);
-    }
-
-    &.mono .context-item-icon {
-      background-image: url(~sentry-logos/logo-monogorilla.svg);
-    }
-
-    &.php .context-item-icon {
-      background-image: url(~sentry-logos/logo-php.svg);
-    }
-
-    &.ipad .context-item-icon {
-      background-image: url(~sentry-logos/logo-apple-tablet.svg);
-    }
-
-    &.ipod,
-    &.iphone {
-      .context-item-icon {
-        background-image: url(~sentry-logos/logo-apple-phone.svg);
-      }
-    }
-
-    &.appletv .context-item-icon {
-      background-image: url(~sentry-logos/logo-apple-tv.svg);
-    }
-
-    &.watch .context-item-icon {
-      background-image: url(~sentry-logos/logo-apple-watch.svg);
-    }
-
-    &.android-phone {
-      .context-item-icon {
-        background-image: url(~sentry-logos/logo-android-phone.svg);
-      }
-    }
-
-    &.android-tablet {
-      .context-item-icon {
-        background-image: url(~sentry-logos/logo-android-tablet.svg);
-      }
-    }
-
-    &.darwin,
-    &.ios,
-    &.macos,
-    &.tvos,
-    &.mac-os-x,
-    &.mac,
-    &.apple,
-    &.watchos {
-      .context-item-icon {
-        background-image: url(~sentry-logos/logo-apple.svg);
-        background-position: center 0;
-      }
-    }
-
-    &.android .context-item-icon {
-      background-image: url(~sentry-logos/logo-android.svg);
-    }
-
-    &.windows .context-item-icon {
-      background-image: url(~sentry-logos/logo-windows.svg);
-    }
-
-    &.linux .context-item-icon {
-      background-image: url(~sentry-logos/logo-linux.svg);
-    }
-
-    &.ubuntu .context-item-icon {
-      background-image: url(~sentry-logos/logo-ubuntu.svg);
-    }
-
-    &.amazon .context-item-icon {
-      background-image: url(~sentry-logos/logo-amazon.svg);
-    }
-
-    &.firefox .context-item-icon {
-      background-image: url(~sentry-logos/logo-firefox.svg);
-    }
-
-    &.chrome,
-    &.chrome-mobile,
-    &.chrome-mobile-ios {
-      .context-item-icon {
-        background-image: url(~sentry-logos/logo-chrome.svg);
-      }
-    }
-
-    &.chromium .context-item-icon {
-      background-image: url(~sentry-logos/logo-chromium.svg);
-    }
-
-    &.edge .context-item-icon {
-      background-image: url(~sentry-logos/logo-edge-new.svg);
-    }
-
-    &.legacy-edge .context-item-icon {
-      background-image: url(~sentry-logos/logo-edge-old.svg);
-    }
-
-    &.internet-explorer .context-item-icon {
-      background-image: url(~sentry-logos/logo-ie.svg);
-    }
-
-    &.opera .context-item-icon {
-      background-image: url(~sentry-logos/logo-opera.svg);
-    }
-
-    &.playstation .context-item-icon {
-      background-image: url(~sentry-logos/logo-playstation.svg);
-    }
-
-    &.qq-browser .context-item-icon {
-      background-image: url(~sentry-logos/logo-qq.svg);
-    }
-
-    &.safari,
-    &.mobile-safari {
-      .context-item-icon {
-        background-image: url(~sentry-logos/logo-safari.svg);
-      }
-    }
-
-    &.samsung .context-item-icon {
-      background-image: url(~sentry-logos/logo-samsung.svg);
-    }
-
-    &.motorola .context-item-icon {
-      background-image: url(~sentry-logos/logo-motorola.svg);
-    }
-
-    &.google .context-item-icon {
-      background-image: url(~sentry-logos/logo-google.svg);
-    }
-
-    &.ruby .context-item-icon {
-      background-image: url(~sentry-logos/logo-ruby.svg);
-    }
-
-    &.python,
-    &.cpython {
-      .context-item-icon {
-        background-image: url(~sentry-logos/logo-python.svg);
-      }
-    }
-  }
-}
-
 .module-user .avatar {
   width: 64px;
   height: 64px;
@@ -414,6 +193,19 @@
   }
 }
 
+.ai-loader {
+  height: 250px;
+  background: center / contain no-repeat url(../images/spot/ai-loader.gif);
+  margin-top: -20px;
+  margin-bottom: -35px;
+}
+
+.ai-suggestion-wheel-of-fortune {
+  height: 250px;
+  background: center / contain no-repeat
+    url(../images/spot/ai-suggestion-wheel-of-fortune.gif);
+}
+
 /**
 * Traceback
 * ============================================================================
@@ -423,8 +215,7 @@
   list-style-type: none;
   padding-left: 0;
   border: 1px solid @trim-dark;
-  border-radius: 0 3px 3px 3px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  border-radius: 0 6px 6px 6px;
   margin-bottom: 20px;
 }
 
@@ -443,14 +234,14 @@ div.traceback > ul {
 
       .title {
         border-top: none;
-        border-top-right-radius: 3px;
-        border-top-left-radius: 3px;
+        border-top-right-radius: 5px;
+        border-top-left-radius: 5px;
       }
     }
 
     &:last-child .title {
-      border-bottom-right-radius: 3px;
-      border-bottom-left-radius: 3px;
+      border-bottom-right-radius: 5px;
+      border-bottom-left-radius: 5px;
     }
   }
 }
@@ -492,7 +283,6 @@ div.traceback > ul {
 }
 
 .exception {
-  border-bottom: 1px solid @trim;
   margin: 0 0 20px;
 
   &:last-child {
@@ -526,22 +316,14 @@ div.traceback > ul {
 
     &.is-expandable .title {
       cursor: pointer;
-
-      &:hover {
-        background: lighten(@blue-light, 36);
-      }
-    }
-
-    &.system-frame.is-expandable .title:hover {
-      background: darken(@white-dark, 5);
     }
 
     .title {
-      padding: 8px 20px;
+      padding: 6px 20px;
       font-size: 13px;
       margin: 0;
       line-height: 16px;
-      background: lighten(@blue-light, 35);
+      background: #faf9fb;
 
       word-break: break-all;
       /* for firefox */
@@ -555,10 +337,6 @@ div.traceback > ul {
       .informal {
         font-style: italic;
       }
-    }
-
-    &.system-frame .title {
-      background: @white-dark;
     }
 
     .title.as-table {
@@ -678,43 +456,23 @@ div.traceback > ul {
       color: inherit;
     }
 
-    .empty-context {
-      padding: 20px;
-      color: @gray;
-
-      p {
-        display: inline-block;
-        margin-bottom: 0;
-      }
-
-      .icon {
-        opacity: 0.45;
-        margin-right: 10px;
-        font-size: 0.85em;
-      }
-    }
-
     .context {
       display: none;
       background: #fff;
       margin: 0;
-      padding: 8px 0;
-
-      > li {
-        background: inherit;
-      }
 
       table.key-value {
         border-top: 1px solid @trim;
         padding: 0;
-        margin: 0 0 -8px;
+        margin: 0;
 
         td {
           border-bottom: 1px solid @trim !important;
 
           &.key {
-            width: 125px;
-            max-width: 125px;
+            width: 145px;
+            max-width: 145px;
+            padding-left: 20px !important;
           }
 
           &.value pre {
@@ -769,6 +527,7 @@ div.traceback > ul {
     &.expanded {
       .expandable {
         height: auto;
+        max-width: 100%;
       }
     }
 
@@ -790,10 +549,8 @@ div.traceback > ul {
 
     &.collapsed {
       .title {
-        opacity: 0.7;
-        font-size: 12px;
-        padding: 4px 20px 4px 20px;
-        background: lighten(@blue-light, 33);
+        background: #faf9fb;
+        min-height: 32px;
 
         &.is-expandable:hover {
           opacity: 1;
@@ -810,13 +567,13 @@ div.traceback > ul {
 
       .in-at-line,
       .lineno,
-      .btn-toggle,
       .address {
         display: none;
       }
 
       .leads-to-app-hint {
         display: inline;
+        color: @gray-light;
       }
     }
   }
@@ -870,7 +627,7 @@ div.traceback > ul {
     margin: 0;
     list-style-position: inside;
     list-style-type: decimal-leading-zero;
-    border-radius: 3px;
+    border-radius: 5px;
     padding-left: 0;
 
     .key-value {
@@ -883,8 +640,6 @@ div.traceback > ul {
 
     > li {
       font-family: @font-family-code;
-      color: #222;
-      background-color: #f6f7f8;
       line-height: 24px;
       font-size: 12px;
       white-space: pre;
@@ -894,7 +649,6 @@ div.traceback > ul {
     }
 
     > li.active {
-      background-color: #f6f7f8;
       list-style-type: none;
       border-radius: 2px;
 
@@ -927,8 +681,8 @@ div.traceback > ul {
       }
 
       > li.active {
-        background-color: @purple;
-        color: #fff;
+        position: relative;
+        z-index: 0;
         list-style-type: inherit;
         border-radius: 0;
       }
@@ -1020,7 +774,7 @@ span.val {
 }
 
 .val-string {
-  border-radius: 3px;
+  border-radius: 4px;
   padding: 2px 4px;
 }
 
@@ -1323,10 +1077,6 @@ ul.crumbs {
 
     .is-assigned {
       padding-top: 0;
-    }
-
-    .seen-by {
-      display: none;
     }
   }
 

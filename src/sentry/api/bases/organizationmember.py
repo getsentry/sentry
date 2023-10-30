@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.request import Request
 
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.db.models.fields.bounded import BoundedAutoField
-from sentry.models import InviteStatus, Organization, OrganizationMember
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 
 from .organization import OrganizationEndpoint
 
@@ -67,12 +67,12 @@ class OrganizationMemberEndpoint(OrganizationEndpoint):
         kwargs = dict(organization=organization)
 
         if member_id == "me":
-            kwargs.update(user__id=request.user.id, user__is_active=True)
+            kwargs.update(user_id=request.user.id, user_is_active=True)
         else:
-            args.append(Q(user__is_active=True) | Q(user__isnull=True))
-            kwargs.update(id=member_id)
+            kwargs.update(id=member_id, organization_id=organization.id)
 
         if invite_status:
             kwargs.update(invite_status=invite_status.value)
 
-        return OrganizationMember.objects.filter(*args, **kwargs).select_related("user").get()
+        om = OrganizationMember.objects.filter(*args, **kwargs).get()
+        return om

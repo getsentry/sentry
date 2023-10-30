@@ -1,11 +1,16 @@
+from __future__ import annotations
+
 import logging
 
 from rest_framework.request import Request
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Group, GroupLink, GroupStatus, Organization, get_group_with_redirect
+from sentry.models.group import Group, GroupStatus, get_group_with_redirect
+from sentry.models.grouplink import GroupLink
+from sentry.models.organization import Organization
 from sentry.tasks.integrations import create_comment, update_comment
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
@@ -31,6 +36,7 @@ class GroupPermission(ProjectPermission):
 
 
 class GroupEndpoint(Endpoint):
+    owner = ApiOwner.ISSUES
     permission_classes = (GroupPermission,)
 
     def convert_args(self, request: Request, issue_id, organization_slug=None, *args, **kwargs):
@@ -52,7 +58,7 @@ class GroupEndpoint(Endpoint):
 
             bind_organization_context(organization)
 
-            request._request.organization = organization
+            request._request.organization = organization  # type: ignore[attr-defined]
         else:
             organization = None
 
@@ -77,7 +83,7 @@ class GroupEndpoint(Endpoint):
         if group.status in EXCLUDED_STATUSES:
             raise ResourceDoesNotExist
 
-        request._request.organization = group.project.organization
+        request._request.organization = group.project.organization  # type: ignore[attr-defined]
 
         kwargs["group"] = group
 

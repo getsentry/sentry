@@ -1,6 +1,7 @@
 import {mat3, vec2} from 'gl-matrix';
 
-import {Rect, Transform} from 'sentry/utils/profiling/gl/utils';
+import {transformMatrixBetweenRect} from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 export class FlamegraphCanvas {
   canvas: HTMLCanvasElement;
@@ -31,12 +32,12 @@ export class FlamegraphCanvas {
       1 / window.devicePixelRatio
     );
 
-    this.logicalToPhysicalSpace = Transform.transformMatrixBetweenRect(
+    this.logicalToPhysicalSpace = transformMatrixBetweenRect(
       this.logicalSpace,
       this.physicalSpace
     );
 
-    this.physicalToLogicalSpace = Transform.transformMatrixBetweenRect(
+    this.physicalToLogicalSpace = transformMatrixBetweenRect(
       this.physicalSpace,
       this.logicalSpace
     );

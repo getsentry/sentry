@@ -12,6 +12,8 @@ const useMemoWithPrevious = <T>(
 
   useEffectAfterFirstRender(() => {
     setValue(factory(previous));
+    // Dependencies are explicitly managed and the deps warning is enabled for the custom hook.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 
   return value;

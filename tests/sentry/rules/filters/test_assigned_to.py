@@ -1,14 +1,17 @@
-from sentry.models import GroupAssignee
+from sentry.models.groupassignee import GroupAssignee
 from sentry.rules.filters.assigned_to import AssignedToFilter
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
-class AssignedToFilter(RuleTestCase):
+class AssignedToFilterTest(RuleTestCase):
     rule_cls = AssignedToFilter
 
     def test_assigned_to_member_passes(self):
         event = self.get_event()
-        GroupAssignee.objects.create(user=self.user, group=event.group, project=self.project)
+        GroupAssignee.objects.create(user_id=self.user.id, group=event.group, project=self.project)
 
         data = {
             "targetType": "Member",
@@ -20,7 +23,7 @@ class AssignedToFilter(RuleTestCase):
     def test_assigned_to_member_fails(self):
         event = self.get_event()
         user = self.create_user()
-        GroupAssignee.objects.create(user=user, group=event.group, project=self.project)
+        GroupAssignee.objects.create(user_id=user.id, group=event.group, project=self.project)
 
         data = {
             "targetType": "Member",
@@ -63,7 +66,7 @@ class AssignedToFilter(RuleTestCase):
 
     def test_assigned_to_no_one_fails(self):
         event = self.get_event()
-        GroupAssignee.objects.create(user=self.user, group=event.group, project=self.project)
+        GroupAssignee.objects.create(user_id=self.user.id, group=event.group, project=self.project)
 
         data = {
             "targetType": "Unassigned",

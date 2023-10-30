@@ -1,6 +1,4 @@
-from datetime import datetime, timedelta
-
-import pytz
+from datetime import datetime, timedelta, timezone
 
 from sentry.constants import DataCategory
 from sentry.testutils.cases import OutcomesSnubaTest
@@ -29,7 +27,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
         self.db = SnubaTSDB()
 
         # Set up the times
-        self.now = datetime.now(pytz.utc)
+        self.now = datetime.now(timezone.utc)
         self.start_time = self.now - timedelta(days=7)
         self.one_day_later = self.start_time + timedelta(days=1)
         self.day_before_start_time = self.start_time - timedelta(days=1)
@@ -165,7 +163,13 @@ class SnubaTSDBTest(OutcomesSnubaTest):
         ]:
             # Query SnubaTSDB
             response = self.db.get_range(
-                tsdb_model, [self.organization.id], self.start_time, self.now, granularity, None
+                tsdb_model,
+                [self.organization.id],
+                self.start_time,
+                self.now,
+                granularity,
+                None,
+                tenant_ids={"referrer": "tests", "organization_id": 1},
             )
 
             # Assert that the response has values set for the times we expect, and nothing more
@@ -308,7 +312,13 @@ class SnubaTSDBTest(OutcomesSnubaTest):
             (TSDBModel.project_total_blacklisted, 10, floor_to_10s_epoch, 4, 5),
         ]:
             response = self.db.get_range(
-                tsdb_model, [self.project.id], self.start_time, self.now, granularity, None
+                tsdb_model,
+                [self.project.id],
+                self.start_time,
+                self.now,
+                granularity,
+                None,
+                tenant_ids={"referrer": "tests", "organization_id": 1},
             )
 
             # Assert that the response has values set for the times we expect, and nothing more
@@ -448,6 +458,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 self.now,
                 granularity,
                 None,
+                tenant_ids={"referrer": "tests", "organization_id": 123},
             )
 
             # Assert that the response has values set for the times we expect, and nothing more

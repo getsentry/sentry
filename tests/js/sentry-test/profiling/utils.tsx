@@ -32,7 +32,7 @@ export const makeContextMock = (
     vertexAttribPointer: jest.fn(),
     viewport: jest.fn(),
 
-    // @ts-ignore
+    // @ts-expect-error
     canvas: {
       width: 1000,
       height: 1000,
@@ -76,9 +76,10 @@ export const makeFlamegraph = (
   return new Flamegraph(
     EventedProfile.FromProfile(
       trace ? {...base, ...trace} : base,
-      createFrameIndex(frames ?? [{name: 'f0'}])
+      createFrameIndex('mobile', frames ?? [{name: 'f0'}]),
+      {type: 'flamechart'}
     ),
     0,
-    {inverted: false, leftHeavy: false}
+    {inverted: false, sort: 'call order'}
   );
 };

@@ -1,20 +1,48 @@
 from __future__ import annotations
 
 import logging
+from datetime import timezone
+from typing import Any, ClassVar, MutableMapping
 
 from dateutil.parser import parse as parse_date
-from django.db import IntegrityError, transaction
-from django.utils import timezone
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
-from sentry.api.serializers import serialize
+from sentry.api.exceptions import SentryAPIException
 from sentry.constants import ObjectStatus
 from sentry.integrations import IntegrationInstallation
-from sentry.models import Integration, Repository
+from sentry.models.integrations.integration import Integration
+from sentry.models.repository import Repository
+from sentry.models.user import User
+from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
+from sentry.services.hybrid_cloud.repository import repository_service
+from sentry.services.hybrid_cloud.repository.model import RpcCreateRepository
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.signals import repo_linked
+from sentry.utils import metrics
+
+
+class RepoExistsError(SentryAPIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "repo_exists"
+    message = "A repository with that configuration already exists"
+
+
+def get_integration_repository_provider(integration):
+    from sentry.plugins.base import bindings  # circular import
+
+    binding_key = "integration-repository.provider"
+    provider_key = (
+        integration.provider
+        if integration.provider.startswith("integrations:")
+        else "integrations:" + integration.provider
+    )
+    provider_cls = bindings.get(binding_key).get(provider_key)
+    return provider_cls(id=provider_key)
 
 
 class IntegrationRepositoryProvider:
@@ -23,8 +51,8 @@ class IntegrationRepositoryProvider:
     Does not include plugins.
     """
 
-    name = None
-    repo_provider = None
+    name: ClassVar[str]
+    repo_provider: ClassVar[str]
 
     def __init__(self, id):
         self.id = id
@@ -38,35 +66,67 @@ class IntegrationRepositoryProvider:
         if integration_id is None:
             raise IntegrationError(f"{self.name} requires an integration id.")
 
-        integration_model = Integration.objects.get(
-            id=integration_id,
-            organizationintegration__organization_id=organization_id,
-            provider=self.repo_provider,
+        # Both the integration and the organization integration needs to exist for the installation to be valid.
+
+        rpc_integration = integration_service.get_integration(integration_id=integration_id)
+        if rpc_integration is None:
+            raise Integration.DoesNotExist("Integration matching query does not exist.")
+
+        rpc_org_integration = integration_service.get_organization_integration(
+            integration_id=integration_id, organization_id=organization_id
         )
+        if rpc_org_integration is None:
+            raise Integration.DoesNotExist("Integration matching query does not exist.")
 
-        # Explicitly typing to satisfy mypy.
-        installation: IntegrationInstallation = integration_model.get_installation(organization_id)
-        return installation
+        return rpc_integration.get_installation(organization_id=organization_id)
 
-    def dispatch(self, request: Request, organization, **kwargs):
-        try:
-            config = self.get_repository_data(organization, request.data)
-            result = self.build_repository_config(organization=organization, data=config)
-        except Exception as e:
-            return self.handle_api_error(e)
+    def create_repository(
+        self,
+        repo_config: MutableMapping[str, Any],
+        organization: RpcOrganization,
+    ):
+        result = self.build_repository_config(organization=organization, data=repo_config)
+
+        integration_id = result.get("integration_id")
+        external_id = result.get("external_id")
+        name = result.get("name")
+        url = result.get("url")
+
+        # first check if there is an existing hidden repository for the organization and external id
+        repositories = repository_service.get_repositories(
+            organization_id=organization.id,
+            external_id=external_id,
+            status=ObjectStatus.HIDDEN,
+        )
+        existing_repo = repositories[0] if repositories else None
+        if existing_repo:
+            existing_repo.status = ObjectStatus.ACTIVE
+            existing_repo.name = name
+            existing_repo.integration_id = integration_id
+            existing_repo.url = url
+            repository_service.update_repository(
+                organization_id=organization.id, update=existing_repo
+            )
+            metrics.incr("sentry.integration_repo_provider.repo_relink")
+            return result, existing_repo
+
+        # then check if there is a repository without an integration that matches
+        repositories = repository_service.get_repositories(
+            organization_id=organization.id,
+            has_integration=False,
+            external_id=external_id,
+        )
+        repo = repositories[0] if repositories else None
 
         repo_update_params = {
-            "external_id": result.get("external_id"),
+            "external_id": external_id,
             "url": result.get("url"),
             "config": result.get("config") or {},
             "provider": self.id,
-            "integration_id": result.get("integration_id"),
+            "integration_id": integration_id,
+            "name": name,
         }
 
-        # first check if there is a repository without an integration that matches
-        repo = Repository.objects.filter(
-            organization_id=organization.id, name=result["name"], integration_id=None
-        ).first()
         if repo:
             if self.logger:
                 self.logger.info(
@@ -81,29 +141,60 @@ class IntegrationRepositoryProvider:
             for field_name, field_value in repo_update_params.items():
                 setattr(repo, field_name, field_value)
             # also update the status if it was in a bad state
-            repo.status = ObjectStatus.VISIBLE
-            repo.save()
+            repo.status = ObjectStatus.ACTIVE
+            repository_service.update_repository(organization_id=organization.id, update=repo)
         else:
+            create_repository = RpcCreateRepository.parse_obj(
+                {**repo_update_params, "status": ObjectStatus.ACTIVE}
+            )
+            new_repository = repository_service.create_repository(
+                organization_id=organization.id, create=create_repository
+            )
+            if new_repository is not None:
+                return result, new_repository
+
+            # Try to delete webhook we just created
             try:
-                with transaction.atomic():
-                    repo = Repository.objects.create(
-                        organization_id=organization.id, name=result["name"], **repo_update_params
+                repo = Repository(organization_id=organization.id, **repo_update_params)
+                self.on_delete_repository(repo)
+            except IntegrationError:
+                pass
+
+            # if possible update the repo with matching integration
+            repositories = repository_service.get_repositories(
+                organization_id=organization.id,
+                integration_id=integration_id,
+                external_id=external_id,
+            )
+            if repositories:
+                # We anticipate to only update one repository, but we update any duplicates as well.
+                for repo in repositories:
+                    for field_name, field_value in repo_update_params.items():
+                        setattr(repo, field_name, field_value)
+                    repository_service.update_repository(
+                        organization_id=organization.id,
+                        update=repo,
                     )
-            except IntegrityError:
-                # Try to delete webhook we just created
-                try:
-                    repo = Repository(
-                        organization_id=organization.id, name=result["name"], **repo_update_params
-                    )
-                    self.on_delete_repository(repo)
-                except IntegrationError:
-                    pass
-                return Response(
-                    {"errors": {"__all__": "A repository with that name already exists"}},
-                    status=400,
-                )
-            else:
-                repo_linked.send_robust(repo=repo, user=request.user, sender=self.__class__)
+
+            raise RepoExistsError
+
+        return result, repo
+
+    def dispatch(self, request: Request, organization, **kwargs):
+        try:
+            config = self.get_repository_data(organization, request.data)
+        except Exception as e:
+            return self.handle_api_error(e)
+
+        try:
+            result, repo = self.create_repository(repo_config=config, organization=organization)
+        except RepoExistsError as e:
+            metrics.incr("sentry.integration_repo_provider.repo_exists")
+            raise (e)
+        except Exception as e:
+            return self.handle_api_error(e)
+
+        repo_linked.send_robust(repo=repo, user=request.user, sender=self.__class__)
 
         analytics.record(
             "integration.repo.added",
@@ -111,7 +202,16 @@ class IntegrationRepositoryProvider:
             id=result.get("integration_id"),
             organization_id=organization.id,
         )
-        return Response(serialize(repo, request.user), status=201)
+        return Response(
+            repository_service.serialize_repository(
+                organization_id=organization.id,
+                id=repo.id,
+                as_user=serialize_rpc_user(request.user)
+                if isinstance(request.user, User)
+                else request.user,
+            ),
+            status=201,
+        )
 
     def handle_api_error(self, e):
         context = {"error_type": "unknown"}
@@ -142,7 +242,7 @@ class IntegrationRepositoryProvider:
         """
         return config
 
-    def build_repository_config(self, organization, data):
+    def build_repository_config(self, organization: RpcOrganization, data):
         """
         Builds final dict containing all necessary data to create the repository
 

@@ -1,18 +1,21 @@
-import time
-from datetime import datetime, timedelta
-from datetime import timezone as dt_timezone
+from __future__ import annotations
 
-import pytz
-from django.utils import timezone
+import time
+from datetime import datetime, timedelta, timezone
+from unittest import mock
+
+import pytest
+from django.utils import timezone as django_timezone
 
 from sentry.release_health.base import OverviewStat
-from sentry.release_health.duplex import DuplexReleaseHealthBackend
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
-from sentry.snuba.dataset import EntityKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.sessions import _make_stats
-from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.cases import SessionMetricsTestCase
+from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
+from sentry.testutils.silo import region_silo_test
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 def parametrize_backend(cls):
@@ -22,26 +25,18 @@ def parametrize_backend(cls):
     hopefully we won't have more than one backend in the future.
     """
 
-    assert not hasattr(cls, "backend")
-    cls.backend = SessionsReleaseHealthBackend()
+    assert isinstance(cls.backend, SessionsReleaseHealthBackend)
 
-    class MetricsTest(SessionMetricsTestCase, cls):
-        __doc__ = f"Repeat tests from {cls} with metrics"
-        backend = MetricsReleaseHealthBackend()
-
-    MetricsTest.__name__ = f"{cls.__name__}Metrics"
-
-    globals()[MetricsTest.__name__] = MetricsTest
-
-    class DuplexTest(cls):
-        __doc__ = f"Repeat tests from {cls} with duplex backend"
-        backend = DuplexReleaseHealthBackend(
-            metrics_start=datetime.now(pytz.utc) - timedelta(days=120)
-        )
-
-    DuplexTest.__name__ = f"{cls.__name__}Duplex"
-
-    globals()[DuplexTest.__name__] = DuplexTest
+    newcls = type(
+        f"{cls.__name__}MetricsLayer",
+        (BaseMetricsTestCase, cls),
+        {
+            "__doc__": f"Repeat tests from {cls} with metrics layer",
+            "backend": MetricsReleaseHealthBackend(),
+            "adjust_interval": True,  # HACK interval adjustment for new MetricsLayer implementation
+        },
+    )
+    globals()[newcls.__name__] = newcls
 
     return cls
 
@@ -52,12 +47,22 @@ def format_timestamp(dt):
     return dt.strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
 
-def make_24h_stats(ts):
-    return _make_stats(datetime.utcfromtimestamp(ts).replace(tzinfo=pytz.utc), 3600, 24)
+def make_24h_stats(ts, adjust_start=False):
+    ret_val = _make_stats(datetime.utcfromtimestamp(ts).replace(tzinfo=timezone.utc), 3600, 24)
+
+    if adjust_start:
+        # HACK this adds another interval at the beginning in accordance with the new way of calculating intervals
+        # https://www.notion.so/sentry/Metrics-Layer-get_intervals-bug-dce140607d054201a5e6629b070cb969
+        ret_val.insert(0, [ret_val[0][0] - 3600, 0])
+
+    return ret_val
 
 
 @parametrize_backend
 class SnubaSessionsTest(TestCase, SnubaTestCase):
+    backend = SessionsReleaseHealthBackend()
+    adjust_interval = False  # HACK interval adjustment for new MetricsLayer implementation
+
     def setUp(self):
         super().setUp()
         self.received = time.time()
@@ -316,7 +321,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             stat="users",
         )
 
-        stats = make_24h_stats(self.received - (24 * 3600))
+        stats = make_24h_stats(self.received - (24 * 3600), adjust_start=self.adjust_interval)
         stats[-1] = [stats[-1][0], 1]
         stats_ok = stats_crash = stats
 
@@ -370,7 +375,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             stat="sessions",
         )
 
-        stats = make_24h_stats(self.received - (24 * 3600))
+        stats = make_24h_stats(self.received - (24 * 3600), adjust_start=self.adjust_interval)
 
         stats_ok = stats[:-1] + [[stats[-1][0], 2]]
         stats_crash = stats[:-1] + [[stats[-1][0], 1]]
@@ -493,40 +498,44 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         }
 
     def test_get_crash_free_breakdown(self):
-        start = timezone.now() - timedelta(days=4)
-        data = self.backend.get_crash_free_breakdown(
-            project_id=self.project.id,
-            release=self.session_release,
-            start=start,
-            environments=["prod"],
-        )
+        start = django_timezone.now() - timedelta(days=4)
 
-        # Last returned date is generated within function, should be close to now:
-        last_date = data[-1].pop("date")
-        assert timezone.now() - last_date < timedelta(seconds=1)
+        # it should work with and without environments
+        for environments in [None, ["prod"]]:
+            data = self.backend.get_crash_free_breakdown(
+                project_id=self.project.id,
+                release=self.session_release,
+                start=start,
+                environments=environments,
+            )
 
-        assert data == [
-            {
-                "crash_free_sessions": None,
-                "crash_free_users": None,
-                "date": start + timedelta(days=1),
-                "total_sessions": 0,
-                "total_users": 0,
-            },
-            {
-                "crash_free_sessions": None,
-                "crash_free_users": None,
-                "date": start + timedelta(days=2),
-                "total_sessions": 0,
-                "total_users": 0,
-            },
-            {
-                "crash_free_sessions": 100.0,
-                "crash_free_users": 100.0,
-                "total_sessions": 2,
-                "total_users": 1,
-            },
-        ]
+            # Last returned date is generated within function, should be close to now:
+            last_date = data[-1]["date"]
+            assert django_timezone.now() - last_date < timedelta(seconds=1)
+
+            assert data == [
+                {
+                    "crash_free_sessions": None,
+                    "crash_free_users": None,
+                    "date": start + timedelta(days=1),
+                    "total_sessions": 0,
+                    "total_users": 0,
+                },
+                {
+                    "crash_free_sessions": None,
+                    "crash_free_users": None,
+                    "date": start + timedelta(days=2),
+                    "total_sessions": 0,
+                    "total_users": 0,
+                },
+                {
+                    "crash_free_sessions": 100.0,
+                    "crash_free_users": 100.0,
+                    "total_sessions": 2,
+                    "total_users": 1,
+                    "date": mock.ANY,  # tested above
+                },
+            ]
 
         data = self.backend.get_crash_free_breakdown(
             project_id=self.project.id,
@@ -534,7 +543,6 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             start=start,
             environments=["prod"],
         )
-        data[-1].pop("date")
         assert data == [
             {
                 "crash_free_sessions": None,
@@ -555,6 +563,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 "crash_free_users": 0.0,
                 "total_sessions": 1,
                 "total_users": 1,
+                "date": mock.ANY,
             },
         ]
         data = self.backend.get_crash_free_breakdown(
@@ -563,7 +572,6 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             start=start,
             environments=["prod"],
         )
-        data[-1].pop("date")
         assert data == [
             {
                 "crash_free_sessions": None,
@@ -584,6 +592,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 "crash_free_users": None,
                 "total_sessions": 0,
                 "total_users": 0,
+                "date": mock.ANY,
             },
         ]
 
@@ -644,12 +653,12 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         def ts(days: int) -> int:
             return day0 + days * one_day
 
-        return [[ts(i + 1), data] for i, data in enumerate(series)]
+        return [(ts(i + 1), data) for i, data in enumerate(series)]
 
     def _test_get_project_release_stats(
         self, stat: OverviewStat, release: str, expected_series, expected_totals
     ):
-        end = timezone.now()
+        end = django_timezone.now()
         start = end - timedelta(days=4)
         stats, totals = self.backend.get_project_release_stats(
             self.project.id,
@@ -660,10 +669,10 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             end=end,
         )
 
-        # Let's not care about lists vs. tuples:
-        stats = [[ts, data] for ts, data in stats]
+        # one system returns lists instead of tuples
+        normed = [(ts, data) for ts, data in stats]
 
-        assert stats == self._add_timestamps_to_series(expected_series, start)
+        assert normed == self._add_timestamps_to_series(expected_series, start)
         assert totals == expected_totals
 
     def test_get_project_release_stats_users(self):
@@ -870,6 +879,112 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             },
         )
 
+    def test_get_project_release_stats_no_sessions(self):
+        """
+        Test still returning correct data when no sessions are available
+        :return:
+        """
+        self._test_get_project_release_stats(
+            "sessions",
+            "INEXISTENT-RELEASE",
+            [
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "sessions": 0,
+                    "sessions_abnormal": 0,
+                    "sessions_crashed": 0,
+                    "sessions_errored": 0,
+                    "sessions_healthy": 0,
+                },
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "sessions": 0,
+                    "sessions_abnormal": 0,
+                    "sessions_crashed": 0,
+                    "sessions_errored": 0,
+                    "sessions_healthy": 0,
+                },
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "sessions": 0,
+                    "sessions_abnormal": 0,
+                    "sessions_crashed": 0,
+                    "sessions_errored": 0,
+                    "sessions_healthy": 0,
+                },
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "sessions": 0,
+                    "sessions_abnormal": 0,
+                    "sessions_crashed": 0,
+                    "sessions_errored": 0,
+                    "sessions_healthy": 0,
+                },
+            ],
+            {
+                "sessions": 0,
+                "sessions_abnormal": 0,
+                "sessions_crashed": 0,
+                "sessions_errored": 0,
+                "sessions_healthy": 0,
+            },
+        )
+
+    def test_get_project_release_stats_no_users(self):
+        self._test_get_project_release_stats(
+            "users",
+            "INEXISTENT-RELEASE",
+            [
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "users": 0,
+                    "users_abnormal": 0,
+                    "users_crashed": 0,
+                    "users_errored": 0,
+                    "users_healthy": 0,
+                },
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "users": 0,
+                    "users_abnormal": 0,
+                    "users_crashed": 0,
+                    "users_errored": 0,
+                    "users_healthy": 0,
+                },
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "users": 0,
+                    "users_abnormal": 0,
+                    "users_crashed": 0,
+                    "users_errored": 0,
+                    "users_healthy": 0,
+                },
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "users": 0,
+                    "users_abnormal": 0,
+                    "users_crashed": 0,
+                    "users_errored": 0,
+                    "users_healthy": 0,
+                },
+            ],
+            {
+                "users": 0,
+                "users_abnormal": 0,
+                "users_crashed": 0,
+                "users_errored": 0,
+                "users_healthy": 0,
+            },
+        )
+
 
 @parametrize_backend
 class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
@@ -890,6 +1005,8 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
         In the last 24h -> 0 Sessions -> None
         In the previous 24h (>24h & <48h) -> 4 Exited + 1 Crashed / 5 Total Sessions -> 80%
     """
+
+    backend = SessionsReleaseHealthBackend()
 
     def setUp(self):
         super().setUp()
@@ -969,7 +1086,7 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
             )
 
     def test_get_current_and_previous_crash_free_rates(self):
-        now = timezone.now().replace(minute=15, second=23)
+        now = django_timezone.now().replace(minute=15, second=23)
         last_24h_start = now - 24 * timedelta(hours=1)
         last_48h_start = now - 2 * 24 * timedelta(hours=1)
 
@@ -993,7 +1110,7 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
         }
 
     def test_get_current_and_previous_crash_free_rates_with_zero_sessions(self):
-        now = timezone.now().replace(minute=15, second=23)
+        now = django_timezone.now().replace(minute=15, second=23)
         last_48h_start = now - 2 * 24 * timedelta(hours=1)
         last_72h_start = now - 3 * 24 * timedelta(hours=1)
         last_96h_start = now - 4 * 24 * timedelta(hours=1)
@@ -1016,8 +1133,11 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
         }
 
 
+@region_silo_test
 @parametrize_backend
 class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
+    backend = SessionsReleaseHealthBackend()
+
     def test_empty(self):
         # Test no errors when no session data
         org = self.create_organization()
@@ -1032,27 +1152,24 @@ class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
     def test_with_other_metrics(self):
         if not self.backend.is_metrics_based():
             return
+        assert isinstance(self, BaseMetricsTestCase)
 
         # Test no errors when no session data
         org = self.create_organization()
         proj = self.create_project(organization=org)
 
         # Insert a different set metric:
-        self._send_buckets(
-            [
-                {
-                    "org_id": org.id,
-                    "project_id": proj.id,
-                    "metric_id": 666,  # any other metric ID
-                    "timestamp": time.time(),
-                    "tags": {},
-                    "type": "s",
-                    "value": [1, 2, 3],
-                    "retention_days": 90,
-                }
-            ],
-            entity=EntityKey.MetricsSets.value,
-        )
+        for value in 1, 2, 3:
+            self.store_metric(
+                org_id=org.id,
+                project_id=proj.id,
+                name="foobarbaz",  # any other metric ID
+                timestamp=int(time.time()),
+                tags={},
+                type="set",
+                value=value,
+                use_case_id=UseCaseID.SESSIONS,
+            )
 
         assert (
             self.backend.get_project_releases_count(
@@ -1116,6 +1233,8 @@ class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
 
 @parametrize_backend
 class CheckReleasesHaveHealthDataTest(TestCase, SnubaTestCase):
+    backend = SessionsReleaseHealthBackend()
+
     def run_test(self, expected, projects, releases, start=None, end=None):
         if not start:
             start = datetime.now() - timedelta(days=1)
@@ -1156,6 +1275,8 @@ class CheckReleasesHaveHealthDataTest(TestCase, SnubaTestCase):
 
 @parametrize_backend
 class CheckNumberOfSessions(TestCase, SnubaTestCase):
+    backend = SessionsReleaseHealthBackend()
+
     def setUp(self):
         super().setUp()
         self.dev_env = self.create_environment(name="development", project=self.project)
@@ -1166,7 +1287,7 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
 
         # now_dt should be set to 17:40 of some day not in the future and (system time - now_dt)
         # must be less than 90 days for the metrics DB TTL
-        ONE_DAY_AGO = datetime.now(tz=dt_timezone.utc) - timedelta(days=1)
+        ONE_DAY_AGO = datetime.now(tz=timezone.utc) - timedelta(days=1)
         self.now_dt = ONE_DAY_AGO.replace(hour=17, minute=40, second=0)
         self._5_min_ago_dt = self.now_dt - timedelta(minutes=5)
         self._30_min_ago_dt = self.now_dt - timedelta(minutes=30)
@@ -1422,7 +1543,8 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
 
         assert set(actual) == {(p1.id, 3), (p2.id, 1)}
 
-        for eids in ([], None):
+        eids_tests: tuple[list[int] | None, ...] = ([], None)
+        for eids in eids_tests:
             actual = self.backend.get_num_sessions_per_project(
                 project_ids=[self.project.id, self.another_project.id],
                 environment_ids=eids,
@@ -1434,8 +1556,11 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
             assert set(actual) == {(p1.id, 4), (p2.id, 2)}
 
 
+@region_silo_test(stable=True)
 @parametrize_backend
 class InitWithoutUserTestCase(TestCase, SnubaTestCase):
+    backend = SessionsReleaseHealthBackend()
+
     def setUp(self):
         super().setUp()
         self.received = time.time()
@@ -1519,7 +1644,7 @@ class InitWithoutUserTestCase(TestCase, SnubaTestCase):
         assert inner["total_project_users_24h"] == 3
 
     def test_get_crash_free_breakdown(self):
-        start = timezone.now() - timedelta(days=4)
+        start = django_timezone.now() - timedelta(days=4)
         data = self.backend.get_crash_free_breakdown(
             project_id=self.project.id,
             release=self.session_release,
@@ -1528,9 +1653,9 @@ class InitWithoutUserTestCase(TestCase, SnubaTestCase):
         )
 
         # Last returned date is generated within function, should be close to now:
-        last_date = data[-1].pop("date")
+        last_date = data[-1]["date"]
 
-        assert timezone.now() - last_date < timedelta(seconds=1)
+        assert django_timezone.now() - last_date < timedelta(seconds=1)
 
         assert data == [
             {
@@ -1552,11 +1677,12 @@ class InitWithoutUserTestCase(TestCase, SnubaTestCase):
                 "crash_free_users": 66.66666666666667,
                 "total_sessions": 3,
                 "total_users": 3,
+                "date": mock.ANY,  # tested above
             },
         ]
 
     def test_get_project_release_stats_users(self):
-        end = timezone.now()
+        end = django_timezone.now()
         start = end - timedelta(days=4)
         stats, totals = self.backend.get_project_release_stats(
             self.project.id,

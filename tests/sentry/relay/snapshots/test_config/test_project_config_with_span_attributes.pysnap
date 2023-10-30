@@ -1,6 +1,0 @@
----
-created: '2021-08-26T17:30:18.142679Z'
-creator: sentry
-source: tests/sentry/relay/test_config.py
----
-- exclusive-time

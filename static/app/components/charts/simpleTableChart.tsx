@@ -6,17 +6,22 @@ import PanelTable, {
   PanelTableHeader,
   PanelTableProps,
 } from 'sentry/components/panels/panelTable';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
+import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
-import TopResultsIndicator from 'sentry/views/eventsV2/table/topResultsIndicator';
-import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
+import {TransactionLink} from 'sentry/views/discover/table/tableView';
+import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
+import {
+  decodeColumnOrder,
+  getTargetForTransactionSummaryLink,
+} from 'sentry/views/discover/utils';
 
 type Props = {
   eventView: EventView;
@@ -57,6 +62,7 @@ function SimpleTableChart({
   fieldAliases,
   loader,
 }: Props) {
+  const {projects} = useProjects();
   function renderRow(
     index: number,
     row: TableDataRow,
@@ -68,24 +74,39 @@ function SimpleTableChart({
         getCustomFieldRenderer?.(column.key, tableMeta, organization) ??
         getFieldRenderer(column.key, tableMeta);
 
+      const unit = tableMeta.units?.[column.key];
+      let cell = fieldRenderer(row, {organization, location, eventView, unit});
+
+      if (column.key === 'transaction' && row.transaction) {
+        cell = (
+          <TransactionLink
+            to={getTargetForTransactionSummaryLink(
+              row,
+              organization,
+              projects,
+              eventView,
+              location
+            )}
+          >
+            {cell}
+          </TransactionLink>
+        );
+      }
+
       return (
         <TableCell key={`${index}-${columnIndex}:${column.name}`}>
           {topResultsIndicators && columnIndex === 0 && (
             <TopResultsIndicator count={topResultsIndicators} index={index} />
           )}
-          {fieldRenderer(row, {organization, location, eventView})}
+          {cell}
         </TableCell>
       );
     });
   }
 
   const meta = metadata ?? {};
-  const usingEvents = organization.features.includes(
-    'discover-frontend-use-events-endpoint'
-  );
   const columns = decodeColumnOrder(
-    fields.map((field, index) => ({field, alias: fieldAliases[index]})),
-    usingEvents
+    fields.map((field, index) => ({field, alias: fieldAliases[index]}))
   );
 
   return (
@@ -128,7 +149,7 @@ const StyledPanelTable = styled(PanelTable)`
   border-bottom: 0;
 
   margin: 0;
-  ${/* sc-selector */ PanelTableHeader} {
+  ${PanelTableHeader} {
     height: min-content;
   }
 `;

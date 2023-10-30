@@ -1,13 +1,25 @@
-import datetime
-from urllib.parse import urlparse
+from __future__ import annotations
 
-from sentry.integrations.client import ApiClient
+import datetime
+import logging
+from typing import Any
+from urllib.parse import parse_qs, urlparse, urlsplit
+
+from requests import PreparedRequest
+
 from sentry.integrations.utils import get_query_hash
+from sentry.models.repository import Repository
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
+from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.shared_integrations.client.base import BaseApiResponseX
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
 from sentry.utils.patch_set import patch_to_file_changes
 
 BITBUCKET_KEY = f"{urlparse(absolute_uri()).hostname}.bitbucket"
+
+logger = logging.getLogger(__name__)
 
 
 class BitbucketAPIPath:
@@ -26,13 +38,16 @@ class BitbucketAPIPath:
 
     repository = "/2.0/repositories/{repo}"
     repositories = "/2.0/repositories/{username}"
+    repository_commit = "/2.0/repositories/{repo}/commit/{sha}"
     repository_commits = "/2.0/repositories/{repo}/commits/{revision}"
     repository_diff = "/2.0/repositories/{repo}/diff/{spec}"
     repository_hook = "/2.0/repositories/{repo}/hooks/{uid}"
     repository_hooks = "/2.0/repositories/{repo}/hooks"
 
+    source = "/2.0/repositories/{repo}/src/{sha}/{path}"
 
-class BitbucketApiClient(ApiClient):
+
+class BitbucketApiClient(IntegrationProxyClient):
     """
     The API Client for the Bitbucket Integration
 
@@ -41,24 +56,40 @@ class BitbucketApiClient(ApiClient):
 
     integration_name = "bitbucket"
 
-    def __init__(self, base_url, shared_secret, subject, *args, **kwargs):
+    def __init__(self, integration: RpcIntegration, org_integration_id: int | None = None):
+        self.base_url = integration.metadata["base_url"]
+        self.shared_secret = integration.metadata["shared_secret"]
         # subject is probably the clientKey
-        super().__init__(*args, **kwargs)
-        self.base_url = base_url
-        self.shared_secret = shared_secret
-        self.subject = subject
+        self.subject = integration.external_id
 
-    def request(self, method, path, data=None, params=None, **kwargs):
+        if not org_integration_id:
+            org_integration_id = infer_org_integration(
+                integration_id=integration.id, ctx_logger=logger
+            )
+        super().__init__(
+            integration_id=integration.id,
+            org_integration_id=org_integration_id,
+            verify_ssl=True,
+            logging_context=None,
+        )
+
+    @control_silo_function
+    def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+        path = prepared_request.url[len(self.base_url) :]
+        url_params = dict(parse_qs(urlsplit(path).query))
+        path = path.split("?")[0]
         jwt_payload = {
             "iss": BITBUCKET_KEY,
             "iat": datetime.datetime.utcnow(),
             "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=5 * 60),
-            "qsh": get_query_hash(path, method.upper(), params),
+            "qsh": get_query_hash(
+                uri=path, method=prepared_request.method.upper(), query_params=url_params
+            ),
             "sub": self.subject,
         }
         encoded_jwt = jwt.encode(jwt_payload, self.shared_secret)
-        headers = jwt.authorization_header(encoded_jwt, scheme="JWT")
-        return self._request(method, path, data=data, params=params, headers=headers, **kwargs)
+        prepared_request.headers["Authorization"] = f"JWT {encoded_jwt}"
+        return prepared_request
 
     def get_issue(self, repo, issue_id):
         return self.get(BitbucketAPIPath.issue.format(repo=repo, issue_id=issue_id))
@@ -69,7 +100,7 @@ class BitbucketApiClient(ApiClient):
     def create_issue(self, repo, data):
         return self.post(path=BitbucketAPIPath.issues.format(repo=repo), data=data)
 
-    def search_issues(self, repo, query):
+    def search_issues(self, repo: str, query: str) -> dict[str, Any]:
         # Query filters can be found here:
         # https://developer.atlassian.com/bitbucket/api/2/reference/meta/filtering#supp-endpoints
         return self.get(path=BitbucketAPIPath.issues.format(repo=repo), params={"q": query})
@@ -145,3 +176,12 @@ class BitbucketApiClient(ApiClient):
                 break
 
         return self.zip_commit_data(repo, commits)
+
+    def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
+        return self.head_cached(
+            path=BitbucketAPIPath.source.format(
+                repo=repo.name,
+                sha=version,
+                path=path,
+            ),
+        )

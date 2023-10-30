@@ -1,5 +1,6 @@
-import {JsonFormObject} from 'sentry/components/forms/type';
-import {t} from 'sentry/locale';
+import {JsonFormObject} from 'sentry/components/forms/types';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t, tct} from 'sentry/locale';
 import {MemberRole} from 'sentry/types';
 import slugify from 'sentry/utils/slugify';
 
@@ -35,7 +36,25 @@ const formGroups: JsonFormObject[] = [
         name: 'isEarlyAdopter',
         type: 'boolean',
         label: t('Early Adopter'),
-        help: t("Opt-in to new features before they're released to the public"),
+        help: tct("Opt-in to [link:new features] before they're released to the public", {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/product/accounts/early-adopter/" />
+          ),
+        }),
+      },
+      {
+        name: 'aiSuggestedSolution',
+        type: 'boolean',
+        label: t('AI Suggested Solution'),
+        visible: ({features}) => features.has('open-ai-suggestion'),
+        help: tct(
+          'Opt-in to [link:ai suggested solution] to get AI help on how to solve an issue.',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/ai-suggested-solution/" />
+            ),
+          }
+        ),
       },
     ],
   },
@@ -50,7 +69,7 @@ const formGroups: JsonFormObject[] = [
         label: t('Default Role'),
         // seems weird to have choices in initial form data
         choices: ({initialData} = {}) =>
-          initialData?.availableRoles?.map((r: MemberRole) => [r.id, r.name]) ?? [],
+          initialData?.orgRoleList?.map((r: MemberRole) => [r.id, r.name]) ?? [],
         help: t('The default role new members will receive'),
         disabled: ({access}) => !access.has('org:admin'),
       },
@@ -59,7 +78,7 @@ const formGroups: JsonFormObject[] = [
         type: 'boolean',
         required: true,
         label: t('Open Membership'),
-        help: t('Allow organization members to freely join or leave any team'),
+        help: t('Allow organization members to freely join any team'),
       },
       {
         name: 'eventsMemberAdmin',
@@ -81,7 +100,7 @@ const formGroups: JsonFormObject[] = [
         name: 'attachmentsRole',
         type: 'select',
         choices: ({initialData = {}}) =>
-          initialData?.availableRoles?.map((r: MemberRole) => [r.id, r.name]) ?? [],
+          initialData?.orgRoleList?.map((r: MemberRole) => [r.id, r.name]) ?? [],
         label: t('Attachments Access'),
         help: t(
           'Role required to download event attachments, such as native crash reports or log files.'
@@ -92,7 +111,7 @@ const formGroups: JsonFormObject[] = [
         name: 'debugFilesRole',
         type: 'select',
         choices: ({initialData = {}}) =>
-          initialData?.availableRoles?.map((r: MemberRole) => [r.id, r.name]) ?? [],
+          initialData?.orgRoleList?.map((r: MemberRole) => [r.id, r.name]) ?? [],
         label: t('Debug Files Access'),
         help: t(
           'Role required to download debug information files, proguard mappings and source maps.'

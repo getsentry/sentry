@@ -1,129 +1,223 @@
-import React from 'react';
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
+import type {RouteComponentProps} from 'react-router';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import Alert from 'sentry/components/alert';
 import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
-import {HeaderContainer} from 'sentry/components/events/interfaces/spans/header';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import {Flex} from 'sentry/components/profiling/flex';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
-import ReplayView from 'sentry/components/replays/replayView';
+import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
-import space from 'sentry/styles/space';
-import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
-import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {space} from 'sentry/styles/space';
+import {decodeScalar} from 'sentry/utils/queryString';
+import useInitialTimeOffsetMs, {
+  TimeOffsetLocationQueryParams,
+} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
+import useLogReplayDataLoaded from 'sentry/utils/replays/hooks/useLogReplayDataLoaded';
+import useReplayLayout from 'sentry/utils/replays/hooks/useReplayLayout';
+import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
+import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
+import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import ReplaysLayout from 'sentry/views/replays/detail/layout';
+import Page from 'sentry/views/replays/detail/page';
+import ReplayTransactionContext from 'sentry/views/replays/detail/trace/replayTransactionContext';
+import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
-import Breadcrumbs from './detail/breadcrumbs';
-import DetailLayout from './detail/detailLayout';
-import FocusArea from './detail/focusArea';
-import FocusTabs from './detail/focusTabs';
+type Props = RouteComponentProps<
+  {replaySlug: string},
+  {},
+  any,
+  TimeOffsetLocationQueryParams
+>;
 
-function ReplayDetails() {
-  const {
-    location,
-    params: {eventSlug, orgId},
-  } = useRouteContext();
+function ReplayDetails({params: {replaySlug}}: Props) {
+  const config = useLegacyStore(ConfigStore);
+  const location = useLocation();
+  const organization = useOrganization();
 
-  const {
-    t: initialTimeOffset, // Time, in seconds, where the video should start
-  } = location.query;
-
-  const {fetchError, fetching, onRetry, replay} = useReplayData({
-    eventSlug,
-    orgId,
+  useReplayPageview('replay.details-time-spent');
+  useRouteAnalyticsEventNames('replay_details.viewed', 'Replay Details: Viewed');
+  useRouteAnalyticsParams({
+    organization,
+    referrer: decodeScalar(location.query.referrer),
+    user_email: config.user.email,
+    tab: location.query.t_main,
   });
 
-  const {ref: fullscreenRef, isFullscreen, toggle: toggleFullscreen} = useFullscreen();
+  const {slug: orgSlug} = organization;
 
-  if (!fetching && !replay) {
-    // TODO(replay): Give the user more details when errors happen
-    console.log({fetching, fetchError}); // eslint-disable-line no-console
+  // TODO: replayId is known ahead of time and useReplayData is parsing it from the replaySlug
+  // once we fix the route params and links we should fix this to accept replayId and stop returning it
+  const {
+    errors: replayErrors,
+    fetchError,
+    fetching,
+    onRetry,
+    projectSlug,
+    replay,
+    replayId,
+    replayRecord,
+  } = useReplayReader({
+    replaySlug,
+    orgSlug,
+  });
+
+  useLogReplayDataLoaded({fetchError, fetching, projectSlug, replay});
+
+  const initialTimeOffsetMs = useInitialTimeOffsetMs({
+    orgSlug,
+    projectSlug,
+    replayId,
+    replayStartTimestampMs: replayRecord?.started_at?.getTime(),
+  });
+
+  if (replayRecord?.is_archived) {
     return (
-      <DetailLayout orgId={orgId}>
-        <PageContent>
-          <NotFound />
-        </PageContent>
-      </DetailLayout>
+      <Page
+        orgSlug={orgSlug}
+        replayRecord={replayRecord}
+        projectSlug={projectSlug}
+        replayErrors={replayErrors}
+      >
+        <Layout.Page>
+          <Alert system type="warning" data-test-id="replay-deleted">
+            <Flex gap={space(0.5)}>
+              <IconDelete color="gray500" size="sm" />
+              {t('This replay has been deleted.')}
+            </Flex>
+          </Alert>
+        </Layout.Page>
+      </Page>
+    );
+  }
+  if (fetchError) {
+    if (fetchError.statusText === 'Not Found') {
+      return (
+        <Page
+          orgSlug={orgSlug}
+          replayRecord={replayRecord}
+          projectSlug={projectSlug}
+          replayErrors={replayErrors}
+        >
+          <Layout.Page withPadding>
+            <NotFound />
+          </Layout.Page>
+        </Page>
+      );
+    }
+
+    const reasons = [
+      t('The replay is still processing'),
+      t('The replay has been deleted by a member in your organization'),
+      t('There is an internal systems error'),
+    ];
+    return (
+      <Page
+        orgSlug={orgSlug}
+        replayRecord={replayRecord}
+        projectSlug={projectSlug}
+        replayErrors={replayErrors}
+      >
+        <Layout.Page>
+          <DetailedError
+            onRetry={onRetry}
+            hideSupportLinks
+            heading={t('There was an error while fetching this Replay')}
+            message={
+              <Fragment>
+                <p>{t('This could be due to these reasons:')}</p>
+                <List symbol="bullet">
+                  {reasons.map((reason, i) => (
+                    <ListItem key={i}>{reason}</ListItem>
+                  ))}
+                </List>
+              </Fragment>
+            }
+          />
+        </Layout.Page>
+      </Page>
     );
   }
 
-  if (!fetching && replay && replay.getRRWebEvents().length < 2) {
+  if (!fetching && replay && replay.getRRWebFrames().length < 2) {
     return (
-      <DetailLayout event={replay.getEvent()} orgId={orgId}>
+      <Page
+        orgSlug={orgSlug}
+        replayRecord={replayRecord}
+        projectSlug={projectSlug}
+        replayErrors={replayErrors}
+      >
         <DetailedError
-          onRetry={onRetry}
           hideSupportLinks
-          heading={t('Expected two or more replay events')}
+          heading={t('Error loading replay')}
           message={
-            <React.Fragment>
-              <p>{t('This Replay may not have captured any user actions.')}</p>
+            <Fragment>
+              <p>
+                {t(
+                  'Expected two or more replay events. This Replay may not have captured any user actions.'
+                )}
+              </p>
               <p>
                 {t(
                   'Or there may be an issue loading the actions from the server, click to try loading the Replay again.'
                 )}
               </p>
-            </React.Fragment>
+            </Fragment>
           }
         />
-      </DetailLayout>
+      </Page>
     );
   }
 
   return (
-    <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
-      <DetailLayout
-        event={replay?.getEvent()}
-        orgId={orgId}
-        crumbs={replay?.getRawCrumbs()}
-      >
-        <Layout.Body>
-          <Layout.Main ref={fullscreenRef}>
-            <ReplayView toggleFullscreen={toggleFullscreen} isFullscreen={isFullscreen} />
-          </Layout.Main>
-
-          <Layout.Side>
-            <ErrorBoundary mini>
-              <Breadcrumbs crumbs={replay?.getRawCrumbs()} event={replay?.getEvent()} />
-            </ErrorBoundary>
-          </Layout.Side>
-
-          <StickyMain fullWidth>
-            <ErrorBoundary mini>
-              <ReplayTimeline />
-            </ErrorBoundary>
-            <FocusTabs />
-          </StickyMain>
-
-          <StyledLayoutMain fullWidth>
-            <ErrorBoundary mini>
-              <FocusArea replay={replay} />
-            </ErrorBoundary>
-          </StyledLayoutMain>
-        </Layout.Body>
-      </DetailLayout>
+    <ReplayContextProvider
+      isFetching={fetching}
+      replay={replay}
+      initialTimeOffsetMs={initialTimeOffsetMs}
+    >
+      <ReplayTransactionContext replayRecord={replayRecord}>
+        <DetailsInsideContext
+          orgSlug={orgSlug}
+          replayRecord={replayRecord}
+          projectSlug={projectSlug}
+          replayErrors={replayErrors}
+        />
+      </ReplayTransactionContext>
     </ReplayContextProvider>
   );
 }
 
-const StickyMain = styled(Layout.Main)`
-  position: sticky;
-  top: 0;
-  z-index: ${p => p.theme.zIndex.header};
+function DetailsInsideContext({
+  orgSlug,
+  replayRecord,
+  projectSlug,
+  replayErrors,
+}: {
+  orgSlug: string;
+  projectSlug: string | null;
+  replayErrors: ReplayError[];
+  replayRecord: ReplayRecord | undefined;
+}) {
+  const {getLayout} = useReplayLayout();
 
-  /* Make this component full-bleed, so the background covers everything underneath it */
-  margin: -${space(1.5)} -${space(4)} -${space(3)};
-  padding: ${space(1.5)} ${space(4)} 0;
-  max-width: none;
-  background: ${p => p.theme.background};
-`;
-
-const StyledLayoutMain = styled(Layout.Main)`
-  ${HeaderContainer} {
-    position: relative;
-  }
-`;
+  return (
+    <Page
+      orgSlug={orgSlug}
+      replayRecord={replayRecord}
+      projectSlug={projectSlug}
+      replayErrors={replayErrors}
+    >
+      <ReplaysLayout layout={getLayout()} />
+    </Page>
+  );
+}
 
 export default ReplayDetails;

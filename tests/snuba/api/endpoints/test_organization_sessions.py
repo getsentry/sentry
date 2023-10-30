@@ -4,16 +4,20 @@ from uuid import uuid4
 
 import pytest
 from django.urls import reverse
-from freezegun import freeze_time
+from django.utils import timezone
 
-from sentry.release_health.duplex import DuplexReleaseHealthBackend
+from sentry import release_health
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.cases import SessionMetricsTestCase
-from sentry.testutils.helpers.features import Feature
+from sentry.snuba.metrics import to_intervals
+from sentry.testutils.cases import APITestCase, BaseMetricsTestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.link_header import parse_link_header
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_timestamp
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 def result_sorted(result):
@@ -30,6 +34,7 @@ ONE_DAY_AGO = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedel
 TWO_DAYS_AGO = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=2)
 MOCK_DATETIME = ONE_DAY_AGO.replace(hour=12, minute=27, second=28, microsecond=303000)
 MOCK_DATETIME_PLUS_TEN_MINUTES = MOCK_DATETIME + datetime.timedelta(minutes=10)
+MOCK_DATETIME_PLUS_ONE_HOUR = MOCK_DATETIME + datetime.timedelta(hours=1)
 SNUBA_TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 MOCK_DATETIME_START_OF_DAY = MOCK_DATETIME.replace(hour=0, minute=0, second=0)
 
@@ -70,6 +75,12 @@ def make_session(project, **kwargs):
 
 
 class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
+    def adjust_start(self, date, interval):
+        return date  # sessions do not adjust start & end intervals
+
+    def adjust_end(self, date, interval):
+        return date  # sessions do not adjust start & end intervals
+
     def setUp(self):
         super().setUp()
         self.setup_fixture()
@@ -91,28 +102,26 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         self.create_environment(self.project2, name="development")
 
-        self.store_session(make_session(self.project1, started=SESSION_STARTED + 12 * 60))
-        self.store_session(
-            make_session(self.project1, started=SESSION_STARTED + 24 * 60, release="foo@1.1.0")
+        self.bulk_store_sessions(
+            [
+                make_session(self.project1, started=SESSION_STARTED + 12 * 60),
+                make_session(self.project1, started=SESSION_STARTED + 24 * 60, release="foo@1.1.0"),
+                make_session(self.project1, started=SESSION_STARTED - 60 * 60),
+                make_session(self.project1, started=SESSION_STARTED - 12 * 60 * 60),
+                make_session(self.project2, status="crashed"),
+                make_session(self.project2, environment="development"),
+                make_session(self.project3, errors=1, release="foo@1.2.0"),
+                make_session(
+                    self.project3,
+                    distinct_id="39887d89-13b2-4c84-8c23-5d13d2102664",
+                    started=SESSION_STARTED - 60 * 60,
+                ),
+                make_session(
+                    self.project3, distinct_id="39887d89-13b2-4c84-8c23-5d13d2102664", errors=1
+                ),
+                make_session(self.project4),
+            ]
         )
-        self.store_session(make_session(self.project1, started=SESSION_STARTED - 60 * 60))
-        self.store_session(make_session(self.project1, started=SESSION_STARTED - 12 * 60 * 60))
-        self.store_session(make_session(self.project2, status="crashed"))
-        self.store_session(make_session(self.project2, environment="development"))
-        self.store_session(make_session(self.project3, errors=1, release="foo@1.2.0"))
-        self.store_session(
-            make_session(
-                self.project3,
-                distinct_id="39887d89-13b2-4c84-8c23-5d13d2102664",
-                started=SESSION_STARTED - 60 * 60,
-            )
-        )
-        self.store_session(
-            make_session(
-                self.project3, distinct_id="39887d89-13b2-4c84-8c23-5d13d2102664", errors=1
-            )
-        )
-        self.store_session(make_session(self.project4))
 
     def do_request(self, query, user=None, org=None):
         self.login_as(user=user or self.user)
@@ -135,16 +144,16 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data == {"detail": "You do not have permission to perform this action."}
 
     def test_unknown_field(self):
-        response = self.do_request({"field": ["summ(sessin)"]})
+        response = self.do_request({"field": ["summ(session)"]})
 
         assert response.status_code == 400, response.content
-        assert response.data == {"detail": 'Invalid field: "summ(sessin)"'}
+        assert response.data == {"detail": 'Invalid field: "summ(session)"'}
 
     def test_unknown_groupby(self):
-        response = self.do_request({"field": ["sum(session)"], "groupBy": ["envriomnent"]})
+        response = self.do_request({"field": ["sum(session)"], "groupBy": ["environment_"]})
 
         assert response.status_code == 400, response.content
-        assert response.data == {"detail": 'Invalid groupBy: "envriomnent"'}
+        assert response.data == {"detail": 'Invalid groupBy: "environment_"'}
 
     def test_illegal_groupby(self):
         response = self.do_request({"field": ["sum(session)"], "groupBy": ["issue.id"]})
@@ -158,7 +167,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 400, response.content
-        assert response.data == {"detail": 'Invalid query field: "foo"'}
+        assert response.data["detail"] == "Invalid search filter: foo"
 
         response = self.do_request(
             {
@@ -171,14 +180,14 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         # TODO: it would be good to provide a better error here,
         # since its not obvious where `message` comes from.
-        assert response.data == {"detail": 'Invalid query field: "message"'}
+        assert response.data["detail"] == "Invalid search filter: message"
 
     def test_illegal_query(self):
         response = self.do_request(
             {"statsPeriod": "1d", "field": ["sum(session)"], "query": ["issue.id:123"]}
         )
         assert response.status_code == 400, response.content
-        assert response.data == {"detail": 'Invalid query field: "group_id"'}
+        assert response.data["detail"] == "Invalid search filter: issue.id"
 
     def test_too_many_points(self):
         # default statsPeriod is 90d
@@ -213,10 +222,15 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         start_of_day_snuba_format = MOCK_DATETIME_START_OF_DAY.strftime(SNUBA_TIME_FORMAT)
 
+        # (RaduW.) Horrible hack, start and end are adjusted differently on metrics layer and in the
+        # sessions abstract this in adjust_start/adjust_end which take care of the differences
+        one_day = 24 * 60 * 60
+        expected_start = self.adjust_start(MOCK_DATETIME_START_OF_DAY, one_day)
+        expected_end = self.adjust_end(MOCK_DATETIME.replace(minute=28, second=0), one_day)
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": start_of_day_snuba_format,
-            "end": MOCK_DATETIME.replace(minute=28, second=0).strftime(SNUBA_TIME_FORMAT),
+            "start": expected_start.strftime(SNUBA_TIME_FORMAT),
+            "end": expected_end.strftime(SNUBA_TIME_FORMAT),
             "query": "",
             "intervals": [start_of_day_snuba_format],
             "groups": [{"by": {}, "series": {"sum(session)": [9]}, "totals": {"sum(session)": 9}}],
@@ -226,10 +240,15 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             {"project": [-1], "statsPeriod": "1d", "interval": "6h", "field": ["sum(session)"]}
         )
 
+        six_hours = 6 * 60 * 60
+        expected_start = self.adjust_start(
+            TWO_DAYS_AGO.replace(hour=18, minute=0, second=0), six_hours
+        )
+        expected_end = self.adjust_end(MOCK_DATETIME.replace(minute=28, second=0), six_hours)
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": TWO_DAYS_AGO.replace(hour=18, minute=0, second=0).strftime(SNUBA_TIME_FORMAT),
-            "end": MOCK_DATETIME.replace(minute=28, second=0).strftime(SNUBA_TIME_FORMAT),
+            "start": expected_start.strftime(SNUBA_TIME_FORMAT),
+            "end": expected_end.strftime(SNUBA_TIME_FORMAT),
             "query": "",
             "intervals": [
                 TWO_DAYS_AGO.replace(hour=18, minute=0, second=0).strftime(SNUBA_TIME_FORMAT),
@@ -251,10 +270,14 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         start_of_day_snuba_format = MOCK_DATETIME_START_OF_DAY.strftime(SNUBA_TIME_FORMAT)
 
+        one_day = 24 * 60 * 60
+        expected_start = self.adjust_start(MOCK_DATETIME_START_OF_DAY, one_day)
+        expected_end = self.adjust_end(MOCK_DATETIME.replace(hour=12, minute=28, second=0), one_day)
+
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": start_of_day_snuba_format,
-            "end": MOCK_DATETIME.replace(hour=12, minute=28, second=0).strftime(SNUBA_TIME_FORMAT),
+            "start": expected_start.strftime(SNUBA_TIME_FORMAT),
+            "end": expected_end.strftime(SNUBA_TIME_FORMAT),
             "query": "",
             "intervals": [start_of_day_snuba_format],
             "groups": [{"by": {}, "series": {"sum(session)": [9]}, "totals": {"sum(session)": 9}}],
@@ -281,13 +304,20 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                 }
             )
             assert response.status_code == 200, response.content
+
+            # (RaduW.) Horrible hack, start and end are adjusted differently on metrics layer and in the
+            # sessions abstract this in adjust_start/adjust_end which take care of the differences
+            ten_min = 10 * 60
+            expected_start = self.adjust_start(
+                MOCK_DATETIME.replace(hour=12, minute=0, second=0), ten_min
+            )
+            expected_end = self.adjust_end(
+                MOCK_DATETIME.replace(hour=12, minute=38, second=0), ten_min
+            )
+
             assert result_sorted(response.data) == {
-                "start": MOCK_DATETIME.replace(hour=12, minute=0, second=0).strftime(
-                    SNUBA_TIME_FORMAT
-                ),
-                "end": MOCK_DATETIME.replace(hour=12, minute=38, second=0).strftime(
-                    SNUBA_TIME_FORMAT
-                ),
+                "start": expected_start.strftime(SNUBA_TIME_FORMAT),
+                "end": expected_end.strftime(SNUBA_TIME_FORMAT),
                 "query": "",
                 "intervals": [
                     *[
@@ -319,12 +349,12 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             )
             assert response.status_code == 200, response.content
 
-            from sentry.api.endpoints.organization_sessions import release_health
-
-            if release_health.is_metrics_based():
+            if release_health.backend.is_metrics_based():
                 # With the metrics backend, we should get exactly what we asked for,
                 # 6 intervals with 10 second length. However, because of rounding,
-                # we get it rounded to the next minute (see https://github.com/getsentry/sentry/blob/d6c59c32307eee7162301c76b74af419055b9b39/src/sentry/snuba/sessions_v2.py#L388-L392)
+                # we get it rounded to the next minute (see
+                # https://github.com/getsentry/sentry/blob/d6c59c32307eee7162301c76b74af419055b9b39/src/sentry/snuba
+                # /sessions_v2.py#L388-L392)
                 assert len(response.data["intervals"]) == 9
             else:
                 # With the sessions backend, the entire period will be aligned
@@ -346,6 +376,52 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert result_sorted(response.data)["groups"] == [
             {"by": {}, "series": {"sum(session)": [5]}, "totals": {"sum(session)": 5}}
         ]
+
+    @freeze_time(MOCK_DATETIME)
+    def test_anr_invalid_aggregates(self):
+        default_request = {
+            "project": [-1],
+            "statsPeriod": "1d",
+            "interval": "1d",
+            "field": ["anr_rate()", "crash_free_rate(user)"],
+        }
+
+        def req(**kwargs):
+            return self.do_request(dict(default_request, **kwargs))
+
+        response = req()
+        assert response.status_code == 200
+
+        if release_health.backend.is_metrics_based():
+            # Both these fields are supported by the metrics backend
+            assert response.data["groups"] == [
+                {
+                    "by": {},
+                    "totals": {"anr_rate()": 0.0, "crash_free_rate(user)": 1.0},
+                    "series": {"anr_rate()": [0.0], "crash_free_rate(user)": [1.0]},
+                }
+            ]
+        else:
+            # Both these fields are not supported by the sessions backend
+            assert response.data["groups"] == []
+
+        response = req(field=["anr_rate()", "sum(session)"])
+        assert response.status_code == 200
+
+        if release_health.backend.is_metrics_based():
+            # Both these fields are supported by the metrics backend
+            assert response.data["groups"] == [
+                {
+                    "by": {},
+                    "totals": {"anr_rate()": 0.0, "sum(session)": 9},
+                    "series": {"anr_rate()": [0.0], "sum(session)": [9]},
+                }
+            ]
+        else:
+            # Only sum(session) is supported by the sessions backend
+            assert response.data["groups"] == [
+                {"by": {}, "totals": {"sum(session)": 9}, "series": {"sum(session)": [9]}}
+            ]
 
     @freeze_time(MOCK_DATETIME)
     def test_filter_environment(self):
@@ -871,7 +947,6 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         with patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 6), patch(
             "sentry.snuba.metrics.query.MAX_POINTS", 6
         ):
-
             response = self.do_request(
                 {
                     "project": [-1],
@@ -912,7 +987,6 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         with patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 6), patch(
             "sentry.snuba.metrics.query.MAX_POINTS", 6
         ):
-
             response = self.do_request(
                 {
                     "project": [-1],
@@ -1072,23 +1146,178 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
     @freeze_time(MOCK_DATETIME)
     def test_mix_known_and_unknown_strings(self):
-        for query_string in ("environment:[production,foo]",):
-            response = self.do_request(
-                {
-                    "project": self.project.id,  # project without users
-                    "statsPeriod": "1d",
-                    "interval": "1d",
-                    "field": ["count_unique(user)", "sum(session)"],
-                    "query": query_string,
-                }
+        response = self.do_request(
+            {
+                "project": self.project.id,  # project without users
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["count_unique(user)", "sum(session)"],
+                "query": "environment:[production,foo]",
+            }
+        )
+        assert response.status_code == 200, response.data
+
+    @freeze_time(MOCK_DATETIME)
+    def test_release_semver_filter(self):
+        r1 = self.create_release(version="ahmed@1.0.0")
+        r2 = self.create_release(version="ahmed@1.1.0")
+        r3 = self.create_release(version="ahmed@2.0.0")
+
+        for r in (r1, r2, r3):
+            self.store_session(make_session(self.project, release=r.version))
+
+        response = self.do_request(
+            {
+                "project": self.project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "groupBy": ["release"],
+                "query": "release.version:1.*",
+            }
+        )
+        assert response.status_code == 200
+        assert sorted(response.data["groups"], key=lambda x: x["by"]["release"]) == [
+            {
+                "by": {"release": "ahmed@1.0.0"},
+                "totals": {"sum(session)": 1},
+                "series": {"sum(session)": [1]},
+            },
+            {
+                "by": {"release": "ahmed@1.1.0"},
+                "totals": {"sum(session)": 1},
+                "series": {"sum(session)": [1]},
+            },
+        ]
+
+    @freeze_time(MOCK_DATETIME)
+    def test_release_package_filter(self):
+        r1 = self.create_release(version="ahmed@1.2.4+124")
+        r2 = self.create_release(version="ahmed2@1.2.5+125")
+        r3 = self.create_release(version="ahmed2@1.2.6+126")
+
+        for r in (r1, r2, r3):
+            self.store_session(make_session(self.project, release=r.version))
+
+        response = self.do_request(
+            {
+                "project": self.project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "groupBy": ["release"],
+                "query": "release.package:ahmed2",
+            }
+        )
+        assert response.status_code == 200
+        assert sorted(response.data["groups"], key=lambda x: x["by"]["release"]) == [
+            {
+                "by": {"release": "ahmed2@1.2.5+125"},
+                "totals": {"sum(session)": 1},
+                "series": {"sum(session)": [1]},
+            },
+            {
+                "by": {"release": "ahmed2@1.2.6+126"},
+                "totals": {"sum(session)": 1},
+                "series": {"sum(session)": [1]},
+            },
+        ]
+
+    @freeze_time(MOCK_DATETIME)
+    def test_release_build_filter(self):
+        r1 = self.create_release(version="ahmed@1.2.4+124")
+        r2 = self.create_release(version="ahmed@1.2.3+123")
+        r3 = self.create_release(version="ahmed2@1.2.5+125")
+
+        for r in (r1, r2, r3):
+            self.store_session(make_session(self.project, release=r.version))
+
+        response = self.do_request(
+            {
+                "project": self.project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "groupBy": ["release"],
+                "query": "release.build:<125",
+            }
+        )
+        assert response.status_code == 200
+        assert sorted(response.data["groups"], key=lambda x: x["by"]["release"]) == [
+            {
+                "by": {"release": "ahmed@1.2.3+123"},
+                "totals": {"sum(session)": 1},
+                "series": {"sum(session)": [1]},
+            },
+            {
+                "by": {"release": "ahmed@1.2.4+124"},
+                "totals": {"sum(session)": 1},
+                "series": {"sum(session)": [1]},
+            },
+        ]
+
+    @freeze_time(MOCK_DATETIME)
+    def test_release_stage_filter(self):
+        new_env = self.create_environment(name="new_env")
+        adopted_release = self.create_release(version="adopted_release")
+        not_adopted_release = self.create_release(version="not_adopted_release")
+
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=adopted_release.id,
+            environment_id=new_env.id,
+            adopted=timezone.now(),
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=not_adopted_release.id,
+            environment_id=new_env.id,
+        )
+        for r in (adopted_release, not_adopted_release):
+            self.store_session(
+                make_session(self.project, release=r.version, environment=new_env.name)
             )
-            assert response.status_code == 200, response.data
+
+        response = self.do_request(
+            {
+                "project": self.project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "groupBy": ["release"],
+                "query": "release.stage:adopted",
+                "environment": new_env.name,
+            }
+        )
+        assert response.status_code == 200
+        assert response.data["groups"] == [
+            {
+                "by": {"release": "adopted_release"},
+                "totals": {"sum(session)": 1},
+                "series": {"sum(session)": [1]},
+            },
+        ]
 
 
-@patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
+@region_silo_test(stable=True)
+@patch("sentry.release_health.backend", MetricsReleaseHealthBackend())
 class OrganizationSessionsEndpointMetricsTest(
-    SessionMetricsTestCase, OrganizationSessionsEndpointTest
+    BaseMetricsTestCase, OrganizationSessionsEndpointTest
 ):
+    def adjust_start(self, start: datetime.datetime, interval: int) -> datetime.datetime:
+        # metrics align start and end to the beginning of the intervals
+        start, _end, _num_intervals = to_intervals(
+            start, start + datetime.timedelta(minutes=1), interval
+        )
+        return start
+
+    def adjust_end(self, end: datetime.datetime, interval: int) -> datetime.datetime:
+        # metrics align start and end to the beginning of the intervals
+        _start, end, _num_intervals = to_intervals(
+            end - datetime.timedelta(minutes=1), end, interval
+        )
+        return end
+
     """Repeat all tests with metrics backend"""
 
     @freeze_time(MOCK_DATETIME)
@@ -1245,6 +1474,33 @@ class OrganizationSessionsEndpointMetricsTest(
             )
 
     @freeze_time(MOCK_DATETIME)
+    def test_wildcard_search(self):
+        default_request = {
+            "project": [-1],
+            "statsPeriod": "2d",
+            "interval": "1d",
+        }
+
+        def req(**kwargs):
+            return self.do_request(dict(default_request, **kwargs))
+
+        response = req(field=["sum(session)"], query="release:foo@*")
+        assert response.status_code == 400
+        assert response.data == {"detail": "Invalid condition: wildcard search is not supported"}
+
+        response = req(field=["sum(session)"], query="release:foo@* AND release:bar@*")
+        assert response.status_code == 400
+        assert response.data == {"detail": "Invalid condition: wildcard search is not supported"}
+
+        response = req(field=["sum(session)"], query="release:foo@* OR release:bar@*")
+        assert response.status_code == 400
+        assert response.data == {"detail": "Invalid condition: wildcard search is not supported"}
+
+        response = req(field=["sum(session)"], query="(release:foo@* OR release:bar) OR project:1")
+        assert response.status_code == 400
+        assert response.data == {"detail": "Invalid condition: wildcard search is not supported"}
+
+    @freeze_time(MOCK_DATETIME)
     def test_filter_by_session_status(self):
         default_request = {
             "project": [-1],
@@ -1372,6 +1628,92 @@ class OrganizationSessionsEndpointMetricsTest(
         )
         assert response.status_code == 400, response.content
         assert response.data == {"detail": "Cannot order by sum(session) with the current filters"}
+
+    @freeze_time(MOCK_DATETIME)
+    def test_anr_rate(self):
+        def store_anr_session(user_id, mechanism):
+            self.store_session(
+                make_session(
+                    self.project2,
+                    distinct_id=user_id,
+                    errors=1,
+                    status="abnormal",
+                    abnormal_mechanism=mechanism,
+                )
+            )
+
+        self.store_session(
+            make_session(
+                self.project2,
+                distinct_id="610c480b-3c47-4871-8c03-05ea04595eb0",
+                started=SESSION_STARTED - 60 * 60,
+            )
+        )
+        store_anr_session("610c480b-3c47-4871-8c03-05ea04595eb0", "anr_foreground")
+
+        self.store_session(
+            make_session(
+                self.project2,
+                distinct_id="ac0b74a2-8ace-415a-82d2-0fdb0d81dec4",
+                started=SESSION_STARTED - 60 * 60,
+            )
+        )
+        store_anr_session("ac0b74a2-8ace-415a-82d2-0fdb0d81dec4", "anr_background")
+
+        self.store_session(
+            make_session(
+                self.project2,
+                distinct_id="5344c005-653b-48b7-bbaf-d362c2f268dd",
+                started=SESSION_STARTED - 60 * 60,
+            )
+        )
+
+        default_request = {
+            "project": [-1],
+            "statsPeriod": "1d",
+            "interval": "1d",
+            "field": ["anr_rate()"],
+        }
+
+        def req(**kwargs):
+            return self.do_request(dict(default_request, **kwargs))
+
+        # basic test case
+        response = req()
+        assert response.status_code == 200
+        assert response.data["groups"] == [
+            {"by": {}, "totals": {"anr_rate()": 0.5}, "series": {"anr_rate()": [0.5]}}
+        ]
+
+        # group by session.status
+        response = req(
+            groupBy="session.status",
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": "Cannot group field anr_rate() by session.status"}
+
+        # valid group by
+        response = req(
+            field=["anr_rate()", "foreground_anr_rate()"],
+            groupBy=["release", "environment"],
+            orderBy=["anr_rate()"],
+            query="release:foo@1.0.0",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["groups"] == [
+            {
+                "by": {"environment": "production", "release": "foo@1.0.0"},
+                "series": {
+                    "anr_rate()": [0.5],
+                    "foreground_anr_rate()": [0.25],
+                },
+                "totals": {
+                    "anr_rate()": 0.5,
+                    "foreground_anr_rate()": 0.25,
+                },
+            },
+        ]
 
     @freeze_time(MOCK_DATETIME)
     def test_crash_rate(self):
@@ -1514,7 +1856,8 @@ class OrganizationSessionsEndpointMetricsTest(
             )
         )
         for query in ('release:"" environment:""', 'release:"" OR environment:""'):
-            # Empty strings are invalid values for releases and environments, but we should still handle those cases correctly at the query layer
+            # Empty strings are invalid values for releases and environments, but we should still handle those cases
+            # correctly at the query layer
             response = self.do_request(
                 {
                     "project": self.project.id,  # project without users
@@ -1536,8 +1879,9 @@ class OrganizationSessionsEndpointMetricsTest(
             ]
 
 
-@patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
-class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCase):
+@region_silo_test(stable=True)
+@patch("sentry.release_health.backend", MetricsReleaseHealthBackend())
+class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
     def do_request(self, query, user=None, org=None):
         self.login_as(user=user or self.user)
         url = reverse(
@@ -2026,39 +2370,3 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCas
                 "series": {"sum(session)": [5]},
             },
         ]
-
-
-@patch(
-    "sentry.api.endpoints.organization_sessions.release_health",
-    DuplexReleaseHealthBackend(datetime.datetime(2022, 4, 28, 16, 0, tzinfo=datetime.timezone.utc)),
-)
-class DuplexTestCase(SessionMetricsTestCase, APITestCase):
-    """Tests specific to the duplex backend"""
-
-    def do_request(self, query, user=None, org=None):
-        self.login_as(user=user or self.user)
-        url = reverse(
-            "sentry-api-0-organization-sessions",
-            kwargs={"organization_slug": (org or self.organization).slug},
-        )
-        return self.client.get(url, query, format="json")
-
-    @freeze_time(MOCK_DATETIME)
-    def test_invalid_params(self):
-        """InvalidParams in metrics backend leads to 400 response when return-metrics is enabled"""
-        self.create_project()
-        with Feature("organizations:release-health-return-metrics"):
-            response = self.do_request(
-                {
-                    "project": [-1],
-                    "statsPeriod": ["24h"],
-                    "interval": ["1h"],
-                    "field": ["crash_rate(session)"],
-                    "groupBy": ["session.status"],  # Cannot group crash rate by session status
-                }
-            )
-
-            assert response.status_code == 400
-            assert response.data == {
-                "detail": "Cannot group field crash_rate(session) by session.status"
-            }

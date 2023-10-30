@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 const EventAnnotation = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};

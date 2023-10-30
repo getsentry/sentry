@@ -1,18 +1,18 @@
 import time
+from functools import cached_property
 
 import msgpack
-from exam import fixture
 
 from sentry.similarity.backends.redis import RedisScriptMinHashIndexBackend
 from sentry.similarity.signatures import MinHashSignatureBuilder
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils import redis
 
 signature_builder = MinHashSignatureBuilder(32, 0xFFFF)
 
 
 class RedisScriptMinHashIndexBackendTestCase(TestCase):
-    @fixture
+    @cached_property
     def index(self):
         return RedisScriptMinHashIndexBackend(
             redis.clusters.get("default").get_local_client(0),

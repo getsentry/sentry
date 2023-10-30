@@ -2,10 +2,10 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import {t, tct} from 'sentry/locale';
 import {Organization, Team} from 'sentry/types';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import AllTeamsRow from './allTeamsRow';
@@ -15,19 +15,11 @@ type Props = {
   openMembership: boolean;
   organization: Organization;
   teamList: Array<Team>;
-  urlPrefix: string;
 };
 
-function AllTeamsList({
-  organization,
-  urlPrefix,
-  openMembership,
-  teamList,
-  access,
-}: Props) {
+function AllTeamsList({organization, openMembership, teamList, access}: Props) {
   const teamNodes = teamList.map(team => (
     <AllTeamsRow
-      urlPrefix={urlPrefix}
       team={team}
       organization={organization}
       openMembership={openMembership}

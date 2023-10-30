@@ -1,20 +1,23 @@
-from collections import OrderedDict
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence, Set, Tuple
 
 from django.urls import reverse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from mistune import markdown
 from rest_framework.response import Response
 
 from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
-from sentry.models import Activity, IntegrationExternalProject, OrganizationIntegration, User
+from sentry.models.activity import Activity
+from sentry.models.user import User
+from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 
 if TYPE_CHECKING:
-    from sentry.models import ExternalIssue, Group
+    from sentry.models.group import Group
+    from sentry.models.integrations.external_issue import ExternalIssue
 
 
-class VstsIssueSync(IssueSyncMixin):  # type: ignore
+class VstsIssueSync(IssueSyncMixin):
     description = "Integrate Azure DevOps work items by linking a project."
     slug = "vsts"
     conf_key = slug
@@ -27,17 +30,17 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
 
     def create_default_repo_choice(self, default_repo: str) -> Tuple[str, str]:
         # default_repo should be the project_id
-        project = self.get_client().get_project(self.instance, default_repo)
+        project = self.get_client(base_url=self.instance).get_project(default_repo)
         return (project["id"], project["name"])
 
     def get_project_choices(
         self, group: Optional["Group"] = None, **kwargs: Any
     ) -> Tuple[Optional[str], Sequence[Tuple[str, str]]]:
-        client = self.get_client()
+        client = self.get_client(base_url=self.instance)
         try:
-            projects = client.get_projects(self.instance)
+            projects = client.get_projects()
         except (ApiError, ApiUnauthorized, KeyError) as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         project_choices = [(project["id"], project["name"]) for project in projects]
 
@@ -73,14 +76,13 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
     def get_work_item_choices(
         self, project: str, group: Optional["Group"] = None
     ) -> Tuple[Optional[str], Sequence[Tuple[str, str]]]:
-        client = self.get_client()
+        client = self.get_client(base_url=self.instance)
         try:
-            item_categories = client.get_work_item_categories(self.instance, project)["value"]
+            item_categories = client.get_work_item_categories(project)["value"]
         except (ApiError, ApiUnauthorized, KeyError) as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
-        # we want to maintain ordering of the items
-        item_type_map = OrderedDict()
+        item_type_map = {}
         for item in item_categories:
             for item_type_object in item["workItemTypes"]:
                 # the type is the last part of the url
@@ -167,7 +169,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         if project_id is None:
             raise ValueError("Azure DevOps expects project")
 
-        client = self.get_client()
+        client = self.get_client(base_url=self.instance)
 
         title = data["title"]
         description = data["description"]
@@ -175,7 +177,6 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
 
         try:
             created_item = client.create_work_item(
-                instance=self.instance,
                 project=project_id,
                 item_type=item_type,
                 title=title,
@@ -184,7 +185,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
                 comment=markdown(description),
             )
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         project_name = created_item["fields"]["System.AreaPath"]
         return {
@@ -195,8 +196,8 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         }
 
     def get_issue(self, issue_id: str, **kwargs: Any) -> Mapping[str, Any]:
-        client = self.get_client()
-        work_item = client.get_work_item(self.instance, issue_id)
+        client = self.get_client(base_url=self.instance)
+        work_item = client.get_work_item(issue_id)
         return {
             "key": str(work_item["id"]),
             "title": work_item["fields"]["System.Title"],
@@ -211,15 +212,15 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
     def sync_assignee_outbound(
         self,
         external_issue: "ExternalIssue",
-        user: Optional["User"],
+        user: Optional[RpcUser],
         assign: bool = True,
         **kwargs: Any,
     ) -> None:
-        client = self.get_client()
+        client = self.get_client(base_url=self.instance)
         assignee = None
 
         if user and assign is True:
-            sentry_emails = [email.email.lower() for email in user.get_verified_emails()]
+            sentry_emails = [email.lower() for email in user.emails]
             continuation_token = None
             while True:
                 vsts_users = client.get_users(self.model.name, continuation_token)
@@ -246,7 +247,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
                 return
 
         try:
-            client.update_work_item(self.instance, external_issue.key, assigned_to=assignee)
+            client.update_work_item(external_issue.key, assigned_to=assignee)
         except (ApiUnauthorized, ApiError):
             self.logger.info(
                 "vsts.failed-to-assign",
@@ -260,14 +261,14 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
     def sync_status_outbound(
         self, external_issue: "ExternalIssue", is_resolved: bool, project_id: int, **kwargs: Any
     ) -> None:
-        client = self.get_client()
-        work_item = client.get_work_item(self.instance, external_issue.key)
+        client = self.get_client(self.instance)
+        work_item = client.get_work_item(external_issue.key)
         # For some reason, vsts doesn't include the project id
         # in the work item response.
         # TODO(jess): figure out if there's a better way to do this
         vsts_project_name = work_item["fields"]["System.TeamProject"]
 
-        vsts_projects = client.get_projects(self.instance)
+        vsts_projects = client.get_projects()
 
         vsts_project_id = None
         for p in vsts_projects:
@@ -275,15 +276,12 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
                 vsts_project_id = p["id"]
                 break
 
-        try:
-            external_project = IntegrationExternalProject.objects.get(
-                external_id=vsts_project_id,
-                organization_integration_id__in=OrganizationIntegration.objects.filter(
-                    organization_id=external_issue.organization_id,
-                    integration_id=external_issue.integration_id,
-                ),
-            )
-        except IntegrationExternalProject.DoesNotExist:
+        integration_external_project = integration_service.get_integration_external_project(
+            organization_id=external_issue.organization_id,
+            integration_id=external_issue.integration_id,
+            external_id=vsts_project_id,
+        )
+        if integration_external_project is None:
             self.logger.info(
                 "vsts.external-project-not-found",
                 extra={
@@ -295,11 +293,13 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
             return
 
         status = (
-            external_project.resolved_status if is_resolved else external_project.unresolved_status
+            integration_external_project.resolved_status
+            if is_resolved
+            else integration_external_project.unresolved_status
         )
 
         try:
-            client.update_work_item(self.instance, external_issue.key, state=status)
+            client.update_work_item(external_issue.key, state=status)
         except (ApiUnauthorized, ApiError) as error:
             self.logger.info(
                 "vsts.failed-to-change-status",
@@ -321,9 +321,9 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         )
 
     def _get_done_statuses(self, project: str) -> Set[str]:
-        client = self.get_client()
+        client = self.get_client(base_url=self.instance)
         try:
-            all_states = client.get_work_item_states(self.instance, project)["value"]
+            all_states = client.get_work_item_states(project)["value"]
         except ApiError as err:
             self.logger.info(
                 "vsts.get-done-states.failed",
@@ -338,7 +338,9 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
     def create_comment(self, issue_id: str, user_id: int, group_note: Activity) -> Response:
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
-        return self.get_client().update_work_item(self.instance, issue_id, comment=quoted_comment)
+        return self.get_client(base_url=self.instance).update_work_item(
+            issue_id, comment=quoted_comment
+        )
 
     def create_comment_attribution(self, user_id: int, comment_text: str) -> str:
         # VSTS uses markdown or xml

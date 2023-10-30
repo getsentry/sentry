@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 import re
+from typing import TypedDict
 
 from sentry import options
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.enhancer import LATEST_VERSION, Enhancements, InvalidEnhancerConfig
+from sentry.grouping.enhancer import LATEST_VERSION, Enhancements
+from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.strategies.base import DEFAULT_GROUPING_ENHANCEMENTS_BASE, GroupingContext
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.utils import (
@@ -13,6 +17,7 @@ from sentry.grouping.utils import (
 )
 from sentry.grouping.variants import (
     HIERARCHICAL_VARIANTS,
+    BaseVariant,
     ChecksumVariant,
     ComponentVariant,
     CustomFingerprintVariant,
@@ -47,12 +52,17 @@ class GroupingConfigNotFound(LookupError):
     pass
 
 
+class GroupingConfig(TypedDict):
+    id: str
+    enhancements: Enhancements
+
+
 class GroupingConfigLoader:
     """Load a grouping config based on global or project options"""
 
     cache_prefix: str  # Set in subclasses
 
-    def get_config_dict(self, project):
+    def get_config_dict(self, project) -> GroupingConfig:
         return {
             "id": self._get_config_id(project),
             "enhancements": self._get_enhancements(project),
@@ -139,7 +149,7 @@ def get_grouping_config_dict_for_event_data(data, project):
 
 
 def get_default_enhancements(config_id=None):
-    base = DEFAULT_GROUPING_ENHANCEMENTS_BASE
+    base: str | None = DEFAULT_GROUPING_ENHANCEMENTS_BASE
     if config_id is not None:
         base = CONFIGURATIONS[config_id].enhancements_base
     return Enhancements(rules=[], bases=[base]).dumps()
@@ -215,11 +225,12 @@ def apply_server_fingerprinting(event, config, allow_custom_title=True):
 
 
 def _get_calculated_grouping_variants_for_event(event, context):
-    winning_strategy = None
-    precedence_hint = None
-    per_variant_components = {}
+    winning_strategy: str | None = None
+    precedence_hint: str | None = None
+    per_variant_components: dict[str, list[BaseVariant]] = {}
 
     for strategy in context.config.iter_strategies():
+        # Defined in src/sentry/grouping/strategies/base.py
         rv = strategy.get_grouping_component_variants(event, context=context)
         for (variant, component) in rv.items():
             per_variant_components.setdefault(variant, []).append(component)
@@ -235,9 +246,7 @@ def _get_calculated_grouping_variants_for_event(event, context):
                         "" if strategy.name.endswith("s") else "s",
                     )
             elif component.contributes and winning_strategy != strategy.name:
-                component.update(
-                    contributes=False, contributes_to_similarity=True, hint=precedence_hint
-                )
+                component.update(contributes=False, hint=precedence_hint)
 
     rv = {}
     for (variant, components) in per_variant_components.items():
@@ -249,7 +258,7 @@ def _get_calculated_grouping_variants_for_event(event, context):
     return rv
 
 
-def get_grouping_variants_for_event(event, config=None):
+def get_grouping_variants_for_event(event, config=None) -> dict[str, BaseVariant]:
     """Returns a dict of all grouping variants for this event."""
     # If a checksum is set the only variant that comes back from this
     # event is the checksum variant.
@@ -258,7 +267,7 @@ def get_grouping_variants_for_event(event, config=None):
         if HASH_RE.match(checksum):
             return {"checksum": ChecksumVariant(checksum)}
 
-        rv = {
+        rv: dict[str, BaseVariant] = {
             "hashed-checksum": ChecksumVariant(hash_from_values(checksum), hashed=True),
         }
 
@@ -292,7 +301,6 @@ def get_grouping_variants_for_event(event, config=None):
         for (key, component) in components.items():
             component.update(
                 contributes=False,
-                contributes_to_similarity=True,
                 hint="custom fingerprint takes precedence",
             )
             rv[key] = ComponentVariant(component, context.config)

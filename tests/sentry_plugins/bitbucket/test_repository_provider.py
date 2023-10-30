@@ -1,15 +1,17 @@
+from functools import cached_property
+
 import responses
-from exam import fixture
 
-from sentry.models import Repository
-from sentry.testutils import TestCase
-from sentry_plugins.bitbucket.plugin import BitbucketRepositoryProvider
+from sentry.models.repository import Repository
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import region_silo_test
+from sentry_plugins.bitbucket.repository_provider import BitbucketRepositoryProvider
 from sentry_plugins.bitbucket.testutils import COMMIT_DIFF_PATCH, COMPARE_COMMITS_EXAMPLE
-from social_auth.models import UserSocialAuth
 
 
+@region_silo_test(stable=True)
 class BitbucketPluginTest(TestCase):
-    @fixture
+    @cached_property
     def provider(self):
         return BitbucketRepositoryProvider("bitbucket")
 
@@ -32,7 +34,7 @@ class BitbucketPluginTest(TestCase):
             config={"name": "maxbittker/newsdiffs"},
         )
         user = self.user
-        UserSocialAuth.objects.create(
+        self.create_usersocialauth(
             provider="bitbucket",
             user=user,
             uid="1",

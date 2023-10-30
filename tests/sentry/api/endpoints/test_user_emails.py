@@ -1,9 +1,13 @@
 from django.urls import reverse
 
-from sentry.models import User, UserEmail, UserOption
-from sentry.testutils import APITestCase
+from sentry.models.options.user_option import UserOption
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class UserEmailsTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -78,7 +82,7 @@ class UserEmailsTest(APITestCase):
         mail_to_del = "altemail1@example.com"
         UserEmail.objects.create(user=self.user, email=mail_to_del)
         UserOption.objects.create(
-            user=self.user, project=self.project, key="mail:email", value=mail_to_del
+            user=self.user, project_id=self.project.id, key="mail:email", value=mail_to_del
         )
 
         response = self.client.delete(self.url, data={"email": mail_to_del})

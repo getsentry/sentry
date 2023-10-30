@@ -12,7 +12,7 @@ from sentry.incidents.models import (
     IncidentSubscription,
 )
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
-from sentry.snuba.models import QueryDatasets
+from sentry.snuba.models import SnubaQuery
 
 
 @register(Incident)
@@ -44,9 +44,7 @@ class IncidentSerializer(Serializer):
 
         if "seen_by" in self.expand:
             incident_seen_list = list(
-                IncidentSeen.objects.filter(incident__in=item_list)
-                .select_related("user")
-                .order_by("-last_seen")
+                IncidentSeen.objects.filter(incident__in=item_list).order_by("-last_seen")
             )
             incident_seen_dict = defaultdict(list)
             for incident_seen, serialized_seen_by in zip(
@@ -60,7 +58,9 @@ class IncidentSerializer(Serializer):
                 results[incident]["has_seen"] = has_seen
 
         if "activities" in self.expand:
-            activities = list(IncidentActivity.objects.filter(incident__in=item_list))
+            # There could be many activities. An incident could seesaw between error/warning for a long period.
+            # e.g - every 1 minute for 10 months
+            activities = list(IncidentActivity.objects.filter(incident__in=item_list)[:1000])
             incident_activities = defaultdict(list)
             for activity, serialized_activity in zip(activities, serialize(activities, user=user)):
                 incident_activities[activity.incident_id].append(serialized_activity)
@@ -106,9 +106,9 @@ class DetailedIncidentSerializer(IncidentSerializer):
         subscribed_incidents = set()
         if user.is_authenticated:
             subscribed_incidents = set(
-                IncidentSubscription.objects.filter(incident__in=item_list, user=user).values_list(
-                    "incident_id", flat=True
-                )
+                IncidentSubscription.objects.filter(
+                    incident__in=item_list, user_id=user.id
+                ).values_list("incident_id", flat=True)
             )
 
         for item in item_list:
@@ -125,7 +125,7 @@ class DetailedIncidentSerializer(IncidentSerializer):
 
     def _build_discover_query(self, incident):
         return apply_dataset_query_conditions(
-            QueryDatasets(incident.alert_rule.snuba_query.dataset),
+            SnubaQuery.Type(incident.alert_rule.snuba_query.type),
             incident.alert_rule.snuba_query.query,
             incident.alert_rule.snuba_query.event_types,
             discover=True,

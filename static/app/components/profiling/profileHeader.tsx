@@ -1,71 +1,113 @@
-import {Link} from 'react-router';
+import {useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
-import {t} from 'sentry/locale';
 import {
-  generateProfileDetailsRouteWithQuery,
-  generateProfileFlamegraphRouteWithQuery,
-} from 'sentry/utils/profiling/routes';
+  ProfilingBreadcrumbs,
+  ProfilingBreadcrumbsProps,
+} from 'sentry/components/profiling/profilingBreadcrumbs';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {Event} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
+import {isSchema, isSentrySampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
-import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
+import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
-function ProfileHeader() {
-  const params = useParams();
+function getTransactionName(input: Profiling.ProfileInput): string {
+  if (isSchema(input)) {
+    return input.metadata.transactionName;
+  }
+  if (isSentrySampledProfile(input)) {
+    return input.transaction.name || t('Unknown Transaction');
+  }
+
+  return t('Unknown Transaction');
+}
+
+interface ProfileHeaderProps {
+  eventId: string;
+  projectId: string;
+  transaction: Event | null;
+}
+
+function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const [profileGroup] = useProfileGroup();
+  const profiles = useProfiles();
+
+  const transactionName =
+    profiles.type === 'resolved' ? getTransactionName(profiles.data) : '';
+  const profileId = eventId ?? '';
+  const projectSlug = projectId ?? '';
+
+  const transactionTarget = transaction?.id
+    ? getTransactionDetailsUrl(organization.slug, `${projectSlug}:${transaction.id}`)
+    : null;
+
+  const handleGoToTransaction = useCallback(() => {
+    trackAnalytics('profiling_views.go_to_transaction', {
+      organization,
+      source: 'transaction_details',
+    });
+  }, [organization]);
+
+  const breadcrumbTrails: ProfilingBreadcrumbsProps['trails'] = useMemo(() => {
+    return [
+      {type: 'landing', payload: {query: location.query}},
+      {
+        type: 'profile summary',
+        payload: {
+          projectSlug,
+          transaction: transactionName,
+          query: location.query,
+        },
+      },
+      {
+        type: 'flamechart',
+        payload: {
+          transaction: transactionName,
+          profileId,
+          projectSlug,
+          query: location.query,
+        },
+      },
+    ];
+  }, [location, projectSlug, transactionName, profileId]);
 
   return (
-    <Layout.Header style={{gridTemplateColumns: 'minmax(0, 1fr)'}}>
-      <Layout.HeaderContent style={{marginBottom: 0}}>
-        <Breadcrumb
-          location={location}
-          organization={organization}
-          trails={[
-            {type: 'landing'},
-            {
-              type: 'flamegraph',
-              payload: {
-                transaction:
-                  profileGroup.type === 'resolved' ? profileGroup.data.name : '',
-                profileId: params.eventId ?? '',
-                projectSlug: params.projectId ?? '',
-              },
-            },
-          ]}
-        />
-      </Layout.HeaderContent>
-      <Layout.HeaderNavTabs underlined>
-        <li className={location.pathname.endsWith('details/') ? 'active' : undefined}>
-          <Link
-            to={generateProfileDetailsRouteWithQuery({
-              orgSlug: organization.slug,
-              projectSlug: params.projectId,
-              profileId: params.eventId,
-              location,
-            })}
-          >
-            {t('Details')}
-          </Link>
-        </li>
-        <li className={location.pathname.endsWith('flamegraph/') ? 'active' : undefined}>
-          <Link
-            to={generateProfileFlamegraphRouteWithQuery({
-              orgSlug: organization.slug,
-              projectSlug: params.projectId,
-              profileId: params.eventId,
-              location,
-            })}
-          >
-            {t('Flamegraph')}
-          </Link>
-        </li>
-      </Layout.HeaderNavTabs>
-    </Layout.Header>
+    <SmallerLayoutHeader>
+      <SmallerHeaderContent>
+        <SmallerProfilingBreadcrumbsWrapper>
+          <ProfilingBreadcrumbs organization={organization} trails={breadcrumbTrails} />
+        </SmallerProfilingBreadcrumbsWrapper>
+      </SmallerHeaderContent>
+      <Layout.HeaderActions>
+        {transactionTarget && (
+          <Button size="sm" onClick={handleGoToTransaction} to={transactionTarget}>
+            {t('Go to Transaction')}
+          </Button>
+        )}
+      </Layout.HeaderActions>
+    </SmallerLayoutHeader>
   );
 }
+
+const SmallerHeaderContent = styled(Layout.HeaderContent)`
+  margin-bottom: ${space(1.5)};
+`;
+
+const SmallerProfilingBreadcrumbsWrapper = styled('div')`
+  nav {
+    padding-bottom: ${space(1)};
+  }
+`;
+
+const SmallerLayoutHeader = styled(Layout.Header)`
+  padding: ${space(1)} ${space(2)} ${space(0)} ${space(2)} !important;
+`;
 
 export {ProfileHeader};

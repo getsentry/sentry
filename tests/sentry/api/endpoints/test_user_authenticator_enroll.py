@@ -1,17 +1,27 @@
 from unittest import mock
-from urllib.parse import parse_qsl
 
 from django.conf import settings
 from django.core import mail
+from django.db import router
 from django.db.models import F
 from django.urls import reverse
 
 from sentry import audit_log
-from sentry.models import AuditLogEntry, Authenticator, Organization, OrganizationMember, UserEmail
-from sentry.testutils import APITestCase
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.authenticator import Authenticator
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.useremail import UserEmail
+from sentry.services.hybrid_cloud.organization.serial import serialize_member
+from sentry.silo import SiloMode, unguarded_write
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import override_options
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from tests.sentry.api.endpoints.test_user_authenticator_details import assert_security_email_sent
 
 
+@control_silo_test(stable=True)
 class UserAuthenticatorEnrollTest(APITestCase):
     endpoint = "sentry-api-0-user-authenticator-enroll"
 
@@ -68,6 +78,15 @@ class UserAuthenticatorEnrollTest(APITestCase):
         assert interface.secret == "secret56"
         assert interface.config == {"secret": "secret56"}
 
+    @override_options({"totp.disallow-new-enrollment": True})
+    def test_totp_disallow_new_enrollment(self):
+        self.get_error_response(
+            "me",
+            "totp",
+            method="post",
+            **{"secret": "secret12", "otp": "1234"},
+        )
+
     @mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=False)
     def test_invalid_otp(self, validate_otp):
         # XXX: Pretend an unbound function exists.
@@ -122,6 +141,13 @@ class UserAuthenticatorEnrollTest(APITestCase):
             assert interface.phone_number == "1231234"
 
             assert_security_email_sent("mfa-added")
+
+    @override_options(
+        {"sms.twilio-account": "test-twilio-account", "sms.disallow-new-enrollment": True}
+    )
+    def test_sms_disallow_new_enrollment(self):
+        form_data = {"phone": "+12345678901"}
+        self.get_error_response("me", "sms", method="post", status_code=403, **form_data)
 
     def test_sms_invalid_otp(self):
         new_options = settings.SENTRY_OPTIONS.copy()
@@ -228,7 +254,21 @@ class UserAuthenticatorEnrollTest(APITestCase):
 
             assert_security_email_sent("mfa-added")
 
+    @override_options({"u2f.disallow-new-enrollment": True})
+    def test_u2f_disallow_new_enrollment(self):
+        self.get_error_response(
+            "me",
+            "u2f",
+            method="post",
+            **{
+                "deviceName": "device name",
+                "challenge": "challenge",
+                "response": "response",
+            },
+        )
 
+
+@control_silo_test(stable=True)
 class AcceptOrganizationInviteTest(APITestCase):
     endpoint = "sentry-api-0-user-authenticator-enroll"
 
@@ -238,78 +278,96 @@ class AcceptOrganizationInviteTest(APITestCase):
         self.login_as(user=self.user)
 
         self.require_2fa_for_organization()
-        self.assertFalse(Authenticator.objects.user_has_2fa(self.user))
+        self.assertFalse(self.user.has_2fa())
 
+    @assume_test_silo_mode(SiloMode.REGION)
     def require_2fa_for_organization(self):
         self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
         self.assertTrue(self.organization.flags.require_2fa.is_set)
 
-    def _assert_pending_invite_cookie_set(self, response, om):
-        invite_link = om.get_invite_link()
-        invite_data = dict(parse_qsl(response.client.cookies["pending-invite"].value))
-        assert invite_data.get("url") in invite_link
+    def _assert_pending_invite_details_in_session(self, om):
+        assert self.client.session["invite_token"] == om.token
+        assert self.client.session["invite_member_id"] == om.id
+        assert self.client.session["invite_organization_id"] == om.organization_id
 
     def create_existing_om(self):
-        OrganizationMember.objects.create(
-            user=self.user, role="member", organization=self.organization
-        )
+        with assume_test_silo_mode(SiloMode.REGION), outbox_runner():
+            OrganizationMember.objects.create(
+                user_id=self.user.id, role="member", organization=self.organization
+            )
 
     def get_om_and_init_invite(self):
-        om = OrganizationMember.objects.create(
-            email="newuser@example.com", role="member", token="abc", organization=self.organization
-        )
+        with assume_test_silo_mode(SiloMode.REGION), outbox_runner():
+            om = OrganizationMember.objects.create(
+                email="newuser@example.com",
+                role="member",
+                token="abc",
+                organization=self.organization,
+            )
 
         resp = self.client.get(
-            reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
+            reverse(
+                "sentry-api-0-organization-accept-organization-invite",
+                args=[self.organization.slug, om.id, om.token],
+            )
         )
         assert resp.status_code == 200
-        self._assert_pending_invite_cookie_set(resp, om)
+        self._assert_pending_invite_details_in_session(om)
 
         return om
 
     def assert_invite_accepted(self, response, member_id: int) -> None:
-        om = OrganizationMember.objects.get(id=member_id)
-        assert om.user == self.user
+        with assume_test_silo_mode(SiloMode.REGION):
+            om = OrganizationMember.objects.get(id=member_id)
+        assert om.user_id == self.user.id
         assert om.email is None
 
+        with assume_test_silo_mode(SiloMode.REGION):
+            serialized_member = serialize_member(om).get_audit_log_metadata()
+
         AuditLogEntry.objects.get(
-            organization=self.organization,
+            organization_id=self.organization.id,
             target_object=om.id,
             target_user=self.user,
             event=audit_log.get_event_id("MEMBER_ACCEPT"),
-            data=om.get_audit_log_data(),
+            data=serialized_member,
         )
 
-        self.assertFalse(response.client.cookies["pending-invite"].value)
+        assert not self.client.session.get("invite_token")
+        assert not self.client.session.get("invite_member_id")
 
-    def setup_u2f(self):
+    def setup_u2f(self, om):
         new_options = settings.SENTRY_OPTIONS.copy()
         new_options["system.url-prefix"] = "https://testserver"
         with self.settings(SENTRY_OPTIONS=new_options):
+            # We have to add the invite details back in to the session
+            # prior to .save_session() since this re-creates the session property
+            # when under test. See here for more details:
+            # https://docs.djangoproject.com/en/2.2/topics/testing/tools/#django.test.Client.session
             self.session["webauthn_register_state"] = "state"
+            self.session["invite_token"] = self.client.session["invite_token"]
+            self.session["invite_member_id"] = self.client.session["invite_member_id"]
+            self.session["invite_organization_id"] = self.client.session["invite_organization_id"]
             self.save_session()
             return self.get_success_response(
                 "me",
                 "u2f",
                 method="post",
-                **{
-                    "deviceName": "device name",
-                    "challenge": "challenge",
-                    "response": "response",
-                },
+                **{"deviceName": "device name", "challenge": "challenge", "response": "response"},
             )
 
     def test_cannot_accept_invite_pending_invite__2fa_required(self):
         om = self.get_om_and_init_invite()
 
-        om = OrganizationMember.objects.get(id=om.id)
-        assert om.user is None
+        with assume_test_silo_mode(SiloMode.REGION):
+            om = OrganizationMember.objects.get(id=om.id)
+        assert om.user_id is None
         assert om.email == "newuser@example.com"
 
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
     def test_accept_pending_invite__u2f_enroll(self, try_enroll):
         om = self.get_om_and_init_invite()
-        resp = self.setup_u2f()
+        resp = self.setup_u2f(om)
 
         self.assert_invite_accepted(resp, om.id)
 
@@ -376,9 +434,10 @@ class AcceptOrganizationInviteTest(APITestCase):
     def test_user_already_org_member(self, try_enroll, log):
         om = self.get_om_and_init_invite()
         self.create_existing_om()
-        self.setup_u2f()
+        self.setup_u2f(om)
 
-        assert not OrganizationMember.objects.filter(id=om.id).exists()
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert not OrganizationMember.objects.filter(id=om.id).exists()
 
         log.info.assert_called_once_with(
             "Pending org invite not accepted - User already org member",
@@ -392,12 +451,16 @@ class AcceptOrganizationInviteTest(APITestCase):
 
         # Mutate the OrganizationMember, putting it out of sync with the
         # pending member cookie.
-        om.update(id=om.id + 1)
+        with assume_test_silo_mode(SiloMode.REGION), unguarded_write(
+            using=router.db_for_write(OrganizationMember)
+        ):
+            om.update(id=om.id + 1)
 
-        self.setup_u2f()
+        self.setup_u2f(om)
 
-        om = OrganizationMember.objects.get(id=om.id)
-        assert om.user is None
+        with assume_test_silo_mode(SiloMode.REGION):
+            om = OrganizationMember.objects.get(id=om.id)
+        assert om.user_id is None
         assert om.email == "newuser@example.com"
 
         assert log.error.call_count == 1
@@ -410,12 +473,16 @@ class AcceptOrganizationInviteTest(APITestCase):
 
         # Mutate the OrganizationMember, putting it out of sync with the
         # pending member cookie.
-        om.update(token="123")
+        with assume_test_silo_mode(SiloMode.REGION), unguarded_write(
+            using=router.db_for_write(OrganizationMember)
+        ):
+            om.update(token="123")
 
-        self.setup_u2f()
+        self.setup_u2f(om)
 
-        om = OrganizationMember.objects.get(id=om.id)
-        assert om.user is None
+        with assume_test_silo_mode(SiloMode.REGION):
+            om = OrganizationMember.objects.get(id=om.id)
+        assert om.user_id is None
         assert om.email == "newuser@example.com"
 
     @mock.patch("sentry.api.endpoints.user_authenticator_enroll.logger")

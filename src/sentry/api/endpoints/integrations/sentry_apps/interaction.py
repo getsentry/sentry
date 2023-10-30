@@ -4,20 +4,28 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tsdb
-from sentry.api.base import StatsMixin
-from sentry.api.bases import SentryAppBaseEndpoint, SentryAppStatsPermission
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import StatsMixin, region_silo_endpoint
+from sentry.api.bases import RegionSentryAppBaseEndpoint, SentryAppStatsPermission
 from sentry.api.bases.sentryapps import COMPONENT_TYPES
+from sentry.services.hybrid_cloud.app import app_service
+from sentry.tsdb.base import TSDBModel
 
 logger = logging.getLogger(__name__)
 
-TSDB_MODELS = [tsdb.models.sentry_app_viewed, tsdb.models.sentry_app_component_interacted]
+TSDB_MODELS = [TSDBModel.sentry_app_viewed, TSDBModel.sentry_app_component_interacted]
 
 
 def get_component_interaction_key(sentry_app, component_type):
     return f"{sentry_app.slug}:{component_type}"
 
 
-class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
+@region_silo_endpoint
+class SentryAppInteractionEndpoint(RegionSentryAppBaseEndpoint, StatsMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (SentryAppStatsPermission,)
 
     def get(self, request: Request, sentry_app) -> Response:
@@ -28,16 +36,22 @@ class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
         """
 
         views = tsdb.get_range(
-            model=tsdb.models.sentry_app_viewed, keys=[sentry_app.id], **self._parse_args(request)
+            model=TSDBModel.sentry_app_viewed,
+            keys=[sentry_app.id],
+            **self._parse_args(request),
+            tenant_ids={"organization_id": sentry_app.owner_id},
         )[sentry_app.id]
 
+        components = app_service.find_app_components(app_id=sentry_app.id)
+
         component_interactions = tsdb.get_range(
-            model=tsdb.models.sentry_app_component_interacted,
+            model=TSDBModel.sentry_app_component_interacted,
             keys=[
                 get_component_interaction_key(sentry_app, component.type)
-                for component in sentry_app.components.all()
+                for component in components
             ],
             **self._parse_args(request),
+            tenant_ids={"organization_id": sentry_app.owner_id},
         )
 
         return Response(
@@ -60,7 +74,7 @@ class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
         tsdb_field = request.data.get("tsdbField", "")
         key = None
 
-        model = getattr(tsdb.models, tsdb_field, None)
+        model = getattr(TSDBModel, tsdb_field, None)
         if model is None or model not in TSDB_MODELS:
             return Response(
                 {
@@ -69,7 +83,7 @@ class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
                 status=400,
             )
 
-        if model == tsdb.models.sentry_app_component_interacted:
+        if model == TSDBModel.sentry_app_component_interacted:
             component_type = request.data.get("componentType", None)
             if component_type is None or component_type not in COMPONENT_TYPES:
                 return Response(
@@ -80,7 +94,7 @@ class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
                 )
 
             key = get_component_interaction_key(sentry_app, request.data["componentType"])
-        elif model == tsdb.models.sentry_app_viewed:
+        elif model == TSDBModel.sentry_app_viewed:
             key = sentry_app.id
 
         # Timestamp is automatically created

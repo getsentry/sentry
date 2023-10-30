@@ -1,4 +1,3 @@
-import {withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -7,14 +6,15 @@ import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import NotAvailable from 'sentry/components/notAvailable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import SidebarSection from 'sentry/components/sidebarSection';
+import * as SidebarSection from 'sentry/components/sidebarSection';
 import Tag from 'sentry/components/tag';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   ReleaseProject,
   ReleaseWithHealth,
@@ -23,6 +23,8 @@ import {
 } from 'sentry/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getAdoptionSeries, getCount, getCountAtIndex} from 'sentry/utils/sessions';
+import {useLocation} from 'sentry/utils/useLocation';
+import useRouter from 'sentry/utils/useRouter';
 
 import {
   ADOPTION_STAGE_LABELS,
@@ -48,7 +50,7 @@ type Props = {
   release: ReleaseWithHealth;
   releaseSessions: SessionApiResponse | null;
   reloading: boolean;
-} & WithRouterProps;
+};
 
 function ReleaseAdoption({
   release,
@@ -59,9 +61,9 @@ function ReleaseAdoption({
   loading,
   reloading,
   errored,
-  router,
-  location,
 }: Props) {
+  const location = useLocation();
+  const router = useRouter();
   const theme = useTheme();
 
   const hasUsers = !!getCount(releaseSessions?.groups, SessionFieldWithOperation.USERS);
@@ -81,20 +83,23 @@ function ReleaseAdoption({
         axisIndex: sessionsAxisIndex,
       }
     );
-
+    const sessionSeriesData = getAdoptionSeries(
+      releaseSessions.groups,
+      allSessions?.groups,
+      releaseSessions.intervals,
+      SessionFieldWithOperation.SESSIONS
+    );
+    // echarts doesn't seem to like displaying marklines when there's only one data point.
+    // Usually, there is one data point because there is very little sessions data.
+    const hasMultipleDataPoints = sessionSeriesData.length > 1;
     const series = [
-      ...sessionsMarkLines,
+      ...(hasMultipleDataPoints ? sessionsMarkLines : []),
       {
         seriesName: t('Sessions'),
         connectNulls: true,
         yAxisIndex: sessionsAxisIndex,
         xAxisIndex: sessionsAxisIndex,
-        data: getAdoptionSeries(
-          releaseSessions.groups,
-          allSessions?.groups,
-          releaseSessions.intervals,
-          SessionFieldWithOperation.SESSIONS
-        ),
+        data: sessionSeriesData,
       },
     ];
 
@@ -223,16 +228,16 @@ function ReleaseAdoption({
   });
 
   const adoptionStage = release.adoptionStages?.[project.slug]?.stage;
-  const adoptionStageLabel = ADOPTION_STAGE_LABELS[adoptionStage];
+  const adoptionStageLabel = adoptionStage ? ADOPTION_STAGE_LABELS[adoptionStage] : null;
   const multipleEnvironments = environment.length === 0 || environment.length > 1;
 
   return (
     <div>
       {isMobileRelease(project.platform) && (
-        <SidebarSection
-          title={t('Adoption Stage')}
-          icon={
-            multipleEnvironments && (
+        <SidebarSection.Wrap>
+          <SidebarSection.Title>
+            {t('Adoption Stage')}
+            {multipleEnvironments && (
               <QuestionTooltip
                 position="top"
                 title={t(
@@ -240,88 +245,93 @@ function ReleaseAdoption({
                 )}
                 size="sm"
               />
-            )
-          }
-        >
-          {adoptionStageLabel && !multipleEnvironments ? (
-            <div>
-              <Tooltip title={adoptionStageLabel.tooltipTitle} isHoverable>
-                <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
-              </Tooltip>
-              <AdoptionEnvironment>
-                {tct(`in [environment]`, {environment})}
-              </AdoptionEnvironment>
-            </div>
-          ) : (
-            <NotAvailableWrapper>
-              <NotAvailable />
-            </NotAvailableWrapper>
-          )}
-        </SidebarSection>
+            )}
+          </SidebarSection.Title>
+          <SidebarSection.Content>
+            {adoptionStageLabel && !multipleEnvironments ? (
+              <div>
+                <Tooltip title={adoptionStageLabel.tooltipTitle} isHoverable>
+                  <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
+                </Tooltip>
+                <AdoptionEnvironment>
+                  {tct(`in [environment]`, {environment})}
+                </AdoptionEnvironment>
+              </div>
+            ) : (
+              <NotAvailableWrapper>
+                <NotAvailable />
+              </NotAvailableWrapper>
+            )}
+          </SidebarSection.Content>
+        </SidebarSection.Wrap>
       )}
-      <RelativeBox>
-        {!loading && (
-          <ChartLabel top="0px">
-            <ChartTitle
-              title={t('Sessions Adopted')}
-              icon={
-                <QuestionTooltip
-                  position="top"
-                  title={t(
-                    'Adoption compares the sessions of a release with the total sessions for this project.'
-                  )}
-                  size="sm"
-                />
-              }
-            />
-          </ChartLabel>
-        )}
+      <SidebarSection.Wrap>
+        <RelativeBox>
+          <ErrorBoundary mini>
+            {!loading && (
+              <ChartLabel top="0px">
+                <SidebarSection.Title>
+                  {t('Sessions Adopted')}
+                  <TooltipWrapper>
+                    <QuestionTooltip
+                      position="top"
+                      title={t(
+                        'Adoption compares the sessions of a release with the total sessions for this project.'
+                      )}
+                      size="sm"
+                    />
+                  </TooltipWrapper>
+                </SidebarSection.Title>
+              </ChartLabel>
+            )}
 
-        {!loading && hasUsers && (
-          <ChartLabel top="140px">
-            <ChartTitle
-              title={t('Users Adopted')}
-              icon={
-                <QuestionTooltip
-                  position="top"
-                  title={t(
-                    'Adoption compares the users of a release with the total users for this project.'
-                  )}
-                  size="sm"
-                />
-              }
-            />
-          </ChartLabel>
-        )}
+            {!loading && hasUsers && (
+              <ChartLabel top="140px">
+                <SidebarSection.Title>
+                  {t('Users Adopted')}
+                  <TooltipWrapper>
+                    <QuestionTooltip
+                      position="top"
+                      title={t(
+                        'Adoption compares the users of a release with the total users for this project.'
+                      )}
+                      size="sm"
+                    />
+                  </TooltipWrapper>
+                </SidebarSection.Title>
+              </ChartLabel>
+            )}
 
-        {errored ? (
-          <ErrorPanel height="280px">
-            <IconWarning color="gray300" size="lg" />
-          </ErrorPanel>
-        ) : (
-          <TransitionChart loading={loading} reloading={reloading} height="280px">
-            <TransparentLoadingMask visible={reloading} />
-            <ChartZoom
-              router={router}
-              period={period ?? undefined}
-              utc={utc === 'true'}
-              start={start}
-              end={end}
-              usePageDate
-              xAxisIndex={[sessionsAxisIndex, usersAxisIndex]}
-            >
-              {zoomRenderProps => (
-                <LineChart
-                  {...chartOptions}
-                  {...zoomRenderProps}
-                  series={getSeries()}
-                  transformSinglePointToLine
-                />
-              )}
-            </ChartZoom>
-          </TransitionChart>
-        )}
-      </RelativeBox>
+            {errored ? (
+              <ErrorPanel height="280px">
+                <IconWarning color="gray300" size="lg" />
+              </ErrorPanel>
+            ) : (
+              <TransitionChart loading={loading} reloading={reloading} height="280px">
+                <TransparentLoadingMask visible={reloading} />
+                <ChartZoom
+                  router={router}
+                  period={period ?? undefined}
+                  utc={utc === 'true'}
+                  start={start}
+                  end={end}
+                  usePageDate
+                  xAxisIndex={[sessionsAxisIndex, usersAxisIndex]}
+                >
+                  {zoomRenderProps => (
+                    <LineChart
+                      {...chartOptions}
+                      {...zoomRenderProps}
+                      series={getSeries()}
+                      transformSinglePointToLine
+                    />
+                  )}
+                </ChartZoom>
+              </TransitionChart>
+            )}
+          </ErrorBoundary>
+        </RelativeBox>
+      </SidebarSection.Wrap>
     </div>
   );
 }
@@ -329,6 +339,18 @@ function ReleaseAdoption({
 const NotAvailableWrapper = styled('div')`
   display: flex;
   align-items: center;
+`;
+
+const ChartLabel = styled('div')<{top: string}>`
+  position: absolute;
+  top: ${p => p.top};
+  z-index: 1;
+  left: 0;
+  right: 0;
+`;
+
+const TooltipWrapper = styled('span')`
+  margin-left: ${space(0.5)};
 `;
 
 const AdoptionEnvironment = styled('span')`
@@ -341,16 +363,4 @@ const RelativeBox = styled('div')`
   position: relative;
 `;
 
-const ChartTitle = styled(SidebarSection)`
-  margin: 0;
-`;
-
-const ChartLabel = styled('div')<{top: string}>`
-  position: absolute;
-  top: ${p => p.top};
-  z-index: 1;
-  left: 0;
-  right: 0;
-`;
-
-export default withRouter(ReleaseAdoption);
+export default ReleaseAdoption;

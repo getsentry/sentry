@@ -1,50 +1,28 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import findKey from 'lodash/findKey';
 
-import FormField from 'sentry/components/forms/formField';
-import SelectControl from 'sentry/components/forms/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
+import FormField, {FormFieldProps} from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {
-  AggregationKey,
-  AggregationRefinement,
-  explodeFieldString,
-  generateFieldAsString,
-} from 'sentry/utils/discover/fields';
-import {
-  Dataset,
-  EventTypes,
-  SessionsAggregate,
-} from 'sentry/views/alerts/rules/metric/types';
+import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {
   AlertType,
   AlertWizardAlertNames,
   AlertWizardRuleTemplates,
-  WizardRuleTemplate,
 } from 'sentry/views/alerts/wizard/options';
-import {QueryField} from 'sentry/views/eventsV2/table/queryField';
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
-import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
+import {QueryField} from 'sentry/views/discover/table/queryField';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {generateFieldOptions} from 'sentry/views/discover/utils';
 
 import {getFieldOptionConfig} from './metricField';
 
-type WizardAggregateFunctionValue = {
-  function: [AggregationKey, string, AggregationRefinement, AggregationRefinement];
-  kind: 'function';
-  alias?: string;
-};
-
-type WizardAggregateFieldValue = {
-  field: string;
-  kind: 'field';
-  alias?: string;
-};
-
 type MenuOption = {label: string; value: AlertType};
+type GroupedMenuOption = {label: string; options: Array<MenuOption>};
 
-type Props = Omit<FormField['props'], 'children'> & {
+type Props = Omit<FormFieldProps, 'children'> & {
   organization: Organization;
   alertType?: AlertType;
   /**
@@ -54,80 +32,6 @@ type Props = Omit<FormField['props'], 'children'> & {
   inFieldLabels?: boolean;
 };
 
-const menuOptions: {label: string; options: Array<MenuOption>}[] = [
-  {
-    label: t('ERRORS'),
-    options: [
-      {
-        label: AlertWizardAlertNames.num_errors,
-        value: 'num_errors',
-      },
-      {
-        label: AlertWizardAlertNames.users_experiencing_errors,
-        value: 'users_experiencing_errors',
-      },
-    ],
-  },
-
-  {
-    label: t('SESSIONS'),
-    options: [
-      {
-        label: AlertWizardAlertNames.crash_free_sessions,
-        value: 'crash_free_sessions',
-      },
-      {
-        label: AlertWizardAlertNames.crash_free_users,
-        value: 'crash_free_users',
-      },
-    ],
-  },
-
-  {
-    label: t('PERFORMANCE'),
-    options: [
-      {
-        label: AlertWizardAlertNames.throughput,
-        value: 'throughput',
-      },
-      {
-        label: AlertWizardAlertNames.trans_duration,
-        value: 'trans_duration',
-      },
-      {
-        label: AlertWizardAlertNames.apdex,
-        value: 'apdex',
-      },
-      {
-        label: AlertWizardAlertNames.failure_rate,
-        value: 'failure_rate',
-      },
-      {
-        label: AlertWizardAlertNames.lcp,
-        value: 'lcp',
-      },
-      {
-        label: AlertWizardAlertNames.fid,
-        value: 'fid',
-      },
-      {
-        label: AlertWizardAlertNames.cls,
-        value: 'cls',
-      },
-    ],
-  },
-
-  {
-    label: t('CUSTOM'),
-    options: [
-      {
-        label: AlertWizardAlertNames.custom,
-        value: 'custom',
-      },
-    ],
-  },
-];
-
 export default function WizardField({
   organization,
   columnWidth,
@@ -135,75 +39,88 @@ export default function WizardField({
   alertType,
   ...fieldProps
 }: Props) {
-  const matchTemplateAggregate = (
-    template: WizardRuleTemplate,
-    aggregate: string
-  ): boolean => {
-    const templateFieldValue = explodeFieldString(template.aggregate) as
-      | WizardAggregateFieldValue
-      | WizardAggregateFunctionValue;
-    const aggregateFieldValue = explodeFieldString(aggregate) as
-      | WizardAggregateFieldValue
-      | WizardAggregateFunctionValue;
+  const menuOptions: GroupedMenuOption[] = [
+    {
+      label: t('ERRORS'),
+      options: [
+        {
+          label: AlertWizardAlertNames.num_errors,
+          value: 'num_errors',
+        },
+        {
+          label: AlertWizardAlertNames.users_experiencing_errors,
+          value: 'users_experiencing_errors',
+        },
+      ],
+    },
+    ...((organization.features.includes('crash-rate-alerts')
+      ? [
+          {
+            label: t('SESSIONS'),
+            options: [
+              {
+                label: AlertWizardAlertNames.crash_free_sessions,
+                value: 'crash_free_sessions',
+              },
+              {
+                label: AlertWizardAlertNames.crash_free_users,
+                value: 'crash_free_users',
+              },
+            ],
+          },
+        ]
+      : []) as GroupedMenuOption[]),
+    {
+      label: t('PERFORMANCE'),
+      options: [
+        {
+          label: AlertWizardAlertNames.throughput,
+          value: 'throughput',
+        },
+        {
+          label: AlertWizardAlertNames.trans_duration,
+          value: 'trans_duration',
+        },
+        {
+          label: AlertWizardAlertNames.apdex,
+          value: 'apdex',
+        },
+        {
+          label: AlertWizardAlertNames.failure_rate,
+          value: 'failure_rate',
+        },
+        {
+          label: AlertWizardAlertNames.lcp,
+          value: 'lcp',
+        },
+        {
+          label: AlertWizardAlertNames.fid,
+          value: 'fid',
+        },
+        {
+          label: AlertWizardAlertNames.cls,
+          value: 'cls',
+        },
+      ],
+    },
 
-    if (template.aggregate === aggregate) {
-      return true;
-    }
-
-    if (
-      templateFieldValue.kind !== 'function' ||
-      aggregateFieldValue.kind !== 'function'
-    ) {
-      return false;
-    }
-
-    if (
-      templateFieldValue.function?.[0] === 'apdex' &&
-      aggregateFieldValue.function?.[0] === 'apdex'
-    ) {
-      return true;
-    }
-
-    return templateFieldValue.function?.[1] && aggregateFieldValue.function?.[1]
-      ? templateFieldValue.function?.[1] === aggregateFieldValue.function?.[1]
-      : templateFieldValue.function?.[0] === aggregateFieldValue.function?.[0];
-  };
-
-  const matchTemplateDataset = (
-    template: WizardRuleTemplate,
-    dataset: Dataset
-  ): boolean =>
-    template.dataset === dataset ||
-    (organization.features.includes('alert-crash-free-metrics') &&
-      (template.aggregate === SessionsAggregate.CRASH_FREE_SESSIONS ||
-        template.aggregate === SessionsAggregate.CRASH_FREE_USERS) &&
-      dataset === Dataset.METRICS);
-
-  const matchTemplateEventTypes = (
-    template: WizardRuleTemplate,
-    eventTypes: EventTypes[],
-    aggregate: string
-  ): boolean =>
-    aggregate === SessionsAggregate.CRASH_FREE_SESSIONS ||
-    aggregate === SessionsAggregate.CRASH_FREE_USERS ||
-    eventTypes.includes(template.eventTypes);
+    {
+      label: t('CUSTOM'),
+      options: [
+        {
+          label: AlertWizardAlertNames.custom,
+          value: 'custom',
+        },
+      ],
+    },
+  ];
 
   return (
     <FormField {...fieldProps}>
-      {({onChange, value: aggregate, model, disabled}) => {
+      {({onChange, model, disabled}) => {
+        const aggregate = model.getValue('aggregate');
         const dataset: Dataset = model.getValue('dataset');
-        const eventTypes = [...(model.getValue('eventTypes') ?? [])];
-
-        const selectedTemplate =
-          alertType === 'custom'
-            ? alertType
-            : findKey(
-                AlertWizardRuleTemplates,
-                template =>
-                  matchTemplateAggregate(template, aggregate) &&
-                  matchTemplateDataset(template, dataset) &&
-                  matchTemplateEventTypes(template, eventTypes, aggregate)
-              ) || 'num_errors';
+        const selectedTemplate: AlertType = alertType || 'custom';
 
         const {fieldOptionsConfig, hidePrimarySelector, hideParameterSelector} =
           getFieldOptionConfig({
@@ -235,12 +152,15 @@ export default function WizardField({
             <SelectControl
               value={selectedTemplate}
               options={menuOptions}
+              disabled={disabled}
               onChange={(option: MenuOption) => {
                 const template = AlertWizardRuleTemplates[option.value];
 
                 model.setValue('aggregate', template.aggregate);
                 model.setValue('dataset', template.dataset);
                 model.setValue('eventTypes', [template.eventTypes]);
+                // Keep alertType last
+                model.setValue('alertType', option.value);
               }}
             />
             <StyledQueryField

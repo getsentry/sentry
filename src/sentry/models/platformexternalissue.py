@@ -3,12 +3,14 @@ from collections import defaultdict
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import Model, sane_repr
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 
 
+@region_silo_only_model
 class PlatformExternalIssue(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     group = FlexibleForeignKey("sentry.Group", db_constraint=False, db_index=False)
     project = FlexibleForeignKey("sentry.Project", null=True, db_constraint=False)

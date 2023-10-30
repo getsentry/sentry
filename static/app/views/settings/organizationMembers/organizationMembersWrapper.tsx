@@ -3,7 +3,7 @@ import {RouteComponentProps} from 'react-router';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconMail} from 'sentry/icons';
@@ -11,15 +11,15 @@ import {t} from 'sentry/locale';
 import {Member, Organization} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type Props = {
   organization: Organization;
   children?: any;
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   inviteRequests: Member[];
 };
 
@@ -32,19 +32,19 @@ const InviteMembersButtonHook = HookOrDefault({
     }),
 });
 
-class OrganizationMembersWrapper extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId} = this.props.params;
+class OrganizationMembersWrapper extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+    const {organization} = this.props;
 
     return [
-      ['inviteRequests', `/organizations/${orgId}/invite-requests/`],
-      ['requestList', `/organizations/${orgId}/access-requests/`],
+      ['inviteRequests', `/organizations/${organization.slug}/invite-requests/`],
+      ['requestList', `/organizations/${organization.slug}/access-requests/`],
     ];
   }
 
   getTitle() {
-    const {orgId} = this.props.params;
-    return routeTitleGen(t('Members'), orgId, false);
+    const {organization} = this.props;
+    return routeTitleGen(t('Members'), organization.slug, false);
   }
 
   get onRequestsTab() {
@@ -150,7 +150,7 @@ function renderInviteMembersButton({
   const action = (
     <Button
       priority="primary"
-      size="small"
+      size="sm"
       onClick={onTriggerModal}
       data-test-id="email-invite"
       icon={<IconMail />}

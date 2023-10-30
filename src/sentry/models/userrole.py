@@ -1,21 +1,36 @@
-from typing import FrozenSet
+from __future__ import annotations
+
+from typing import FrozenSet, List
 
 from django.conf import settings
 from django.db import models
-from django.db.models.signals import post_migrate
+from django.utils import timezone
 
-from sentry.db.models import ArrayField, DefaultFieldsModel, sane_repr
+from sentry.backup.mixins import OverwritableConfigMixin
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import ArrayField, control_silo_only_model, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
+from sentry.db.models.outboxes import ControlOutboxProducingModel
+from sentry.models.outbox import ControlOutboxBase, OutboxCategory
+from sentry.signals import post_upgrade
+from sentry.silo import SiloMode
+from sentry.types.region import find_all_region_names
+
+MAX_USER_ROLE_NAME_LENGTH = 32
 
 
-class UserRole(DefaultFieldsModel):
+@control_silo_only_model
+class UserRole(OverwritableConfigMixin, ControlOutboxProducingModel):
     """
     Roles are applied to administrative users and apply a set of `UserPermission`.
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Config
 
-    name = models.CharField(max_length=32, unique=True)
+    date_updated = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, null=True)
+
+    name = models.CharField(max_length=MAX_USER_ROLE_NAME_LENGTH, unique=True)
     permissions = ArrayField()
     users = models.ManyToManyField("sentry.User", through="sentry.UserRoleUser")
 
@@ -24,6 +39,18 @@ class UserRole(DefaultFieldsModel):
         db_table = "sentry_userrole"
 
     __repr__ = sane_repr("name", "permissions")
+
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
+        regions = list(find_all_region_names())
+        return [
+            outbox
+            for user_id in self.users.values_list("id", flat=True)
+            for outbox in OutboxCategory.USER_UPDATE.as_control_outboxes(
+                region_names=regions,
+                shard_identifier=user_id,
+                object_identifier=user_id,
+            )
+        ]
 
     @classmethod
     def permissions_for_user(cls, user_id: int) -> FrozenSet[str]:
@@ -37,11 +64,23 @@ class UserRole(DefaultFieldsModel):
         )
 
 
-class UserRoleUser(DefaultFieldsModel):
-    __include_in_export__ = True
+@control_silo_only_model
+class UserRoleUser(ControlOutboxProducingModel):
+    __relocation_scope__ = RelocationScope.Config
+
+    date_updated = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, null=True)
 
     user = FlexibleForeignKey("sentry.User")
     role = FlexibleForeignKey("sentry.UserRole")
+
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
+        regions = list(find_all_region_names())
+        return OutboxCategory.USER_UPDATE.as_control_outboxes(
+            region_names=regions,
+            shard_identifier=self.user_id,
+            object_identifier=self.user_id,
+        )
 
     class Meta:
         app_label = "sentry"
@@ -50,16 +89,8 @@ class UserRoleUser(DefaultFieldsModel):
     __repr__ = sane_repr("user", "role")
 
 
-# this must be idempotent because it executes on every migration
-def manage_default_super_admin_role(app_config, using, **kwargs):
-    if app_config and app_config.name != "sentry":
-        return
-
-    try:
-        app_config.get_model("UserRole")
-    except LookupError:
-        return
-
+# this must be idempotent because it executes on every upgrade
+def manage_default_super_admin_role(**kwargs):
     role, _ = UserRole.objects.get_or_create(
         name="Super Admin", defaults={"permissions": settings.SENTRY_USER_PERMISSIONS}
     )
@@ -68,6 +99,9 @@ def manage_default_super_admin_role(app_config, using, **kwargs):
         role.save(update_fields=["permissions"])
 
 
-post_migrate.connect(
-    manage_default_super_admin_role, dispatch_uid="manage_default_super_admin_role", weak=False
+post_upgrade.connect(
+    manage_default_super_admin_role,
+    dispatch_uid="manage_default_super_admin_role",
+    weak=False,
+    sender=SiloMode.MONOLITH,
 )

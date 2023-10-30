@@ -1,0 +1,1477 @@
+{
+  "event_id": "a6d719ff0e7c46ad83382ba04c5de171",
+  "project": 4504758516121600,
+  "release": null,
+  "dist": null,
+  "platform": "javascript",
+  "message": "",
+  "datetime": "2023-02-28T18:53:24.684400+00:00",
+  "_meta": {"transaction": {"": {"val": "/"}}},
+  "_metrics": {"bytes.ingested.event": 22503, "bytes.stored.event": 26698},
+  "breadcrumbs": {
+    "values": [
+      {
+        "timestamp": 1677610392.338,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data undefined",
+        "data": {"arguments": ["data", "[undefined]"], "logger": "console"}
+      },
+      {
+        "timestamp": 1677610392.338,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data2 undefined",
+        "data": {"arguments": ["data2", "[undefined]"], "logger": "console"}
+      },
+      {
+        "timestamp": 1677610392.338,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data undefined",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data",
+            "[undefined]"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610392.338,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data2 undefined",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data2",
+            "[undefined]"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610394.484,
+        "type": "http",
+        "category": "xhr",
+        "level": "info",
+        "data": {
+          "method": "GET",
+          "status_code": 200,
+          "url": "https://my-api.io/api/users?page=1"
+        }
+      },
+      {
+        "timestamp": 1677610394.488,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data [object Object]",
+        "data": {
+          "arguments": [
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610394.488,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data2 undefined",
+        "data": {"arguments": ["data2", "[undefined]"], "logger": "console"}
+      },
+      {
+        "timestamp": 1677610394.488,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610394.489,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data2 undefined",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data2",
+            "[undefined]"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610394.493,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data [object Object]",
+        "data": {
+          "arguments": [
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610394.493,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data2 undefined",
+        "data": {"arguments": ["data2", "[undefined]"], "logger": "console"}
+      },
+      {
+        "timestamp": 1677610394.494,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610394.494,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data2 undefined",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data2",
+            "[undefined]"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610396.528,
+        "type": "http",
+        "category": "xhr",
+        "level": "info",
+        "data": {
+          "method": "GET",
+          "status_code": 200,
+          "url": "https://my-api.io/api/users?page=2"
+        }
+      },
+      {
+        "timestamp": 1677610396.531,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data [object Object]",
+        "data": {
+          "arguments": [
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610396.531,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data2 [object Object]",
+        "data": {
+          "arguments": [
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610396.532,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610396.532,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data2 [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610396.536,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data [object Object]",
+        "data": {
+          "arguments": [
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610396.536,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data2 [object Object]",
+        "data": {
+          "arguments": [
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610396.536,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610396.537,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data2 [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610398.566,
+        "type": "http",
+        "category": "xhr",
+        "level": "info",
+        "data": {
+          "method": "GET",
+          "status_code": 200,
+          "url": "https://my-api.io/api/users?page=3"
+        }
+      },
+      {
+        "timestamp": 1677610398.567,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data [object Object]",
+        "data": {
+          "arguments": [
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610398.567,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data2 [object Object]",
+        "data": {
+          "arguments": [
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610398.568,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610398.568,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data2 [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610398.57,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data [object Object]",
+        "data": {
+          "arguments": [
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610398.571,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data2 [object Object]",
+        "data": {
+          "arguments": [
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610398.571,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610398.571,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data2 [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610400.603,
+        "type": "http",
+        "category": "xhr",
+        "level": "info",
+        "data": {
+          "method": "GET",
+          "status_code": 200,
+          "url": "https://my-api.io/api/users?page=4"
+        }
+      },
+      {
+        "timestamp": 1677610400.605,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data [object Object]",
+        "data": {
+          "arguments": [
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610400.605,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data2 [object Object]",
+        "data": {
+          "arguments": [
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610400.605,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610400.605,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data2 [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610400.607,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data [object Object]",
+        "data": {
+          "arguments": [
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610400.608,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data2 [object Object]",
+        "data": {
+          "arguments": [
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610400.608,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610400.608,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data2 [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610402.644,
+        "type": "http",
+        "category": "xhr",
+        "level": "info",
+        "data": {
+          "method": "GET",
+          "status_code": 200,
+          "url": "https://my-api.io/api/users?page=5"
+        }
+      },
+      {
+        "timestamp": 1677610402.645,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data [object Object]",
+        "data": {
+          "arguments": [
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610402.646,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data2 [object Object]",
+        "data": {
+          "arguments": [
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610402.646,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610402.646,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data2 [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610402.649,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data [object Object]",
+        "data": {
+          "arguments": [
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610402.649,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data2 [object Object]",
+        "data": {
+          "arguments": [
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610402.649,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610402.649,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data2 [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610404.684,
+        "type": "http",
+        "category": "xhr",
+        "level": "info",
+        "data": {
+          "method": "GET",
+          "status_code": 200,
+          "url": "https://my-api.io/api/users?page=6"
+        }
+      },
+      {
+        "timestamp": 1677610404.685,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data [object Object]",
+        "data": {
+          "arguments": [
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610404.686,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "data2 [object Object]",
+        "data": {
+          "arguments": [
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610404.686,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data",
+            {
+              "data": "[Array]",
+              "page": 1,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1677610404.687,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "%c%s %o color: rgba(125, 125, 125, 0.75) data2 [object Object]",
+        "data": {
+          "arguments": [
+            "%c%s %o",
+            "color: rgba(125, 125, 125, 0.75)",
+            "data2",
+            {
+              "data": "[Array]",
+              "page": 2,
+              "per_page": 6,
+              "support": "[Object]",
+              "total": 12,
+              "total_pages": 2
+            }
+          ],
+          "logger": "console"
+        }
+      }
+    ]
+  },
+  "breakdowns": {
+    "span_ops": {
+      "ops.browser": {"value": 3188.200235, "unit": "millisecond"},
+      "ops.http": {"value": 12223.100424, "unit": "millisecond"},
+      "ops.resource": {"value": 16773.299933, "unit": "millisecond"},
+      "ops.ui": {"value": 296.998739, "unit": "millisecond"},
+      "total.time": {"value": 32481.599331, "unit": "millisecond"}
+    }
+  },
+  "contexts": {
+    "browser": {"name": "Chrome", "version": "110.0.0", "type": "browser"},
+    "device": {
+      "family": "Mac",
+      "model": "Mac",
+      "brand": "Apple",
+      "type": "device"
+    },
+    "os": {"name": "Mac OS X", "version": "10.15.7", "type": "os"},
+    "trace": {
+      "trace_id": "dfbb4f07016a450791bf09d308d66af4",
+      "span_id": "90747d4310a2a358",
+      "op": "pageload",
+      "status": "unknown",
+      "exclusive_time": 58.700323,
+      "client_sample_rate": 1.0,
+      "hash": "6666cd76f9695646",
+      "tags": {
+        "deviceMemory": "8 GB",
+        "effectiveConnectionType": "2g",
+        "hardwareConcurrency": "10"
+      },
+      "type": "trace"
+    }
+  },
+  "culprit": "/",
+  "environment": "production",
+  "grouping_config": {
+    "enhancements": "eJybzDRxY3J-bm5-npWRgaGlroGxrpHxBABcYgcZ",
+    "id": "newstyle:2019-10-29"
+  },
+  "hashes": [],
+  "ingest_path": [
+    {
+      "version": "23.2.0",
+      "public_key": "XE7QiyuNlja9PZ7I9qJlwQotzecWrUIN91BAO7Q5R38"
+    }
+  ],
+  "key_id": "3008195",
+  "level": "info",
+  "location": "/",
+  "logger": "",
+  "measurements": {},
+  "metadata": {"location": "/", "title": "/"},
+  "nodestore_insert": 1677610408.724872,
+  "received": 1677610406.707657,
+  "request": {
+    "url": "http://localhost:3000/",
+    "headers": [
+      [
+        "User-Agent",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
+      ]
+    ]
+  },
+  "sdk": {
+    "name": "sentry.javascript.node",
+    "version": "7.39.0",
+    "integrations": [
+      "InboundFilters",
+      "FunctionToString",
+      "TryCatch",
+      "Breadcrumbs",
+      "GlobalHandlers",
+      "LinkedErrors",
+      "Dedupe",
+      "HttpContext",
+      "BrowserTracing"
+    ],
+    "packages": [{"name": "npm:@sentry/react", "version": "7.39.0"}]
+  },
+  "span_grouping_config": {"id": "default:2022-10-27"},
+  "spans": [
+    {
+      "timestamp": 1677610379.7693,
+      "start_timestamp": 1677610379.6433,
+      "exclusive_time": 125.999927,
+      "description": "Main UI thread blocked",
+      "op": "ui.long-task",
+      "span_id": "aa8bb721b5d2c28c",
+      "parent_span_id": "90747d4310a2a358",
+      "trace_id": "dfbb4f07016a450791bf09d308d66af4",
+      "hash": "c777169faad84eb4"
+    },
+    {
+      "timestamp": 1677610392.327399,
+      "start_timestamp": 1677610392.2404,
+      "exclusive_time": 86.99894,
+      "description": "Main UI thread blocked",
+      "op": "ui.long-task",
+      "span_id": "b599cdd071f16f7b",
+      "parent_span_id": "90747d4310a2a358",
+      "trace_id": "dfbb4f07016a450791bf09d308d66af4",
+      "hash": "c777169faad84eb4"
+    },
+    {
+      "timestamp": 1677610394.4842,
+      "start_timestamp": 1677610392.4386,
+      "exclusive_time": 2045.599937,
+      "description": "GET https://my-api.io/api/users?page=1",
+      "op": "http.client",
+      "span_id": "96e0ae187b5481a1",
+      "parent_span_id": "90747d4310a2a358",
+      "trace_id": "dfbb4f07016a450791bf09d308d66af4",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "xhr",
+        "url": "https://my-api.io/api/users?page=1"
+      },
+      "hash": "b1575136eb1b0e78"
+    },
+    {
+      "timestamp": 1677610392.4313,
+      "start_timestamp": 1677610392.3473,
+      "exclusive_time": 83.999872,
+      "description": "Main UI thread blocked",
+      "op": "ui.long-task",
+      "span_id": "a338ffa35743d1ac",
+      "parent_span_id": "90747d4310a2a358",
+      "trace_id": "dfbb4f07016a450791bf09d308d66af4",
+      "hash": "c777169faad84eb4"
+    },
+    {
+      "timestamp": 1677610396.5287,
+      "start_timestamp": 1677610394.4915,
+      "exclusive_time": 2037.200213,
+      "description": "GET https://my-api.io/api/users?page=2",
+      "op": "http.client",
+      "span_id": "8d22b49a27b18270",
+      "parent_span_id": "90747d4310a2a358",
+      "trace_id": "dfbb4f07016a450791bf09d308d66af4",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "xhr",
+        "url": "https://my-api.io/api/users?page=2"
+      },
+      "hash": "b1575136eb1b0e78"
+    },
+    {
+      "timestamp": 1677610398.5659,
+      "start_timestamp": 1677610396.5347,
+      "exclusive_time": 2031.200171,
+      "description": "GET https://my-api.io/api/users?page=3",
+      "op": "http.client",
+      "span_id": "b2bc2ebb42248c74",
+      "parent_span_id": "90747d4310a2a358",
+      "trace_id": "dfbb4f07016a450791bf09d308d66af4",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "xhr",
+        "url": "https://my-api.io/api/users?page=3"
+      },
+      "hash": "b1575136eb1b0e78"
+    },
+    {
+      "timestamp": 1677610400.6037,
+      "start_timestamp": 1677610398.5694,
+      "exclusive_time": 2034.29985,
+      "description": "GET https://my-api.io/api/users?page=4",
+      "op": "http.client",
+      "span_id": "9336922774fd35bc",
+      "parent_span_id": "90747d4310a2a358",
+      "trace_id": "dfbb4f07016a450791bf09d308d66af4",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "xhr",
+        "url": "https://my-api.io/api/users?page=4"
+      },
+      "hash": "b1575136eb1b0e78"
+    },
+    {
+      "timestamp": 1677610402.6445,
+      "start_timestamp": 1677610400.6065,
+      "exclusive_time": 2038.000107,
+      "description": "GET https://my-api.io/api/users?page=5",
+      "op": "http.client",
+      "span_id": "a307ceb77c702cea",
+      "parent_span_id": "90747d4310a2a358",
+      "trace_id": "dfbb4f07016a450791bf09d308d66af4",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "xhr",
+        "url": "https://my-api.io/api/users?page=5"
+      },
+      "hash": "b1575136eb1b0e78"
+    },
+    {
+      "timestamp": 1677610404.6844,
+      "start_timestamp": 1677610402.6476,
+      "exclusive_time": 2036.800146,
+      "description": "GET https://my-api.io/api/users?page=6",
+      "op": "http.client",
+      "span_id": "ac1e90ff646617e7",
+      "parent_span_id": "90747d4310a2a358",
+      "trace_id": "dfbb4f07016a450791bf09d308d66af4",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "http.method": "GET",
+        "type": "xhr",
+        "url": "https://my-api.io/api/users?page=6"
+      },
+      "hash": "b1575136eb1b0e78"
+    },
+    {
+      "timestamp": 1677610379.636,
+      "start_timestamp": 1677610379.6358,
+      "exclusive_time": 0.200033,
+      "description": "unloadEvent",
+      "op": "browser",
+      "span_id": "a8b72e1b70c0b752",
+      "parent_span_id": "90747d4310a2a358",
+      "trace_id": "dfbb4f07016a450791bf09d308d66af4",
+      "hash": "8e6939b423884b5c"
+    },
+    {
+      "timestamp": 1677610392.3277,
+      "start_timestamp": 1677610392.3242,
+      "exclusive_time": 3.499985,
+      "description": "domContentLoadedEvent",
+      "op": "browser",
+      "span_id": "8d290d35b17ff0a7",
+      "parent_span_id": "90747d4310a2a358",
+      "trace_id": "dfbb4f07016a450791bf09d308d66af4",
+      "hash": "b0e3ee8970392a6f"
+    },
+    {
+      "timestamp": 1677610392.4418,
+      "start_timestamp": 1677610392.4417,
+      "exclusive_time": 0.100136,
+      "description": "loadEvent",
+      "op": "browser",
+      "span_id": "976def21c5bce751",
+      "parent_span_id": "90747d4310a2a358",
+      "trace_id": "dfbb4f07016a450791bf09d308d66af4",
+      "hash": "39e89edd65c7c22a"
+    },
+    {
+      "timestamp": 1677610376.4375,
+      "start_timestamp": 1677610376.4375,
+      "exclusive_time": 0.0,
+      "description": "connect",
+      "op": "browser",
+      "span_id": "8ce7f6aec88ed18f",
+      "parent_span_id": "90747d4310a2a358",
+      "trace_id": "dfbb4f07016a450791bf09d308d66af4",
+      "hash": "b640a0ce465fa2a4"
+    },
+    {
+      "timestamp": 1677610376.4375,
+      "start_timestamp": 1677610376.4375,
+      "exclusive_time": 0.0,
+      "description": "cache",
+      "op": "browser",
+      "span_id": "a12c919eb226ffac",
+      "parent_span_id": "90747d4310a2a358",
+      "trace_id": "dfbb4f07016a450791bf09d308d66af4",
+      "hash": "0fea6a13c52b4d47"
+    },
+    {
+      "timestamp": 1677610376.4375,
+      "start_timestamp": 1677610376.4375,
+      "exclusive_time": 0.0,
+      "description": "DNS",
+      "op": "browser",
+      "span_id": "8628c37dd1000e5c",
+      "parent_span_id": "90747d4310a2a358",
+      "trace_id": "dfbb4f07016a450791bf09d308d66af4",
+      "hash": "ed5f2bdecbd4bd34"
+    },
+    {
+      "timestamp": 1677610379.6345,
+      "start_timestamp": 1677610376.4501,
+      "exclusive_time": 3184.400081,
+      "description": "request",
+      "op": "browser",
+      "span_id": "b250d7c057468c5a",
+      "parent_span_id": "90747d4310a2a358",
+      "trace_id": "dfbb4f07016a450791bf09d308d66af4",
+      "hash": "10573b873d2fa5a3"
+    },
+    {
+      "timestamp": 1677610379.6345,
+      "start_timestamp": 1677610379.6074,
+      "exclusive_time": 27.100086,
+      "description": "response",
+      "op": "browser",
+      "span_id": "90bedd8e55e64385",
+      "parent_span_id": "90747d4310a2a358",
+      "trace_id": "dfbb4f07016a450791bf09d308d66af4",
+      "hash": "d1fc8eaf36937be0"
+    },
+    {
+      "timestamp": 1677610392.2336,
+      "start_timestamp": 1677610379.6377,
+      "exclusive_time": 12595.899821,
+      "description": "/static/js/bundle.js",
+      "op": "resource.script",
+      "span_id": "8b961fd62f330601",
+      "parent_span_id": "90747d4310a2a358",
+      "trace_id": "dfbb4f07016a450791bf09d308d66af4",
+      "data": {
+        "http.decoded_response_content_length": 2573190,
+        "http.response_content_length": 527961,
+        "http.transfer_size": 528261,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "032ded07ff89c3b4"
+    },
+    {
+      "timestamp": 1677610392.3122,
+      "start_timestamp": 1677610392.3122,
+      "exclusive_time": 0.0,
+      "description": "sentry-tracing-init",
+      "op": "mark",
+      "span_id": "ba4c9a6d96f630d9",
+      "parent_span_id": "90747d4310a2a358",
+      "trace_id": "dfbb4f07016a450791bf09d308d66af4",
+      "hash": "c53716060ebc199a"
+    },
+    {
+      "timestamp": 1677610392.435,
+      "start_timestamp": 1677610392.435,
+      "exclusive_time": 0.0,
+      "description": "first-paint",
+      "op": "paint",
+      "span_id": "ae15d5cc21160831",
+      "parent_span_id": "90747d4310a2a358",
+      "trace_id": "dfbb4f07016a450791bf09d308d66af4",
+      "hash": "4ff755f5919b94fd"
+    },
+    {
+      "timestamp": 1677610392.435,
+      "start_timestamp": 1677610392.435,
+      "exclusive_time": 0.0,
+      "description": "first-contentful-paint",
+      "op": "paint",
+      "span_id": "b765c4d3356c2652",
+      "parent_span_id": "90747d4310a2a358",
+      "trace_id": "dfbb4f07016a450791bf09d308d66af4",
+      "hash": "8545a0de03122977"
+    },
+    {
+      "timestamp": 1677610394.6017,
+      "start_timestamp": 1677610392.4654,
+      "exclusive_time": 2136.300087,
+      "description": "/favicon.ico",
+      "op": "resource.other",
+      "span_id": "bb95233878b5fafa",
+      "parent_span_id": "90747d4310a2a358",
+      "trace_id": "dfbb4f07016a450791bf09d308d66af4",
+      "data": {
+        "http.decoded_response_content_length": 3870,
+        "http.response_content_length": 3461,
+        "http.transfer_size": 3761,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "35a63c8a85b1279a"
+    },
+    {
+      "timestamp": 1677610394.5386,
+      "start_timestamp": 1677610392.4689,
+      "exclusive_time": 2069.700002,
+      "description": "/manifest.json",
+      "op": "resource.link",
+      "span_id": "8dee287b0ec50968",
+      "parent_span_id": "90747d4310a2a358",
+      "trace_id": "dfbb4f07016a450791bf09d308d66af4",
+      "data": {
+        "http.decoded_response_content_length": 492,
+        "http.response_content_length": 492,
+        "http.transfer_size": 792,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "a2a63063e1bd6ed2"
+    },
+    {
+      "timestamp": 1677610396.6428,
+      "start_timestamp": 1677610394.5396,
+      "exclusive_time": 2103.200197,
+      "description": "/logo192.png",
+      "op": "resource.other",
+      "span_id": "83fffe1eb11437ec",
+      "parent_span_id": "90747d4310a2a358",
+      "trace_id": "dfbb4f07016a450791bf09d308d66af4",
+      "data": {
+        "http.decoded_response_content_length": 5347,
+        "http.response_content_length": 5347,
+        "http.transfer_size": 5647,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "03cf160ff9190e10"
+    }
+  ],
+  "start_timestamp": 1677610376.4375,
+  "timestamp": 1677610404.6844,
+  "title": "/",
+  "transaction": "/",
+  "transaction_info": {"source": "url"},
+  "type": "transaction",
+  "version": "7"
+}

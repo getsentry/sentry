@@ -9,7 +9,9 @@ features and more performant.
 
 import copy
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Union
+
+import click
 
 from sentry import options
 from sentry.utils import metrics
@@ -20,10 +22,61 @@ LegacyKillswitchConfig = Union[KillswitchConfig, List[int]]
 Context = Dict[str, Any]
 
 
+def _update_project_configs(
+    old_option_value: Sequence[Mapping[str, Any]], new_option_value: Sequence[Mapping[str, Any]]
+) -> None:
+    """Callback for the relay.drop-transaction-metrics kill switch.
+    On every change, force a recomputation of the corresponding project configs
+    """
+    from sentry.models.organization import Organization
+    from sentry.tasks.relay import schedule_invalidate_project_config
+
+    old_project_ids = {ctx["project_id"] for ctx in old_option_value}
+    new_project_ids = {ctx["project_id"] for ctx in new_option_value}
+
+    # We want to recompute the project config for any project that was added
+    # or removed
+    changed_project_ids = old_project_ids ^ new_project_ids
+
+    if None in changed_project_ids:
+        with click.progressbar(length=Organization.objects.count()) as bar:
+            # Since all other invalidations, which would happen anyway, will de-duplicate
+            # with these ones the extra load of this is reasonable.  A temporary backlog in
+            # the relay_config_bulk queue is just fine.  We have server-side cursors
+            # disabled so .iterator() fetches 50k u64's at once which is about 390kb and
+            # at time of writing yields about 24 batches.
+            for org_id in (
+                Organization.objects.values_list("id", flat=True).all().iterator(chunk_size=50_000)
+            ):
+                schedule_invalidate_project_config(
+                    trigger="invalidate-all", organization_id=org_id, countdown=0
+                )
+                bar.update(1)
+    else:
+        with click.progressbar(changed_project_ids) as ids:
+            for project_id in ids:
+                schedule_invalidate_project_config(
+                    project_id=project_id, trigger="killswitches.relay.drop-transaction-metrics"
+                )
+
+
+@dataclass
+class KillswitchCallback:
+    """Named callback to run after a kill switch has been pushed."""
+
+    callback: Callable[[Any, Any], None]
+    #: `title` will be presented in the user prompt when asked whether or not to run the callback
+    title: str
+
+    def __call__(self, old: Any, new: Any) -> None:
+        self.callback(old, new)
+
+
 @dataclass
 class KillswitchInfo:
     description: str
     fields: Dict[str, str]
+    on_change: Optional[KillswitchCallback] = None
 
 
 ALL_KILLSWITCH_OPTIONS = {
@@ -66,7 +119,7 @@ ALL_KILLSWITCH_OPTIONS = {
             "project_id": "A project ID to filter events by.",
             "event_id": "An event ID as given in the event payload.",
             "platform": "The event platform as defined in the event payload's platform field.",
-            "symbolication_function": "process_minidump, process_applecrashreport, or process_payload",
+            "symbolication_function": "process_minidump, process_applecrashreport, process_native_stacktraces, or process_js_stacktraces",
         },
     ),
     "store.load-shed-save-event-projects": KillswitchInfo(
@@ -129,6 +182,41 @@ ALL_KILLSWITCH_OPTIONS = {
             "message_type": "message type to randomly partition",
         },
     ),
+    "relay.drop-transaction-metrics": KillswitchInfo(
+        description="""
+        Tell Relay via project config to stop extracting metrics from transactions.
+        Note that this change will not take effect immediately, it takes time
+        for downstream Relay instances to update their caches.
+
+        If project_id is set to None, extraction will be disabled for all projects.
+        In this case, the invalidation of existing project configs can take up to one hour.
+        """,
+        fields={
+            "project_id": "project ID for which we want to stop extracting transaction metrics",
+        },
+        on_change=KillswitchCallback(
+            _update_project_configs, "Trigger invalidation tasks for projects"
+        ),
+    ),
+    "api.organization.disable-last-deploys": KillswitchInfo(
+        description="""
+        Do not retrieve last deploys for projects in organization.
+
+        To protect database against suboptimal queries for organizations with huge number of
+        projects. This works by adding collapse argument to the serializer.
+        """,
+        fields={"organization_id": "An organization ID to disable last deploys for."},
+    ),
+    "crons.organization.disable-check-in": KillswitchInfo(
+        description="""
+        Do not consumer monitor check-ins for a specific organization.
+
+        This is valuable in scenarios where a organization is slamming in
+        progress check-ins without actually marking the check-in as complete
+        for whatever reason. This can cuase extranious strain on the system.
+        """,
+        fields={"organization_id": "An organization ID to disable check-ins for."},
+    ),
 }
 
 
@@ -141,25 +229,23 @@ def normalize_value(
 ) -> KillswitchConfig:
     rv: KillswitchConfig = []
     for i, condition in enumerate(option_value or ()):
-        if not condition:
-            continue
-        elif isinstance(condition, int):
-            rv.append({"project_id": str(condition)})
-        elif isinstance(condition, dict):
-            for k in ALL_KILLSWITCH_OPTIONS[killswitch_name].fields:
-                if k not in condition:
-                    if strict:
-                        raise ValueError(f"Condition {i}: Missing field {k}")
-                    else:
-                        condition[k] = None
+        if isinstance(condition, int):
+            # legacy format
+            condition = {"project_id": str(condition)}
 
-            if strict:
-                for k in list(condition):
-                    if k not in ALL_KILLSWITCH_OPTIONS[killswitch_name].fields:
-                        raise ValueError(f"Condition {i}: Unknown field: {k}")
+        for k in ALL_KILLSWITCH_OPTIONS[killswitch_name].fields:
+            if k not in condition:
+                if strict:
+                    raise ValueError(f"Condition {i}: Missing field {k}")
+                else:
+                    condition[k] = None
 
-            if any(v is not None for v in condition.values()):
-                rv.append({k: str(v) for k, v in condition.items() if v is not None})
+        if strict:
+            for k in list(condition):
+                if k not in ALL_KILLSWITCH_OPTIONS[killswitch_name].fields:
+                    raise ValueError(f"Condition {i}: Unknown field: {k}")
+
+        rv.append({k: str(v) if v is not None else None for k, v in condition.items()})
 
     return rv
 
@@ -201,16 +287,14 @@ def _value_matches(
 
 def print_conditions(killswitch_name: str, raw_option_value: LegacyKillswitchConfig) -> str:
     option_value = normalize_value(killswitch_name, raw_option_value)
-
     if not option_value:
         return "<disabled entirely>"
 
     return "DROP DATA WHERE\n  " + " OR\n  ".join(
         "("
         + " AND ".join(
-            f"{field} = {matching_value}"
+            f"{field} = {matching_value if matching_value is not None else '*'}"
             for field, matching_value in condition.items()
-            if matching_value is not None
         )
         + ")"
         for condition in option_value

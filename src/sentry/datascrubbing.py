@@ -1,13 +1,20 @@
-import copy
+from __future__ import annotations
 
-import sentry_relay
+import copy
+from typing import Any
+
 from rest_framework import serializers
+from sentry_relay.processing import (
+    convert_datascrubbing_config,
+    pii_strip_event,
+    validate_pii_config,
+)
 
 from sentry.utils import json, metrics
 from sentry.utils.safe import safe_execute
 
 
-def _escape_key(key):
+def _escape_key(key: str) -> str:
     """
     Attempt to escape the key for PII config path selectors.
 
@@ -51,13 +58,15 @@ def get_datascrubbing_settings(project):
         exclude_fields_key, []
     )
 
-    rv["scrubData"] = org.get_option("sentry:require_scrub_data", False) or project.get_option(
+    if org.get_option("sentry:require_scrub_data", False) or project.get_option(
         "sentry:scrub_data", True
-    )
+    ):
+        rv["scrubData"] = True
 
-    rv["scrubIpAddresses"] = org.get_option(
-        "sentry:require_scrub_ip_address", False
-    ) or project.get_option("sentry:scrub_ip_address", False)
+    if org.get_option("sentry:require_scrub_ip_address", False) or project.get_option(
+        "sentry:scrub_ip_address", False
+    ):
+        rv["scrubIpAddresses"] = True
 
     sensitive_fields_key = "sentry:sensitive_fields"
     rv["sensitiveFields"] = org.get_option(sensitive_fields_key, []) + project.get_option(
@@ -77,7 +86,7 @@ def get_all_pii_configs(project):
     if pii_config:
         yield pii_config
 
-    yield sentry_relay.convert_datascrubbing_config(get_datascrubbing_settings(project))
+    yield convert_datascrubbing_config(get_datascrubbing_settings(project))
 
 
 def scrub_data(project, event):
@@ -93,19 +102,19 @@ def scrub_data(project, event):
 
         metrics.timing("datascrubbing.config.rules.size", total_rules)
 
-        event = sentry_relay.pii_strip_event(config, event)
+        event = pii_strip_event(config, event)
 
     return event
 
 
-def _merge_pii_configs(prefixes_and_configs):
+def _merge_pii_configs(prefixes_and_configs: list[tuple[str, dict[str, Any]]]) -> dict[str, Any]:
     """
     Merge two PII configs into one, prefixing all custom rules with a prefix in the name.
 
     This is used to apply organization and project configs at once,
     and still get unique references to rule names.
     """
-    merged_config = {}
+    merged_config: dict[str, Any] = {}
 
     for prefix, partial_config in prefixes_and_configs:
         if not partial_config:
@@ -138,9 +147,9 @@ def validate_pii_config_update(organization, value):
         return value
 
     try:
-        sentry_relay.validate_pii_config(value)
+        validate_pii_config(value)
     except ValueError as e:
-        raise serializers.ValidationError(e)
+        raise serializers.ValidationError(str(e))
 
     return value
 

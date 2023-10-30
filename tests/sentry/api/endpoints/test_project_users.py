@@ -1,9 +1,13 @@
+from unittest import mock
+
 from django.urls import reverse
 
-from sentry.models import EventUser
-from sentry.testutils import APITestCase
+from sentry.models.eventuser import EventUser
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class ProjectUsersTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -33,7 +37,8 @@ class ProjectUsersTest(APITestCase):
             },
         )
 
-    def test_simple(self):
+    @mock.patch("sentry.analytics.record")
+    def test_simple(self, mock_record):
         self.login_as(user=self.user)
 
         response = self.client.get(self.path, format="json")
@@ -42,6 +47,11 @@ class ProjectUsersTest(APITestCase):
         assert len(response.data) == 2
         assert sorted(map(lambda x: x["id"], response.data)) == sorted(
             [str(self.euser1.id), str(self.euser2.id)]
+        )
+        mock_record.assert_called_with(
+            "eventuser_endpoint.request",
+            project_id=self.project.id,
+            endpoint="sentry.api.endpoints.project_users.get",
         )
 
     def test_empty_search_query(self):
@@ -77,7 +87,8 @@ class ProjectUsersTest(APITestCase):
 
         response = self.client.get(f"{self.path}?query=email:@example.com", format="json")
 
-        assert response.status_code == 404, response.content
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
 
     def test_id_search(self):
         self.login_as(user=self.user)
@@ -90,7 +101,8 @@ class ProjectUsersTest(APITestCase):
 
         response = self.client.get(f"{self.path}?query=id:3", format="json")
 
-        assert response.status_code == 404, response.content
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
 
     def test_ip_search(self):
         self.login_as(user=self.user)

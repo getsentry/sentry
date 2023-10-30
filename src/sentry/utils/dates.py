@@ -1,8 +1,7 @@
 import re
-from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional, Tuple, Union, cast, overload
+from datetime import datetime, timedelta, timezone
+from typing import Any, Mapping, Optional, Tuple, Union, overload
 
-import pytz
 from dateutil.parser import parse
 from django.http.request import HttpRequest
 from django.utils.timezone import is_aware, make_aware
@@ -10,7 +9,7 @@ from django.utils.timezone import is_aware, make_aware
 from sentry import quotas
 from sentry.constants import MAX_ROLLUP_POINTS
 
-epoch = datetime(1970, 1, 1, tzinfo=pytz.utc)
+epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 
 def ensure_aware(value: datetime) -> datetime:
@@ -19,7 +18,7 @@ def ensure_aware(value: datetime) -> datetime:
     """
     if is_aware(value):
         return value
-    return cast(datetime, make_aware(value))
+    return make_aware(value)
 
 
 def to_timestamp(value: datetime) -> float:
@@ -28,6 +27,14 @@ def to_timestamp(value: datetime) -> float:
     component.)
     """
     return (value - epoch).total_seconds()
+
+
+def to_timestamp_from_iso_format(value: str) -> float:
+    """
+    Convert a str representation of datetime in iso format to
+    a POSIX timestamp
+    """
+    return datetime.fromisoformat(value).timestamp()
 
 
 @overload
@@ -57,7 +64,7 @@ def floor_to_utc_day(value: datetime) -> datetime:
     """
     Floors a given datetime to UTC midnight.
     """
-    return value.astimezone(pytz.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    return value.astimezone(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
 
 def parse_date(datestr: str, timestr: str) -> Optional[datetime]:
@@ -82,7 +89,7 @@ def parse_timestamp(value: Any) -> Optional[datetime]:
     if isinstance(value, datetime):
         return value
     elif isinstance(value, (int, float)):
-        return datetime.utcfromtimestamp(value).replace(tzinfo=pytz.utc)
+        return datetime.utcfromtimestamp(value).replace(tzinfo=timezone.utc)
     value = (value or "").rstrip("Z").encode("ascii", "replace").split(b".", 1)
     if not value:
         return None
@@ -95,7 +102,7 @@ def parse_timestamp(value: Any) -> Optional[datetime]:
             rv = rv.replace(microsecond=int(value[1].ljust(6, b"0")[:6]))
         except ValueError:
             return None
-    return rv.replace(tzinfo=pytz.utc)
+    return rv.replace(tzinfo=timezone.utc)
 
 
 def parse_stats_period(period: str) -> Optional[timedelta]:
@@ -104,12 +111,19 @@ def parse_stats_period(period: str) -> Optional[timedelta]:
     if not m:
         return None
     value, unit = m.groups()
-    value = int(value)  # type: ignore
+    value = int(value)
     if not unit:
         unit = "s"
-    return timedelta(
-        **{{"h": "hours", "d": "days", "m": "minutes", "s": "seconds", "w": "weeks"}[unit]: value}  # type: ignore
-    )
+    try:
+        return timedelta(
+            **{
+                {"h": "hours", "d": "days", "m": "minutes", "s": "seconds", "w": "weeks"}[
+                    unit
+                ]: value
+            }
+        )
+    except OverflowError:
+        return timedelta.max
 
 
 def get_interval_from_range(date_range: timedelta, high_fidelity: bool) -> str:
@@ -145,6 +159,14 @@ def get_rollup_from_request(
     interval = parse_stats_period(request.GET.get("interval", default_interval))
     if interval is None:
         interval = timedelta(hours=1)
+    validate_interval(interval, error, date_range, top_events)
+
+    return int(interval.total_seconds())
+
+
+def validate_interval(
+    interval: timedelta, error: Exception, date_range: timedelta, top_events: int
+) -> None:
     if interval.total_seconds() <= 0:
         raise error.__class__("Interval cannot result in a zero duration.")
 
@@ -153,7 +175,6 @@ def get_rollup_from_request(
 
     if date_range.total_seconds() / interval.total_seconds() > max_rollup_points:
         raise error
-    return int(interval.total_seconds())
 
 
 def outside_retention_with_modified_start(
@@ -164,13 +185,13 @@ def outside_retention_with_modified_start(
     organizations retention period. Returns an updated
     start datetime if start is out of retention.
     """
-    retention = quotas.get_event_retention(organization=organization)
+    retention = quotas.backend.get_event_retention(organization=organization)
     if not retention:
         return False, start
 
     # Need to support timezone-aware and naive datetimes since
     # Snuba API only deals in naive UTC
-    now = datetime.utcnow().astimezone(pytz.utc) if start.tzinfo else datetime.utcnow()
+    now = datetime.utcnow().astimezone(timezone.utc) if start.tzinfo else datetime.utcnow()
     start = max(start, now - timedelta(days=retention))
 
     return start > end, start

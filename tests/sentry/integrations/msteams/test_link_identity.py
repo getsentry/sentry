@@ -4,23 +4,23 @@ from unittest.mock import patch
 import responses
 
 from sentry.integrations.msteams.link_identity import build_linking_url
-from sentry.models import (
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-    OrganizationIntegration,
-)
-from sentry.testutils import TestCase
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
+@control_silo_test(stable=True)
 class MsTeamsIntegrationLinkIdentityTest(TestCase):
     def setUp(self):
         super(TestCase, self).setUp()
         self.user1 = self.create_user(is_superuser=False)
         self.user2 = self.create_user(is_superuser=False)
         self.org = self.create_organization(owner=None)
+        self.create_member(user=self.user1, organization=self.org)
+        self.create_member(user=self.user2, organization=self.org)
         self.team = self.create_team(organization=self.org, members=[self.user1, self.user2])
 
         self.login_as(self.user1)
@@ -35,7 +35,9 @@ class MsTeamsIntegrationLinkIdentityTest(TestCase):
                 "expires_at": int(time.time()) + 86400,
             },
         )
-        OrganizationIntegration.objects.create(organization=self.org, integration=self.integration)
+        OrganizationIntegration.objects.create(
+            organization_id=self.org.id, integration=self.integration
+        )
 
         self.idp = IdentityProvider.objects.create(
             type="msteams", external_id="1_50l3mnly_5w34r", config={}

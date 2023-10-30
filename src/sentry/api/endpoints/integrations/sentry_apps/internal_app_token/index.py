@@ -2,15 +2,23 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppBaseEndpoint, SentryInternalAppTokenPermission
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
 from sentry.exceptions import ApiTokenLimitError
-from sentry.mediators.sentry_app_installation_tokens import Creator
-from sentry.models import ApiToken, SentryAppInstallation
+from sentry.models.apitoken import ApiToken
 from sentry.models.integrations.sentry_app import MASKED_VALUE
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.installations import SentryAppInstallationTokenCreator
 
 
+@control_silo_endpoint
 class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (SentryInternalAppTokenPermission,)
 
     def get(self, request: Request, sentry_app) -> Response:
@@ -38,11 +46,11 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        sentry_app_installation = SentryAppInstallation.objects.get(sentry_app=sentry_app)
+        sentry_app_installation = SentryAppInstallation.objects.get(sentry_app_id=sentry_app.id)
         try:
-            api_token = Creator.run(
-                request=request, sentry_app_installation=sentry_app_installation, user=request.user
-            )
+            api_token = SentryAppInstallationTokenCreator(
+                sentry_app_installation=sentry_app_installation
+            ).run(request=request, user=request.user)
         except ApiTokenLimitError as e:
             return Response(str(e), status=status.HTTP_403_FORBIDDEN)
 

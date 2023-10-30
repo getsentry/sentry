@@ -1,7 +1,13 @@
-from sentry.rules.conditions.event_attribute import EventAttributeCondition, MatchType
+from sentry.rules.conditions.event_attribute import EventAttributeCondition
+from sentry.rules.match import MatchType
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
+@region_silo_test
 class EventAttributeConditionTest(RuleTestCase):
     rule_cls = EventAttributeCondition
 
@@ -30,6 +36,7 @@ class EventAttributeConditionTest(RuleTestCase):
                                 }
                             ]
                         },
+                        "thread_id": 1,
                     }
                 ]
             },
@@ -37,6 +44,32 @@ class EventAttributeConditionTest(RuleTestCase):
             "extra": {"foo": {"bar": "baz"}, "biz": ["baz"], "bar": "foo"},
             "platform": "php",
             "sdk": {"name": "sentry.javascript.react", "version": "6.16.1"},
+            "contexts": {
+                "response": {
+                    "type": "response",
+                    "status_code": 500,
+                },
+                "device": {
+                    "screen_width_pixels": 1920,
+                    "screen_height_pixels": 1080,
+                    "screen_dpi": 123,
+                    "screen_density": 2.5,
+                },
+                "app": {
+                    "in_foreground": True,
+                },
+                "unreal": {
+                    "crash_type": "crash",
+                },
+            },
+            "threads": {
+                "values": [
+                    {
+                        "id": 1,
+                        "main": True,
+                    },
+                ],
+            },
         }
         data.update(kwargs)
         event = self.store_event(data, project_id=self.project.id)
@@ -231,6 +264,18 @@ class EventAttributeConditionTest(RuleTestCase):
         )
         self.assertDoesNotPass(rule, event)
 
+    def test_http_status_code(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "http.status_code", "value": "500"}
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "http.status_code", "value": "400"}
+        )
+        self.assertDoesNotPass(rule, event)
+
     def test_user_id(self):
         event = self.get_event()
         rule = self.get_rule(data={"match": MatchType.EQUAL, "attribute": "user.id", "value": "1"})
@@ -284,6 +329,57 @@ class EventAttributeConditionTest(RuleTestCase):
 
         rule = self.get_rule(
             data={"match": MatchType.EQUAL, "attribute": "exception.type", "value": "TypeError"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_error_handled(self):
+        event = self.get_event(
+            exception={
+                "values": [
+                    {
+                        "type": "Generic",
+                        "value": "hello world",
+                        "mechanism": {"type": "UncaughtExceptionHandler", "handled": False},
+                    }
+                ]
+            }
+        )
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "error.handled", "value": "False"}
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "error.handled", "value": "True"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_error_handled_not_defined(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "error.handled", "value": "True"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_error_unhandled(self):
+        event = self.get_event(
+            exception={
+                "values": [
+                    {
+                        "type": "Generic",
+                        "value": "hello world",
+                        "mechanism": {"type": "UncaughtExceptionHandler", "handled": False},
+                    }
+                ],
+            }
+        )
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "error.unhandled", "value": "True"}
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "error.unhandled", "value": "False"}
         )
         self.assertDoesNotPass(rule, event)
 
@@ -568,5 +664,109 @@ class EventAttributeConditionTest(RuleTestCase):
                 "attribute": "stacktrace.package",
                 "value": "package/otherotherpackage.lib",
             }
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_device_screen_width_pixels(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "device.screen_width_pixels",
+                "value": "1920",
+            }
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "device.screen_width_pixels",
+                "value": "400",
+            }
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_device_screen_height_pixels(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "device.screen_height_pixels",
+                "value": "1080",
+            }
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "device.screen_height_pixels",
+                "value": "400",
+            }
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_device_screen_dpi(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "device.screen_dpi",
+                "value": "123",
+            }
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "device.screen_dpi",
+                "value": "400",
+            }
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_device_screen_density(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "device.screen_density",
+                "value": "2.5",
+            }
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "device.screen_density",
+                "value": "400",
+            }
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_app_in_foreground(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "app.in_foreground", "value": "True"}
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "app.in_foreground", "value": "False"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_unreal_crash_type(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "unreal.crash_type", "value": "Crash"}
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "unreal.crash_type", "value": "NoCrash"}
         )
         self.assertDoesNotPass(rule, event)

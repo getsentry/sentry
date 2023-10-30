@@ -1,14 +1,10 @@
-import {Fragment, useEffect} from 'react';
-import styled from '@emotion/styled';
-import {setTag} from '@sentry/react';
+import {Fragment} from 'react';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import SpanExamplesQuery, {
@@ -18,7 +14,10 @@ import SuspectSpansQuery, {
   ChildrenProps as SuspectSpansProps,
 } from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
+import {setGroupedEntityTag} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
@@ -46,14 +45,14 @@ export default function SpanDetailsContentWrapper(props: Props) {
   const minExclusiveTime = decodeScalar(location.query[ZoomKeys.MIN]);
   const maxExclusiveTime = decodeScalar(location.query[ZoomKeys.MAX]);
 
-  useEffect(() => {
-    if (project) {
-      trackAdvancedAnalyticsEvent('performance_views.span_summary.view', {
-        organization,
-        project_platforms: getSelectedProjectPlatforms(location, [project]),
-      });
-    }
-  }, [organization, project, location]);
+  // customize the route analytics event we send
+  useRouteAnalyticsEventNames(
+    'performance_views.span_summary.view',
+    'Performance Views: Span Summary page viewed'
+  );
+  useRouteAnalyticsParams({
+    project_platforms: project ? getSelectedProjectPlatforms(location, [project]) : '',
+  });
 
   return (
     <Fragment>
@@ -66,21 +65,19 @@ export default function SpanDetailsContentWrapper(props: Props) {
               project: project?.id ?? '',
               name: transactionName,
             }}
-            tab={Tab.Spans}
+            tab={Tab.SPANS}
             spanSlug={spanSlug}
           />
           <Layout.Title>
-            <TransactionName>
-              {project && (
-                <IdBadge
-                  project={project}
-                  avatarSize={28}
-                  hideName
-                  avatarProps={{hasTooltip: true, tooltip: project.slug}}
-                />
-              )}
-              {transactionName}
-            </TransactionName>
+            {project && (
+              <IdBadge
+                project={project}
+                avatarSize={28}
+                hideName
+                avatarProps={{hasTooltip: true, tooltip: project.slug}}
+              />
+            )}
+            {transactionName}
           </Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>
@@ -93,18 +90,13 @@ export default function SpanDetailsContentWrapper(props: Props) {
             referrer="api.performance.transaction-spans"
             cursor="0:0:1"
             noPagination
-            useEvents
           >
             {({tableData}) => {
               const totalCount: number | null =
                 (tableData?.data?.[0]?.['count()'] as number) ?? null;
 
               if (totalCount) {
-                setTag('spans.totalCount', totalCount);
-                const countGroup = [
-                  1, 5, 10, 20, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000,
-                ].find(n => totalCount <= n);
-                setTag('spans.totalCount.grouped', `<=${countGroup}`);
+                setGroupedEntityTag('spans.totalCount', 1000, totalCount);
               }
 
               return (
@@ -154,13 +146,6 @@ export default function SpanDetailsContentWrapper(props: Props) {
     </Fragment>
   );
 }
-
-const TransactionName = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  grid-column-gap: ${space(1)};
-  align-items: center;
-`;
 
 type ContentProps = {
   eventView: EventView;
@@ -235,6 +220,7 @@ function getSpansEventView(eventView: EventView): EventView {
     {field: 'count_unique(id)'},
     {field: 'equation|count() / count_unique(id)'},
     {field: 'sumArray(spans_exclusive_time)'},
+    {field: 'percentileArray(spans_exclusive_time, 0.50)'},
     {field: 'percentileArray(spans_exclusive_time, 0.75)'},
     {field: 'percentileArray(spans_exclusive_time, 0.95)'},
     {field: 'percentileArray(spans_exclusive_time, 0.99)'},

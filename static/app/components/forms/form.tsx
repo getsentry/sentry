@@ -1,15 +1,14 @@
-import {Component} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
-import {APIRequestMethod} from 'sentry/api';
-import Button, {ButtonProps} from 'sentry/components/button';
-import FormContext, {FormContextData} from 'sentry/components/forms/formContext';
+import {Button, ButtonProps} from 'sentry/components/button';
+import FormContext from 'sentry/components/forms/formContext';
 import FormModel, {FormOptions} from 'sentry/components/forms/model';
-import {Data, OnSubmitCallback} from 'sentry/components/forms/type';
+import {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 
 type RenderProps = {
@@ -18,17 +17,19 @@ type RenderProps = {
 
 type RenderFunc = (props: RenderProps) => React.ReactNode;
 
-type Props = {
+export interface FormProps
+  extends Pick<
+    FormOptions,
+    | 'allowUndo'
+    | 'resetOnError'
+    | 'saveOnBlur'
+    | 'apiEndpoint'
+    | 'apiMethod'
+    | 'onFieldChange'
+    | 'onSubmitError'
+    | 'onSubmitSuccess'
+  > {
   additionalFieldProps?: {[key: string]: any};
-  allowUndo?: boolean;
-  /**
-   * The URL to the API endpoint this form submits to.
-   */
-  apiEndpoint?: string;
-  /**
-   * The HTTP method to use.
-   */
-  apiMethod?: APIRequestMethod;
   cancelLabel?: string;
   children?: React.ReactNode | RenderFunc;
   className?: string;
@@ -66,15 +67,6 @@ type Props = {
    */
   requireChanges?: boolean;
   /**
-   * Should the form reset its state when there are errors after submission.
-   */
-  resetOnError?: boolean;
-  /**
-   * Should fields save individually as they are blurred.
-   */
-  saveOnBlur?: boolean;
-
-  /**
    * If set to true, preventDefault is not called
    */
   skipPreventDefault?: boolean;
@@ -84,25 +76,50 @@ type Props = {
   submitDisabled?: boolean;
   submitLabel?: string;
   submitPriority?: ButtonProps['priority'];
-} & Pick<FormOptions, 'onSubmitSuccess' | 'onSubmitError' | 'onFieldChange'>;
+}
 
-export default class Form extends Component<Props> {
-  constructor(props: Props, context: FormContextData) {
-    super(props, context);
-    const {
-      saveOnBlur,
-      apiEndpoint,
-      apiMethod,
-      resetOnError,
-      onSubmitSuccess,
-      onSubmitError,
-      onFieldChange,
-      initialData,
-      allowUndo,
-    } = props;
+function Form({
+  'data-test-id': dataTestId,
+  allowUndo,
+  apiEndpoint,
+  apiMethod,
+  cancelLabel,
+  children,
+  className,
+  extraButton,
+  footerClass,
+  footerStyle,
+  hideFooter,
+  initialData,
+  model,
+  onCancel,
+  onFieldChange,
+  onPreSubmit,
+  onSubmit,
+  onSubmitError,
+  onSubmitSuccess,
+  preventFormResetOnUnmount,
+  requireChanges,
+  resetOnError,
+  saveOnBlur,
+  skipPreventDefault,
+  submitDisabled,
+  submitLabel,
+  submitPriority,
+}: FormProps) {
+  const [formModel] = useState(() => {
+    const resolvedModel = model ?? new FormModel();
 
-    this.model.setInitialData(initialData);
-    this.model.setFormOptions({
+    // XXX(epurkhiser): We do this as part of the state construction to ensure
+    // model data and options are set immediately
+    //
+    // TODO(epurkhiser): To have options and initialData be reactive properties
+    // we'll have to make some changes to the cosnumers of models.
+    if (initialData) {
+      resolvedModel.setInitialData(initialData);
+    }
+
+    resolvedModel.setFormOptions({
       resetOnError,
       allowUndo,
       onFieldChange,
@@ -112,140 +129,135 @@ export default class Form extends Component<Props> {
       apiEndpoint,
       apiMethod,
     });
-  }
 
-  componentWillUnmount() {
-    !this.props.preventFormResetOnUnmount && this.model.reset();
-  }
+    return resolvedModel;
+  });
 
-  model: FormModel = this.props.model || new FormModel();
+  // Reset form model on un,out
+  useEffect(
+    () => () => {
+      if (!preventFormResetOnUnmount) {
+        formModel.reset();
+      }
+    },
+    [formModel, preventFormResetOnUnmount]
+  );
 
-  contextData() {
-    return {
-      saveOnBlur: this.props.saveOnBlur,
-      form: this.model,
-    };
-  }
+  const contextData = useMemo(
+    () => ({saveOnBlur, form: formModel}),
+    [formModel, saveOnBlur]
+  );
 
-  onSubmit = e => {
-    !this.props.skipPreventDefault && e.preventDefault();
-    if (this.model.isSaving) {
-      return;
-    }
+  const handleSubmitSuccess = useCallback(
+    data => {
+      formModel.submitSuccess(data);
+      onSubmitSuccess?.(data, formModel);
+    },
+    [formModel, onSubmitSuccess]
+  );
 
-    this.props.onPreSubmit?.();
+  const handleSubmitError = useCallback(
+    error => {
+      formModel.submitError(error);
+      onSubmitError?.(error, formModel);
+    },
+    [formModel, onSubmitError]
+  );
 
-    if (this.props.onSubmit) {
-      this.props.onSubmit(
-        this.model.getData(),
-        this.onSubmitSuccess,
-        this.onSubmitError,
+  const handleSubmit = useCallback(
+    e => {
+      if (!skipPreventDefault) {
+        e.preventDefault();
+      }
+      if (formModel.isSaving) {
+        return;
+      }
+
+      onPreSubmit?.();
+
+      onSubmit?.(
+        formModel.getData(),
+        handleSubmitSuccess,
+        handleSubmitError,
         e,
-        this.model
+        formModel
       );
-    } else {
-      this.model.saveForm();
-    }
-  };
 
-  onSubmitSuccess = data => {
-    const {onSubmitSuccess} = this.props;
-    this.model.submitSuccess(data);
+      if (!onSubmit) {
+        formModel.saveForm();
+      }
+    },
+    [
+      formModel,
+      handleSubmitError,
+      handleSubmitSuccess,
+      onPreSubmit,
+      onSubmit,
+      skipPreventDefault,
+    ]
+  );
 
-    if (onSubmitSuccess) {
-      onSubmitSuccess(data, this.model);
-    }
-  };
+  const shouldShowFooter = typeof hideFooter !== 'undefined' ? !hideFooter : !saveOnBlur;
 
-  onSubmitError = error => {
-    const {onSubmitError} = this.props;
-    this.model.submitError(error);
+  return (
+    <FormContext.Provider value={contextData}>
+      <form
+        onSubmit={handleSubmit}
+        className={className ?? 'form-stacked'}
+        data-test-id={dataTestId}
+      >
+        <div>
+          {isRenderFunc<RenderFunc>(children) ? children({model: formModel}) : children}
+        </div>
 
-    if (onSubmitError) {
-      onSubmitError(error, this.model);
-    }
-  };
-
-  render() {
-    const {
-      className,
-      children,
-      footerClass,
-      footerStyle,
-      submitDisabled,
-      submitLabel,
-      submitPriority,
-      cancelLabel,
-      onCancel,
-      extraButton,
-      requireChanges,
-      saveOnBlur,
-      hideFooter,
-    } = this.props;
-    const shouldShowFooter =
-      typeof hideFooter !== 'undefined' ? !hideFooter : !saveOnBlur;
-
-    return (
-      <FormContext.Provider value={this.contextData()}>
-        <form
-          onSubmit={this.onSubmit}
-          className={className ?? 'form-stacked'}
-          data-test-id={this.props['data-test-id']}
-        >
-          <div>
-            {isRenderFunc<RenderFunc>(children)
-              ? children({model: this.model})
-              : children}
-          </div>
-
-          {shouldShowFooter && (
-            <StyledFooter
-              className={footerClass}
-              style={footerStyle}
-              saveOnBlur={saveOnBlur}
-            >
-              {extraButton}
-              <DefaultButtons>
-                {onCancel && (
-                  <Observer>
-                    {() => (
-                      <Button
-                        type="button"
-                        disabled={this.model.isSaving}
-                        onClick={onCancel}
-                        style={{marginLeft: 5}}
-                      >
-                        {cancelLabel ?? t('Cancel')}
-                      </Button>
-                    )}
-                  </Observer>
-                )}
-
+        {shouldShowFooter && (
+          <StyledFooter
+            className={footerClass}
+            style={footerStyle}
+            saveOnBlur={saveOnBlur}
+          >
+            {extraButton}
+            <DefaultButtons>
+              {onCancel && (
                 <Observer>
                   {() => (
                     <Button
-                      data-test-id="form-submit"
-                      priority={submitPriority ?? 'primary'}
-                      disabled={
-                        this.model.isError ||
-                        this.model.isSaving ||
-                        submitDisabled ||
-                        (requireChanges ? !this.model.formChanged : false)
-                      }
-                      type="submit"
+                      disabled={formModel.isSaving}
+                      onClick={onCancel}
+                      style={{marginLeft: 5}}
                     >
-                      {submitLabel ?? t('Save Changes')}
+                      {cancelLabel ?? t('Cancel')}
                     </Button>
                   )}
                 </Observer>
-              </DefaultButtons>
-            </StyledFooter>
-          )}
-        </form>
-      </FormContext.Provider>
-    );
-  }
+              )}
+
+              <Observer>
+                {() => (
+                  <Button
+                    data-test-id="form-submit"
+                    priority={submitPriority ?? 'primary'}
+                    disabled={
+                      formModel.isError ||
+                      formModel.isSaving ||
+                      submitDisabled ||
+                      (requireChanges ? !formModel.formChanged : false)
+                    }
+                    type="submit"
+                  >
+                    {submitLabel ?? t('Save Changes')}
+                  </Button>
+                )}
+              </Observer>
+            </DefaultButtons>
+          </StyledFooter>
+        )}
+      </form>
+    </FormContext.Provider>
+  );
 }
+
+export default Form;
 
 const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
   display: flex;
@@ -261,7 +273,7 @@ const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
     `
   ${Panel} & {
     margin-top: 0;
-    padding-right: 36px;
+    padding-right: ${space(2)}
   }
 
   /* Better padding with form inside of a modal */

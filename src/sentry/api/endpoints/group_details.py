@@ -1,14 +1,17 @@
 import functools
 import logging
 from datetime import timedelta
+from typing import Sequence
 
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import tagstore, tsdb
+from sentry import features, tagstore, tsdb
 from sentry.api import client
-from sentry.api.base import EnvironmentMixin
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.group_index import (
@@ -19,10 +22,22 @@ from sentry.api.helpers.group_index import (
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer, is_plugin_deprecated
-from sentry.models import Activity, Group, GroupSeen, GroupSubscriptionManager, UserReport
+from sentry.api.serializers.models.team import TeamSerializer
+from sentry.issues.constants import get_issue_tsdb_group_model
+from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
+from sentry.issues.grouptype import GroupCategory
+from sentry.models.activity import Activity
+from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
+from sentry.models.groupowner import get_owner_details
+from sentry.models.groupseen import GroupSeen
+from sentry.models.groupsubscription import GroupSubscriptionManager
+from sentry.models.team import Team
+from sentry.models.userreport import UserReport
 from sentry.plugins.base import plugins
-from sentry.plugins.bases import IssueTrackingPlugin2
+from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
@@ -30,7 +45,13 @@ from sentry.utils.safe import safe_execute
 delete_logger = logging.getLogger("sentry.deletions.api")
 
 
+@region_silo_endpoint
 class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
@@ -54,9 +75,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         return Activity.objects.get_activities_for_group(group, num)
 
     def _get_seen_by(self, request: Request, group):
-        seen_by = list(
-            GroupSeen.objects.filter(group=group).select_related("user").order_by("-last_seen")
-        )
+        seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
         return serialize(seen_by, request.user)
 
     def _get_actions(self, request: Request, group):
@@ -113,6 +132,36 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             PluginSerializer(project),
         )
 
+    @staticmethod
+    def __group_hourly_daily_stats(group: Group, environment_ids: Sequence[int]):
+        get_range = functools.partial(
+            tsdb.get_range,
+            environment_ids=environment_ids,
+            tenant_ids={"organization_id": group.project.organization_id},
+        )
+        model = get_issue_tsdb_group_model(group.issue_category)
+        now = timezone.now()
+        hourly_stats = tsdb.rollup(
+            get_range(model=model, keys=[group.id], end=now, start=now - timedelta(days=1)),
+            3600,
+        )[group.id]
+        daily_stats = tsdb.rollup(
+            get_range(
+                model=model,
+                keys=[group.id],
+                end=now,
+                start=now - timedelta(days=30),
+            ),
+            3600 * 24,
+        )[group.id]
+
+        return hourly_stats, daily_stats
+
+    @staticmethod
+    def __get_group_global_count(group: Group) -> str:
+        fetch_buffered_group_stats(group)
+        return str(group.times_seen_with_pending)
+
     def get(self, request: Request, group) -> Response:
         """
         Retrieve an Issue
@@ -122,6 +171,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         the issue (title, last seen, first seen), some overall numbers (number
         of comments, user reports) as well as the summarized event data.
 
+        :pparam string organization_slug: The slug of the organization.
         :pparam string issue_id: the ID of the issue to retrieve.
         :auth: required
         """
@@ -155,56 +205,91 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     }
                 )
 
-            get_range = functools.partial(tsdb.get_range, environment_ids=environment_ids)
-
-            tags = tagstore.get_group_tag_keys(
-                group.project_id, group.id, environment_ids, limit=100
-            )
-            if not environment_ids:
-                user_reports = UserReport.objects.filter(group_id=group.id)
-            else:
-                user_reports = UserReport.objects.filter(
-                    group_id=group.id, environment_id__in=environment_ids
+            if "tags" not in collapse:
+                tags = tagstore.get_group_tag_keys(
+                    group,
+                    environment_ids,
+                    limit=100,
+                    tenant_ids={"organization_id": group.project.organization_id},
+                )
+                data.update(
+                    {
+                        "tags": sorted(serialize(tags, request.user), key=lambda x: x["name"]),
+                    }
                 )
 
-            now = timezone.now()
-            hourly_stats = tsdb.rollup(
-                get_range(
-                    model=tsdb.models.group, keys=[group.id], end=now, start=now - timedelta(days=1)
-                ),
-                3600,
-            )[group.id]
-            daily_stats = tsdb.rollup(
-                get_range(
-                    model=tsdb.models.group,
-                    keys=[group.id],
-                    end=now,
-                    start=now - timedelta(days=30),
-                ),
-                3600 * 24,
-            )[group.id]
+            user_reports = (
+                UserReport.objects.filter(group_id=group.id)
+                if not environment_ids
+                else UserReport.objects.filter(
+                    group_id=group.id, environment_id__in=environment_ids
+                )
+            )
 
-            participants = GroupSubscriptionManager.get_participating_users(group)
+            hourly_stats, daily_stats = self.__group_hourly_daily_stats(group, environment_ids)
 
             if "inbox" in expand:
                 inbox_map = get_inbox_details([group])
                 inbox_reason = inbox_map.get(group.id)
                 data.update({"inbox": inbox_reason})
 
+            if "owners" in expand:
+                owner_details = get_owner_details([group], request.user)
+                owners = owner_details.get(group.id)
+                data.update({"owners": owners})
+
+            if "forecast" in expand and features.has(
+                "organizations:escalating-issues", group.organization
+            ):
+                fetched_forecast = EscalatingGroupForecast.fetch(group.project_id, group.id)
+                if fetched_forecast:
+                    fetched_forecast = fetched_forecast.to_dict()
+                    data.update(
+                        {
+                            "forecast": {
+                                "data": fetched_forecast.get("forecast"),
+                                "date_added": fetched_forecast.get("date_added"),
+                            }
+                        }
+                    )
+
             action_list = self._get_actions(request, group)
             data.update(
                 {
                     "activity": serialize(activity, request.user),
                     "seenBy": seen_by,
-                    "participants": serialize(participants, request.user),
                     "pluginActions": action_list,
                     "pluginIssues": self._get_available_issue_plugins(request, group),
                     "pluginContexts": self._get_context_plugins(request, group),
                     "userReportCount": user_reports.count(),
-                    "tags": sorted(serialize(tags, request.user), key=lambda x: x["name"]),
                     "stats": {"24h": hourly_stats, "30d": daily_stats},
+                    "count": self.__get_group_global_count(group),
                 }
             )
+
+            participants = user_service.serialize_many(
+                filter={"user_ids": GroupSubscriptionManager.get_participating_user_ids(group)},
+                as_user=request.user,
+            )
+
+            for participant in participants:
+                participant["type"] = "user"
+
+            if features.has("organizations:team-workflow-notifications", group.organization):
+                team_ids = GroupSubscriptionManager.get_participating_team_ids(group)
+
+                teams = Team.objects.filter(id__in=team_ids)
+                team_serializer = TeamSerializer()
+
+                serialized_teams = []
+                for team in teams:
+                    serialized_team = serialize(team, request.user, team_serializer)
+                    serialized_team["type"] = "team"
+                    serialized_teams.append(serialized_team)
+
+                participants.extend(serialized_teams)
+
+            data.update({"participants": participants})
 
             metrics.incr(
                 "group.update.http_response",
@@ -253,6 +338,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                                      the bookmark flag.
         :param boolean isSubscribed:
         :param boolean isPublic: sets the issue to public or private.
+        :param string substatus: the new substatus for the issues. Valid values
+                                 defined in GroupSubStatus.
         :auth: required
         """
         try:
@@ -306,6 +393,9 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :auth: required
         """
         from sentry.utils import snuba
+
+        if group.issue_category != GroupCategory.ERROR:
+            raise ValidationError(detail="Only error issues can be deleted.", code=400)
 
         try:
             delete_group_list(request, group.project, [group], "delete")

@@ -1,59 +1,64 @@
 import {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import AutoSelectText from 'sentry/components/autoSelectText';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import Field from 'sentry/components/forms/field';
-import TextCopyInput from 'sentry/components/forms/textCopyInput';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import PluginList from 'sentry/components/pluginList';
+import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {Organization, Plugin, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withPlugins from 'sentry/utils/withPlugins';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const TOKEN_PLACEHOLDER = 'YOUR_TOKEN';
 const WEBHOOK_PLACEHOLDER = 'YOUR_WEBHOOK_URL';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 
 type Props = {
   organization: Organization;
   plugins: {loading: boolean; plugins: Plugin[]};
   project: Project;
-} & RouteComponentProps<{orgId: string; projectId: string}, {}>;
+} & RouteComponentProps<{projectId: string}, {}>;
 
 type State = {
   data: {
     token: string;
     webhookUrl: string;
   } | null;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
 const placeholderData = {
   token: TOKEN_PLACEHOLDER,
   webhookUrl: WEBHOOK_PLACEHOLDER,
 };
 
-class ProjectReleaseTracking extends AsyncView<Props, State> {
+class ProjectReleaseTracking extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     const {projectId} = this.props.params;
     return routeTitleGen(t('Releases'), projectId, false);
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId, projectId} = this.props.params;
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
 
     // Allow 403s
     return [
       [
         'data',
-        `/projects/${orgId}/${projectId}/releases/token/`,
+        `/projects/${organization.slug}/${projectId}/releases/token/`,
         {},
         {allowError: err => err && err.status === 403},
       ],
@@ -61,8 +66,9 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
   }
 
   handleRegenerateToken = () => {
-    const {orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/releases/token/`, {
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
+    this.api.request(`/projects/${organization.slug}/${projectId}/releases/token/`, {
       method: 'POST',
       data: {project: projectId},
       success: data => {
@@ -101,7 +107,7 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
 
   renderBody() {
     const {organization, project, plugins} = this.props;
-    const hasWrite = organization.access.includes('project:write');
+    const hasWrite = hasEveryAccess(['project:write'], {organization, project});
 
     if (plugins.loading) {
       return <LoadingIndicator />;
@@ -119,6 +125,12 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
     return (
       <div>
         <SettingsPageHeader title={t('Release Tracking')} />
+        <TextBlock>
+          {t(
+            'Configure release tracking for this project to automatically record new releases of your application.'
+          )}
+        </TextBlock>
+
         {!hasWrite && (
           <Alert type="warning">
             {t(
@@ -126,11 +138,6 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
             )}
           </Alert>
         )}
-        <p>
-          {t(
-            'Configure release tracking for this project to automatically record new releases of your application.'
-          )}
-        </p>
 
         <Panel>
           <PanelHeader>{t('Client Configuration')}</PanelHeader>
@@ -164,13 +171,13 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
         <Panel>
           <PanelHeader>{t('Deploy Token')}</PanelHeader>
           <PanelBody>
-            <Field
+            <FieldGroup
               label={t('Token')}
               help={t('A unique secret which is used to generate deploy hook URLs')}
             >
               <TextCopyInput>{token}</TextCopyInput>
-            </Field>
-            <Field
+            </FieldGroup>
+            <FieldGroup
               label={t('Regenerate Token')}
               help={t(
                 'If a service becomes compromised, you should regenerate the token and re-configure any deploy hooks with the newly generated URL.'
@@ -185,12 +192,10 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
                     'Are you sure you want to regenerate your token? Your current token will no longer be usable.'
                   )}
                 >
-                  <Button type="button" priority="danger" disabled={!hasWrite}>
-                    {t('Regenerate Token')}
-                  </Button>
+                  <Button priority="danger">{t('Regenerate Token')}</Button>
                 </Confirm>
               </div>
-            </Field>
+            </FieldGroup>
           </PanelBody>
         </Panel>
 

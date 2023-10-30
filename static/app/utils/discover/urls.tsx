@@ -33,10 +33,12 @@ export function eventDetailsRouteWithEventView({
   orgSlug,
   eventSlug,
   eventView,
+  isHomepage,
 }: {
   eventSlug: string;
   eventView: EventView;
   orgSlug: string;
+  isHomepage?: boolean;
 }) {
   const pathname = eventDetailsRoute({
     orgSlug,
@@ -45,7 +47,7 @@ export function eventDetailsRouteWithEventView({
 
   return {
     pathname,
-    query: eventView.generateQueryStringObject(),
+    query: {...eventView.generateQueryStringObject(), homepage: isHomepage},
   };
 }
 
@@ -55,7 +57,11 @@ export function eventDetailsRouteWithEventView({
  */
 export function getDiscoverLandingUrl(organization: OrganizationSummary): string {
   if (organization.features.includes('discover-query')) {
-    return `/organizations/${organization.slug}/discover/queries/`;
+    return `/organizations/${organization.slug}/discover/homepage/`;
   }
   return `/organizations/${organization.slug}/discover/results/`;
+}
+
+export function getDiscoverQueriesUrl(organization: OrganizationSummary): string {
+  return `/organizations/${organization.slug}/discover/queries/`;
 }

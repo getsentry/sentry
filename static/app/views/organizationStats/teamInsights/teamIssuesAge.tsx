@@ -3,29 +3,25 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {BarChart} from 'sentry/components/charts/barChart';
 import Count from 'sentry/components/count';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
+import LoadingError from 'sentry/components/loadingError';
 import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Group, Organization} from 'sentry/types';
 import {getTitle} from 'sentry/utils/events';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
-type Props = AsyncComponent['props'] & {
+interface TeamIssuesAgeProps {
   organization: Organization;
   teamSlug: string;
-};
-
-type State = AsyncComponent['state'] & {
-  oldestIssues: Group[] | null;
-  unresolvedIssueAge: Record<string, number> | null;
-};
+}
 
 /**
  * takes "< 1 hour" and returns a datetime of 1 hour ago
@@ -53,139 +49,135 @@ const bucketLabels = {
   '> 1 year': t('> 1 year'),
 };
 
-class TeamIssuesAge extends AsyncComponent<Props, State> {
-  shouldRenderBadRequests = true;
+function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
+  const {
+    data: oldestIssues,
+    isLoading: isOldestIssuesLoading,
+    isError: isOldestIssuesError,
+    refetch: refetchOldestIssues,
+  } = useApiQuery<Group[]>(
+    [
+      `/teams/${organization.slug}/${teamSlug}/issues/old/`,
+      {
+        query: {
+          limit: 7,
+        },
+      },
+    ],
+    {staleTime: 5000}
+  );
 
-  getDefaultState(): State {
-    return {
-      ...super.getDefaultState(),
-      oldestIssues: null,
-      unresolvedIssueAge: null,
-    };
-  }
+  const {
+    data: unresolvedIssueAge,
+    isLoading: isUnresolvedIssueAgeLoading,
+    isError: isUnresolvedIssueAgeError,
+    refetch: refetchUnresolvedIssueAge,
+  } = useApiQuery<Record<string, number>>(
+    [`/teams/${organization.slug}/${teamSlug}/unresolved-issue-age/`],
+    {staleTime: 5000}
+  );
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization, teamSlug} = this.props;
+  const isLoading = isOldestIssuesLoading || isUnresolvedIssueAgeLoading;
 
-    return [
-      [
-        'oldestIssues',
-        `/teams/${organization.slug}/${teamSlug}/issues/old/`,
-        {query: {limit: 7}},
-      ],
-      [
-        'unresolvedIssueAge',
-        `/teams/${organization.slug}/${teamSlug}/unresolved-issue-age/`,
-      ],
-    ];
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    const {teamSlug} = this.props;
-
-    if (prevProps.teamSlug !== teamSlug) {
-      this.remountComponent();
-    }
-  }
-
-  renderLoading() {
-    return this.renderBody();
-  }
-
-  renderBody() {
-    const {organization} = this.props;
-    const {unresolvedIssueAge, oldestIssues, loading} = this.state;
-
-    const seriesData = Object.entries(unresolvedIssueAge ?? {})
-      .map(([bucket, value]) => ({
-        name: bucket,
-        value,
-      }))
-      .sort((a, b) => parseBucket(b.name) - parseBucket(a.name));
-
+  if (isOldestIssuesError || isUnresolvedIssueAgeError) {
     return (
-      <div>
-        <ChartWrapper>
-          {loading && <Placeholder height="200px" />}
-          {!loading && (
-            <BarChart
-              style={{height: 190}}
-              legend={{right: 3, top: 0}}
-              yAxis={{minInterval: 1}}
-              xAxis={{
-                splitNumber: seriesData.length,
-                type: 'category',
-                min: 0,
-                axisLabel: {
-                  showMaxLabel: true,
-                  showMinLabel: true,
-                  formatter: (bucket: string) => {
-                    return bucketLabels[bucket] ?? bucket;
-                  },
-                },
-              }}
-              series={[
-                {
-                  seriesName: t('Unresolved Issues'),
-                  silent: true,
-                  data: seriesData,
-                  barCategoryGap: '5%',
-                },
-              ]}
-            />
-          )}
-        </ChartWrapper>
-        <StyledPanelTable
-          isEmpty={!oldestIssues || oldestIssues.length === 0}
-          emptyMessage={t('No unresolved issues for this team’s projects')}
-          headers={[
-            t('Oldest Issues'),
-            <RightAligned key="events">{t('Events')}</RightAligned>,
-            <RightAligned key="users">{t('Users')}</RightAligned>,
-            <RightAligned key="age">
-              {t('Age')} <IconArrow direction="down" size="12px" color="gray300" />
-            </RightAligned>,
-          ]}
-          isLoading={loading}
-        >
-          {oldestIssues?.map(issue => {
-            const {title} = getTitle(issue, organization?.features, false);
-
-            return (
-              <Fragment key={issue.id}>
-                <ProjectTitleContainer>
-                  <ShadowlessProjectBadge
-                    disableLink
-                    hideName
-                    avatarSize={18}
-                    project={issue.project}
-                  />
-                  <TitleOverflow>
-                    <Link
-                      to={{
-                        pathname: `/organizations/${organization.slug}/issues/${issue.id}/`,
-                      }}
-                    >
-                      {title}
-                    </Link>
-                  </TitleOverflow>
-                </ProjectTitleContainer>
-                <RightAligned>
-                  <Count value={issue.count} />
-                </RightAligned>
-                <RightAligned>
-                  <Count value={issue.userCount} />
-                </RightAligned>
-                <RightAligned>
-                  <TimeSince date={issue.firstSeen} />
-                </RightAligned>
-              </Fragment>
-            );
-          })}
-        </StyledPanelTable>
-      </div>
+      <LoadingError
+        onRetry={() => {
+          refetchOldestIssues();
+          refetchUnresolvedIssueAge();
+        }}
+      />
     );
   }
+
+  const seriesData = Object.entries(unresolvedIssueAge ?? {})
+    .map(([bucket, value]) => ({
+      name: bucket,
+      value,
+    }))
+    .sort((a, b) => parseBucket(b.name) - parseBucket(a.name));
+
+  return (
+    <div>
+      <ChartWrapper>
+        {isLoading && <Placeholder height="200px" />}
+        {!isLoading && (
+          <BarChart
+            style={{height: 190}}
+            legend={{right: 3, top: 0}}
+            yAxis={{minInterval: 1}}
+            xAxis={{
+              type: 'category',
+              min: 0,
+              axisLabel: {
+                showMaxLabel: true,
+                showMinLabel: true,
+                formatter: (bucket: string) => {
+                  return bucketLabels[bucket] ?? bucket;
+                },
+              },
+            }}
+            series={[
+              {
+                seriesName: t('Unresolved Issues'),
+                silent: true,
+                data: seriesData,
+                barCategoryGap: '5%',
+              },
+            ]}
+          />
+        )}
+      </ChartWrapper>
+      <StyledPanelTable
+        isEmpty={!oldestIssues || oldestIssues?.length === 0}
+        emptyMessage={t('No unresolved issues for this team’s projects')}
+        headers={[
+          t('Oldest Issues'),
+          <RightAligned key="events">{t('Events')}</RightAligned>,
+          <RightAligned key="users">{t('Users')}</RightAligned>,
+          <RightAligned key="age">
+            {t('Age')} <IconArrow direction="down" size="xs" color="gray300" />
+          </RightAligned>,
+        ]}
+        isLoading={isLoading}
+      >
+        {oldestIssues?.map(issue => {
+          const {title} = getTitle(issue, organization?.features, false);
+
+          return (
+            <Fragment key={issue.id}>
+              <ProjectTitleContainer>
+                <ShadowlessProjectBadge
+                  disableLink
+                  hideName
+                  avatarSize={18}
+                  project={issue.project}
+                />
+                <TitleOverflow>
+                  <Link
+                    to={{
+                      pathname: `/organizations/${organization.slug}/issues/${issue.id}/`,
+                    }}
+                  >
+                    {title}
+                  </Link>
+                </TitleOverflow>
+              </ProjectTitleContainer>
+              <RightAligned>
+                <Count value={issue.count} />
+              </RightAligned>
+              <RightAligned>
+                <Count value={issue.userCount} />
+              </RightAligned>
+              <RightAligned>
+                <TimeSince date={issue.firstSeen} />
+              </RightAligned>
+            </Fragment>
+          );
+        })}
+      </StyledPanelTable>
+    </div>
+  );
 }
 
 export default TeamIssuesAge;

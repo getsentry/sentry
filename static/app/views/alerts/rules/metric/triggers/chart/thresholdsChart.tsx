@@ -4,14 +4,15 @@ import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 
-import {AreaChart, AreaChartSeries} from 'sentry/components/charts/areaChart';
+import {extrapolatedAreaStyle} from 'sentry/components/alerts/onDemandMetricAlert';
+import {AreaChart} from 'sentry/components/charts/areaChart';
 import Graphic from 'sentry/components/charts/components/graphic';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {LineChartSeries} from 'sentry/components/charts/lineChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import CHART_PALETTE from 'sentry/constants/chartPalette';
-import space from 'sentry/styles/space';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import theme from 'sentry/utils/theme';
@@ -44,6 +45,7 @@ type Props = DefaultProps & {
   thresholdType: MetricRule['thresholdType'];
   triggers: Trigger[];
   comparisonSeriesName?: string;
+  isExtrapolatedData?: boolean;
   maxValue?: number;
   minValue?: number;
   minutesThresholdToDisplaySeconds?: number;
@@ -321,12 +323,20 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
       thresholdType,
     } = this.props;
 
-    const dataWithoutRecentBucket: AreaChartSeries[] = data?.map(
-      ({data: eventData, ...restOfData}) => ({
+    const dataWithoutRecentBucket = data?.map(({data: eventData, ...restOfData}) => {
+      if (this.props.isExtrapolatedData) {
+        return {
+          ...restOfData,
+          data: eventData.slice(0, -1),
+          areaStyle: extrapolatedAreaStyle,
+        };
+      }
+
+      return {
         ...restOfData,
         data: eventData.slice(0, -1),
-      })
-    );
+      };
+    });
 
     const comparisonDataWithoutRecentBucket = comparisonData?.map(
       ({data: eventData, ...restOfData}) => ({
@@ -396,8 +406,8 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
 
           return `<span>${date}<span style="color:${changeStatusColor};margin-left:10px;">
             ${Math.sign(changePercentage) === 1 ? '+' : '-'}${Math.abs(
-            changePercentage
-          ).toFixed(2)}%</span></span>`;
+              changePercentage
+            ).toFixed(2)}%</span></span>`;
         },
       },
       yAxis: {

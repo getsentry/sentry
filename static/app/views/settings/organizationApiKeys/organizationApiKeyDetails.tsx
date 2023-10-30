@@ -3,42 +3,42 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import ApiForm from 'sentry/components/forms/apiForm';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
+import TextareaField from 'sentry/components/forms/fields/textareaField';
+import TextField from 'sentry/components/forms/fields/textField';
 import FormField from 'sentry/components/forms/formField';
-import TextareaField from 'sentry/components/forms/textareaField';
-import TextField from 'sentry/components/forms/textField';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {API_ACCESS_SCOPES} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {Choices, Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import {DeprecatedApiKey} from './types';
 
-const API_CHOICES: Choices = API_ACCESS_SCOPES.map(s => [s, s]);
-
 type RouteParams = {
   apiKey: string;
-  orgId: string;
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
 };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   apiKey: DeprecatedApiKey;
 };
 
-class OrganizationApiKeyDetails extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+class OrganizationApiKeyDetails extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+    const {organization} = this.props;
     return [
       [
         'apiKey',
-        `/organizations/${this.props.params.orgId}/api-keys/${this.props.params.apiKey}/`,
+        `/organizations/${organization.slug}/api-keys/${this.props.params.apiKey}/`,
       ],
     ];
   }
@@ -65,6 +65,7 @@ class OrganizationApiKeyDetails extends AsyncView<Props, State> {
   };
 
   renderBody() {
+    const {organization} = this.props;
     return (
       <div>
         <SettingsPageHeader title={t('Edit API Key')} />
@@ -73,7 +74,7 @@ class OrganizationApiKeyDetails extends AsyncView<Props, State> {
           <PanelHeader>{t('API Key')}</PanelHeader>
           <ApiForm
             apiMethod="PUT"
-            apiEndpoint={`/organizations/${this.props.params.orgId}/api-keys/${this.props.params.apiKey}/`}
+            apiEndpoint={`/organizations/${organization.slug}/api-keys/${this.props.params.apiKey}/`}
             initialData={this.state.apiKey}
             onSubmitSuccess={this.handleSubmitSuccess}
             onSubmitError={this.handleSubmitError}
@@ -92,12 +93,14 @@ class OrganizationApiKeyDetails extends AsyncView<Props, State> {
               <TextField label={t('API Key')} name="key" disabled />
 
               <FormField name="scope_list" label={t('Scopes')} inline={false} required>
-                {({value, onChange}) => (
-                  <MultipleCheckbox
-                    value={value}
-                    onChange={onChange}
-                    choices={API_CHOICES}
-                  />
+                {({name, value, onChange}) => (
+                  <MultipleCheckbox value={value} onChange={onChange} name={name}>
+                    {API_ACCESS_SCOPES.map(scope => (
+                      <MultipleCheckbox.Item value={scope} key={scope}>
+                        {scope}
+                      </MultipleCheckbox.Item>
+                    ))}
+                  </MultipleCheckbox>
                 )}
               </FormField>
 

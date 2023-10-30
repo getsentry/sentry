@@ -1,7 +1,16 @@
-import OrganizationActions from 'sentry/actions/organizationActions';
 import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
-import {OnboardingTask, Organization} from 'sentry/types';
+import OrganizationStore from 'sentry/stores/organizationStore';
+import {OnboardingTask, OnboardingTaskStatus, Organization} from 'sentry/types';
+
+interface UpdatedTask extends Partial<Pick<OnboardingTask, 'status' | 'data'>> {
+  task: OnboardingTask['task'];
+  /**
+   * Marks completion seen. This differs from the OnboardingTask
+   * completionSeen type as that returns the date completion was seen.
+   */
+  completionSeen?: boolean;
+}
 
 /**
  * Update an onboarding task.
@@ -12,14 +21,7 @@ import {OnboardingTask, Organization} from 'sentry/types';
 export function updateOnboardingTask(
   api: Client | null,
   organization: Organization,
-  updatedTask: Partial<Pick<OnboardingTask, 'status' | 'data'>> & {
-    task: OnboardingTask['task'];
-    /**
-     * Marks completion seen. This differs from the OnboardingTask
-     * completionSeen type as that returns the date completion was seen.
-     */
-    completionSeen?: boolean;
-  }
+  updatedTask: UpdatedTask
 ) {
   if (api !== null) {
     api.requestPromise(`/organizations/${organization.slug}/onboarding-tasks/`, {
@@ -37,7 +39,7 @@ export function updateOnboardingTask(
     ? organization.onboardingTasks.map(task =>
         task.task === updatedTask.task ? {...task, ...updatedTask} : task
       )
-    : [...organization.onboardingTasks, {...updatedTask, user}];
+    : [...organization.onboardingTasks, {...updatedTask, user} as OnboardingTaskStatus];
 
-  OrganizationActions.update({onboardingTasks});
+  OrganizationStore.onUpdate({onboardingTasks});
 }

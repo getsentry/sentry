@@ -1,4 +1,4 @@
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
@@ -13,12 +13,19 @@ type Output = {
   actionButton?: React.ReactNode;
 };
 
-function getUserKnownDataDetails(
-  data: TraceKnownData,
-  type: TraceKnownDataType,
-  event: Event,
-  organization: Organization
-): Output | undefined {
+type Props = {
+  data: TraceKnownData;
+  event: Event;
+  organization: Organization;
+  type: TraceKnownDataType;
+};
+
+export function getTraceKnownDataDetails({
+  data,
+  event,
+  organization,
+  type,
+}: Props): Output | undefined {
   switch (type) {
     case TraceKnownDataType.TRACE_ID: {
       const traceId = data.trace_id || '';
@@ -38,7 +45,7 @@ function getUserKnownDataDetails(
         subject: t('Trace ID'),
         value: traceId,
         actionButton: (
-          <Button size="xsmall" to={generateTraceTarget(event, organization)}>
+          <Button size="xs" to={generateTraceTarget(event, organization)}>
             {t('Search by Trace')}
           </Button>
         ),
@@ -101,7 +108,7 @@ function getUserKnownDataDetails(
         subject: t('Transaction'),
         value: transactionName,
         actionButton: (
-          <Button size="xsmall" to={to}>
+          <Button size="xs" to={to}>
             {t('View Summary')}
           </Button>
         ),
@@ -112,5 +119,3 @@ function getUserKnownDataDetails(
       return undefined;
   }
 }
-
-export default getUserKnownDataDetails;

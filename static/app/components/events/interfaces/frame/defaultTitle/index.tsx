@@ -1,19 +1,18 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import AnnotatedText from 'sentry/components/events/meta/annotatedText';
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'sentry/components/stacktracePreview';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
+import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconOpen, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {Frame, Meta, PlatformType} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import {Frame, Meta, PlatformKey} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 
-import FunctionName from '../functionName';
+import {FunctionName} from '../functionName';
 import GroupingIndicator from '../groupingIndicator';
 import {getPlatform, isDotnet, trimPackage} from '../utils';
 
@@ -21,20 +20,27 @@ import OriginalSourceInfo from './originalSourceInfo';
 
 type Props = {
   frame: Frame;
-  platform: PlatformType;
+  platform: PlatformKey;
   /**
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed?: boolean;
   isUsedForGrouping?: boolean;
+  meta?: Record<any, any>;
 };
 
 type GetPathNameOutput = {key: string; value: string; meta?: Meta};
 
-const DefaultTitle = ({frame, platform, isHoverPreviewed, isUsedForGrouping}: Props) => {
+function DefaultTitle({
+  frame,
+  platform,
+  isHoverPreviewed,
+  isUsedForGrouping,
+  meta,
+}: Props) {
   const title: Array<React.ReactElement> = [];
   const framePlatform = getPlatform(frame.platform, platform);
-  const tooltipDelay = isHoverPreviewed ? STACKTRACE_PREVIEW_TOOLTIP_DELAY : undefined;
+  const tooltipDelay = isHoverPreviewed ? SLOW_TOOLTIP_DELAY : undefined;
 
   const handleExternalLink = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.stopPropagation();
@@ -45,7 +51,7 @@ const DefaultTitle = ({frame, platform, isHoverPreviewed, isUsedForGrouping}: Pr
       return {
         key: 'module',
         value: frame.module,
-        meta: getMeta(frame, 'module'),
+        meta: meta?.module?.[''],
       };
     }
 
@@ -63,7 +69,7 @@ const DefaultTitle = ({frame, platform, isHoverPreviewed, isUsedForGrouping}: Pr
         return {
           key: 'filename',
           value: frame.filename,
-          meta: getMeta(frame, 'filename'),
+          meta: meta?.filename?.[''],
         };
       }
       return undefined;
@@ -73,7 +79,7 @@ const DefaultTitle = ({frame, platform, isHoverPreviewed, isUsedForGrouping}: Pr
       return {
         key: 'filename',
         value: frame.filename,
-        meta: getMeta(frame, 'filename'),
+        meta: meta?.filename?.[''],
       };
     }
 
@@ -90,10 +96,7 @@ const DefaultTitle = ({frame, platform, isHoverPreviewed, isUsedForGrouping}: Pr
     // prioritize module name for Java as filename is often only basename
     const shouldPrioritizeModuleName = framePlatform === 'java';
 
-    // we do not want to show path in title on csharp platform
-    const pathNameOrModule = isDotnet(framePlatform)
-      ? getModule()
-      : getPathNameOrModule(shouldPrioritizeModuleName);
+    const pathNameOrModule = getPathNameOrModule(shouldPrioritizeModuleName);
     const enablePathTooltip =
       defined(frame.absPath) && frame.absPath !== pathNameOrModule?.value;
 
@@ -106,10 +109,14 @@ const DefaultTitle = ({frame, platform, isHoverPreviewed, isUsedForGrouping}: Pr
           delay={tooltipDelay}
         >
           <code key="filename" className="filename" data-test-id="filename">
-            <AnnotatedText
-              value={<Truncate value={pathNameOrModule.value} maxLength={100} leftTrim />}
-              meta={pathNameOrModule.meta}
-            />
+            {!!pathNameOrModule.meta && !pathNameOrModule.value ? (
+              <AnnotatedText
+                value={pathNameOrModule.value}
+                meta={pathNameOrModule.meta}
+              />
+            ) : (
+              <Truncate value={pathNameOrModule.value} maxLength={100} leftTrim />
+            )}
           </code>
         </Tooltip>
       );
@@ -154,6 +161,7 @@ const DefaultTitle = ({frame, platform, isHoverPreviewed, isUsedForGrouping}: Pr
         key="function"
         className="function"
         data-test-id="function"
+        meta={meta}
       />
     );
   }
@@ -202,7 +210,7 @@ const DefaultTitle = ({frame, platform, isHoverPreviewed, isUsedForGrouping}: Pr
   }
 
   return <Fragment>{title}</Fragment>;
-};
+}
 
 export default DefaultTitle;
 

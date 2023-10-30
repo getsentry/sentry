@@ -10,36 +10,18 @@ updates:
       time: '15:30'
     reviewers:
       - '@getsentry/owners-js-deps'
+    labels: []
+    # Group dependency updates together in one PR
+    # https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file#groups
+    groups:
+      # The name of the group, it will be used in PR titles and branch
+      babel-dependencies:
+        patterns:
+          - "@babel/*"
     ignore:
-      # Babel updates all really should happen in unison, so let's keep these
-      # ignored for now and manually handle it
-      #
-      # XXX(epurkhiser): Explicitly don't ignore core so we can be reminded to
-      # upgrade all of them.
-      #
-      # - dependency-name: "@babel/core"
-      - dependency-name: '@babel/plugin-proposal-decorators'
-      - dependency-name: '@babel/plugin-transform-react-jsx'
-      - dependency-name: '@babel/plugin-transform-react-jsx-source'
-      - dependency-name: '@babel/plugin-transform-runtime'
-      - dependency-name: '@babel/preset-env'
-      - dependency-name: '@babel/preset-react'
-      - dependency-name: '@babel/preset-typescript'
-      - dependency-name: '@babel/runtime'
-
-      # Storybook updates should all happen in unison, same as above we ignore
-      # all but one as a reminder.
-      #
-      # - dependency-name: "@storybook/react"
-      - dependency-name: '@storybook/addon-a11y'
-      - dependency-name: '@storybook/addon-actions'
-      - dependency-name: '@storybook/addon-essentials'
-      - dependency-name: '@storybook/addon-storysource'
-      - dependency-name: '@storybook/addon-docs'
-      - dependency-name: '@storybook/addons'
-      - dependency-name: '@storybook/builder-webpack5'
-      - dependency-name: '@storybook/manager-webpack5'
-      - dependency-name: '@storybook/theming'
+      # For all packages, ignore all patch updates
+      - dependency-name: '*'
+        update-types: ['version-update:semver-patch']
 
       # Sentry updates should all happen in unison, same as above we ignore
       # all but one as a reminder.
@@ -56,7 +38,6 @@ updates:
       - dependency-name: '@types/react-router'
       - dependency-name: '@types/react-select'
       - dependency-name: '@types/reflux'
-      - dependency-name: '@wojtekmaj/enzyme-adapter-react-17'
       - dependency-name: 'babel-jest'
       - dependency-name: 'gettext-parser'
       - dependency-name: 'jest-junit'
@@ -68,15 +49,12 @@ updates:
       - dependency-name: 'reflux'
       - dependency-name: 'sprintf-js'
       - dependency-name: 'u2f-api'
-  - package-ecosystem: pip
-    open-pull-requests-limit: 10
-    directory: '/'
+  - package-ecosystem: 'docker'
+    directory: 'self-hosted/'
     schedule:
-      # Going to start with a high interval, and then tone it back
-      interval: daily
-      timezone: America/Los_Angeles
-      time: '09:00'
+      interval: 'daily'
     reviewers:
-      - '@getsentry/team-web-backend'
-    allow:
-      - dependency-name: 'sentry-sdk'
+      - '@getsentry/open-source'
+      - '@getsentry/security'
+    # security only updates
+    open-pull-requests-limit: 0

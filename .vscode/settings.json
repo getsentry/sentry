@@ -1,7 +1,7 @@
 {
   "files.exclude": {
     "*.egg-info": true,
-    "*.log": true,
+    "*.log": false,
     "**/*.js.map": true,
     "**/*.min.js": true,
     "**/*.pyc": true,
@@ -9,7 +9,8 @@
     "htmlcov": true,
     "node_modules": true,
     "src/sentry/locale": true,
-    "src/sentry/static/sentry/dist/": true
+    "src/sentry/static/sentry/dist/": true,
+    "model-manifest.json": true
   },
   "search.followSymlinks": false,
   "files.trimTrailingWhitespace": true,
@@ -18,6 +19,10 @@
 
   "files.associations": {
     "*.jsx": "javascriptreact"
+  },
+
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
   },
 
   "[javascript]": {
@@ -29,6 +34,14 @@
     "editor.formatOnSave": true,
     "editor.tabSize": 2
   },
+  // Exclude Specific Files from Auto-Imports
+  "typescript.preferences.autoImportFileExcludePatterns": [
+    "**/config/chartcuterie/*",
+    "**/node_modules/@testing-library/*",
+    "**/node_modules/@tanstack/react-query"
+  ],
+  // Avoid relative imports
+  "typescript.preferences.importModuleSpecifier": "non-relative",
 
   "[typescriptreact]": {
     "editor.formatOnSave": true,
@@ -47,8 +60,10 @@
   "[python]": {
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.organizeImports": true
-    }
+      "source.organizeImports": true,
+      "source.fixAll.eslint": false
+    },
+    "editor.defaultFormatter": "ms-python.black-formatter"
   },
 
   "[html]": {
@@ -59,7 +74,7 @@
   "python.linting.flake8Enabled": true,
   // test discovery is sluggish and the UI around running
   // tests is often in your way and misclicked
-  "python.testing.pytestEnabled": false,
+  "python.testing.pytestEnabled": true,
   "python.testing.unittestEnabled": false,
   "python.testing.nosetestsEnabled": false,
   "editor.tabSize": 4,
@@ -69,5 +84,6 @@
   "python.linting.pycodestylePath": "${workspaceFolder}/.venv/bin/pep8",
   "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest",
   "python.formatting.blackPath": "${workspaceFolder}/.venv/bin/black",
-  "python.formatting.provider": "black"
+  "python.formatting.provider": "none",
+  "python.testing.pytestArgs": ["tests"]
 }

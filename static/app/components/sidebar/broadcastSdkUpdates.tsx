@@ -2,10 +2,11 @@ import styled from '@emotion/styled';
 import groupBy from 'lodash/groupBy';
 import partition from 'lodash/partition';
 
+import {Alert} from 'sentry/components/alert';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Tag from 'sentry/components/tag';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   Organization,
   Project,
@@ -17,7 +18,6 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import withSdkUpdates from 'sentry/utils/withSdkUpdates';
 
-import Alert from '../alert';
 import Collapsible from '../collapsible';
 import List from '../list';
 import ListItem from '../list/listItem';
@@ -75,7 +75,7 @@ function BroadcastSdkUpdates({projects, sdkUpdates, organization}: Props) {
           return (
             <div key={sdkName}>
               <Header>
-                <SdkProjectBadge project={project} />
+                <SdkProjectBadge project={project} organization={organization} />
                 {isDeprecated && <Tag type="warning">{t('Deprecated')}</Tag>}
               </Header>
               <SdkOutdatedVersion>
@@ -85,7 +85,7 @@ function BroadcastSdkUpdates({projects, sdkUpdates, organization}: Props) {
                   ),
                 })}
               </SdkOutdatedVersion>
-              <StyledList>
+              <UpdateSuggestions>
                 {suggestions.map((suggestion, i) => (
                   <ListItem key={i}>
                     {getSdkUpdateSuggestion({
@@ -99,7 +99,7 @@ function BroadcastSdkUpdates({projects, sdkUpdates, organization}: Props) {
                     })}
                   </ListItem>
                 ))}
-              </StyledList>
+              </UpdateSuggestions>
             </div>
           );
         });
@@ -181,7 +181,7 @@ const StyledAlert = styled(Alert)`
   margin-top: ${space(2)};
 `;
 
-const StyledList = styled(List)`
+const UpdateSuggestions = styled(List)`
   /* 24px + 8px to be aligned with the project name
   * displayed by the SdkProjectBadge component */
   padding-left: calc(24px + ${space(1)});

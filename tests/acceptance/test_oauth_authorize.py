@@ -1,6 +1,8 @@
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 
 
+@no_silo_test(stable=True)
 class OAuthAuthorizeTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -10,7 +12,5 @@ class OAuthAuthorizeTest(AcceptanceTestCase):
     def test_simple(self):
         self.browser.get("/debug/oauth/authorize/")
         self.browser.wait_until_not(".loading")
-        self.browser.snapshot("oauth - authorize")
         self.browser.get("/debug/oauth/authorize/error/")
         self.browser.wait_until_not(".loading")
-        self.browser.snapshot("oauth - authorize error")

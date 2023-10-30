@@ -1,22 +1,31 @@
-from sentry.models import (
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-    ProjectTeam,
-    Release,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-    Team,
-)
-from sentry.testutils import TestCase
+import pytest
+from django.test import override_settings
+from rest_framework.serializers import ValidationError
+
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
+from sentry.models.projectteam import ProjectTeam
+from sentry.models.release import Release, ReleaseProject
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.team import Team
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.silo.base import SiloMode
+from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
+from sentry.testutils.cases import TestCase
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.types.integrations import ExternalProviders
 
 
+@region_silo_test(stable=True)
 class TeamTest(TestCase):
     def test_global_member(self):
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
-        member = OrganizationMember.objects.get(user=user, organization=org)
+        member = OrganizationMember.objects.get(user_id=user.id, organization=org)
         OrganizationMemberTeam.objects.create(organizationmember=member, team=team)
         assert list(team.member_set.all()) == [member]
 
@@ -24,7 +33,7 @@ class TeamTest(TestCase):
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
-        OrganizationMember.objects.get(user=user, organization=org)
+        OrganizationMember.objects.get(user_id=user.id, organization=org)
 
         assert list(team.member_set.all()) == []
 
@@ -55,7 +64,27 @@ class TeamTest(TestCase):
         projects = team.get_projects()
         assert {_.id for _ in projects} == {project.id}
 
+    @override_settings(SENTRY_USE_SNOWFLAKE=False)
+    def test_without_snowflake(self):
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        team = self.create_team(organization=org)
+        assert team.id < 1_000_000_000
+        assert Team.objects.filter(id=team.id).exists()
 
+    def test_cannot_demote_last_owner_team(self):
+        org = self.create_organization()
+
+        with pytest.raises(ValidationError):
+            team = self.create_team(org, org_role="owner")
+            self.create_member(
+                organization=org, role="member", user=self.create_user(), teams=[team]
+            )
+            team.org_role = "manager"
+            team.save()
+
+
+@region_silo_test(stable=True)
 class TransferTest(TestCase):
     def test_simple(self):
         user = self.create_user()
@@ -76,16 +105,16 @@ class TransferTest(TestCase):
         assert project.organization == org2
 
         # owner does not exist on new org, so should not be transferred
-        assert not OrganizationMember.objects.filter(user=user, organization=org2).exists()
+        assert not OrganizationMember.objects.filter(user_id=user.id, organization=org2).exists()
 
         # existing member should now have access
-        member = OrganizationMember.objects.get(user=user2, organization=org2)
+        member = OrganizationMember.objects.get(user_id=user2.id, organization=org2)
         assert list(member.teams.all()) == [team]
         # role should not automatically upgrade
         assert member.role == "member"
 
         # old member row should still exist
-        assert OrganizationMember.objects.filter(user=user2, organization=org).exists()
+        assert OrganizationMember.objects.filter(user_id=user2.id, organization=org).exists()
 
         # no references to old org for this team should exist
         assert not OrganizationMemberTeam.objects.filter(
@@ -98,7 +127,8 @@ class TransferTest(TestCase):
         team = self.create_team(name="foo", organization=org)
         team2 = self.create_team(name="foo", organization=org2)
         project = self.create_project(teams=[team])
-        team.transfer_to(org2)
+        with outbox_runner():
+            team.transfer_to(org2)
 
         project = Project.objects.get(id=project.id)
         assert ProjectTeam.objects.filter(project=project, team=team2).exists()
@@ -148,3 +178,64 @@ class TransferTest(TestCase):
         assert not ReleaseProjectEnvironment.objects.filter(
             release=release, project=project, environment=env
         ).exists()
+
+
+@region_silo_test(stable=True)
+class TeamDeletionTest(TestCase):
+    def test_hybrid_cloud_deletion(self):
+        org = self.create_organization()
+        team = self.create_team(org)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.ALWAYS,
+                team_id=team.id,
+                organization_id_for_team=org.id,
+            )
+
+        assert Team.objects.filter(id=team.id).exists()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert NotificationSetting.objects.find_settings(
+                provider=ExternalProviders.EMAIL,
+                type=NotificationSettingTypes.ISSUE_ALERTS,
+                team_id=team.id,
+            ).exists()
+
+        team_id = team.id
+        with outbox_runner():
+            team.delete()
+
+        assert not Team.objects.filter(id=team_id).exists()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # cascade is asynchronous, ensure there is still related search,
+            assert NotificationSetting.objects.find_settings(
+                provider=ExternalProviders.EMAIL,
+                type=NotificationSettingTypes.ISSUE_ALERTS,
+                team_id=team_id,
+            ).exists()
+
+        # Run foreign key cascades to remove control silo state.
+        with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
+            schedule_hybrid_cloud_foreign_key_jobs_control()
+
+        assert not Team.objects.filter(id=team_id).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not NotificationSetting.objects.find_settings(
+                provider=ExternalProviders.EMAIL,
+                type=NotificationSettingTypes.ISSUE_ALERTS,
+                team_id=team_id,
+            ).exists()
+
+    def test_cannot_delete_last_owner_team(self):
+        org = self.create_organization()
+
+        with pytest.raises(ValidationError):
+            team = self.create_team(org, org_role="owner")
+            self.create_member(
+                organization=org, role="member", user=self.create_user(), teams=[team]
+            )
+            team.delete()

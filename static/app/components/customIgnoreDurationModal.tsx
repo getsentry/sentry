@@ -3,18 +3,18 @@ import moment from 'moment';
 import {sprintf} from 'sprintf-js';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
-import {ResolutionStatusDetails} from 'sentry/types';
+import {IgnoredStatusDetails} from 'sentry/types';
 
 const defaultProps = {
   label: t('Ignore this issue until \u2026'),
 };
 
 type Props = ModalRenderProps & {
-  onSelected: (details: ResolutionStatusDetails) => void;
+  onSelected: (details: IgnoredStatusDetails) => void;
 } & typeof defaultProps;
 
 type State = {
@@ -48,13 +48,15 @@ export default class CustomIgnoreDurationModal extends Component<Props, State> {
   snoozeClicked = () => {
     const minutes = this.selectedIgnoreMinutes();
 
-    this.setState({
-      dateWarning: minutes <= 0,
-    });
+    if (minutes <= 0) {
+      this.setState({
+        dateWarning: minutes <= 0,
+      });
 
-    if (minutes > 0) {
-      this.props.onSelected({ignoreDuration: minutes});
+      return;
     }
+
+    this.props.onSelected({ignoreDuration: minutes});
     this.props.closeModal();
   };
 
@@ -114,10 +116,10 @@ export default class CustomIgnoreDurationModal extends Component<Props, State> {
         )}
         <Footer>
           <ButtonBar gap={1}>
-            <Button type="button" priority="default" onClick={this.props.closeModal}>
+            <Button priority="default" onClick={this.props.closeModal}>
               {t('Cancel')}
             </Button>
-            <Button type="button" priority="primary" onClick={this.snoozeClicked}>
+            <Button priority="primary" onClick={this.snoozeClicked}>
               {t('Ignore')}
             </Button>
           </ButtonBar>

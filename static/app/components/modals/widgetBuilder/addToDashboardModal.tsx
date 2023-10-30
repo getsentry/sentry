@@ -1,34 +1,45 @@
-import {Fragment, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {InjectedRouter} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Query} from 'history';
+import {Location, Query} from 'history';
 
 import {
   fetchDashboard,
   fetchDashboards,
   updateDashboard,
 } from 'sentry/actionCreators/dashboards';
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import SelectControl from 'sentry/components/forms/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {DateString, Organization, PageFilters, SelectValue} from 'sentry/types';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
+  DashboardDetails,
   DashboardListItem,
   DisplayType,
   MAX_WIDGETS,
   Widget,
-} from 'sentry/views/dashboardsV2/types';
-import {NEW_DASHBOARD_ID} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
-import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
+} from 'sentry/views/dashboards/types';
+import {
+  eventViewFromWidget,
+  getDashboardFiltersFromURL,
+  getSavedFiltersAsPageFilters,
+  getSavedPageFilters,
+} from 'sentry/views/dashboards/utils';
+import {NEW_DASHBOARD_ID} from 'sentry/views/dashboards/widgetBuilder/utils';
+import WidgetCard from 'sentry/views/dashboards/widgetCard';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
-type WidgetAsQueryParams = Query & {
+type WidgetAsQueryParams = Query<{
   defaultTableColumns: string[];
   defaultTitle: string;
   defaultWidgetQuery: string;
@@ -39,9 +50,10 @@ type WidgetAsQueryParams = Query & {
   end?: DateString;
   start?: DateString;
   statsPeriod?: string | null;
-};
+}>;
 
 export type AddToDashboardModalProps = {
+  location: Location;
   organization: Organization;
   router: InjectedRouter;
   selection: PageFilters;
@@ -58,6 +70,7 @@ function AddToDashboardModal({
   Body,
   Footer,
   closeModal,
+  location,
   organization,
   router,
   selection,
@@ -66,11 +79,50 @@ function AddToDashboardModal({
 }: Props) {
   const api = useApi();
   const [dashboards, setDashboards] = useState<DashboardListItem[] | null>(null);
+  const [selectedDashboard, setSelectedDashboard] = useState<DashboardDetails | null>(
+    null
+  );
   const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchDashboards(api, organization.slug).then(setDashboards);
-  }, []);
+    // Track mounted state so we dont call setState on unmounted components
+    let unmounted = false;
+
+    fetchDashboards(api, organization.slug).then(response => {
+      // If component has unmounted, dont set state
+      if (unmounted) {
+        return;
+      }
+
+      setDashboards(response);
+    });
+
+    return () => {
+      unmounted = true;
+    };
+  }, [api, organization.slug]);
+
+  useEffect(() => {
+    // Track mounted state so we dont call setState on unmounted components
+    let unmounted = false;
+
+    if (selectedDashboardId === NEW_DASHBOARD_ID || selectedDashboardId === null) {
+      setSelectedDashboard(null);
+    } else {
+      fetchDashboard(api, organization.slug, selectedDashboardId).then(response => {
+        // If component has unmounted, dont set state
+        if (unmounted) {
+          return;
+        }
+
+        setSelectedDashboard(response);
+      });
+    }
+
+    return () => {
+      unmounted = true;
+    };
+  }, [api, organization.slug, selectedDashboardId]);
 
   function handleGoToBuilder() {
     const pathname =
@@ -78,20 +130,25 @@ function AddToDashboardModal({
         ? `/organizations/${organization.slug}/dashboards/new/widget/new/`
         : `/organizations/${organization.slug}/dashboard/${selectedDashboardId}/widget/new/`;
 
-    router.push({
-      pathname,
-      query: widgetAsQueryParams,
-    });
+    router.push(
+      normalizeUrl({
+        pathname,
+        query: {
+          ...widgetAsQueryParams,
+          ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
+        },
+      })
+    );
     closeModal();
   }
 
   async function handleAddAndStayInDiscover() {
-    if (selectedDashboardId === null || selectedDashboardId === NEW_DASHBOARD_ID) {
+    if (selectedDashboard === null) {
       return;
     }
 
     let orderby = widget.queries[0].orderby;
-    if (!!!(DisplayType.AREA && widget.queries[0].columns.length)) {
+    if (!(DisplayType.AREA && widget.queries[0].columns.length)) {
       orderby = ''; // Clear orderby if its not a top n visualization.
     }
     const query = widget.queries[0];
@@ -102,34 +159,26 @@ function AddToDashboardModal({
       queries: [{...query, orderby}],
     };
 
-    try {
-      const dashboard = await fetchDashboard(api, organization.slug, selectedDashboardId);
-      const newDashboard = {
-        ...dashboard,
-        widgets: [...dashboard.widgets, newWidget],
-      };
+    const newDashboard = {
+      ...selectedDashboard,
+      widgets: [...selectedDashboard.widgets, newWidget],
+    };
 
-      await updateDashboard(api, organization.slug, newDashboard);
+    await updateDashboard(api, organization.slug, newDashboard);
 
-      closeModal();
-      addSuccessMessage(t('Successfully added widget to dashboard'));
-    } catch (e) {
-      const errorMessage = t('Unable to add widget to dashboard');
-      handleXhrErrorResponse(errorMessage)(e);
-      addErrorMessage(errorMessage);
-    }
+    closeModal();
+    addSuccessMessage(t('Successfully added widget to dashboard'));
   }
 
   const canSubmit = selectedDashboardId !== null;
 
   return (
-    <Fragment>
+    <OrganizationContext.Provider value={organization}>
       <Header closeButton>
         <h4>{t('Add to Dashboard')}</h4>
       </Header>
-
       <Body>
-        <SelectControlWrapper>
+        <Wrapper>
           <SelectControl
             disabled={dashboards === null}
             menuPlacement="auto"
@@ -142,7 +191,7 @@ function AddToDashboardModal({
                 ...dashboards.map(({title, id, widgetDisplay}) => ({
                   label: title,
                   value: id,
-                  isDisabled: widgetDisplay.length >= MAX_WIDGETS,
+                  disabled: widgetDisplay.length >= MAX_WIDGETS,
                   tooltip:
                     widgetDisplay.length >= MAX_WIDGETS &&
                     tct('Max widgets ([maxWidgets]) per dashboard reached.', {
@@ -159,19 +208,43 @@ function AddToDashboardModal({
               setSelectedDashboardId(option.value);
             }}
           />
-        </SelectControlWrapper>
-        {t('This is a preview of how the widget will appear in your dashboard.')}
-        <WidgetCard
-          api={api}
-          organization={organization}
-          currentWidgetDragging={false}
-          isEditing={false}
-          isSorting={false}
-          widgetLimitReached={false}
-          selection={selection}
-          widget={widget}
-          showStoredAlert
-        />
+        </Wrapper>
+        <Wrapper>
+          {t(
+            'Any conflicting filters from this query will be overridden by Dashboard filters. This is a preview of how the widget will appear in your dashboard.'
+          )}
+        </Wrapper>
+        <MetricsCardinalityProvider organization={organization} location={location}>
+          <MetricsDataSwitcher
+            organization={organization}
+            eventView={eventViewFromWidget(widget.title, widget.queries[0], selection)}
+            location={location}
+            hideLoadingIndicator
+          >
+            {metricsDataSide => (
+              <MEPSettingProvider
+                location={location}
+                forceTransactions={metricsDataSide.forceTransactionsOnly}
+              >
+                <WidgetCard
+                  organization={organization}
+                  isEditing={false}
+                  widgetLimitReached={false}
+                  selection={
+                    selectedDashboard
+                      ? getSavedFiltersAsPageFilters(selectedDashboard)
+                      : selection
+                  }
+                  dashboardFilters={
+                    getDashboardFiltersFromURL(location) ?? selectedDashboard?.filters
+                  }
+                  widget={widget}
+                  showStoredAlert
+                />
+              </MEPSettingProvider>
+            )}
+          </MetricsDataSwitcher>
+        </MetricsCardinalityProvider>
       </Body>
 
       <Footer>
@@ -193,13 +266,13 @@ function AddToDashboardModal({
           </Button>
         </StyledButtonBar>
       </Footer>
-    </Fragment>
+    </OrganizationContext.Provider>
   );
 }
 
 export default AddToDashboardModal;
 
-const SelectControlWrapper = styled('div')`
+const Wrapper = styled('div')`
   margin-bottom: ${space(2)};
 `;
 

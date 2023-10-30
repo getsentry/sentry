@@ -2,15 +2,21 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tagstore
-from sentry.api.base import EnvironmentMixin
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
-from sentry.models import Environment
+from sentry.models.environment import Environment
 
 
+@region_silo_endpoint
 class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, project, key) -> Response:
         """
         List a Tag's Values
@@ -27,7 +33,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
         :auth: required
         """
         lookup_key = tagstore.prefix_reserved_key(key)
-
+        tenant_ids = {"organization_id": project.organization_id}
         try:
             environment_id = self._get_environment_id_from_request(request, project.organization_id)
         except Environment.DoesNotExist:
@@ -35,7 +41,12 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
             raise ResourceDoesNotExist
 
         try:
-            tagkey = tagstore.get_tag_key(project.id, environment_id, lookup_key)
+            tagkey = tagstore.get_tag_key(
+                project.id,
+                environment_id,
+                lookup_key,
+                tenant_ids=tenant_ids,
+            )
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
@@ -49,6 +60,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
             end=end,
             query=request.GET.get("query"),
             order_by="-last_seen",
+            tenant_ids=tenant_ids,
         )
 
         return self.paginate(

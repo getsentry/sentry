@@ -1,21 +1,23 @@
 import copy
-from datetime import timedelta
+from datetime import timedelta, timezone
 from unittest.mock import patch
 from urllib.parse import urlencode
 
 import pytest
-import pytz
+from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 
 from sentry.discover.models import DiscoverSavedQuery
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format, timestamp_format
+from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
 FEATURE_NAMES = [
     "organizations:discover-basic",
     "organizations:discover-query",
     "organizations:performance-view",
+    "organizations:performance-tracing-without-performance",
 ]
 
 
@@ -70,7 +72,7 @@ def transactions_sorted_query(**kwargs):
 
 
 def generate_transaction(trace=None, span=None):
-    end_datetime = before_now(minutes=1)
+    end_datetime = before_now(minutes=10)
     start_datetime = end_datetime - timedelta(milliseconds=500)
     event_data = load_data(
         "transaction",
@@ -144,6 +146,7 @@ def generate_transaction(trace=None, span=None):
     return event_data
 
 
+@no_silo_test(stable=True)
 class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -165,31 +168,28 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.landing_path)
             self.wait_until_loaded()
-            self.browser.snapshot("events-v2 - default landing")
 
     def test_all_events_query_empty_state(self):
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.result_path + "?" + all_events_query())
             self.wait_until_loaded()
-            self.browser.snapshot("events-v2 - all events query - empty state")
 
         with self.feature(FEATURE_NAMES):
             # expect table to expand to the right when no tags are provided
             self.browser.get(self.result_path + "?" + all_events_query(tag=[]))
             self.wait_until_loaded()
-            self.browser.snapshot("events-v2 - all events query - empty state - no tags")
 
     @patch("django.utils.timezone.now")
     def test_all_events_query(self, mock_now):
-        now = before_now().replace(tzinfo=pytz.utc)
+        now = before_now().replace(tzinfo=timezone.utc)
         mock_now.return_value = now
-        min_ago = iso_format(now - timedelta(minutes=1))
-        two_min_ago = iso_format(now - timedelta(minutes=2))
+        five_mins_ago = iso_format(now - timedelta(minutes=5))
+        ten_mins_ago = iso_format(now - timedelta(minutes=10))
         self.store_event(
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": min_ago,
+                "timestamp": five_mins_ago,
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -199,7 +199,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             data={
                 "event_id": "b" * 32,
                 "message": "this is bad.",
-                "timestamp": two_min_ago,
+                "timestamp": ten_mins_ago,
                 "fingerprint": ["group-2"],
                 "user": {
                     "id": "123",
@@ -220,36 +220,30 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             # This test is flakey in that we sometimes load this page before the event is processed
             # depend on pytest-retry to reload the page
             self.browser.wait_until('[data-test-id="grid-editable"] > tbody > tr:nth-child(2)')
-            self.browser.snapshot("events-v2 - all events query - list")
 
         with self.feature(FEATURE_NAMES):
             # expect table to expand to the right when no tags are provided
             self.browser.get(self.result_path + "?" + all_events_query(tag=[]))
             self.wait_until_loaded()
             self.browser.wait_until('[data-test-id="grid-editable"] > tbody > tr:nth-child(2)')
-            self.browser.snapshot("events-v2 - all events query - list - no tags")
 
     def test_errors_query_empty_state(self):
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.result_path + "?" + errors_query())
             self.wait_until_loaded()
-            self.browser.snapshot("events-v2 - errors query - empty state")
 
             self.browser.click_when_visible('[data-test-id="grid-edit-enable"]')
-            self.browser.snapshot(
-                "events-v2 - errors query - empty state - querybuilder - column edit state"
-            )
 
     @patch("django.utils.timezone.now")
     def test_errors_query(self, mock_now):
-        now = before_now().replace(tzinfo=pytz.utc)
+        now = before_now().replace(tzinfo=timezone.utc)
         mock_now.return_value = now
-        min_ago = iso_format(now - timedelta(minutes=1))
+        ten_mins_ago = iso_format(now - timedelta(minutes=10))
         self.store_event(
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": min_ago,
+                "timestamp": ten_mins_ago,
                 "fingerprint": ["group-1"],
                 "type": "error",
             },
@@ -260,7 +254,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             data={
                 "event_id": "b" * 32,
                 "message": "oh no",
-                "timestamp": min_ago,
+                "timestamp": ten_mins_ago,
                 "fingerprint": ["group-1"],
                 "type": "error",
             },
@@ -271,7 +265,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             data={
                 "event_id": "c" * 32,
                 "message": "this is bad.",
-                "timestamp": min_ago,
+                "timestamp": ten_mins_ago,
                 "fingerprint": ["group-2"],
                 "type": "error",
             },
@@ -282,23 +276,20 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.result_path + "?" + errors_query())
             self.wait_until_loaded()
-            self.browser.snapshot("events-v2 - errors")
 
     def test_transactions_query_empty_state(self):
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.result_path + "?" + transactions_query())
             self.wait_until_loaded()
-            self.browser.snapshot("events-v2 - transactions query - empty state")
 
         with self.feature(FEATURE_NAMES):
             # expect table to expand to the right when no tags are provided
             self.browser.get(self.result_path + "?" + transactions_query(tag=[]))
             self.wait_until_loaded()
-            self.browser.snapshot("events-v2 - transactions query - empty state - no tags")
 
     @patch("django.utils.timezone.now")
     def test_transactions_query(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
 
         event_data = generate_transaction()
 
@@ -310,20 +301,19 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until_not(
                 '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
             )
-            self.browser.snapshot("events-v2 - transactions query - list")
 
     @patch("django.utils.timezone.now")
     def test_event_detail_view_from_all_events(self, mock_now):
-        now = before_now().replace(tzinfo=pytz.utc)
+        now = before_now().replace(tzinfo=timezone.utc)
         mock_now.return_value = now
-        min_ago = iso_format(now - timedelta(minutes=1))
+        ten_mins_ago = iso_format(now - timedelta(minutes=10))
 
         event_data = load_data("python")
         event_data.update(
             {
                 "event_id": "a" * 32,
-                "timestamp": min_ago,
-                "received": min_ago,
+                "timestamp": ten_mins_ago,
+                "received": ten_mins_ago,
                 "fingerprint": ["group-1"],
             }
         )
@@ -348,11 +338,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             # header = self.browser.element('[data-test-id="event-header"] div div span')
             # assert event_data["message"] in header.text
 
-            self.browser.snapshot("events-v2 - single error details view")
-
     @patch("django.utils.timezone.now")
     def test_event_detail_view_from_errors_view(self, mock_now):
-        now = before_now().replace(tzinfo=pytz.utc)
+        now = before_now().replace(tzinfo=timezone.utc)
         mock_now.return_value = now
 
         event_data = load_data("javascript")
@@ -384,11 +372,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.elements('[data-test-id="view-event"]')[0].click()
             self.wait_until_loaded()
 
-            self.browser.snapshot("events-v2 - error event detail view")
-
     @patch("django.utils.timezone.now")
     def test_event_detail_view_from_transactions_query(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
 
         event_data = generate_transaction(trace="a" * 32, span="ab" * 8)
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
@@ -417,8 +403,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.elements('[data-test-id="view-event"]')[0].click()
             self.wait_until_loaded()
 
-            self.browser.snapshot("events-v2 - transactions event with auto-grouped spans")
-
             # Expand auto-grouped spans
             self.browser.element('[data-test-id="span-row-5"]').click()
 
@@ -429,7 +413,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             # Wait until the child event loads.
             child_button = '[data-test-id="view-child-transaction"]'
             self.browser.wait_until(child_button)
-            self.browser.snapshot("events-v2 - transactions event detail view")
 
             # Click on the child transaction.
             self.browser.click(child_button)
@@ -437,15 +420,34 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_event_detail_view_from_transactions_query_siblings(self, mock_now):
-        # TODO(Ash): Will replace above test after sibling EA.
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
 
         event_data = generate_transaction(trace="a" * 32, span="ab" * 8)
 
+        # Arranges sibling spans to be autogrouped in a way that will cover many edgecases
+        last_span = copy.deepcopy(event_data["spans"][-1])
         for i in range(5):
-            clone = copy.deepcopy(event_data["spans"][-1])
+            clone = copy.deepcopy(last_span)
             # If range > 9 this might no longer work because of constraints on span_id (hex 16)
             clone["span_id"] = (str("ac" * 6) + str(i)).ljust(16, "0")
+            event_data["spans"].append(clone)
+
+        combo_breaker_span = copy.deepcopy(last_span)
+        combo_breaker_span["span_id"] = (str("af" * 6)).ljust(16, "0")
+        combo_breaker_span["op"] = "combo.breaker"
+        event_data["spans"].append(combo_breaker_span)
+
+        for i in range(5):
+            clone = copy.deepcopy(last_span)
+            clone["op"] = "django.middleware"
+            clone["span_id"] = (str("de" * 6) + str(i)).ljust(16, "0")
+            event_data["spans"].append(clone)
+
+        for i in range(5):
+            clone = copy.deepcopy(last_span)
+            clone["op"] = "http"
+            clone["description"] = "test"
+            clone["span_id"] = (str("bd" * 6) + str(i)).ljust(16, "0")
             event_data["spans"].append(clone)
 
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
@@ -461,7 +463,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         child_event["spans"] = child_event["spans"][0:3]
         self.store_event(data=child_event, project_id=self.project.id, assert_no_errors=True)
 
-        with self.feature(FEATURE_NAMES + ["organizations:performance-autogroup-sibling-spans"]):
+        with self.feature(FEATURE_NAMES):
             # Get the list page
             self.browser.get(self.result_path + "?" + transactions_sorted_query())
             self.wait_until_loaded()
@@ -474,23 +476,27 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.elements('[data-test-id="view-event"]')[0].click()
             self.wait_until_loaded()
 
-            self.browser.snapshot(
-                "events-v2 - transactions event with descendant and sibling auto-grouped spans"
-            )
-
             # Expand auto-grouped descendant spans
             self.browser.element('[data-test-id="span-row-5"]').click()
 
-            # Expand auto-grouped sibling spans
+            # Expand all autogrouped rows
             self.browser.element('[data-test-id="span-row-9"]').click()
+            self.browser.element('[data-test-id="span-row-18"]').click()
+            self.browser.element('[data-test-id="span-row-23"]').click()
 
-            self.browser.snapshot(
-                "events-v2 - transactions event with expanded descendant and sibling auto-grouped spans"
-            )
+            # Click to collapse all of these spans back into autogroups, we expect the span tree to look like it did initially
+            first_row = self.browser.element('[data-test-id="span-row-23"]')
+            first_row.find_element(By.CSS_SELECTOR, "a").click()
+
+            second_row = self.browser.element('[data-test-id="span-row-18"]')
+            second_row.find_element(By.CSS_SELECTOR, "a").click()
+
+            third_row = self.browser.element('[data-test-id="span-row-9"]')
+            third_row.find_element(By.CSS_SELECTOR, "a").click()
 
     @patch("django.utils.timezone.now")
     def test_transaction_event_detail_view_ops_filtering(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
 
         event_data = generate_transaction(trace="a" * 32, span="ab" * 8)
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
@@ -509,19 +515,10 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # Interact with ops filter dropdown
-            self.browser.elements('[data-test-id="filter-button"]')[0].click()
+            self.browser.elements('[aria-label="Filter by operation"]')[0].click()
 
-            # select all ops
-            self.browser.elements(
-                '[data-test-id="op-filter-dropdown"] [data-test-id="checkbox-fancy"]'
-            )[0].click()
-
-            # un-select django.middleware
-            self.browser.elements(
-                '[data-test-id="op-filter-dropdown"] [data-test-id="checkbox-fancy"]'
-            )[1].click()
-
-            self.browser.snapshot("events-v2 - transactions event detail view - ops filtering")
+            # select django.middleware
+            self.browser.elements('[data-test-id="django\\\\.middleware"]')[0].click()
 
     def test_create_saved_query(self):
         # Simulate a custom query
@@ -603,9 +600,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             card = self.browser.element(card_selector)
 
             # Open the context menu
-            card.find_element_by_css_selector('[data-test-id="menu-trigger"]').click()
+            card.find_element(by=By.CSS_SELECTOR, value='[data-test-id="menu-trigger"]').click()
             # Delete the query
-            card.find_element_by_css_selector('[data-test-id="delete"]').click()
+            card.find_element(by=By.CSS_SELECTOR, value='[data-test-id="delete"]').click()
 
             # Wait for card to clear
             self.browser.wait_until_not(card_selector)
@@ -630,8 +627,8 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             card = self.browser.element(card_selector)
 
             # Open the context menu, and duplicate
-            card.find_element_by_css_selector('[data-test-id="menu-trigger"]').click()
-            card.find_element_by_css_selector('[data-test-id="duplicate"]').click()
+            card.find_element(by=By.CSS_SELECTOR, value='[data-test-id="menu-trigger"]').click()
+            card.find_element(by=By.CSS_SELECTOR, value='[data-test-id="duplicate"]').click()
 
             duplicate_name = f"{query.name} copy"
 
@@ -647,9 +644,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     @pytest.mark.skip(reason="causing timeouts in github actions and travis")
     @patch("django.utils.timezone.now")
     def test_drilldown_result(self, mock_now):
-        now = before_now().replace(tzinfo=pytz.utc)
+        now = before_now().replace(tzinfo=timezone.utc)
         mock_now.return_value = now
-        min_ago = iso_format(now - timedelta(minutes=1))
+        ten_mins_ago = iso_format(now - timedelta(minutes=10))
         events = (
             ("a" * 32, "oh no", "group-1"),
             ("b" * 32, "oh no", "group-1"),
@@ -660,7 +657,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
                 data={
                     "event_id": event[0],
                     "message": event[1],
-                    "timestamp": min_ago,
+                    "timestamp": ten_mins_ago,
                     "fingerprint": [event[2]],
                     "type": "error",
                 },
@@ -686,7 +683,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     @pytest.mark.skip(reason="not done")
     @patch("django.utils.timezone.now")
     def test_usage(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
 
         # TODO: load events
 

@@ -5,8 +5,8 @@ import responses
 from requests.exceptions import ConnectionError
 
 from sentry.integrations.jira_server.integration import JiraServerIntegration
-from sentry.models import OrganizationIntegration
-from sentry.testutils import APITestCase
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.testutils.cases import APITestCase
 
 from . import EXAMPLE_PAYLOAD, get_integration, link_group
 
@@ -61,7 +61,7 @@ class JiraServerWebhookEndpointTest(APITestCase):
         token = jwt.encode({"id": integration.external_id}, "bad-secret")
         self.get_error_response(token, status_code=400)
 
-    @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
+    @patch("sentry.integrations.jira_server.utils.api.sync_group_assignee_inbound")
     def test_post_update_assignee(self, mock_sync):
         project = self.create_project()
         self.create_group(project=project)

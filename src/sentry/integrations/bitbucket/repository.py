@@ -1,7 +1,8 @@
-from sentry.app import locks
-from sentry.models import OrganizationOption
+from sentry.locks import locks
 from sentry.models.apitoken import generate_token
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.email import parse_email, parse_user_name
 from sentry.utils.http import absolute_uri
@@ -25,7 +26,11 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider):
 
     def get_webhook_secret(self, organization):
         # TODO(LB): Revisit whether Integrations V3 should be using OrganizationOption for storage
-        lock = locks.get(f"bitbucket:webhook-secret:{organization.id}", duration=60)
+        lock = locks.get(
+            f"bitbucket:webhook-secret:{organization.id}",
+            duration=60,
+            name="bitbucket_webhook_secret",
+        )
         with lock.acquire():
             secret = OrganizationOption.objects.get_value(
                 organization=organization, key="bitbucket:webhook_secret"
@@ -37,7 +42,7 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider):
                 )
         return secret
 
-    def build_repository_config(self, organization, data):
+    def build_repository_config(self, organization: RpcOrganization, data):
         installation = self.get_installation(data.get("installation"), organization.id)
         client = installation.get_client()
         try:

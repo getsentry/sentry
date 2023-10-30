@@ -2,36 +2,41 @@
 name: meta(labels)
 
 on:
-  pull_request:
+  pull_request_target:
 
 jobs:
   label-pullrequest:
+    permissions:
+      contents: read
+      pull-requests: write
     name: labels pull requests (frontend / backend)
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+        with:
+          persist-credentials: false
 
       - name: Check for file changes
-        uses: getsentry/paths-filter@master
+        uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
         id: changes
         with:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
       - name: Add frontend label
-        uses: actions-ecosystem/action-add-labels@18f1af5e3544586314bbe15c0273249c770b2daf
-        if: steps.changes.outputs.frontend == 'true'
+        uses: getsentry/action-add-labels@54d0cba498c1eaf8bd34985d715504d1b6e2935f
+        if: steps.changes.outputs.frontend_src == 'true'
         with:
-          labels: frontend
+          labels: 'Scope: Frontend'
 
       - name: Add backend label
-        uses: actions-ecosystem/action-add-labels@18f1af5e3544586314bbe15c0273249c770b2daf
-        if: steps.changes.outputs.backend == 'true'
+        uses: getsentry/action-add-labels@54d0cba498c1eaf8bd34985d715504d1b6e2935f
+        if: steps.changes.outputs.backend_src == 'true'
         with:
-          labels: backend
+          labels: 'Scope: Backend'
 
       - name: Find previous frontend/backend warning comment
-        uses: peter-evans/find-comment@1769778a0c5bd330272d749d12c036d65e70d39d
+        uses: peter-evans/find-comment@a54c31d7fa095754bfef525c0c8e5e5674c4b4b1 # v2.4.0
         id: fc
         with:
           issue-number: ${{ github.event.pull_request.number }}
@@ -41,8 +46,8 @@ jobs:
       - name: Add frontend/backend warning comment
         uses: peter-evans/create-or-update-comment@b95e16d2859ad843a14218d1028da5b2c4cbc4b4
         if: >
-          steps.changes.outputs.frontend == 'true' &&
-          steps.changes.outputs.backend == 'true' &&
+          steps.changes.outputs.frontend_src == 'true' &&
+          steps.changes.outputs.backend_src == 'true' &&
           steps.fc.outputs.comment-id == 0
         with:
           issue-number: ${{ github.event.pull_request.number }}

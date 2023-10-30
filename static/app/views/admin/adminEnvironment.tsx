@@ -2,12 +2,12 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
-import Button from 'sentry/components/button';
-import {IconQuestion} from 'sentry/icons';
+import {Button} from 'sentry/components/button';
+import {IconUpgrade} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
-import AsyncView from 'sentry/views/asyncView';
+import {space} from 'sentry/styles/space';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 type Data = {
   config: [key: string, value: string][];
@@ -18,10 +18,10 @@ type Data = {
   pythonVersion: string;
 };
 
-type State = AsyncView['state'] & {data: Data};
+type State = DeprecatedAsyncView['state'] & {data: Data};
 
-export default class AdminEnvironment extends AsyncView<{}, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+export default class AdminEnvironment extends DeprecatedAsyncView<{}, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['data', '/internal/environment/']];
   }
 
@@ -29,7 +29,7 @@ export default class AdminEnvironment extends AsyncView<{}, State> {
     const {data} = this.state;
     const {environment, config, pythonVersion} = data;
 
-    const {version} = ConfigStore.getConfig();
+    const {version} = ConfigStore.getState();
 
     return (
       <div>
@@ -41,20 +41,13 @@ export default class AdminEnvironment extends AsyncView<{}, State> {
               {t('Server Version')}
               {version.upgradeAvailable && (
                 <Button
-                  title={t(
-                    "You're running an old version of Sentry, did you know %s is available?",
-                    version.latest
-                  )}
-                  aria-label={t(
-                    "You're running an old version of Sentry, did you know %s is available?",
-                    version.latest
-                  )}
-                  priority="link"
                   href="https://github.com/getsentry/sentry/releases"
-                  icon={<IconQuestion size="sm" />}
-                  size="small"
+                  icon={<IconUpgrade size="xs" />}
+                  size="xs"
                   external
-                />
+                >
+                  {t('Upgrade to Sentry %s', version.latest)}
+                </Button>
               )}
             </VersionLabel>
             <dd>

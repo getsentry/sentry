@@ -12,10 +12,10 @@ from typing import Any, Dict, List
 import jsonschema
 import requests
 import sentry_sdk
-from django.db import transaction
+from django.db import router, transaction
 
-from sentry.lang.native.symbolicator import APP_STORE_CONNECT_SCHEMA, secret_fields
-from sentry.models import Project
+from sentry.lang.native.sources import APP_STORE_CONNECT_SCHEMA, secret_fields
+from sentry.models.project import Project
 from sentry.utils import json
 from sentry.utils.appleconnect import appstore_connect
 
@@ -198,7 +198,7 @@ class AppStoreConnectConfig:
         :raises ValueError: if an ``appStoreConnect`` source already exists but the ID does not
            match
         """
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Project)):
             all_sources_raw = project.get_option(SYMBOL_SOURCES_PROP_NAME)
             all_sources = json.loads(all_sources_raw) if all_sources_raw else []
             for i, source in enumerate(all_sources):

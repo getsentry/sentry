@@ -1,20 +1,23 @@
 import styled from '@emotion/styled';
 
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import space from 'sentry/styles/space';
-import CreateProject from 'sentry/views/projectInstall/createProject';
+import {space} from 'sentry/styles/space';
 
-const NewProject = () => (
-  <SentryDocumentTitle>
-    <Container>
-      <div className="container">
-        <Content>
-          <CreateProject />
-        </Content>
-      </div>
-    </Container>
-  </SentryDocumentTitle>
-);
+import {CreateProject} from './createProject';
+
+function NewProject() {
+  return (
+    <SentryDocumentTitle>
+      <Container>
+        <div className="container">
+          <Content>
+            <CreateProject />
+          </Content>
+        </div>
+      </Container>
+    </SentryDocumentTitle>
+  );
+}
 
 const Container = styled('div')`
   flex: 1;

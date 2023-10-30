@@ -1,18 +1,21 @@
-import {Fragment} from 'react';
+import {Fragment, MouseEvent as ReactMouseEvent} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import isEqual from 'lodash/isEqual';
 import moment from 'moment';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import {navigateTo} from 'sentry/actionCreators/navigation';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
 import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import NotAvailable from 'sentry/components/notAvailable';
-import ScoreCard from 'sentry/components/scoreCard';
+import ScoreCard, {ScoreCardProps} from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {DataCategory, IntervalPeriod, Organization} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import {DataCategoryInfo, IntervalPeriod, Organization, Outcome} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 
 import {
@@ -20,49 +23,66 @@ import {
   FORMAT_DATETIME_HOURLY,
   getDateFromMoment,
 } from './usageChart/utils';
-import {Outcome, UsageSeries, UsageStat} from './types';
+import {UsageSeries, UsageStat} from './types';
 import UsageChart, {
   CHART_OPTIONS_DATA_TRANSFORM,
   ChartDataTransform,
   ChartStats,
+  UsageChartProps,
 } from './usageChart';
 import UsageStatsPerMin from './usageStatsPerMin';
 import {formatUsageWithUnits, getFormatUsageOptions, isDisplayUtc} from './utils';
 
-type Props = {
-  dataCategory: DataCategory;
+export type UsageStatsOrganizationProps = {
+  dataCategory: DataCategoryInfo['plural'];
   dataCategoryName: string;
   dataDatetime: DateTimeObject;
   handleChangeState: (state: {
-    dataCategory?: DataCategory;
+    dataCategory?: DataCategoryInfo['plural'];
     pagePeriod?: string | null;
     transform?: ChartDataTransform;
   }) => void;
+  isSingleProject: boolean;
   organization: Organization;
+  projectIds: number[];
   chartTransform?: string;
-} & AsyncComponent['props'];
+} & DeprecatedAsyncComponent['props'];
 
-type State = {
+type UsageStatsOrganizationState = {
   orgStats: UsageSeries | undefined;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class UsageStatsOrganization extends AsyncComponent<Props, State> {
-  componentDidUpdate(prevProps: Props) {
-    const {dataDatetime: prevDateTime} = prevProps;
-    const {dataDatetime: currDateTime} = this.props;
+/**
+ * This component is replaced by EnhancedUsageStatsOrganization in getsentry, which inherits
+ * heavily from this one. Take care if changing any existing function signatures to ensure backwards
+ * compatibility.
+ */
+class UsageStatsOrganization<
+  P extends UsageStatsOrganizationProps = UsageStatsOrganizationProps,
+  S extends UsageStatsOrganizationState = UsageStatsOrganizationState,
+> extends DeprecatedAsyncComponent<P, S> {
+  componentDidUpdate(prevProps: UsageStatsOrganizationProps) {
+    const {dataDatetime: prevDateTime, projectIds: prevProjectIds} = prevProps;
+    const {dataDatetime: currDateTime, projectIds: currProjectIds} = this.props;
 
     if (
       prevDateTime.start !== currDateTime.start ||
       prevDateTime.end !== currDateTime.end ||
       prevDateTime.period !== currDateTime.period ||
-      prevDateTime.utc !== currDateTime.utc
+      prevDateTime.utc !== currDateTime.utc ||
+      !isEqual(prevProjectIds, currProjectIds)
     ) {
       this.reloadData();
     }
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     return [['orgStats', this.endpointPath, {query: this.endpointQuery}]];
+  }
+
+  /** List of components to render on single-project view */
+  get projectDetails(): JSX.Element[] {
+    return [];
   }
 
   get endpointPath() {
@@ -70,9 +90,8 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     return `/organizations/${organization.slug}/stats_v2/`;
   }
 
-  get endpointQuery() {
+  get endpointQueryDatetime() {
     const {dataDatetime} = this.props;
-
     const queryDatetime =
       dataDatetime.start && dataDatetime.end
         ? {
@@ -83,11 +102,19 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         : {
             statsPeriod: dataDatetime.period || DEFAULT_STATS_PERIOD,
           };
+    return queryDatetime;
+  }
+
+  get endpointQuery() {
+    const {dataDatetime, projectIds} = this.props;
+
+    const queryDatetime = this.endpointQueryDatetime;
 
     return {
       ...queryDatetime,
       interval: getSeriesApiInterval(dataDatetime),
       groupBy: ['category', 'outcome'],
+      project: projectIds,
       field: ['sum(quantity)'],
     };
   }
@@ -192,6 +219,95 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       chartDateEndDisplay: displayEnd.format(FORMAT_DATETIME),
       chartDateTimezoneDisplay: displayStart.format('Z'),
     };
+  }
+
+  get chartProps(): UsageChartProps {
+    const {dataCategory} = this.props;
+    const {error, errors, loading} = this.state;
+    const {
+      chartStats,
+      dataError,
+      chartDateInterval,
+      chartDateStart,
+      chartDateEnd,
+      chartDateUtc,
+      chartTransform,
+    } = this.chartData;
+
+    const hasError = error || !!dataError;
+    const chartErrors: any = dataError ? {...errors, data: dataError} : errors; // TODO(ts): AsyncComponent
+    const chartProps = {
+      isLoading: loading,
+      isError: hasError,
+      errors: chartErrors,
+      title: ' ', // Force the title to be blank
+      footer: this.renderChartFooter(),
+      dataCategory,
+      dataTransform: chartTransform,
+      usageDateStart: chartDateStart,
+      usageDateEnd: chartDateEnd,
+      usageDateShowUtc: chartDateUtc,
+      usageDateInterval: chartDateInterval,
+      usageStats: chartStats,
+    } as UsageChartProps;
+
+    return chartProps;
+  }
+
+  get cardMetadata() {
+    const {dataCategory, dataCategoryName, organization, projectIds, router} = this.props;
+    const {total, accepted, dropped, filtered} = this.chartData.cardStats;
+
+    const navigateToInboundFilterSettings = (event: ReactMouseEvent) => {
+      event.preventDefault();
+      const url = `/settings/${organization.slug}/projects/:projectId/filters/data-filters/`;
+      if (router) {
+        navigateTo(url, router);
+      }
+    };
+
+    const cardMetadata: Record<string, ScoreCardProps> = {
+      total: {
+        title: tct('Total [dataCategory]', {dataCategory: dataCategoryName}),
+        score: total,
+      },
+      accepted: {
+        title: tct('Accepted [dataCategory]', {dataCategory: dataCategoryName}),
+        help: tct('Accepted [dataCategory] were successfully processed by Sentry', {
+          dataCategory,
+        }),
+        score: accepted,
+        trend: (
+          <UsageStatsPerMin
+            dataCategory={dataCategory}
+            organization={organization}
+            projectIds={projectIds}
+          />
+        ),
+      },
+      filtered: {
+        title: tct('Filtered [dataCategory]', {dataCategory: dataCategoryName}),
+        help: tct(
+          'Filtered [dataCategory] were blocked due to your [filterSettings: inbound data filter] rules',
+          {
+            dataCategory,
+            filterSettings: (
+              <a href="#" onClick={event => navigateToInboundFilterSettings(event)} />
+            ),
+          }
+        ),
+        score: filtered,
+      },
+      dropped: {
+        title: tct('Dropped [dataCategory]', {dataCategory: dataCategoryName}),
+        help: tct(
+          'Dropped [dataCategory] were discarded due to invalid data, rate-limits, quota limits, or spike protection',
+          {dataCategory}
+        ),
+        score: dropped,
+      },
+    };
+    return cardMetadata;
   }
 
   mapSeriesToChart(orgStats?: UsageSeries): {
@@ -322,7 +438,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     } catch (err) {
       Sentry.withScope(scope => {
         scope.setContext('query', this.endpointQuery);
-        scope.setContext('body', orgStats);
+        scope.setContext('body', {...orgStats});
         Sentry.captureException(err);
       });
 
@@ -335,87 +451,25 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   }
 
   renderCards() {
-    const {dataCategory, dataCategoryName, organization} = this.props;
     const {loading} = this.state;
-    const {total, accepted, dropped, filtered} = this.chartData.cardStats;
 
-    const cardMetadata = [
-      {
-        title: tct('Total [dataCategory]', {dataCategory: dataCategoryName}),
-        value: total,
-      },
-      {
-        title: t('Accepted'),
-        help: tct('Accepted [dataCategory] were successfully processed by Sentry', {
-          dataCategory,
-        }),
-        value: accepted,
-        secondaryValue: (
-          <UsageStatsPerMin organization={organization} dataCategory={dataCategory} />
-        ),
-      },
-      {
-        title: t('Filtered'),
-        help: tct(
-          'Filtered [dataCategory] were blocked due to your inbound data filter rules',
-          {dataCategory}
-        ),
-        value: filtered,
-      },
-      {
-        title: t('Dropped'),
-        help: tct(
-          'Dropped [dataCategory] were discarded due to invalid data, rate-limits, quota limits, or spike protection',
-          {dataCategory}
-        ),
-        value: dropped,
-      },
-    ];
+    const cardMetadata = Object.values(this.cardMetadata);
 
     return cardMetadata.map((card, i) => (
       <StyledScoreCard
         key={i}
         title={card.title}
-        score={loading ? undefined : card.value}
+        score={loading ? undefined : card.score}
         help={card.help}
-        trend={card.secondaryValue}
+        trend={card.trend}
+        isTooltipHoverable
       />
     ));
   }
 
   renderChart() {
-    const {dataCategory} = this.props;
-    const {error, errors, loading} = this.state;
-
-    const {
-      chartStats,
-      dataError,
-      chartDateInterval,
-      chartDateStart,
-      chartDateEnd,
-      chartDateUtc,
-      chartTransform,
-    } = this.chartData;
-
-    const hasError = error || !!dataError;
-    const chartErrors: any = dataError ? {...errors, data: dataError} : errors; // TODO(ts): AsyncComponent
-
-    return (
-      <UsageChart
-        isLoading={loading}
-        isError={hasError}
-        errors={chartErrors}
-        title=" " // Force the title to be blank
-        footer={this.renderChartFooter()}
-        dataCategory={dataCategory}
-        dataTransform={chartTransform}
-        usageDateStart={chartDateStart}
-        usageDateEnd={chartDateEnd}
-        usageDateShowUtc={chartDateUtc}
-        usageDateInterval={chartDateInterval}
-        usageStats={chartStats}
-      />
-    );
+    const {loading} = this.state;
+    return <UsageChart {...this.chartProps} isLoading={loading} />;
   }
 
   renderChartFooter = () => {
@@ -462,17 +516,45 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     );
   };
 
+  renderProjectDetails() {
+    const {isSingleProject} = this.props;
+    const projectDetails = this.projectDetails.map((projectDetailComponent, i) => (
+      <ErrorBoundary mini key={i}>
+        {projectDetailComponent}
+      </ErrorBoundary>
+    ));
+    return isSingleProject ? projectDetails : null;
+  }
+
   renderComponent() {
     return (
       <Fragment>
-        {this.renderCards()}
-        <ChartWrapper>{this.renderChart()}</ChartWrapper>
+        <PageGrid>
+          {this.renderCards()}
+          <ChartWrapper data-test-id="usage-stats-chart">
+            {this.renderChart()}
+          </ChartWrapper>
+        </PageGrid>
+        {this.renderProjectDetails()}
       </Fragment>
     );
   }
 }
 
 export default UsageStatsOrganization;
+
+const PageGrid = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+`;
 
 const StyledScoreCard = styled(ScoreCard)`
   grid-column: auto / span 1;

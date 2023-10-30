@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
-import {Panel} from 'sentry/components/panels';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 
 type Props = {
@@ -28,7 +28,7 @@ function LoadingError({
       className={className}
       trailingItems={
         onRetry && (
-          <Button onClick={onRetry} type="button" priority="default" size="small">
+          <Button onClick={onRetry} priority="default" size="sm">
             {t('Retry')}
           </Button>
         )
@@ -42,7 +42,7 @@ function LoadingError({
 export default LoadingError;
 
 const StyledAlert = styled(Alert)`
-  ${/* sc-selector */ Panel} & {
+  ${Panel} & {
     border-radius: 0;
     border-width: 1px 0;
   }

@@ -1,7 +1,6 @@
 import {Component} from 'react';
 
 import {getRepositories} from 'sentry/actionCreators/repositories';
-import RepositoryActions from 'sentry/actions/repositoryActions';
 import {Client} from 'sentry/api';
 import RepositoryStore from 'sentry/stores/repositoryStore';
 import {Organization, Repository} from 'sentry/types';
@@ -33,21 +32,23 @@ function withRepositories<P extends DependentProps>(
     constructor(props: P & DependentProps, context: any) {
       super(props, context);
 
-      const {organization} = this.props;
-      const orgSlug = organization.slug;
       const repoData = RepositoryStore.get();
 
-      if (repoData.orgSlug !== orgSlug) {
-        RepositoryActions.resetRepositories();
-      }
-
       this.state =
-        repoData.orgSlug === orgSlug
+        repoData.orgSlug === props.organization.slug
           ? {...INITIAL_STATE, ...repoData}
           : {...INITIAL_STATE};
     }
 
     componentDidMount() {
+      const {organization} = this.props;
+      const orgSlug = organization.slug;
+      const repoData = RepositoryStore.get();
+
+      if (repoData.orgSlug !== orgSlug) {
+        RepositoryStore.resetRepositories();
+      }
+
       // XXX(leedongwei): Do not move this function call unless you modify the
       // unit test named "prevents repeated calls"
       this.fetchRepositories();

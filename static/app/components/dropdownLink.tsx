@@ -1,9 +1,8 @@
-import {css, useTheme} from '@emotion/react';
+import {css, Theme, useTheme} from '@emotion/react';
 import classNames from 'classnames';
 
-import DropdownMenu from 'sentry/components/dropdownMenu';
+import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import {IconChevron} from 'sentry/icons';
-import {Theme} from 'sentry/utils/theme';
 
 const getRootCss = (theme: Theme) => css`
   .dropdown-menu {
@@ -37,10 +36,10 @@ const getRootCss = (theme: Theme) => css`
 // `dropdown-actor` is a flexbox
 
 type Props = Omit<
-  Omit<DropdownMenu['props'], 'children'>,
-  keyof typeof DropdownMenu.defaultProps
+  Omit<DeprecatedDropdownMenu['props'], 'children'>,
+  keyof typeof DeprecatedDropdownMenu.defaultProps
 > &
-  Partial<typeof DropdownMenu.defaultProps> & {
+  Partial<typeof DeprecatedDropdownMenu.defaultProps> & {
     children: React.ReactNode;
     /**
      * Always render children of dropdown menu, this is included to support menu
@@ -82,7 +81,7 @@ function DropdownLink({
   const theme = useTheme();
 
   return (
-    <DropdownMenu alwaysRenderMenu={alwaysRenderMenu} {...otherProps}>
+    <DeprecatedDropdownMenu alwaysRenderMenu={alwaysRenderMenu} {...otherProps}>
       {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
         const shouldRenderMenu = alwaysRenderMenu || isOpen;
         const cx = classNames('dropdown-actor', className, {
@@ -131,7 +130,7 @@ function DropdownLink({
           </span>
         );
       }}
-    </DropdownMenu>
+    </DeprecatedDropdownMenu>
   );
 }
 

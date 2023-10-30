@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconBitbucket, IconGithub, IconGitlab} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {PullRequest, Repository} from 'sentry/types';
 
 function renderIcon(repo: Repository) {
@@ -16,9 +16,9 @@ function renderIcon(repo: Repository) {
 
   switch (providerId) {
     case 'github':
-      return <IconGithub size="xs" />;
+      return <IconGithub size="xs" data-test-id="pull-request-github" />;
     case 'gitlab':
-      return <IconGitlab size="xs" />;
+      return <IconGitlab size="xs" data-test-id="pull-request-gitlab" />;
     case 'bitbucket':
       return <IconBitbucket size="xs" />;
     default:
@@ -43,7 +43,7 @@ function PullRequestLink({pullRequest, repository, inline}: Props) {
     <Button
       external
       href={pullRequest.externalUrl}
-      size="small"
+      size="sm"
       icon={renderIcon(repository)}
     >
       {displayId}

@@ -1,7 +1,9 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
 import sortBy from 'lodash/sortBy';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {KeyValueListData} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import theme from 'sentry/utils/theme';
@@ -9,72 +11,99 @@ import theme from 'sentry/utils/theme';
 import {Value, ValueProps} from './value';
 
 interface Props extends Pick<ValueProps, 'raw' | 'isContextData'> {
+  className?: string;
   data?: KeyValueListData;
-  isSorted?: boolean;
   longKeys?: boolean;
   onClick?: () => void;
+  shouldSort?: boolean;
 }
 
 function KeyValueList({
   data,
   isContextData = false,
-  isSorted = true,
+  shouldSort = true,
   raw = false,
   longKeys = false,
   onClick,
+  className,
+  ...props
 }: Props) {
   if (!defined(data) || data.length === 0) {
     return null;
   }
 
-  const keyValueData = isSorted ? sortBy(data, [({key}) => key.toLowerCase()]) : data;
+  const keyValueData = shouldSort ? sortBy(data, [({key}) => key.toLowerCase()]) : data;
 
   return (
-    <table className="table key-value" onClick={onClick}>
+    <Table
+      className={classNames('table key-value', className)}
+      onClick={onClick}
+      {...props}
+    >
       <tbody>
         {keyValueData.map(
-          ({
-            key,
-            subject,
-            value = null,
-            meta,
-            subjectIcon,
-            subjectDataTestId,
-            actionButton,
-          }) => {
+          (
+            {
+              key,
+              subject,
+              value = null,
+              meta,
+              subjectIcon,
+              subjectDataTestId,
+              actionButton,
+              isContextData: valueIsContextData,
+              isMultiValue,
+            },
+            idx
+          ) => {
+            const valueProps = {
+              isContextData: valueIsContextData || isContextData,
+              meta,
+              subjectIcon,
+              value,
+              raw,
+            };
+
+            const valueContainer =
+              isMultiValue && Array.isArray(value) ? (
+                <MultiValueContainer values={value} />
+              ) : (
+                <Value {...valueProps} />
+              );
+
             return (
-              <tr key={`${key}.${value}`}>
+              <tr key={`${key}-${idx}`}>
                 <TableSubject className="key" wide={longKeys}>
                   {subject}
                 </TableSubject>
                 <td className="val" data-test-id={subjectDataTestId}>
-                  {actionButton ? (
-                    <ValueWithButtonContainer>
-                      <Value
-                        isContextData={isContextData}
-                        meta={meta}
-                        subjectIcon={subjectIcon}
-                        value={value}
-                        raw={raw}
-                      />
-                      <ActionButtonWrapper>{actionButton}</ActionButtonWrapper>
-                    </ValueWithButtonContainer>
-                  ) : (
-                    <Value
-                      isContextData={isContextData}
-                      meta={meta}
-                      subjectIcon={subjectIcon}
-                      value={value}
-                      raw={raw}
-                    />
-                  )}
+                  <Tablevalue>
+                    {actionButton ? (
+                      <ValueWithButtonContainer>
+                        {valueContainer}
+                        <ActionButtonWrapper>{actionButton}</ActionButtonWrapper>
+                      </ValueWithButtonContainer>
+                    ) : (
+                      valueContainer
+                    )}
+                  </Tablevalue>
                 </td>
               </tr>
             );
           }
         )}
       </tbody>
-    </table>
+    </Table>
+  );
+}
+
+function MultiValueContainer({values}: {values: string[]}): JSX.Element {
+  return (
+    <Fragment>
+      {values.map((val, idx) => (
+        <Value key={`${val}-${idx}`} value={val} />
+      ))}
+    </Fragment>
   );
 }
 
@@ -86,6 +115,16 @@ const TableSubject = styled('td')<{wide?: boolean}>`
   }
 `;
 
+const Tablevalue = styled('div')`
+  pre {
+    && {
+      word-break: break-all;
+    }
+  }
+  pre > pre {
+    display: inline-block;
+  }
+`;
 const ValueWithButtonContainer = styled('div')`
   display: grid;
   align-items: center;
@@ -108,4 +147,11 @@ const ActionButtonWrapper = styled('div')`
   height: 100%;
   display: flex;
   align-items: flex-start;
+`;
+
+const Table = styled('table')`
+  > * pre > pre {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
 `;

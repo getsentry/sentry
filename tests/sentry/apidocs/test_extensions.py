@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from typing import List, Optional, Union
+from typing import Any, List, Literal, Mapping, Optional, Union
 
 import pytest
+from drf_spectacular.openapi import AutoSchema
+from drf_spectacular.plumbing import UnableToProceedError
 from drf_spectacular.utils import extend_schema_serializer
-from typing_extensions import Literal, TypedDict
+from typing_extensions import TypedDict
 
 from sentry.api.serializers import Serializer
 from sentry.apidocs.extensions import (
@@ -34,19 +36,32 @@ class BasicSerializerResponse(BasicSerializerOptional):
     excluded: str
 
 
+class SerializerWithUnsupportedTypeDict(TypedDict):
+    a: list[int]
+
+
 class BasicSerializer(Serializer):
-    def serialize() -> BasicSerializerResponse:
-        return {"a": 1, "b": "test", "c": True, "d": [1], "e": {"zz": "test"}}
+    def serialize(
+        self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+    ) -> BasicSerializerResponse:
+        raise NotImplementedError
 
 
 class FailSerializer(Serializer):
-    def serialize():
-        return {"a": 1, "b": "test", "c": True, "d": [1], "e": {"zz": "test"}}
+    def serialize(self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any):
+        raise NotImplementedError
+
+
+class SerializerWithUnsupportedType(Serializer):
+    def serialize(
+        self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+    ) -> SerializerWithUnsupportedTypeDict:
+        raise NotImplementedError
 
 
 def test_sentry_response_serializer_extension():
     seralizer_extension = SentryResponseSerializerExtension(BasicSerializer)
-    schema = seralizer_extension.map_serializer(None, None)
+    schema = seralizer_extension.map_serializer(AutoSchema(), "response")
     assert schema == {
         "type": "object",
         "properties": {
@@ -68,7 +83,7 @@ def test_sentry_inline_response_serializer_extension():
         "BasicStuff", List[BasicSerializerResponse]
     )
     seralizer_extension = SentryInlineResponseSerializerExtension(inline_serializer)
-    schema = seralizer_extension.map_serializer(None, None)
+    schema = seralizer_extension.map_serializer(AutoSchema(), "response")
 
     assert schema == {
         "type": "array",
@@ -96,4 +111,10 @@ def test_sentry_inline_response_serializer_extension():
 def test_sentry_fails_when_serializer_not_typed():
     seralizer_extension = SentryResponseSerializerExtension(FailSerializer)
     with pytest.raises(TypeError):
-        seralizer_extension.map_serializer(None, None)
+        seralizer_extension.map_serializer(AutoSchema(), "response")
+
+
+def test_sentry_fails_when_serializer_unsupported_type():
+    seralizer_extension = SentryResponseSerializerExtension(SerializerWithUnsupportedType)
+    with pytest.raises(UnableToProceedError):
+        seralizer_extension.map_serializer(AutoSchema(), "response")

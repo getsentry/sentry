@@ -1,26 +1,31 @@
+from typing import List, Tuple
+
 from django.conf import settings
-from django.db import transaction
+from django.db import router, transaction
 from django.db.models import F, Q
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features, ratelimits, roles
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization_member as organization_member_serializers
-from sentry.api.serializers.rest_framework import ListField
 from sentry.api.validators import AllowedEmailField
-from sentry.app import locks
-from sentry.models import ExternalActor, InviteStatus, OrganizationMember, Team, TeamStatus
-from sentry.models.authenticator import available_authenticators
+from sentry.auth.authenticators import available_authenticators
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.team import Team, TeamStatus
+from sentry.roles import organization_roles, team_roles
 from sentry.search.utils import tokenize_query
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import member_invited
 from sentry.utils import metrics
-from sentry.utils.retries import TimedRetryPolicy
 
-from . import get_allowed_roles, save_team_assignments
+from . import get_allowed_org_roles, save_team_assignments
 
 ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
 
@@ -40,13 +45,31 @@ class MemberConflictValidationError(serializers.ValidationError):
 
 class OrganizationMemberSerializer(serializers.Serializer):
     email = AllowedEmailField(max_length=75, required=True)
-    role = serializers.ChoiceField(choices=roles.get_choices(), required=True)
-    teams = ListField(required=False, allow_null=False, default=[])
+    role = serializers.ChoiceField(
+        choices=roles.get_choices(), default=organization_roles.get_default().id
+    )  # deprecated, use orgRole
+    orgRole = serializers.ChoiceField(
+        choices=roles.get_choices(), default=organization_roles.get_default().id, required=False
+    )
+    teams = serializers.ListField(
+        required=False, allow_null=False, default=[]
+    )  # deprecated, use teamRoles
+    teamRoles = serializers.ListField(
+        required=False, allow_null=True, default=[], child=serializers.JSONField()
+    )
     sendInvite = serializers.BooleanField(required=False, default=True, write_only=True)
+    reinvite = serializers.BooleanField(required=False)
+    regenerate = serializers.BooleanField(required=False)
 
     def validate_email(self, email):
+        users = user_service.get_many_by_email(
+            emails=[email],
+            is_active=True,
+            organization_id=self.context["organization"].id,
+            is_verified=False,
+        )
         queryset = OrganizationMember.objects.filter(
-            Q(email=email) | Q(user__email__iexact=email, user__is_active=True),
+            Q(email=email) | Q(user_id__in=[u.id for u in users]),
             organization=self.context["organization"],
         )
 
@@ -63,10 +86,20 @@ class OrganizationMemberSerializer(serializers.Serializer):
                 )
         return email
 
+    def validate_role(self, role):
+        return self.validate_orgRole(role)
+
+    def validate_orgRole(self, role):
+        if role not in {r.id for r in self.context["allowed_roles"]}:
+            raise serializers.ValidationError(
+                "You do not have permission to set that org-level role"
+            )
+        return role
+
     def validate_teams(self, teams):
         valid_teams = list(
             Team.objects.filter(
-                organization=self.context["organization"], status=TeamStatus.VISIBLE, slug__in=teams
+                organization=self.context["organization"], status=TeamStatus.ACTIVE, slug__in=teams
             )
         )
 
@@ -75,47 +108,67 @@ class OrganizationMemberSerializer(serializers.Serializer):
 
         return valid_teams
 
-    def validate_role(self, role):
-        if role not in {r.id for r in self.context["allowed_roles"]}:
-            raise serializers.ValidationError("You do not have permission to invite that role.")
+    def validate_teamRoles(self, teamRoles) -> List[Tuple[Team, str]]:
+        roles = {item["role"] for item in teamRoles}
+        valid_roles = [r.id for r in team_roles.get_all()] + [None]
+        if roles.difference(valid_roles):
+            raise serializers.ValidationError("Invalid team-role")
+        team_slugs = [item["teamSlug"] for item in teamRoles]
+        valid_teams = self.validate_teams(team_slugs)
 
-        return role
+        # Avoids O(n * n) search
+        team_role_map = {item["teamSlug"]: item["role"] for item in teamRoles}
+        # TODO(dlee): Check if they have permissions to assign team role for each team
+        valid_team_roles = [(team, team_role_map[team.slug]) for team in valid_teams]
+
+        return valid_team_roles
 
 
+@region_silo_endpoint
 class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (MemberPermission,)
 
     def get(self, request: Request, organization) -> Response:
-        queryset = (
-            OrganizationMember.objects.filter(
-                Q(user__is_active=True) | Q(user__isnull=True),
-                organization=organization,
-                invite_status=InviteStatus.APPROVED.value,
-            )
-            .select_related("user")
-            .order_by("email", "user__email")
-        )
+        queryset = OrganizationMember.objects.filter(
+            Q(user_is_active=True, user_id__isnull=False) | Q(user_id__isnull=True),
+            organization=organization,
+            invite_status=InviteStatus.APPROVED.value,
+        ).order_by("id")
 
         query = request.GET.get("query")
         if query:
             tokens = tokenize_query(query)
             for key, value in tokens.items():
                 if key == "email":
-                    queryset = queryset.filter(
-                        Q(email__in=value)
-                        | Q(user__email__in=value)
-                        | Q(user__emails__email__in=value)
+                    email_user_ids = user_service.get_many_by_email(
+                        emails=value, organization_id=organization.id, is_verified=False
                     )
+                    queryset = queryset.filter(
+                        Q(email__in=value) | Q(user_id__in=[u.id for u in email_user_ids])
+                    )
+
+                elif key == "id":
+                    queryset = queryset.filter(id__in=value)
+
+                elif key == "user.id":
+                    queryset = queryset.filter(user_id__in=value)
 
                 elif key == "scope":
                     queryset = queryset.filter(role__in=[r.id for r in roles.with_any_scope(value)])
 
                 elif key == "role":
-                    queryset = queryset.filter(role__in=value)
+                    members_with_role = organization.get_members_with_org_roles(
+                        roles=value, include_null_users=True
+                    ).values_list("id", flat=True)
+                    queryset = queryset.filter(id__in=members_with_role)
 
                 elif key == "isInvited":
                     isInvited = "true" in value
-                    queryset = queryset.filter(user__isnull=isInvited)
+                    queryset = queryset.filter(user_id__isnull=isInvited)
 
                 elif key == "ssoLinked":
                     ssoFlag = OrganizationMember.flags["sso:linked"]
@@ -129,32 +182,32 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                     has2fa = "true" in value
                     if has2fa:
                         types = [a.type for a in available_authenticators(ignore_backup=True)]
-                        queryset = queryset.filter(
-                            user__authenticator__isnull=False, user__authenticator__type__in=types
-                        ).distinct()
+                        has2fa_user_ids = user_service.get_many_ids(
+                            filter=dict(organization_id=organization.id, authenticator_types=types)
+                        )
+                        queryset = queryset.filter(user_id__in=has2fa_user_ids).distinct()
                     else:
-                        queryset = queryset.filter(user__authenticator__isnull=True)
+                        has2fa_user_ids = user_service.get_many_ids(
+                            filter=dict(organization_id=organization.id, authenticator_types=None)
+                        )
+                        queryset = queryset.filter(user_id__in=has2fa_user_ids).distinct()
                 elif key == "hasExternalUsers":
+                    externalactor_user_ids = ExternalActor.objects.filter(
+                        organization=organization,
+                    ).values_list("user_id", flat=True)
+
                     hasExternalUsers = "true" in value
                     if hasExternalUsers:
-                        queryset = queryset.filter(
-                            user__actor_id__in=ExternalActor.objects.filter(
-                                organization=organization
-                            ).values_list("actor_id")
-                        )
+                        queryset = queryset.filter(user_id__in=externalactor_user_ids)
                     else:
-                        queryset = queryset.exclude(
-                            user__actor_id__in=ExternalActor.objects.filter(
-                                organization=organization
-                            ).values_list("actor_id")
-                        )
-
+                        queryset = queryset.exclude(user_id__in=externalactor_user_ids)
                 elif key == "query":
                     value = " ".join(value)
+                    query_user_ids = user_service.get_many_ids(
+                        filter=dict(query=value, organization_id=organization.id)
+                    )
                     queryset = queryset.filter(
-                        Q(email__icontains=value)
-                        | Q(user__email__icontains=value)
-                        | Q(user__name__icontains=value)
+                        Q(user_id__in=query_user_ids) | Q(email__icontains=value)
                     )
                 else:
                     queryset = queryset.none()
@@ -181,10 +234,11 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
         Invite a member to the organization.
 
-        :pparam string organization_slug: the slug of the organization the member will belong to
+        :param string organization_slug: the slug of the organization the member will belong to
         :param string email: the email address to invite
-        :param string role: the role of the new member
+        :param string role: the org-role of the new member
         :param array teams: the slugs of the teams the member should belong to.
+        :param array teamRoles: the team and team-roles assigned to the member
 
         :auth: required
         """
@@ -193,7 +247,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 {"organization": "Your organization is not allowed to invite members"}, status=403
             )
 
-        allowed_roles = get_allowed_roles(request, organization)
+        allowed_roles = get_allowed_org_roles(request, organization)
 
         serializer = OrganizationMemberSerializer(
             data=request.data,
@@ -223,33 +277,40 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             )
             return Response({"detail": ERR_RATE_LIMITED}, status=429)
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(OrganizationMember)):
             # remove any invitation requests for this email before inviting
-            OrganizationMember.objects.filter(
+            existing_invite = OrganizationMember.objects.filter(
                 Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
                 | Q(invite_status=InviteStatus.REQUESTED_TO_JOIN.value),
                 email=result["email"],
                 organization=organization,
-            ).delete()
+            )
+            for om in existing_invite:
+                om.delete()
 
             om = OrganizationMember(
                 organization=organization,
                 email=result["email"],
                 role=result["role"],
-                inviter=request.user,
+                inviter_id=request.user.id,
             )
 
             if settings.SENTRY_ENABLE_INVITES:
                 om.token = om.generate_token()
             om.save()
 
-        if result["teams"]:
-            lock = locks.get(f"org:member:{om.id}", duration=5)
-            with TimedRetryPolicy(10)(lock.acquire):
-                save_team_assignments(om, result["teams"])
+        # Do not set team-roles when inviting members
+        if "teamRoles" in result or "teams" in result:
+            teams = (
+                [team for team, _ in result.get("teamRoles")]
+                if "teamRoles" in result and result["teamRoles"]
+                else result.get("teams")
+            )
+            save_team_assignments(om, teams)
 
         if settings.SENTRY_ENABLE_INVITES and result.get("sendInvite"):
-            om.send_invite_email()
+            referrer = request.query_params.get("referrer")
+            om.send_invite_email(referrer)
             member_invited.send_robust(
                 member=om, user=request.user, sender=self, referrer=request.data.get("referrer")
             )

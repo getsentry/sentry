@@ -1,6 +1,4 @@
 ---
-created: '2019-04-30T08:25:08.436911Z'
-creator: sentry
 source: tests/sentry/event_manager/interfaces/test_exception.py
 ---
 errors: null
@@ -9,6 +7,8 @@ get_api_context:
   hasSystemFrames: true
   values:
   - mechanism:
+      exception_id: 0
+      source: __context__
       type: generic
     module: foo.bar
     rawStacktrace: null
@@ -23,10 +23,12 @@ get_api_context:
         inApp: true
         instructionAddr: null
         lineNo: 1
+        lock: null
         module: null
         package: null
         platform: null
         rawFunction: null
+        sourceLink: null
         symbol: null
         symbolAddr: null
         trust: null
@@ -37,9 +39,14 @@ get_api_context:
     threadId: null
     type: ValueError
     value: hello world
+tags:
+- - mechanism
+  - generic
 to_json:
   values:
   - mechanism:
+      exception_id: 0
+      source: __context__
       type: generic
     module: foo.bar
     stacktrace:

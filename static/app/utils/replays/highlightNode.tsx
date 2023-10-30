@@ -1,28 +1,35 @@
-import type {Replayer} from 'rrweb';
+import type {Replayer} from '@sentry-internal/rrweb';
 
 const DEFAULT_HIGHLIGHT_COLOR = 'rgba(168, 196, 236, 0.75)';
 
 const highlightsByNodeId: Map<number, {canvas: HTMLCanvasElement}> = new Map();
+const highlightsBySelector: Map<string, {canvas: HTMLCanvasElement}> = new Map();
 
-interface AddHighlightParams {
+type DrawProps = {annotation: string; color: string; spotlight: boolean};
+
+interface AddHighlightByNodeIdParams extends Partial<DrawProps> {
   nodeId: number;
-  replayer: Replayer;
-  annotation?: string;
-  color?: string;
+}
+interface AddHighlightBySelectorParams extends Partial<DrawProps> {
+  selector: string;
 }
 
-interface RemoveHighlightParams {
-  nodeId: number;
-  replayer: Replayer;
-}
+type AddHighlightParams = AddHighlightByNodeIdParams | AddHighlightBySelectorParams;
 
-interface ClearAllHighlightsParams {
-  replayer: Replayer;
-}
+type RemoveHighlightParams =
+  | {
+      nodeId: number;
+    }
+  | {
+      selector: string;
+    };
 
-export function clearAllHighlights({replayer}: ClearAllHighlightsParams) {
+export function clearAllHighlights(replayer: Replayer) {
   for (const nodeId of highlightsByNodeId.keys()) {
-    removeHighlightedNode({replayer, nodeId});
+    removeHighlightedNode(replayer, {nodeId});
+  }
+  for (const selector of highlightsBySelector.keys()) {
+    removeHighlightedNode(replayer, {selector});
   }
 }
 
@@ -32,65 +39,100 @@ export function clearAllHighlights({replayer}: ClearAllHighlightsParams) {
  * XXX: This is potentially not good if we have a lot of highlights, as we
  * are creating a new canvas PER highlight.
  */
-export function removeHighlightedNode({replayer, nodeId}: RemoveHighlightParams) {
-  if (!highlightsByNodeId.has(nodeId)) {
-    return false;
+export function removeHighlightedNode(replayer: Replayer, props: RemoveHighlightParams) {
+  if ('nodeId' in props) {
+    const highlightObj = highlightsByNodeId.get(props.nodeId);
+    if (highlightObj && replayer.wrapper.contains(highlightObj.canvas)) {
+      replayer.wrapper.removeChild(highlightObj.canvas);
+      highlightsByNodeId.delete(props.nodeId);
+    }
+  } else {
+    const highlightObj = highlightsBySelector.get(props.selector);
+    if (highlightObj && replayer.wrapper.contains(highlightObj.canvas)) {
+      replayer.wrapper.removeChild(highlightObj.canvas);
+      highlightsBySelector.delete(props.selector);
+    }
   }
-
-  const highlightObj = highlightsByNodeId.get(nodeId);
-
-  if (!highlightObj || !replayer.wrapper.contains(highlightObj.canvas)) {
-    return false;
-  }
-
-  replayer.wrapper.removeChild(highlightObj.canvas);
-  highlightsByNodeId.delete(nodeId);
-
-  return true;
 }
 
 /**
  * Attempt to highlight the node inside of a replay recording
  */
-export function highlightNode({
-  replayer,
-  nodeId,
-  annotation = '',
-  color,
-}: AddHighlightParams) {
+export function highlightNode(replayer: Replayer, props: AddHighlightParams) {
   // @ts-expect-error mouseTail is private
   const {mouseTail, wrapper} = replayer;
   const mirror = replayer.getMirror();
-  const node = mirror.getNode(nodeId);
+
+  const node =
+    'nodeId' in props
+      ? mirror.getNode(props.nodeId)
+      : replayer.iframe.contentDocument?.body.querySelector(props.selector);
 
   // TODO(replays): There is some sort of race condition here when you "rewind" a replay,
   // mirror will be empty and highlight does not get added because node is null
-  if (!node || !replayer.iframe.contentDocument?.body?.contains(node)) {
+  if (
+    !node ||
+    !('getBoundingClientRect' in node) ||
+    !replayer.iframe.contentDocument?.body?.contains(node)
+  ) {
     return null;
   }
-
-  // @ts-ignore This builds locally, but fails in CI -- ignoring for now
-  const {top, left, width, height} = node.getBoundingClientRect();
-  const highlightColor = color ?? DEFAULT_HIGHLIGHT_COLOR;
 
   // Clone the mouseTail canvas as it has the dimensions and position that we
   // want on top of the replay. We may need to revisit this strategy as we
   // create a new canvas for every highlight. See additional notes in
   // removeHighlight() method.
-  const canvas = mouseTail.cloneNode();
+  const element = node.nodeType === Node.ELEMENT_NODE ? (node as HTMLElement) : null;
 
-  const ctx = canvas.getContext('2d');
+  if (!element) {
+    return null;
+  }
+
+  const canvas = mouseTail.cloneNode();
+  const boundingClientRect = element.getBoundingClientRect();
+  const drawProps = {
+    annotation: props.annotation ?? '',
+    color: props.color ?? DEFAULT_HIGHLIGHT_COLOR,
+    spotlight: props.spotlight ?? false,
+  };
+
+  drawCtx(canvas, boundingClientRect, drawProps);
+
+  if ('nodeId' in props) {
+    highlightsByNodeId.set(props.nodeId, {canvas});
+  } else {
+    highlightsBySelector.set(props.selector, {canvas});
+  }
+
+  wrapper.insertBefore(canvas, mouseTail);
+
+  return {
+    canvas,
+  };
+}
+
+function drawCtx(
+  canvas: HTMLCanvasElement,
+  {top, left, width, height}: DOMRect,
+  {annotation, color, spotlight}: DrawProps
+) {
+  const ctx = canvas.getContext('2d') as undefined | CanvasRenderingContext2D;
 
   if (!ctx) {
-    return null;
+    return;
   }
 
   // TODO(replays): Does not account for scrolling (should we attempt to keep highlight visible, or does it disappear)
 
-  // Draw a rectangle to highlight element
-  ctx.fillStyle = highlightColor;
-  ctx.fillRect(left, top, width, height);
-
+  ctx.fillStyle = color;
+  if (spotlight) {
+    // Create a screen over the whole area, so only the highlighted part is normal
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(left, top, width, height);
+  } else {
+    // Draw a rectangle to highlight element
+    ctx.fillRect(left, top, width, height);
+  }
   // Draw a dashed border around highlight
   ctx.beginPath();
   ctx.setLineDash([5, 5]);
@@ -105,23 +147,28 @@ export function highlightNode({
   ctx.textAlign = 'right';
   ctx.textBaseline = 'bottom';
 
-  const textWidth = ctx.measureText(annotation).width;
+  const {width: textWidth} = ctx.measureText(annotation);
+  const textHeight = 30;
 
-  // Draw rect around text
-  ctx.fillStyle = 'rgba(30, 30, 30, 0.75)';
-  ctx.fillRect(left + width - textWidth, top + height - 30, textWidth, 30);
+  if (height <= textHeight + 10) {
+    // Draw the text outside the box
 
-  // Draw text
-  ctx.fillStyle = 'white';
-  ctx.fillText(annotation, left + width, top + height);
+    // Draw rect around text
+    ctx.fillStyle = 'rgba(30, 30, 30, 0.75)';
+    ctx.fillRect(left, top + height, textWidth, textHeight);
 
-  highlightsByNodeId.set(nodeId, {
-    canvas,
-  });
+    // Draw text
+    ctx.fillStyle = 'white';
+    ctx.fillText(annotation, left + textWidth, top + height + textHeight);
+  } else {
+    // Draw the text inside the clicked element
 
-  wrapper.insertBefore(canvas, mouseTail);
+    // Draw rect around text
+    ctx.fillStyle = 'rgba(30, 30, 30, 0.75)';
+    ctx.fillRect(left + width - textWidth, top + height - 30, textWidth, 30);
 
-  return {
-    canvas,
-  };
+    // Draw text
+    ctx.fillStyle = 'white';
+    ctx.fillText(annotation, left + width, top + height);
+  }
 }

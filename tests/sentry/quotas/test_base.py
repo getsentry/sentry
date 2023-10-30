@@ -1,11 +1,16 @@
 import pytest
 
 from sentry.constants import DataCategory
-from sentry.models import OrganizationOption, ProjectKey
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.projectkey import ProjectKey
+from sentry.monitors.models import Monitor, MonitorStatus, MonitorType
 from sentry.quotas.base import Quota, QuotaConfig, QuotaScope
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import region_silo_test
+from sentry.utils.outcomes import Outcome
 
 
+@region_silo_test(stable=True)
 class QuotaTest(TestCase):
     def setUp(self):
         self.backend = Quota()
@@ -84,34 +89,57 @@ class QuotaTest(TestCase):
         ), self.options({"system.rate-limit": 10}):
             assert self.backend.get_organization_quota(org) == (10, 60)
 
+    def test_get_blended_sample_rate(self):
+        org = self.create_organization()
+        assert self.backend.get_blended_sample_rate(organization_id=org.id) is None
 
-@pytest.mark.parametrize(
-    "obj,json",
-    [
-        (
-            QuotaConfig(id="o", limit=4711, window=42, reason_code="not_so_fast"),
-            {"prefix": "o", "limit": 4711, "window": 42, "reasonCode": "not_so_fast"},
-        ),
-        (
-            QuotaConfig(
-                id="p",
-                scope=QuotaScope.PROJECT,
-                scope_id=1,
-                limit=None,
-                window=1,
-                reason_code="go_away",
-            ),
-            {"prefix": "p", "subscope": "1", "window": 1, "reasonCode": "go_away"},
-        ),
-        (QuotaConfig(limit=0, reason_code="go_away"), {"limit": 0, "reasonCode": "go_away"}),
-        (
-            QuotaConfig(limit=0, categories=[DataCategory.TRANSACTION], reason_code="not_yet"),
-            {"limit": 0, "reasonCode": "not_yet"},
-        ),
-    ],
-)
-def test_quotas_to_json_legacy(obj, json):
-    assert obj.to_json_legacy() == json
+    def test_assign_monitor_seat(self):
+        monitor = Monitor.objects.create(
+            slug="test-monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            name="test monitor",
+            status=MonitorStatus.ACTIVE,
+            type=MonitorType.CRON_JOB,
+        )
+        assert self.backend.assign_monitor_seat(monitor) == Outcome.ACCEPTED
+        monitor.refresh_from_db()
+        assert monitor.status == MonitorStatus.OK
+
+    def test_unassign_monitor_seat(self):
+        monitor = Monitor.objects.create(
+            slug="test-monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            name="test monitor",
+            status=MonitorStatus.OK,
+            type=MonitorType.CRON_JOB,
+        )
+        assert self.backend.unassign_monitor_seat(monitor) is None
+        monitor.refresh_from_db()
+        assert monitor.status == MonitorStatus.DISABLED
+
+    def test_enable_seat_recreate(self):
+        monitor = Monitor.objects.create(
+            slug="test-monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            name="test monitor",
+            status=MonitorStatus.OK,
+            type=MonitorType.CRON_JOB,
+        )
+        assert self.backend.enable_seat_recreate(monitor) is None
+
+    def test_disable_seat_recreate(self):
+        monitor = Monitor.objects.create(
+            slug="test-monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            name="test monitor",
+            status=MonitorStatus.OK,
+            type=MonitorType.CRON_JOB,
+        )
+        assert self.backend.disable_seat_recreate(monitor) is None
 
 
 @pytest.mark.parametrize(

@@ -3,11 +3,11 @@ __all__ = ("Stacktrace",)
 import math
 from typing import Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from sentry.app import env
 from sentry.interfaces.base import DataPath, Interface
-from sentry.models import UserOption
+from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.utils.json import prune_empty_keys
 from sentry.web.helpers import render_to_string
 
@@ -90,9 +90,10 @@ def is_newest_frame_first(event):
     newest_first = event.platform not in ("python", None)
 
     if env.request and env.request.user.is_authenticated:
-        display = UserOption.objects.get_value(
-            user=env.request.user, key="stacktrace_order", default=None
+        options = user_option_service.get_many(
+            filter=dict(user_ids=[env.request.user.id], keys=["stacktrace_order"])
         )
+        display = get_option_from_list(options, default=None)
         if display == "1":
             newest_first = False
         elif display == "2":
@@ -149,11 +150,13 @@ class Frame(Interface):
             "platform",
             "post_context",
             "pre_context",
+            "source_link",
             "symbol",
             "symbol_addr",
             "trust",
             "vars",
             "snapshot",
+            "lock",
         ):
             data.setdefault(key, None)
 
@@ -184,13 +187,19 @@ class Frame(Interface):
                 "errors": self.errors or None,
                 "lineno": self.lineno,
                 "colno": self.colno,
+                "lock": self.lock,
+                "source_link": self.source_link or None,
             }
         )
 
     def get_api_context(self, is_public=False, pad_addr=None, platform=None):
-        from sentry.stacktraces.functions import get_function_name_for_frame
+        from sentry.stacktraces.functions import (
+            get_function_name_for_frame,
+            get_source_link_for_frame,
+        )
 
         function = get_function_name_for_frame(self, platform)
+        source_link = get_source_link_for_frame(self)
         data = {
             "filename": self.filename,
             "absPath": self.abs_path,
@@ -213,7 +222,10 @@ class Frame(Interface):
             "inApp": self.in_app,
             "trust": self.trust,
             "errors": self.errors,
+            "lock": self.lock,
+            "sourceLink": source_link,
         }
+
         if not is_public:
             data["vars"] = self.vars
 
@@ -221,7 +233,7 @@ class Frame(Interface):
             data["addrMode"] = self.addr_mode
 
         # TODO(dcramer): abstract out this API
-        if self.data and "sourcemap" in data:
+        if self.data and "sourcemap" in self.data:
             data.update(
                 {
                     "map": self.data["sourcemap"].rsplit("/", 1)[-1],
@@ -274,6 +286,8 @@ class Frame(Interface):
             "inApp": meta.get("in_app"),
             "trust": meta.get("trust"),
             "errors": meta.get("errors"),
+            "lock": meta.get("lock"),
+            "sourceLink": meta.get("source_link"),
         }
 
     def is_url(self):

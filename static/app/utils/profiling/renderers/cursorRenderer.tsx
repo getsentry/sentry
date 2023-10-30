@@ -1,7 +1,9 @@
 import {mat3, vec2} from 'gl-matrix';
 
+import {Rect} from 'sentry/utils/profiling/speedscope';
+
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
-import {getContext, Rect, resizeCanvasToDisplaySize} from '../gl/utils';
+import {getContext} from '../gl/utils';
 
 class CursorRenderer {
   canvas: HTMLCanvasElement;
@@ -13,8 +15,6 @@ class CursorRenderer {
     this.canvas = canvas;
     this.theme = theme;
     this.context = getContext(canvas, '2d');
-
-    resizeCanvasToDisplaySize(canvas);
   }
 
   draw(

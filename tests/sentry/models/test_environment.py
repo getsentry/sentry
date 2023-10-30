@@ -1,9 +1,11 @@
 import pytest
 
-from sentry.models import Environment
-from sentry.testutils import TestCase
+from sentry.models.environment import Environment
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class GetOrCreateTest(TestCase):
     def test_simple(self):
         project = self.create_project()

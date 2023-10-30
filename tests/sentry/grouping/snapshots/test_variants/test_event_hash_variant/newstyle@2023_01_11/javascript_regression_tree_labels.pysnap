@@ -1,0 +1,110 @@
+---
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            module*
+              "app/utils/handleXhrErrorResponse"
+            filename (module takes precedence)
+              "handlexhrerrorresponse.tsx"
+            context-line*
+              "Sentry.withScope(scope => {"
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+            module*
+              "@sentry/minimal/esm/index"
+            filename (module takes precedence)
+              "index.js"
+            function (ignored because sourcemap used and context line available)
+              "Sentry"
+            context-line*
+              "callOnHub('withScope', callback);"
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+            module*
+              "@sentry/minimal/esm/index"
+            filename (module takes precedence)
+              "index.js"
+            function (ignored because sourcemap used and context line available)
+              "callOnHub"
+            context-line*
+              "return hub[method].apply(hub, __spread(args));"
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+            module*
+              "@sentry/hub/esm/hub"
+            filename (module takes precedence)
+              "hub.js"
+            function (ignored because sourcemap used and context line available)
+              "apply"
+            context-line*
+              "callback(scope);"
+          frame (non app frame)
+            module*
+              "app/utils/handleXhrErrorResponse"
+            filename (module takes precedence)
+              "handlexhrerrorresponse.tsx"
+            function (ignored because sourcemap used and context line available)
+              "callback"
+            context-line*
+              "Sentry.captureException(new Error(message));"
+        type*
+          "Error"
+        value*
+          "Unable to save a recent search"
+--------------------------------------------------------------------------
+system:
+  hash: "8fb2eda9663c3c026c23475d6da30363"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "app/utils/handleXhrErrorResponse"
+            filename (module takes precedence)
+              "handlexhrerrorresponse.tsx"
+            context-line*
+              "Sentry.withScope(scope => {"
+          frame* (marked out of app by stack trace rule (path:**/node_modules/** -app))
+            module*
+              "@sentry/minimal/esm/index"
+            filename (module takes precedence)
+              "index.js"
+            function (ignored because sourcemap used and context line available)
+              "Sentry"
+            context-line*
+              "callOnHub('withScope', callback);"
+          frame* (marked out of app by stack trace rule (path:**/node_modules/** -app))
+            module*
+              "@sentry/minimal/esm/index"
+            filename (module takes precedence)
+              "index.js"
+            function (ignored because sourcemap used and context line available)
+              "callOnHub"
+            context-line*
+              "return hub[method].apply(hub, __spread(args));"
+          frame* (marked out of app by stack trace rule (path:**/node_modules/** -app))
+            module*
+              "@sentry/hub/esm/hub"
+            filename (module takes precedence)
+              "hub.js"
+            function (ignored because sourcemap used and context line available)
+              "apply"
+            context-line*
+              "callback(scope);"
+          frame*
+            module*
+              "app/utils/handleXhrErrorResponse"
+            filename (module takes precedence)
+              "handlexhrerrorresponse.tsx"
+            function (ignored because sourcemap used and context line available)
+              "callback"
+            context-line*
+              "Sentry.captureException(new Error(message));"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "Unable to save a recent search"

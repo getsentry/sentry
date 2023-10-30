@@ -1,9 +1,8 @@
 import itertools
-from datetime import datetime, timedelta
-from unittest import TestCase, mock
+from datetime import datetime, timedelta, timezone
+from unittest import TestCase
 
-import pytz
-
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.tsdb.base import ONE_DAY, ONE_HOUR, ONE_MINUTE, BaseTSDB
 from sentry.utils.dates import to_timestamp
 
@@ -21,7 +20,7 @@ class BaseTSDBTest(TestCase):
         )
 
     def test_normalize_to_epoch(self):
-        timestamp = datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=pytz.UTC)
+        timestamp = datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc)
         normalize_to_epoch = self.tsdb.normalize_to_epoch
 
         result = normalize_to_epoch(timestamp, 60)
@@ -40,40 +39,40 @@ class BaseTSDBTest(TestCase):
         assert post_results[1] == [[1368889200, 15], [1368892800, 7]]
 
     def test_calculate_expiry(self):
-        timestamp = datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=pytz.UTC)
+        timestamp = datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc)
         result = self.tsdb.calculate_expiry(10, 30, timestamp)
         assert result == 1368890330
 
-    @mock.patch("django.utils.timezone.now")
-    def test_get_optimal_rollup_series_aligned_intervals(self, now):
-        now.return_value = datetime(2016, 8, 1, tzinfo=pytz.utc)
+    @freeze_time("2016-08-01")
+    def test_get_optimal_rollup_series_aligned_intervals(self):
 
-        start = now() - timedelta(seconds=30)
+        start = datetime.now(timezone.utc) - timedelta(seconds=30)
+
         assert self.tsdb.get_optimal_rollup_series(start) == (
             10,
             [to_timestamp(start + timedelta(seconds=10) * i) for i in range(4)],
         )
 
-        start = now() - timedelta(minutes=30)
+        start = datetime.now(timezone.utc) - timedelta(minutes=30)
         assert self.tsdb.get_optimal_rollup_series(start) == (
             ONE_MINUTE,
             [to_timestamp(start + timedelta(minutes=1) * i) for i in range(31)],
         )
 
-        start = now() - timedelta(hours=5)
+        start = datetime.now(timezone.utc) - timedelta(hours=5)
         assert self.tsdb.get_optimal_rollup_series(start) == (
             ONE_HOUR,
             [to_timestamp(start + timedelta(hours=1) * i) for i in range(6)],
         )
 
-        start = now() - timedelta(days=7)
+        start = datetime.now(timezone.utc) - timedelta(days=7)
         assert self.tsdb.get_optimal_rollup_series(start) == (
             ONE_DAY,
             [to_timestamp(start + timedelta(hours=24) * i) for i in range(8)],
         )
 
-    @mock.patch("django.utils.timezone.now")
-    def test_get_optimal_rollup_series_offset_intervals(self, now):
+    @freeze_time("2016-08-01 00:00:15")
+    def test_get_optimal_rollup_series_offset_intervals(self):
         # This test is a funny one (notice it doesn't return a range that
         # includes the start position.) This occurs because the algorithm for
         # determining the series to be returned will attempt to return the same
@@ -81,51 +80,49 @@ class BaseTSDBTest(TestCase):
         # doesn't necessarily return data *from that specific interval* (the
         # end timestamp is always included.)
 
-        now.return_value = datetime(2016, 8, 1, 0, 0, 15, tzinfo=pytz.utc)
-        start = now() - timedelta(seconds=19)
+        start = datetime.now(timezone.utc) - timedelta(seconds=19)
         assert self.tsdb.get_optimal_rollup_series(start, rollup=10) == (
             10,
             [
-                to_timestamp(datetime(2016, 8, 1, 0, 0, 0, tzinfo=pytz.utc)),
-                to_timestamp(datetime(2016, 8, 1, 0, 0, 10, tzinfo=pytz.utc)),
+                to_timestamp(datetime(2016, 8, 1, 0, 0, 0, tzinfo=timezone.utc)),
+                to_timestamp(datetime(2016, 8, 1, 0, 0, 10, tzinfo=timezone.utc)),
             ],
         )
 
-        now.return_value = datetime(2016, 8, 1, 0, 0, 30, tzinfo=pytz.utc)
-        start = now() - timedelta(seconds=ONE_MINUTE - 1)
+        now = datetime.now(timezone.utc) + timedelta(seconds=15)
+        start = now - timedelta(seconds=ONE_MINUTE - 1)
         assert self.tsdb.get_optimal_rollup_series(start, rollup=ONE_MINUTE) == (
             ONE_MINUTE,
-            [to_timestamp(datetime(2016, 8, 1, 0, 0, 0, tzinfo=pytz.utc))],
+            [to_timestamp(datetime(2016, 8, 1, 0, 0, 0, tzinfo=timezone.utc))],
         )
 
-        now.return_value = datetime(2016, 8, 1, 12, tzinfo=pytz.utc)
-        start = now() - timedelta(seconds=ONE_DAY - 1)
+        now = datetime.now(timezone.utc) + timedelta(hours=11, seconds=45)
+        start = now - timedelta(seconds=ONE_DAY - 1)
         assert self.tsdb.get_optimal_rollup_series(start, rollup=ONE_DAY) == (
             ONE_DAY,
-            [to_timestamp(datetime(2016, 8, 1, 0, tzinfo=pytz.utc))],
+            [to_timestamp(datetime(2016, 8, 1, 0, tzinfo=timezone.utc))],
         )
 
-    @mock.patch("django.utils.timezone.now")
-    def test_make_series_aligned_intervals(self, now):
-        now.return_value = datetime(2016, 8, 1, tzinfo=pytz.utc)
+    @freeze_time("2016-08-01")
+    def test_make_series_aligned_intervals(self):
 
-        start = now() - timedelta(seconds=30)
+        start = datetime.now(timezone.utc) - timedelta(seconds=30)
         assert self.tsdb.make_series(0, start) == [
             (to_timestamp(start + timedelta(seconds=10) * i), 0) for i in range(4)
         ]
 
-        start = now() - timedelta(minutes=30)
+        start = datetime.now(timezone.utc) - timedelta(minutes=30)
         assert self.tsdb.make_series(lambda timestamp: 1, start) == [
             (to_timestamp(start + timedelta(minutes=1) * i), 1) for i in range(31)
         ]
 
         counter = itertools.count()
-        start = now() - timedelta(hours=5)
+        start = datetime.now(timezone.utc) - timedelta(hours=5)
         assert self.tsdb.make_series(lambda timestamp: next(counter), start) == [
             (to_timestamp(start + timedelta(hours=1) * i), i) for i in range(6)
         ]
 
-        start = now() - timedelta(days=7)
+        start = datetime.now(timezone.utc) - timedelta(days=7)
         assert self.tsdb.make_series(0, start) == [
             (to_timestamp(start + timedelta(hours=24) * i), 0) for i in range(8)
         ]

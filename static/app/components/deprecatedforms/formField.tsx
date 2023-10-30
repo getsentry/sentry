@@ -38,7 +38,7 @@ type FormFieldState = {
 
 export default class FormField<
   Props extends FormFieldProps = FormFieldProps,
-  State extends FormFieldState = FormFieldState
+  State extends FormFieldState = FormFieldState,
 > extends PureComponent<Props, State> {
   static defaultProps: DefaultProps = {
     hideErrorMessage: false,
@@ -175,5 +175,5 @@ export default class FormField<
 
 const ErrorMessage = styled('p')`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.red300};
+  color: ${p => p.theme.errorText};
 `;

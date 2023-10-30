@@ -1,0 +1,38 @@
+---
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "f771960161f86b1f8eec4edc3016e1c0"
+  tree_label: "api.jipJipManagementApplication"
+  component:
+    app-depth-1*
+      stacktrace*
+        frame*
+          module*
+            "com.example.api.OutboundController$$EnhancerByGuice$$ae46b1bf$$FastClassByGuice$$caceacd2"
+          function*
+            "jipJipManagementApplication"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "f771960161f86b1f8eec4edc3016e1c0"
+  tree_label: "api.jipJipManagementApplication"
+  component:
+    app-depth-max*
+      stacktrace*
+        frame*
+          module*
+            "com.example.api.OutboundController$$EnhancerByGuice$$ae46b1bf$$FastClassByGuice$$caceacd2"
+          function*
+            "jipJipManagementApplication"
+--------------------------------------------------------------------------
+system:
+  hash: "f771960161f86b1f8eec4edc3016e1c0"
+  tree_label: "api.jipJipManagementApplication"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module*
+            "com.example.api.OutboundController$$EnhancerByGuice$$ae46b1bf$$FastClassByGuice$$caceacd2"
+          function*
+            "jipJipManagementApplication"

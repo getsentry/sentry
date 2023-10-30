@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 from django.db import models
 
-from sentry.db.models import FlexibleForeignKey
+from sentry.db.models import FlexibleForeignKey, region_silo_only_model
 
 from . import AvatarBase
 
 
+@region_silo_only_model
 class OrganizationAvatar(AvatarBase):
     """
     An OrganizationAvatar associates an Organization with their avatar photo File
@@ -17,6 +20,8 @@ class OrganizationAvatar(AvatarBase):
 
     organization = FlexibleForeignKey("sentry.Organization", unique=True, related_name="avatar")
     avatar_type = models.PositiveSmallIntegerField(default=0, choices=AVATAR_TYPES)
+
+    url_path = "organization-avatar"
 
     class Meta:
         app_label = "sentry"

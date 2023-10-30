@@ -5,7 +5,7 @@ import useScrollToTop from 'sentry/utils/useScrollToTop';
 import {BreadcrumbProvider} from 'sentry/views/settings/components/settingsBreadcrumb/context';
 
 type Props = {
-  children: React.ReactChildren;
+  children: React.ReactNode;
   location: Location;
 };
 

@@ -1,9 +1,15 @@
 from django.urls import reverse
 
-from sentry.models import OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask
-from sentry.testutils import APITestCase
+from sentry.models.organizationonboardingtask import (
+    OnboardingTask,
+    OnboardingTaskStatus,
+    OrganizationOnboardingTask,
+)
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class OrganizationOnboardingTaskEndpointTest(APITestCase):
     def setUp(self):
         self.user = self.create_user()
@@ -24,7 +30,7 @@ class OrganizationOnboardingTaskEndpointTest(APITestCase):
 
         assert task.status == OnboardingTaskStatus.COMPLETE
         assert task.completion_seen is None
-        assert task.user == self.user
+        assert task.user_id == self.user.id
 
     def test_mark_completion_seen(self):
         response = self.client.post(self.path, {"task": "create_project", "status": "complete"})

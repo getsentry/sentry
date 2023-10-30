@@ -1,5 +1,9 @@
+from __future__ import annotations
+
 from sentry import tagstore
-from sentry.models import EventUser, Group, Project, get_group_with_redirect
+from sentry.models.eventuser import EventUser
+from sentry.models.group import Group, get_group_with_redirect
+from sentry.models.project import Project
 
 from ..base import ExportError
 
@@ -9,7 +13,14 @@ class IssuesByTagProcessor:
     Processor for exports of issues data based on a provided tag
     """
 
-    def __init__(self, project_id, group_id, key, environment_id):
+    def __init__(
+        self,
+        project_id,
+        group_id,
+        key,
+        environment_id,
+        tenant_ids: dict[str, str | int] | None = None,
+    ):
         self.project = self.get_project(project_id)
         self.group = self.get_group(group_id, self.project)
         self.key = key
@@ -18,7 +29,9 @@ class IssuesByTagProcessor:
         self.lookup_key = self.get_lookup_key(self.key)
         # Ensure the tag key exists, as it may have been deleted
         try:
-            tagstore.get_tag_key(self.project.id, environment_id, self.lookup_key)
+            tagstore.backend.get_tag_key(
+                self.project.id, environment_id, self.lookup_key, tenant_ids=tenant_ids
+            )
         except tagstore.TagKeyNotFound:
             raise ExportError("Requested key does not exist")
         self.callbacks = self.get_callbacks(self.key, self.group.project_id)
@@ -59,7 +72,7 @@ class IssuesByTagProcessor:
 
     @staticmethod
     def get_lookup_key(key):
-        return str(f"sentry:{key}") if tagstore.is_reserved_key(key) else key
+        return str(f"sentry:{key}") if tagstore.backend.is_reserved_key(key) else key
 
     @staticmethod
     def get_eventuser_callback(project_id):
@@ -94,14 +107,14 @@ class IssuesByTagProcessor:
         """
         Returns list of GroupTagValues
         """
-        return tagstore.get_group_tag_value_iter(
-            project_id=self.group.project_id,
-            group_id=self.group.id,
+        return tagstore.backend.get_group_tag_value_iter(
+            group=self.group,
             environment_ids=[self.environment_id],
             key=self.lookup_key,
             callbacks=self.callbacks,
             limit=limit,
             offset=offset,
+            tenant_ids={"organization_id": self.project.organization_id},
         )
 
     def get_serialized_data(self, limit=1000, offset=0):

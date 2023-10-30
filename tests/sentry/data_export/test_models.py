@@ -8,8 +8,9 @@ from django.utils import timezone
 
 from sentry.data_export.base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus
 from sentry.data_export.models import ExportedData
-from sentry.models import File
-from sentry.testutils import TestCase
+from sentry.models.files.file import File
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
@@ -22,7 +23,10 @@ class ExportedDataTest(TestCase):
         self.user = self.create_user()
         self.organization = self.create_organization()
         self.data_export = ExportedData.objects.create(
-            user=self.user, organization=self.organization, query_type=0, query_info={"env": "test"}
+            user_id=self.user.id,
+            organization=self.organization,
+            query_type=0,
+            query_info={"env": "test"},
         )
         self.file1 = File.objects.create(
             name="tempfile-data-export", type="export.csv", headers={"Content-Type": "text/csv"}
@@ -113,6 +117,19 @@ class ExportedDataTest(TestCase):
             self.data_export.email_success()
         assert len(mail.outbox) == 1
 
+    @with_feature("organizations:customer-domains")
+    def test_email_success_customer_domains(self):
+        self.data_export.finalize_upload(file=self.file1)
+        with self.tasks():
+            self.data_export.email_success()
+        assert len(mail.outbox) == 1
+        msg = mail.outbox[0]
+        assert msg.subject == "Your data is ready."
+        assert (
+            self.organization.absolute_url(f"/organizations/{self.organization.slug}/data-export/")
+            in msg.body
+        )
+
     @patch("sentry.utils.email.MessageBuilder")
     def test_email_success_content(self, builder):
         self.data_export.finalize_upload(file=self.file1)
@@ -150,7 +167,7 @@ class ExportedDataTest(TestCase):
             "context": {
                 "creation": ExportedData.format_date(date=self.data_export.date_added),
                 "error_message": self.TEST_STRING,
-                "payload": json.dumps(self.data_export.payload, indent=2, sort_keys=True),
+                "payload": json.dumps(self.data_export.payload),
             },
             "type": "organization.export-data",
             "template": "sentry/emails/data-export-failure.txt",

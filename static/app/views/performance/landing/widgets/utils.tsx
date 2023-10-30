@@ -1,10 +1,19 @@
+import {Organization} from 'sentry/types';
 import {objectIsEmpty} from 'sentry/utils';
 import localStorage from 'sentry/utils/localStorage';
-import {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {
+  canUseMetricsData,
+  MEPState,
+  MetricsEnhancedSettingContext,
+} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 
-import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
+import {ProjectPerformanceType} from '../../utils';
 
 import {PerformanceWidgetSetting} from './widgetDefinitions';
+
+export const QUERY_LIMIT_PARAM = 4;
+
+export const TOTAL_EXPANDABLE_ROWS_HEIGHT = 37 * QUERY_LIMIT_PARAM;
 
 export const eventsRequestQueryProps = [
   'children',
@@ -22,16 +31,23 @@ function setWidgetStorageObject(localObject: Record<string, string>) {
   localStorage.setItem(getContainerLocalStorageObjectKey, JSON.stringify(localObject));
 }
 
-export function getMEPQueryParams(mepContext: MetricsEnhancedSettingContext) {
+const mepQueryParamBase = {};
+
+export function getMEPQueryParams(
+  mepContext: MetricsEnhancedSettingContext,
+  forceAuto?: boolean
+) {
   let queryParams = {};
-  const base = {preventMetricAggregates: '1'};
-  if (mepContext.shouldQueryProvideMEPParams) {
+  const base = mepQueryParamBase;
+  if (mepContext.shouldQueryProvideMEPAutoParams || forceAuto) {
     queryParams = {
       ...queryParams,
       ...base,
-      metricsEnhanced: '1',
       dataset: 'metricsEnhanced',
     };
+    if (forceAuto) {
+      return queryParams;
+    }
   }
   if (mepContext.shouldQueryProvideMEPTransactionParams) {
     queryParams = {...queryParams, ...base, dataset: 'discover'};
@@ -42,6 +58,10 @@ export function getMEPQueryParams(mepContext: MetricsEnhancedSettingContext) {
 
   // Disallow any performance request from using aggregates since they aren't currently possible in all visualizations and we don't want to mix modes.
   return objectIsEmpty(queryParams) ? undefined : queryParams;
+}
+
+export function getMetricOnlyQueryParams() {
+  return {...mepQueryParamBase, dataset: 'metrics'};
 }
 
 export const WIDGET_MAP_DENY_LIST = [
@@ -65,7 +85,7 @@ export function getMEPParamsIfApplicable(
 const getContainerLocalStorageObjectKey = 'landing-chart-container';
 const getContainerKey = (
   index: number,
-  performanceType: PROJECT_PERFORMANCE_TYPE,
+  performanceType: ProjectPerformanceType,
   height: number
 ) => `landing-chart-container#${performanceType}#${height}#${index}`;
 
@@ -79,7 +99,7 @@ function getWidgetStorageObject() {
 export const getChartSetting = (
   index: number,
   height: number,
-  performanceType: PROJECT_PERFORMANCE_TYPE,
+  performanceType: ProjectPerformanceType,
   defaultType: PerformanceWidgetSetting,
   forceDefaultChartSetting?: boolean // Used for testing.
 ): PerformanceWidgetSetting => {
@@ -102,7 +122,7 @@ export const getChartSetting = (
 export const _setChartSetting = (
   index: number,
   height: number,
-  performanceType: PROJECT_PERFORMANCE_TYPE,
+  performanceType: ProjectPerformanceType,
   setting: PerformanceWidgetSetting
 ) => {
   const key = getContainerKey(index, performanceType, height);
@@ -111,3 +131,26 @@ export const _setChartSetting = (
 
   setWidgetStorageObject(localObject);
 };
+
+const DISALLOWED_CHARTS_METRICS = [
+  PerformanceWidgetSetting.DURATION_HISTOGRAM,
+  PerformanceWidgetSetting.FCP_HISTOGRAM,
+  PerformanceWidgetSetting.LCP_HISTOGRAM,
+  PerformanceWidgetSetting.FID_HISTOGRAM,
+];
+
+export function filterAllowedChartsMetrics(
+  organization: Organization,
+  allowedCharts: PerformanceWidgetSetting[],
+  mepSetting: MetricsEnhancedSettingContext
+) {
+  if (
+    !canUseMetricsData(organization) ||
+    organization.features.includes('performance-mep-reintroduce-histograms') ||
+    mepSetting.metricSettingState === MEPState.TRANSACTIONS_ONLY
+  ) {
+    return allowedCharts;
+  }
+
+  return allowedCharts.filter(c => !DISALLOWED_CHARTS_METRICS.includes(c));
+}

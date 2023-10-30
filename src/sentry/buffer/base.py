@@ -1,5 +1,3 @@
-import logging
-
 from django.db.models import F
 
 from sentry.signals import buffer_incr_complete
@@ -7,14 +5,7 @@ from sentry.tasks.process_buffer import process_incr
 from sentry.utils.services import Service
 
 
-class BufferMount(type):
-    def __new__(cls, name, bases, attrs):
-        new_cls = type.__new__(cls, name, bases, attrs)
-        new_cls.logger = logging.getLogger(f"sentry.buffer.{new_cls.__name__.lower()}")
-        return new_cls
-
-
-class Buffer(Service, metaclass=BufferMount):
+class Buffer(Service):
     """
     Buffers act as temporary stores for counters. The default implementation is just a passthru and
     does not actually buffer anything.
@@ -59,7 +50,7 @@ class Buffer(Service, metaclass=BufferMount):
 
     def process(self, model, columns, filters, extra=None, signal_only=None):
         from sentry.event_manager import ScoreClause
-        from sentry.models import Group
+        from sentry.models.group import Group
 
         created = False
 

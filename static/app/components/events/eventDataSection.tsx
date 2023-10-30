@@ -1,25 +1,50 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {DataSection} from 'sentry/components/events/styles';
 import Anchor from 'sentry/components/links/anchor';
-import {IconAnchor} from 'sentry/icons/iconAnchor';
-import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconLink} from 'sentry/icons';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   children: React.ReactNode;
+  /**
+   * The title of the section
+   */
   title: React.ReactNode;
+  /**
+   * Used as the `id` of the section. This powers the permalink
+   */
   type: string;
+  /**
+   * Actions that appear to the far right of the title
+   */
   actions?: React.ReactNode;
   className?: string;
-  isCentered?: boolean;
-  raw?: boolean;
+  /**
+   * If the section has a guide associated to it, you may specify the guide
+   * target and it will wrap the title with a GuideAnchor
+   */
+  guideTarget?: string;
+  /**
+   * A description shown in a QuestionTooltip
+   */
+  help?: React.ReactNode;
+  /**
+   * If true, user is able to hover overlay without it disappearing. (nice if
+   * you want the overlay to be interactive)
+   */
+  isHelpHoverable?: boolean;
+  /**
+   * Should the permalink be enabled for this section?
+   *
+   * @default true
+   */
   showPermalink?: boolean;
-  toggleRaw?: (enable: boolean) => void;
+  /**
+   * Should the title be wrapped in a h3?
+   */
   wrapTitle?: boolean;
 };
 
@@ -43,55 +68,48 @@ function scrollToSection(element: HTMLDivElement) {
   }
 }
 
-function EventDataSection({
+export function EventDataSection({
   children,
   className,
   type,
   title,
-  toggleRaw,
-  raw = false,
-  wrapTitle = true,
+  help,
   actions,
-  isCentered = false,
+  guideTarget,
+  wrapTitle = true,
   showPermalink = true,
+  isHelpHoverable = false,
   ...props
 }: Props) {
-  const titleNode = wrapTitle ? <h3>{title}</h3> : title;
+  let titleNode = wrapTitle ? <h3>{title}</h3> : title;
+
+  titleNode = guideTarget ? (
+    <GuideAnchor target={guideTarget} position="bottom">
+      {titleNode}
+    </GuideAnchor>
+  ) : (
+    titleNode
+  );
 
   return (
     <DataSection ref={scrollToSection} className={className || ''} {...props}>
       {title && (
-        <SectionHeader id={type} isCentered={isCentered}>
+        <SectionHeader id={type} data-test-id={`event-section-${type}`}>
           <Title>
             {showPermalink ? (
               <Permalink className="permalink">
                 <PermalinkAnchor href={`#${type}`}>
-                  <StyledIconAnchor size="xs" color="subText" />
+                  <StyledIconLink size="xs" color="subText" />
                 </PermalinkAnchor>
                 {titleNode}
               </Permalink>
             ) : (
               titleNode
             )}
+            {help && (
+              <QuestionTooltip size="xs" title={help} isHoverable={isHelpHoverable} />
+            )}
           </Title>
-          {type === 'extra' && (
-            <ButtonBar merged active={raw ? 'raw' : 'formatted'}>
-              <Button
-                barId="formatted"
-                size="xsmall"
-                onClick={() => callIfFunction(toggleRaw, false)}
-              >
-                {t('Formatted')}
-              </Button>
-              <Button
-                barId="raw"
-                size="xsmall"
-                onClick={() => callIfFunction(toggleRaw, true)}
-              >
-                {t('Raw')}
-              </Button>
-            </ButtonBar>
-          )}
           {actions && <ActionContainer>{actions}</ActionContainer>}
         </SectionHeader>
       )}
@@ -101,7 +119,10 @@ function EventDataSection({
 }
 
 const Title = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
 
 const Permalink = styled('span')`
@@ -109,7 +130,7 @@ const Permalink = styled('span')`
   position: relative;
 `;
 
-const StyledIconAnchor = styled(IconAnchor)`
+const StyledIconLink = styled(IconLink)`
   opacity: 0;
   transform: translateY(-1px);
   transition: opacity 100ms;
@@ -126,36 +147,28 @@ const PermalinkAnchor = styled(Anchor)`
   padding-left: ${space(0.5)};
   transform: translateX(-${space(3)});
 
-  :hover ${StyledIconAnchor}, :focus ${StyledIconAnchor} {
+  :hover ${StyledIconLink}, :focus ${StyledIconLink} {
     opacity: 1;
   }
 `;
 
-const SectionHeader = styled('div')<{isCentered?: boolean}>`
+const SectionHeader = styled('div')`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  gap: ${space(0.5)};
   margin-bottom: ${space(1)};
-
-  > * {
-    margin-bottom: ${space(0.5)};
-  }
 
   & h3,
   & h3 a {
-    font-size: 14px;
+    color: ${p => p.theme.subText};
+    font-size: ${p => p.theme.fontSizeMedium};
     font-weight: 600;
-    line-height: 1.2;
-    color: ${p => p.theme.gray300};
   }
 
   & h3 {
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 1.2;
     padding: ${space(0.75)} 0;
     margin-bottom: 0;
-    text-transform: uppercase;
   }
 
   & small {
@@ -163,31 +176,20 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
     font-size: ${p => p.theme.fontSizeMedium};
     margin-right: ${space(0.5)};
     margin-left: ${space(0.5)};
-
-    text-transform: none;
   }
   & small > span {
     color: ${p => p.theme.textColor};
     font-weight: normal;
   }
 
-  @media (min-width: ${props => props.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     & > small {
       margin-left: ${space(1)};
       display: inline-block;
     }
   }
 
-  ${p =>
-    p.isCentered &&
-    css`
-      align-items: center;
-      @media (max-width: ${p.theme.breakpoints.small}) {
-        display: block;
-      }
-    `}
-
-  >*:first-child {
+  > *:first-child {
     position: relative;
     flex-grow: 1;
   }
@@ -201,5 +203,3 @@ const ActionContainer = styled('div')`
   flex-shrink: 0;
   max-width: 100%;
 `;
-
-export default EventDataSection;

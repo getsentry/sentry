@@ -1,38 +1,30 @@
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import capitalize from 'lodash/capitalize';
 import moment from 'moment-timezone';
 
 import CollapsePanel from 'sentry/components/collapsePanel';
 import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
-import ErrorBoundary from 'sentry/components/errorBoundary';
 import Link from 'sentry/components/links/link';
 import PanelTable from 'sentry/components/panels/panelTable';
 import StatusIndicator from 'sentry/components/statusIndicator';
-import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {t, tn} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types';
+import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import useOrganization from 'sentry/utils/useOrganization';
+import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {AlertRuleThresholdType} from 'sentry/views/alerts/rules/metric/types';
+import type {ActivityType} from 'sentry/views/alerts/types';
 import {Incident, IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 const COLLAPSE_COUNT = 3;
-
-function getTriggerName(value: string | null) {
-  if (value === `${IncidentStatus.WARNING}`) {
-    return t('Warning');
-  }
-
-  if (value === `${IncidentStatus.CRITICAL}`) {
-    return t('Critical');
-  }
-
-  // Otherwise, activity type is not status change
-  return '';
-}
 
 type MetricAlertActivityProps = {
   incident: Incident;
@@ -43,92 +35,110 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
   const activities = (incident.activities ?? []).filter(
     activity => activity.type === IncidentActivityType.STATUS_CHANGE
   );
-  const criticalActivity = activities.filter(
+  const criticalActivity = activities.find(
     activity => activity.value === `${IncidentStatus.CRITICAL}`
   );
-  const warningActivity = activities.filter(
+  const warningActivity = activities.find(
     activity => activity.value === `${IncidentStatus.WARNING}`
   );
 
-  const triggeredActivity = !!criticalActivity.length
-    ? criticalActivity[0]
-    : warningActivity[0];
-  const currentTrigger = getTriggerName(triggeredActivity.value);
+  const triggeredActivity: ActivityType = criticalActivity
+    ? criticalActivity!
+    : warningActivity!;
+  const isCritical = Number(triggeredActivity.value) === IncidentStatus.CRITICAL;
 
+  // Find duration by looking at the difference between the previous and current activity timestamp
   const nextActivity = activities.find(
     ({previousValue}) => previousValue === triggeredActivity.value
   );
-
   const activityDuration = (
     nextActivity ? moment(nextActivity.dateCreated) : moment()
   ).diff(moment(triggeredActivity.dateCreated), 'milliseconds');
 
-  const threshold =
-    activityDuration !== null &&
-    tct('[duration]', {
-      duration: <Duration abbreviation seconds={activityDuration / 1000} />,
-    });
-
-  const warningThreshold = incident.alertRule.triggers
-    .filter(trigger => trigger.label === 'warning')
-    .map(trig => trig.alertThreshold);
-  const criticalThreshold = incident.alertRule.triggers
-    .filter(trigger => trigger.label === 'critical')
-    .map(trig => trig.alertThreshold);
+  const triggerLabel = isCritical ? 'critical' : 'warning';
+  const curentTrigger = incident.alertRule.triggers.find(
+    trigger => trigger.label === triggerLabel
+  );
+  const timeWindow = getDuration(incident.alertRule.timeWindow * 60);
+  const alertName = capitalize(
+    AlertWizardAlertNames[getAlertTypeFromAggregateDataset(incident.alertRule)]
+  );
 
   return (
-    <ErrorBoundary>
-      <Title data-test-id="alert-title">
-        <StatusIndicator
-          status={currentTrigger.toLocaleLowerCase()}
-          tooltipTitle={tct('Status: [level]', {level: currentTrigger})}
-        />
+    <Fragment>
+      <Cell>
+        {triggeredActivity.value && (
+          <StatusIndicator
+            status={isCritical ? 'error' : 'warning'}
+            tooltipTitle={t('Status: %s', isCritical ? t('Critical') : t('Warning'))}
+          />
+        )}
         <Link
           to={{
             pathname: alertDetailsLink(organization, incident),
             query: {alert: incident.identifier},
           }}
         >
-          {tct('#[id]', {id: incident.identifier})}
+          #{incident.identifier}
         </Link>
-      </Title>
-      <Cell>
-        {tct('[title] [selector] [threshold]', {
-          title:
-            AlertWizardAlertNames[getAlertTypeFromAggregateDataset(incident.alertRule)],
-          selector:
-            incident.alertRule.thresholdType === AlertRuleThresholdType.ABOVE
-              ? 'above'
-              : 'below',
-          threshold: currentTrigger === 'Warning' ? warningThreshold : criticalThreshold,
-        })}
       </Cell>
       <Cell>
-        {getDynamicText({
-          value: threshold,
-          fixed: '30s',
-        })}
+        {incident.alertRule.comparisonDelta ? (
+          <Fragment>
+            {alertName} {curentTrigger?.alertThreshold}%
+            {t(
+              ' %s in %s compared to the ',
+              incident.alertRule.thresholdType === AlertRuleThresholdType.ABOVE
+                ? t('higher')
+                : t('lower'),
+              timeWindow
+            )}
+            {COMPARISON_DELTA_OPTIONS.find(
+              ({value}) => value === incident.alertRule.comparisonDelta
+            )?.label ?? COMPARISON_DELTA_OPTIONS[0].label}
+          </Fragment>
+        ) : (
+          <Fragment>
+            {alertName}{' '}
+            {incident.alertRule.thresholdType === AlertRuleThresholdType.ABOVE
+              ? t('above')
+              : t('below')}{' '}
+            {curentTrigger?.alertThreshold} {t('in')} {timeWindow}
+          </Fragment>
+        )}
       </Cell>
-      <StyledDateTime
-        date={getDynamicText({
-          value: incident.dateCreated,
-          fixed: 'Mar 4, 2022 10:44:13 AM UTC',
-        })}
-        year
-        seconds
-        timeZone
-      />
-    </ErrorBoundary>
+      <Cell>
+        {activityDuration &&
+          getDynamicText({
+            value: <Duration abbreviation seconds={activityDuration / 1000} />,
+            fixed: '30s',
+          })}
+      </Cell>
+      <Cell>
+        <StyledDateTime
+          date={getDynamicText({
+            value: incident.dateCreated,
+            fixed: 'Mar 4, 2022 10:44:13 AM UTC',
+          })}
+          year
+          seconds
+          timeZone
+        />
+      </Cell>
+    </Fragment>
   );
 }
 
 type Props = {
-  organization: Organization;
   incidents?: Incident[];
 };
 
-function MetricHistory({organization, incidents}: Props) {
-  const numOfIncidents = (incidents ?? []).length;
+function MetricHistory({incidents}: Props) {
+  const organization = useOrganization();
+  const filteredIncidents = (incidents ?? []).filter(
+    incident => incident.activities?.length
+  );
+  const numOfIncidents = filteredIncidents.length;
 
   return (
     <CollapsePanel
@@ -145,19 +155,18 @@ function MetricHistory({organization, incidents}: Props) {
             emptyMessage={t('No alerts triggered during this time.')}
             expanded={numOfIncidents <= COLLAPSE_COUNT || isExpanded}
           >
-            {incidents &&
-              incidents.map((incident, idx) => {
-                if (idx >= COLLAPSE_COUNT && !isExpanded) {
-                  return null;
-                }
-                return (
-                  <MetricAlertActivity
-                    key={idx}
-                    incident={incident}
-                    organization={organization}
-                  />
-                );
-              })}
+            {filteredIncidents.map((incident, idx) => {
+              if (idx >= COLLAPSE_COUNT && !isExpanded) {
+                return null;
+              }
+              return (
+                <MetricAlertActivity
+                  key={idx}
+                  incident={incident}
+                  organization={organization}
+                />
+              );
+            })}
           </StyledPanelTable>
           {showMoreButton}
         </div>
@@ -191,21 +200,6 @@ const StyledPanelTable = styled(PanelTable)<{expanded: boolean; isEmpty: boolean
 
 const StyledDateTime = styled(DateTime)`
   color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeMedium};
-  display: flex;
-  justify-content: flex-start;
-  padding: ${space(1)} ${space(2)} !important;
-`;
-
-const Title = styled('div')`
-  display: flex;
-  align-items: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: 100%;
-  font-size: ${p => p.theme.fontSizeMedium};
-  padding: ${space(1)};
 `;
 
 const Cell = styled('div')`

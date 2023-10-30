@@ -1,10 +1,13 @@
-from exam import fixture
+from functools import cached_property
 
-from sentry.models import Environment, UserReport
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.models.environment import Environment
+from sentry.models.userreport import UserReport
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class GroupUserReport(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -24,14 +27,12 @@ class GroupUserReport(APITestCase, SnubaTestCase):
             self.project, self.group, self.env2_events, self.env2
         )
 
-    @fixture
+    @cached_property
     def path(self):
         return f"/api/0/groups/{self.group.id}/user-feedback/"
 
     def create_environment(self, project, name):
-        env = Environment.objects.create(
-            project_id=project.id, organization_id=project.organization_id, name=name
-        )
+        env = Environment.objects.create(organization_id=project.organization_id, name=name)
         env.add_project(project)
         return env
 

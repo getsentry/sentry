@@ -3,12 +3,14 @@ from typing import Any, TypedDict
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.search.events.builder import QueryBuilder
-from sentry.utils.snuba import Dataset, raw_snql_query
+from sentry.snuba.dataset import Dataset
+from sentry.utils.snuba import raw_snql_query
 
 
 class SpanOp(TypedDict):
@@ -16,19 +18,13 @@ class SpanOp(TypedDict):
     count: int
 
 
-class OrganizationEventsSpanOpsEndpoint(OrganizationEventsEndpointBase):  # type: ignore
-    def has_feature(self, request: Request, organization: Organization) -> bool:
-        return bool(
-            features.has(
-                "organizations:performance-suspect-spans-view",
-                organization,
-                actor=request.user,
-            )
-        )
+@region_silo_endpoint
+class OrganizationEventsSpanOpsEndpoint(OrganizationEventsEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
 
     def get(self, request: Request, organization: Organization) -> Response:
-        if not self.has_feature(request, organization):
-            return Response(status=404)
 
         try:
             params = self.get_snuba_params(request, organization)
@@ -49,6 +45,7 @@ class OrganizationEventsSpanOpsEndpoint(OrganizationEventsEndpointBase):  # type
                 orderby="-count",
             )
             snql_query = builder.get_snql_query()
+            snql_query.tenant_ids = {"organization_id": organization.id}
             results = raw_snql_query(snql_query, "api.organization-events-span-ops")
             return [SpanOp(op=row["spans_op"], count=row["count"]) for row in results["data"]]
 

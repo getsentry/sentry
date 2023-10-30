@@ -2,13 +2,22 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
-from sentry.models import ActorTuple, ProjectOwnership, Team
+from sentry.models.actor import ActorTuple
+from sentry.models.projectownership import ProjectOwnership
+from sentry.models.team import Team
 
 
+@region_silo_endpoint
 class EventOwnersEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, project, event_id) -> Response:
         """
         Retrieve suggested owners information for an event
@@ -19,7 +28,7 @@ class EventOwnersEndpoint(ProjectEndpoint):
         :pparam string event_id: the id of the event.
         :auth: required
         """
-        event = eventstore.get_event_by_id(project.id, event_id)
+        event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             return Response({"detail": "Event not found"}, status=404)
 

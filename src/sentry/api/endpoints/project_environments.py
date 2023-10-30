@@ -1,13 +1,20 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.environments import environment_visibility_filter_options
 from sentry.api.serializers import serialize
-from sentry.models import EnvironmentProject
+from sentry.models.environment import EnvironmentProject
 
 
+@region_silo_endpoint
 class ProjectEnvironmentsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, project) -> Response:
         """
         List a Project's Environments

@@ -8,9 +8,13 @@ from sentry.integrations.slack.utils import (
     get_channel_id_with_timeout,
     strip_channel_name,
 )
-from sentry.mediators import project_rules
-from sentry.models import Integration, Project, Rule, RuleActivity, RuleActivityType, User
+from sentry.mediators.project_rules.creator import Creator
+from sentry.mediators.project_rules.updater import Updater
+from sentry.models.project import Project
+from sentry.models.rule import Rule, RuleActivity, RuleActivityType
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")
@@ -19,6 +23,7 @@ logger = logging.getLogger("sentry.integrations.slack.tasks")
 @instrumented_task(
     name="sentry.integrations.slack.search_channel_id",
     queue="integrations",
+    silo_mode=SiloMode.REGION,
 )
 def find_channel_id_for_rule(
     project: Project,
@@ -36,13 +41,6 @@ def find_channel_id_for_rule(
         redis_rule_status.set_value("failed")
         return
 
-    user = None
-    if user_id:
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            pass
-
     organization = project.organization
     integration_id: Optional[int] = None
     channel_name: Optional[str] = None
@@ -55,13 +53,21 @@ def find_channel_id_for_rule(
             channel_name = strip_channel_name(action["channel"])
             break
 
-    try:
-        integration = Integration.objects.get(
-            provider="slack", organizations=organization, id=integration_id
-        )
-    except Integration.DoesNotExist:
+    integrations = integration_service.get_integrations(
+        organization_id=organization.id, providers=["slack"], integration_ids=[integration_id]
+    )
+    if not integrations:
         redis_rule_status.set_value("failed")
         return
+    integration = integrations[0]
+    logger.info(
+        "rule.slack.search_channel_id",
+        extra={
+            "integration_id": integration.id,
+            "organization_id": organization.id,
+            "rule_id": rule_id,
+        },
+    )
 
     # We do not know exactly how long it will take to paginate through all of the Slack
     # endpoints but need some time limit imposed. 3 minutes should be more than enough time,
@@ -93,12 +99,12 @@ def find_channel_id_for_rule(
 
         if rule_id:
             rule = Rule.objects.get(id=rule_id)
-            rule = project_rules.Updater.run(rule=rule, pending_save=False, **kwargs)
+            rule = Updater.run(rule=rule, pending_save=False, **kwargs)
         else:
-            rule = project_rules.Creator.run(pending_save=False, **kwargs)
-            if user:
+            rule = Creator.run(pending_save=False, **kwargs)
+            if user_id:
                 RuleActivity.objects.create(
-                    rule=rule, user=user, type=RuleActivityType.CREATED.value
+                    rule=rule, user_id=user_id, type=RuleActivityType.CREATED.value
                 )
 
         redis_rule_status.set_value("success", rule.id)

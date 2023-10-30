@@ -1,12 +1,14 @@
+import uuid
+
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from sentry.db.models.fields import uuid
-from sentry.models import File, Release, ReleaseFile
 from sentry.models.distribution import Distribution
-from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME
-from sentry.testutils import APITestCase
+from sentry.models.files.file import File
+from sentry.models.release import Release
+from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ReleaseFile
+from sentry.testutils.cases import APITestCase
 
 
 class ReleaseFilesListTest(APITestCase):
@@ -141,7 +143,7 @@ class ReleaseFilesListTest(APITestCase):
         assert response.data[0]["name"] == "~/index.js"
         assert response.data[1]["name"] == "~/index.js.map"
 
-    def test_archive_search(self):
+    def test_archive_name_search(self):
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-project-release-files",
@@ -156,6 +158,68 @@ class ReleaseFilesListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["name"] == "~/index.js.map"
+
+    def test_archive_checksum_search(self):
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-release-files",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+                "version": self.release.version,
+            },
+        )
+        self.create_release_archive()
+
+        response = self.client.get(url + "?checksum=3004341003e829253143f75eac9367167ef8d5ea")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "~/index.js"
+
+        response = self.client.get(url + "?checksum=4a1d80f5e1e09c9de78ca449b666e833193d84d7")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "~/index.js.map"
+
+        response = self.client.get(
+            url
+            + "?checksum=3004341003e829253143f75eac9367167ef8d5ea&checksum=4a1d80f5e1e09c9de78ca449b666e833193d84d7"
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        assert response.data[0]["name"] == "~/index.js"
+        assert response.data[1]["name"] == "~/index.js.map"
+
+        response = self.client.get(url + "?checksum=0000111122223333444455556666777788889999")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
+    def test_archive_queries_should_be_narrowing_search(self):
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-release-files",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+                "version": self.release.version,
+            },
+        )
+        self.create_release_archive()
+
+        # Found `index.js` and `index.js.map` by name, but only `index.js` by checksum.
+        response = self.client.get(
+            url + "?query=index&checksum=3004341003e829253143f75eac9367167ef8d5ea"
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "~/index.js"
+
+        # Found `index.js` and `index.js.map` by name, but nothing by checksum.
+        response = self.client.get(
+            url + "?query=index&checksum=0000111122223333444455556666777788889999"
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
 
     def test_archive_paging(self):
         self.login_as(user=self.user)

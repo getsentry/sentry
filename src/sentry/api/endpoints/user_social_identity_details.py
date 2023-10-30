@@ -3,6 +3,8 @@ import logging
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from social_auth.backends import get_backend
 from social_auth.models import UserSocialAuth
@@ -10,7 +12,12 @@ from social_auth.models import UserSocialAuth
 logger = logging.getLogger("sentry.accounts")
 
 
+@control_silo_endpoint
 class UserSocialIdentityDetailsEndpoint(UserEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+    }
+
     def delete(self, request: Request, user, identity_id) -> Response:
         """
         Disconnect a Identity from Account
@@ -33,14 +40,7 @@ class UserSocialIdentityDetailsEndpoint(UserEndpoint):
 
         # stop this from bubbling up errors to social-auth's middleware
         # XXX(dcramer): IM SO MAD ABOUT THIS
-        try:
-            backend.disconnect(user, identity_id)
-        except Exception as exc:
-            import sys
-
-            exc_tb = sys.exc_info()[2]
-            raise exc.with_traceback(exc_tb)
-            del exc_tb
+        backend.disconnect(user, identity_id)
 
         # XXX(dcramer): we experienced an issue where the identity still existed,
         # and given that this is a cheap query, lets error hard in that case

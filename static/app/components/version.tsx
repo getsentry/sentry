@@ -1,16 +1,14 @@
-import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Clipboard from 'sentry/components/clipboard';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import Link from 'sentry/components/links/link';
-import Tooltip from 'sentry/components/tooltip';
-import {IconCopy} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {Tooltip} from 'sentry/components/tooltip';
 import {Organization} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import theme from 'sentry/utils/theme';
+import {useLocation} from 'sentry/utils/useLocation';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
@@ -50,7 +48,7 @@ type Props = {
   withPackage?: boolean;
 };
 
-const Version = ({
+function Version({
   version,
   organization,
   anchor = true,
@@ -60,8 +58,8 @@ const Version = ({
   projectId,
   truncate,
   className,
-  location,
-}: WithRouterProps & Props) => {
+}: Props) {
+  const location = useLocation();
   const versionToDisplay = formatVersion(version, withPackage);
 
   let releaseDetailProjectId: null | undefined | string | string[];
@@ -112,12 +110,7 @@ const Version = ({
       }}
     >
       <TooltipVersionWrapper>{version}</TooltipVersionWrapper>
-
-      <Clipboard value={version}>
-        <TooltipClipboardIconWrapper>
-          <IconCopy size="xs" />
-        </TooltipClipboardIconWrapper>
-      </Clipboard>
+      <CopyToClipboardButton borderless text={version} size="zero" iconSize="xs" />
     </TooltipContent>
   );
 
@@ -146,7 +139,7 @@ const Version = ({
       {renderVersion()}
     </Tooltip>
   );
-};
+}
 
 // TODO(matej): try to wrap version with this when truncate prop is true (in separate PR)
 // const VersionWrapper = styled('div')`
@@ -176,18 +169,4 @@ const TooltipVersionWrapper = styled('span')`
   ${p => p.theme.overflowEllipsis}
 `;
 
-const TooltipClipboardIconWrapper = styled('span')`
-  margin-left: ${space(0.5)};
-  position: relative;
-  bottom: -${space(0.25)};
-
-  &:hover {
-    cursor: pointer;
-  }
-`;
-
-type PropsWithoutOrg = Omit<Props, 'organization'>;
-
-export default withOrganization(
-  withRouter(Version)
-) as React.ComponentClass<PropsWithoutOrg>;
+export default withOrganization(Version);

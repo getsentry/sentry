@@ -1,4 +1,5 @@
 import math
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Mapping, Optional
 
 import sentry_sdk
@@ -9,16 +10,23 @@ from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Function, Op
 
 from sentry import features, tagstore
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.fields import DateArg
 from sentry.snuba import discover
+from sentry.snuba.dataset import Dataset
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.snuba import Dataset
 
 ALLOWED_AGGREGATE_COLUMNS = {
     "transaction.duration",
     "measurements.lcp",
+    "measurements.cls",
+    "measurements.fcp",
+    "measurements.fid",
+    "measurements.inp",
     "spans.browser",
     "spans.http",
     "spans.db",
@@ -30,6 +38,10 @@ DEFAULT_TAG_KEY_LIMIT = 5
 
 
 class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def has_feature(self, organization, request):
         return features.has("organizations:performance-view", organization, actor=request.user)
 
@@ -57,6 +69,7 @@ class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2Endpoi
         return params, aggregate_column, filter_query
 
 
+@region_silo_endpoint
 class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerformanceEndpointBase):
     def get(self, request: Request, organization) -> Response:
         try:
@@ -122,9 +135,14 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerfor
             )
 
 
+@region_silo_endpoint
 class OrganizationEventsFacetsPerformanceHistogramEndpoint(
     OrganizationEventsFacetsPerformanceEndpointBase
 ):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization) -> Response:
         try:
             params, aggregate_column, filter_query = self._setup(request, organization)
@@ -359,6 +377,7 @@ def query_facet_performance(
     offset: Optional[int] = None,
     all_tag_keys: Optional[bool] = None,
     tag_key: Optional[bool] = None,
+    include_count_delta: Optional[bool] = None,
 ) -> Dict:
     # Dynamically sample so at least 50000 transactions are selected
     sample_start_count = 50000
@@ -392,6 +411,31 @@ def query_facet_performance(
             limitby=["tags_key", tag_key_limit] if not tag_key else None,
         )
     translated_aggregate_column = tag_query.resolve_column(aggregate_column)
+
+    if include_count_delta:
+        middle = params["start"] + timedelta(
+            seconds=(params["end"] - params["start"]).total_seconds() * 0.5
+        )
+        middle = datetime.strftime(middle, DateArg.date_format)
+
+        count_range_1 = tag_query.resolve_function(
+            f"count_range(lessOrEquals, {middle})", overwrite_alias="count_range_1"
+        )
+        count_range_total = tag_query.resolve_function(
+            "count()",
+            overwrite_alias="count_range_total",
+        )
+
+        count_delta = tag_query.resolve_division(
+            Function(
+                "minus", [Function("minus", [count_range_total, count_range_1]), count_range_1]
+            ),
+            count_range_1,
+            "count_delta",
+        )
+
+        tag_query.columns.extend([count_range_1, count_range_total, count_delta])
+        tag_query.aggregates.extend([count_range_1, count_range_total, count_delta])
 
     # Aggregate (avg) and count of all transactions for this query
     transaction_aggregate = tag_data["aggregate"]
@@ -452,8 +496,7 @@ def query_facet_performance(
             ([] if orderby is None else orderby) + ["tags_key", "tags_value"]
         )
 
-        results = tag_query.run_query(f"{referrer}.tag_values".format(referrer, "tag_values"))
-        results = discover.transform_results(results, tag_query.function_alias_map, {}, None)
+        results = tag_query.process_results(tag_query.run_query(f"{referrer}.tag_values"))
 
         return results
 

@@ -1,107 +1,132 @@
-import {useState} from 'react';
-
-import EventDataSection from 'sentry/components/events/eventDataSection';
-import CrashContent from 'sentry/components/events/interfaces/crashContent';
-import CrashActions from 'sentry/components/events/interfaces/crashHeader/crashActions';
-import CrashTitle from 'sentry/components/events/interfaces/crashHeader/crashTitle';
 import {t} from 'sentry/locale';
-import {ExceptionType, Group} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
+import {ExceptionType, Group, PlatformKey, Project} from 'sentry/types';
+import {EntryType, Event} from 'sentry/types/event';
+import {StackType, StackView} from 'sentry/types/stacktrace';
 
+import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
+
+import {ExceptionContent} from './crashContent/exception';
+import NoStackTraceMessage from './noStackTraceMessage';
 import {isStacktraceNewestFirst} from './utils';
 
 type Props = {
   data: ExceptionType;
   event: Event;
   hasHierarchicalGrouping: boolean;
-  projectId: string;
-  type: string;
+  projectSlug: Project['slug'];
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
 };
 
-function Exception({
+export function Exception({
   event,
-  type,
   data,
-  projectId,
+  projectSlug,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
-  hideGuide = false,
 }: Props) {
-  const [stackView, setStackView] = useState<STACK_VIEW>(
-    data.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL
-  );
-  const [stackType, setStackType] = useState<STACK_TYPE>(STACK_TYPE.ORIGINAL);
-  const [newestFirst, setNewestFirst] = useState(isStacktraceNewestFirst());
+  const eventHasThreads = !!event.entries.some(entry => entry.type === EntryType.THREADS);
 
-  const eventHasThreads = !!event.entries.find(entry => entry.type === 'threads');
-
-  /* in case there are threads in the event data, we don't render the
-   exception block.  Instead the exception is contained within the
-   thread interface. */
+  // in case there are threads in the event data, we don't render the
+  // exception block.  Instead the exception is contained within the
+  // thread interface.
   if (eventHasThreads) {
     return null;
   }
 
-  function handleChange({
-    stackView: newStackView,
-    stackType: newStackType,
-    newestFirst: newNewestFirst,
-  }: {
-    newestFirst?: boolean;
-    stackType?: STACK_TYPE;
-    stackView?: STACK_VIEW;
-  }) {
-    if (newStackView) {
-      setStackView(newStackView);
+  const entryIndex = event.entries.findIndex(
+    eventEntry => eventEntry.type === EntryType.EXCEPTION
+  );
+
+  const meta = event._meta?.entries?.[entryIndex]?.data?.values;
+
+  function getPlatform(): PlatformKey {
+    const dataValue = data.values?.find(
+      value => !!value.stacktrace?.frames?.some(frame => !!frame.platform)
+    );
+
+    if (dataValue) {
+      const framePlatform = dataValue.stacktrace?.frames?.find(frame => !!frame.platform);
+
+      if (framePlatform?.platform) {
+        return framePlatform.platform;
+      }
     }
 
-    if (defined(newNewestFirst)) {
-      setNewestFirst(newNewestFirst);
-    }
-
-    if (newStackType) {
-      setStackType(newStackType);
-    }
+    return event.platform ?? 'other';
   }
 
-  const commonCrashHeaderProps = {
-    newestFirst,
-    hideGuide,
-    onChange: handleChange,
-  };
+  const stackTraceNotFound = !(data.values ?? []).length;
+  const platform = getPlatform();
 
   return (
-    <EventDataSection
-      type={type}
-      title={<CrashTitle title={t('Exception')} {...commonCrashHeaderProps} />}
-      actions={
-        <CrashActions
-          stackType={stackType}
-          stackView={stackView}
-          platform={event.platform}
-          exception={data}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
-          {...commonCrashHeaderProps}
-        />
+    <TraceEventDataSection
+      title={<PermalinkTitle>{t('Stack Trace')}</PermalinkTitle>}
+      type={EntryType.EXCEPTION}
+      projectSlug={projectSlug}
+      eventId={event.id}
+      recentFirst={isStacktraceNewestFirst()}
+      fullStackTrace={!data.hasSystemFrames}
+      platform={platform}
+      hasMinified={!!data.values?.some(value => value.rawStacktrace)}
+      hasVerboseFunctionNames={
+        !!data.values?.some(
+          value =>
+            !!value.stacktrace?.frames?.some(
+              frame =>
+                !!frame.rawFunction &&
+                !!frame.function &&
+                frame.rawFunction !== frame.function
+            )
+        )
       }
+      hasAbsoluteFilePaths={
+        !!data.values?.some(
+          value => !!value.stacktrace?.frames?.some(frame => !!frame.filename)
+        )
+      }
+      hasAbsoluteAddresses={
+        !!data.values?.some(
+          value => !!value.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
+        )
+      }
+      hasAppOnlyFrames={
+        !!data.values?.some(
+          value => !!value.stacktrace?.frames?.some(frame => frame.inApp !== true)
+        )
+      }
+      hasNewestFirst={
+        !!data.values?.some(value => (value.stacktrace?.frames ?? []).length > 1)
+      }
+      stackTraceNotFound={stackTraceNotFound}
       wrapTitle={false}
     >
-      <CrashContent
-        projectId={projectId}
-        event={event}
-        stackType={stackType}
-        stackView={stackView}
-        newestFirst={newestFirst}
-        exception={data}
-        groupingCurrentLevel={groupingCurrentLevel}
-        hasHierarchicalGrouping={hasHierarchicalGrouping}
-      />
-    </EventDataSection>
+      {({recentFirst, display, fullStackTrace}) =>
+        stackTraceNotFound ? (
+          <NoStackTraceMessage />
+        ) : (
+          <ExceptionContent
+            stackType={
+              display.includes('minified') ? StackType.MINIFIED : StackType.ORIGINAL
+            }
+            stackView={
+              display.includes('raw-stack-trace')
+                ? StackView.RAW
+                : fullStackTrace
+                ? StackView.FULL
+                : StackView.APP
+            }
+            projectSlug={projectSlug}
+            newestFirst={recentFirst}
+            event={event}
+            platform={platform}
+            values={data.values}
+            groupingCurrentLevel={groupingCurrentLevel}
+            hasHierarchicalGrouping={hasHierarchicalGrouping}
+            meta={meta}
+          />
+        )
+      }
+    </TraceEventDataSection>
   );
 }
-
-export default Exception;

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import ListItem from 'sentry/components/list/listItem';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   children: React.ReactElement;
@@ -17,6 +17,7 @@ const Item = styled(({title, subtitle, children, className}: Props) => (
     <div>{children}</div>
   </ListItem>
 ))`
+  padding-top: ${space(0.25)};
   display: grid;
   gap: ${space(1.5)};
 `;

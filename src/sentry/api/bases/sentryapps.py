@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from functools import wraps
+from typing import Any
 
 from django.http import Http404
 from rest_framework.exceptions import PermissionDenied
@@ -13,7 +16,15 @@ from sentry.api.permissions import SentryPermission
 from sentry.auth.superuser import is_active_superuser
 from sentry.coreapi import APIError
 from sentry.middleware.stats import add_request_metric_tags
-from sentry.models import Organization, SentryApp, SentryAppInstallation
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.organization import OrganizationStatus
+from sentry.services.hybrid_cloud.app import RpcSentryApp, app_service
+from sentry.services.hybrid_cloud.organization import (
+    RpcUserOrganizationContext,
+    organization_service,
+)
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils.sdk import configure_scope
 from sentry.utils.strings import to_single_line_str
 
@@ -69,17 +80,17 @@ class SentryAppsPermission(SentryPermission):
         "POST": ("org:write", "org:admin"),
     }
 
-    def has_object_permission(self, request: Request, view, organization):
+    def has_object_permission(self, request: Request, view, context: RpcUserOrganizationContext):
         if not hasattr(request, "user") or not request.user:
             return False
 
-        self.determine_access(request, organization)
+        self.determine_access(request, context)
 
         if is_active_superuser(request):
             return True
 
         # User must be a part of the Org they're trying to create the app in.
-        if organization not in request.user.get_orgs():
+        if context.organization.status != OrganizationStatus.ACTIVE or not context.member:
             raise Http404
 
         return ensure_scoped_permission(request, self.scope_map.get(request.method))
@@ -101,27 +112,36 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
             raise ValidationError({"organization": to_single_line_str(error_message)})
         return organization_slug
 
-    def _get_organization_for_superuser(self, organization_slug):
-        try:
-            return Organization.objects.get(slug=organization_slug)
-        except Organization.DoesNotExist:
+    def _get_organization_for_superuser(
+        self, user: RpcUser, organization_slug: str
+    ) -> RpcUserOrganizationContext:
+        context = organization_service.get_organization_by_slug(
+            slug=organization_slug, only_visible=False, user_id=user.id
+        )
+
+        if context is None:
             error_message = f"Organization '{organization_slug}' does not exist."
             raise ValidationError({"organization": to_single_line_str(error_message)})
 
-    def _get_organization_for_user(self, user, organization_slug):
-        try:
-            return user.get_orgs().get(slug=organization_slug)
-        except Organization.DoesNotExist:
+        return context
+
+    def _get_organization_for_user(
+        self, user: RpcUser, organization_slug: str
+    ) -> RpcUserOrganizationContext:
+        context = organization_service.get_organization_by_slug(
+            slug=organization_slug, only_visible=True, user_id=user.id
+        )
+        if context is None or context.member is None:
             error_message = f"User does not belong to the '{organization_slug}' organization."
             raise PermissionDenied(to_single_line_str(error_message))
+        return context
 
-    def _get_organization(self, request: Request):
+    def _get_org_context(self, request: Request) -> RpcUserOrganizationContext:
         organization_slug = self._get_organization_slug(request)
         if is_active_superuser(request):
-            return self._get_organization_for_superuser(organization_slug)
+            return self._get_organization_for_superuser(request.user, organization_slug)
         else:
-            user = request.user
-            return self._get_organization_for_user(user, organization_slug)
+            return self._get_organization_for_user(request.user, organization_slug)
 
     def convert_args(self, request: Request, *args, **kwargs):
         """
@@ -146,9 +166,9 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         if not request.json_body:
             return (args, kwargs)
 
-        organization = self._get_organization(request)
-        self.check_object_permissions(request, organization)
-        kwargs["organization"] = organization
+        context = self._get_org_context(request)
+        self.check_object_permissions(request, context)
+        kwargs["organization"] = context.organization
 
         return (args, kwargs)
 
@@ -172,18 +192,26 @@ class SentryAppPermission(SentryPermission):
     def scope_map(self):
         return self.published_scope_map
 
-    def has_object_permission(self, request: Request, view, sentry_app):
+    def has_object_permission(self, request: Request, view, sentry_app: RpcSentryApp | SentryApp):
         if not hasattr(request, "user") or not request.user:
             return False
 
-        self.determine_access(request, sentry_app.owner)
+        owner_app = organization_service.get_organization_by_id(
+            id=sentry_app.owner_id, user_id=request.user.id
+        )
+        self.determine_access(request, owner_app)
 
         if is_active_superuser(request):
             return True
 
+        organizations = (
+            user_service.get_organizations(user_id=request.user.id)
+            if request.user.id is not None
+            else ()
+        )
         # if app is unpublished, user must be in the Org who owns the app.
         if not sentry_app.is_published:
-            if sentry_app.owner not in request.user.get_orgs():
+            if not any(sentry_app.owner_id == org.id for org in organizations):
                 raise Http404
 
         # TODO(meredith): make a better way to allow for public
@@ -206,10 +234,25 @@ class SentryAppPermission(SentryPermission):
 class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes = (SentryAppPermission,)
 
-    def convert_args(self, request: Request, sentry_app_slug, *args, **kwargs):
+    def convert_args(self, request: Request, sentry_app_slug: str, *args: Any, **kwargs: Any):
         try:
             sentry_app = SentryApp.objects.get(slug=sentry_app_slug)
         except SentryApp.DoesNotExist:
+            raise Http404
+
+        self.check_object_permissions(request, sentry_app)
+
+        with configure_scope() as scope:
+            scope.set_tag("sentry_app", sentry_app.slug)
+
+        kwargs["sentry_app"] = sentry_app
+        return (args, kwargs)
+
+
+class RegionSentryAppBaseEndpoint(IntegrationPlatformEndpoint):
+    def convert_args(self, request: Request, sentry_app_slug: str, *args: Any, **kwargs: Any):
+        sentry_app = app_service.get_sentry_app_by_slug(slug=sentry_app_slug)
+        if sentry_app is None:
             raise Http404
 
         self.check_object_permissions(request, sentry_app)
@@ -236,7 +279,12 @@ class SentryAppInstallationsPermission(SentryPermission):
         if is_active_superuser(request):
             return True
 
-        if organization not in request.user.get_orgs():
+        organizations = (
+            user_service.get_organizations(user_id=request.user.id)
+            if request.user.id is not None
+            else ()
+        )
+        if not any(organization.id == org.id for org in organizations):
             raise Http404
 
         return ensure_scoped_permission(request, self.scope_map.get(request.method))
@@ -247,13 +295,13 @@ class SentryAppInstallationsBaseEndpoint(IntegrationPlatformEndpoint):
 
     def convert_args(self, request: Request, organization_slug, *args, **kwargs):
         if is_active_superuser(request):
-            organizations = Organization.objects.all()
+            organization = organization_service.get_org_by_slug(slug=organization_slug)
         else:
-            organizations = request.user.get_orgs()
+            organization = organization_service.get_org_by_slug(
+                slug=organization_slug, user_id=request.user.id
+            )
 
-        try:
-            organization = organizations.get(slug=organization_slug)
-        except Organization.DoesNotExist:
+        if organization is None:
             raise Http404
         self.check_object_permissions(request, organization)
 
@@ -290,16 +338,23 @@ class SentryAppInstallationPermission(SentryPermission):
         if not hasattr(request, "user") or not request.user:
             return False
 
-        self.determine_access(request, installation.organization)
+        self.determine_access(request, installation.organization_id)
 
         if is_active_superuser(request):
             return True
 
         # if user is an app, make sure it's for that same app
         if request.user.is_sentry_app:
-            return request.user == installation.sentry_app.proxy_user
+            return request.user.id == installation.sentry_app.proxy_user_id
 
-        if installation.organization not in request.user.get_orgs():
+        # TODO(hybrid-cloud): Replace this RPC with an org member lookup when that exists?
+        org_context = organization_service.get_organization_by_id(
+            id=installation.organization_id, user_id=request.user.id
+        )
+        if (
+            org_context.member is None
+            or org_context.organization.status != OrganizationStatus.ACTIVE
+        ):
             raise Http404
 
         return ensure_scoped_permission(request, self.scope_map.get(request.method))
@@ -309,9 +364,9 @@ class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes = (SentryAppInstallationPermission,)
 
     def convert_args(self, request: Request, uuid, *args, **kwargs):
-        try:
-            installation = SentryAppInstallation.objects.get(uuid=uuid)
-        except SentryAppInstallation.DoesNotExist:
+        installations = app_service.get_many(filter=dict(uuids=[uuid]))
+        installation = installations[0] if installations else None
+        if installation is None:
             raise Http404
 
         self.check_object_permissions(request, installation)
@@ -339,14 +394,17 @@ class SentryAppAuthorizationsPermission(SentryPermission):
         if not hasattr(request, "user") or not request.user:
             return False
 
-        self.determine_access(request, installation.organization)
+        installation_org_context = organization_service.get_organization_by_id(
+            id=installation.organization_id, user_id=request.user.id
+        )
+        self.determine_access(request, installation_org_context)
 
         if not request.user.is_sentry_app:
             return False
 
         # Request must be made as the app's Proxy User, using their Client ID
         # and Secret.
-        return request.user == installation.sentry_app.proxy_user
+        return request.user.id == installation.sentry_app.proxy_user_id
 
 
 class SentryAppAuthorizationsBaseEndpoint(SentryAppInstallationBaseEndpoint):
@@ -365,7 +423,10 @@ class SentryInternalAppTokenPermission(SentryPermission):
         if not hasattr(request, "user") or not request.user:
             return False
 
-        self.determine_access(request, sentry_app.owner)
+        owner_app = organization_service.get_organization_by_id(
+            id=sentry_app.owner_id, user_id=request.user.id
+        )
+        self.determine_access(request, owner_app)
 
         if is_active_superuser(request):
             return True
@@ -381,11 +442,14 @@ class SentryAppStatsPermission(SentryPermission):
         "POST": (),
     }
 
-    def has_object_permission(self, request: Request, view, sentry_app):
+    def has_object_permission(self, request: Request, view, sentry_app: SentryApp | RpcSentryApp):
         if not hasattr(request, "user") or not request.user:
             return False
 
-        self.determine_access(request, sentry_app.owner)
+        owner_app = organization_service.get_organization_by_id(
+            id=sentry_app.owner_id, user_id=request.user.id
+        )
+        self.determine_access(request, owner_app)
 
         if is_active_superuser(request):
             return True

@@ -1,0 +1,122 @@
+---
+created: '2023-02-01T08:22:00.668495Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "thread_start"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_pthread_start"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "__dynamic_cast"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / EXC_I386_GPFLT"
+        value*
+          "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"
+--------------------------------------------------------------------------
+system:
+  hash: "aeed765d29d1a60cb094f66d2cd8efb2"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "thread_start"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "_pthread_start"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:indirection -group))
+            function*
+              "__dynamic_cast"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / EXC_I386_GPFLT"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"

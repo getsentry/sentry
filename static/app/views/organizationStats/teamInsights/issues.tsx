@@ -1,17 +1,18 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {TeamWithProjects} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import localStorage from 'sentry/utils/localStorage';
+import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useOrganization from 'sentry/utils/useOrganization';
-import useTeams from 'sentry/utils/useTeams';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 
 import Header from '../header';
 
@@ -20,14 +21,16 @@ import DescriptionCard from './descriptionCard';
 import TeamIssuesAge from './teamIssuesAge';
 import TeamIssuesBreakdown from './teamIssuesBreakdown';
 import TeamResolutionTime from './teamResolutionTime';
-import TeamUnresolvedIssues from './teamUnresolvedIssues';
+import {TeamUnresolvedIssues} from './teamUnresolvedIssues';
 import {dataDatetime} from './utils';
 
-type Props = RouteComponentProps<{orgId: string}, {}>;
+type Props = RouteComponentProps<{}, {}>;
 
 function TeamStatsIssues({location, router}: Props) {
   const organization = useOrganization();
-  const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
+  const {teams, isLoading, isError} = useUserTeams();
+
+  useRouteAnalyticsEventNames('team_insights.viewed', 'Team Insights: Viewed');
 
   const query = location?.query ?? {};
   const localStorageKey = `teamInsightsSelectedTeamId:${organization.slug}`;
@@ -44,18 +47,17 @@ function TeamStatsIssues({location, router}: Props) {
   const projects = currentTeam?.projects ?? [];
   const environment = query.environment;
 
-  useEffect(() => {
-    trackAdvancedAnalyticsEvent('team_insights.viewed', {
-      organization,
-    });
-  }, []);
-
   const {period, start, end, utc} = dataDatetime(query);
+  const hasEscalatingIssues = organization.features.includes('escalating-issues');
 
   if (teams.length === 0) {
     return (
       <NoProjectMessage organization={organization} superuserNeedsToBeProjectMember />
     );
+  }
+
+  if (isError) {
+    return <LoadingError />;
   }
 
   return (
@@ -72,13 +74,16 @@ function TeamStatsIssues({location, router}: Props) {
           currentEnvironment={environment}
         />
 
-        {!initiallyLoaded && <LoadingIndicator />}
-        {initiallyLoaded && (
+        {isLoading && <LoadingIndicator />}
+        {!isLoading && (
           <Layout.Main fullWidth>
             <DescriptionCard
               title={t('All Unresolved Issues')}
-              description={t(
-                'This includes New and Returning issues in the last 7 days as well as those that haven’t been resolved or ignored in the past.'
+              description={tct(
+                'This includes New and Returning issues in the last 7 days as well as those that haven’t been resolved or [status] in the past.',
+                {
+                  status: hasEscalatingIssues ? 'archived' : 'ignored',
+                }
               )}
             >
               <TeamUnresolvedIssues
@@ -95,8 +100,11 @@ function TeamStatsIssues({location, router}: Props) {
 
             <DescriptionCard
               title={t('New and Returning Issues')}
-              description={t(
-                'The new, regressed, and unignored issues that were assigned to your team.'
+              description={tct(
+                'The new, regressed, and [status] issues that were assigned to your team.',
+                {
+                  status: hasEscalatingIssues ? 'escalating' : 'unignored',
+                }
               )}
             >
               <TeamIssuesBreakdown
@@ -107,7 +115,6 @@ function TeamStatsIssues({location, router}: Props) {
                 period={period}
                 start={start?.toString()}
                 end={end?.toString()}
-                location={location}
                 statuses={['new', 'regressed', 'unignored']}
               />
             </DescriptionCard>
@@ -126,7 +133,6 @@ function TeamStatsIssues({location, router}: Props) {
                 period={period}
                 start={start?.toString()}
                 end={end?.toString()}
-                location={location}
                 statuses={['resolved', 'ignored', 'deleted']}
               />
             </DescriptionCard>
@@ -151,7 +157,6 @@ function TeamStatsIssues({location, router}: Props) {
                 period={period}
                 start={start?.toString()}
                 end={end?.toString()}
-                location={location}
               />
             </DescriptionCard>
           </Layout.Main>

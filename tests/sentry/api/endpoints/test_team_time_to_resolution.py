@@ -1,14 +1,18 @@
 from datetime import timedelta
 
 from django.utils.timezone import now
-from freezegun import freeze_time
 
-from sentry.models import GroupAssignee, GroupEnvironment, GroupHistoryStatus
-from sentry.testutils import APITestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.models.actor import get_actor_for_user
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouphistory import GroupHistoryStatus
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.silo import region_silo_test
 
 
 @freeze_time()
+@region_silo_test(stable=True)
 class TeamTimeToResolutionTest(APITestCase):
     endpoint = "sentry-api-0-team-time-to-resolution"
 
@@ -23,14 +27,14 @@ class TeamTimeToResolutionTest(APITestCase):
         gh1 = self.create_group_history(
             group1,
             GroupHistoryStatus.UNRESOLVED,
-            actor=self.user.actor,
+            actor=get_actor_for_user(self.user),
             date_added=before_now(days=5),
         )
 
         self.create_group_history(
             group1,
             GroupHistoryStatus.RESOLVED,
-            actor=self.user.actor,
+            actor=get_actor_for_user(self.user),
             prev_history=gh1,
             date_added=before_now(days=2),
         )
@@ -38,14 +42,14 @@ class TeamTimeToResolutionTest(APITestCase):
         gh2 = self.create_group_history(
             group2,
             GroupHistoryStatus.UNRESOLVED,
-            actor=self.user.actor,
+            actor=get_actor_for_user(self.user),
             date_added=before_now(days=10),
         )
 
         self.create_group_history(
             group2,
             GroupHistoryStatus.RESOLVED,
-            actor=self.user.actor,
+            actor=get_actor_for_user(self.user),
             prev_history=gh2,
         )
         today = str(now().date())
@@ -64,13 +68,13 @@ class TeamTimeToResolutionTest(APITestCase):
         gh2 = self.create_group_history(
             group2,
             GroupHistoryStatus.UNRESOLVED,
-            actor=self.user.actor,
+            actor=get_actor_for_user(self.user),
             date_added=before_now(days=5),
         )
         self.create_group_history(
             group2,
             GroupHistoryStatus.RESOLVED,
-            actor=self.user.actor,
+            actor=get_actor_for_user(self.user),
             prev_history=gh2,
         )
 
@@ -78,14 +82,14 @@ class TeamTimeToResolutionTest(APITestCase):
         self.create_group_history(
             group2,
             GroupHistoryStatus.DELETED,
-            actor=self.user.actor,
+            actor=get_actor_for_user(self.user),
             prev_history=gh2,
         )
         # Make sure that if we have a `GroupHistory` row with no prev history then we don't crash.
         self.create_group_history(
             group2,
             GroupHistoryStatus.RESOLVED,
-            actor=self.user.actor,
+            actor=get_actor_for_user(self.user),
         )
 
         response = self.get_success_response(self.team.organization.slug, self.team.slug)
@@ -105,14 +109,14 @@ class TeamTimeToResolutionTest(APITestCase):
         gh1 = self.create_group_history(
             group1,
             GroupHistoryStatus.UNRESOLVED,
-            actor=self.user.actor,
+            actor=get_actor_for_user(self.user),
             date_added=before_now(days=5),
         )
 
         self.create_group_history(
             group1,
             GroupHistoryStatus.RESOLVED,
-            actor=self.user.actor,
+            actor=get_actor_for_user(self.user),
             prev_history=gh1,
             date_added=before_now(days=2),
         )

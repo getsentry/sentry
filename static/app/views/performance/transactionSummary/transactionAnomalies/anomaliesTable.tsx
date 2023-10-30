@@ -10,7 +10,7 @@ import GridEditable, {
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {ColumnType, fieldAlignment} from 'sentry/utils/discover/fields';
@@ -68,7 +68,10 @@ function renderHeadCell(column: TableColumn, _index: number): ReactNode {
 }
 
 function renderBodyCellWithMeta(location: Location, organization: Organization) {
-  return (column: TableColumn, dataRow: TableDataRowWithExtras): React.ReactNode => {
+  return function (
+    column: TableColumn,
+    dataRow: TableDataRowWithExtras
+  ): React.ReactNode {
     const fieldRenderer = getFieldRenderer(column.key, COLUMN_TYPE);
 
     if (column.key === 'confidence') {
@@ -113,10 +116,10 @@ const NumberCell = styled('div')`
 `;
 
 const LowConfidence = styled('div')`
-  color: ${p => p.theme.yellow300};
+  color: ${p => p.theme.yellow400};
 `;
 const HighConfidence = styled('div')`
-  color: ${p => p.theme.red300};
+  color: ${p => p.theme.red400};
 `;
 
 const ConfidenceCell = styled('div')`

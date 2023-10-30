@@ -1,6 +1,5 @@
 import * as Sentry from '@sentry/react';
 
-import RepositoryActions from 'sentry/actions/repositoryActions';
 import {Client} from 'sentry/api';
 import RepositoryStore from 'sentry/stores/repositoryStore';
 import {Repository} from 'sentry/types';
@@ -18,17 +17,17 @@ export function getRepositories(api: Client, params: ParamsGet) {
   // repo to be fired before the loading state is updated in store.
   // This hack short-circuits that and update the state immediately.
   RepositoryStore.state.repositoriesLoading = true;
-  RepositoryActions.loadRepositories(orgSlug);
+  RepositoryStore.loadRepositories(orgSlug);
 
   return api
     .requestPromise(path, {
       method: 'GET',
     })
     .then((res: Repository[]) => {
-      RepositoryActions.loadRepositoriesSuccess(res);
+      RepositoryStore.loadRepositoriesSuccess(res);
     })
     .catch(err => {
-      RepositoryActions.loadRepositoriesError(err);
+      RepositoryStore.loadRepositoriesError(err);
       Sentry.withScope(scope => {
         scope.setLevel('warning');
         scope.setFingerprint(['getRepositories-action-creator']);

@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from collections.abc import Callable
 from datetime import timedelta
 from enum import Enum
@@ -6,7 +5,6 @@ from enum import Enum
 from django.conf import settings
 from django.utils import timezone
 
-from sentry.utils.compat import map
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.services import Service
 
@@ -22,6 +20,9 @@ class TSDBModel(Enum):
     project = 1
     group = 4
     release = 7
+
+    # number of occurrences seen specific to a generic group
+    group_generic = 20
 
     # the number of events sent to the server
     project_total_received = 100
@@ -43,6 +44,8 @@ class TSDBModel(Enum):
     users_affected_by_group = 300
     # distinct count of users that have been affected by an event in a project
     users_affected_by_project = 301
+    # distinct count of users that have been affected by an event in a generic group
+    users_affected_by_generic_group = 303
 
     # frequent_organization_received_by_system = 400
     # frequent_organization_rejected_by_system = 401
@@ -87,6 +90,8 @@ class TSDBModel(Enum):
     project_total_received_cors = 609
     # the number of events filtered because their group was discarded
     project_total_received_discarded = 610
+    # the number of events filtered because they refer to a healthcheck endpoint
+    project_total_healthcheck = 611
 
     servicehook_fired = 700
 
@@ -136,7 +141,6 @@ class BaseTSDB(Service):
                 "get_optimal_rollup_series",
                 "get_rollups",
                 "make_series",
-                "models",
                 "models_with_environment_support",
                 "normalize_to_epoch",
                 "rollup",
@@ -146,15 +150,13 @@ class BaseTSDB(Service):
         | __read_methods__
     )
 
-    models = TSDBModel
-
     models_with_environment_support = frozenset(
         [
-            models.project,
-            models.group,
-            models.release,
-            models.users_affected_by_group,
-            models.users_affected_by_project,
+            TSDBModel.project,
+            TSDBModel.group,
+            TSDBModel.release,
+            TSDBModel.users_affected_by_group,
+            TSDBModel.users_affected_by_project,
         ]
     )
 
@@ -162,7 +164,7 @@ class BaseTSDB(Service):
         if rollups is None:
             rollups = settings.SENTRY_TSDB_ROLLUPS
 
-        self.rollups = OrderedDict(rollups)
+        self.rollups = dict(rollups)
 
         # The ``SENTRY_TSDB_LEGACY_ROLLUPS`` setting should be used to store
         # previous rollup configuration values after they are modified in
@@ -265,7 +267,7 @@ class BaseTSDB(Service):
                 end,
                 rollup=rollup,
             )
-            rollups[rollup] = map(to_datetime, series)
+            rollups[rollup] = [to_datetime(item) for item in series]
         return rollups
 
     def make_series(self, default, start, end=None, rollup=None):
@@ -347,7 +349,17 @@ class BaseTSDB(Service):
         raise NotImplementedError
 
     def get_range(
-        self, model, keys, start, end, rollup=None, environment_ids=None, use_cache=False
+        self,
+        model,
+        keys,
+        start,
+        end,
+        rollup=None,
+        environment_ids=None,
+        use_cache=False,
+        jitter_value=None,
+        tenant_ids=None,
+        referrer_suffix=None,
     ):
         """
         To get a range of data for group ID=[1, 2, 3]:
@@ -371,6 +383,8 @@ class BaseTSDB(Service):
         environment_id=None,
         use_cache=False,
         jitter_value=None,
+        tenant_ids=None,
+        referrer_suffix=None,
     ):
         range_set = self.get_range(
             model,
@@ -381,6 +395,8 @@ class BaseTSDB(Service):
             environment_ids=[environment_id] if environment_id is not None else None,
             use_cache=use_cache,
             jitter_value=jitter_value,
+            tenant_ids=tenant_ids,
+            referrer_suffix=referrer_suffix,
         )
         sum_set = {key: sum(p for _, p in points) for (key, points) in range_set.items()}
         return sum_set
@@ -426,7 +442,14 @@ class BaseTSDB(Service):
             self.record(model, key, values, timestamp, environment_id=environment_id)
 
     def get_distinct_counts_series(
-        self, model, keys, start, end=None, rollup=None, environment_id=None
+        self,
+        model,
+        keys,
+        start,
+        end=None,
+        rollup=None,
+        environment_id=None,
+        tenant_ids=None,
     ):
         """
         Fetch counts of distinct items for each rollup interval within the range.
@@ -443,6 +466,8 @@ class BaseTSDB(Service):
         environment_id=None,
         use_cache=False,
         jitter_value=None,
+        tenant_ids=None,
+        referrer_suffix=None,
     ):
         """
         Count distinct items during a time range.
@@ -450,7 +475,14 @@ class BaseTSDB(Service):
         raise NotImplementedError
 
     def get_distinct_counts_union(
-        self, model, keys, start, end=None, rollup=None, environment_id=None
+        self,
+        model,
+        keys,
+        start,
+        end=None,
+        rollup=None,
+        environment_id=None,
+        tenant_ids=None,
     ):
         """
         Count the total number of distinct items across multiple counters
@@ -485,7 +517,15 @@ class BaseTSDB(Service):
         raise NotImplementedError
 
     def get_most_frequent(
-        self, model, keys, start, end=None, rollup=None, limit=None, environment_id=None
+        self,
+        model,
+        keys,
+        start,
+        end=None,
+        rollup=None,
+        limit=None,
+        environment_id=None,
+        tenant_ids=None,
     ):
         """
         Retrieve the most frequently seen items in a frequency table.
@@ -499,7 +539,15 @@ class BaseTSDB(Service):
         raise NotImplementedError
 
     def get_most_frequent_series(
-        self, model, keys, start, end=None, rollup=None, limit=None, environment_id=None
+        self,
+        model,
+        keys,
+        start,
+        end=None,
+        rollup=None,
+        limit=None,
+        environment_id=None,
+        tenant_ids=None,
     ):
         """
         Retrieve the most frequently seen items in a frequency table for each
@@ -514,7 +562,9 @@ class BaseTSDB(Service):
         """
         raise NotImplementedError
 
-    def get_frequency_series(self, model, items, start, end=None, rollup=None, environment_id=None):
+    def get_frequency_series(
+        self, model, items, start, end=None, rollup=None, environment_id=None, tenant_ids=None
+    ):
         """
         Retrieve the frequency of known items in a table over time.
 
@@ -528,7 +578,9 @@ class BaseTSDB(Service):
         """
         raise NotImplementedError
 
-    def get_frequency_totals(self, model, items, start, end=None, rollup=None, environment_id=None):
+    def get_frequency_totals(
+        self, model, items, start, end=None, rollup=None, environment_id=None, tenant_ids=None
+    ):
         """
         Retrieve the total frequency of known items in a table over time.
 

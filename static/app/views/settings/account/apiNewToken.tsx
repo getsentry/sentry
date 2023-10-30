@@ -2,35 +2,52 @@ import {Component} from 'react';
 import {browserHistory} from 'react-router';
 
 import ApiForm from 'sentry/components/forms/apiForm';
-import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
-import FormField from 'sentry/components/forms/formField';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {API_ACCESS_SCOPES, DEFAULT_API_ACCESS_SCOPES} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {Choices} from 'sentry/types';
+import {Permissions} from 'sentry/types';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import PermissionSelection from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 
-const SORTED_DEFAULT_API_ACCESS_SCOPES = DEFAULT_API_ACCESS_SCOPES.sort();
-const API_CHOICES: Choices = API_ACCESS_SCOPES.map(s => [s, s]);
 const API_INDEX_ROUTE = '/settings/account/api/auth-tokens/';
+type State = {
+  permissions: Permissions;
+};
 
-export default class ApiNewToken extends Component {
+export default class ApiNewToken extends Component<{}, State> {
+  constructor(props: {}) {
+    super(props);
+    this.state = {
+      permissions: {
+        Event: 'no-access',
+        Team: 'no-access',
+        Member: 'no-access',
+        Project: 'no-access',
+        Release: 'no-access',
+        Organization: 'no-access',
+      },
+    };
+  }
+
   onCancel = () => {
-    browserHistory.push(API_INDEX_ROUTE);
+    browserHistory.push(normalizeUrl(API_INDEX_ROUTE));
   };
 
   onSubmitSuccess = () => {
-    browserHistory.push(API_INDEX_ROUTE);
+    browserHistory.push(normalizeUrl(API_INDEX_ROUTE));
   };
 
   render() {
+    const {permissions} = this.state;
     return (
-      <SentryDocumentTitle title={t('Create API Token')}>
+      <SentryDocumentTitle title={t('Create User Auth Token')}>
         <div>
-          <SettingsPageHeader title={t('Create New Token')} />
+          <SettingsPageHeader title={t('Create New User Auth Token')} />
           <TextBlock>
             {t(
               "Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
@@ -45,29 +62,30 @@ export default class ApiNewToken extends Component {
             )}
           </TextBlock>
           <Panel>
-            <PanelHeader>{t('Create New Token')}</PanelHeader>
+            <PanelHeader>{t('Permissions')}</PanelHeader>
             <ApiForm
               apiMethod="POST"
               apiEndpoint="/api-tokens/"
-              initialData={{scopes: SORTED_DEFAULT_API_ACCESS_SCOPES}}
+              initialData={{scopes: []}}
               onSubmitSuccess={this.onSubmitSuccess}
               onCancel={this.onCancel}
               footerStyle={{
                 marginTop: 0,
                 paddingRight: 20,
               }}
+              submitDisabled={Object.values(permissions).every(
+                value => value === 'no-access'
+              )}
               submitLabel={t('Create Token')}
             >
               <PanelBody>
-                <FormField name="scopes" label={t('Scopes')} inline={false} required>
-                  {({value, onChange}) => (
-                    <MultipleCheckbox
-                      onChange={onChange}
-                      value={value}
-                      choices={API_CHOICES}
-                    />
-                  )}
-                </FormField>
+                <PermissionSelection
+                  appPublished={false}
+                  permissions={permissions}
+                  onChange={value => {
+                    this.setState({permissions: value});
+                  }}
+                />
               </PanelBody>
             </ApiForm>
           </Panel>

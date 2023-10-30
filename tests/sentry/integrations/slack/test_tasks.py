@@ -2,13 +2,14 @@ from unittest.mock import patch
 from urllib.parse import parse_qs
 from uuid import uuid4
 
+import pytest
 import responses
-from exam import fixture
 
 from sentry.incidents.models import AlertRule, AlertRuleTriggerAction
-from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE, RedisRuleStatus
-from sentry.models import Rule
+from sentry.integrations.slack.utils import RedisRuleStatus
+from sentry.models.rule import Rule
 from sentry.receivers.rules import DEFAULT_RULE_LABEL
+from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.tasks.integrations.slack import (
     find_channel_id_for_alert_rule,
     find_channel_id_for_rule,
@@ -16,25 +17,40 @@ from sentry.tasks.integrations.slack import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
+from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
+pytestmark = [requires_snuba]
 
+
+@region_silo_test(stable=True)
 class SlackTasksTest(TestCase):
     def setUp(self):
         self.integration = install_slack(self.organization)
         self.uuid = uuid4().hex
 
-        channels = {"ok": "true", "channels": [{"name": "my-channel", "id": "chan-id"}]}
-
+    @pytest.fixture(autouse=True)
+    def setup_responses(self):
         responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps(channels),
+            body=json.dumps(
+                {"ok": "true", "channel": "chan-id", "scheduled_message_id": "Q1298393284"}
+            ),
         )
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.deleteScheduledMessage",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": True}),
+        )
+        with responses.mock:
+            yield
 
-    @fixture
     def metric_alert_data(self):
         return {
             "aggregate": "count()",
@@ -78,7 +94,6 @@ class SlackTasksTest(TestCase):
                 {
                     "channel": "#my-channel",
                     "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                    "name": "Send a notification to the funinthesun Slack workspace to #secrets and show tags [] in notification",
                     "tags": "",
                     "workspace": self.integration.id,
                 }
@@ -100,12 +115,11 @@ class SlackTasksTest(TestCase):
                 "channel": "#my-channel",
                 "channel_id": "chan-id",
                 "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                "name": "Send a notification to the funinthesun Slack workspace to #secrets and show tags [] in notification",
                 "tags": "",
                 "workspace": self.integration.id,
             }
         ]
-        assert rule.created_by == self.user
+        assert rule.created_by_id == self.user.id
 
     @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
@@ -127,7 +141,6 @@ class SlackTasksTest(TestCase):
                 {
                     "channel": "#my-channel",
                     "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                    "name": "Send a notification to the funinthesun Slack workspace to #secrets and show tags [] in notification",
                     "tags": "",
                     "workspace": self.integration.id,
                 }
@@ -149,7 +162,6 @@ class SlackTasksTest(TestCase):
                 "channel": "#my-channel",
                 "channel_id": "chan-id",
                 "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                "name": "Send a notification to the funinthesun Slack workspace to #secrets and show tags [] in notification",
                 "tags": "",
                 "workspace": self.integration.id,
             }
@@ -157,85 +169,12 @@ class SlackTasksTest(TestCase):
 
     @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
-    def test_task_failed_channel_id_lookup(self, mock_set_value):
-        members = {"ok": "true", "members": [{"name": "morty", "id": "morty-id"}]}
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/users.list",
-            status=200,
-            content_type="application/json",
-            body=json.dumps(members),
-        )
-
-        data = {
-            "name": "Test Rule",
-            "environment": None,
-            "project": self.project,
-            "action_match": "all",
-            "filter_match": "all",
-            "conditions": [{"id": "sentry.rules.conditions.every_event.EveryEventCondition"}],
-            "actions": [
-                {
-                    "channel": "#some-channel",
-                    "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                    "name": "Send a notification to the funinthesun Slack workspace to #secrets and show tags [] in notification",
-                    "tags": "",
-                    "workspace": self.integration.id,
-                }
-            ],
-            "frequency": 5,
-            "uuid": self.uuid,
-        }
-
-        with self.tasks():
-            find_channel_id_for_rule(**data)
-
-        mock_set_value.assert_called_with("failed")
-
-    @responses.activate
-    @patch.object(RedisRuleStatus, "set_value", return_value=None)
-    def test_task_rate_limited_channel_id_lookup(self, mock_set_value):
-        """Should set the correct error value when rate limited"""
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/users.list",
-            status=429,
-            content_type="application/json",
-            body=json.dumps({"ok": "true", "error": "ratelimited"}),
-        )
-
-        data = {
-            "name": "Test Rule",
-            "environment": None,
-            "project": self.project,
-            "action_match": "all",
-            "filter_match": "all",
-            "conditions": [{"id": "sentry.rules.conditions.every_event.EveryEventCondition"}],
-            "actions": [
-                {
-                    "channel": "@user",
-                    "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                    "name": "Send a notification to the funinthesun Slack workspace to #secrets and show tags [] in notification",
-                    "tags": "",
-                    "workspace": self.integration.id,
-                }
-            ],
-            "frequency": 5,
-            "uuid": self.uuid,
-        }
-
-        with self.tasks():
-            find_channel_id_for_rule(**data)
-
-        mock_set_value.assert_called_with("failed", None, SLACK_RATE_LIMITED_MESSAGE)
-
-    @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", "chan-id", False),
     )
     def test_task_new_alert_rule(self, mock_get_channel_id, mock_set_value):
-        alert_rule_data = self.metric_alert_data
+        alert_rule_data = self.metric_alert_data()
 
         data = {
             "data": alert_rule_data,
@@ -249,20 +188,23 @@ class SlackTasksTest(TestCase):
                 find_channel_id_for_alert_rule(**data)
 
         rule = AlertRule.objects.get(name="New Rule")
-        assert rule.created_by == self.user
+        assert rule.created_by_id == self.user.id
         mock_set_value.assert_called_with("success", rule.id)
-        mock_get_channel_id.assert_called_with(self.integration, "my-channel", 180)
+        mock_get_channel_id.assert_called_with(
+            serialize_integration(self.integration), "my-channel", 180
+        )
 
-        trigger_action = AlertRuleTriggerAction.objects.get(integration=self.integration.id)
+        trigger_action = AlertRuleTriggerAction.objects.get(integration_id=self.integration.id)
         assert trigger_action.target_identifier == "chan-id"
 
+    @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", None, False),
     )
     def test_task_failed_id_lookup(self, mock_get_channel_id, mock_set_value):
-        alert_rule_data = self.metric_alert_data
+        alert_rule_data = self.metric_alert_data()
 
         data = {
             "data": alert_rule_data,
@@ -276,15 +218,18 @@ class SlackTasksTest(TestCase):
 
         assert not AlertRule.objects.filter(name="New Rule").exists()
         mock_set_value.assert_called_with("failed")
-        mock_get_channel_id.assert_called_with(self.integration, "my-channel", 180)
+        mock_get_channel_id.assert_called_with(
+            serialize_integration(self.integration), "my-channel", 180
+        )
 
+    @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", None, True),
     )
     def test_task_timeout_id_lookup(self, mock_get_channel_id, mock_set_value):
-        alert_rule_data = self.metric_alert_data
+        alert_rule_data = self.metric_alert_data()
 
         data = {
             "data": alert_rule_data,
@@ -298,15 +243,18 @@ class SlackTasksTest(TestCase):
 
         assert not AlertRule.objects.filter(name="New Rule").exists()
         mock_set_value.assert_called_with("failed")
-        mock_get_channel_id.assert_called_with(self.integration, "my-channel", 180)
+        mock_get_channel_id.assert_called_with(
+            serialize_integration(self.integration), "my-channel", 180
+        )
 
+    @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", "chan-id", False),
     )
     def test_task_existing_metric_alert(self, mock_get_channel_id, mock_set_value):
-        alert_rule_data = self.metric_alert_data
+        alert_rule_data = self.metric_alert_data()
         alert_rule = self.create_alert_rule(
             organization=self.organization, projects=[self.project], name="New Rule", user=self.user
         )
@@ -324,9 +272,11 @@ class SlackTasksTest(TestCase):
 
         rule = AlertRule.objects.get(name="New Rule")
         mock_set_value.assert_called_with("success", rule.id)
-        mock_get_channel_id.assert_called_with(self.integration, "my-channel", 180)
+        mock_get_channel_id.assert_called_with(
+            serialize_integration(self.integration), "my-channel", 180
+        )
 
-        trigger_action = AlertRuleTriggerAction.objects.get(integration=self.integration.id)
+        trigger_action = AlertRuleTriggerAction.objects.get(integration_id=self.integration.id)
         assert trigger_action.target_identifier == "chan-id"
         assert AlertRule.objects.get(id=alert_rule.id)
 
@@ -341,6 +291,7 @@ class SlackTasksTest(TestCase):
         with self.tasks():
             post_message.apply_async(
                 kwargs={
+                    "integration_id": self.integration.id,
                     "payload": {"key": ["val"]},
                     "log_error_message": "my_message",
                     "log_params": {"log_key": "log_value"},
@@ -360,6 +311,7 @@ class SlackTasksTest(TestCase):
         with self.tasks():
             post_message.apply_async(
                 kwargs={
+                    "integration_id": self.integration.id,
                     "payload": {"key": ["val"]},
                     "log_error_message": "my_message",
                     "log_params": {"log_key": "log_value"},

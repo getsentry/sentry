@@ -1,73 +1,91 @@
-import {useRef} from 'react';
+import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
+import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import theme from 'sentry/utils/theme';
 
-function computeBestTooltipPlacement(cursor: vec2, container: Rect) {
+function computeBestTooltipPlacement(
+  cursor: vec2,
+  container: Rect,
+  tooltip: DOMRect
+): string {
   // This is because the cursor's origin is in the top left corner of the arrow, so we want
   // to offset it just enough so that the tooltip does not overlap with the arrow's tail.
   // When the tooltip placed to the left of the cursor, we do not have that issue and hence
   // no offset is applied.
   const OFFSET_PX = 6;
-
-  const style: Record<string, number | undefined> = {
-    left: cursor[0] + OFFSET_PX,
-    right: undefined,
-    top: cursor[1] + OFFSET_PX,
-    bottom: undefined,
-  };
+  let left = cursor[0] + OFFSET_PX;
+  const top = cursor[1] + OFFSET_PX;
 
   if (cursor[0] > container.width / 2) {
-    style.left = undefined;
-    style.right = container.width - cursor[0]; // No offset is applied here as tooltip is placed to the left
+    left = cursor[0] - tooltip.width; // No offset is applied here as tooltip is placed to the left
   }
 
-  return style;
+  return `translate(${left || 0}px, ${top || 0}px)`;
 }
 
 interface BoundTooltipProps {
   bounds: Rect;
+  canvas: FlamegraphCanvas;
+  canvasView: CanvasView<any>;
   cursor: vec2;
-  flamegraphCanvas: FlamegraphCanvas;
-  flamegraphView: FlamegraphView;
   children?: React.ReactNode;
 }
 
 function BoundTooltip({
   bounds,
-  flamegraphCanvas,
+  canvas,
   cursor,
-  flamegraphView,
+  canvasView,
   children,
 }: BoundTooltipProps): React.ReactElement | null {
-  const tooltipRef = useRef<HTMLDivElement>(null);
   const flamegraphTheme = useFlamegraphTheme();
 
   const physicalSpaceCursor = vec2.transformMat3(
     vec2.create(),
     cursor,
-    flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
+    canvasView.fromTransformedConfigView(canvas.physicalSpace)
   );
 
   const logicalSpaceCursor = vec2.transformMat3(
     vec2.create(),
     physicalSpaceCursor,
-    flamegraphCanvas.physicalToLogicalSpace
+    canvas.physicalToLogicalSpace
   );
 
-  const placement = computeBestTooltipPlacement(logicalSpaceCursor, bounds);
+  const rafIdRef = useRef<number | undefined>();
+  const onRef = useCallback(
+    node => {
+      if (node === null) {
+        return;
+      }
+
+      if (rafIdRef.current) {
+        window.cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = undefined;
+      }
+
+      rafIdRef.current = window.requestAnimationFrame(() => {
+        node.style.transform = computeBestTooltipPlacement(
+          logicalSpaceCursor,
+          bounds,
+          node.getBoundingClientRect()
+        );
+      });
+    },
+    [bounds, logicalSpaceCursor]
+  );
 
   return (
     <Tooltip
-      ref={tooltipRef}
+      ref={onRef}
       style={{
-        ...placement,
+        willChange: 'transform',
         fontSize: flamegraphTheme.SIZES.TOOLTIP_FONT_SIZE,
         fontFamily: flamegraphTheme.FONTS.FONT,
         zIndex: theme.zIndex.tooltip,
@@ -90,6 +108,8 @@ const Tooltip = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(0.25)} ${space(1)};
   border: 1px solid ${p => p.theme.border};
+  font-size: ${p => p.theme.fontSizeSmall};
+  line-height: 24px;
 `;
 
 export {BoundTooltip};

@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 from django.db import models
 
-from sentry.db.models import FlexibleForeignKey
+from sentry.db.models import FlexibleForeignKey, region_silo_only_model
 
 from . import AvatarBase
 
 
+@region_silo_only_model
 class ProjectAvatar(AvatarBase):
     """
     A ProjectAvatar associates a Project with their avatar photo File

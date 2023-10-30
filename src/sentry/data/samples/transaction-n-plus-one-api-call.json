@@ -1,0 +1,871 @@
+{
+  "platform": "javascript",
+  "message": "",
+  "tags": [
+    ["browser", "Chrome 108.0.0"],
+    ["browser.name", "Chrome"],
+    ["device", "Mac"],
+    ["device.family", "Mac"],
+    ["deviceMemory", "8 GB"],
+    ["effectiveConnectionType", "4g"],
+    ["environment", "production"],
+    ["hardwareConcurrency", "10"],
+    ["lcp.element", "body > div#__next > h1"],
+    ["lcp.size", "5738"],
+    ["level", "info"],
+    ["os", "Mac OS X 10.15.7"],
+    ["os.name", "Mac OS X"],
+    ["release", "booker-ui@0.0.1"],
+    ["user", "ip:64.137.154.65"],
+    ["transaction", "/"],
+    ["url", "http://localhost:3030/"]
+  ],
+  "_metrics": {"bytes.ingested.event": 19380, "bytes.stored.event": 24245},
+  "breadcrumbs": {
+    "values": [
+      {
+        "timestamp": 1673477526.867,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "98683266fa9ebdb3",
+          "method": "GET",
+          "status_code": 200,
+          "url": "/_next/static/development/_devMiddlewareManifest.json"
+        }
+      },
+      {
+        "timestamp": 1673477526.87,
+        "type": "default",
+        "category": "navigation",
+        "level": "info",
+        "data": {"from": "/", "to": "/"}
+      },
+      {
+        "timestamp": 1673477526.895,
+        "type": "default",
+        "category": "console",
+        "level": "error",
+        "message": "Warning: Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted \u2014 the behavior is unsupported and could change in a future version.%s 55 \n    at ul\n    at div\n    at QueryClientProvider (webpack-internal:///./node_modules/@tanstack/react-query/build/lib/QueryClientProvider.mjs:47:3)\n    at Home\n    at App (webpack-internal:///./pages/_app.tsx:12:11)\n    at PathnameContextProviderAdapter (webpack-internal:///./node_modules/next/dist/shared/lib/router/adapters.js:62:11)\n    at ErrorBoundary (webpack-internal:///./node_modules/next/dist/compiled/@next/react-dev-overlay/dist/client.js:301:63)\n    at ReactDevOverlay (webpack-internal:///./node_modules/next/dist/compiled/@next/react-dev-overlay/dist/client.js:850:919)\n    at Container (webpack-internal:///./node_modules/next/dist/client/index.js:60:1)\n    at AppContainer (webpack-internal:///./node_modules/next/dist/client/index.js:173:11)\n    at Root (webpack-internal:///./node_modules/next/dist/client/index.js:346:11)",
+        "data": {
+          "arguments": [
+            "Warning: Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted \u2014 the behavior is unsupported and could change in a future version.%s",
+            "55",
+            "\n    at ul\n    at div\n    at QueryClientProvider (webpack-internal:///./node_modules/@tanstack/react-query/build/lib/QueryClientProvider.mjs:47:3)\n    at Home\n    at App (webpack-internal:///./pages/_app.tsx:12:11)\n    at PathnameContextProviderAdapter (webpack-internal:///./node_modules/next/dist/shared/lib/router/adapters.js:62:11)\n    at ErrorBoundary (webpack-internal:///./node_modules/next/dist/compiled/@next/react-dev-overlay/dist/client.js:301:63)\n    at ReactDevOverlay (webpack-internal:///./node_modules/next/dist/compiled/@next/react-dev-overlay/dist/client.js:850:919)\n    at Container (webpack-internal:///./node_modules/next/dist/client/index.js:60:1)\n    at AppContainer (webpack-internal:///./node_modules/next/dist/client/index.js:173:11)\n    at Root (webpack-internal:///./node_modules/next/dist/client/index.js:346:11)"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1673477527.267,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "8e7189a4f1e24ac3",
+          "method": "GET",
+          "status_code": 200,
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=50"
+        }
+      },
+      {
+        "timestamp": 1673477527.269,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "b2af9392df36fa1f",
+          "method": "GET",
+          "status_code": 200,
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=96"
+        }
+      },
+      {
+        "timestamp": 1673477527.277,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "8869e7e96076fa88",
+          "method": "GET",
+          "status_code": 200,
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=43"
+        }
+      },
+      {
+        "timestamp": 1673477527.279,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "ae58828e4fdd0bba",
+          "method": "GET",
+          "status_code": 200,
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=22"
+        }
+      },
+      {
+        "timestamp": 1673477527.283,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "ac71c2e69245f37d",
+          "method": "GET",
+          "status_code": 200,
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=79"
+        }
+      },
+      {
+        "timestamp": 1673477527.626,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "ba5183ea752ce85a",
+          "method": "GET",
+          "status_code": 200,
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=55"
+        }
+      },
+      {
+        "timestamp": 1673477527.634,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "bd5f728e61f667cf",
+          "method": "GET",
+          "status_code": 200,
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=90"
+        }
+      },
+      {
+        "timestamp": 1673477527.644,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "9e87e2127c3a3136",
+          "method": "GET",
+          "status_code": 200,
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=69"
+        }
+      },
+      {
+        "timestamp": 1673477527.649,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "b38bff8a7d07b1bc",
+          "method": "GET",
+          "status_code": 200,
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=1"
+        }
+      },
+      {
+        "timestamp": 1673477527.652,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "a530576977ba0714",
+          "method": "GET",
+          "status_code": 200,
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=48"
+        }
+      },
+      {
+        "timestamp": 1673477528.008,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "918be77fbfd326ca",
+          "method": "GET",
+          "status_code": 200,
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=78"
+        }
+      },
+      {
+        "timestamp": 1673477528.009,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "ae5b2d34409bb315",
+          "method": "GET",
+          "status_code": 200,
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=36"
+        }
+      },
+      {
+        "timestamp": 1673477528.013,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "afa8a8b18afbad59",
+          "method": "GET",
+          "status_code": 200,
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=67"
+        }
+      },
+      {
+        "timestamp": 1673477528.217,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "a39c22ce65e378cc",
+          "method": "GET",
+          "status_code": 200,
+          "url": "http://127.0.0.1:3000/author/278/book?book_id=44"
+        }
+      }
+    ]
+  },
+  "breakdowns": {
+    "span_ops": {
+      "ops.browser": {"value": 34.499884, "unit": "millisecond"},
+      "ops.http": {"value": 1329.79989, "unit": "millisecond"},
+      "ops.resource": {"value": 145.400285, "unit": "millisecond"},
+      "ops.ui": {"value": 227.100134, "unit": "millisecond"},
+      "total.time": {"value": 2187.700271, "unit": "millisecond"}
+    }
+  },
+  "contexts": {
+    "browser": {"name": "Chrome", "version": "108.0.0", "type": "browser"},
+    "device": {"family": "Mac", "model": "Mac", "brand": "Apple", "type": "device"},
+    "os": {"name": "Mac OS X", "version": "10.15.7", "type": "os"},
+    "trace": {
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "span_id": "829d17842d952371",
+      "op": "pageload",
+      "status": "unknown",
+      "exclusive_time": 929.899931,
+      "client_sample_rate": 1.0,
+      "hash": "6666cd76f9695646",
+      "tags": {
+        "deviceMemory": "8 GB",
+        "effectiveConnectionType": "4g",
+        "hardwareConcurrency": "10",
+        "lcp.element": "body > div#__next > h1",
+        "lcp.size": 5738
+      },
+      "type": "trace"
+    }
+  },
+  "culprit": "/",
+  "environment": "production",
+  "grouping_config": {
+    "enhancements": "eJybzDRxY3J-bm5-npWRgaGlroGxrpHxBABcYgcZ",
+    "id": "newstyle:2019-10-29"
+  },
+  "hashes": ["056162e622dc33b070c4130bc25a5898"],
+  "ingest_path": [
+    {"version": "22.12.0", "public_key": "XE7QiyuNlja9PZ7I9qJlwQotzecWrUIN91BAO7Q5R38"}
+  ],
+  "key_id": "2887834",
+  "level": "info",
+  "location": "/",
+  "logger": "",
+  "measurements": {
+    "connection.rtt": {"value": 0.0, "unit": "millisecond"},
+    "fcp": {"value": 440.199999988079, "unit": "millisecond"},
+    "fid": {"value": 10.099999994039536, "unit": "millisecond"},
+    "fp": {"value": 440.09999999403954, "unit": "millisecond"},
+    "lcp": {"value": 440.199, "unit": "millisecond"},
+    "ttfb": {"value": 35.50004959106445, "unit": "millisecond"},
+    "ttfb.requesttime": {"value": 32.09996223449707, "unit": "millisecond"}
+  },
+  "metadata": {"location": "/", "title": "/"},
+  "nodestore_insert": 1673477530.800675,
+  "received": 1673477529.434847,
+  "request": {
+    "url": "http://localhost:3030/",
+    "headers": [
+      ["Referer", "http://localhost:3030/"],
+      [
+        "User-Agent",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
+      ]
+    ]
+  },
+  "sdk": {
+    "name": "sentry.javascript.react",
+    "version": "7.26.0",
+    "integrations": [
+      "InboundFilters",
+      "FunctionToString",
+      "TryCatch",
+      "Breadcrumbs",
+      "GlobalHandlers",
+      "LinkedErrors",
+      "Dedupe",
+      "HttpContext",
+      "BrowserTracing"
+    ],
+    "packages": [{"name": "npm:@sentry/react", "version": "7.26.0"}]
+  },
+  "span_grouping_config": {"id": "default:2022-10-27"},
+  "spans": [
+    {
+      "timestamp": 1673477526.8665,
+      "start_timestamp": 1673477526.8515,
+      "exclusive_time": 14.999866,
+      "description": "GET /_next/static/development/_devMiddlewareManifest.json",
+      "op": "http.client",
+      "span_id": "98683266fa9ebdb3",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/_next/static/development/_devMiddlewareManifest.json"
+      },
+      "hash": "a64d7e158c220324"
+    },
+    {
+      "timestamp": 1673477527.2685,
+      "start_timestamp": 1673477526.9024,
+      "exclusive_time": 366.100073,
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=96",
+      "op": "http.client",
+      "span_id": "b2af9392df36fa1f",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=96"
+      },
+      "hash": "c2ea6c5f7ba887a2"
+    },
+    {
+      "timestamp": 1673477528.2172,
+      "start_timestamp": 1673477526.9029,
+      "exclusive_time": 1314.30006,
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=44",
+      "op": "http.client",
+      "span_id": "a39c22ce65e378cc",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=44"
+      },
+      "hash": "c2ea6c5f7ba887a2"
+    },
+    {
+      "timestamp": 1673477527.2787,
+      "start_timestamp": 1673477526.9031,
+      "exclusive_time": 375.6001,
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=22",
+      "op": "http.client",
+      "span_id": "ae58828e4fdd0bba",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=22"
+      },
+      "hash": "c2ea6c5f7ba887a2"
+    },
+    {
+      "timestamp": 1673477527.2765,
+      "start_timestamp": 1673477526.9033,
+      "exclusive_time": 373.19994,
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=43",
+      "op": "http.client",
+      "span_id": "8869e7e96076fa88",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=43"
+      },
+      "hash": "c2ea6c5f7ba887a2"
+    },
+    {
+      "timestamp": 1673477527.2823,
+      "start_timestamp": 1673477526.9035,
+      "exclusive_time": 378.799915,
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=79",
+      "op": "http.client",
+      "span_id": "ac71c2e69245f37d",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=79"
+      },
+      "hash": "c2ea6c5f7ba887a2"
+    },
+    {
+      "timestamp": 1673477527.2668,
+      "start_timestamp": 1673477526.9037,
+      "exclusive_time": 363.099813,
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=50",
+      "op": "http.client",
+      "span_id": "8e7189a4f1e24ac3",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=50"
+      },
+      "hash": "c2ea6c5f7ba887a2"
+    },
+    {
+      "timestamp": 1673477527.626,
+      "start_timestamp": 1673477526.904,
+      "exclusive_time": 721.999884,
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=55",
+      "op": "http.client",
+      "span_id": "ba5183ea752ce85a",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=55"
+      },
+      "hash": "c2ea6c5f7ba887a2"
+    },
+    {
+      "timestamp": 1673477527.6517,
+      "start_timestamp": 1673477526.9043,
+      "exclusive_time": 747.400045,
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=48",
+      "op": "http.client",
+      "span_id": "a530576977ba0714",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=48"
+      },
+      "hash": "c2ea6c5f7ba887a2"
+    },
+    {
+      "timestamp": 1673477527.6335,
+      "start_timestamp": 1673477526.9046,
+      "exclusive_time": 728.900194,
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=90",
+      "op": "http.client",
+      "span_id": "bd5f728e61f667cf",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=90"
+      },
+      "hash": "c2ea6c5f7ba887a2"
+    },
+    {
+      "timestamp": 1673477527.6433,
+      "start_timestamp": 1673477526.9048,
+      "exclusive_time": 738.500118,
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=69",
+      "op": "http.client",
+      "span_id": "9e87e2127c3a3136",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=69"
+      },
+      "hash": "c2ea6c5f7ba887a2"
+    },
+    {
+      "timestamp": 1673477527.6485,
+      "start_timestamp": 1673477526.9051,
+      "exclusive_time": 743.399858,
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=1",
+      "op": "http.client",
+      "span_id": "b38bff8a7d07b1bc",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=1"
+      },
+      "hash": "c2ea6c5f7ba887a2"
+    },
+    {
+      "timestamp": 1673477528.0083,
+      "start_timestamp": 1673477526.9052,
+      "exclusive_time": 1103.100061,
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=36",
+      "op": "http.client",
+      "span_id": "ae5b2d34409bb315",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=36"
+      },
+      "hash": "c2ea6c5f7ba887a2"
+    },
+    {
+      "timestamp": 1673477528.0075,
+      "start_timestamp": 1673477526.9054,
+      "exclusive_time": 1102.099896,
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=78",
+      "op": "http.client",
+      "span_id": "918be77fbfd326ca",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=78"
+      },
+      "hash": "c2ea6c5f7ba887a2"
+    },
+    {
+      "timestamp": 1673477528.0129,
+      "start_timestamp": 1673477526.9057,
+      "exclusive_time": 1107.200146,
+      "description": "GET http://127.0.0.1:3000/author/278/book?book_id=67",
+      "op": "http.client",
+      "span_id": "afa8a8b18afbad59",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "status": "ok",
+      "tags": {"http.status_code": "200"},
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "http://127.0.0.1:3000/author/278/book?book_id=67"
+      },
+      "hash": "c2ea6c5f7ba887a2"
+    },
+    {
+      "timestamp": 1673477526.4857,
+      "start_timestamp": 1673477526.4857,
+      "exclusive_time": 0.0,
+      "description": "unloadEvent",
+      "op": "browser",
+      "span_id": "a92f33d0c1bf398c",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "hash": "8e6939b423884b5c"
+    },
+    {
+      "timestamp": 1673477526.8525,
+      "start_timestamp": 1673477526.8525,
+      "exclusive_time": 0.0,
+      "description": "domContentLoadedEvent",
+      "op": "browser",
+      "span_id": "946d1f2b20a96c64",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "hash": "b0e3ee8970392a6f"
+    },
+    {
+      "timestamp": 1673477526.8678,
+      "start_timestamp": 1673477526.8678,
+      "exclusive_time": 0.0,
+      "description": "loadEvent",
+      "op": "browser",
+      "span_id": "829b79a541550ea7",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "hash": "39e89edd65c7c22a"
+    },
+    {
+      "timestamp": 1673477526.4514,
+      "start_timestamp": 1673477526.451,
+      "exclusive_time": 0.400066,
+      "description": "connect",
+      "op": "browser",
+      "span_id": "b7d17f7dc84fbb29",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "hash": "b640a0ce465fa2a4"
+    },
+    {
+      "timestamp": 1673477526.451,
+      "start_timestamp": 1673477526.4493,
+      "exclusive_time": 1.699925,
+      "description": "cache",
+      "op": "browser",
+      "span_id": "af0ec7a012bbc800",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "hash": "0fea6a13c52b4d47"
+    },
+    {
+      "timestamp": 1673477526.451,
+      "start_timestamp": 1673477526.451,
+      "exclusive_time": 0.0,
+      "description": "DNS",
+      "op": "browser",
+      "span_id": "944b37def4456de5",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "hash": "ed5f2bdecbd4bd34"
+    },
+    {
+      "timestamp": 1673477526.4838,
+      "start_timestamp": 1673477526.4514,
+      "exclusive_time": 32.399893,
+      "description": "request",
+      "op": "browser",
+      "span_id": "b6d4d3459b9ac98a",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "hash": "10573b873d2fa5a3"
+    },
+    {
+      "timestamp": 1673477526.4838,
+      "start_timestamp": 1673477526.4835,
+      "exclusive_time": 0.299931,
+      "description": "response",
+      "op": "browser",
+      "span_id": "91906a46218ef3a7",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "hash": "d1fc8eaf36937be0"
+    },
+    {
+      "timestamp": 1673477526.8857,
+      "start_timestamp": 1673477526.448,
+      "exclusive_time": 437.700033,
+      "description": "Next.js-before-hydration",
+      "op": "measure",
+      "span_id": "a45ad10e860a2885",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "hash": "8483492a56816aa0"
+    },
+    {
+      "timestamp": 1673477526.5055,
+      "start_timestamp": 1673477526.4919,
+      "exclusive_time": 13.600111,
+      "description": "/_next/static/chunks/webpack.js?ts=1673477526458",
+      "op": "resource.script",
+      "span_id": "af59c560f26ab5e8",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "data": {
+        "http.decoded_response_content_length": 48521,
+        "http.response_content_length": 9251,
+        "http.transfer_size": 9551
+      },
+      "hash": "1f1dd0897c16565b"
+    },
+    {
+      "timestamp": 1673477526.6219,
+      "start_timestamp": 1673477526.492,
+      "exclusive_time": 129.899979,
+      "description": "/_next/static/chunks/main.js?ts=1673477526458",
+      "op": "resource.script",
+      "span_id": "993e60d6d8e9327e",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "data": {
+        "http.decoded_response_content_length": 4529244,
+        "http.response_content_length": 1103151,
+        "http.transfer_size": 1103451
+      },
+      "hash": "1f058070477778b8"
+    },
+    {
+      "timestamp": 1673477526.527,
+      "start_timestamp": 1673477526.4921,
+      "exclusive_time": 34.89995,
+      "description": "/_next/static/chunks/pages/_app.js?ts=1673477526458",
+      "op": "resource.script",
+      "span_id": "a1dbe22b0ef14ced",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "data": {
+        "http.decoded_response_content_length": 166604,
+        "http.response_content_length": 49443,
+        "http.transfer_size": 49743
+      },
+      "hash": "254c644cff8b3e09"
+    },
+    {
+      "timestamp": 1673477526.5654,
+      "start_timestamp": 1673477526.4923,
+      "exclusive_time": 73.099852,
+      "description": "/_next/static/chunks/pages/index.js?ts=1673477526458",
+      "op": "resource.script",
+      "span_id": "8b9e76417ca50d14",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "data": {
+        "http.decoded_response_content_length": 1980965,
+        "http.response_content_length": 507607,
+        "http.transfer_size": 507907
+      },
+      "hash": "779ec19f50f1ea39"
+    },
+    {
+      "timestamp": 1673477526.5226,
+      "start_timestamp": 1673477526.4924,
+      "exclusive_time": 30.200005,
+      "description": "/_next/static/development/_buildManifest.js?ts=1673477526458",
+      "op": "resource.script",
+      "span_id": "9d5b3c332aec7802",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "data": {"http.decoded_response_content_length": 296, "http.response_content_length": 296, "http.transfer_size": 596},
+      "hash": "4f2043f50fc2f515"
+    },
+    {
+      "timestamp": 1673477526.5227,
+      "start_timestamp": 1673477526.4924,
+      "exclusive_time": 30.300141,
+      "description": "/_next/static/development/_ssgManifest.js?ts=1673477526458",
+      "op": "resource.script",
+      "span_id": "a92f3520fc053460",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "data": {"http.decoded_response_content_length": 76, "http.response_content_length": 76, "http.transfer_size": 376},
+      "hash": "26d97630b7867f3e"
+    },
+    {
+      "timestamp": 1673477526.5079,
+      "start_timestamp": 1673477526.4925,
+      "exclusive_time": 15.399933,
+      "description": "/_next/static/chunks/react-refresh.js?ts=1673477526458",
+      "op": "resource.script",
+      "span_id": "b5da2d6c207454de",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "data": {
+        "http.decoded_response_content_length": 78104,
+        "http.response_content_length": 24604,
+        "http.transfer_size": 24904
+      },
+      "hash": "b7d184affa2b21b2"
+    },
+    {
+      "timestamp": 1673477526.8473,
+      "start_timestamp": 1673477526.8473,
+      "exclusive_time": 0.0,
+      "description": "sentry-tracing-init",
+      "op": "mark",
+      "span_id": "b03e104784f74544",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "hash": "c53716060ebc199a"
+    },
+    {
+      "timestamp": 1673477526.8861,
+      "start_timestamp": 1673477526.8707,
+      "exclusive_time": 15.400171,
+      "description": "/favicon.ico",
+      "op": "resource.other",
+      "span_id": "84b15eb82679aea4",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "data": {
+        "http.decoded_response_content_length": 25931,
+        "http.response_content_length": 9296,
+        "http.transfer_size": 300
+      },
+      "hash": "35a63c8a85b1279a"
+    },
+    {
+      "timestamp": 1673477526.8989,
+      "start_timestamp": 1673477526.8857,
+      "exclusive_time": 13.200045,
+      "description": "Next.js-hydration",
+      "op": "measure",
+      "span_id": "927bea95283cb327",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "hash": "20ab3278cfeb7dc1"
+    },
+    {
+      "timestamp": 1673477526.8881,
+      "start_timestamp": 1673477526.8881,
+      "exclusive_time": 0.0,
+      "description": "first-paint",
+      "op": "paint",
+      "span_id": "875980fc8ce85f26",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "hash": "4ff755f5919b94fd"
+    },
+    {
+      "timestamp": 1673477526.8882,
+      "start_timestamp": 1673477526.8882,
+      "exclusive_time": 0.0,
+      "description": "first-contentful-paint",
+      "op": "paint",
+      "span_id": "bf2e6fdb650a1bc7",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "hash": "8545a0de03122977"
+    },
+    {
+      "timestamp": 1673477529.1537,
+      "start_timestamp": 1673477529.1436,
+      "exclusive_time": 10.100126,
+      "description": "first input delay",
+      "op": "ui.action",
+      "span_id": "ad5e6f8b625f7e31",
+      "parent_span_id": "829d17842d952371",
+      "trace_id": "80972418b74940bda6977932055f7fcd",
+      "hash": "b33f4c33a9ed325f"
+    }
+  ],
+  "start_timestamp": 1673477526.448,
+  "timestamp": 1673477529.1537,
+  "title": "/",
+  "transaction": "/",
+  "transaction_info": {"source": "url", "changes": [], "propagations": 1},
+  "type": "transaction",
+  "user": {
+    "ip_address": "127.0.0.1",
+    "geo": {"country_code": "CA", "city": "Toronto", "region": "Canada"}
+  },
+  "version": "7"
+}

@@ -1,19 +1,20 @@
 from django.core.signing import BadSignature, SignatureExpired
+from django.http import HttpResponse
 from django.urls import reverse
+from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.integrations.utils import get_identity_or_404
-from sentry.models import Identity
+from sentry.models.identity import Identity
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
 from sentry.web.decorators import transaction_start
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
-from .card_builder import build_linked_card
+from .card_builder.identity import build_linked_card
 from .client import MsTeamsClient
 
 
@@ -31,10 +32,11 @@ def build_linking_url(integration, organization, teams_user_id, team_id, tenant_
     )
 
 
+@control_silo_view
 class MsTeamsLinkIdentityView(BaseView):
     @transaction_start("MsTeamsLinkIdentityView")
-    @never_cache
-    def handle(self, request: Request, signed_params) -> Response:
+    @method_decorator(never_cache)
+    def handle(self, request: Request, signed_params) -> HttpResponse:
         try:
             params = unsign(signed_params)
         except (SignatureExpired, BadSignature):

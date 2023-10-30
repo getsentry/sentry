@@ -1,14 +1,15 @@
 from urllib.parse import urlencode
 
 import requests
-from django.conf.urls import url
-from django.utils.encoding import force_text
+from django.urls import re_path
+from django.utils.encoding import force_str
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.exceptions import PluginError
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.integrations import FeatureDescription, IntegrationFeatures
-from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2, PluginError
+from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
 from sentry.utils import json
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
@@ -50,7 +51,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
 
     def get_group_urls(self):
         return super().get_group_urls() + [
-            url(
+            re_path(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
             )
@@ -147,8 +148,8 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
     def create_issue(self, request: Request, group, form_data, **kwargs):
         json_data = {
             "story_type": "bug",
-            "name": force_text(form_data["title"], encoding="utf-8", errors="replace"),
-            "description": force_text(form_data["description"], encoding="utf-8", errors="replace"),
+            "name": force_str(form_data["title"], encoding="utf-8", errors="replace"),
+            "description": force_str(form_data["description"], encoding="utf-8", errors="replace"),
             "labels": ["sentry"],
         }
 

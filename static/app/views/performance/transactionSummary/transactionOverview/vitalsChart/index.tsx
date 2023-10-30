@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
-import {Location, Query} from 'history';
+import {Query} from 'history';
 
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
@@ -11,38 +11,37 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
-import {
-  getAggregateArg,
-  getMeasurementSlug,
-  WebVital,
-} from 'sentry/utils/discover/fields';
+import {getAggregateArg, getMeasurementSlug} from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import useRouter from 'sentry/utils/useRouter';
 
 import {ViewProps} from '../../../types';
 
 import Content from './content';
 
-type Props = WithRouterProps &
-  ViewProps & {
-    location: Location;
-    organization: OrganizationSummary;
-    queryExtra: Query;
-    withoutZerofill: boolean;
-  };
+type Props = ViewProps & {
+  organization: OrganizationSummary;
+  queryExtra: Query;
+  withoutZerofill: boolean;
+  queryExtras?: Record<string, string>;
+};
 
 function VitalsChart({
   project,
   environment,
-  location,
   organization,
   query,
   statsPeriod,
-  router,
   queryExtra,
   withoutZerofill,
   start: propsStart,
   end: propsEnd,
+  queryExtras,
 }: Props) {
+  const location = useLocation();
+  const router = useRouter();
   const api = useApi();
   const theme = useTheme();
 
@@ -140,6 +139,7 @@ function VitalsChart({
         partial
         withoutZerofill={withoutZerofill}
         referrer="api.performance.transaction-summary.vitals-chart"
+        queryExtras={queryExtras}
       >
         {({results, errored, loading, reloading, timeframe: timeFrame}) => (
           <Content
@@ -156,4 +156,4 @@ function VitalsChart({
   );
 }
 
-export default withRouter(VitalsChart);
+export default VitalsChart;

@@ -6,25 +6,31 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 
-from sentry import features
+from sentry import analytics, features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.validators.project_codeowners import validate_codeowners_associations
-from sentry.models import Project, ProjectCodeOwners, RepositoryProjectPathConfig
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.project import Project
+from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.ownership.grammar import convert_codeowners_syntax, create_schema_from_issue_owners
 from sentry.utils import metrics
+from sentry.utils.codeowners import MAX_RAW_LENGTH
 
-# Max accepted string length of the CODEOWNERS file
-MAX_RAW_LENGTH = 100_000
+from .analytics import *  # NOQA
 
 
-class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
+class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
     code_mapping_id = serializers.IntegerField(required=True)
     raw = serializers.CharField(required=True)
     organization_integration_id = serializers.IntegerField(required=False)
+    date_updated = serializers.CharField(required=False)
 
     class Meta:
         model = ProjectCodeOwners
-        fields = ["raw", "code_mapping_id", "organization_integration_id"]
+        fields = ["raw", "code_mapping_id", "organization_integration_id", "date_updated"]
+
+    def get_max_length(self) -> int:
+        return MAX_RAW_LENGTH
 
     def validate(self, attrs: Mapping[str, Any]) -> Mapping[str, Any]:
         # If it already exists, set default attrs with existing values
@@ -43,9 +49,14 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
         # we temporarily allow rows that already exceed this limit to still be updated.
         # We do something similar with ProjectOwnership at the API level.
         existing_raw = self.instance.raw if self.instance else ""
-        if len(attrs["raw"]) > MAX_RAW_LENGTH and len(existing_raw) <= MAX_RAW_LENGTH:
+        max_length = self.get_max_length()
+        if len(attrs["raw"]) > max_length and len(existing_raw) <= max_length:
+            analytics.record(
+                "codeowners.max_length_exceeded",
+                organization_id=self.context["project"].organization.id,
+            )
             raise serializers.ValidationError(
-                {"raw": f"Raw needs to be <= {MAX_RAW_LENGTH} characters in length"}
+                {"raw": f"Raw needs to be <= {max_length} characters in length"}
             )
 
         # Ignore association errors and continue parsing CODEOWNERS for valid lines.
@@ -57,10 +68,20 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
         )
 
         # Convert IssueOwner syntax into schema syntax
+        has_targeting_context = features.has(
+            "organizations:streamline-targeting-context", self.context["project"].organization
+        )
         try:
-            validated_data = create_schema_from_issue_owners(
-                issue_owners=issue_owner_rules, project_id=self.context["project"].id
-            )
+            if has_targeting_context:
+                validated_data = create_schema_from_issue_owners(
+                    issue_owners=issue_owner_rules,
+                    project_id=self.context["project"].id,
+                    add_owner_ids=True,
+                )
+            else:
+                validated_data = create_schema_from_issue_owners(
+                    issue_owners=issue_owner_rules, project_id=self.context["project"].id
+                )
             return {
                 **attrs,
                 "schema": validated_data,
@@ -128,7 +149,6 @@ from .external_actor.team_index import ExternalTeamEndpoint
 from .external_actor.user_details import ExternalUserDetailsEndpoint
 from .external_actor.user_index import ExternalUserEndpoint
 from .index import ProjectCodeOwnersEndpoint
-from .request import ProjectCodeOwnersRequestEndpoint
 
 __all__ = (
     "ExternalTeamEndpoint",
@@ -137,5 +157,4 @@ __all__ = (
     "ExternalUserDetailsEndpoint",
     "ProjectCodeOwnersEndpoint",
     "ProjectCodeOwnersDetailsEndpoint",
-    "ProjectCodeOwnersRequestEndpoint",
 )

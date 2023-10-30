@@ -1,13 +1,22 @@
+from typing import Any, Dict
+
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_relay import pii_selector_suggestions_from_event
+from sentry_relay.processing import pii_selector_suggestions_from_event
 
 from sentry import nodestore
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.eventstore.models import Event
 
 
+@region_silo_endpoint
 class DataScrubbingSelectorSuggestionsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization) -> Response:
         """
         Generate a list of data scrubbing selectors from existing event data.
@@ -30,14 +39,15 @@ class DataScrubbingSelectorSuggestionsEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization)
         project_ids = [project.id for project in projects]
 
-        suggestions = {}
+        suggestions: Dict[str, Any] = {}
 
         if event_id:
             # go to nodestore directly instead of eventstore.get_events, which
             # would not return transaction events
             node_ids = [Event.generate_node_id(p, event_id) for p in project_ids]
-            all_data = nodestore.get_multi(node_ids)
+            all_data = nodestore.backend.get_multi(node_ids)
 
+            data: Dict[str, Any]
             for data in filter(None, all_data.values()):
                 for selector in pii_selector_suggestions_from_event(data):
                     examples_ = suggestions.setdefault(selector["path"], [])

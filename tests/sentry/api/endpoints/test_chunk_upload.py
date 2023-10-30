@@ -3,20 +3,28 @@ from hashlib import sha1
 import pytest
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db.models import F
 from django.urls import reverse
 
 from sentry import options
 from sentry.api.endpoints.chunk import (
     API_PREFIX,
+    CHUNK_UPLOAD_ACCEPT,
     HASH_ALGORITHM,
     MAX_CHUNKS_PER_REQUEST,
     MAX_CONCURRENCY,
     MAX_REQUEST_SIZE,
 )
-from sentry.models import MAX_FILE_SIZE, ApiToken, FileBlob
-from sentry.testutils import APITestCase
+from sentry.models.apitoken import ApiToken
+from sentry.models.files.fileblob import FileBlob
+from sentry.models.files.utils import MAX_FILE_SIZE
+from sentry.models.organization import Organization
+from sentry.silo import SiloMode
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
+@region_silo_test(stable=True)
 class ChunkUploadTest(APITestCase):
     @pytest.fixture(autouse=True)
     def _restore_upload_url_options(self):
@@ -24,7 +32,8 @@ class ChunkUploadTest(APITestCase):
 
     def setUp(self):
         self.organization = self.create_organization(owner=self.user)
-        self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         self.url = reverse("sentry-api-0-chunk-upload", args=[self.organization.slug])
 
     def test_chunk_parameters(self):
@@ -40,6 +49,7 @@ class ChunkUploadTest(APITestCase):
         assert response.data["concurrency"] == MAX_CONCURRENCY
         assert response.data["hashAlgorithm"] == HASH_ALGORITHM
         assert response.data["url"] == options.get("system.url-prefix") + self.url
+        assert response.data["accept"] == CHUNK_UPLOAD_ACCEPT
 
         options.set("system.upload-url-prefix", "test")
         response = self.client.get(
@@ -47,6 +57,26 @@ class ChunkUploadTest(APITestCase):
         )
 
         assert response.data["url"] == options.get("system.upload-url-prefix") + self.url
+
+    def test_accept_with_artifact_bundles_v2_option(self):
+        with self.options({"sourcemaps.artifact_bundles.assemble_with_missing_chunks": False}):
+            response = self.client.get(
+                self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
+            )
+            assert "artifact_bundles_v2" not in response.data["accept"]
+
+        with self.options({"sourcemaps.artifact_bundles.assemble_with_missing_chunks": True}):
+            response = self.client.get(
+                self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
+            )
+            assert "artifact_bundles_v2" in response.data["accept"]
+
+        with self.options({"sourcemaps.artifact_bundles.assemble_with_missing_chunks": 1.0}):
+            self.organization.update(flags=F("flags").bitor(Organization.flags.early_adopter))
+            response = self.client.get(
+                self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
+            )
+            assert "artifact_bundles_v2" not in response.data["accept"]
 
     def test_relative_url_support(self):
         # Starting `sentry-cli@1.70.1` we added a support for relative chunk-uploads urls
@@ -64,6 +94,14 @@ class ChunkUploadTest(APITestCase):
             self.url,
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
             HTTP_USER_AGENT="sentry-cli/2.77.4",
+            format="json",
+        )
+        assert response.data["url"] == self.url.lstrip(API_PREFIX)
+
+        response = self.client.get(
+            self.url,
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_USER_AGENT="sentry-cli/2.20.5",
             format="json",
         )
         assert response.data["url"] == self.url.lstrip(API_PREFIX)
@@ -104,7 +142,8 @@ class ChunkUploadTest(APITestCase):
         assert response.data["maxFileSize"] == MAX_FILE_SIZE
 
     def test_wrong_api_token(self):
-        token = ApiToken.objects.create(user=self.user, scope_list=["org:org"])
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["org:org"])
         response = self.client.get(self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
         assert response.status_code == 403, response.content
 
@@ -203,7 +242,7 @@ class ChunkUploadTest(APITestCase):
     def test_checksum_missmatch(self):
         files = []
         content = b"x" * (settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE + 1)
-        files.append(SimpleUploadedFile(b"wrong checksum", content))
+        files.append(SimpleUploadedFile("wrong checksum", content))
 
         response = self.client.post(
             self.url,

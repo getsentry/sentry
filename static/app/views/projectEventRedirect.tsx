@@ -2,8 +2,8 @@ import {useEffect, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import DetailedError from 'sentry/components/errors/detailedError';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 
 type Props = RouteComponentProps<{}, {}>;
 
@@ -60,7 +60,7 @@ function ProjectEventRedirect({router}: Props) {
   return error ? (
     <DetailedError heading={t('Not found')} message={error} hideSupportLinks />
   ) : (
-    <PageContent />
+    <Layout.Page withPadding />
   );
 }
 

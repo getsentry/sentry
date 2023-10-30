@@ -4,7 +4,6 @@ import {getAllBroadcasts, markBroadcastsAsSeen} from 'sentry/actionCreators/broa
 import {Client} from 'sentry/api';
 import DemoModeGate from 'sentry/components/acl/demoModeGate';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import BroadcastSdkUpdates from 'sentry/components/sidebar/broadcastSdkUpdates';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import SidebarPanelEmpty from 'sentry/components/sidebar/sidebarPanelEmpty';
@@ -126,7 +125,7 @@ class Broadcasts extends Component<Props, State> {
             data-test-id="sidebar-broadcasts"
             orientation={orientation}
             collapsed={collapsed}
-            active={currentPanel === SidebarPanelKey.Broadcasts}
+            active={currentPanel === SidebarPanelKey.BROADCASTS}
             badge={unseenPosts.length}
             icon={<IconBroadcast size="md" />}
             label={t("What's new")}
@@ -134,7 +133,7 @@ class Broadcasts extends Component<Props, State> {
             id="broadcasts"
           />
 
-          {currentPanel === SidebarPanelKey.Broadcasts && (
+          {currentPanel === SidebarPanelKey.BROADCASTS && (
             <SidebarPanel
               data-test-id="sidebar-broadcasts-panel"
               orientation={orientation}
@@ -160,7 +159,6 @@ class Broadcasts extends Component<Props, State> {
                   />
                 ))
               )}
-              <BroadcastSdkUpdates />
             </SidebarPanel>
           )}
         </Fragment>

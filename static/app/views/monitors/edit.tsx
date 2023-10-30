@@ -1,55 +1,127 @@
-import {Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 
-import AsyncView from 'sentry/views/asyncView';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
+import IdBadge from 'sentry/components/idBadge';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {
+  ApiQueryKey,
+  setApiQueryData,
+  useApiQuery,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {useParams} from 'sentry/utils/useParams';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
-import MonitorForm from './monitorForm';
+import MonitorForm from './components/monitorForm';
 import {Monitor} from './types';
 
-type Props = AsyncView['props'] &
-  RouteComponentProps<{monitorId: string; orgId: string}, {}>;
+export default function EditMonitor() {
+  const {monitorSlug} = useParams();
+  const {selection} = usePageFilters();
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
 
-type State = AsyncView['state'] & {
-  monitor: Monitor | null;
-};
+  const queryKey: ApiQueryKey = [
+    `/organizations/${organization.slug}/monitors/${monitorSlug}/`,
+    {query: {expand: ['alertRule']}},
+  ];
 
-export default class EditMonitor extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {params} = this.props;
-    return [['monitor', `/monitors/${params.monitorId}/`]];
-  }
+  const {
+    isLoading,
+    isError,
+    data: monitor,
+    refetch,
+  } = useApiQuery<Monitor>(queryKey, {
+    cacheTime: 0,
+    staleTime: 0,
+  });
 
-  onUpdate = (data: Monitor) =>
-    this.setState(state => ({monitor: {...state.monitor, ...data}}));
-
-  onSubmitSuccess = (data: Monitor) =>
-    browserHistory.push(`/organizations/${this.props.params.orgId}/monitors/${data.id}/`);
-
-  getTitle() {
-    if (this.state.monitor) {
-      return `${this.state.monitor.name} - Monitors - ${this.props.params.orgId}`;
-    }
-    return `Monitors - ${this.props.params.orgId}`;
-  }
-
-  renderBody() {
-    const {monitor} = this.state;
-
-    if (monitor === null) {
-      return null;
-    }
-
-    return (
-      <Fragment>
-        <h1>Edit Monitor</h1>
-
-        <MonitorForm
-          monitor={monitor}
-          apiMethod="PUT"
-          apiEndpoint={`/monitors/${monitor.id}/`}
-          onSubmitSuccess={this.onSubmitSuccess}
-        />
-      </Fragment>
+  function onSubmitSuccess(data: Monitor) {
+    setApiQueryData(queryClient, queryKey, data);
+    browserHistory.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/crons/${data.slug}/`,
+        query: {environment: selection.environments},
+      })
     );
   }
+
+  function getTitle() {
+    if (monitor) {
+      return `${monitor.name} - Crons - ${organization.slug}`;
+    }
+    return `Crons - ${organization.slug}`;
+  }
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError onRetry={refetch} message="Failed to load monitor." />;
+  }
+
+  return (
+    <SentryDocumentTitle title={getTitle()}>
+      <Layout.Page>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs
+              crumbs={[
+                {
+                  label: t('Crons'),
+                  to: normalizeUrl(`/organizations/${organization.slug}/crons/`),
+                },
+                {
+                  label: (
+                    <MonitorBreadcrumb>
+                      <IdBadge
+                        disableLink
+                        project={monitor.project}
+                        avatarSize={16}
+                        hideName
+                        avatarProps={{hasTooltip: true, tooltip: monitor.project.slug}}
+                      />
+                      {monitor.name}
+                    </MonitorBreadcrumb>
+                  ),
+                  to: normalizeUrl(
+                    `/organizations/${organization.slug}/crons/${monitor.slug}/`
+                  ),
+                },
+                {
+                  label: t('Edit'),
+                },
+              ]}
+            />
+            <Layout.Title>{t('Edit Monitor')}</Layout.Title>
+          </Layout.HeaderContent>
+        </Layout.Header>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <MonitorForm
+              monitor={monitor}
+              apiMethod="PUT"
+              apiEndpoint={`/organizations/${organization.slug}/monitors/${monitor.slug}/`}
+              onSubmitSuccess={onSubmitSuccess}
+            />
+          </Layout.Main>
+        </Layout.Body>
+      </Layout.Page>
+    </SentryDocumentTitle>
+  );
 }
+
+const MonitorBreadcrumb = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+`;

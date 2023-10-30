@@ -4,29 +4,31 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import AlertLink from 'sentry/components/alertLink';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
 import {InternalAppApiToken, Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = {
   organization: Organization;
-} & AsyncView['props'];
+} & DeprecatedAsyncView['props'];
 
 type State = {
   tokenList: InternalAppApiToken[] | null;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-export class ApiTokens extends AsyncView<Props, State> {
+export class ApiTokens extends DeprecatedAsyncView<Props, State> {
   getTitle() {
-    return t('API Tokens');
+    return t('User Auth Tokens');
   }
 
   getDefaultState() {
@@ -36,7 +38,7 @@ export class ApiTokens extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['tokenList', '/api-tokens/']];
   }
 
@@ -75,7 +77,7 @@ export class ApiTokens extends AsyncView<Props, State> {
     const action = (
       <Button
         priority="primary"
-        size="small"
+        size="sm"
         to="/settings/account/api/auth-tokens/new-token/"
         data-test-id="create-token"
       >
@@ -85,12 +87,10 @@ export class ApiTokens extends AsyncView<Props, State> {
 
     return (
       <div>
-        <SettingsPageHeader title="Auth Tokens" action={action} />
-        <AlertLink
-          to={`/settings/${organization?.slug ?? ''}/developer-settings/new-internal`}
-        >
+        <SettingsPageHeader title={this.getTitle()} action={action} />
+        <AlertLink to={`/settings/${organization?.slug ?? ''}/auth-tokens/`}>
           {t(
-            "Auth Tokens are tied to the logged in user, meaning they'll stop working if the user leaves the organization! We suggest using internal integrations to create/manage tokens tied to the organization instead."
+            "User Auth Tokens are tied to the logged in user, meaning they'll stop working if the user leaves the organization! We suggest using Organization Auth Tokens to create/manage tokens tied to the organization instead."
           )}
         </AlertLink>
         <TextBlock>

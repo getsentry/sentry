@@ -1,8 +1,7 @@
 import type u2f from 'u2f-api';
 
-import type {Field} from 'sentry/components/forms/type';
-
-import type {Organization} from './organization';
+import type {Field} from 'sentry/components/forms/types';
+import {ControlSiloOrganization} from 'sentry/types/control_silo_organization';
 
 export type AuthenticatorDevice = {
   authId: string;
@@ -11,7 +10,7 @@ export type AuthenticatorDevice = {
   timestamp?: string;
 };
 
-export type Authenticator = {
+interface BaseAuthenticator extends Partial<Omit<EnrolledAuthenticator, 'createdAt'>> {
   /**
    * Allows multiple enrollments to authenticator
    */
@@ -27,11 +26,16 @@ export type Authenticator = {
    */
   configureButton: string;
   createdAt: string | null;
+
   /**
    * Description of the authenticator
    */
   description: string;
   devices: AuthenticatorDevice[];
+  /**
+   * New enrollments of this 2FA interface are not allowed
+   */
+  disallowNewEnrollment: boolean;
   /**
    * String used to display on button for user as CTA to enroll
    */
@@ -61,20 +65,30 @@ export type Authenticator = {
   form?: Field[];
   phone?: string;
   secret?: string;
-} & Partial<EnrolledAuthenticator> &
-  (
-    | {
-        id: 'sms';
-      }
-    | {
-        id: 'totp';
-        qrcode: string;
-      }
-    | {
-        challenge: ChallengeData;
-        id: 'u2f';
-      }
-  );
+}
+
+export interface TotpAuthenticator extends BaseAuthenticator {
+  id: 'totp';
+  qrcode: string;
+}
+
+export interface SmsAuthenticator extends BaseAuthenticator {
+  id: 'sms';
+}
+
+export interface U2fAuthenticator extends BaseAuthenticator {
+  challenge: ChallengeData;
+  id: 'u2f';
+}
+export interface RecoveryAuthenticator extends BaseAuthenticator {
+  id: 'recovery';
+}
+
+export type Authenticator =
+  | TotpAuthenticator
+  | SmsAuthenticator
+  | U2fAuthenticator
+  | RecoveryAuthenticator;
 
 export type ChallengeData = {
   // will have only authenticateRequest or registerRequest
@@ -117,11 +131,23 @@ export type AuthConfig = {
   vstsLoginLink: string;
 };
 
+// Users can have SSO providers of their own (social login with github)
+// and organizations can have SSO configuration for SAML/google domain/okta.
+// https://github.com/getsentry/sentry/pull/52469#discussion_r1258387880
 export type AuthProvider = {
-  disables2FA: boolean;
   key: string;
   name: string;
   requiredFeature: string;
+};
+
+export type OrganizationAuthProvider = {
+  default_role: string;
+  id: string;
+  login_url: string;
+  pending_links_count: number;
+  provider_name: string;
+  require_link: boolean;
+  scim_enabled: boolean;
 };
 
 export enum UserIdentityCategory {
@@ -152,7 +178,7 @@ export type UserIdentityConfig = {
   id: string;
   isLogin: boolean;
   name: string;
-  organization: Organization | null;
+  organization: ControlSiloOrganization | null;
   provider: UserIdentityProvider;
   status: UserIdentityStatus;
 };

@@ -1,14 +1,19 @@
 import {Fragment, useEffect} from 'react';
 
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
-import {useMEPDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
+import {
+  getIsMetricsDataFromResults,
+  useMEPDataContext,
+} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 
 import {QueryDefinitionWithKey, QueryHandlerProps, WidgetDataConstraint} from '../types';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
-/*
-  Component to handle switching component-style queries over to state. This should be temporary to make it easier to switch away from waterfall style api components.
-*/
+/**
+ * Component to handle switching component-style queries over to state. This
+ * should be temporary to make it easier to switch away from waterfall style
+ * api components.
+ */
 export function QueryHandler<T extends WidgetDataConstraint>(
   props: QueryHandlerProps<T>
 ) {
@@ -95,8 +100,10 @@ function QueryResultSaver<T extends WidgetDataConstraint>(
   const transformed = query.transform(props.queryProps, results, props.query);
 
   useEffect(() => {
-    const isMetricsData =
-      results?.seriesAdditionalInfo?.[props.queryProps.fields[0]]?.isMetricsData;
+    const isMetricsData = getIsMetricsDataFromResults(
+      results,
+      props.queryProps.fields[0]
+    );
     mepContext.setIsMetricsData(isMetricsData);
     props.setWidgetDataForKey(query.queryKey, transformed);
   }, [transformed?.hasData, transformed?.isLoading, transformed?.isErrored]);

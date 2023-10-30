@@ -1,21 +1,21 @@
 from django.urls import reverse
 
-from sentry.models import Environment, EnvironmentProject
-from sentry.testutils import APITestCase
+from sentry.models.environment import Environment, EnvironmentProject
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class ProjectEnvironmentsTest(APITestCase):
     def test_simple(self):
         project = self.create_project()
 
         env1 = Environment.objects.create(
-            project_id=project.id, organization_id=project.organization_id, name="production"
+            organization_id=project.organization_id, name="production"
         )
         env1.add_project(project)
 
-        env2 = Environment.objects.create(
-            project_id=project.id, organization_id=project.organization_id, name="staging"
-        )
+        env2 = Environment.objects.create(organization_id=project.organization_id, name="staging")
         env2.add_project(project)
 
         self.login_as(user=self.user)
@@ -34,14 +34,12 @@ class ProjectEnvironmentsTest(APITestCase):
         project = self.create_project()
 
         env1 = Environment.objects.create(
-            project_id=project.id, organization_id=project.organization_id, name="production"
+            organization_id=project.organization_id, name="production"
         )
 
         EnvironmentProject.objects.create(project=project, environment=env1, is_hidden=False)
 
-        env2 = Environment.objects.create(
-            project_id=project.id, organization_id=project.organization_id, name="staging"
-        )
+        env2 = Environment.objects.create(organization_id=project.organization_id, name="staging")
 
         EnvironmentProject.objects.create(project=project, environment=env2, is_hidden=True)
 

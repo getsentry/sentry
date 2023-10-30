@@ -1,8 +1,10 @@
 import pytest
 
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 
 
+@no_silo_test(stable=True)
 class SidebarTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -19,12 +21,9 @@ class SidebarTest(AcceptanceTestCase):
         self.browser.click('[data-test-id="sidebar-dropdown"]')
         self.browser.move_to('[data-test-id="sidebar-switch-org"]')
         self.browser.wait_until_test_id("sidebar-switch-org-menu")
-        self.browser.snapshot("sidebar - switch org expanded")
         self.browser.click('[data-test-id="sidebar-collapse"]')
-        self.browser.snapshot("sidebar - collapsed")
         self.browser.click('[data-test-id="sidebar-broadcasts"]')
         self.browser.wait_until_test_id("sidebar-broadcasts-panel")
-        self.browser.snapshot("sidebar - broadcasts panel")
         self.browser.click("footer")
         self.browser.wait_until_not('[data-test-id="sidebar-broadcasts-panel"]')
 
@@ -39,13 +38,3 @@ class SidebarTest(AcceptanceTestCase):
         self.browser.wait_until(
             'input[placeholder="Search for documentation, FAQs, blog posts..."]'
         )
-
-    def test_sandbox_sidebar(self):
-        user = self.create_user("another@example.com")
-        self.create_member(user=user, organization=self.organization, role="member", teams=[])
-        self.login_as(user)
-        with self.settings(DEMO_MODE=True):
-            self.browser.get(self.path)
-            self.browser.wait_until_not(".loading")
-            self.browser.click('[data-test-id="sidebar-dropdown"]')
-            self.browser.snapshot("sidebar - sandbox mode expanded")

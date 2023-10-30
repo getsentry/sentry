@@ -1,15 +1,20 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import EnvironmentMixin
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.helpers.releases import get_group_ids_resolved_in_release
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
-from sentry.models import Group
+from sentry.models.group import Group
 
 
+@region_silo_endpoint
 class ProjectIssuesResolvedInReleaseEndpoint(ProjectEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectPermission,)
 
     def get(self, request: Request, project, version) -> Response:

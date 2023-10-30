@@ -7,15 +7,17 @@ import {
   removeAndRedirectToRemainingOrganization,
   updateOrganization,
 } from 'sentry/actionCreators/organizations';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {Panel, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
@@ -28,14 +30,12 @@ import OrganizationSettingsForm from './organizationSettingsForm';
 type Props = {
   organization: Organization;
   projects: Project[];
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
 function OrganizationGeneralSettings(props: Props) {
   const api = useApi();
 
-  const {organization, projects, params} = props;
-  const {orgId} = params;
-
+  const {organization, projects} = props;
   const access = new Set(organization.access);
 
   const removeConfirmMessage = (
@@ -66,17 +66,27 @@ function OrganizationGeneralSettings(props: Props) {
 
   const handleSaveForm: React.ComponentProps<
     typeof OrganizationSettingsForm
-  >['onSave'] = (prevData: Organization, data: Partial<Organization>) => {
-    if (data.slug && data.slug !== prevData.slug) {
-      changeOrganizationSlug(
-        prevData,
-        data as Partial<Organization> & Pick<Organization, 'slug'>
-      );
-      browserHistory.replace(`/settings/${data.slug}/`);
+  >['onSave'] = (prevData: Organization, updated: Organization) => {
+    if (updated.slug && updated.slug !== prevData.slug) {
+      changeOrganizationSlug(prevData, updated);
+
+      if (updated.features.includes('customer-domains')) {
+        const {organizationUrl} = updated.links;
+        window.location.replace(`${organizationUrl}/settings/organization/`);
+      } else {
+        browserHistory.replace(`/settings/${updated.slug}/`);
+      }
     } else {
+      if (prevData.codecovAccess !== updated.codecovAccess) {
+        trackAnalytics('organization_settings.codecov_access_updated', {
+          organization: updated,
+          has_access: updated.codecovAccess,
+        });
+      }
+
       // This will update OrganizationStore (as well as OrganizationsStore
       // which is slightly incorrect because it has summaries vs a detailed org)
-      updateOrganization(data);
+      updateOrganization(updated);
     }
   };
 
@@ -87,7 +97,7 @@ function OrganizationGeneralSettings(props: Props) {
 
     addLoadingMessage();
     removeAndRedirectToRemainingOrganization(api, {
-      orgId: params.orgId,
+      orgId: organization.slug,
       successMessage: `${organization.name} is queued for deletion.`,
       errorMessage: `Error removing the ${organization.name} organization`,
     });
@@ -95,22 +105,17 @@ function OrganizationGeneralSettings(props: Props) {
 
   return (
     <Fragment>
-      <SentryDocumentTitle title={t('General Settings')} orgSlug={orgId} />
+      <SentryDocumentTitle title={t('General Settings')} orgSlug={organization.slug} />
       <div>
         <SettingsPageHeader title={t('Organization Settings')} />
         <PermissionAlert />
 
-        <OrganizationSettingsForm
-          {...props}
-          initialData={organization}
-          access={access}
-          onSave={handleSaveForm}
-        />
+        <OrganizationSettingsForm initialData={organization} onSave={handleSaveForm} />
 
         {access.has('org:admin') && !organization.isDefault && (
           <Panel>
             <PanelHeader>{t('Remove Organization')}</PanelHeader>
-            <Field
+            <FieldGroup
               label={t('Remove Organization')}
               help={t(
                 'Removing this organization will delete all data including projects and their associated events.'
@@ -126,7 +131,7 @@ function OrganizationGeneralSettings(props: Props) {
                   <Button priority="danger">{t('Remove Organization')}</Button>
                 </Confirm>
               </div>
-            </Field>
+            </FieldGroup>
           </Panel>
         )}
       </div>

@@ -1,161 +1,115 @@
-import {createRef, PureComponent} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import classNames from 'classnames';
 
-import Button from 'sentry/components/button';
-import Input, {InputProps} from 'sentry/components/forms/controls/input';
+import {Button} from 'sentry/components/button';
+import {InputGroup, InputProps} from 'sentry/components/inputGroup';
 import {IconSearch} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
+import {space} from 'sentry/styles/space';
 
 interface SearchBarProps extends Omit<InputProps, 'onChange'> {
-  defaultQuery: string;
-  onSearch: (query: string) => void;
-  query: string;
+  defaultQuery?: string;
   onChange?: (query: string) => void;
+  onSearch?: (query: string) => void;
+  query?: string;
+  trailing?: React.ReactNode;
   width?: string;
 }
 
-type State = {
-  dropdownVisible: boolean;
-  query: string;
-};
+function SearchBar({
+  query: queryProp,
+  defaultQuery = '',
+  onChange,
+  onSearch,
+  width,
+  size,
+  className,
+  trailing,
+  ...inputProps
+}: SearchBarProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
 
-class SearchBar extends PureComponent<SearchBarProps, State> {
-  static defaultProps: Pick<SearchBarProps, 'query' | 'defaultQuery' | 'onSearch'> = {
-    query: '',
-    defaultQuery: '',
-    onSearch: function () {},
-  };
+  const [query, setQuery] = useState(queryProp ?? defaultQuery);
 
-  state: State = {
-    query: this.props.query || this.props.defaultQuery,
-    dropdownVisible: false,
-  };
-
-  UNSAFE_componentWillReceiveProps(nextProps: SearchBarProps) {
-    if (nextProps.query !== this.props.query) {
-      this.setState({
-        query: nextProps.query,
-      });
+  // if query prop keeps changing we should treat this as
+  // a controlled component and its internal state should be in sync
+  useEffect(() => {
+    if (typeof queryProp === 'string') {
+      setQuery(queryProp);
     }
-  }
+  }, [queryProp]);
 
-  searchInputRef = createRef<HTMLInputElement>();
+  const onQueryChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const {value} = e.target;
+      setQuery(value);
+      onChange?.(value);
+    },
+    [onChange]
+  );
 
-  blur = () => {
-    if (this.searchInputRef.current) {
-      this.searchInputRef.current.blur();
-    }
-  };
+  const onSubmit = useCallback(
+    (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      inputRef.current?.blur();
+      onSearch?.(query);
+    },
+    [onSearch, query]
+  );
 
-  onSubmit = (evt: React.FormEvent<HTMLFormElement>) => {
-    evt.preventDefault();
-    this.blur();
-    this.props.onSearch(this.state.query);
-  };
+  const clearSearch = useCallback(() => {
+    setQuery('');
+    onChange?.('');
+    onSearch?.('');
+  }, [onChange, onSearch]);
 
-  clearSearch = () => {
-    this.setState({query: this.props.defaultQuery}, () => {
-      this.props.onSearch(this.state.query);
-      callIfFunction(this.props.onChange, this.state.query);
-    });
-  };
-
-  onQueryFocus = () => {
-    this.setState({
-      dropdownVisible: true,
-    });
-  };
-
-  onQueryBlur = () => {
-    this.setState({dropdownVisible: false});
-  };
-
-  onQueryChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
-    const {value} = evt.target;
-
-    this.setState({query: value});
-    callIfFunction(this.props.onChange, value);
-  };
-
-  render() {
-    // Remove keys that should not be passed into Input
-    const {
-      className,
-      width,
-      query: _q,
-      defaultQuery,
-      onChange: _oC,
-      onSearch: _oS,
-      ...inputProps
-    } = this.props;
-
-    return (
-      <div className={classNames('search', className)}>
-        <form className="form-horizontal" onSubmit={this.onSubmit}>
-          <div>
-            <StyledInput
-              {...inputProps}
-              type="text"
-              className="search-input"
-              name="query"
-              ref={this.searchInputRef}
-              autoComplete="off"
-              value={this.state.query}
-              onBlur={this.onQueryBlur}
-              onChange={this.onQueryChange}
-              width={width}
+  return (
+    <FormWrap onSubmit={onSubmit} className={className}>
+      <InputGroup>
+        <InputGroup.LeadingItems disablePointerEvents>
+          <IconSearch color="subText" size={size === 'xs' ? 'xs' : 'sm'} />
+        </InputGroup.LeadingItems>
+        <StyledInput
+          {...inputProps}
+          ref={inputRef}
+          type="text"
+          name="query"
+          autoComplete="off"
+          value={query}
+          onChange={onQueryChange}
+          width={width}
+          size={size}
+        />
+        <InputGroup.TrailingItems>
+          {trailing}
+          {!!query && (
+            <SearchBarTrailingButton
+              size="zero"
+              borderless
+              onClick={clearSearch}
+              icon={<IconClose size="xs" />}
+              aria-label={t('Clear')}
             />
-            <StyledIconSearch className="search-input-icon" size="sm" color="gray300" />
-            {this.state.query !== defaultQuery && (
-              <SearchClearButton
-                type="button"
-                className="search-clear-form"
-                priority="link"
-                onClick={this.clearSearch}
-                size="xsmall"
-                icon={<IconClose />}
-                aria-label={t('Clear')}
-              />
-            )}
-          </div>
-        </form>
-      </div>
-    );
-  }
+          )}
+        </InputGroup.TrailingItems>
+      </InputGroup>
+    </FormWrap>
+  );
 }
 
-const StyledInput = styled(Input)`
-  width: ${p => (p.width ? p.width : undefined)};
-
-  &.focus-visible {
-    box-shadow: 0 0 0 1px ${p => p.theme.focusBorder};
-    border-color: ${p => p.theme.focusBorder};
-    outline: none;
-  }
+const FormWrap = styled('form')`
+  display: block;
+  position: relative;
 `;
 
-const StyledIconSearch = styled(IconSearch)`
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  left: 14px;
+const StyledInput = styled(InputGroup.Input)`
+  ${p => p.width && `width: ${p.width};`}
 `;
 
-const SearchClearButton = styled(Button)`
-  position: absolute;
-  top: 50%;
-  height: 16px;
-  transform: translateY(-50%);
-  right: 10px;
-  font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray200};
-
-  &:hover {
-    color: ${p => p.theme.gray300};
-  }
+export const SearchBarTrailingButton = styled(Button)`
+  color: ${p => p.theme.subText};
+  padding: ${space(0.5)};
 `;
 
 export default SearchBar;

@@ -1,17 +1,21 @@
 import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {t} from 'sentry/locale';
-import AsyncView from 'sentry/views/asyncView';
+import {Organization, Project} from 'sentry/types';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
-import KeySettings from 'sentry/views/settings/project/projectKeys/details/keySettings';
+import {KeySettings} from 'sentry/views/settings/project/projectKeys/details/keySettings';
 import KeyStats from 'sentry/views/settings/project/projectKeys/details/keyStats';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
-type Props = RouteComponentProps<
+type Props = {
+  organization: Organization;
+  project: Project;
+} & RouteComponentProps<
   {
     keyId: string;
-    orgId: string;
     projectId: string;
   },
   {}
@@ -19,39 +23,51 @@ type Props = RouteComponentProps<
 
 type State = {
   data: ProjectKey;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-export default class ProjectKeyDetails extends AsyncView<Props, State> {
+export default class ProjectKeyDetails extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     return t('Key Details');
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {keyId, orgId, projectId} = this.props.params;
-    return [['data', `/projects/${orgId}/${projectId}/keys/${keyId}/`]];
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+    const {organization} = this.props;
+    const {keyId, projectId} = this.props.params;
+    return [['data', `/projects/${organization.slug}/${projectId}/keys/${keyId}/`]];
   }
 
   handleRemove = () => {
-    const {orgId, projectId} = this.props.params;
-    browserHistory.push(`/${orgId}/${projectId}/settings/keys/`);
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
+    browserHistory.push(
+      normalizeUrl(`/settings/${organization.slug}/projects/${projectId}/keys/`)
+    );
+  };
+
+  updateData = (data: ProjectKey) => {
+    this.setState(state => {
+      return {...state, data};
+    });
   };
 
   renderBody() {
+    const {organization, project, params} = this.props;
     const {data} = this.state;
-    const {params} = this.props;
 
     return (
       <div data-test-id="key-details">
         <SettingsPageHeader title={t('Key Details')} />
-        <PermissionAlert />
+        <PermissionAlert project={project} />
 
-        <KeyStats api={this.api} params={params} />
+        <KeyStats api={this.api} organization={organization} params={params} />
 
         <KeySettings
-          api={this.api}
-          params={params}
           data={data}
+          updateData={this.updateData}
           onRemove={this.handleRemove}
+          organization={organization}
+          project={project}
+          params={params}
         />
       </div>
     );

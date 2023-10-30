@@ -1,10 +1,18 @@
-from sentry.models import Team, User
-from sentry.testutils import TestCase
+from sentry.app import env
+from sentry.models.team import Team
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class TeamManagerTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        env.clear()
+
     def test_simple(self):
-        user = User.objects.create(username="foo")
+        user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org, name="Test")
         self.create_member(organization=org, user=user, teams=[team])
@@ -12,8 +20,18 @@ class TeamManagerTest(TestCase):
         result = Team.objects.get_for_user(organization=org, user=user)
         assert result == [team]
 
+    def test_simple_with_rpc_user(self):
+        user = user_service.get_user(self.create_user().id)
+        assert user is not None
+        org = self.create_organization()
+        team = self.create_team(organization=org, name="Test")
+        self.create_member(organization=org, user_id=user.id, teams=[team])
+
+        result = Team.objects.get_for_user(organization=org, user=user)
+        assert result == [team]
+
     def test_invalid_scope(self):
-        user = User.objects.create(username="foo")
+        user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org, name="Test")
         self.create_member(organization=org, user=user, teams=[team])
@@ -21,7 +39,7 @@ class TeamManagerTest(TestCase):
         assert result == []
 
     def test_valid_scope(self):
-        user = User.objects.create(username="foo")
+        user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org, name="Test")
         self.create_member(organization=org, user=user, teams=[team])
@@ -29,8 +47,8 @@ class TeamManagerTest(TestCase):
         assert result == [team]
 
     def test_user_no_access(self):
-        user = User.objects.create(username="foo")
-        user2 = User.objects.create(username="bar")
+        user = self.create_user()
+        user2 = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org, name="Test")
         self.create_member(organization=org, user=user, teams=[team])
@@ -39,7 +57,7 @@ class TeamManagerTest(TestCase):
         assert result == []
 
     def test_with_projects(self):
-        user = User.objects.create(username="foo")
+        user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org, name="Test")
         self.create_member(organization=org, user=user, teams=[team])

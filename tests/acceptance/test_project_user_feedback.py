@@ -1,8 +1,10 @@
 from django.utils import timezone
 
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 
 
+@no_silo_test(stable=True)
 class ProjectUserFeedbackTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -13,7 +15,7 @@ class ProjectUserFeedbackTest(AcceptanceTestCase):
         )
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.login_as(self.user)
-        self.path = f"/{self.org.slug}/{self.project.slug}/user-feedback/"
+        self.path = f"/organizations/{self.org.slug}/user-feedback/?project=${self.project.id}"
         self.project.update(first_event=timezone.now())
 
     def test(self):
@@ -27,10 +29,8 @@ class ProjectUserFeedbackTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading")
         self.browser.wait_until('[data-test-id="user-feedback-list"]')
-        self.browser.snapshot("project user feedback")
 
     def test_empty(self):
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading")
         self.browser.wait_until('[data-test-id="user-feedback"]')
-        self.browser.snapshot("project user feedback - empty")

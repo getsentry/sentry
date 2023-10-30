@@ -1,16 +1,18 @@
+from functools import cached_property
 from urllib.parse import parse_qs, urlparse
 
 import responses
 from django.urls import reverse
-from exam import fixture
 
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 from . import EXAMPLE_ISSUE_SEARCH, EXAMPLE_USER_SEARCH_RESPONSE, get_integration
 
 
-class JiraSearchEndpointTest(APITestCase):
-    @fixture
+@control_silo_test(stable=True)
+class JiraServerSearchEndpointTest(APITestCase):
+    @cached_property
     def integration(self):
         return get_integration(self.organization, self.user)
 
@@ -82,7 +84,6 @@ class JiraSearchEndpointTest(APITestCase):
             responses.GET,
             "https://jira.example.org/rest/api/2/project",
             json=[{"key": "HSP", "id": "10000"}],
-            match_querystring=False,
         )
 
         def responder(request):
@@ -96,7 +97,6 @@ class JiraSearchEndpointTest(APITestCase):
             "https://jira.example.org/rest/api/2/user/assignable/search",
             callback=responder,
             content_type="json",
-            match_querystring=False,
         )
         org = self.organization
         self.login_as(self.user)
@@ -113,14 +113,12 @@ class JiraSearchEndpointTest(APITestCase):
             responses.GET,
             "https://jira.example.org/rest/api/2/project",
             json=[{"key": "HSP", "id": "10000"}],
-            match_querystring=False,
         )
         responses.add(
             responses.GET,
             "https://jira.example.org/rest/api/2/user/assignable/search",
             status=500,
             body="Bad things",
-            match_querystring=False,
         )
         org = self.organization
         self.login_as(self.user)

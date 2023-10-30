@@ -1,11 +1,15 @@
-__all__ = ("Exception", "Mechanism", "upgrade_legacy_mechanism")
+from __future__ import annotations
 
 import re
+from typing import Any
 
 from sentry.interfaces.base import Interface
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path
+
+__all__ = ("Exception", "Mechanism", "upgrade_legacy_mechanism")
+
 
 _type_value_re = re.compile(r"^(\w+):(.*)$")
 
@@ -61,7 +65,7 @@ def upgrade_legacy_mechanism(data):
     if data is None or data.get("type") is not None:
         return data
 
-    result = {"type": "generic"}
+    result: dict[str, Any] = {"type": "generic"}
 
     # "posix_signal" and "mach_exception" were optional root-level objects,
     # which have now moved to special keys inside "meta". We only create "meta"
@@ -90,7 +94,7 @@ def upgrade_legacy_mechanism(data):
         )
 
     # All remaining data has to be moved to the "data" key. We assume that even
-    # if someone accidentally sent a corret top-level key (such as "handled"),
+    # if someone accidentally sent a correct top-level key (such as "handled"),
     # it will not pass our interface validation and should be moved to "data"
     # instead.
     result.setdefault("data", {}).update(data)
@@ -128,7 +132,19 @@ class Mechanism(Interface):
 
     @classmethod
     def to_python(cls, data, **kwargs):
-        for key in ("type", "synthetic", "description", "help_link", "handled", "data", "meta"):
+        for key in (
+            "type",
+            "synthetic",
+            "description",
+            "help_link",
+            "handled",
+            "data",
+            "meta",
+            "source",
+            "is_exception_group",
+            "exception_id",
+            "parent_id",
+        ):
             data.setdefault(key, None)
 
         return super().to_python(data, **kwargs)
@@ -143,6 +159,10 @@ class Mechanism(Interface):
                 "handled": self.handled,
                 "data": self.data or None,
                 "meta": prune_empty_keys(self.meta) or None,
+                "source": self.source,
+                "is_exception_group": self.is_exception_group,
+                "exception_id": self.exception_id,
+                "parent_id": self.parent_id,
             }
         )
 
@@ -449,15 +469,15 @@ class Exception(Interface):
         return ("".join(output)).strip()
 
     def get_stacktrace(self, *args, **kwargs):
-        exc = self.values[0]
+        exc = self.values[-1]
         if exc.stacktrace:
             return exc.stacktrace.get_stacktrace(*args, **kwargs)
         return ""
 
     def iter_tags(self):
-        if not self.values or not self.values[0]:
+        if not self.values or not self.values[-1]:
             return
 
-        mechanism = self.values[0].mechanism
+        mechanism = self.values[-1].mechanism
         if mechanism:
             yield from mechanism.iter_tags()

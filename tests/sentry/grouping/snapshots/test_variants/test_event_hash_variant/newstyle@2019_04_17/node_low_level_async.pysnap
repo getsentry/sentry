@@ -1,0 +1,48 @@
+---
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            module*
+              "task_queues"
+            filename (module takes precedence)
+              "task_queues"
+            function*
+              "processTicksAndRejections"
+          frame (non app frame)
+            filename*
+              "axiosinterceptor.js"
+            function*
+              "runMicrotasks"
+        type*
+          "Error"
+        value*
+          "bad"
+--------------------------------------------------------------------------
+system:
+  hash: "b3d321fab1665166fb7cacfa975db4bb"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "task_queues"
+            filename (module takes precedence)
+              "task_queues"
+            function*
+              "processTicksAndRejections"
+          frame*
+            filename*
+              "axiosinterceptor.js"
+            function*
+              "runMicrotasks"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"

@@ -1,8 +1,9 @@
 # Ignore everything
 *
 
-!/docker
+!/self-hosted
+!/.volta.json
 !/package.json
 !/yarn.lock
-!/dist/requirements.txt
+!/dist/requirements-frozen.txt
 !/dist/*.whl

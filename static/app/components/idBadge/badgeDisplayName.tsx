@@ -1,7 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 const BadgeDisplayName = styled('span')<{hideOverflow?: string | boolean}>`
   ${p =>

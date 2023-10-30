@@ -1,5 +1,15 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from rest_framework.request import Request
+
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Environment
+from sentry.models.environment import Environment
+
+if TYPE_CHECKING:
+    from sentry.models.organization import Organization
+    from sentry.services.hybrid_cloud.organization import RpcOrganization
 
 environment_visibility_filter_options = {
     "all": lambda queryset: queryset,
@@ -8,7 +18,9 @@ environment_visibility_filter_options = {
 }
 
 
-def get_environments(request, organization):
+def get_environments(
+    request: Request, organization: Organization | RpcOrganization
+) -> list[Environment]:
     requested_environments = set(request.GET.getlist("environment"))
 
     if not requested_environments:

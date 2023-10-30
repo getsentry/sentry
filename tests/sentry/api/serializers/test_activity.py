@@ -1,9 +1,14 @@
 from sentry.api.serializers import serialize
-from sentry.models import Activity, Commit, GroupStatus, PullRequest
-from sentry.testutils import TestCase
+from sentry.models.activity import Activity
+from sentry.models.commit import Commit
+from sentry.models.group import GroupStatus
+from sentry.models.pullrequest import PullRequest
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 
 
+@region_silo_test(stable=True)
 class GroupActivityTestCase(TestCase):
     def test_pr_activity(self):
         self.org = self.create_organization(name="Rowdy Tiger")
@@ -23,7 +28,7 @@ class GroupActivityTestCase(TestCase):
             group=group,
             type=ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
             ident=pr.id,
-            user=user,
+            user_id=user.id,
             data={"pull_request": pr.id},
         )
 
@@ -47,7 +52,7 @@ class GroupActivityTestCase(TestCase):
             group=group,
             type=ActivityType.SET_RESOLVED_IN_COMMIT.value,
             ident=commit.id,
-            user=user,
+            user_id=user.id,
             data={"commit": commit.id},
         )
 
@@ -69,7 +74,7 @@ class GroupActivityTestCase(TestCase):
             group=group,
             type=ActivityType.SET_RESOLVED_IN_COMMIT.value,
             ident=commit.id,
-            user=user,
+            user_id=user.id,
             data={"commit": commit.id},
         )
 
@@ -92,7 +97,7 @@ class GroupActivityTestCase(TestCase):
             group=group,
             type=ActivityType.SET_RESOLVED_IN_COMMIT.value,
             ident=commit.id,
-            user=user,
+            user_id=user.id,
             data={"commit": commit.id},
         )
 
@@ -116,7 +121,7 @@ class GroupActivityTestCase(TestCase):
             group=group,
             type=ActivityType.SET_RESOLVED_IN_COMMIT.value,
             ident=commit.id,
-            user=user,
+            user_id=user.id,
             data={"commit": commit.id},
         )
 

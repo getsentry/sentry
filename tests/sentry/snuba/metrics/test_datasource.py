@@ -1,79 +1,93 @@
 import time
 
-from django.utils.datastructures import MultiValueDict
+import pytest
 
-from sentry.snuba.metrics.datasource import get_series
-from sentry.snuba.metrics.query_builder import QueryDefinition
-from sentry.testutils import SessionMetricsTestCase, TestCase
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.snuba.metrics import get_tag_values
+from sentry.snuba.metrics.datasource import get_stored_mris
+from sentry.snuba.metrics.naming_layer import TransactionMetricKey, TransactionMRI
+from sentry.testutils.cases import BaseMetricsLayerTestCase, TestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
-class DataSourceTestCase(TestCase, SessionMetricsTestCase):
-    def test_valid_filter_include_meta(self):
-        self.create_release(version="foo", project=self.project)
+@pytest.mark.snuba_ci
+@freeze_time(BaseMetricsLayerTestCase.MOCK_DATETIME)
+class DatasourceTestCase(BaseMetricsLayerTestCase, TestCase):
+    @property
+    def now(self):
+        return BaseMetricsLayerTestCase.MOCK_DATETIME
+
+    def test_get_stored_mris(self):
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            tags={"release": "1.0"},
+            value=1,
+        )
+
         self.store_session(
             self.build_session(
-                project_id=self.project.id, started=(time.time() // 60), release="foo"
+                distinct_id="39887d89-13b2-4c84-8c23-5d13d2102666",
+                session_id="5d52fd05-fcc9-4bf3-9dc9-267783670341",
+                status="exited",
+                release="foo@1.0.0",
+                environment="prod",
+                started=time.time() // 60 * 60,
+                received=time.time(),
             )
         )
 
-        query_params = MultiValueDict(
-            {
-                "query": [
-                    "release:staging"
-                ],  # weird release but we need a string exising in mock indexer
-                "groupBy": ["environment", "release"],
-                "field": [
-                    "sum(sentry.sessions.session)",
-                ],
-            }
-        )
-        query = QueryDefinition([self.project], query_params)
-        data = get_series([self.project], query.to_metrics_query(), include_meta=True)
-        assert data["meta"] == sorted(
-            [
-                {"name": "environment", "type": "string"},
-                {"name": "release", "type": "string"},
-                {"name": "sum(sentry.sessions.session)", "type": "Float64"},
-                {"name": "bucketed_time", "type": "DateTime('Universal')"},
-            ],
-            key=lambda elem: elem["name"],
-        )
+        mris = get_stored_mris([self.project], UseCaseID.TRANSACTIONS)
+        assert mris == ["d:transactions/duration@millisecond"]
 
-    def test_valid_filter_include_meta_for_transactions_derived_metrics(self):
-        query_params = MultiValueDict(
-            {
-                "field": [
-                    "transaction.user_misery",
-                    "transaction.apdex",
-                    "transaction.failure_rate",
-                    "transaction.failure_count",
-                    "transaction.miserable_user",
-                ],
-            }
-        )
-        query = QueryDefinition([self.project], query_params)
-        data = get_series([self.project], query.to_metrics_query(), include_meta=True)
-        assert data["meta"] == sorted(
-            [
-                {"name": "bucketed_time", "type": "DateTime('Universal')"},
-                {"name": "transaction.apdex", "type": "Float64"},
-                {"name": "transaction.failure_count", "type": "UInt64"},
-                {"name": "transaction.failure_rate", "type": "Float64"},
-                {"name": "transaction.miserable_user", "type": "UInt64"},
-                {"name": "transaction.user_misery", "type": "Float64"},
-            ],
-            key=lambda elem: elem["name"],
-        )
+        mris = get_stored_mris([self.project], UseCaseID.SESSIONS)
+        assert mris == [
+            "d:sessions/duration@second",
+            "c:sessions/session@none",
+            "s:sessions/user@none",
+        ]
 
-    def test_validate_include_meta_only_non_composite_derived_metrics_and_in_select(self):
-        query_params = MultiValueDict(
-            {
-                "field": [
-                    "session.errored",
-                    "session.healthy",
-                ],
-                "includeSeries": "0",
-            }
+    def test_get_tag_values_with_mri(self):
+        releases = ["1.0", "2.0"]
+        for release in ("1.0", "2.0"):
+            self.store_performance_metric(
+                name=TransactionMRI.DURATION.value,
+                tags={"release": release},
+                value=1,
+            )
+
+        values = get_tag_values(
+            [self.project], "release", [TransactionMRI.DURATION.value], UseCaseID.TRANSACTIONS
         )
-        query = QueryDefinition([self.project], query_params)
-        assert get_series([self.project], query.to_metrics_query(), include_meta=True)["meta"] == []
+        for release in releases:
+            assert {"key": "release", "value": release} in values
+
+    def test_get_tag_values_with_public_name(self):
+        satisfactions = ["miserable", "satisfied", "tolerable"]
+        for satisfaction in satisfactions:
+            self.store_performance_metric(
+                name=TransactionMRI.MEASUREMENTS_LCP.value,
+                tags={"satisfaction": satisfaction},
+                value=1,
+            )
+
+        # Valid public metric name.
+        values = get_tag_values(
+            [self.project],
+            "satisfaction",
+            [TransactionMetricKey.MEASUREMENTS_LCP.value],
+            UseCaseID.TRANSACTIONS,
+        )
+        for satisfaction in satisfactions:
+            assert {"key": "satisfaction", "value": satisfaction} in values
+
+        # Invalid public metric name.
+        values = get_tag_values(
+            [self.project],
+            "satisfaction",
+            ["transaction.measurements"],
+            UseCaseID.TRANSACTIONS,
+        )
+        assert values == []

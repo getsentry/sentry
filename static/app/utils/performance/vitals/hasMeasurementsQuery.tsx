@@ -7,7 +7,6 @@ import GenericDiscoverQuery, {
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
-import withApi from 'sentry/utils/withApi';
 
 type HasMeasurementsProps = {
   transaction: string;
@@ -57,4 +56,4 @@ function HasMeasurementsQuery(props: Props) {
   );
 }
 
-export default withApi(HasMeasurementsQuery);
+export default HasMeasurementsQuery;

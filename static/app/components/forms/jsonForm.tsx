@@ -1,15 +1,19 @@
 import {Component, Fragment} from 'react';
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import scrollToElement from 'scroll-to-element';
 
 import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
-import FormPanel from './formPanel';
-import {Field, FieldObject, JsonFormObject} from './type';
+import FormPanel, {FormPanelProps} from './formPanel';
+import type {Field, FieldObject, JsonFormObject} from './types';
 
-type Props = {
+interface JsonFormProps
+  extends WithRouterProps,
+    Omit<FormPanelProps, 'highlighted' | 'fields' | 'additionalFieldProps'> {
   additionalFieldProps?: {[key: string]: any};
 
   /**
@@ -22,18 +26,29 @@ type Props = {
    * Fields that are grouped by "section"
    */
   forms?: JsonFormObject[];
-} & WithRouterProps &
-  Omit<
-    React.ComponentProps<typeof FormPanel>,
-    'highlighted' | 'fields' | 'additionalFieldProps'
-  >;
+}
 
 type State = {
   // Field name that should be highlighted
   highlighted?: string;
 };
 
-class JsonForm extends Component<Props, State> {
+interface ChildFormPanelProps
+  extends Pick<
+    FormPanelProps,
+    | 'access'
+    | 'disabled'
+    | 'features'
+    | 'additionalFieldProps'
+    | 'renderFooter'
+    | 'renderHeader'
+    | 'initiallyCollapsed'
+    | 'collapsible'
+  > {
+  highlighted?: State['highlighted'];
+}
+
+class JsonForm extends Component<JsonFormProps, State> {
   state: State = {
     // location.hash is optional because of tests.
     highlighted: this.props.location?.hash,
@@ -43,9 +58,9 @@ class JsonForm extends Component<Props, State> {
     this.scrollToHash();
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    if (nextProps.location && this.props.location.hash !== nextProps.location.hash) {
-      const hash = nextProps.location.hash;
+  componentDidUpdate(prevProps: JsonFormProps) {
+    if (this.props.location && this.props.location.hash !== prevProps.location.hash) {
+      const hash = this.props.location.hash;
       this.scrollToHash(hash);
       this.setState({highlighted: hash});
     }
@@ -72,10 +87,10 @@ class JsonForm extends Component<Props, State> {
     }
   }
 
-  shouldDisplayForm(fields: FieldObject[]) {
+  shouldDisplayForm(fields: FieldObject[]): boolean {
     const fieldsWithVisibleProp = fields.filter(
-      field => typeof field !== 'function' && defined(field?.visible)
-    ) as Array<Omit<Field, 'visible'> & Required<Pick<Field, 'visible'>>>;
+      (field): field is Field => typeof field !== 'function' && defined(field?.visible)
+    );
 
     if (fields.length === fieldsWithVisibleProp.length) {
       const {additionalFieldProps, ...props} = this.props;
@@ -97,18 +112,11 @@ class JsonForm extends Component<Props, State> {
     fields,
     formPanelProps,
     title,
+    initiallyCollapsed,
   }: {
     fields: FieldObject[];
-    formPanelProps: Pick<
-      Props,
-      | 'access'
-      | 'disabled'
-      | 'features'
-      | 'additionalFieldProps'
-      | 'renderFooter'
-      | 'renderHeader'
-    > &
-      Pick<State, 'highlighted'>;
+    formPanelProps: ChildFormPanelProps;
+    initiallyCollapsed?: boolean;
     title?: React.ReactNode;
   }) {
     const shouldDisplayForm = this.shouldDisplayForm(fields);
@@ -121,13 +129,21 @@ class JsonForm extends Component<Props, State> {
       return null;
     }
 
-    return <FormPanel title={title} fields={fields} {...formPanelProps} />;
+    return (
+      <FormPanel
+        title={title}
+        fields={fields}
+        {...formPanelProps}
+        initiallyCollapsed={initiallyCollapsed ?? formPanelProps.initiallyCollapsed}
+      />
+    );
   }
 
   render() {
     const {
       access,
       collapsible,
+      initiallyCollapsed = false,
       fields,
       title,
       forms,
@@ -137,10 +153,13 @@ class JsonForm extends Component<Props, State> {
       renderFooter,
       renderHeader,
       location: _location,
+      params: _params,
+      router: _router,
+      routes: _routes,
       ...otherProps
     } = this.props;
 
-    const formPanelProps = {
+    const formPanelProps: ChildFormPanelProps = {
       access,
       disabled,
       features,
@@ -149,6 +168,7 @@ class JsonForm extends Component<Props, State> {
       renderHeader,
       highlighted: this.state.highlighted,
       collapsible,
+      initiallyCollapsed,
     };
 
     return (
@@ -165,4 +185,4 @@ class JsonForm extends Component<Props, State> {
   }
 }
 
-export default withRouter(JsonForm);
+export default withSentryRouter(JsonForm);

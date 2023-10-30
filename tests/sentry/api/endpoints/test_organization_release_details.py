@@ -1,29 +1,32 @@
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
-import pytz
 from django.urls import reverse
 
 from sentry.api.endpoints.organization_release_details import OrganizationReleaseSerializer
-from sentry.app import locks
 from sentry.constants import MAX_VERSION_LENGTH
-from sentry.models import (
-    Activity,
-    Environment,
-    File,
-    Release,
-    ReleaseCommit,
-    ReleaseFile,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-    ReleaseStatus,
-    Repository,
-)
-from sentry.testutils import APITestCase
+from sentry.locks import locks
+from sentry.models.activity import Activity
+from sentry.models.environment import Environment
+from sentry.models.files.file import File
+from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.release import Release, ReleaseProject, ReleaseStatus
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releasefile import ReleaseFile
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.repository import Repository
+from sentry.silo import SiloMode
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
+
+pytestmark = [requires_snuba]
 
 
+@region_silo_test(stable=True)
 class ReleaseDetailsTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -622,6 +625,7 @@ class ReleaseDetailsTest(APITestCase):
         assert "adoptionStages" in response.data
 
 
+@region_silo_test(stable=True)
 class UpdateReleaseDetailsTest(APITestCase):
     @patch("sentry.tasks.commits.fetch_commits")
     def test_simple(self, mock_fetch_commits):
@@ -829,6 +833,79 @@ class UpdateReleaseDetailsTest(APITestCase):
         for rc in rc_list:
             assert rc.organization_id == org.id
 
+    def test_commits_patchset_character_limit_255(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(teams=[team], organization=org)
+        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+        release.add_project(project)
+        self.create_member(teams=[team], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": org.slug, "version": release.version},
+        )
+        response = self.client.put(
+            url,
+            data={
+                "commits": [
+                    {
+                        "id": "a" * 40,
+                        "patch_set": [{"path": "/a/really/long/path/" + ("z" * 255), "type": "A"}],
+                    }
+                ]
+            },
+        )
+
+        assert response.status_code == 200, (response.status_code, response.content)
+
+        rc_list = list(
+            ReleaseCommit.objects.filter(release=release)
+            .select_related("commit", "commit__author")
+            .order_by("order")
+        )
+        assert len(rc_list) == 1
+        for rc in rc_list:
+            assert rc.organization_id == org.id
+
+    def test_commits_patchset_character_limit_reached(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(teams=[team], organization=org)
+        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+        release.add_project(project)
+        self.create_member(teams=[team], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": org.slug, "version": release.version},
+        )
+        response = self.client.put(
+            url,
+            data={
+                "commits": [
+                    {
+                        "id": "a" * 40,
+                        "patch_set": [{"path": "z" * (255 * 2 + 1), "type": "A"}],
+                    }
+                ]
+            },
+        )
+
+        assert response.status_code == 400, (response.status_code, response.content)
+
     def test_commits_lock_conflict(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
@@ -846,7 +923,7 @@ class UpdateReleaseDetailsTest(APITestCase):
 
         # Simulate a concurrent request by using an existing release
         # that has its commit lock taken out.
-        lock = locks.get(Release.get_lock_key(org.id, release.id), duration=10)
+        lock = locks.get(Release.get_lock_key(org.id, release.id), duration=10, name="release")
         lock.acquire()
 
         url = reverse(
@@ -953,7 +1030,71 @@ class UpdateReleaseDetailsTest(APITestCase):
         )
         assert activity.exists()
 
+    def test_org_auth_token(self):
+        org = self.organization
 
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            good_token_str = generate_token(org.slug, "")
+            OrgAuthToken.objects.create(
+                organization_id=org.id,
+                name="token 1",
+                token_hashed=hash_token(good_token_str),
+                token_last_characters="ABCD",
+                scope_list=["org:ci"],
+                date_last_used=None,
+            )
+
+        repo = Repository.objects.create(
+            organization_id=org.id, name="example/example", provider="dummy"
+        )
+
+        team1 = self.create_team(organization=org)
+
+        project = self.create_project(teams=[team1], organization=org)
+
+        base_release = Release.objects.create(organization_id=org.id, version="000000000")
+        base_release.add_project(project)
+        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+        release.add_project(project)
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": org.slug, "version": base_release.version},
+        )
+        self.client.put(
+            url,
+            data={
+                "ref": "master",
+                "headCommits": [
+                    {"currentId": "0" * 40, "repository": repo.name},
+                ],
+            },
+            HTTP_AUTHORIZATION=f"Bearer {good_token_str}",
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": org.slug, "version": release.version},
+        )
+        response = self.client.put(
+            url,
+            data={
+                "ref": "master",
+                "refs": [
+                    {"commit": "a" * 40, "repository": repo.name},
+                ],
+            },
+            HTTP_AUTHORIZATION=f"Bearer {good_token_str}",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["version"] == release.version
+
+        release = Release.objects.get(id=release.id)
+        assert release.ref == "master"
+
+
+@region_silo_test(stable=True)
 class ReleaseDeleteTest(APITestCase):
     def test_simple(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -1081,6 +1222,7 @@ class ReleaseDeleteTest(APITestCase):
         assert response.json() == {"commits": {"id": ["This field is required."]}}
 
 
+@region_silo_test(stable=True)
 class ReleaseSerializerTest(unittest.TestCase):
     def setUp(self):
         super().setUp()
@@ -1125,7 +1267,7 @@ class ReleaseSerializerTest(unittest.TestCase):
         result = serializer.validated_data
         assert result["ref"] == self.ref
         assert result["url"] == self.url
-        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=pytz.UTC)
+        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=timezone.utc)
         assert result["commits"] == self.commits
         assert result["headCommits"] == self.headCommits
         assert result["refs"] == self.refs

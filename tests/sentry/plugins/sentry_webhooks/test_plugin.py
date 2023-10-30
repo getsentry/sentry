@@ -1,17 +1,21 @@
+from functools import cached_property
+
 import pytest
 import responses
-from exam import fixture
 
 from sentry.exceptions import PluginError
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
 from sentry.plugins.sentry_webhooks.plugin import WebHooksOptionsForm, WebHooksPlugin, validate_urls
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 
 class WebHooksPluginTest(TestCase):
-    @fixture
+    @cached_property
     def plugin(self):
         return WebHooksPlugin()
 
@@ -94,7 +98,7 @@ class WebHooksPluginTest(TestCase):
         form.is_valid()
 
         with pytest.raises(PluginError):
-            validate_urls(form.cleaned_data.get("urls"))
+            validate_urls(form.cleaned_data["urls"])
 
     @responses.activate
     def test_moved_permanently(self):

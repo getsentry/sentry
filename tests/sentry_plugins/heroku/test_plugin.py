@@ -1,22 +1,24 @@
+from __future__ import annotations
+
 from datetime import timedelta
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
 from django.utils import timezone
 
 from sentry.exceptions import HookValidationError
-from sentry.models import (
-    Commit,
-    Deploy,
-    Environment,
-    ProjectOption,
-    Release,
-    ReleaseCommit,
-    ReleaseHeadCommit,
-    Repository,
-    User,
-)
-from sentry.testutils import TestCase
+from sentry.models.commit import Commit
+from sentry.models.deploy import Deploy
+from sentry.models.environment import Environment
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releaseheadcommit import ReleaseHeadCommit
+from sentry.models.repository import Repository
+from sentry.models.user import User
+from sentry.testutils.cases import TestCase
+from sentry.utils import json
 from sentry_plugins.heroku.plugin import HerokuReleaseHook
 
 
@@ -91,7 +93,7 @@ class SetRefsTest(TestCase):
 
         assert len(release_heads) == 0
         hook = HerokuReleaseHook(project)
-        hook.finish_release(version=version, owner=user)
+        hook.finish_release(version=version, owner_id=user.id)
 
         release = Release.objects.get(projects=project, version=version)
 
@@ -124,35 +126,73 @@ class SetRefsTest(TestCase):
 
 
 class HookHandleTest(TestCase):
-    def test_user_success(self):
+    @pytest.fixture(autouse=True)
+    def patch_is_valid_signature(self):
+        with patch.object(HerokuReleaseHook, "is_valid_signature"):
+            yield
+
+    @patch.object(HerokuReleaseHook, "set_refs")
+    def test_user_success(self, set_refs_mock):
         user = self.create_user()
         organization = self.create_organization(owner=user)
         project = self.create_project(organization=organization)
         hook = HerokuReleaseHook(project)
-        hook.set_refs = Mock()
 
         req = Mock()
-        req.POST = {"head_long": "abcd123", "url": "http://example.com", "user": user.email}
-        hook.handle(req)
-        assert Release.objects.filter(version=req.POST["head_long"]).exists()
-        assert hook.set_refs.call_count == 1
-
-    def test_actor_email_success(self):
-        user = self.create_user()
-        organization = self.create_organization(owner=user)
-        project = self.create_project(organization=organization)
-        hook = HerokuReleaseHook(project)
-        hook.set_refs = Mock()
-
-        req = Mock()
-        req.POST = {
-            "head_long": "v999",
-            "url": "http://example.com",
-            "actor": {"email": user.email},
+        body: dict[str, Any] = {
+            "data": {
+                "user": {"email": user.email},
+                "slug": {"commit": "abcd123"},
+                "app": {"name": "example"},
+            },
+            "action": "update",
         }
+        req.body = bytes(json.dumps(body), "utf-8")
         hook.handle(req)
-        assert Release.objects.filter(version=req.POST["head_long"]).exists()
-        assert hook.set_refs.call_count == 1
+        assert Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
+        assert set_refs_mock.call_count == 1
+
+    @patch.object(HerokuReleaseHook, "set_refs")
+    def test_only_run_on_update(self, set_refs_mock):
+        user = self.create_user()
+        organization = self.create_organization(owner=user)
+        project = self.create_project(organization=organization)
+        hook = HerokuReleaseHook(project)
+
+        req = Mock()
+        body: dict[str, Any] = {
+            "data": {
+                "user": {"email": user.email},
+                "slug": {"commit": "abcd123"},
+                "app": {"name": "example"},
+            },
+            "action": "create",
+        }
+        req.body = bytes(json.dumps(body), "utf-8")
+        hook.handle(req)
+        assert not Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
+        assert set_refs_mock.call_count == 0
+
+    @patch.object(HerokuReleaseHook, "set_refs")
+    def test_actor_email_success(self, set_refs_mock):
+        user = self.create_user()
+        organization = self.create_organization(owner=user)
+        project = self.create_project(organization=organization)
+        hook = HerokuReleaseHook(project)
+
+        req = Mock()
+        body: dict[str, Any] = {
+            "data": {
+                "actor": {"email": user.email},
+                "slug": {"commit": "abcd123"},
+                "app": {"name": "example"},
+            },
+            "action": "update",
+        }
+        req.body = bytes(json.dumps(body), "utf-8")
+        hook.handle(req)
+        assert Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
+        assert set_refs_mock.call_count == 1
 
     def test_email_mismatch(self):
         user = self.create_user()
@@ -161,9 +201,17 @@ class HookHandleTest(TestCase):
         hook = HerokuReleaseHook(project)
 
         req = Mock()
-        req.POST = {"head_long": "v999", "url": "http://example.com", "user": "wrong@example.com"}
+        body: dict[str, Any] = {
+            "data": {
+                "user": {"email": "wrong@example.com"},
+                "slug": {"commit": "v999"},
+                "app": {"name": "example"},
+            },
+            "action": "update",
+        }
+        req.body = bytes(json.dumps(body), "utf-8")
         hook.handle(req)
-        assert Release.objects.filter(version=req.POST["head_long"]).exists()
+        assert Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
 
     def test_bad_version(self):
         project = self.create_project()
@@ -171,6 +219,14 @@ class HookHandleTest(TestCase):
         hook = HerokuReleaseHook(project)
 
         req = Mock()
-        req.POST = {"head_long": "", "url": "http://example.com", "user": user.email}
+        body = {
+            "data": {
+                "actor": {"email": user.email},
+                "slug": {"commit": ""},
+                "app": {"name": "example"},
+            },
+            "action": "update",
+        }
+        req.body = bytes(json.dumps(body), "utf-8")
         with pytest.raises(HookValidationError):
             hook.handle(req)

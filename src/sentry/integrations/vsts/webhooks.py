@@ -1,43 +1,60 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping
 
 from django.utils.crypto import constant_time_compare
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.integrations.mixins import IssueSyncMixin
 from sentry.integrations.utils import sync_group_assignee_inbound
-from sentry.models import Integration
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils.email import parse_email
+
+if TYPE_CHECKING:
+    from sentry.services.hybrid_cloud.integration import RpcIntegration
+
 
 UNSET = object()
 logger = logging.getLogger("sentry.integrations")
 PROVIDER_KEY = "vsts"
 
 
-class WorkItemWebhook(Endpoint):  # type: ignore
+class VstsWebhookMixin:
+    def get_external_id(self, request: Request) -> str:
+        data = request.data
+        external_id = data["resourceContainers"]["collection"]["id"]
+        return str(external_id)
+
+
+@region_silo_endpoint
+class WorkItemWebhook(Endpoint, VstsWebhookMixin):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = ()
     permission_classes = ()
 
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
-        data = request.data
         try:
+            data = request.data
             event_type = data["eventType"]
-            external_id = data["resourceContainers"]["collection"]["id"]
-        except KeyError as e:
+            external_id = self.get_external_id(request=request)
+        except Exception as e:
             logger.info("vsts.invalid-webhook-payload", extra={"error": str(e)})
             return self.respond(status=status.HTTP_400_BAD_REQUEST)
 
         # https://docs.microsoft.com/en-us/azure/devops/service-hooks/events?view=azure-devops#workitem.updated
         if event_type == "workitem.updated":
-            try:
-                integration = Integration.objects.get(
-                    provider=PROVIDER_KEY, external_id=external_id
-                )
-            except Integration.DoesNotExist:
+
+            integration = integration_service.get_integration(
+                provider=PROVIDER_KEY, external_id=external_id
+            )
+            if integration is None:
                 logger.info(
                     "vsts.integration-in-webhook-payload-does-not-exist",
                     extra={"external_id": external_id, "event_type": event_type},
@@ -54,7 +71,7 @@ class WorkItemWebhook(Endpoint):  # type: ignore
         return self.respond()
 
 
-def check_webhook_secret(request: Request, integration: Integration, event_type: str) -> bool:
+def check_webhook_secret(request: Request, integration: RpcIntegration, event_type: str) -> bool:
     integration_secret = integration.metadata.get("subscription", {}).get("secret")
     webhook_payload_secret = request.META.get("HTTP_SHARED_SECRET")
 
@@ -70,7 +87,7 @@ def check_webhook_secret(request: Request, integration: Integration, event_type:
 
 
 def handle_assign_to(
-    integration: Integration,
+    integration: RpcIntegration,
     external_issue_key: str | None,
     assigned_to: Mapping[str, str] | None,
 ) -> None:
@@ -105,7 +122,7 @@ def handle_assign_to(
 
 
 def handle_status_change(
-    integration: Integration,
+    integration: RpcIntegration,
     external_issue_key: str,
     status_change: Mapping[str, str] | None,
     project: str | None,
@@ -113,19 +130,25 @@ def handle_status_change(
     if status_change is None:
         return
 
-    for installation in integration.get_installations():
-        installation.sync_status_inbound(
-            external_issue_key,
-            {
-                "new_state": status_change["newValue"],
-                # old_state is None when the issue is New
-                "old_state": status_change.get("oldValue"),
-                "project": project,
-            },
-        )
+    org_integrations = integration_service.get_organization_integrations(
+        integration_id=integration.id
+    )
+
+    for org_integration in org_integrations:
+        installation = integration.get_installation(organization_id=org_integration.organization_id)
+        if isinstance(installation, IssueSyncMixin):
+            installation.sync_status_inbound(
+                external_issue_key,
+                {
+                    "new_state": status_change["newValue"],
+                    # old_state is None when the issue is New
+                    "old_state": status_change.get("oldValue"),
+                    "project": project,
+                },
+            )
 
 
-def handle_updated_workitem(data: Mapping[str, Any], integration: Integration) -> None:
+def handle_updated_workitem(data: Mapping[str, Any], integration: RpcIntegration) -> None:
     project: str | None = None
     try:
         external_issue_key = data["resource"]["workItemId"]

@@ -1,4 +1,6 @@
+import {useContext, useEffect} from 'react';
 import {InjectedRouter} from 'react-router';
+import {Theme} from '@emotion/react';
 import {Query} from 'history';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
@@ -11,9 +13,14 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {Series} from 'sentry/types/echarts';
-import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {
+  axisLabelFormatter,
+  getDurationUnit,
+  tooltipFormatter,
+} from 'sentry/utils/discover/charts';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {Theme} from 'sentry/utils/theme';
+import {PerformanceAtScaleContext} from 'sentry/views/performance/transactionSummary/transactionOverview/performanceAtScaleContext';
 
 type Props = {
   errored: boolean;
@@ -48,6 +55,24 @@ function Content({
   router,
   onLegendSelectChanged,
 }: Props) {
+  const performanceAtScaleContext = useContext(PerformanceAtScaleContext);
+  const isSeriesDataEmpty = data?.every(values => {
+    return values.data.every(value => !value.value);
+  });
+
+  useEffect(() => {
+    if (!performanceAtScaleContext || isSeriesDataEmpty === undefined) {
+      return;
+    }
+
+    if (loading || reloading) {
+      performanceAtScaleContext.setMetricsSeriesDataEmpty(undefined);
+      return;
+    }
+
+    performanceAtScaleContext.setMetricsSeriesDataEmpty(isSeriesDataEmpty);
+  }, [loading, reloading, isSeriesDataEmpty, performanceAtScaleContext]);
+
   if (errored) {
     return (
       <ErrorPanel>
@@ -55,35 +80,6 @@ function Content({
       </ErrorPanel>
     );
   }
-
-  const chartOptions = {
-    grid: {
-      left: '10px',
-      right: '10px',
-      top: '40px',
-      bottom: '0px',
-    },
-    seriesOptions: {
-      showSymbol: false,
-    },
-    tooltip: {
-      trigger: 'axis' as const,
-      valueFormatter: tooltipFormatter,
-    },
-    xAxis: timeFrame
-      ? {
-          min: timeFrame.start,
-          max: timeFrame.end,
-        }
-      : undefined,
-    yAxis: {
-      axisLabel: {
-        color: theme.chartLabel,
-        // p50() coerces the axis to be time based
-        formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
-      },
-    },
-  };
 
   const colors = (data && theme.charts.getColorPalette(data.length - 2)) || [];
 
@@ -103,6 +99,40 @@ function Content({
         .reverse()
     : [];
 
+  const durationUnit = getDurationUnit(series, legend);
+
+  const chartOptions = {
+    grid: {
+      left: '10px',
+      right: '10px',
+      top: '40px',
+      bottom: '0px',
+    },
+    seriesOptions: {
+      showSymbol: false,
+    },
+    tooltip: {
+      trigger: 'axis' as const,
+      valueFormatter: (value, label) =>
+        tooltipFormatter(value, aggregateOutputType(label)),
+    },
+    xAxis: timeFrame
+      ? {
+          min: timeFrame.start,
+          max: timeFrame.end,
+        }
+      : undefined,
+    yAxis: {
+      minInterval: durationUnit,
+      axisLabel: {
+        color: theme.chartLabel,
+        formatter: (value: number) => {
+          return axisLabelFormatter(value, 'duration', undefined, durationUnit);
+        },
+      },
+    },
+  };
+
   return (
     <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
       {zoomRenderProps => (
@@ -115,23 +145,25 @@ function Content({
           projects={projects}
           environments={environments}
         >
-          {({releaseSeries}) => (
-            <TransitionChart loading={loading} reloading={reloading}>
-              <TransparentLoadingMask visible={reloading} />
-              {getDynamicText({
-                value: (
-                  <AreaChart
-                    {...zoomRenderProps}
-                    {...chartOptions}
-                    legend={legend}
-                    onLegendSelectChanged={onLegendSelectChanged}
-                    series={[...series, ...releaseSeries]}
-                  />
-                ),
-                fixed: <Placeholder height="200px" testId="skeleton-ui" />,
-              })}
-            </TransitionChart>
-          )}
+          {({releaseSeries}) => {
+            return (
+              <TransitionChart loading={loading} reloading={reloading}>
+                <TransparentLoadingMask visible={reloading} />
+                {getDynamicText({
+                  value: (
+                    <AreaChart
+                      {...zoomRenderProps}
+                      {...chartOptions}
+                      legend={legend}
+                      onLegendSelectChanged={onLegendSelectChanged}
+                      series={[...series, ...releaseSeries]}
+                    />
+                  ),
+                  fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+                })}
+              </TransitionChart>
+            );
+          }}
         </ReleaseSeries>
       )}
     </ChartZoom>

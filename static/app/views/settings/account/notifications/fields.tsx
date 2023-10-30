@@ -13,7 +13,7 @@ export type FineTuneField = {
 // TODO: clean up unused fields
 export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
   alerts: {
-    title: 'Issue Alert Notifications',
+    title: t('Issue Alert Notifications'),
     description: t(
       'Notifications from Alert Rules that your team has setup. You’ll always receive notifications from Alerts configured to be sent directly to you.'
     ),
@@ -27,7 +27,7 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
     defaultFieldName: 'subscribeByDefault',
   },
   workflow: {
-    title: 'Workflow Notifications',
+    title: t('Workflow Notifications'),
     description: t(
       'Control workflow notifications, e.g. changes in issue assignment, resolution status, and comments.'
     ),
@@ -71,8 +71,8 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
     defaultFieldName: 'weeklyReports',
   },
   approval: {
-    title: t('Approvals'),
-    description: t('Notifications from teammates that require review or approval.'),
+    title: t('Nudges'),
+    description: t('Notifications that require review or approval.'),
     type: 'select',
     // No choices here because it's going to have dynamic content
     // Component will create choices,
@@ -85,6 +85,19 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
     type: 'select',
     // No choices here because it's going to have dynamic content
     // Component will create choices,
+  },
+  spikeProtection: {
+    title: t('Spike Protection Notifications'),
+    description: t(
+      'Notifications about spikes on projects that you have enabled spike protection for.'
+    ),
+    type: 'select',
+    defaultValue: '1',
+    options: [
+      {value: '1', label: t('On')},
+      {value: '0', label: t('Off')},
+    ],
+    defaultFieldName: 'spikeProtection',
   },
   email: {
     title: t('Email Routing'),

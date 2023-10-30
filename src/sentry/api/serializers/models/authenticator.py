@@ -1,11 +1,9 @@
 from sentry.api.serializers import Serializer, register
-from sentry.auth.authenticators import (
-    AuthenticatorInterface,
-    RecoveryCodeInterface,
-    SmsInterface,
-    TotpInterface,
-    U2fInterface,
-)
+from sentry.auth.authenticators.base import AuthenticatorInterface
+from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
+from sentry.auth.authenticators.sms import SmsInterface
+from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.authenticators.u2f import U2fInterface
 
 
 @register(AuthenticatorInterface)
@@ -21,6 +19,7 @@ class AuthenticatorInterfaceSerializer(Serializer):
             "removeButton": obj.remove_button,
             "isBackupInterface": obj.is_backup_interface,
             "isEnrolled": obj.is_enrolled(),
+            "disallowNewEnrollment": obj.disallow_new_enrollment,
             "status": str(obj.status.value),
             "canValidateOtp": obj.can_validate_otp,
             "allowMultiEnrollment": obj.allow_multi_enrollment,

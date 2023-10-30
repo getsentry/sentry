@@ -2,19 +2,22 @@ import {Component} from 'react';
 
 import {Client} from 'sentry/api';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import {UsageSeries} from 'sentry/views/organizationStats/types';
 
 type Props = {
   api: Client;
-  params: {orgId: string; projectId: string};
+  organization: Organization;
   project: Project;
 };
 
@@ -25,8 +28,6 @@ type State = {
   loading: boolean;
   statsError: boolean;
 };
-
-type RawStats = Record<string, [timestamp: number, value: number][]>;
 
 const STAT_OPS = {
   'browser-extensions': {title: t('Browser Extension'), color: theme.gray200},
@@ -39,6 +40,7 @@ const STAT_OPS = {
   localhost: {title: t('Localhost'), color: theme.blue300},
   'release-version': {title: t('Release'), color: theme.purple200},
   'web-crawlers': {title: t('Web Crawler'), color: theme.red300},
+  'filtered-transaction': {title: t('Health Check'), color: theme.yellow400},
 };
 
 class ProjectFiltersChart extends Component<Props, State> {
@@ -60,58 +62,54 @@ class ProjectFiltersChart extends Component<Props, State> {
     }
   }
 
-  formatData(rawData: RawStats) {
-    const seriesWithData: Set<string> = new Set();
-    const transformed = Object.keys(STAT_OPS).map(stat => ({
-      data: rawData[stat].map(([timestamp, value]) => {
-        if (value > 0) {
-          seriesWithData.add(STAT_OPS[stat].title);
-          this.setState({blankStats: false});
-        }
-        return {name: timestamp * 1000, value};
-      }),
-      seriesName: STAT_OPS[stat].title,
-      color: STAT_OPS[stat].color,
-    }));
+  formatData(rawData: UsageSeries) {
+    const formattedData = rawData.groups
+      .filter(group => STAT_OPS[group.by.reason])
+      .map(group => {
+        const {title, color} = STAT_OPS[group.by.reason];
+        return {
+          seriesName: title,
+          color,
+          data: rawData.intervals
+            .map((interval, index) => ({
+              name: interval,
+              value: group.series['sum(quantity)'][index],
+            }))
+            .filter(dataPoint => !!dataPoint.value),
+        };
+      });
 
-    return transformed.filter((series: Series) => seriesWithData.has(series.seriesName));
+    if (formattedData.length > 0) {
+      this.setState({blankStats: false});
+    }
+
+    return formattedData;
   }
 
-  getFilterStats() {
-    const statOptions = Object.keys(STAT_OPS);
-    const {project} = this.props;
-    const {orgId} = this.props.params;
-
-    const until = Math.floor(new Date().getTime() / 1000);
-    const since = until - 3600 * 24 * 30;
-
-    const statEndpoint = `/projects/${orgId}/${project.slug}/stats/`;
+  async getFilterStats() {
+    const {organization, project, api} = this.props;
+    const statsEndpoint = `/organizations/${organization.slug}/stats_v2/`;
     const query = {
-      since,
-      until,
-      resolution: '1d',
+      project: project.id,
+      category: ['transaction', 'default', 'security', 'error'],
+      outcome: 'filtered',
+      field: 'sum(quantity)',
+      groupBy: 'reason',
+      interval: '1d',
+      statsPeriod: '30d',
     };
-    const requests = statOptions.map(stat =>
-      this.props.api.requestPromise(statEndpoint, {
-        query: Object.assign({stat}, query),
-      })
-    );
-    Promise.all(requests)
-      .then(results => {
-        const rawStatsData: RawStats = {};
-        for (let i = 0; i < statOptions.length; i++) {
-          rawStatsData[statOptions[i]] = results[i];
-        }
 
-        this.setState({
-          formattedData: this.formatData(rawStatsData),
-          error: false,
-          loading: false,
-        });
-      })
-      .catch(() => {
-        this.setState({error: true, loading: false});
+    try {
+      const response = await api.requestPromise(statsEndpoint, {query});
+
+      this.setState({
+        formattedData: this.formatData(response),
+        error: false,
+        loading: false,
       });
+    } catch {
+      this.setState({error: true, loading: false});
+    }
   }
 
   fetchData = () => {
@@ -129,7 +127,7 @@ class ProjectFiltersChart extends Component<Props, State> {
 
     return (
       <Panel>
-        <PanelHeader>{t('Errors filtered in the last 30 days (by day)')}</PanelHeader>
+        <PanelHeader>{t('Events filtered in the last 30 days (by day)')}</PanelHeader>
 
         <PanelBody withPadding>
           {isLoading && <Placeholder height="100px" />}

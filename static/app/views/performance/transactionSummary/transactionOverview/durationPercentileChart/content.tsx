@@ -1,15 +1,15 @@
+import {Theme} from '@emotion/react';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {IconWarning} from 'sentry/icons';
 import {OrganizationSummary} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
-import {Theme} from 'sentry/utils/theme';
 
 import {ViewProps} from '../../../types';
 import {QUERY_KEYS} from '../../../utils';
@@ -20,15 +20,16 @@ import {transformData} from './utils';
 
 type ApiResult = Record<string, number>;
 
-type Props = AsyncComponent['props'] &
+type Props = DeprecatedAsyncComponent['props'] &
   ViewProps & {
     currentFilter: SpanOperationBreakdownFilter;
     fields: string[];
     location: Location;
     organization: OrganizationSummary;
+    queryExtras?: Record<string, string>;
   };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   chartData: {data: ApiResult[]} | null;
 };
 
@@ -40,8 +41,8 @@ type State = AsyncComponent['state'] & {
  * This graph visualizes how many transactions were recorded
  * at each duration bucket, showing the modality of the transaction.
  */
-class Content extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+class Content extends DeprecatedAsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {
       organization,
       query,
@@ -52,6 +53,7 @@ class Content extends AsyncComponent<Props, State> {
       project,
       fields,
       location,
+      queryExtras,
     } = this.props;
 
     const eventView = EventView.fromSavedQuery({
@@ -67,13 +69,13 @@ class Content extends AsyncComponent<Props, State> {
       start,
       end,
     });
-    const apiPayload = eventView.getEventsAPIPayload(location);
-    apiPayload.referrer = 'api.performance.durationpercentilechart';
-    const endpoint = organization.features.includes(
-      'performance-frontend-use-events-endpoint'
-    )
-      ? `/organizations/${organization.slug}/events/`
-      : `/organizations/${organization.slug}/eventsv2/`;
+    let apiPayload = eventView.getEventsAPIPayload(location);
+    apiPayload = {
+      ...apiPayload,
+      ...queryExtras,
+      referrer: 'api.performance.durationpercentilechart',
+    };
+    const endpoint = `/organizations/${organization.slug}/events/`;
 
     return [['chartData', endpoint, {query: apiPayload}]];
   }
@@ -105,7 +107,7 @@ class Content extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {currentFilter, organization} = this.props;
+    const {currentFilter} = this.props;
     const {chartData} = this.state;
 
     if (!defined(chartData)) {
@@ -113,19 +115,11 @@ class Content extends AsyncComponent<Props, State> {
     }
 
     const colors = (theme: Theme) =>
-      currentFilter === SpanOperationBreakdownFilter.None
+      currentFilter === SpanOperationBreakdownFilter.NONE
         ? theme.charts.getColorPalette(1)
         : [filterToColor(currentFilter)];
 
-    return (
-      <Chart
-        series={transformData(
-          chartData.data,
-          !organization.features.includes('performance-frontend-use-events-endpoint')
-        )}
-        colors={colors}
-      />
-    );
+    return <Chart series={transformData(chartData.data, false)} colors={colors} />;
   }
 }
 

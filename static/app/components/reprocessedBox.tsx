@@ -5,7 +5,7 @@ import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
 import Link from 'sentry/components/links/link';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {GroupActivityReprocess, Organization} from 'sentry/types';
 import localStorage from 'sentry/utils/localStorage';
 
@@ -43,7 +43,7 @@ class ReprocessedBox extends Component<Props, State> {
     const {data} = reprocessActivity;
     const {eventCount, oldGroupId, newGroupId} = data;
 
-    const reprocessedEventsRoute = `/organizations/${orgSlug}/issues/?query=reprocessing.original_issue_id:${oldGroupId}`;
+    const reprocessedEventsRoute = `/organizations/${orgSlug}/issues/?query=reprocessing.original_issue_id:${oldGroupId}&referrer=reprocessed-activity`;
 
     if (groupCount === 0) {
       return tct('All events in this issue were moved during reprocessing. [link]', {
@@ -78,10 +78,10 @@ class ReprocessedBox extends Component<Props, State> {
     return (
       <BannerContainer priority="success" className={className}>
         <StyledBannerSummary>
-          <IconCheckmark color="green300" isCircled />
+          <IconCheckmark color="successText" isCircled />
           <span>{this.renderMessage()}</span>
           <StyledIconClose
-            color="green300"
+            color="successText"
             aria-label={t('Dismiss')}
             isCircled
             onClick={this.handleBannerDismiss}

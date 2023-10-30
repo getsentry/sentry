@@ -20,9 +20,11 @@ How reprocessing works
    preprocess_event. The event payload is taken from a backup that was made on
    first ingestion in preprocess_event.
 
-3. wait_group_reprocessed in sentry.tasks.reprocessing2 polls a counter in
-   Redis to see if reprocessing is done. When it reaches zero, all associated
-   models like assignee and activity are moved into the new group.
+3. `mark_event_reprocessed` will decrement the pending event counter in Redis
+   to see if reprocessing is done.
+
+   When the counter reaches zero, it will trigger the `finish_reprocessing` task,
+   which will move all associated models like assignee and activity into the new group.
 
    A group redirect is installed. The old group is deleted, while the new group
    is unresolved. This effectively unsets the REPROCESSING status.
@@ -87,12 +89,14 @@ from typing import Any, Dict, List, Literal, Sequence, Tuple, Union
 import redis
 import sentry_sdk
 from django.conf import settings
+from django.db import router
 
 from sentry import eventstore, models, nodestore, options
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
+from sentry.snuba.dataset import Dataset
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -160,7 +164,7 @@ def save_unprocessed_event(project, event_id):
         nodestore.set(node_id, data)
 
 
-def backup_unprocessed_event(project, data):
+def backup_unprocessed_event(data):
     """
     Backup unprocessed event payload into redis. Only call if event should be
     able to be reprocessed.
@@ -183,7 +187,7 @@ def pull_event_data(project_id, event_id) -> ReprocessableEvent:
     from sentry.lang.native.processing import get_required_attachment_types
 
     with sentry_sdk.start_span(op="reprocess_events.eventstore.get"):
-        event = eventstore.get_event_by_id(project_id, event_id)
+        event = eventstore.backend.get_event_by_id(project_id, event_id)
 
     if event is None:
         raise CannotReprocess("event.not_found")
@@ -215,7 +219,7 @@ def pull_event_data(project_id, event_id) -> ReprocessableEvent:
 
 def reprocess_event(project_id, event_id, start_time):
 
-    from sentry.ingest.ingest_consumer import CACHE_TIMEOUT
+    from sentry.ingest.consumer.processors import CACHE_TIMEOUT
     from sentry.tasks.store import preprocess_event_from_reprocessing
 
     reprocessable_event = pull_event_data(project_id, event_id)
@@ -397,12 +401,12 @@ def buffered_delete_old_primary_hash(
     if old_primary_hash is not None and old_primary_hash != current_primary_hash:
         event_key = _get_old_primary_hash_subset_key(project_id, group_id, old_primary_hash)
         client.lpush(event_key, f"{to_timestamp(datetime)};{event_id}")
-        client.expire(event_key, settings.SENTRY_REPROCESSING_SYNC_TTL)
+        client.expire(event_key, settings.SENTRY_REPROCESSING_TOMBSTONES_TTL)
 
         if old_primary_hash not in old_primary_hashes:
             old_primary_hashes.add(old_primary_hash)
             client.sadd(primary_hash_set_key, old_primary_hash)
-            client.expire(primary_hash_set_key, settings.SENTRY_REPROCESSING_SYNC_TTL)
+            client.expire(primary_hash_set_key, settings.SENTRY_REPROCESSING_TOMBSTONES_TTL)
 
     with sentry_sdk.configure_scope() as scope:
         scope.set_tag("project_id", project_id)
@@ -497,10 +501,6 @@ def buffered_handle_remaining_events(
     client = _get_sync_redis_client()
     # We explicitly cluster by only project_id and group_id here such that our
     # RENAME command later succeeds.
-    #
-    # We also use legacy string formatting here because new-style Python
-    # formatting is quite confusing when the output string is supposed to
-    # contain {}.
     key = f"re2:remaining:{{{project_id}:{old_group_id}}}"
 
     if datetime_to_event:
@@ -579,8 +579,12 @@ def mark_event_reprocessed(data=None, group_id=None, project_id=None, num_events
 
         project_id = data["project"]
 
+    client = _get_sync_redis_client()
+    # refresh the TTL of the metadata:
+    client.expire(_get_info_reprocessed_key(group_id), settings.SENTRY_REPROCESSING_SYNC_TTL)
     key = _get_sync_counter_key(group_id)
-    if _get_sync_redis_client().decrby(key, num_events) == 0:
+    client.expire(key, settings.SENTRY_REPROCESSING_SYNC_TTL)
+    if client.decrby(key, num_events) == 0:
         from sentry.tasks.reprocessing2 import finish_reprocessing
 
         finish_reprocessing.delay(project_id=project_id, group_id=group_id)
@@ -591,9 +595,10 @@ def start_group_reprocessing(
 ):
     from django.db import transaction
 
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(models.Group)):
         group = models.Group.objects.get(id=group_id)
         original_status = group.status
+        original_substatus = group.substatus
         if original_status == models.GroupStatus.REPROCESSING:
             # This is supposed to be a rather unlikely UI race when two people
             # click reprocessing in the UI at the same time.
@@ -603,6 +608,7 @@ def start_group_reprocessing(
 
         original_short_id = group.short_id
         group.status = models.GroupStatus.REPROCESSING
+        group.substatus = None
         # satisfy unique constraint of (project_id, short_id)
         # we manually tested that multiple groups with (project_id=1,
         # short_id=null) can exist in postgres
@@ -615,6 +621,7 @@ def start_group_reprocessing(
         new_group = group  # rename variable just to avoid confusion
         del group
         new_group.status = original_status
+        new_group.substatus = original_substatus
         new_group.short_id = original_short_id
 
         # this will be incremented by either the events that are
@@ -637,7 +644,7 @@ def start_group_reprocessing(
     # and simplified from groupserializer.
     event_count = sync_count = snuba.aliased_query(
         aggregations=[["count()", "", "times_seen"]],  # select
-        dataset=snuba.Dataset.Events,  # from
+        dataset=Dataset.Events,  # from
         conditions=[["group_id", "=", group_id], ["project_id", "=", project_id]],  # where
         referrer="reprocessing2.start_group_reprocessing",
     )["data"][0]["times_seen"]

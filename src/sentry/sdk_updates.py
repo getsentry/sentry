@@ -164,6 +164,24 @@ SDK_SUPPORTED_MODULES = [
     },
     {
         "sdk_name": "sentry.python",
+        "sdk_version_added": "1.8.0",
+        "module_name": "starlette",
+        "module_version_min": "0.19.1",
+        "suggestion": EnableIntegrationSuggestion(
+            "starlette", "https://docs.sentry.io/platforms/python/starlette/"
+        ),
+    },
+    {
+        "sdk_name": "sentry.python",
+        "sdk_version_added": "1.8.0",
+        "module_name": "fastapi",
+        "module_version_min": "0.79.0",
+        "suggestion": EnableIntegrationSuggestion(
+            "fastapi", "https://docs.sentry.io/platforms/python/fastapi/"
+        ),
+    },
+    {
+        "sdk_name": "sentry.python",
         "sdk_version_added": "0.7.9",
         "module_name": "bottle",
         "module_version_min": "0.12.0",

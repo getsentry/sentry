@@ -1,18 +1,19 @@
-from datetime import datetime
+from datetime import datetime, timezone
+from functools import cached_property
 
-import pytz
 from django.urls import reverse
-from exam import fixture
 
-from sentry.models import RelayUsage
-from sentry.testutils import APITestCase
+from sentry.models.relay import RelayUsage
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class OrganizationRelayHistoryTest(APITestCase):
     endpoint = "sentry-api-0-organization-relay-usage"
 
-    @fixture
+    @cached_property
     def user(self):
         return self.create_user("test@test.com")
 
@@ -30,29 +31,29 @@ class OrganizationRelayHistoryTest(APITestCase):
                 "relay_id": "r1",
                 "public_key": pks[0],
                 "version": "1.1.1",
-                "first_seen": datetime(2001, 1, 1, tzinfo=pytz.UTC),
-                "last_seen": datetime(2001, 1, 2, tzinfo=pytz.UTC),
+                "first_seen": datetime(2001, 1, 1, tzinfo=timezone.utc),
+                "last_seen": datetime(2001, 1, 2, tzinfo=timezone.utc),
             },
             {
                 "relay_id": "r1",
                 "public_key": pks[0],
                 "version": "1.1.2",
-                "first_seen": datetime(2001, 2, 1, tzinfo=pytz.UTC),
-                "last_seen": datetime(2001, 2, 2, tzinfo=pytz.UTC),
+                "first_seen": datetime(2001, 2, 1, tzinfo=timezone.utc),
+                "last_seen": datetime(2001, 2, 2, tzinfo=timezone.utc),
             },
             {
                 "relay_id": "r2",
                 "public_key": pks[1],
                 "version": "1.1.1",
-                "first_seen": datetime(2002, 1, 1, tzinfo=pytz.UTC),
-                "last_seen": datetime(2002, 1, 1, tzinfo=pytz.UTC),
+                "first_seen": datetime(2002, 1, 1, tzinfo=timezone.utc),
+                "last_seen": datetime(2002, 1, 1, tzinfo=timezone.utc),
             },
             {
                 "relay_id": "r3",
                 "public_key": pks[2],
                 "version": "1.1.1",
-                "first_seen": datetime(2003, 1, 1, tzinfo=pytz.UTC),
-                "last_seen": datetime(2003, 1, 1, tzinfo=pytz.UTC),
+                "first_seen": datetime(2003, 1, 1, tzinfo=timezone.utc),
+                "last_seen": datetime(2003, 1, 1, tzinfo=timezone.utc),
             },
         ]
 

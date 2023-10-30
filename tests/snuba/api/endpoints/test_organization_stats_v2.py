@@ -1,20 +1,20 @@
 import functools
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
-import pytz
 from django.urls import reverse
-from freezegun import freeze_time
 
 from sentry.constants import DataCategory
-from sentry.testutils import APITestCase
-from sentry.testutils.cases import OutcomesSnubaTest
+from sentry.testutils.cases import APITestCase, OutcomesSnubaTest
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.outcomes import Outcome
 
 
+@region_silo_test
 class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
     def setUp(self):
         super().setUp()
-        self.now = datetime(2021, 3, 14, 12, 27, 28, tzinfo=pytz.utc)
+        self.now = datetime(2021, 3, 14, 12, 27, 28, tzinfo=timezone.utc)
 
         self.login_as(user=self.user)
 
@@ -149,6 +149,27 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert response.status_code == 400, response.content
         assert result_sorted(response.data) == {"detail": "start and end are both required"}
 
+    @freeze_time(datetime(2021, 3, 14, 12, 27, 28, tzinfo=timezone.utc))
+    def test_future_request(self):
+        response = self.do_request(
+            {
+                "field": ["sum(quantity)"],
+                "interval": "1h",
+                "category": ["error"],
+                "start": "2021-03-14T15:30:00",
+                "end": "2021-03-14T16:30:00",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data) == {
+            "intervals": ["2021-03-14T12:00:00Z"],
+            "groups": [
+                {"by": {}, "series": {"sum(quantity)": [0]}, "totals": {"sum(quantity)": 0}}
+            ],
+            "start": "2021-03-14T12:00:00Z",
+            "end": "2021-03-14T12:28:00Z",
+        }
+
     def test_unknown_category(self):
         response = self.do_request(
             {
@@ -184,14 +205,14 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         response = self.do_request(
             {
                 "field": ["sum(quantity)"],
-                "groupBy": ["cattygory"],
+                "groupBy": ["category_"],
                 "statsPeriod": "1d",
                 "interval": "1d",
             }
         )
 
         assert response.status_code == 400, response.content
-        assert result_sorted(response.data) == {"detail": 'Invalid groupBy: "cattygory"'}
+        assert result_sorted(response.data) == {"detail": 'Invalid groupBy: "category_"'}
 
     def test_resolution_invalid(self):
         self.login_as(user=self.user)

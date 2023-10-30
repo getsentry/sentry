@@ -2,23 +2,28 @@ import time
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
-from freezegun import freeze_time
+import pytest
 
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import get_mri
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
 from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import region_silo_test
 from tests.sentry.api.endpoints.test_organization_metrics import (
     MOCKED_DERIVED_METRICS,
     mocked_mri_resolver,
 )
 
-
-def _indexer_record(org_id: int, string: str) -> int:
-    return indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=string)
+pytestmark = pytest.mark.sentry_metrics
 
 
+def _indexer_record(org_id: int, string: str) -> None:
+    indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=org_id, string=string)
+
+
+@region_silo_test(stable=True)
 class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegrationTestCase):
 
     endpoint = "sentry-api-0-organization-metrics-tag-details"

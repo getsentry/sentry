@@ -1,23 +1,25 @@
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space, ValidSize} from 'sentry/styles/space';
+
+export interface PlaceholderProps {
+  bottomGutter?: ValidSize;
+  children?: React.ReactNode;
+  className?: string;
+  error?: React.ReactNode;
+  height?: string;
+  shape?: 'rect' | 'circle';
+  testId?: string;
+  width?: string;
+}
 
 const defaultProps = {
-  shape: 'rect' as 'rect' | 'circle',
+  shape: 'rect',
   bottomGutter: 0 as Parameters<typeof space>[0],
   width: '100%',
   height: '60px',
   testId: 'loading-placeholder',
-};
-
-type DefaultProps = Readonly<typeof defaultProps>;
-
-export type PlaceholderProps = {
-  children?: React.ReactNode;
-  className?: string;
-  error?: React.ReactNode;
-  testId?: string;
-} & Partial<DefaultProps>;
+} satisfies Partial<PlaceholderProps>;
 
 const Placeholder = styled(({className, children, error, testId}: PlaceholderProps) => {
   return (

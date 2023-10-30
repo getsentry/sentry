@@ -2,12 +2,16 @@ import time
 
 import sentry_sdk
 from django.conf import settings
-from django.db import transaction
+from django.db import router, transaction
 
 from sentry import eventstore, eventstream, nodestore
 from sentry.eventstore.models import Event
+from sentry.models.project import Project
 from sentry.reprocessing2 import buffered_delete_old_primary_hash
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.process_buffer import buffer_incr
+from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.query import celery_run_batch_query
 
@@ -17,6 +21,7 @@ from sentry.utils.query import celery_run_batch_query
     queue="events.reprocessing.process_event",
     time_limit=120,
     soft_time_limit=110,
+    silo_mode=SiloMode.REGION,
 )
 def reprocess_group(
     project_id,
@@ -62,6 +67,9 @@ def reprocess_group(
         batch_size=settings.SENTRY_REPROCESSING_PAGE_SIZE,
         state=query_state,
         referrer="reprocessing2.reprocess_group",
+        tenant_ids={
+            "organization_id": Project.objects.get_from_cache(id=project_id).organization_id
+        },
     )
 
     if not events:
@@ -129,6 +137,7 @@ def reprocess_group(
     queue="events.reprocessing.process_event",
     time_limit=60 * 5,
     max_retries=5,
+    silo_mode=SiloMode.REGION,
 )
 @retry
 def handle_remaining_events(
@@ -154,8 +163,10 @@ def handle_remaining_events(
 
     See doc comment in sentry.reprocessing2.
     """
+    sentry_sdk.set_tag("project", project_id)
+    sentry_sdk.set_tag("old_group_id", old_group_id)
+    sentry_sdk.set_tag("new_group_id", new_group_id)
 
-    from sentry import buffer
     from sentry.models.group import Group
     from sentry.reprocessing2 import EVENT_MODELS_TO_MIGRATE, pop_batched_events_from_redis
 
@@ -196,7 +207,7 @@ def handle_remaining_events(
             to_timestamp=to_timestamp,
         )
 
-        buffer.incr(Group, {"times_seen": len(event_ids)}, {"id": new_group_id})
+        buffer_incr(Group, {"times_seen": len(event_ids)}, {"id": new_group_id})
     else:
         raise ValueError(f"Invalid value for remaining_events: {remaining_events}")
 
@@ -215,15 +226,19 @@ def handle_remaining_events(
     soft_time_limit=60 * 5,
 )
 def finish_reprocessing(project_id, group_id):
-    from sentry.models import Activity, Group, GroupRedirect
+    from sentry.models.activity import Activity
+    from sentry.models.group import Group
+    from sentry.models.groupredirect import GroupRedirect
 
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(Group)):
         group = Group.objects.get(id=group_id)
 
         # While we migrated all associated models at the beginning of
         # reprocessing, there is still the "reprocessing" activity that we need
         # to transfer manually.
-        activity = Activity.objects.get(group_id=group_id)
+        # Any activities created during reprocessing (e.g. user clicks "assign" in an old browser tab)
+        # are ignored.
+        activity = Activity.objects.get(group_id=group_id, type=ActivityType.REPROCESS.value)
         new_group_id = activity.group_id = activity.data["newGroupId"]
         activity.save()
 

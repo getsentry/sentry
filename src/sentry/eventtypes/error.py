@@ -1,9 +1,13 @@
-from typing import Optional
+from __future__ import annotations
+
+from typing import Any, Dict, MutableMapping
 
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
 
 from .base import BaseEvent, compute_title_with_tree_label
+
+Metadata = Dict[str, Any]
 
 
 def get_crash_location(data):
@@ -22,8 +26,33 @@ def get_crash_location(data):
 class ErrorEvent(BaseEvent):
     key = "error"
 
-    def extract_metadata(self, data):
-        exception = get_path(data, "exception", "values", -1)
+    def extract_metadata(self, data: MutableMapping[str, Any]) -> Metadata:
+
+        exceptions = get_path(data, "exception", "values")
+        if not exceptions:
+            return {}
+
+        # When there are multiple exceptions, we need to pick one to extract the metadata from.
+        # If the event data has been marked with a main_exception_id, then we should be able to
+        # find the exception with the matching metadata.exception_id and use that one.
+        # This can be the case for some exception groups.
+
+        # Otherwise, the default behavior is to use the last one in the list.
+
+        main_exception_id = get_path(data, "main_exception_id")
+        exception = (
+            next(
+                exception
+                for exception in exceptions
+                if get_path(exception, "mechanism", "exception_id") == main_exception_id
+            )
+            if main_exception_id
+            else None
+        )
+
+        if not exception:
+            exception = get_path(exceptions, -1)
+
         if not exception:
             return {}
 
@@ -72,8 +101,8 @@ class ErrorEvent(BaseEvent):
 
         return rv
 
-    def compute_title(self, metadata):
-        title: Optional[str] = metadata.get("type")
+    def compute_title(self, metadata: Metadata) -> str:
+        title = metadata.get("type")
         if title is not None:
             value = metadata.get("value")
             if value:
@@ -87,5 +116,5 @@ class ErrorEvent(BaseEvent):
 
         return title or metadata.get("function") or "<unknown>"
 
-    def get_location(self, metadata):
+    def get_location(self, metadata: Metadata) -> str | None:
         return metadata.get("filename")

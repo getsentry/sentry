@@ -2,12 +2,19 @@ from unittest import mock
 
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.models import Environment, GroupInboxReason, Release
-from sentry.models.groupinbox import add_group_to_inbox, remove_group_from_inbox
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry import tsdb
+from sentry.issues.forecasts import generate_and_save_forecasts
+from sentry.models.environment import Environment
+from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox, remove_group_from_inbox
+from sentry.models.groupowner import GROUP_OWNER_TYPE, GroupOwner, GroupOwnerType
+from sentry.models.release import Release
+from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_multiple_environments(self):
         group = self.create_group()
@@ -18,10 +25,8 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         url = f"/api/0/issues/{group.id}/"
 
-        from sentry.api.endpoints.group_details import tsdb
-
         with mock.patch(
-            "sentry.api.endpoints.group_details.tsdb.get_range", side_effect=tsdb.get_range
+            "sentry.api.endpoints.group_details.tsdb.get_range", side_effect=tsdb.backend.get_range
         ) as get_range:
             response = self.client.get(
                 f"{url}?environment=production&environment=staging", format="json"
@@ -54,13 +59,13 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             data={"release": "1.1", "timestamp": iso_format(before_now(minutes=2))},
             project_id=self.project.id,
         )
-        event = None
-        for timestamp in last_release.values():
-            event = self.store_event(
+        event = [
+            self.store_event(
                 data={"release": "1.0a", "timestamp": iso_format(timestamp)},
                 project_id=self.project.id,
             )
-
+            for timestamp in last_release.values()
+        ][-1]
         group = event.group
 
         url = f"/api/0/issues/{group.id}/"
@@ -93,9 +98,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         url = f"/api/0/issues/{group.id}/"
 
-        with mock.patch(
-            "sentry.api.endpoints.group_details.tagstore.get_release_tags"
-        ) as get_release_tags:
+        with mock.patch("sentry.tagstore.backend.get_release_tags") as get_release_tags:
             response = self.client.get(url, format="json")
             assert response.status_code == 200
             assert get_release_tags.call_count == 1
@@ -153,6 +156,54 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["inbox"] is None
 
+    def test_group_expand_owners(self):
+        self.login_as(user=self.user)
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        group = event.group
+        url = f"/api/0/issues/{group.id}/?expand=owners"
+
+        self.login_as(user=self.user)
+        # Test with no owner
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200
+        assert response.data["owners"] is None
+
+        # Test with owners
+        GroupOwner.objects.create(
+            group=event.group,
+            project=event.project,
+            organization=event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=self.user.id,
+        )
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["owners"] is not None
+        assert len(response.data["owners"]) == 1
+        assert response.data["owners"][0]["owner"] == f"user:{self.user.id}"
+        assert response.data["owners"][0]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.SUSPECT_COMMIT]
+
+    def test_group_expand_forecasts(self):
+        with Feature("organizations:escalating-issues"):
+            self.login_as(user=self.user)
+            event = self.store_event(
+                data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+                project_id=self.project.id,
+            )
+            group = event.group
+            generate_and_save_forecasts([group])
+
+            url = f"/api/0/issues/{group.id}/?expand=forecast"
+
+            response = self.client.get(url, format="json")
+            assert response.status_code == 200, response.content
+            assert response.data["forecast"] is not None
+            assert response.data["forecast"]["data"] is not None
+            assert response.data["forecast"]["date_added"] is not None
+
     def test_assigned_to_unknown(self):
         self.login_as(user=self.user)
         event = self.store_event(
@@ -166,7 +217,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 200
         response = self.client.put(
-            url, {"assignedTo": "user@doesntexist.com", "status": "unresolved"}, format="json"
+            url, {"assignedTo": "user@doesnotexist.com", "status": "unresolved"}, format="json"
         )
         assert response.status_code == 400
         assert response.data == {
@@ -177,3 +228,46 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
                 )
             ]
         }
+
+    def test_collapse_stats_does_not_work(self):
+        """
+        'collapse' param should hide the stats data and not return anything in the response, but the impl
+        doesn't seem to respect this param.
+
+        include this test here in-case the endpoint behavior changes in the future.
+        """
+        self.login_as(user=self.user)
+
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(minutes=3))},
+            project_id=self.project.id,
+        )
+        group = event.group
+
+        url = f"/api/0/issues/{group.id}/"
+
+        response = self.client.get(url, {"collapse": ["stats"]}, format="json")
+        assert response.status_code == 200
+        assert int(response.data["id"]) == event.group.id
+        assert response.data["stats"]  # key shouldn't be present
+        assert response.data["count"] is not None  # key shouldn't be present
+        assert response.data["userCount"] is not None  # key shouldn't be present
+        assert response.data["firstSeen"] is not None  # key shouldn't be present
+        assert response.data["lastSeen"] is not None  # key shouldn't be present
+
+    def test_issue_type_category(self):
+        """Test that the issue's type and category is returned in the results"""
+
+        self.login_as(user=self.user)
+
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(minutes=3))},
+            project_id=self.project.id,
+        )
+
+        url = f"/api/0/issues/{event.group.id}/"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200
+        assert int(response.data["id"]) == event.group.id
+        assert response.data["issueType"] == "error"
+        assert response.data["issueCategory"] == "error"

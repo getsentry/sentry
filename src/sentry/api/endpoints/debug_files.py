@@ -1,33 +1,42 @@
 import logging
 import posixpath
 import re
+import uuid
+from typing import Sequence
 
 import jsonschema
-from django.db import router
+from django.db import IntegrityError, router
 from django.db.models import Q
 from django.http import Http404, HttpResponse, StreamingHttpResponse
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
-from symbolic import SymbolicError, normalize_debug_id
+from symbolic.debuginfo import normalize_debug_id
+from symbolic.exceptions import SymbolicError
 
 from sentry import ratelimits, roles
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.constants import DEBUG_FILES_ROLE_DEFAULT, KNOWN_DIF_FORMATS
-from sentry.models import (
-    File,
-    FileBlobOwner,
-    OrganizationMember,
+from sentry.debug_files.debug_files import maybe_renew_debug_files
+from sentry.debug_files.upload import find_missing_chunks
+from sentry.models.debugfile import (
+    ProguardArtifactRelease,
     ProjectDebugFile,
-    Release,
-    ReleaseFile,
     create_files_from_dif_zip,
 )
-from sentry.models.release import get_artifact_counts
+from sentry.models.files.file import File
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
+from sentry.models.release import Release, get_artifact_counts
+from sentry.models.releasefile import ReleaseFile
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
@@ -69,7 +78,7 @@ def has_download_permission(request, project):
 
     try:
         current_role = (
-            OrganizationMember.objects.filter(organization=organization, user=request.user)
+            OrganizationMember.objects.filter(organization=organization, user_id=request.user.id)
             .values_list("role", flat=True)
             .get()
         )
@@ -79,11 +88,104 @@ def has_download_permission(request, project):
     return roles.get(current_role).priority >= roles.get(required_role).priority
 
 
+def _has_delete_permission(access: Access, project: Project) -> bool:
+    if access.has_scope("project:write"):
+        return True
+    return access.has_project_scope(project, "project:write")
+
+
+@region_silo_endpoint
+class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+    permission_classes = (ProjectReleasePermission,)
+
+    def post(self, request: Request, project) -> Response:
+        release_name = request.data.get("release_name")
+        proguard_uuid = request.data.get("proguard_uuid")
+
+        missing_fields = []
+        if not release_name:
+            missing_fields.append("release_name")
+        if not proguard_uuid:
+            missing_fields.append("proguard_uuid")
+
+        if missing_fields:
+            error_message = f"Missing required fields: {', '.join(missing_fields)}"
+            return Response(data={"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            uuid.UUID(proguard_uuid)
+        except ValueError:
+            return Response(
+                data={"error": "Invalid proguard_uuid"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        proguard_uuid = str(proguard_uuid)
+
+        difs = ProjectDebugFile.objects.find_by_debug_ids(project, [proguard_uuid])
+        if not difs:
+            return Response(
+                data={"error": "No matching proguard mapping file with this uuid found"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            ProguardArtifactRelease.objects.create(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                release_name=release_name,
+                project_debug_file=difs[proguard_uuid],
+                proguard_uuid=proguard_uuid,
+            )
+            return Response(status=status.HTTP_201_CREATED)
+        except IntegrityError:
+            return Response(
+                data={
+                    "error": "Proguard artifact release with this name in this project already exists."
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
+    def get(self, request: Request, project) -> Response:
+        """
+        List a Project's Proguard Associated Releases
+        ````````````````````````````````````````
+
+        Retrieve a list of associated releases for a given Proguard File.
+
+        :pparam string organization_slug: the slug of the organization the
+                                          file belongs to.
+        :pparam string project_slug: the slug of the project to list the
+                                     DIFs of.
+        :qparam string proguard_uuid: the uuid of the Proguard file.
+        :auth: required
+        """
+
+        proguard_uuid = request.GET.get("proguard_uuid")
+        releases = None
+        if proguard_uuid:
+            releases = ProguardArtifactRelease.objects.filter(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                proguard_uuid=proguard_uuid,
+            ).values_list("release_name", flat=True)
+        return Response({"releases": releases})
+
+
+@region_silo_endpoint
 class DebugFilesEndpoint(ProjectEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def download(self, debug_file_id, project):
-        rate_limited = ratelimits.is_limited(
+        rate_limited = ratelimits.backend.is_limited(
             project=project,
             key=f"rl:DSymFilesEndpoint:download:{debug_file_id}:{project.id}",
             limit=10,
@@ -93,9 +195,11 @@ class DebugFilesEndpoint(ProjectEndpoint):
                 "notification.rate_limited",
                 extra={"project_id": project.id, "project_debug_file_id": debug_file_id},
             )
-            return HttpResponse({"Too many download requests"}, status=403)
+            return HttpResponse({"Too many download requests"}, status=429)
 
-        debug_file = ProjectDebugFile.objects.filter(id=debug_file_id).first()
+        debug_file = ProjectDebugFile.objects.filter(
+            id=debug_file_id, project_id=project.id
+        ).first()
 
         if debug_file is None:
             raise Http404
@@ -172,15 +276,23 @@ class DebugFilesEndpoint(ProjectEndpoint):
         else:
             q = Q()
 
-        file_format_q = Q()
-        for file_format in file_formats:
-            known_file_format = DIF_MIMETYPES.get(file_format)
-            if known_file_format:
-                file_format_q |= Q(file__headers__icontains=known_file_format)
+        if file_formats:
+            file_format_q = Q()
+            for file_format in file_formats:
+                known_file_format = DIF_MIMETYPES.get(file_format)
+                if known_file_format:
+                    file_format_q |= Q(file__headers__icontains=known_file_format)
+            q &= file_format_q
 
-        q &= file_format_q
+        q &= Q(project_id=project.id)
+        queryset = ProjectDebugFile.objects.filter(q).select_related("file")
 
-        queryset = ProjectDebugFile.objects.filter(q, project_id=project.id).select_related("file")
+        def on_results(difs: Sequence[ProjectDebugFile]):
+            # NOTE: we are only refreshing files if there is direct query for specific files
+            if debug_id and not query and not file_formats:
+                maybe_renew_debug_files(q, difs)
+
+            return serialize(difs, request.user)
 
         return self.paginate(
             request=request,
@@ -188,10 +300,10 @@ class DebugFilesEndpoint(ProjectEndpoint):
             order_by="-id",
             paginator_cls=OffsetPaginator,
             default_per_page=20,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=on_results,
         )
 
-    def delete(self, request: Request, project) -> Response:
+    def delete(self, request: Request, project: Project) -> Response:
         """
         Delete a specific Project's Debug Information File
         ```````````````````````````````````````````````````
@@ -205,8 +317,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         :qparam string id: The id of the DIF to delete.
         :auth: required
         """
-
-        if request.GET.get("id") and (request.access.has_scope("project:write")):
+        if request.GET.get("id") and _has_delete_permission(request.access, project):
             with atomic_transaction(using=router.db_for_write(File)):
                 debug_file = (
                     ProjectDebugFile.objects.filter(id=request.GET.get("id"), project_id=project.id)
@@ -243,7 +354,11 @@ class DebugFilesEndpoint(ProjectEndpoint):
         return upload_from_request(request, project=project)
 
 
+@region_silo_endpoint
 class UnknownDebugFilesEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project) -> Response:
@@ -252,7 +367,11 @@ class UnknownDebugFilesEndpoint(ProjectEndpoint):
         return Response({"missing": missing})
 
 
+@region_silo_endpoint
 class AssociateDSymFilesEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     # Legacy endpoint, kept for backwards compatibility
@@ -260,17 +379,11 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
         return Response({"associatedDsymFiles": []})
 
 
-def find_missing_chunks(organization, chunks):
-    """Returns a list of chunks which are missing for an org."""
-    owned = set(
-        FileBlobOwner.objects.filter(
-            blob__checksum__in=chunks, organization_id=organization.id
-        ).values_list("blob__checksum", flat=True)
-    )
-    return list(set(chunks) - owned)
-
-
+@region_silo_endpoint
 class DifAssembleEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def post(self, request: Request, project) -> Response:
@@ -358,7 +471,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
                 continue
 
             # Check if all requested chunks have been uploaded.
-            missing_chunks = find_missing_chunks(project.organization, chunks)
+            missing_chunks = find_missing_chunks(project.organization.id, chunks)
             if missing_chunks:
                 file_response[checksum] = {
                     "state": ChunkFileState.NOT_FOUND,
@@ -387,7 +500,12 @@ class DifAssembleEndpoint(ProjectEndpoint):
         return Response(file_response, status=200)
 
 
+@region_silo_endpoint
 class SourceMapsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project) -> Response:
@@ -433,14 +551,22 @@ class SourceMapsEndpoint(ProjectEndpoint):
 
         def serialize_results(results):
             file_count_map = get_artifact_counts([r["id"] for r in results])
+            # In case we didn't find a file count for a specific release, we will return -1, signaling to the
+            # frontend that this release doesn't have one or more ReleaseFile.
             return serialize(
-                [expose_release(r, file_count_map.get(r["id"], 0)) for r in results], request.user
+                [expose_release(r, file_count_map.get(r["id"], -1)) for r in results], request.user
+            )
+
+        sort_by = request.GET.get("sortBy", "-date_added")
+        if sort_by not in {"-date_added", "date_added"}:
+            return Response(
+                {"error": "You can either sort via 'date_added' or '-date_added'"}, status=400
             )
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by="-date_added",
+            order_by=sort_by,
             paginator_cls=OffsetPaginator,
             default_per_page=10,
             on_results=serialize_results,

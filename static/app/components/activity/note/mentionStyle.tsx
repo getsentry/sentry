@@ -1,10 +1,26 @@
-import space from 'sentry/styles/space';
+import {Theme} from '@emotion/react';
+
+import {space} from 'sentry/styles/space';
+
+type Options = {
+  theme: Theme;
+  minHeight?: number;
+};
 
 /**
  * Note this is an object for `react-mentions` component and
  * not a styled component/emotion style
  */
-export default function mentionStyle({theme, minHeight}) {
+export function mentionStyle({theme, minHeight}: Options) {
+  const inputProps = {
+    fontSize: theme.fontSizeMedium,
+    padding: `${space(1.5)} ${space(2)}`,
+    outline: 0,
+    border: 0,
+    minHeight,
+    overflow: 'auto',
+  };
+
   return {
     control: {
       backgroundColor: `${theme.background}`,
@@ -35,39 +51,32 @@ export default function mentionStyle({theme, minHeight}) {
 
     '&multiLine': {
       control: {
-        fontFamily: 'Rubik, Avenir Next, Helvetica Neue, sans-serif',
+        fontFamily: theme.text.family,
         minHeight,
       },
 
-      highlighter: {
-        padding: 20,
-        minHeight,
-      },
-
-      input: {
-        padding: `${space(1.5)} ${space(2)} 0`,
-        minHeight,
-        overflow: 'auto',
-        outline: 0,
-        border: 0,
-      },
+      // Use the same props for the highliter to keep the phantom text aligned
+      highlighter: inputProps,
+      input: inputProps,
     },
 
     suggestions: {
       list: {
-        maxHeight: 150,
+        maxHeight: 142,
+        minWidth: 220,
         overflow: 'auto',
         backgroundColor: `${theme.background}`,
         border: '1px solid rgba(0,0,0,0.15)',
-        fontSize: 12,
+        borderRadius: theme.borderRadius,
+        fontSize: theme.fontSizeSmall,
+        padding: space(0.5),
       },
 
       item: {
-        padding: '5px 15px',
-        borderBottom: '1px solid rgba(0,0,0,0.15)',
-
+        padding: space(0.5),
+        borderRadius: theme.borderRadius,
         '&focused': {
-          backgroundColor: `${theme.backgroundSecondary}`,
+          backgroundColor: theme.hover,
         },
       },
     },

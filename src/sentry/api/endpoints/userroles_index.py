@@ -1,20 +1,26 @@
 import logging
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.permissions import SuperuserPermission
 from sentry.api.serializers import serialize
 from sentry.api.validators.userrole import UserRoleValidator
-from sentry.models import UserRole
+from sentry.models.userrole import UserRole
 
 audit_logger = logging.getLogger("sentry.audit.user")
 
 
+@control_silo_endpoint
 class UserRolesEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:
@@ -43,7 +49,7 @@ class UserRolesEndpoint(Endpoint):
 
         result = validator.validated_data
         try:
-            with transaction.atomic():
+            with transaction.atomic(using=router.db_for_write(UserRole)):
                 role = UserRole.objects.create(
                     name=result["name"], permissions=result.get("permissions") or []
                 )

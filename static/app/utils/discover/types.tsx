@@ -9,11 +9,27 @@ export enum DisplayModes {
   TOP5 = 'top5',
   DAILY = 'daily',
   DAILYTOP5 = 'dailytop5',
-  WORLDMAP = 'worldmap',
   BAR = 'bar',
 }
 
+export enum DiscoverDatasets {
+  DISCOVER = 'discover',
+  METRICS = 'metrics',
+  METRICS_ENHANCED = 'metricsEnhanced',
+  ISSUE_PLATFORM = 'issuePlatform',
+  SPANS_INDEXED = 'spansIndexed',
+  SPANS_METRICS = 'spansMetrics',
+}
+
 export const TOP_EVENT_MODES: string[] = [DisplayModes.TOP5, DisplayModes.DAILYTOP5];
+
+// The modes that support the interval selector
+export const INTERVAL_DISPLAY_MODES: string[] = [
+  DisplayModes.DEFAULT,
+  DisplayModes.PREVIOUS,
+  DisplayModes.TOP5,
+  DisplayModes.BAR,
+];
 
 export const DISPLAY_MODE_OPTIONS: SelectValue<string>[] = [
   {value: DisplayModes.DEFAULT, label: t('Total Period')},
@@ -21,7 +37,6 @@ export const DISPLAY_MODE_OPTIONS: SelectValue<string>[] = [
   {value: DisplayModes.TOP5, label: t('Top 5 Period')},
   {value: DisplayModes.DAILY, label: t('Total Daily')},
   {value: DisplayModes.DAILYTOP5, label: t('Top 5 Daily')},
-  {value: DisplayModes.WORLDMAP, label: t('World Map')},
   {value: DisplayModes.BAR, label: t('Bar Chart')},
 ];
 
@@ -38,7 +53,6 @@ export const DISPLAY_MODE_FALLBACK_OPTIONS = {
   [DisplayModes.TOP5]: DisplayModes.DEFAULT,
   [DisplayModes.DAILY]: DisplayModes.DEFAULT,
   [DisplayModes.DAILYTOP5]: DisplayModes.DAILY,
-  [DisplayModes.WORLDMAP]: DisplayModes.DEFAULT,
   [DisplayModes.BAR]: DisplayModes.DEFAULT,
 };
 

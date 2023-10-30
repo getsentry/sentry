@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import logging
 import time
 import warnings
 from collections import namedtuple
 from io import BytesIO
+from typing import Any
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -11,7 +14,7 @@ from requests.exceptions import ReadTimeout, RequestException, Timeout
 
 from sentry import options
 from sentry.exceptions import RestrictedIPAddress
-from sentry.models import EventError
+from sentry.models.eventerror import EventError
 from sentry.net.http import SafeSession
 
 # Importing for backwards compatible API
@@ -47,7 +50,7 @@ class CannotFetch(BadSource):
     error_type = EventError.FETCH_GENERIC_ERROR
 
 
-def get_server_hostname():
+def get_server_hostname() -> str:
     return urlparse(options.get("system.url-prefix")).hostname
 
 
@@ -123,7 +126,7 @@ def expose_url(url):
     return url
 
 
-def get_domain_key(url):
+def get_domain_key(url: str) -> str:
     domain = urlparse(url).netloc
     return f"source:blacklist:v2:{md5_text(domain).hexdigest()}"
 
@@ -206,7 +209,7 @@ def fetch_file(
             except Exception as exc:
                 logger.debug("Unable to fetch %r", url, exc_info=True)
                 if isinstance(exc, RestrictedIPAddress):
-                    error = {"type": EventError.RESTRICTED_IP}
+                    error: dict[str, Any] = {"type": EventError.RESTRICTED_IP}
                 elif isinstance(exc, SuspiciousOperation):
                     error = {"type": EventError.SECURITY_VIOLATION}
                 elif isinstance(exc, (Timeout, ReadTimeout)):

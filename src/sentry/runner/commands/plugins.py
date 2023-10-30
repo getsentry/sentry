@@ -1,3 +1,5 @@
+import importlib.metadata
+
 import click
 
 
@@ -9,7 +11,12 @@ def plugins():
 @plugins.command()
 def list():
     "List all installed plugins"
-    from pkg_resources import iter_entry_points
-
-    for ep in iter_entry_points("sentry.plugins"):
-        click.echo(f"{ep.name}: {ep.dist.project_name} {ep.dist.version} ({ep.dist.location})")
+    plugins = [
+        (ep.name, dist.metadata["name"], dist.version, str(dist.locate_file(".")))
+        for dist in importlib.metadata.distributions()
+        for ep in dist.entry_points
+        if ep.group == "sentry.plugins"
+    ]
+    plugins.sort()
+    for name, project_name, version, location in plugins:
+        click.echo(f"{name}: {project_name} {version} ({location})")

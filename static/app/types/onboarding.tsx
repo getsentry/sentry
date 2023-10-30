@@ -1,5 +1,9 @@
-import {Organization, Project} from 'sentry/types';
-import {OnboardingState} from 'sentry/views/onboarding/targetedOnboarding/types';
+import {RouteContextInterface} from 'react-router';
+
+import {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
+import {Category} from 'sentry/components/platformPicker';
+import type {PlatformKey} from 'sentry/types';
+import {Group, Organization, PlatformIntegration, Project} from 'sentry/types';
 
 import type {AvatarUser} from './user';
 
@@ -21,6 +25,12 @@ export enum OnboardingTaskKey {
   INTEGRATIONS = 'integrations',
   /// Regular card that tells the user to setup integrations if no integrations were selected during onboarding
   FIRST_INTEGRATION = 'setup_integrations',
+  SESSION_REPLAY = 'setup_session_replay',
+  /// Demo New Walkthrough Tasks
+  SIDEBAR_GUIDE = 'sidebar_guide',
+  ISSUE_GUIDE = 'issue_guide',
+  RELEASE_GUIDE = 'release_guide',
+  PERFORMANCE_GUIDE = 'performance_guide',
 }
 
 export type OnboardingSupplementComponentProps = {
@@ -29,14 +39,13 @@ export type OnboardingSupplementComponentProps = {
 };
 
 export type OnboardingCustomComponentProps = {
-  onboardingState: OnboardingState | null;
+  onboardingContext: OnboardingContextProps;
   organization: Organization;
   projects: Project[];
-  setOnboardingState: (state: OnboardingState | null) => void;
   task: OnboardingTask;
 };
 
-export type OnboardingTaskDescriptor = {
+interface OnboardingTaskDescriptorBase {
   description: string;
   /**
    * Should the onboarding task currently be displayed
@@ -72,31 +81,73 @@ export type OnboardingTaskDescriptor = {
    * tasks for the same server-side task.
    */
   serverTask?: string;
-} & (
-  | {
-      actionType: 'app' | 'external';
-      location: string;
-    }
-  | {
-      action: () => void;
-      actionType: 'action';
-    }
-);
+}
 
-export type OnboardingTaskStatus = {
+interface OnboardingTypeDescriptorWithAction extends OnboardingTaskDescriptorBase {
+  action: (props: RouteContextInterface) => void;
+  actionType: 'action';
+}
+
+interface OnboardingTypeDescriptorWithExternal extends OnboardingTaskDescriptorBase {
+  actionType: 'app' | 'external';
+  location: string;
+}
+
+export type OnboardingTaskDescriptor =
+  | OnboardingTypeDescriptorWithAction
+  | OnboardingTypeDescriptorWithExternal;
+
+export interface OnboardingTaskStatus {
   status: 'skipped' | 'pending' | 'complete';
   task: OnboardingTaskKey;
-  completionSeen?: string;
+  completionSeen?: string | boolean;
   data?: {[key: string]: string};
   dateCompleted?: string;
   user?: AvatarUser | null;
+}
+
+interface OnboardingTaskWithAction
+  extends OnboardingTaskStatus,
+    OnboardingTypeDescriptorWithAction {
+  /**
+   * Onboarding tasks that are currently incomplete and must be completed
+   * before this task should be completed.
+   */
+  requisiteTasks: OnboardingTaskDescriptor[];
+}
+
+interface OnboardingTaskWithExternal
+  extends OnboardingTaskStatus,
+    OnboardingTypeDescriptorWithExternal {
+  /**
+   * Onboarding tasks that are currently incomplete and must be completed
+   * before this task should be completed.
+   */
+  requisiteTasks: OnboardingTaskDescriptor[];
+}
+
+export type OnboardingTask = OnboardingTaskWithAction | OnboardingTaskWithExternal;
+
+export enum OnboardingProjectStatus {
+  WAITING = 'waiting',
+  PROCESSING = 'processing',
+  PROCESSED = 'processed',
+}
+
+export type OnboardingSelectedSDK = {
+  category: Category;
+  key: PlatformKey;
+  language: PlatformIntegration['language'];
+  type: PlatformIntegration['type'];
 };
 
-export type OnboardingTask = OnboardingTaskStatus &
-  OnboardingTaskDescriptor & {
-    /**
-     * Onboarding tasks that are currently incomplete and must be completed
-     * before this task should be completed.
-     */
-    requisiteTasks: OnboardingTask[];
-  };
+export type OnboardingRecentCreatedProject = Project & {
+  firstError: boolean;
+  firstTransaction: boolean;
+  hasReplays: boolean;
+  hasSessions: boolean;
+  olderThanOneHour: boolean;
+  firstIssue?: Group;
+};
+
+export type OnboardingPlatformDoc = {html: string; link: string};

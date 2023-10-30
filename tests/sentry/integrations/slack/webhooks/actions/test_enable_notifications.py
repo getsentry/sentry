@@ -2,7 +2,9 @@ from sentry.integrations.slack.webhooks.action import (
     ENABLE_SLACK_SUCCESS_MESSAGE,
     NO_IDENTITY_MESSAGE,
 )
-from sentry.models import Identity, NotificationSetting
+from sentry.models.identity import Identity
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.user import User
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.types.integrations import ExternalProviders
 
@@ -29,13 +31,13 @@ class EnableNotificationsActionTest(BaseEventTest):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            user_id=self.user.id,
         )
 
         response = self.post_webhook(
             action_data=[{"name": "enable_notifications", "value": "all_slack"}]
         )
-
+        self.user = User.objects.get(id=self.user.id)  # Reload to fetch actor
         assert response.status_code == 200, response.content
         assert response.data["text"] == ENABLE_SLACK_SUCCESS_MESSAGE
 
@@ -51,7 +53,7 @@ class EnableNotificationsActionTest(BaseEventTest):
         response = self.post_webhook(
             action_data=[{"name": "enable_notifications", "value": "all_slack"}]
         )
-
+        self.user = User.objects.get(id=self.user.id)  # Reload to fetch actor
         assert response.status_code == 200, response.content
         assert response.data["text"] == ENABLE_SLACK_SUCCESS_MESSAGE
 

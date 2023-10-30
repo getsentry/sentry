@@ -28,7 +28,7 @@ type Props = {
   project?: AvatarProject;
   sentryApp?: AvatarSentryApp;
   team?: Team;
-} & UserAvatar['props'];
+} & React.ComponentProps<typeof UserAvatar>;
 
 const Avatar = forwardRef(function Avatar(
   {

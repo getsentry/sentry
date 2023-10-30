@@ -1,10 +1,15 @@
 from django.conf import settings
 
-from sentry.models import UserRole
-from sentry.testutils import TestCase
+from sentry.models.userrole import UserRole, manage_default_super_admin_role
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class UserRoleTest(TestCase):
+    def setUp(self) -> None:
+        manage_default_super_admin_role()
+
     def test_permissions_for_user(self):
         user = self.create_user(email="a@example.com")
         user2 = self.create_user(email="b@example.com")

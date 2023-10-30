@@ -23,11 +23,12 @@ class SudoViewTestCase(BaseTestCase):
         self.login()
         self.request.is_sudo = lambda: False
         response = sudo(self.request)
-        self.assertIsInstance(response, TemplateResponse)
+        assert isinstance(response, TemplateResponse)
         self.assertEqual(response.template_name, "sudo/sudo.html")  # default
+        assert response.context_data is not None
         self.assertEqual(response.context_data[REDIRECT_FIELD_NAME], REDIRECT_URL)  # default
         form = response.context_data["form"]
-        self.assertIsInstance(form, SudoForm)
+        assert isinstance(form, SudoForm)
         self.assertEqual(form.user, self.user)
 
     def test_returns_template_response_with_next(self):
@@ -35,18 +36,23 @@ class SudoViewTestCase(BaseTestCase):
         self.request.GET = {REDIRECT_FIELD_NAME: "/lol"}
         self.request.is_sudo = lambda: False
         response = sudo(self.request)
+        assert isinstance(response, TemplateResponse)
+        assert response.context_data is not None
         self.assertEqual(response.context_data[REDIRECT_FIELD_NAME], "/lol")  # default
 
     def test_returns_template_response_override_template(self):
         self.login()
         self.request.is_sudo = lambda: False
         response = sudo(self.request, template_name="foo.html")
+        assert isinstance(response, TemplateResponse)
         self.assertEqual(response.template_name, "foo.html")
 
     def test_returns_template_response_override_extra_context(self):
         self.login()
         self.request.is_sudo = lambda: False
         response = sudo(self.request, extra_context={"foo": "bar"})
+        assert isinstance(response, TemplateResponse)
+        assert response.context_data is not None
         self.assertEqual(response.context_data["foo"], "bar")
 
     def test_redirect_if_already_sudo(self):
@@ -129,7 +135,9 @@ class SudoViewTestCase(BaseTestCase):
         self.request.csrf_processing_done = True
         self.request.POST = {"password": "lol"}
         response = sudo(self.request)
+        assert isinstance(response, TemplateResponse)
         self.assertEqual(response.status_code, 200)
+        assert response.context_data is not None
         form = response.context_data["form"]
         self.assertFalse(form.is_valid())
 

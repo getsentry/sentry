@@ -62,10 +62,19 @@ const dashboardsEventMapWidgetBuilder: Record<
 };
 
 export type DashboardsEventParameters = {
+  'dashboards2.create.cancel': {};
+  'dashboards2.create.complete': {};
+  'dashboards2.delete': {};
+  'dashboards2.edit.cancel': {};
+  'dashboards2.edit.complete': {};
+  'dashboards2.edit.start': {};
   'dashboards_manage.change_sort': {
     sort: string;
   };
   'dashboards_manage.create.start': {};
+  'dashboards_manage.delete': {dashboard_id: number};
+  'dashboards_manage.duplicate': {dashboard_id: number};
+  'dashboards_manage.paginate': {};
   'dashboards_manage.search': {};
   'dashboards_manage.templates.add': {
     dashboard_id: string;
@@ -137,6 +146,12 @@ export type DashboardsEventParameters = {
 export type DashboardsEventKey = keyof DashboardsEventParameters;
 
 export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
+  'dashboards2.create.cancel': 'Dashboards2: Create cancel',
+  'dashboards2.create.complete': 'Dashboards2: Create complete',
+  'dashboards2.delete': 'Dashboards2: Delete',
+  'dashboards2.edit.cancel': 'Dashboards2: Edit cancel',
+  'dashboards2.edit.complete': 'Dashboards2: Edit complete',
+  'dashboards2.edit.start': 'Dashboards2: Edit start',
   'dashboards_views.query_selector.opened':
     'Dashboards2: Query Selector opened for Widget',
   'dashboards_views.query_selector.selected':
@@ -151,6 +166,9 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards_manage.search': 'Dashboards Manager: Search',
   'dashboards_manage.change_sort': 'Dashboards Manager: Sort By Changed',
   'dashboards_manage.create.start': 'Dashboards Manager: Dashboard Create Started',
+  'dashboards_manage.delete': 'Dashboards Manager: Dashboard Deleted',
+  'dashboards_manage.duplicate': 'Dashboards Manager: Dashboard Duplicated',
+  'dashboards_manage.paginate': 'Dashboards Manager: Paginate',
   'dashboards_manage.templates.toggle': 'Dashboards Manager: Template Toggle Changed',
   'dashboards_manage.templates.add': 'Dashboards Manager: Template Added',
   'dashboards_manage.templates.preview': 'Dashboards Manager: Template Previewed',

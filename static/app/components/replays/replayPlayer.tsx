@@ -1,33 +1,77 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
-import {Panel as _Panel} from 'sentry/components/panels';
+import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import BufferingOverlay from 'sentry/components/replays/player/bufferingOverlay';
+import FastForwardBadge from 'sentry/components/replays/player/fastForwardBadge';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 
-import BufferingOverlay from './player/bufferingOverlay';
-import FastForwardBadge from './player/fastForwardBadge';
+import PlayerDOMAlert from './playerDOMAlert';
+
+type Dimensions = ReturnType<typeof useReplayContext>['dimensions'];
 
 interface Props {
   className?: string;
-  height?: number;
+  isPreview?: boolean;
 }
 
-function BasePlayerRoot({className, height = Infinity}: Props) {
+function useVideoSizeLogger({
+  videoDimensions,
+  windowDimensions,
+}: {
+  videoDimensions: Dimensions;
+  windowDimensions: Dimensions;
+}) {
+  const organization = useOrganization();
+  const [didLog, setDidLog] = useState<boolean>(false);
+  useEffect(() => {
+    if (didLog || (videoDimensions.width === 0 && videoDimensions.height === 0)) {
+      return;
+    }
+
+    const aspect_ratio =
+      videoDimensions.width > videoDimensions.height ? 'landscape' : 'portrait';
+
+    const scale = Math.min(
+      windowDimensions.width / videoDimensions.width,
+      windowDimensions.height / videoDimensions.height,
+      1
+    );
+    const scale_bucket = (Math.floor(scale * 10) * 10) as Parameters<
+      typeof trackAnalytics<'replay.render-player'>
+    >[1]['scale_bucket'];
+
+    trackAnalytics('replay.render-player', {
+      organization,
+      aspect_ratio,
+      scale_bucket,
+    });
+    setDidLog(true);
+  }, [organization, windowDimensions, videoDimensions, didLog]);
+}
+
+function BasePlayerRoot({className, isPreview = false}: Props) {
   const {
-    initRoot,
     dimensions: videoDimensions,
     fastForwardSpeed,
+    initRoot,
     isBuffering,
+    isFetching,
   } = useReplayContext();
 
   const windowEl = useRef<HTMLDivElement>(null);
   const viewEl = useRef<HTMLDivElement>(null);
 
-  const [windowDimensions, setWindowDimensions] = useState({
+  const [windowDimensions, setWindowDimensions] = useState<Dimensions>({
     width: 0,
     height: 0,
   });
+
+  useVideoSizeLogger({videoDimensions, windowDimensions});
 
   // Create the `rrweb` instance which creates an iframe inside `viewEl`
   useEffect(() => initRoot(viewEl.current), [initRoot]);
@@ -55,11 +99,9 @@ function BasePlayerRoot({className, height = Infinity}: Props) {
   // Update the scale of the view whenever dimensions have changed.
   useEffect(() => {
     if (viewEl.current) {
-      const windowHeight = height === Infinity ? windowDimensions.height : height;
-
       const scale = Math.min(
         windowDimensions.width / videoDimensions.width,
-        windowHeight / videoDimensions.height,
+        windowDimensions.height / videoDimensions.height,
         1
       );
       if (scale) {
@@ -69,55 +111,18 @@ function BasePlayerRoot({className, height = Infinity}: Props) {
         viewEl.current.style.height = `${videoDimensions.height * scale}px`;
       }
     }
-  }, [windowDimensions, videoDimensions, height]);
+  }, [windowDimensions, videoDimensions]);
+
   return (
-    <SizingWindow
-      ref={windowEl}
-      className="sr-block"
-      minHeight={height}
-      isLoaded={videoDimensions.height !== 0}
-    >
+    <NegativeSpaceContainer ref={windowEl} className="sentry-block">
       <div ref={viewEl} className={className} />
       {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
       {isBuffering ? <PositionedBuffering /> : null}
-    </SizingWindow>
+      {isPreview ? null : <PlayerDOMAlert />}
+      {isFetching ? <PositionedLoadingIndicator /> : null}
+    </NegativeSpaceContainer>
   );
 }
-
-// Center the viewEl inside the windowEl.
-// This is useful when the window is inside a container that has large fixed
-// dimensions, like when in fullscreen mode.
-const SizingWindow = styled('div')<{isLoaded: boolean; minHeight: number}>`
-  width: 100%;
-  height: 100%;
-  ${p =>
-    p.isLoaded
-      ? ''
-      : p.minHeight !== Infinity
-      ? `min-height: ${p.minHeight}px !important;`
-      : ''}
-
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-
-  background-color: ${p => p.theme.backgroundSecondary};
-  background-image: repeating-linear-gradient(
-      -145deg,
-      transparent,
-      transparent 8px,
-      ${p => p.theme.backgroundSecondary} 8px,
-      ${p => p.theme.backgroundSecondary} 11px
-    ),
-    repeating-linear-gradient(
-      -45deg,
-      transparent,
-      transparent 15px,
-      ${p => p.theme.gray100} 15px,
-      ${p => p.theme.gray100} 16px
-    );
-`;
 
 const PositionedFastForward = styled(FastForwardBadge)`
   position: absolute;
@@ -133,10 +138,18 @@ const PositionedBuffering = styled(BufferingOverlay)`
   bottom: 0;
 `;
 
+const PositionedLoadingIndicator = styled(LoadingIndicator)`
+  position: absolute;
+`;
+
 // Base styles, to make the Replayer instance work
 const PlayerRoot = styled(BasePlayerRoot)`
   .replayer-wrapper {
     user-select: none;
+  }
+
+  .replayer-wrapper > .replayer-mouse {
+    pointer-events: none;
   }
   .replayer-wrapper > .replayer-mouse-tail {
     position: absolute;
@@ -147,6 +160,9 @@ const PlayerRoot = styled(BasePlayerRoot)`
   .replayer-wrapper > iframe {
     border: none;
     background: white;
+
+    /* Set pointer-events to make it easier to right-click & inspect */
+    pointer-events: initial !important;
   }
 `;
 
@@ -164,7 +180,9 @@ const SentryPlayerRoot = styled(PlayerRoot)`
     position: absolute;
     width: 32px;
     height: 32px;
-    transition: left 0.05s linear, top 0.05s linear;
+    transition:
+      left 0.05s linear,
+      top 0.05s linear;
     background-size: contain;
     background-repeat: no-repeat;
     background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTkiIHZpZXdCb3g9IjAgMCAxMiAxOSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTAgMTZWMEwxMS42IDExLjZINC44TDQuNCAxMS43TDAgMTZaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNOS4xIDE2LjdMNS41IDE4LjJMMC43OTk5OTkgNy4xTDQuNSA1LjZMOS4xIDE2LjdaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNNC42NzQ1MSA4LjYxODUxTDIuODMwMzEgOS4zOTI3MUw1LjkyNzExIDE2Ljc2OTVMNy43NzEzMSAxNS45OTUzTDQuNjc0NTEgOC42MTg1MVoiIGZpbGw9ImJsYWNrIi8+CjxwYXRoIGQ9Ik0xIDIuNFYxMy42TDQgMTAuN0w0LjQgMTAuNkg5LjJMMSAyLjRaIiBmaWxsPSJibGFjayIvPgo8L3N2Zz4K');
@@ -191,11 +209,17 @@ const SentryPlayerRoot = styled(PlayerRoot)`
     margin-left: -37px;
     margin-top: -37px;
     border: 4px solid rgba(73, 80, 246, 0);
-    transition: left 0s linear, top 0s linear, border-color 0.2s ease-in-out;
+    transition:
+      left 0s linear,
+      top 0s linear,
+      border-color 0.2s ease-in-out;
   }
   .replayer-mouse.touch-device.touch-active {
     border-color: ${p => p.theme.purple200};
-    transition: left 0.25s linear, top 0.25s linear, border-color 0.2s ease-in-out;
+    transition:
+      left 0.25s linear,
+      top 0.25s linear,
+      border-color 0.2s ease-in-out;
   }
   .replayer-mouse.touch-device:after {
     opacity: 0;

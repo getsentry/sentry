@@ -2,18 +2,21 @@
 Note: Also see letterAvatar.jsx. Anything changed in this file (how colors are
       selected, the svg, etc) will also need to be changed there.
 """
-from typing import MutableMapping, Optional, TextIO, Union
+from __future__ import annotations
+
+from typing import IO, MutableMapping, Optional, Union
 from urllib.parse import urlencode
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from django.utils.encoding import force_text
-from django.utils.html import escape
-from PIL import Image  # type: ignore
+from django.utils.encoding import force_str
+from django.utils.html import escape, format_html
+from django.utils.safestring import SafeString
+from PIL import Image
 
 from sentry.http import safe_urlopen
-from sentry.utils.hashlib import md5_text
+from sentry.utils.hashlib import sha256_text
 
 
 def get_gravatar_url(
@@ -23,7 +26,7 @@ def get_gravatar_url(
         email = ""
     gravatar_url = "{}/avatar/{}".format(
         settings.SENTRY_GRAVATAR_BASE_URL,
-        md5_text(email.lower()).hexdigest(),
+        sha256_text(email.strip().lower()).hexdigest(),
     )
 
     properties: MutableMapping[str, Union[int, str]] = {}
@@ -55,51 +58,57 @@ LETTER_AVATAR_COLORS = [
 COLOR_COUNT = len(LETTER_AVATAR_COLORS)
 
 
-def hash_user_identifier(identifier: str) -> int:
-    identifier = force_text(identifier, errors="replace")
+def hash_user_identifier(identifier: str | int) -> int:
+    identifier = force_str(identifier, errors="replace")
     return sum(map(ord, identifier))
 
 
-def get_letter_avatar_color(identifier: str) -> str:
+def get_letter_avatar_color(identifier: str | int) -> str:
     hashed_id = hash_user_identifier(identifier)
     return LETTER_AVATAR_COLORS[hashed_id % COLOR_COUNT]
 
 
 def get_letter_avatar(
     display_name: Optional[str],
-    identifier: str,
+    identifier: str | int,
     size: Optional[int] = None,
     use_svg: Optional[bool] = True,
-) -> str:
+    initials: Optional[str] = None,
+    rounded: Optional[bool] = False,
+) -> SafeString:
     display_name = (display_name or "").strip() or "?"
     names = display_name.split(" ")
-    initials = "{}{}".format(names[0][0], names[-1][0] if len(names) > 1 else "")
+    initials = initials or "{}{}".format(names[0][0], names[-1][0] if len(names) > 1 else "")
     initials = escape(initials.upper())
     color = get_letter_avatar_color(identifier)
     if use_svg:
         size_attrs = f'height="{size}" width="{size}"' if size else ""
-        return (
+        return format_html(
             '<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" {size_attrs}>'
             '<rect x="0" y="0" width="120" height="120" rx="15" ry="15" fill={color}></rect>'
             '<text x="50%" y="50%" font-size="65" dominant-baseline="central" text-anchor="middle" fill="#FFFFFF">'
             "{initials}"
             "</text>"
-            "</svg>"
-        ).format(color=color, initials=initials, size_attrs=size_attrs)
+            "</svg>",
+            color=color,
+            initials=initials,
+            size_attrs=size_attrs,
+        )
     else:
         size_attrs = f"height:{size}px;width:{size}px;" if size else ""
         font_size = "font-size:%spx;" % (size / 2) if size else ""
         line_height = "line-height:%spx;" % size if size else ""
-        return (
-            '<span class="html-avatar" '
+        span_class = " rounded" if rounded else ""
+        return format_html(
+            '<span class="html-avatar{span_class}" '
             'style="background-color:{color};{size_attrs}{font_size}{line_height}">'
-            "{initials}</span>"
-        ).format(
+            "{initials}</span>",
             color=color,
             initials=initials,
             size_attrs=size_attrs,
             font_size=font_size,
             line_height=line_height,
+            span_class=span_class,
         )
 
 
@@ -108,7 +117,7 @@ def get_email_avatar(
     identifier: str,
     size: Optional[int] = None,
     try_gravatar: Optional[bool] = True,
-) -> str:
+) -> SafeString:
     if try_gravatar:
         try:
             validate_email(identifier)
@@ -123,11 +132,23 @@ def get_email_avatar(
                 if resp.status_code == 200:
                     # default to mm if including in emails
                     gravatar_url = get_gravatar_url(identifier, size=size)
-                    return f'<img class="avatar" src="{gravatar_url}">'
+                    return format_html('<img class="avatar" src="{}">', gravatar_url)
     return get_letter_avatar(display_name, identifier, size, use_svg=False)
 
 
-def is_black_alpha_only(data: TextIO) -> bool:
+def get_platform_avatar(
+    display_name: Optional[str],
+    size: Optional[int] = None,
+) -> SafeString:
+    # TODO: @taylangocmen add platformicons from package when available
+    return format_html(
+        '<img class="avatar" src="https://raw.githubusercontent.com/getsentry/platformicons/master/svg/{display_name}.svg" height={size}>',
+        display_name=display_name,
+        size=size,
+    )
+
+
+def is_black_alpha_only(data: IO[bytes]) -> bool:
     """Check if an image has only black pixels (with alpha)"""
     result = False
     with Image.open(data) as image:

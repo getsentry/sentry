@@ -1,4 +1,5 @@
 import {lazy, Profiler, Suspense, useCallback, useEffect, useRef} from 'react';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {
@@ -7,6 +8,7 @@ import {
 } from 'sentry/actionCreators/developmentAlerts';
 import {fetchGuides} from 'sentry/actionCreators/guides';
 import {openCommandPalette} from 'sentry/actionCreators/modal';
+import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalModal from 'sentry/components/globalModal';
@@ -17,23 +19,30 @@ import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import isValidOrgSlug from 'sentry/utils/isValidOrgSlug';
 import {onRenderCallback} from 'sentry/utils/performanceForSentry';
 import useApi from 'sentry/utils/useApi';
+import {useColorscheme} from 'sentry/utils/useColorscheme';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
+import type {InstallWizardProps} from 'sentry/views/admin/installWizard';
 
 import SystemAlerts from './systemAlerts';
 
 type Props = {
   children: React.ReactNode;
-};
+} & RouteComponentProps<{orgId?: string}, {}>;
 
-const InstallWizard = lazy(() => import('sentry/views/admin/installWizard'));
+const InstallWizard: React.FC<InstallWizardProps> = lazy(
+  () => import('sentry/views/admin/installWizard')
+);
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
 
 /**
  * App is the root level container for all uathenticated routes.
  */
-function App({children}: Props) {
+function App({children, params}: Props) {
+  useColorscheme();
+
   const api = useApi();
   const config = useLegacyStore(ConfigStore);
 
@@ -42,10 +51,8 @@ function App({children}: Props) {
     [
       {
         match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
-        callback: e => {
-          openCommandPalette();
-          e.preventDefault();
-        },
+        includeInputs: true,
+        callback: () => openCommandPalette(),
       },
     ],
     []
@@ -56,10 +63,9 @@ function App({children}: Props) {
     [
       {
         match: ['command+shift+l', 'ctrl+shift+l'],
-        callback: e => {
-          ConfigStore.set('theme', config.theme === 'light' ? 'dark' : 'light');
-          e.preventDefault();
-        },
+        includeInputs: true,
+        callback: () =>
+          ConfigStore.set('theme', config.theme === 'light' ? 'dark' : 'light'),
       },
     ],
     [config.theme]
@@ -70,7 +76,7 @@ function App({children}: Props) {
    */
   const loadOrganizations = useCallback(async () => {
     try {
-      const data = await api.requestPromise('/organizations/', {query: {member: '1'}});
+      const data = await fetchOrganizations(api, {member: '1'});
       OrganizationsStore.load(data);
     } catch {
       // TODO: do something?
@@ -96,6 +102,21 @@ function App({children}: Props) {
       AlertStore.addAlert({id, message, type, url, opaque: true});
     });
   }, [api]);
+
+  const {sentryUrl} = ConfigStore.get('links');
+  const {orgId} = params;
+  const isOrgSlugValid = orgId ? isValidOrgSlug(orgId) : true;
+
+  useEffect(() => {
+    if (orgId === undefined) {
+      return;
+    }
+
+    if (!isOrgSlugValid) {
+      window.location.replace(sentryUrl);
+      return;
+    }
+  }, [orgId, sentryUrl, isOrgSlugValid]);
 
   useEffect(() => {
     loadOrganizations();
@@ -155,6 +176,10 @@ function App({children}: Props) {
           <NewsletterConsent onSubmitSuccess={clearNewsletterConsent} />
         </Suspense>
       );
+    }
+
+    if (!isOrgSlugValid) {
+      return null;
     }
 
     return children;

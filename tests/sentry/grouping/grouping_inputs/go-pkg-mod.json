@@ -1,0 +1,28 @@
+{
+  "platform": "go",
+  "exception": {
+    "values": [
+      {
+        "type": "*pq.Error",
+        "value": "pq: cannot cast jsonb null to type integer",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "FuncJob.Run",
+              "module": "github.com/robfig/cron/v3",
+              "filename": "/go/pkg/mod/github.com/robfig/cron/v3@v3.0.0/cron.go",
+              "abs_path": "/go/pkg/mod/github.com/robfig/cron/v3@v3.0.0/cron.go"
+            },
+            {
+              "function": "background.func2",
+              "module": "main",
+              "filename": "/my_app/main.go",
+              "abs_path": "/my_app/main.go",
+              "in_app": true
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

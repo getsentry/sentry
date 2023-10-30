@@ -1,7 +1,14 @@
+from __future__ import annotations
+
+import base64
+import copy
+from typing import Any, List
+
 from django.db import models
 from django.utils import timezone
 from django.utils.functional import cached_property
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
+from fido2.ctap2 import AuthenticatorData
 
 from sentry.auth.authenticators import (
     AUTHENTICATOR_CHOICES,
@@ -10,14 +17,18 @@ from sentry.auth.authenticators import (
     available_authenticators,
 )
 from sentry.auth.authenticators.base import EnrollmentStatus
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
-    BaseModel,
     BoundedAutoField,
     BoundedPositiveIntegerField,
-    EncryptedPickledObjectField,
     FlexibleForeignKey,
+    control_silo_only_model,
 )
+from sentry.db.models.fields.picklefield import PickledObjectField
+from sentry.db.models.outboxes import ControlOutboxProducingModel
+from sentry.models.outbox import ControlOutboxBase, OutboxCategory
+from sentry.types.region import find_regions_for_user
 
 
 class AuthenticatorManager(BaseManager):
@@ -34,7 +45,7 @@ class AuthenticatorManager(BaseManager):
         ifaces = [
             x.interface
             for x in Authenticator.objects.filter(
-                user=user,
+                user_id=user.id,
                 type__in=[a.type for a in available_authenticators(ignore_backup=ignore_backup)],
             )
         ]
@@ -64,7 +75,7 @@ class AuthenticatorManager(BaseManager):
         # or if it's missing, we'll need to set it.
         if not force:
             for authenticator in Authenticator.objects.filter(
-                user=user, type__in=[a.type for a in available_authenticators()]
+                user_id=user.id, type__in=[a.type for a in available_authenticators()]
             ):
                 iface = authenticator.interface
                 if iface.is_backup_interface:
@@ -86,15 +97,9 @@ class AuthenticatorManager(BaseManager):
         if interface is None or not interface.is_available:
             raise LookupError("No such interface %r" % interface_id)
         try:
-            return Authenticator.objects.get(user=user, type=interface.type).interface
+            return Authenticator.objects.get(user_id=user.id, type=interface.type).interface
         except Authenticator.DoesNotExist:
             return interface.generate(EnrollmentStatus.NEW)
-
-    def user_has_2fa(self, user):
-        """Checks if the user has any 2FA configured."""
-        return Authenticator.objects.filter(
-            user=user, type__in=[a.type for a in available_authenticators(ignore_backup=True)]
-        ).exists()
 
     def bulk_users_have_2fa(self, user_ids):
         """Checks if a list of user ids have 2FA configured.
@@ -111,15 +116,43 @@ class AuthenticatorManager(BaseManager):
         return {id: id in authenticators for id in user_ids}
 
 
-class Authenticator(BaseModel):
-    __include_in_export__ = True
+class AuthenticatorConfig(PickledObjectField):
+    def _is_devices_config(self, value: Any) -> bool:
+        return isinstance(value, dict) and "devices" in value
+
+    def get_db_prep_value(self, value, *args, **kwargs):
+        if self._is_devices_config(value):
+            # avoid mutating the original object
+            value = copy.deepcopy(value)
+            for device in value["devices"]:
+                # AuthenticatorData is a non-json-serializable bytes subclass
+                if isinstance(device["binding"], AuthenticatorData):
+                    device["binding"] = base64.b64encode(device["binding"]).decode()
+
+        return super().get_db_prep_value(value, *args, **kwargs)
+
+    def to_python(self, value):
+        ret = super().to_python(value)
+        if self._is_devices_config(ret):
+            for device in ret["devices"]:
+                if isinstance(device["binding"], str):
+                    device["binding"] = AuthenticatorData(base64.b64decode(device["binding"]))
+        return ret
+
+
+@control_silo_only_model
+class Authenticator(ControlOutboxProducingModel):
+    # It only makes sense to import/export this data when doing a full global backup/restore, so it
+    # lives in the `Global` scope, even though it only depends on the `User` model.
+    __relocation_scope__ = RelocationScope.Global
 
     id = BoundedAutoField(primary_key=True)
     user = FlexibleForeignKey("sentry.User", db_index=True)
     created_at = models.DateTimeField(_("created at"), default=timezone.now)
     last_used_at = models.DateTimeField(_("last used at"), null=True)
     type = BoundedPositiveIntegerField(choices=AUTHENTICATOR_CHOICES)
-    config = EncryptedPickledObjectField()
+
+    config = AuthenticatorConfig()
 
     objects = AuthenticatorManager()
 
@@ -132,6 +165,14 @@ class Authenticator(BaseModel):
         verbose_name = _("authenticator")
         verbose_name_plural = _("authenticators")
         unique_together = (("user", "type"),)
+
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
+        regions = find_regions_for_user(self.user_id)
+        return OutboxCategory.USER_UPDATE.as_control_outboxes(
+            region_names=regions,
+            shard_identifier=self.user_id,
+            object_identifier=self.user_id,
+        )
 
     @cached_property
     def interface(self):

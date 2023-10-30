@@ -1,0 +1,24 @@
+---
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace
+        frame (marked out of app by stack trace rule (module:sun.* -app))
+          module* (removed codegen marker)
+            "sun.reflect.GeneratedConstructorAccessor<auto>"
+          function*
+            "invoke"
+--------------------------------------------------------------------------
+system:
+  hash: "09e0efcab18f545166318118ed4e0292"
+  component:
+    system*
+      stacktrace*
+        frame* (marked out of app by stack trace rule (module:sun.* -app))
+          module* (removed codegen marker)
+            "sun.reflect.GeneratedConstructorAccessor<auto>"
+          function*
+            "invoke"

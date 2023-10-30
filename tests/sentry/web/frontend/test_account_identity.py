@@ -1,15 +1,16 @@
+import pytest
 from django.urls import reverse
-from django.utils.encoding import force_bytes
-from exam import before
 
 from sentry import identity
 from sentry.identity.providers.dummy import DummyProvider
-from sentry.models import Identity, IdentityProvider, IdentityStatus
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class AccountIdentityTest(TestCase):
-    @before
+    @pytest.fixture(autouse=True)
     def setup_dummy_identity_provider(self):
         identity.register(DummyProvider)
         self.addCleanup(identity.unregister, DummyProvider)
@@ -27,13 +28,13 @@ class AccountIdentityTest(TestCase):
         resp = self.client.get(path)
 
         assert resp.status_code == 200
-        assert resp.context["organization"] == organization
+        assert resp.context["organization"].id == organization.id
         assert isinstance(resp.context["provider"], DummyProvider)
 
         resp = self.client.post(path)
 
         assert resp.status_code == 200
-        assert resp.content == force_bytes(DummyProvider.TEMPLATE)
+        assert resp.content == DummyProvider.TEMPLATE.encode()
 
         resp = self.client.post(path, data={"email": "rick@example.com"})
         ident = Identity.objects.get(user=user)

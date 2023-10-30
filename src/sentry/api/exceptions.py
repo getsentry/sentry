@@ -1,10 +1,17 @@
+from __future__ import annotations
+
 from typing import List, Optional
 
+from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.exceptions import APIException
 
-from sentry.utils.auth import make_login_link_with_redirect
+from sentry.app import env
+from sentry.models.organization import Organization
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
+from sentry.utils.auth import construct_link_with_query
+from sentry.utils.http import is_using_customer_domain
 
 
 class ResourceDoesNotExist(APIException):
@@ -54,11 +61,19 @@ class SsoRequired(SentryAPIException):
     code = "sso-required"
     message = "Must login via SSO"
 
-    def __init__(self, organization, after_login_redirect=None):
+    def __init__(
+        self,
+        organization: Organization | RpcOrganization,
+        after_login_redirect=None,
+    ):
         login_url = reverse("sentry-auth-organization", args=[organization.slug])
+        request = env.request
+        if request and is_using_customer_domain(request):
+            login_url = organization.absolute_url(path=login_url)
 
         if after_login_redirect:
-            login_url = make_login_link_with_redirect(login_url, after_login_redirect)
+            query_params = {REDIRECT_FIELD_NAME: after_login_redirect}
+            login_url = construct_link_with_query(path=login_url, query_params=query_params)
 
         super().__init__(loginUrl=login_url)
 
@@ -78,6 +93,11 @@ class SuperuserRequired(SentryAPIException):
     status_code = status.HTTP_403_FORBIDDEN
     code = "superuser-required"
     message = "You need to re-authenticate for superuser."
+
+
+class DataSecrecyError(SentryAPIException):
+    status_code = status.HTTP_401_UNAUTHORIZED
+    code = "data-secrecy"
 
 
 class SudoRequired(SentryAPIException):
@@ -128,3 +148,9 @@ class ConflictError(APIException):
 
 class InvalidRepository(Exception):
     pass
+
+
+class RequestTimeout(SentryAPIException):
+    status_code = status.HTTP_408_REQUEST_TIMEOUT
+    code = "request-timeout"
+    message = "Proxied request timed out"

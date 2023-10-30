@@ -1,13 +1,15 @@
+from functools import cached_property
 from urllib.parse import quote
 
 from django.urls import reverse
-from exam import fixture
 
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class AuthLogoutTest(TestCase):
-    @fixture
+    @cached_property
     def path(self):
         return reverse("sentry-logout")
 

@@ -1,41 +1,59 @@
 import ExternalLink from 'sentry/components/links/externalLink';
+import {DEFAULT_QUERY} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 
 export enum Query {
-  FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
+  FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
+  NEW = 'is:new',
+  ARCHIVED = 'is:archived',
+  ESCALATING = 'is:escalating',
+  REGRESSED = 'is:regressed',
   REPROCESSING = 'is:reprocessing',
 }
 
+export const CUSTOM_TAB_VALUE = '__custom__';
+
 type OverviewTab = {
-  /** Emitted analytics event tab name  */
+  /**
+   * Emitted analytics event tab name
+   */
   analyticsName: string;
-  /** Will fetch a count to display on this tab */
+  /**
+   * Will fetch a count to display on this tab
+   */
   count: boolean;
-  /** Tabs can be disabled via flag */
+  /**
+   * Tabs can be disabled via flag
+   */
   enabled: boolean;
   name: string;
-  /** Tooltip text for each tab */
-  tooltipTitle: React.ReactNode;
-  /** Tooltip text to be hoverable when text has links */
+  hidden?: boolean;
+  /**
+   * Tooltip text to be hoverable when text has links
+   */
   tooltipHoverable?: boolean;
+  /**
+   * Tooltip text for each tab
+   */
+  tooltipTitle?: React.ReactNode;
 };
 
 /**
  * Get a list of currently active tabs
  */
 export function getTabs(organization: Organization) {
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
   const tabs: Array<[string, OverviewTab]> = [
     [
       Query.UNRESOLVED,
       {
-        name: t('All Unresolved'),
+        name: hasEscalatingIssuesUi ? t('Unresolved') : t('All Unresolved'),
         analyticsName: 'unresolved',
         count: true,
         enabled: true,
-        tooltipTitle: t(`All unresolved issues.`),
       },
     ],
     [
@@ -45,10 +63,40 @@ export function getTabs(organization: Organization) {
         analyticsName: 'needs_review',
         count: true,
         enabled: true,
-        tooltipTitle:
-          t(`Issues are marked for review when they are created, unresolved, or unignored.
+        tooltipTitle: hasEscalatingIssuesUi
+          ? t(
+              'Issues are marked for review if they are new or escalating, and have not been resolved or archived. Issues are automatically marked reviewed in 7 days.'
+            )
+          : t(`Issues are marked for review when they are created, unresolved, or unignored.
           Mark an issue reviewed to move it out of this list.
           Issues are automatically marked reviewed in 7 days.`),
+      },
+    ],
+    [
+      Query.REGRESSED,
+      {
+        name: t('Regressed'),
+        analyticsName: 'regressed',
+        count: true,
+        enabled: hasEscalatingIssuesUi,
+      },
+    ],
+    [
+      Query.ESCALATING,
+      {
+        name: t('Escalating'),
+        analyticsName: 'escalating',
+        count: true,
+        enabled: hasEscalatingIssuesUi,
+      },
+    ],
+    [
+      Query.ARCHIVED,
+      {
+        name: t('Archived'),
+        analyticsName: 'archived',
+        count: true,
+        enabled: hasEscalatingIssuesUi,
       },
     ],
     [
@@ -57,7 +105,7 @@ export function getTabs(organization: Organization) {
         name: t('Ignored'),
         analyticsName: 'ignored',
         count: true,
-        enabled: true,
+        enabled: !hasEscalatingIssuesUi,
         tooltipTitle: t(`Ignored issues don’t trigger alerts. When their ignore
         conditions are met they become Unresolved and are flagged for review.`),
       },
@@ -79,6 +127,19 @@ export function getTabs(organization: Organization) {
           }
         ),
         tooltipHoverable: true,
+      },
+    ],
+    [
+      // Hidden tab to account for custom queries that don't match any of the queries
+      // above. It's necessary because if Tabs's value doesn't match that of any tab item
+      // then Tabs will fall back to a default value, causing unexpected behaviors.
+      CUSTOM_TAB_VALUE,
+      {
+        name: t('Custom'),
+        analyticsName: 'custom',
+        hidden: true,
+        count: false,
+        enabled: true,
       },
     ],
   ];
@@ -114,8 +175,13 @@ export enum IssueSortOptions {
   PRIORITY = 'priority',
   FREQ = 'freq',
   USER = 'user',
-  TREND = 'trend',
   INBOX = 'inbox',
+}
+
+export const DEFAULT_ISSUE_STREAM_SORT = IssueSortOptions.DATE;
+
+export function isDefaultIssueStreamSearch({query, sort}: {query: string; sort: string}) {
+  return query === DEFAULT_QUERY && sort === DEFAULT_ISSUE_STREAM_SORT;
 }
 
 export function getSortLabel(key: string) {
@@ -128,8 +194,6 @@ export function getSortLabel(key: string) {
       return t('Events');
     case IssueSortOptions.USER:
       return t('Users');
-    case IssueSortOptions.TREND:
-      return t('Relative Change');
     case IssueSortOptions.INBOX:
       return t('Date Added');
     case IssueSortOptions.DATE:
@@ -152,3 +216,8 @@ export const DISCOVER_EXCLUSION_FIELDS: string[] = [
   'is',
   '__text',
 ];
+
+export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW];
+
+export const SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY =
+  'issue-stream-saved-searches-sidebar-open';

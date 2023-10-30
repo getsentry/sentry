@@ -2,12 +2,15 @@ from collections import defaultdict
 from typing import Any, Iterable, Mapping, MutableMapping, Optional, Set, Union
 
 from sentry.api.serializers import Serializer
-from sentry.models import NotificationSetting, Team, User
-from sentry.notifications.helpers import get_fallback_settings
-from sentry.notifications.types import VALID_VALUES_FOR_KEY, NotificationSettingTypes
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.team import Team
+from sentry.models.user import User
+from sentry.notifications.types import NotificationSettingTypes
+from sentry.services.hybrid_cloud.organization import RpcTeam
+from sentry.services.hybrid_cloud.user import RpcUser
 
 
-class NotificationSettingsSerializer(Serializer):  # type: ignore
+class NotificationSettingsSerializer(Serializer):
     """
     This Serializer fetches and serializes NotificationSettings for a list of
     targets (users or teams.) Pass filters like `project=project` and
@@ -19,7 +22,7 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         item_list: Iterable[Union["Team", "User"]],
         user: User,
         **kwargs: Any,
-    ) -> Mapping[Union["Team", "User"], Mapping[str, Iterable[Any]]]:
+    ) -> MutableMapping[Union["Team", "User"], MutableMapping[str, Set[Any]]]:
         """
         This takes a list of recipients (which are either Users or Teams,
         because both can have Notification Settings). The function
@@ -33,36 +36,40 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
             - type: NotificationSettingTypes enum value. e.g. WORKFLOW, DEPLOY.
         """
         type_option: Optional[NotificationSettingTypes] = kwargs.get("type")
-        actor_mapping = {recipient.actor_id: recipient for recipient in item_list}
+
+        team_map = {t.id: t for t in item_list if isinstance(t, (Team, RpcTeam))}
+        user_map = {u.id: u for u in item_list if isinstance(u, (User, RpcUser))}
 
         notifications_settings = NotificationSetting.objects._filter(
             type=type_option,
-            target_ids=actor_mapping.keys(),
+            team_ids=list(team_map.keys()),
+            user_ids=list(user_map.keys()),
         )
 
-        results: MutableMapping[Union["Team", "User"], MutableMapping[str, Set[Any]]] = defaultdict(
+        result: MutableMapping[Union[Team, User], MutableMapping[str, Set[Any]]] = defaultdict(
             lambda: defaultdict(set)
         )
+        for _, team in team_map.items():
+            result[team]["settings"] = set()
+        for _, user in user_map.items():
+            result[user]["settings"] = set()
 
         for notifications_setting in notifications_settings:
-            target = actor_mapping.get(notifications_setting.target_id)
-            results[target]["settings"].add(notifications_setting)
-
-        for recipient in item_list:
-            # This works because both User and Team models implement `get_projects`.
-            results[recipient]["projects"] = recipient.get_projects()
-
-            if type(recipient) == Team:
-                results[recipient]["organizations"] = {recipient.organization}
-
-            if type(recipient) == User:
-                results[recipient]["organizations"] = user.get_orgs()
-
-        return results
+            if notifications_setting.user_id:
+                target_user = user_map[notifications_setting.user_id]
+                result[target_user]["settings"].add(notifications_setting)
+            elif notifications_setting.team_id:
+                target_team = team_map[notifications_setting.team_id]
+                result[target_team]["settings"].add(notifications_setting)
+            else:
+                raise ValueError(
+                    f"NotificationSetting {notifications_setting.id} has neither team_id nor user_id"
+                )
+        return result
 
     def serialize(
         self,
-        obj: Union["Team", "User"],
+        obj: Union[Team, User],
         attrs: Mapping[str, Iterable[Any]],
         user: User,
         **kwargs: Any,
@@ -93,27 +100,13 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         :param kwargs: The same `kwargs` as `get_attrs`.
         :returns A mapping. See example.
         """
-        type_option: Optional[NotificationSettingTypes] = kwargs.get("type")
-        types_to_serialize = {type_option} if type_option else set(VALID_VALUES_FOR_KEY.keys())
 
-        project_ids = {_.id for _ in attrs["projects"]}
-        organization_ids = {_.id for _ in attrs["organizations"]}
-
-        data = get_fallback_settings(
-            types_to_serialize,
-            project_ids,
-            organization_ids,
-            recipient=obj,
-        )
+        data: MutableMapping[
+            str, MutableMapping[str, MutableMapping[int, MutableMapping[str, str]]]
+        ] = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
 
         # Forgive the variable name, I wanted the following lines to be legible.
         for n in attrs["settings"]:
-            # Filter out invalid notification settings.
-            if (n.scope_str == "project" and n.scope_identifier not in project_ids) or (
-                n.scope_str == "organization" and n.scope_identifier not in organization_ids
-            ):
-                continue
-
             # Override the notification settings.
             data[n.type_str][n.scope_str][n.scope_identifier][n.provider_str] = n.value_str
         return data

@@ -4,15 +4,22 @@ import logging
 from typing import TYPE_CHECKING, Mapping, Sequence
 
 from sentry import features
-from sentry.models import Group, GroupAssignee, Project, User
+from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.services.hybrid_cloud.util import region_silo_function
 from sentry.tasks.integrations import sync_assignee_outbound
 
 if TYPE_CHECKING:
-    from sentry.models import Integration, Organization
+    from sentry.services.hybrid_cloud.integration import RpcIntegration
 
 
+@region_silo_function
 def where_should_sync(
-    integration: Integration,
+    integration: RpcIntegration,
     key: str,
     organization_id: int | None = None,
 ) -> Sequence[Organization]:
@@ -22,14 +29,21 @@ def where_should_sync(
     check the integration for that organization.
     """
     kwargs = dict()
-    if organization_id:
+    if organization_id is not None:
         kwargs["id"] = organization_id
+        ois = integration_service.get_organization_integrations(
+            integration_id=integration.id, organization_id=organization_id
+        )
+    else:
+        ois = integration_service.get_organization_integrations(integration_id=integration.id)
+
+    organizations = Organization.objects.filter(id__in=[oi.organization_id for oi in ois])
 
     return [
         organization
-        for organization in integration.organizations.filter(**kwargs)
+        for organization in organizations.filter(**kwargs)
         if features.has("organizations:integrations-issue-sync", organization)
-        and integration.get_installation(organization.id).should_sync(key)
+        and integration.get_installation(organization_id=organization.id).should_sync(key)
     ]
 
 
@@ -45,8 +59,9 @@ def get_user_id(projects_by_user: Mapping[int, Sequence[int]], group: Group) -> 
     return user_ids[0]
 
 
+@region_silo_function
 def sync_group_assignee_inbound(
-    integration: Integration,
+    integration: RpcIntegration,
     email: str | None,
     external_issue_key: str,
     assign: bool = True,
@@ -73,7 +88,7 @@ def sync_group_assignee_inbound(
             GroupAssignee.objects.deassign(group)
         return affected_groups
 
-    users = User.objects.get_for_email(email, case_sensitive=False)
+    users = user_service.get_many_by_email(emails=[email], is_verified=True)
     users_by_id = {user.id: user for user in users}
     projects_by_user = Project.objects.get_by_users(users)
 
@@ -97,7 +112,7 @@ def sync_group_assignee_inbound(
 
 
 def sync_group_assignee_outbound(group: Group, user_id: int | None, assign: bool = True) -> None:
-    from sentry.models import GroupLink
+    from sentry.models.grouplink import GroupLink
 
     external_issue_ids = GroupLink.objects.filter(
         project_id=group.project_id, group_id=group.id, linked_type=GroupLink.LinkedType.issue

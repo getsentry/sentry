@@ -1,15 +1,21 @@
+from functools import cached_property
 from unittest.mock import patch
 
-from exam import fixture
+from django.db import router
 
-from sentry.models import OrganizationMember, Project
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
 from sentry.signals import event_processed, transaction_processed
-from sentry.testutils import TestCase
+from sentry.silo import unguarded_write
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 class RecordFirstTransactionTest(TestCase):
-    @fixture
+    @cached_property
     def min_ago(self):
         return iso_format(before_now(minutes=1))
 
@@ -84,7 +90,8 @@ class RecordFirstTransactionTest(TestCase):
         )
 
     def test_analytics_event_no_owner(self):
-        OrganizationMember.objects.filter(organization=self.organization, role="owner").delete()
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
+            OrganizationMember.objects.filter(organization=self.organization, role="owner").delete()
         assert not self.project.flags.has_transactions
         event = self.store_event(
             data={

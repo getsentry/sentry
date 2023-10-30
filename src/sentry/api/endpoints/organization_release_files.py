@@ -3,13 +3,21 @@ import logging
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.project_release_files import ReleaseFilesMixin
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Release
+from sentry.models.release import Release
 
 
+@region_silo_endpoint
 class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseFilesMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization, version) -> Response:
         """
         List an Organization Release's Files
@@ -20,6 +28,8 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, Release
         :pparam string organization_slug: the slug of the organization the
                                           release belongs to.
         :pparam string version: the version identifier of the release.
+        :qparam string query: If set, only files with these partial names will be returned.
+        :qparam string checksum: If set, only files with these exact checksums will be returned.
         :auth: required
         """
         try:

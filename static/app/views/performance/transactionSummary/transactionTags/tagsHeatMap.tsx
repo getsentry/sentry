@@ -1,9 +1,11 @@
 import {Fragment, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
-import {Popper} from 'react-popper';
+import {usePopper} from 'react-popper';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useOverlay} from '@react-aria/overlays';
+import {useOverlayTriggerState} from '@react-stately/overlays';
 import {truncate} from '@sentry/utils';
-import classNames from 'classnames';
 import type {VisualMapComponentOption} from 'echarts';
 import {Location} from 'history';
 import memoize from 'lodash/memoize';
@@ -12,21 +14,16 @@ import HeatMapChart from 'sentry/components/charts/heatMapChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {Content} from 'sentry/components/dropdownControl';
-import DropdownMenu from 'sentry/components/dropdownMenu';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels';
+import {Overlay, PositionWrapper} from 'sentry/components/overlay';
+import Panel from 'sentry/components/panels/panel';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {
-  DropdownContainer,
-  DropdownItem,
-  SectionSubtext,
-} from 'sentry/components/quickTrace/styles';
+import {DropdownItem, SectionSubtext} from 'sentry/components/quickTrace/styles';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
@@ -94,12 +91,12 @@ const getPortal = memoize((): HTMLElement => {
   return portal;
 });
 
-const TagsHeatMap = (
+function TagsHeatMap(
   props: Props & {
     isLoading: boolean;
     tableData: TagTableData | null;
   }
-) => {
+) {
   const {
     tableData,
     isLoading,
@@ -113,10 +110,13 @@ const TagsHeatMap = (
 
   const chartRef = useRef<ReactEchartsRef>(null);
   const [chartElement, setChartElement] = useState<VirtualReference | undefined>();
+  const [overlayElement, setOverlayElement] = useState<HTMLElement | null>(null);
+  const [overlayArrowElement, setOverlayArrowElement] = useState<HTMLElement | null>(
+    null
+  );
   const [transactionEventView, setTransactionEventView] = useState<
     EventView | undefined
   >();
-  const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
 
   // TODO(k-fish): Replace with actual theme colors.
   const purples = ['#D1BAFC', '#9282F3', '#6056BA', '#313087', '#021156'];
@@ -185,7 +185,7 @@ const TagsHeatMap = (
         show: true,
         showMinLabel: true,
         showMaxLabel: true,
-        formatter: (value: number) => axisLabelFormatter(value, 'Count'),
+        formatter: (value: number) => axisLabelFormatter(value, 'number'),
       },
       axisLine: {},
       axisPointer: {
@@ -238,21 +238,158 @@ const TagsHeatMap = (
     } as any); // TODO(k-fish): Fix heatmap data typing
   }
 
-  const onOpenMenu = () => {
-    setIsMenuOpen(true);
-  };
+  const onChartClick = bucket => {
+    const htmlEvent = bucket.event.event;
+    // Make a copy of the dims because echarts can remove elements after this click happens.
+    // TODO(k-fish): Look at improving this to respond properly to resize events.
+    const virtualRef = new VirtualReference(htmlEvent.target);
+    setChartElement(virtualRef);
 
-  const onCloseMenu = () => {
-    setIsMenuOpen(false);
-  };
+    const newTransactionEventView = eventView.clone();
 
-  const shouldIgnoreMenuClose = e => {
-    if (chartRef.current?.getEchartsInstance().getDom().contains(e.target)) {
-      // Ignore the menu being closed if the echart is being clicked.
-      return true;
+    newTransactionEventView.fields = [{field: aggregateColumn}];
+    const [_, tagValue] = bucket.value;
+
+    if (histogramBucketInfo && histogramData) {
+      const row = histogramData[bucket.dataIndex];
+      const currentBucketStart = parseInt(
+        `${row[histogramBucketInfo.histogramField]}`,
+        10
+      );
+      const currentBucketEnd = currentBucketStart + histogramBucketInfo.bucketSize;
+
+      newTransactionEventView.additionalConditions.setFilterValues(aggregateColumn, [
+        `>=${currentBucketStart}`,
+        `<${currentBucketEnd}`,
+      ]);
     }
-    return false;
+
+    if (tagKey) {
+      newTransactionEventView.additionalConditions.setFilterValues(tagKey, [tagValue]);
+    }
+
+    setTransactionEventView(newTransactionEventView);
+    trackTagPageInteraction(organization);
+
+    if (!overlayState.isOpen) {
+      overlayState.open();
+    }
   };
+
+  const overlayState = useOverlayTriggerState({});
+  const {overlayProps} = useOverlay(
+    {
+      isOpen: overlayState.isOpen,
+      onClose: overlayState.close,
+      isDismissable: true,
+      shouldCloseOnBlur: true,
+      // Ignore the menu being closed if the echart is being clicked.
+      shouldCloseOnInteractOutside: el =>
+        !chartRef.current?.getEchartsInstance().getDom().contains(el),
+    },
+    {current: overlayElement ?? null}
+  );
+
+  const {styles: popperStyles, state: popperState} = usePopper(
+    chartElement,
+    overlayElement,
+    {
+      placement: 'bottom',
+      strategy: 'absolute',
+      modifiers: [
+        {name: 'computeStyles', options: {gpuAcceleration: false}},
+        {name: 'offset', options: {offset: [0, 8]}},
+        {name: 'arrow', options: {element: overlayArrowElement, padding: 4}},
+        {name: 'preventOverflow', enabled: true, options: {padding: 12, altAxis: true}},
+      ],
+    }
+  );
+
+  const theme = useTheme();
+  const portaledContent =
+    !chartElement || !overlayState.isOpen ? null : (
+      <PositionWrapper
+        ref={setOverlayElement}
+        zIndex={theme.zIndex.dropdown}
+        style={popperStyles.popper}
+        {...overlayProps}
+      >
+        <Overlay
+          arrowProps={{
+            ref: setOverlayArrowElement,
+            style: popperStyles.arrow,
+            placement: popperState?.placement,
+          }}
+        >
+          {transactionEventView && (
+            <TagTransactionsQuery
+              query={transactionEventView.getQueryWithAdditionalConditions()}
+              location={location}
+              eventView={transactionEventView}
+              orgSlug={organization.slug}
+              limit={4}
+              referrer="api.performance.tag-page"
+            >
+              {({isLoading: isTransactionsLoading, tableData: transactionTableData}) => {
+                if (isTransactionsLoading) {
+                  return (
+                    <LoadingContainer>
+                      <LoadingIndicator size={40} hideMessage />
+                    </LoadingContainer>
+                  );
+                }
+
+                const moreEventsTarget = eventsRouteWithQuery({
+                  orgSlug: organization.slug,
+                  transaction: transactionName,
+                  projectID: decodeScalar(location.query.project),
+                  query: {
+                    ...transactionEventView.generateQueryStringObject(),
+                    query: transactionEventView.getQueryWithAdditionalConditions(),
+                  },
+                });
+
+                return (
+                  <div>
+                    {!transactionTableData?.data.length ? <Placeholder /> : null}
+                    {[...(transactionTableData?.data ?? [])].slice(0, 3).map(row => {
+                      const target = generateTransactionLink(transactionName)(
+                        organization,
+                        row,
+                        location.query
+                      );
+
+                      return (
+                        <DropdownItem width="small" key={row.id} to={target}>
+                          <DropdownItemContainer>
+                            <Truncate value={row.id} maxLength={12} />
+                            <SectionSubtext>
+                              <PerformanceDuration
+                                milliseconds={Number(row[aggregateColumn])}
+                                abbreviation
+                              />
+                            </SectionSubtext>
+                          </DropdownItemContainer>
+                        </DropdownItem>
+                      );
+                    })}
+                    {moreEventsTarget &&
+                    transactionTableData &&
+                    transactionTableData.data.length > 3 ? (
+                      <DropdownItem width="small" to={moreEventsTarget}>
+                        <DropdownItemContainer>
+                          {t('View all events')}
+                        </DropdownItemContainer>
+                      </DropdownItem>
+                    ) : null}
+                  </div>
+                );
+              }}
+            </TagTransactionsQuery>
+          )}
+        </Overlay>
+      </PositionWrapper>
+    );
 
   const histogramBucketInfo = histogramData && parseHistogramBucketInfo(histogramData[0]);
 
@@ -271,173 +408,25 @@ const TagsHeatMap = (
 
       <TransitionChart loading={isLoading} reloading={isLoading}>
         <TransparentLoadingMask visible={isLoading} />
-        <DropdownMenu
-          onOpen={onOpenMenu}
-          onClose={onCloseMenu}
-          shouldIgnoreClickOutside={shouldIgnoreMenuClose}
-        >
-          {({isOpen, getMenuProps, actions}) => {
-            const onChartClick = bucket => {
-              const htmlEvent = bucket.event.event;
-              // Make a copy of the dims because echarts can remove elements after this click happens.
-              // TODO(k-fish): Look at improving this to respond properly to resize events.
-              const virtualRef = new VirtualReference(htmlEvent.target);
-              setChartElement(virtualRef);
-
-              const newTransactionEventView = eventView.clone();
-
-              newTransactionEventView.fields = [{field: aggregateColumn}];
-              const [_, tagValue] = bucket.value;
-
-              if (histogramBucketInfo && histogramData) {
-                const row = histogramData[bucket.dataIndex];
-                const currentBucketStart = parseInt(
-                  `${row[histogramBucketInfo.histogramField]}`,
-                  10
-                );
-                const currentBucketEnd =
-                  currentBucketStart + histogramBucketInfo.bucketSize;
-
-                newTransactionEventView.additionalConditions.setFilterValues(
-                  aggregateColumn,
-                  [`>=${currentBucketStart}`, `<${currentBucketEnd}`]
-                );
-              }
-
-              if (tagKey) {
-                newTransactionEventView.additionalConditions.setFilterValues(tagKey, [
-                  tagValue,
-                ]);
-              }
-
-              setTransactionEventView(newTransactionEventView);
-              trackTagPageInteraction(organization);
-
-              if (!isMenuOpen) {
-                actions.open();
-              }
-            };
-
-            const portaledContent = !chartElement ? null : (
-              <Popper referenceElement={chartElement} placement="bottom">
-                {({ref, style, placement}) => {
-                  const transactionInfo = !transactionEventView ? null : (
-                    <TagTransactionsQuery
-                      query={transactionEventView.getQueryWithAdditionalConditions()}
-                      location={location}
-                      eventView={transactionEventView}
-                      orgSlug={organization.slug}
-                      limit={4}
-                      referrer="api.performance.tag-page"
-                    >
-                      {({
-                        isLoading: isTransactionsLoading,
-                        tableData: transactionTableData,
-                      }) => {
-                        if (isTransactionsLoading) {
-                          return (
-                            <LoadingContainer>
-                              <LoadingIndicator size={40} hideMessage />
-                            </LoadingContainer>
-                          );
-                        }
-
-                        const moreEventsTarget = eventsRouteWithQuery({
-                          orgSlug: organization.slug,
-                          transaction: transactionName,
-                          projectID: decodeScalar(location.query.project),
-                          query: {
-                            ...transactionEventView.generateQueryStringObject(),
-                            query:
-                              transactionEventView.getQueryWithAdditionalConditions(),
-                          },
-                        });
-
-                        return (
-                          <div>
-                            {!transactionTableData?.data.length ? <Placeholder /> : null}
-                            {[...transactionTableData?.data].slice(0, 3).map(row => {
-                              const target = generateTransactionLink(transactionName)(
-                                organization,
-                                row,
-                                location.query
-                              );
-
-                              return (
-                                <DropdownItem width="small" key={row.id} to={target}>
-                                  <DropdownItemContainer>
-                                    <Truncate value={row.id} maxLength={12} />
-                                    <SectionSubtext>
-                                      <PerformanceDuration
-                                        milliseconds={row[aggregateColumn]}
-                                        abbreviation
-                                      />
-                                    </SectionSubtext>
-                                  </DropdownItemContainer>
-                                </DropdownItem>
-                              );
-                            })}
-                            {moreEventsTarget &&
-                            transactionTableData &&
-                            transactionTableData.data.length > 3 ? (
-                              <DropdownItem width="small" to={moreEventsTarget}>
-                                <DropdownItemContainer>
-                                  {t('View all events')}
-                                </DropdownItemContainer>
-                              </DropdownItem>
-                            ) : null}
-                          </div>
-                        );
-                      }}
-                    </TagTransactionsQuery>
-                  );
-
-                  return (
-                    <StyledDropdownContainer
-                      ref={ref}
-                      style={style}
-                      className="anchor-middle"
-                      data-placement={placement}
-                    >
-                      <StyledDropdownContent
-                        {...getMenuProps({
-                          className: classNames('dropdown-menu'),
-                        })}
-                        isOpen={isOpen}
-                        alignMenu="right"
-                        blendCorner={false}
-                      >
-                        {transactionInfo}
-                      </StyledDropdownContent>
-                    </StyledDropdownContainer>
-                  );
-                }}
-              </Popper>
-            );
-
-            return (
-              <Fragment>
-                {createPortal(<div>{portaledContent}</div>, getPortal())}
-                {getDynamicText({
-                  value: (
-                    <HeatMapChart
-                      ref={chartRef}
-                      visualMaps={visualMaps}
-                      series={series}
-                      onClick={onChartClick}
-                      {...chartOptions}
-                    />
-                  ),
-                  fixed: <Placeholder height="290px" testId="skeleton-ui" />,
-                })}
-              </Fragment>
-            );
-          }}
-        </DropdownMenu>
+        <Fragment>
+          {createPortal(<div>{portaledContent}</div>, getPortal())}
+          {getDynamicText({
+            value: (
+              <HeatMapChart
+                ref={chartRef}
+                visualMaps={visualMaps}
+                series={series}
+                onClick={onChartClick}
+                {...chartOptions}
+              />
+            ),
+            fixed: <Placeholder height="290px" testId="skeleton-ui" />,
+          })}
+        </Fragment>
       </TransitionChart>
     </StyledPanel>
   );
-};
+}
 
 const LoadingContainer = styled('div')`
   width: 200px;
@@ -454,17 +443,6 @@ const DropdownItemContainer = styled('div')`
   flex-direction: row;
 
   justify-content: space-between;
-`;
-
-const StyledDropdownContainer = styled(DropdownContainer)`
-  z-index: ${p => p.theme.zIndex.dropdown};
-`;
-
-const StyledDropdownContent = styled(Content)`
-  right: auto;
-  transform: translate(-50%);
-
-  overflow: visible;
 `;
 
 const StyledPanel = styled(Panel)`

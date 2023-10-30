@@ -1,11 +1,11 @@
-import {withRouter, WithRouterProps} from 'react-router';
 import {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
 import Link, {LinkProps} from 'sentry/components/links/link';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
+import {useLocation} from 'sentry/utils/useLocation';
 
-interface Props extends WithRouterProps {
+interface Props {
   /**
    * Location that is being linked to
    */
@@ -33,7 +33,8 @@ interface Props extends WithRouterProps {
  * Falls back to <a> if there is no router present.
  */
 function GlobalSelectionLink(props: Props) {
-  const {location, to} = props;
+  const {to} = props;
+  const location = useLocation();
 
   const globalQuery = extractSelectionParameters(location?.query);
   const hasGlobalQuery = Object.keys(globalQuery).length > 0;
@@ -72,4 +73,4 @@ function GlobalSelectionLink(props: Props) {
   return <a {...props} href={url} />;
 }
 
-export default withRouter(GlobalSelectionLink);
+export default GlobalSelectionLink;

@@ -1,7 +1,7 @@
 from django.db.models import Count
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import Broadcast, BroadcastSeen
+from sentry.models.broadcast import Broadcast, BroadcastSeen
 
 
 @register(Broadcast)
@@ -11,7 +11,7 @@ class BroadcastSerializer(Serializer):
             seen = set()
         else:
             seen = set(
-                BroadcastSeen.objects.filter(broadcast__in=item_list, user=user).values_list(
+                BroadcastSeen.objects.filter(broadcast__in=item_list, user_id=user.id).values_list(
                     "broadcast", flat=True
                 )
             )

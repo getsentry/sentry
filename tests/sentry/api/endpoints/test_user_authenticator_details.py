@@ -3,16 +3,20 @@ from unittest import mock
 
 from django.conf import settings
 from django.core import mail
-from django.db.models import F
 from django.utils import timezone
 from fido2.ctap2 import AuthenticatorData
 from fido2.utils import sha256
 from rest_framework import status
 
-from sentry.auth.authenticators import RecoveryCodeInterface, SmsInterface, TotpInterface
+from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
+from sentry.auth.authenticators.sms import SmsInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.authenticators.u2f import create_credential_object
-from sentry.models import Authenticator, Organization, User
-from sentry.testutils import APITestCase
+from sentry.models.authenticator import Authenticator
+from sentry.models.organization import Organization
+from sentry.models.user import User
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
 def get_auth(user: User) -> Authenticator:
@@ -94,7 +98,7 @@ def assert_security_email_sent(email_type: str) -> None:
         "mfa-added": "An authenticator has been added to your Sentry account",
         "mfa-removed": "An authenticator has been removed from your Sentry account",
         "recovery-codes-regenerated": "Recovery codes have been regenerated for your Sentry account",
-    }.get(email_type)
+    }[email_type]
     assert len(mail.outbox) == 1
     assert body_fragment in mail.outbox[0].body
 
@@ -104,10 +108,12 @@ class UserAuthenticatorDetailsTestBase(APITestCase):
         self.login_as(user=self.user)
 
     def _require_2fa_for_organization(self) -> None:
-        organization = self.create_organization(name="test monkey", owner=self.user)
-        organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
+        self.create_organization(
+            name="test monkey", owner=self.user, flags=Organization.flags.require_2fa
+        )
 
 
+@control_silo_test(stable=True)
 class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
     endpoint = "sentry-api-0-user-authenticator-device-details"
     method = "delete"
@@ -184,6 +190,7 @@ class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
         )
 
 
+@control_silo_test
 class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
     endpoint = "sentry-api-0-user-authenticator-details"
 
@@ -193,6 +200,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
     def test_get_authenticator_details(self):
         interface = TotpInterface()
         interface.enroll(self.user)
+        assert interface.authenticator is not None
         auth = interface.authenticator
 
         response = self.get_success_response(self.user.id, auth.id)
@@ -209,6 +217,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
     def test_get_recovery_codes(self):
         interface = RecoveryCodeInterface()
         interface.enroll(self.user)
+        assert interface.authenticator is not None
 
         with self.tasks():
             response = self.get_success_response(self.user.id, interface.authenticator.id)
@@ -242,6 +251,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         interface = SmsInterface()
         interface.phone_number = "5551231234"
         interface.enroll(self.user)
+        assert interface.authenticator is not None
 
         response = self.get_success_response(self.user.id, interface.authenticator.id)
         assert response.data["id"] == "sms"
@@ -321,6 +331,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         # enroll in one auth method
         interface = TotpInterface()
         interface.enroll(self.user)
+        assert interface.authenticator is not None
         auth = interface.authenticator
 
         with self.tasks():
@@ -342,21 +353,26 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         superuser = self.create_user(email="a@example.com", is_superuser=True)
         self.login_as(user=superuser, superuser=True)
 
-        # enroll in one auth method
-        interface = TotpInterface()
-        interface.enroll(self.user)
-        auth = interface.authenticator
+        new_options = settings.SENTRY_OPTIONS.copy()
+        new_options["sms.twilio-account"] = "twilio-account"
 
-        with self.tasks():
-            self.get_success_response(
-                self.user.id,
-                auth.id,
-                method="delete",
-                status_code=status.HTTP_204_NO_CONTENT,
-            )
-            assert_security_email_sent("mfa-removed")
+        with self.settings(SENTRY_OPTIONS=new_options):
+            # enroll in one auth method
+            interface = TotpInterface()
+            interface.enroll(self.user)
+            assert interface.authenticator is not None
+            auth = interface.authenticator
 
-        assert not Authenticator.objects.filter(id=auth.id).exists()
+            with self.tasks():
+                self.get_success_response(
+                    self.user.id,
+                    auth.id,
+                    method="delete",
+                    status_code=status.HTTP_204_NO_CONTENT,
+                )
+                assert_security_email_sent("mfa-removed")
+
+            assert not Authenticator.objects.filter(id=auth.id).exists()
 
     def test_require_2fa__delete_with_multiple_auth__ok(self):
         self._require_2fa_for_organization()
@@ -366,12 +382,13 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
 
         with self.settings(SENTRY_OPTIONS=new_options):
             # enroll in two auth methods
-            interface = SmsInterface()
-            interface.phone_number = "5551231234"
-            interface.enroll(self.user)
+            interface_sms = SmsInterface()
+            interface_sms.phone_number = "5551231234"
+            interface_sms.enroll(self.user)
 
             interface = TotpInterface()
             interface.enroll(self.user)
+            assert interface.authenticator is not None
             auth = interface.authenticator
 
             with self.tasks():

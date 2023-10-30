@@ -2,7 +2,8 @@ from collections import defaultdict
 from typing import Iterable
 
 from sentry.api.serializers import Serializer
-from sentry.models import NotificationSetting, UserOption
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.options.user_option import UserOption
 from sentry.notifications.types import FineTuningAPIKey, NotificationScopeType
 from sentry.notifications.utils.legacy_mappings import (
     get_type_from_fine_tuning_key,
@@ -15,16 +16,14 @@ def handle_legacy(notification_type: FineTuningAPIKey, users: Iterable) -> Itera
     """For EMAIL and REPORTS, check UserOptions."""
     filter_args = {}
     if notification_type == FineTuningAPIKey.EMAIL:
-        filter_args["project__isnull"] = False
+        filter_args["project_id__isnull"] = False
 
     key = {
         FineTuningAPIKey.EMAIL: "mail:email",
         FineTuningAPIKey.REPORTS: "reports:disabled-organizations",
     }.get(notification_type)
 
-    return UserOption.objects.filter(key=key, user__in=users, **filter_args).select_related(
-        "user", "project", "organization"
-    )
+    return UserOption.objects.filter(key=key, user__in=users, **filter_args).select_related("user")
 
 
 class UserNotificationsSerializer(Serializer):
@@ -34,13 +33,13 @@ class UserNotificationsSerializer(Serializer):
         if not type:
             data = handle_legacy(notification_type, item_list)
         else:
-            actor_mapping = {user.actor_id: user for user in item_list}
+            user_mapping = {user.id: user for user in item_list}
             notifications_settings = NotificationSetting.objects._filter(
                 ExternalProviders.EMAIL,
                 get_type_from_fine_tuning_key(notification_type),
-                target_ids=actor_mapping.keys(),
+                user_ids=list(user_mapping.keys()),
             ).exclude(scope_type=NotificationScopeType.USER.value)
-            data = map_notification_settings_to_legacy(notifications_settings, actor_mapping)
+            data = map_notification_settings_to_legacy(notifications_settings, user_mapping)
 
         results = defaultdict(list)
         for uo in data:
@@ -59,8 +58,8 @@ class UserNotificationsSerializer(Serializer):
                 # This UserOption should have both project + organization = None
                 for org_id in uo.value:
                     data[org_id] = "0"
-            elif uo.project is not None:
-                data[uo.project.id] = str(uo.value)
-            elif uo.organization is not None:
-                data[uo.organization.id] = str(uo.value)
+            elif uo.project_id is not None:
+                data[uo.project_id] = str(uo.value)
+            elif uo.organization_id is not None:
+                data[uo.organization_id] = str(uo.value)
         return data

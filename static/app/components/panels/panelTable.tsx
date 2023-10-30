@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import Panel from './panel';
 
@@ -13,20 +13,16 @@ export type PanelTableProps = {
    * Headers of the table.
    */
   headers: React.ReactNode[];
-
   /**
    * The body of the table. Make sure the number of children elements are
    * multiples of the length of headers.
    */
   children?: React.ReactNode | (() => React.ReactNode);
-
   className?: string;
-
   /**
    * Renders without predefined padding on the header and body cells
    */
   disablePadding?: boolean;
-
   /**
    * Action to display when isEmpty is true
    */
@@ -35,22 +31,18 @@ export type PanelTableProps = {
    * Message to use for `<EmptyStateWarning>`
    */
   emptyMessage?: React.ReactNode;
-
   /**
    * Displays an `<EmptyStateWarning>` if true
    */
   isEmpty?: boolean;
-
   /**
    * If this is true, then display a loading indicator
    */
   isLoading?: boolean;
-
   /**
    * A custom loading indicator.
    */
   loader?: React.ReactNode;
-
   /**
    * If true, scrolling headers out of view will pin to the top of container.
    */
@@ -71,7 +63,7 @@ export type PanelTableProps = {
  *       with `headers`. Then we can get rid of that gross `> *` selector
  * - [ ] Allow customization of wrappers (Header and body cells if added)
  */
-const PanelTable = ({
+function PanelTable({
   headers,
   children,
   isLoading,
@@ -83,7 +75,7 @@ const PanelTable = ({
   loader,
   stickyHeaders = false,
   ...props
-}: PanelTableProps) => {
+}: PanelTableProps) {
   const shouldShowLoading = isLoading === true;
   const shouldShowEmptyMessage = !shouldShowLoading && isEmpty;
   const shouldShowContent = !shouldShowLoading && !shouldShowEmptyMessage;
@@ -97,7 +89,7 @@ const PanelTable = ({
       {...props}
     >
       {headers.map((header, i) => (
-        <PanelTableHeader key={i} sticky={stickyHeaders}>
+        <PanelTableHeader key={i} sticky={stickyHeaders} data-test-id="table-header">
           {header}
         </PanelTableHeader>
       ))}
@@ -116,7 +108,7 @@ const PanelTable = ({
       {shouldShowContent && getContent(children)}
     </Wrapper>
   );
-};
+}
 
 function getContent(children: PanelTableProps['children']) {
   if (typeof children === 'function') {
@@ -153,7 +145,7 @@ const Wrapper = styled(Panel, {
     }
   }
 
-  > ${/* sc-selector */ TableEmptyStateWarning}, > ${/* sc-selector */ LoadingWrapper} {
+  > ${TableEmptyStateWarning}, > ${LoadingWrapper} {
     border: none;
     grid-column: auto / span ${p => p.columns};
   }

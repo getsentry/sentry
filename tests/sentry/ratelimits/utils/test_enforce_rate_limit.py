@@ -1,12 +1,12 @@
-from django.conf.urls import url
 from django.test import override_settings
-from freezegun import freeze_time
+from django.urls import re_path
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -28,8 +28,8 @@ class RateLimitUnenforcedEndpoint(RateLimitTestEndpoint):
 
 
 urlpatterns = [
-    url(r"^/enforced$", RateLimitEnforcedEndpoint.as_view(), name="enforced-endpoint"),
-    url(r"^/unenforced$", RateLimitUnenforcedEndpoint.as_view(), name="unenforced-endpoint"),
+    re_path(r"^/enforced$", RateLimitEnforcedEndpoint.as_view(), name="enforced-endpoint"),
+    re_path(r"^/unenforced$", RateLimitUnenforcedEndpoint.as_view(), name="unenforced-endpoint"),
 ]
 
 

@@ -1,3 +1,6 @@
+# this must import first
+import sentry._importchecker  # NOQA isort:skip
+
 import importlib.metadata
 import os
 import os.path

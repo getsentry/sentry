@@ -1,14 +1,18 @@
-import {components as selectComponents, MultiValueProps} from 'react-select';
+import {
+  components as selectComponents,
+  MultiValueProps,
+  OptionTypeBase,
+} from 'react-select';
 import styled from '@emotion/styled';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import {InviteStatus} from './types';
 
-function renderEmailValue<Option>(
+function renderEmailValue<Option extends OptionTypeBase>(
   status: InviteStatus[string],
   valueProps: MultiValueProps<Option>
 ) {
@@ -23,8 +27,8 @@ function renderEmailValue<Option>(
         <EmailLabel>
           {children}
           {!status.sent && !status.error && <SendingIndicator />}
-          {status.error && <IconWarning size="10px" />}
-          {status.sent && <IconCheckmark size="10px" color="success" />}
+          {status.error && <IconWarning legacySize="10px" />}
+          {status.sent && <IconCheckmark legacySize="10px" color="success" />}
         </EmailLabel>
       </Tooltip>
     );

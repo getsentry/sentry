@@ -1,0 +1,22 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+  <p>
+    Hi there,
+</p><p>
+    We found an issue with your {{ integration_name }} integration.</p><p>
+    To restore the connection, please click the big purple button and reinstall the integration.</p><p>
+  </p>
+  <p>
+    <a href="{{ integration_link }}" class="btn"> Fix my {{ integration_name }} integration </a>
+  </p>
+  <p>If you need additional assistance, you can reach out to our support team at <a href=https://help.sentry.io/>help.sentry.io</a>.</p>
+  <p>Happy fixing,</p><p>
+    Sentry
+  </p>
+  <p class="via">
+    You are receiving this email because you’re listed as an organization Owner.</a>
+  </p>
+{% endblock %}

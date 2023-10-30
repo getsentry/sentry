@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 import re
 from dataclasses import dataclass
-from typing import Any, List, Optional, Tuple, Union
+from typing import List, Optional, Set, Tuple, Union
 
 from parsimonious.exceptions import ParseError
-from parsimonious.grammar import Grammar, NodeVisitor
+from parsimonious.grammar import Grammar
+from parsimonious.nodes import NodeVisitor
 
 from sentry.exceptions import InvalidSearchQuery
+from sentry.search.events.constants import TOTAL_COUNT_ALIAS, TOTAL_TRANSACTION_DURATION_ALIAS
 
 # prefix on fields so we know they're equations
 EQUATION_PREFIX = "equation|"
@@ -36,7 +40,7 @@ class ArithmeticValidationError(ArithmeticError):
 
 
 OperandType = Union["Operation", float, str]
-JsonQueryType = List[Union[str, float, List[Any]]]
+JsonQueryType = List[Union[str, List[Union[str, float, None, "JsonQueryType"]]]]
 
 
 class Operation:
@@ -68,7 +72,7 @@ class Operation:
         if isinstance(lhs, str):
             lhs = ["toFloat64", [lhs]]
         rhs = self.rhs.to_snuba_json() if isinstance(self.rhs, Operation) else self.rhs
-        result = [self.operator, [lhs, rhs]]
+        result: JsonQueryType = [self.operator, [lhs, rhs]]
         if alias:
             result.append(alias)
         return result
@@ -159,6 +163,8 @@ class ArithmeticVisitor(NodeVisitor):
         "measurements.fid",
         "measurements.ttfb",
         "measurements.ttfb.requesttime",
+        TOTAL_COUNT_ALIAS,
+        TOTAL_TRANSACTION_DURATION_ALIAS,
     }
     function_allowlist = {
         "count",
@@ -181,15 +187,17 @@ class ArithmeticVisitor(NodeVisitor):
         "epm",
         "count_miserable",
         "count_web_vitals",
+        "percentile_range",
     }
 
-    def __init__(self, max_operators: int):
+    def __init__(self, max_operators: int | None, custom_measurements: Optional[Set[str]]):
         super().__init__()
         self.operators: int = 0
         self.terms: int = 0
         self.max_operators = max_operators if max_operators else self.DEFAULT_MAX_OPERATORS
         self.fields: set[str] = set()
         self.functions: set[str] = set()
+        self.custom_measurements: set[str] = custom_measurements or set()
 
     def visit_term(self, _, children):
         maybe_factor, remaining_adds = children
@@ -261,7 +269,7 @@ class ArithmeticVisitor(NodeVisitor):
 
     def visit_field_value(self, node, _):
         field = node.text
-        if field not in self.field_allowlist:
+        if field not in self.field_allowlist and field not in self.custom_measurements:
             raise ArithmeticValidationError(f"{field} not allowed in arithmetic")
         self.fields.add(field)
         return field
@@ -280,7 +288,9 @@ class ArithmeticVisitor(NodeVisitor):
 
 
 def parse_arithmetic(
-    equation: str, max_operators: Optional[int] = None
+    equation: str,
+    max_operators: Optional[int] = None,
+    custom_measurements: Optional[Set[str]] = None,
 ) -> Tuple[Operation, List[str], List[str]]:
     """Given a string equation try to parse it into a set of Operations"""
     try:
@@ -289,8 +299,14 @@ def parse_arithmetic(
         raise ArithmeticParseError(
             "Unable to parse your equation, make sure it is well formed arithmetic"
         )
-    visitor = ArithmeticVisitor(max_operators)
+    visitor = ArithmeticVisitor(max_operators, custom_measurements)
     result = visitor.visit(tree)
+    # total count is the exception to the no mixing rule
+    if (
+        visitor.fields.intersection({TOTAL_COUNT_ALIAS, TOTAL_TRANSACTION_DURATION_ALIAS})
+        and len(visitor.functions) > 0
+    ):
+        return result, list(visitor.fields), list(visitor.functions)
     if len(visitor.fields) > 0 and len(visitor.functions) > 0:
         raise ArithmeticValidationError("Cannot mix functions and fields in arithmetic")
     if visitor.terms <= 1:
@@ -306,7 +322,8 @@ def resolve_equation_list(
     aggregates_only: Optional[bool] = False,
     auto_add: Optional[bool] = False,
     plain_math: Optional[bool] = False,
-) -> Tuple[List[str], List[Operation], List[bool]]:
+    custom_measurements: Optional[Set[str]] = None,
+) -> Tuple[List[str], List[ParsedEquation]]:
     """Given a list of equation strings, resolve them to their equivalent snuba json query formats
     :param equations: list of equations strings that haven't been parsed yet
     :param selected_columns: list of public aliases from the endpoint, can be a mix of fields and aggregates
@@ -319,7 +336,7 @@ def resolve_equation_list(
     parsed_equations: List[ParsedEquation] = []
     resolved_columns: List[str] = selected_columns[:]
     for index, equation in enumerate(equations):
-        parsed_equation, fields, functions = parse_arithmetic(equation)
+        parsed_equation, fields, functions = parse_arithmetic(equation, None, custom_measurements)
 
         if (len(fields) == 0 and len(functions) == 0) and not plain_math:
             raise InvalidSearchQuery("Equations need to include a field or function")

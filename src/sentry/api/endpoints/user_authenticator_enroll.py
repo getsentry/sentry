@@ -8,20 +8,30 @@ from rest_framework.fields import SkipField
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import ratelimits as ratelimiter
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import email_verification_required, sudo_required
-from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
+from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.api.serializers import serialize
-from sentry.app import ratelimiter
-from sentry.auth.authenticators.base import EnrollmentStatus
-from sentry.models import Authenticator
+from sentry.auth.authenticators.base import EnrollmentStatus, NewEnrollmentDisallowed
+from sentry.auth.authenticators.sms import SMSRateLimitExceeded
+from sentry.models.authenticator import Authenticator
+from sentry.models.user import User
 from sentry.security import capture_security_activity
+from sentry.services.hybrid_cloud.organization import organization_service
 
 logger = logging.getLogger(__name__)
 
 ALREADY_ENROLLED_ERR = {"details": "Already enrolled"}
+INVALID_AUTH_STATE = {"details": "Invalid auth state"}
 INVALID_OTP_ERR = ({"details": "Invalid OTP"},)
 SEND_SMS_ERR = {"details": "Error sending SMS"}
+DISALLOWED_NEW_ENROLLMENT_ERR = {
+    "details": "New enrollments for this 2FA interface are not allowed"
+}
 
 
 class TotpRestSerializer(serializers.Serializer):
@@ -61,7 +71,7 @@ class U2fRestSerializer(serializers.Serializer):
         allow_blank=True,
         max_length=60,
         trim_whitespace=False,
-        default=lambda: petname.Generate(2, " ", letters=10).title(),
+        default=lambda: petname.generate(2, " ", letters=10).title(),
     )
     challenge = serializers.CharField(required=True, trim_whitespace=False)
     response = serializers.CharField(required=True, trim_whitespace=False)
@@ -96,9 +106,16 @@ def get_serializer_field_metadata(serializer, fields=None):
     return meta
 
 
+@control_silo_endpoint
 class UserAuthenticatorEnrollEndpoint(UserEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.ENTERPRISE
+
     @sudo_required
-    def get(self, request: Request, user, interface_id) -> Response:
+    def get(self, request: Request, user, interface_id) -> HttpResponse:
         """
         Get Authenticator Interface
         ```````````````````````````
@@ -148,7 +165,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
     @sudo_required
     @email_verification_required
-    def post(self, request: Request, user, interface_id) -> Response:
+    def post(self, request: Request, user, interface_id) -> HttpResponse:
         """
         Enroll in authenticator interface
         `````````````````````````````````
@@ -170,6 +187,8 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             )
 
         # Using `request.user` here because superuser should not be able to set a user's 2fa
+        if user.id != request.user.id:
+            user = User.objects.get(id=request.user.id)
 
         # start activation
         serializer_cls = serializer_map.get(interface_id, None)
@@ -182,7 +201,12 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        interface = Authenticator.objects.get_interface(request.user, interface_id)
+        interface = Authenticator.objects.get_interface(user, interface_id)
+
+        # Check if the 2FA interface allows new enrollment, if not we should error
+        # on any POSTs
+        if interface.disallow_new_enrollment:
+            return Response(DISALLOWED_NEW_ENROLLMENT_ERR, status=status.HTTP_403_FORBIDDEN)
 
         # Not all interfaces allow multi enrollment
         #
@@ -209,11 +233,22 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             # Disregarding value of 'otp', if no OTP was provided,
             # send text message to phone number with OTP
             if "otp" not in request.data:
-                if interface.send_text(for_enrollment=True, request=request._request):
-                    return Response(status=status.HTTP_204_NO_CONTENT)
-                else:
-                    # Error sending text message
-                    return Response(SEND_SMS_ERR, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                try:
+                    if interface.send_text(for_enrollment=True, request=request._request):
+                        return Response(status=status.HTTP_204_NO_CONTENT)
+                    else:
+                        # Error sending text message
+                        return Response(SEND_SMS_ERR, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                except SMSRateLimitExceeded as e:
+                    logger.warning(
+                        "auth-enroll.sms.rate-limit-exceeded",
+                        extra={
+                            "remote_ip": f"{e.remote_ip}",
+                            "user_id": f"{e.user_id}",
+                            "phone_number": f"{e.phone_number}",
+                        },
+                    )
+                    return Response(SEND_SMS_ERR, status=status.HTTP_429_TOO_MANY_REQUESTS)
 
         # Attempt to validate OTP
         if "otp" in request.data and not interface.validate_otp(serializer.data["otp"]):
@@ -221,7 +256,8 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
         # Try u2f enrollment
         if interface_id == "u2f":
-            # What happens when this fails?
+            if "webauthn_register_state" not in request.session:
+                return Response(INVALID_AUTH_STATE, status=status.HTTP_400_BAD_REQUEST)
             state = request.session["webauthn_register_state"]
             interface.try_enroll(
                 serializer.data["challenge"],
@@ -235,32 +271,46 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             interface.rotate_in_place()
         else:
             try:
-                interface.enroll(request.user)
+                interface.enroll(user)
             except Authenticator.AlreadyEnrolled:
                 return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
+            except NewEnrollmentDisallowed:
+                return Response(DISALLOWED_NEW_ENROLLMENT_ERR, status=status.HTTP_403_FORBIDDEN)
 
         context.update({"authenticator": interface.authenticator})
         capture_security_activity(
-            account=request.user,
+            account=user,
             type="mfa-added",
-            actor=request.user,
+            actor=user,
             ip_address=request.META["REMOTE_ADDR"],
             context=context,
             send_email=True,
         )
-        request.user.clear_lost_passwords()
-        request.user.refresh_session_nonce(self.request)
-        request.user.save()
-        Authenticator.objects.auto_add_recovery_codes(request.user)
+
+        user.clear_lost_passwords()
+        user.refresh_session_nonce(self.request)
+        user.save()
+        Authenticator.objects.auto_add_recovery_codes(user)
 
         response = Response(status=status.HTTP_204_NO_CONTENT)
 
         # If there is a pending organization invite accept after the
         # authenticator has been configured.
-        invite_helper = ApiInviteHelper.from_cookie(request=request, instance=self, logger=logger)
+        request.user = (
+            user  # Load in the canonical user object so the invite helper references it correctly.
+        )
+        invite_helper = ApiInviteHelper.from_session(request=request, logger=logger)
 
-        if invite_helper and invite_helper.valid_request:
-            invite_helper.accept_invite()
-            remove_invite_cookie(request, response)
+        if invite_helper:
+            if invite_helper.member_already_exists:
+                invite_helper.handle_member_already_exists()
+                organization_service.delete_organization_member(
+                    organization_member_id=invite_helper.invite_context.invite_organization_member_id,
+                    organization_id=invite_helper.invite_context.organization.id,
+                )
+                remove_invite_details_from_session(request)
+            elif invite_helper.valid_request:
+                invite_helper.accept_invite()
+                remove_invite_details_from_session(request)
 
         return response

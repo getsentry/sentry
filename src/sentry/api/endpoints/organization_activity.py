@@ -1,17 +1,25 @@
-from functools import reduce
-
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import EnvironmentMixin
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import OrganizationActivitySerializer, serialize
-from sentry.models import Activity, OrganizationMemberTeam, Project
+from sentry.models.activity import Activity
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.types.activity import ActivityType
 
 
+@region_silo_endpoint
 class OrganizationActivityEndpoint(OrganizationMemberEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.ISSUES
+
     def get(self, request: Request, organization, member) -> Response:
         # There is an activity record created for both sides of the unmerge
         # operation, so we only need to include one of them here to avoid
@@ -52,18 +60,19 @@ class OrganizationActivityEndpoint(OrganizationMemberEndpoint, EnvironmentMixin)
 
         union_qs = Activity.objects.none()
         if project_ids:
-            union_qs = reduce(
-                lambda qs1, qs2: qs1.union(qs2, all=True),
-                [
-                    base_qs.filter(project_id=project)[: paginator.max_limit]
-                    for project in project_ids
-                ],
-            )
+            projects_qs = [
+                base_qs.filter(project_id=project)[: paginator.max_limit] for project in project_ids
+            ]
+
+            if len(project_ids) > 1:
+                union_qs = union_qs.union(*projects_qs, all=True)
+            else:
+                union_qs = projects_qs[0]
 
         # We do `select_related` here to make the unions less heavy. This way we only join these
         # table for the rows we actually want.
         queryset = Activity.objects.filter(id__in=union_qs[: paginator.max_limit]).select_related(
-            "project", "group", "user"
+            "project", "group"
         )
 
         return self.paginate(

@@ -1,2 +1,2 @@
 # Give users an hour to complete.
-INTEGRATION_EXPIRATION_TTL = 60 * 60
+PIPELINE_STATE_TTL = 60 * 60

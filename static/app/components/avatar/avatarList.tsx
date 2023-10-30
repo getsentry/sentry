@@ -1,73 +1,81 @@
-import {Component} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import Tooltip from 'sentry/components/tooltip';
-import {AvatarUser} from 'sentry/types';
+import {Tooltip} from 'sentry/components/tooltip';
+import {AvatarUser, Team} from 'sentry/types';
 
-const defaultProps = {
-  avatarSize: 28,
-  maxVisibleAvatars: 5,
-  typeMembers: 'users',
-  tooltipOptions: {},
-};
-
-type DefaultProps = Readonly<typeof defaultProps>;
-type Mutable<T> = {-readonly [P in keyof T]: T[P]};
+type UserAvatarProps = React.ComponentProps<typeof UserAvatar>;
 
 type Props = {
-  tooltipOptions: Mutable<UserAvatar['props']['tooltipOptions']>;
-  users: AvatarUser[];
+  avatarSize?: number;
   className?: string;
-  renderTooltip?: UserAvatar['props']['renderTooltip'];
-} & DefaultProps;
+  maxVisibleAvatars?: number;
+  renderTooltip?: UserAvatarProps['renderTooltip'];
+  teams?: Team[];
+  tooltipOptions?: UserAvatarProps['tooltipOptions'];
+  typeAvatars?: string;
+  users?: AvatarUser[];
+};
 
-export default class AvatarList extends Component<Props> {
-  static defaultProps = defaultProps;
+function AvatarList({
+  avatarSize = 28,
+  maxVisibleAvatars = 5,
+  typeAvatars = 'users',
+  tooltipOptions = {},
+  className,
+  users = [],
+  teams = [],
+  renderTooltip,
+}: Props) {
+  const numTeams = teams.length;
+  const numVisibleTeams = maxVisibleAvatars - numTeams > 0 ? numTeams : maxVisibleAvatars;
+  const maxVisibleUsers =
+    maxVisibleAvatars - numVisibleTeams > 0 ? maxVisibleAvatars - numVisibleTeams : 0;
+  // Reverse the order since css flex-reverse is used to display the avatars
+  const visibleTeamAvatars = teams.slice(0, numVisibleTeams).reverse();
+  const visibleUserAvatars = users.slice(0, maxVisibleUsers).reverse();
+  const numCollapsedAvatars = users.length - visibleUserAvatars.length;
 
-  render() {
-    const {
-      className,
-      users,
-      avatarSize,
-      maxVisibleAvatars,
-      renderTooltip,
-      typeMembers,
-      tooltipOptions,
-    } = this.props;
-
-    const visibleUsers = users.slice(0, maxVisibleAvatars);
-    const numCollapsedUsers = users.length - visibleUsers.length;
-
-    if (!tooltipOptions.position) {
-      tooltipOptions.position = 'top';
-    }
-
-    return (
-      <AvatarListWrapper className={className}>
-        {!!numCollapsedUsers && (
-          <Tooltip title={`${numCollapsedUsers} other ${typeMembers}`}>
-            <CollapsedUsers size={avatarSize} data-test-id="avatarList-collapsedusers">
-              {numCollapsedUsers < 99 && <Plus>+</Plus>}
-              {numCollapsedUsers}
-            </CollapsedUsers>
-          </Tooltip>
-        )}
-        {visibleUsers.map(user => (
-          <StyledAvatar
-            key={`${user.id}-${user.email}`}
-            user={user}
-            size={avatarSize}
-            renderTooltip={renderTooltip}
-            tooltipOptions={tooltipOptions}
-            hasTooltip
-          />
-        ))}
-      </AvatarListWrapper>
-    );
+  if (!tooltipOptions.position) {
+    tooltipOptions.position = 'top';
   }
+
+  return (
+    <AvatarListWrapper className={className}>
+      {!!numCollapsedAvatars && (
+        <Tooltip title={`${numCollapsedAvatars} other ${typeAvatars}`}>
+          <CollapsedAvatars size={avatarSize} data-test-id="avatarList-collapsedavatars">
+            {numCollapsedAvatars < 99 && <Plus>+</Plus>}
+            {numCollapsedAvatars}
+          </CollapsedAvatars>
+        </Tooltip>
+      )}
+      {visibleUserAvatars.map(user => (
+        <StyledUserAvatar
+          key={`${user.id}-${user.email}`}
+          user={user}
+          size={avatarSize}
+          renderTooltip={renderTooltip}
+          tooltipOptions={tooltipOptions}
+          hasTooltip
+        />
+      ))}
+      {visibleTeamAvatars.map(team => (
+        <StyledTeamAvatar
+          key={`${team.id}-${team.name}`}
+          team={team}
+          size={avatarSize}
+          tooltipOptions={tooltipOptions}
+          hasTooltip
+        />
+      ))}
+    </AvatarListWrapper>
+  );
 }
+
+export default AvatarList;
 
 // used in releases list page to do some alignment
 export const AvatarListWrapper = styled('div')`
@@ -75,8 +83,7 @@ export const AvatarListWrapper = styled('div')`
   flex-direction: row-reverse;
 `;
 
-const Circle = p => css`
-  border-radius: 50%;
+const AvatarStyle = p => css`
   border: 2px solid ${p.theme.background};
   margin-left: -8px;
   cursor: default;
@@ -86,12 +93,18 @@ const Circle = p => css`
   }
 `;
 
-const StyledAvatar = styled(UserAvatar)`
+const StyledUserAvatar = styled(UserAvatar)`
   overflow: hidden;
-  ${Circle};
+  border-radius: 50%;
+  ${AvatarStyle};
 `;
 
-const CollapsedUsers = styled('div')<{size: number}>`
+const StyledTeamAvatar = styled(TeamAvatar)`
+  overflow: hidden;
+  ${AvatarStyle}
+`;
+
+const CollapsedAvatars = styled('div')<{size: number}>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -103,7 +116,8 @@ const CollapsedUsers = styled('div')<{size: number}>`
   font-size: ${p => Math.floor(p.size / 2.3)}px;
   width: ${p => p.size}px;
   height: ${p => p.size}px;
-  ${Circle};
+  border-radius: 50%;
+  ${AvatarStyle};
 `;
 
 const Plus = styled('span')`

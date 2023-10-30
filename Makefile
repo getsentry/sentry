@@ -1,8 +1,12 @@
+.PHONY: all
+all: develop
+
 PIP := python -m pip --disable-pip-version-check
 WEBPACK := yarn build-acceptance
+POSTGRES_CONTAINER := sentry_postgres
 
 freeze-requirements:
-	@python -S -m tools.freeze_requirements
+	@python3 -S -m tools.freeze_requirements
 
 bootstrap \
 develop \
@@ -47,7 +51,8 @@ build-api-docs: build-deprecated-docs build-spectacular-docs
 	yarn deref-api-docs
 
 watch-api-docs:
-	@ts-node api-docs/watch.ts
+	@cd api-docs/ && yarn install
+	@cd api-docs/ && ts-node ./watch.ts
 
 diff-api-docs:
 	@echo "--> diffing local api docs against sentry-api-schema/openapi-derefed.json"
@@ -90,10 +95,10 @@ fetch-release-registry:
 
 run-acceptance:
 	@echo "--> Running acceptance tests"
-	pytest tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml"
+	pytest tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml"
 	@echo ""
 
-test-cli:
+test-cli: create-db
 	@echo "--> Testing CLI"
 	rm -rf test_cli
 	mkdir test_cli
@@ -120,43 +125,68 @@ test-js-ci: node-version-check
 	@yarn run test-ci
 	@echo ""
 
-test-python-ci:
+test-python-ci: create-db
 	@echo "--> Running CI Python tests"
-	pytest tests/integration tests/sentry \
-		--ignore tests/sentry/eventstream/kafka \
-		--ignore tests/sentry/snuba \
-		--ignore tests/sentry/search/events \
-		--ignore tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
-		--cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
+	pytest \
+		tests \
+		--ignore tests/acceptance \
+		--ignore tests/apidocs \
+		--ignore tests/js \
+		--ignore tests/tools \
+		--cov . --cov-report="xml:.artifacts/python.coverage.xml"
 	@echo ""
 
-test-snuba:
+# it's not possible to change settings.DATABASE after django startup, so
+# unfortunately these tests must be run in a separate pytest process. References:
+#   * https://docs.djangoproject.com/en/4.2/topics/testing/tools/#overriding-settings
+#   * https://code.djangoproject.com/ticket/19031
+#   * https://github.com/pombredanne/django-database-constraints/blob/master/runtests.py#L61-L77
+test-monolith-dbs: create-db
+	@echo "--> Running CI Python tests (SENTRY_USE_MONOLITH_DBS=1)"
+	SENTRY_LEGACY_TEST_SUITE=1 \
+	SENTRY_USE_MONOLITH_DBS=1 \
+	pytest \
+	  tests/sentry/backup/test_exhaustive.py \
+	  tests/sentry/backup/test_exports.py \
+	  tests/sentry/backup/test_imports.py \
+	  tests/sentry/backup/test_releases.py \
+	  tests/sentry/runner/commands/test_backup.py \
+	  --cov . \
+	  --cov-report="xml:.artifacts/python.monolith-dbs.coverage.xml" \
+	;
+	@echo ""
+
+test-snuba: create-db
 	@echo "--> Running snuba tests"
+	pytest tests \
+		-m snuba_ci \
+		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml"
+	@echo ""
+
+# snuba-full runs on API changes in Snuba
+test-snuba-full: create-db
+	@echo "--> Running full snuba tests"
 	pytest tests/snuba \
 		tests/sentry/eventstream/kafka \
+		tests/sentry/post_process_forwarder \
 		tests/sentry/snuba \
 		tests/sentry/search/events \
-		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
+		tests/sentry/event_manager \
+		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml"
+	pytest tests -vv -m snuba_ci
 	@echo ""
 
 test-tools:
 	@echo "--> Running tools tests"
-	pytest -c /dev/null --confcutdir tests/tools tests/tools -vv --cov=tools --cov=tests/tools --cov-report="xml:.artifacts/tools.coverage.xml" --junit-xml=".artifacts/tools.junit.xml"
+	pytest -c /dev/null --confcutdir tests/tools tests/tools -vv --cov=tools --cov=tests/tools --cov-report="xml:.artifacts/tools.coverage.xml"
 	@echo ""
 
-backend-typing:
-	@echo "--> Running Python typing checks"
-	mypy --strict --warn-unreachable --config-file mypy.ini
-	@echo ""
-
-test-symbolicator:
+# JavaScript relay tests are meant to be run within Symbolicator test suite, as they are parametrized to verify both processing pipelines during migration process.
+# Running Locally: Run `sentry devservices up kafka` before starting these tests
+test-symbolicator: create-db
 	@echo "--> Running symbolicator tests"
-	pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml" --junit-xml=".artifacts/symbolicator.junit.xml"
-	@echo ""
-
-test-chartcuterie:
-	@echo "--> Running chartcuterie tests"
-	pytest tests/chartcuterie -vv --cov . --cov-report="xml:.artifacts/chartcuterie.coverage.xml" --junit-xml=".artifacts/chartcuterie.junit.xml"
+	pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml"
+	pytest tests/relay_integration/lang/javascript/ -vv -m symbolicator
 	@echo ""
 
 test-acceptance: node-version-check
@@ -164,17 +194,13 @@ test-acceptance: node-version-check
 	@$(WEBPACK)
 	make run-acceptance
 
-test-plugins:
-	@echo "--> Running plugin tests"
-	pytest tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml" || exit 1
-	@echo ""
-
+# XXX: this is called by `getsentry/relay`
 test-relay-integration:
 	@echo "--> Running Relay integration tests"
 	pytest \
 		tests/relay_integration \
 		tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
-		-vv --cov . --cov-report="xml:.artifacts/relay.coverage.xml" --junit-xml=".artifacts/relay.junit.xml"
+		-vv --cov . --cov-report="xml:.artifacts/relay.coverage.xml"
 	@echo ""
 
 test-api-docs: build-api-docs

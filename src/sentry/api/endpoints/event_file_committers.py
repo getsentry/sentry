@@ -1,13 +1,23 @@
+from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.models import Commit, Group, Release
+from sentry.models.commit import Commit
+from sentry.models.group import Group
+from sentry.models.release import Release
 from sentry.utils.committers import get_serialized_event_file_committers
 
 
+@region_silo_endpoint
 class EventFileCommittersEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, project, event_id) -> Response:
         """
         Retrieve Committer information for an event
@@ -21,32 +31,25 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
                                  retrieve (as reported by the raven client).
         :auth: required
         """
-        event = eventstore.get_event_by_id(project.id, event_id)
+        event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
-            return Response({"detail": "Event not found"}, status=404)
+            raise NotFound(detail="Event not found")
 
         try:
             committers = get_serialized_event_file_committers(
                 project, event, frame_limit=int(request.GET.get("frameLimit", 25))
             )
-        except Group.DoesNotExist:
-            return Response({"detail": "Issue not found"}, status=404)
-        except Release.DoesNotExist:
-            return Response({"detail": "Release not found"}, status=404)
-        except Commit.DoesNotExist:
-            return Response({"detail": "No Commits found for Release"}, status=404)
 
-        # XXX(dcramer): this data is unused, so lets not bother returning it for now
-        # serialize the commit objects
-        # serialized_annotated_frames = [
-        #     {
-        #         'frame': frame['frame'],
-        #         'commits': serialize(frame['commits'])
-        #     } for frame in annotated_frames
-        # ]
+        # TODO(nisanthan): Remove the Group.DoesNotExist and Release.DoesNotExist once Commit Context goes GA
+        except Group.DoesNotExist:
+            raise NotFound(detail="Issue not found")
+        except Release.DoesNotExist:
+            raise NotFound(detail="Release not found")
+        except Commit.DoesNotExist:
+            raise NotFound(detail="No Commits found for Release")
 
         data = {
             "committers": committers,
-            # 'annotatedFrames': serialized_annotated_frames
         }
+
         return Response(data)

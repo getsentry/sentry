@@ -1,21 +1,24 @@
-from unittest import TestCase
-
-from sentry.models import User
 from sentry.notifications.helpers import where_should_recipient_be_notified
 from sentry.notifications.types import NotificationScopeType, NotificationSettingOptionValues
-from sentry.testutils.helpers import with_feature
+from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.silo import SiloMode
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
+@control_silo_test(stable=True)
 class WhereShouldBeNotifiedTest(TestCase):
     def setUp(self) -> None:
-        self.user = User(id=1)
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.user = RpcActor.from_orm_user(self.create_user())
 
     def test_where_should_user_be_notified(self):
         notification_settings = {
             self.user: {
                 NotificationScopeType.USER: {
-                    ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS
+                    ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS,
+                    ExternalProviders.SLACK: NotificationSettingOptionValues.NEVER,
                 }
             }
         }
@@ -28,7 +31,6 @@ class WhereShouldBeNotifiedTest(TestCase):
             self.user: {
                 NotificationScopeType.USER: {
                     ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS,
-                    ExternalProviders.SLACK: NotificationSettingOptionValues.ALWAYS,
                 }
             }
         }
@@ -37,13 +39,7 @@ class WhereShouldBeNotifiedTest(TestCase):
             ExternalProviders.SLACK,
         ]
 
-    def test_default_slack_disabled(self):
-        assert where_should_recipient_be_notified({}, self.user) == [
-            ExternalProviders.EMAIL,
-        ]
-
-    @with_feature("users:notification-slack-automatic")
-    def test_default_slack_enabled_with_feature_flag(self):
+    def test_default_slack_enabled(self):
         assert where_should_recipient_be_notified({}, self.user) == [
             ExternalProviders.EMAIL,
             ExternalProviders.SLACK,

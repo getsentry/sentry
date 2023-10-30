@@ -1,28 +1,37 @@
 import {Fragment, useMemo} from 'react';
-import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval, getPreviousSeriesName} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import {QueryBatchNode} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import {axisLabelFormatter} from 'sentry/utils/discover/charts';
+import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {
+  QueryBatchNode,
+  Transform,
+} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
-import _DurationChart from 'sentry/views/performance/charts/chart';
+import DurationChart from 'sentry/views/performance/charts/chart';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
+import {transformDiscoverToSingleValue} from '../transforms/transformDiscoverToSingleValue';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
-import {eventsRequestQueryProps, getMEPQueryParams} from '../utils';
+import {eventsRequestQueryProps, getMEPQueryParams, QUERY_LIMIT_PARAM} from '../utils';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
+  overall: WidgetDataResult & ReturnType<typeof transformDiscoverToSingleValue>;
 };
 
 export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
-  const {ContainerActions} = props;
+  const location = useLocation();
+  const {ContainerActions, InteractiveTitle} = props;
   const globalSelection = props.eventView.getPageFilters();
   const pageError = usePageError();
   const mepSetting = useMEPSettingContext();
@@ -32,11 +41,11 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   }
   const field = props.fields[0];
 
-  const chart = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
+  const chartQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
       fields: props.fields[0],
       component: provided => (
-        <QueryBatchNode batchProperty="yAxis">
+        <QueryBatchNode batchProperty="yAxis" transform={unmergeIntoIndividualResults}>
           {({queryBatching}) => (
             <EventsRequest
               {...pick(provided, eventsRequestQueryProps)}
@@ -65,16 +74,49 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
       ),
       transform: transformEventsRequestToArea,
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [props.chartSetting, mepSetting.memoizationKey]
+  );
+
+  const overallQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
+    () => ({
+      fields: field,
+      component: provided => {
+        const eventView = provided.eventView.clone();
+
+        eventView.sorts = [];
+        eventView.fields = props.fields.map(fieldName => ({field: fieldName}));
+
+        return (
+          <QueryBatchNode batchProperty="field">
+            {({queryBatching}) => (
+              <DiscoverQuery
+                {...provided}
+                limit={QUERY_LIMIT_PARAM}
+                queryBatching={queryBatching}
+                eventView={eventView}
+                location={location}
+                queryExtras={getMEPQueryParams(mepSetting)}
+              />
+            )}
+          </QueryBatchNode>
+        );
+      },
+      transform: transformDiscoverToSingleValue,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [props.chartSetting, mepSetting.memoizationKey]
   );
 
   const Queries = {
-    chart,
+    chart: chartQuery,
+    overall: overallQuery,
   };
 
   return (
     <GenericPerformanceWidget<DataType>
       {...props}
+      location={location}
       Subtitle={() => (
         <Subtitle>
           {globalSelection.datetime.period
@@ -82,14 +124,31 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
             : t('Compared to the last period')}
         </Subtitle>
       )}
+      InteractiveTitle={
+        InteractiveTitle
+          ? provided => <InteractiveTitle {...provided.widgetData.chart} />
+          : null
+      }
       HeaderActions={provided => (
         <Fragment>
-          <HighlightNumber color={props.chartColor}>
-            {provided.widgetData.chart?.hasData
-              ? provided.widgetData.chart?.dataMean?.[0].label
-              : null}
-          </HighlightNumber>
-          <ContainerActions {...provided.widgetData.chart} />
+          {provided.widgetData?.overall?.hasData ? (
+            <Fragment>
+              {props.fields.map(fieldName => {
+                const value = provided.widgetData?.overall?.[fieldName];
+
+                if (!value) {
+                  return null;
+                }
+
+                return (
+                  <HighlightNumber key={fieldName} color={props.chartColor}>
+                    {axisLabelFormatter(value, aggregateOutputType(fieldName))}
+                  </HighlightNumber>
+                );
+              })}
+            </Fragment>
+          ) : null}
+          {ContainerActions && <ContainerActions {...provided.widgetData.chart} />}
         </Fragment>
       )}
       Queries={Queries}
@@ -113,7 +172,6 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
 }
 
 const EventsRequest = withApi(_EventsRequest);
-export const DurationChart = withRouter(_DurationChart);
 export const Subtitle = styled('span')`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeMedium};
@@ -123,3 +181,13 @@ export const HighlightNumber = styled('div')<{color?: string}>`
   color: ${p => p.color};
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
+
+const unmergeIntoIndividualResults: Transform = (response, queryDefinition) => {
+  const propertyName = Array.isArray(
+    queryDefinition.requestQueryObject.query[queryDefinition.batchProperty]
+  )
+    ? queryDefinition.requestQueryObject.query[queryDefinition.batchProperty][0]
+    : queryDefinition.requestQueryObject.query[queryDefinition.batchProperty];
+
+  return response[propertyName];
+};

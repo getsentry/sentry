@@ -5,14 +5,21 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import status_checks
-from sentry.api.base import Endpoint
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.auth.superuser import is_active_superuser
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.status_checks import sort_by_severity
 from sentry.utils.hashlib import md5_text
 
 
+@all_silo_endpoint
 class SystemHealthEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (IsAuthenticated,)
+    rate_limits = RateLimitConfig(group="INTERNAL")
 
     def get(self, request: Request) -> Response:
         if not is_active_superuser(request):

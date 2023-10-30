@@ -6,6 +6,8 @@ import {IssueAlertRule} from 'sentry/types/alerts';
 import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import toArray from 'sentry/utils/toArray';
 import {
   Dataset,
   Datasource,
@@ -33,6 +35,13 @@ export function isIssueAlert(
   data: IssueAlertRule | SavedMetricRule | MetricRule
 ): data is IssueAlertRule {
   return !data.hasOwnProperty('triggers');
+}
+
+export enum DatasetOption {
+  ALL = 'all',
+  ERRORS = 'errors',
+  SESSIONS = 'sessions',
+  PERFORMANCE = 'performance',
 }
 
 export const DATA_SOURCE_LABELS = {
@@ -69,8 +78,8 @@ export function convertDatasetEventTypesToSource(
   dataset: Dataset,
   eventTypes: EventTypes[]
 ) {
-  // transactions only has one datasource option regardless of event type
-  if (dataset === Dataset.TRANSACTIONS) {
+  // transactions and generic_metrics only have one datasource option regardless of event type
+  if (dataset === Dataset.TRANSACTIONS || dataset === Dataset.GENERIC_METRICS) {
     return Datasource.TRANSACTION;
   }
   // if no event type was provided use the default datasource
@@ -134,7 +143,7 @@ export function alertAxisFormatter(value: number, seriesName: string, aggregate:
     return defined(value) ? `${round(value, 2)}%` : '\u2015';
   }
 
-  return axisLabelFormatter(value, seriesName);
+  return axisLabelFormatter(value, aggregateOutputType(seriesName));
 }
 
 export function alertTooltipValueFormatter(
@@ -146,7 +155,7 @@ export function alertTooltipValueFormatter(
     return defined(value) ? `${value}%` : '\u2015';
   }
 
-  return tooltipFormatter(value, seriesName);
+  return tooltipFormatter(value, aggregateOutputType(seriesName));
 }
 
 export const ALERT_CHART_MIN_MAX_BUFFER = 1.03;
@@ -191,9 +200,24 @@ export function getTeamParams(team?: string | string[]): string[] {
     return [];
   }
 
-  if (Array.isArray(team)) {
-    return team;
-  }
-
-  return [team];
+  return toArray(team);
 }
+
+const datasetValues = new Set(Object.values(DatasetOption));
+export function getQueryDataset(dataset: any): DatasetOption {
+  if ((datasetValues as Set<any>).has(dataset)) {
+    return dataset as DatasetOption;
+  }
+  return DatasetOption.ALL;
+}
+
+export const datasetToQueryParam: Record<DatasetOption, Dataset[] | undefined> = {
+  [DatasetOption.ALL]: undefined,
+  [DatasetOption.ERRORS]: [Dataset.ERRORS],
+  [DatasetOption.SESSIONS]: [Dataset.METRICS],
+  [DatasetOption.PERFORMANCE]: [
+    Dataset.GENERIC_METRICS,
+    // TODO(telemetry-experience): remove this once we migrated all performance alerts to generic metrics
+    Dataset.TRANSACTIONS,
+  ],
+};

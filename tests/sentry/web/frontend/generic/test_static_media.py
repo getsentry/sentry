@@ -2,7 +2,7 @@ import os
 
 from django.test.utils import override_settings
 
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.utils.assets import get_frontend_app_asset_url
 from sentry.web.frontend.generic import FOREVER_CACHE, NEVER_CACHE, NO_CACHE
@@ -58,13 +58,12 @@ class StaticMediaTest(TestCase):
         response = self.client.get("/_static/dist/sentry/invalid.js")
         assert response.status_code == 404, response
 
-        dist_path = os.path.join("src", "sentry", "static", "sentry", "dist")
+        dist_path = os.path.join("src", "sentry", "static", "sentry", "dist", "entrypoints")
         os.makedirs(dist_path, exist_ok=True)
 
         try:
             with open(os.path.join(dist_path, "test.js"), "a"):
-                url = get_frontend_app_asset_url("sentry", "test.js", cache_bust=True)
-                assert "?v=" in url
+                url = get_frontend_app_asset_url("sentry", "entrypoints/test.js")
 
                 response = self.client.get(url)
                 close_streaming_response(response)

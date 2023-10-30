@@ -1,3 +1,6 @@
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import region_silo_only_model
+
 """Database models to keep track of the App Store Connect builds for a project.
 
 For projects using the App Store Connect symbol source this keeps track of the last time we
@@ -10,13 +13,14 @@ from django.utils import timezone
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey
 
 
+@region_silo_only_model
 class LatestAppConnectBuildsCheck(DefaultFieldsModel):
     """
     The last date and time Sentry checked App Store Connect for new builds associated with a
     specific appconnect source in a project.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
 

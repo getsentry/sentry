@@ -15,7 +15,11 @@
             "args": [
               {
                 "separator": "",
-                "value": {"type": "keyAggregateParam", "value": "spans.browser", "quoted": false}
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "spans.browser",
+                  "quoted": false
+                }
               },
               {
                 "separator": ", ",
@@ -48,7 +52,11 @@
             "args": [
               {
                 "separator": "",
-                "value": {"type": "keyAggregateParam", "value": "spans.browser", "quoted": false}
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "spans.browser",
+                  "quoted": false
+                }
               },
               {
                 "separator": ", ",
@@ -81,7 +89,11 @@
             "args": [
               {
                 "separator": "",
-                "value": {"type": "keyAggregateParam", "value": "spans.browser", "quoted": false}
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "spans.browser",
+                  "quoted": false
+                }
               },
               {
                 "separator": ", ",

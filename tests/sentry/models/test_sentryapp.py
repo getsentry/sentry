@@ -1,8 +1,11 @@
 from sentry.constants import SentryAppStatus
-from sentry.models import ApiApplication, SentryApp
-from sentry.testutils import TestCase
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class SentryAppTest(TestCase):
     def setUp(self):
         self.user = self.create_user()
@@ -14,7 +17,7 @@ class SentryAppTest(TestCase):
             application=self.application,
             name="NullDB",
             proxy_user=self.proxy,
-            owner=self.org,
+            owner_id=self.org.id,
             scope_list=("project:read",),
             webhook_url="http://example.com",
             slug="nulldb",
@@ -35,9 +38,10 @@ class SentryAppTest(TestCase):
 
     def test_related_names(self):
         self.sentry_app.save()
+        assert self.sentry_app.application is not None
+        assert self.sentry_app.proxy_user is not None
         assert self.sentry_app.application.sentry_app == self.sentry_app
         assert self.sentry_app.proxy_user.sentry_app == self.sentry_app
-        assert self.sentry_app in self.sentry_app.owner.owned_sentry_apps.all()
 
     def test_is_unpublished(self):
         self.sentry_app.status = SentryAppStatus.UNPUBLISHED

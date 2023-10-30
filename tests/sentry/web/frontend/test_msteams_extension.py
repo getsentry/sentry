@@ -2,17 +2,21 @@ from unittest.mock import patch
 
 from django.core.signing import SignatureExpired
 
-from sentry.models import OrganizationMember
-from sentry.testutils import TestCase
+from sentry.models.organizationmember import OrganizationMember
+from sentry.silo import SiloMode
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils.signing import sign
 from sentry.web.frontend.msteams_extension_configuration import MsTeamsExtensionConfigurationView
 
 
+@control_silo_test(stable=True)
 class MsTeamsExtensionConfigurationTest(TestCase):
     def hit_configure(self, params):
         self.login_as(self.user)
         org = self.create_organization()
-        OrganizationMember.objects.create(user=self.user, organization=org, role="admin")
+        with assume_test_silo_mode(SiloMode.REGION):
+            OrganizationMember.objects.create(user_id=self.user.id, organization=org, role="admin")
         path = "/extensions/msteams/configure/"
         return self.client.get(path, params)
 

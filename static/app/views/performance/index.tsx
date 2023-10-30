@@ -1,22 +1,30 @@
+import {Location} from 'history';
+
 import Feature from 'sentry/components/acl/feature';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
+import * as Layout from 'sentry/components/layouts/thirds';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import {Organization} from 'sentry/types';
+import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
-  children: React.ReactChildren;
+  children: React.ReactNode;
+  location: Location;
   organization: Organization;
 };
 
-function PerformanceContainer({organization, children}: Props) {
+const queryClient = new QueryClient();
+
+function PerformanceContainer({organization, location, children}: Props) {
   function renderNoAccess() {
     return (
-      <PageContent>
+      <Layout.Page withPadding>
         <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </PageContent>
+      </Layout.Page>
     );
   }
 
@@ -27,7 +35,13 @@ function PerformanceContainer({organization, children}: Props) {
       organization={organization}
       renderDisabled={renderNoAccess}
     >
-      <MEPSettingProvider>{children}</MEPSettingProvider>
+      <NoProjectMessage organization={organization}>
+        <QueryClientProvider client={queryClient}>
+          <MetricsCardinalityProvider location={location} organization={organization}>
+            <MEPSettingProvider>{children}</MEPSettingProvider>
+          </MetricsCardinalityProvider>
+        </QueryClientProvider>
+      </NoProjectMessage>
     </Feature>
   );
 }

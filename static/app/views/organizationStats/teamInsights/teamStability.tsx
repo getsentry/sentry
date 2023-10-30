@@ -1,20 +1,18 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import isEqual from 'lodash/isEqual';
 import round from 'lodash/round';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
-import SessionsRequest from 'sentry/components/charts/sessionsRequest';
 import {DateTimeObject} from 'sentry/components/charts/utils';
+import LoadingError from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   Organization,
   Project,
@@ -23,97 +21,87 @@ import {
   SessionStatus,
 } from 'sentry/types';
 import {formatFloat} from 'sentry/utils/formatters';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {getCountSeries, getCrashFreeRate, getSeriesSum} from 'sentry/utils/sessions';
-import {Color} from 'sentry/utils/theme';
+import {ColorOrAlias} from 'sentry/utils/theme';
 import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {groupByTrend} from './utils';
 
-type Props = AsyncComponent['props'] & {
+interface TeamStabilityProps extends DateTimeObject {
   organization: Organization;
   projects: Project[];
-  period?: string | null;
-} & DateTimeObject;
+}
 
-type State = AsyncComponent['state'] & {
-  /** weekly selected date range */
-  periodSessions: SessionApiResponse | null;
-  /** Locked to last 7 days */
-  weekSessions: SessionApiResponse | null;
-};
+function TeamStability({
+  organization,
+  projects,
+  period,
+  start,
+  end,
+  utc,
+}: TeamStabilityProps) {
+  const projectsWithSessions = projects.filter(project => project.hasSessions);
+  const datetime = {start, end, period, utc};
+  const commonQuery = {
+    environment: [],
+    project: projectsWithSessions.map(p => p.id),
+    field: 'sum(session)',
+    groupBy: ['session.status', 'project'],
+    interval: '1d',
+  };
 
-class TeamStability extends AsyncComponent<Props, State> {
-  shouldRenderBadRequests = true;
-
-  getDefaultState(): State {
-    return {
-      ...super.getDefaultState(),
-      weekSessions: null,
-      periodSessions: null,
-    };
-  }
-
-  getEndpoints() {
-    const {organization, start, end, period, utc, projects} = this.props;
-
-    const projectsWithSessions = projects.filter(project => project.hasSessions);
-
-    if (projectsWithSessions.length === 0) {
-      return [];
-    }
-
-    const datetime = {start, end, period, utc};
-    const commonQuery = {
-      environment: [],
-      project: projectsWithSessions.map(p => p.id),
-      field: 'sum(session)',
-      groupBy: ['session.status', 'project'],
-      interval: '1d',
-    };
-
-    const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [
-      [
-        'periodSessions',
-        `/organizations/${organization.slug}/sessions/`,
-        {
-          query: {
-            ...commonQuery,
-            ...normalizeDateTimeParams(datetime),
-          },
+  const {
+    data: periodSessions,
+    isLoading: isPeriodSessionsLoading,
+    isError: isPeriodSessionsError,
+    refetch: refetchPeriodSessions,
+  } = useApiQuery<SessionApiResponse>(
+    [
+      `/organizations/${organization.slug}/sessions/`,
+      {
+        query: {
+          ...commonQuery,
+          ...normalizeDateTimeParams(datetime),
         },
-      ],
-      [
-        'weekSessions',
-        `/organizations/${organization.slug}/sessions/`,
-        {
-          query: {
-            ...commonQuery,
-            statsPeriod: '7d',
-          },
+      },
+    ],
+    {staleTime: 5000}
+  );
+
+  const {
+    data: weekSessions,
+    isLoading: isWeekSessionsLoading,
+    isError: isWeekSessionsError,
+    refetch: refetchWeekSessions,
+  } = useApiQuery<SessionApiResponse>(
+    [
+      `/organizations/${organization.slug}/sessions/`,
+      {
+        query: {
+          ...commonQuery,
+          statsPeriod: '7d',
         },
-      ],
-    ];
+      },
+    ],
+    {staleTime: 5000}
+  );
 
-    return endpoints;
+  const isLoading = isPeriodSessionsLoading || isWeekSessionsLoading;
+
+  if (isPeriodSessionsError || isWeekSessionsError) {
+    return (
+      <LoadingError
+        onRetry={() => {
+          refetchPeriodSessions();
+          refetchWeekSessions();
+        }}
+      />
+    );
   }
 
-  componentDidUpdate(prevProps: Props) {
-    const {projects, start, end, period, utc} = this.props;
-
-    if (
-      prevProps.start !== start ||
-      prevProps.end !== end ||
-      prevProps.period !== period ||
-      prevProps.utc !== utc ||
-      !isEqual(prevProps.projects, projects)
-    ) {
-      this.remountComponent();
-    }
-  }
-
-  getScore(projectId: number, dataset: 'week' | 'period'): number | null {
-    const {periodSessions, weekSessions} = this.state;
+  function getScore(projectId: number, dataset: 'week' | 'period'): number | null {
     const sessions = dataset === 'week' ? weekSessions : periodSessions;
     const projectGroups = sessions?.groups.filter(
       group => group.by.project === projectId
@@ -122,9 +110,9 @@ class TeamStability extends AsyncComponent<Props, State> {
     return getCrashFreeRate(projectGroups, SessionFieldWithOperation.SESSIONS);
   }
 
-  getTrend(projectId: number): number | null {
-    const periodScore = this.getScore(projectId, 'period');
-    const weekScore = this.getScore(projectId, 'week');
+  function getTrend(projectId: number): number | null {
+    const periodScore = getScore(projectId, 'period');
+    const weekScore = getScore(projectId, 'week');
 
     if (periodScore === null || weekScore === null) {
       return null;
@@ -133,7 +121,7 @@ class TeamStability extends AsyncComponent<Props, State> {
     return weekScore - periodScore;
   }
 
-  getMiniBarChartSeries(project: Project, response: SessionApiResponse) {
+  function getMiniBarChartSeries(project: Project, response: SessionApiResponse) {
     const sumSessions = getSeriesSum(
       response.groups.filter(group => group.by.project === Number(project.id)),
       SessionFieldWithOperation.SESSIONS,
@@ -168,14 +156,8 @@ class TeamStability extends AsyncComponent<Props, State> {
     return [{seriesName: t('Crash Free Sessions'), data}];
   }
 
-  renderLoading() {
-    return this.renderBody();
-  }
-
-  renderScore(projectId: string, dataset: 'week' | 'period') {
-    const {loading} = this.state;
-
-    if (loading) {
+  function renderScore(projectId: string, dataset: 'week' | 'period') {
+    if (isLoading) {
       return (
         <div>
           <Placeholder width="80px" height="25px" />
@@ -183,7 +165,7 @@ class TeamStability extends AsyncComponent<Props, State> {
       );
     }
 
-    const score = this.getScore(Number(projectId), dataset);
+    const score = getScore(Number(projectId), dataset);
 
     if (score === null) {
       return '\u2014';
@@ -192,10 +174,8 @@ class TeamStability extends AsyncComponent<Props, State> {
     return displayCrashFreePercent(score);
   }
 
-  renderTrend(projectId: string) {
-    const {loading} = this.state;
-
-    if (loading) {
+  function renderTrend(projectId: string) {
+    if (isLoading) {
       return (
         <div>
           <Placeholder width="80px" height="25px" />
@@ -203,87 +183,71 @@ class TeamStability extends AsyncComponent<Props, State> {
       );
     }
 
-    const trend = this.getTrend(Number(projectId));
+    const trend = getTrend(Number(projectId));
 
     if (trend === null) {
       return '\u2014';
     }
 
     return (
-      <SubText color={trend >= 0 ? 'green300' : 'red300'}>
+      <SubText color={trend >= 0 ? 'successText' : 'errorText'}>
         {`${round(Math.abs(trend), 3)}\u0025`}
         <PaddedIconArrow direction={trend >= 0 ? 'up' : 'down'} size="xs" />
       </SubText>
     );
   }
 
-  renderBody() {
-    const {organization, projects, period} = this.props;
+  const sortedProjects = projects
+    .map(project => ({project, trend: getTrend(Number(project.id)) ?? 0}))
+    .sort((a, b) => Math.abs(b.trend) - Math.abs(a.trend));
 
-    const sortedProjects = projects
-      .map(project => ({project, trend: this.getTrend(Number(project.id)) ?? 0}))
-      .sort((a, b) => Math.abs(b.trend) - Math.abs(a.trend));
+  const groupedProjects = groupByTrend(sortedProjects);
 
-    const groupedProjects = groupByTrend(sortedProjects);
+  return (
+    <StyledPanelTable
+      isEmpty={projects.length === 0}
+      emptyMessage={t('No projects with release health enabled')}
+      emptyAction={
+        <Button
+          size="sm"
+          external
+          href="https://docs.sentry.io/platforms/dotnet/guides/nlog/configuration/releases/#release-health"
+        >
+          {t('Learn More')}
+        </Button>
+      }
+      headers={[
+        t('Project'),
+        <RightAligned key="last">{tct('Last [period]', {period})}</RightAligned>,
+        <RightAligned key="avg">{tct('[period] Avg', {period})}</RightAligned>,
+        <RightAligned key="curr">{t('Last 7 Days')}</RightAligned>,
+        <RightAligned key="diff">{t('Difference')}</RightAligned>,
+      ]}
+    >
+      {groupedProjects.map(({project}) => (
+        <Fragment key={project.id}>
+          <ProjectBadgeContainer>
+            <ProjectBadge avatarSize={18} project={project} />
+          </ProjectBadgeContainer>
 
-    return (
-      <SessionsRequest
-        api={this.api}
-        project={projects.map(({id}) => Number(id))}
-        organization={organization}
-        interval="1d"
-        groupBy={['session.status', 'project']}
-        field={[SessionFieldWithOperation.SESSIONS]}
-        statsPeriod={period}
-      >
-        {({response, loading}) => (
-          <StyledPanelTable
-            isEmpty={projects.length === 0}
-            emptyMessage={t('No projects with release health enabled')}
-            emptyAction={
-              <Button
-                size="small"
-                external
-                href="https://docs.sentry.io/platforms/dotnet/guides/nlog/configuration/releases/#release-health"
-              >
-                {t('Learn More')}
-              </Button>
-            }
-            headers={[
-              t('Project'),
-              <RightAligned key="last">{tct('Last [period]', {period})}</RightAligned>,
-              <RightAligned key="avg">{tct('[period] Avg', {period})}</RightAligned>,
-              <RightAligned key="curr">{t('Last 7 Days')}</RightAligned>,
-              <RightAligned key="diff">{t('Difference')}</RightAligned>,
-            ]}
-          >
-            {groupedProjects.map(({project}) => (
-              <Fragment key={project.id}>
-                <ProjectBadgeContainer>
-                  <ProjectBadge avatarSize={18} project={project} />
-                </ProjectBadgeContainer>
-
-                <div>
-                  {response && !loading && (
-                    <MiniBarChart
-                      isGroupedByDate
-                      showTimeInTooltip
-                      series={this.getMiniBarChartSeries(project, response)}
-                      height={25}
-                      tooltipFormatter={(value: number) => `${value.toLocaleString()}%`}
-                    />
-                  )}
-                </div>
-                <ScoreWrapper>{this.renderScore(project.id, 'period')}</ScoreWrapper>
-                <ScoreWrapper>{this.renderScore(project.id, 'week')}</ScoreWrapper>
-                <ScoreWrapper>{this.renderTrend(project.id)}</ScoreWrapper>
-              </Fragment>
-            ))}
-          </StyledPanelTable>
-        )}
-      </SessionsRequest>
-    );
-  }
+          <div>
+            {periodSessions && weekSessions && !isLoading && (
+              <MiniBarChart
+                isGroupedByDate
+                showTimeInTooltip
+                series={getMiniBarChartSeries(project, periodSessions)}
+                height={25}
+                tooltipFormatter={(value: number) => `${value.toLocaleString()}%`}
+              />
+            )}
+          </div>
+          <ScoreWrapper>{renderScore(project.id, 'period')}</ScoreWrapper>
+          <ScoreWrapper>{renderScore(project.id, 'week')}</ScoreWrapper>
+          <ScoreWrapper>{renderTrend(project.id)}</ScoreWrapper>
+        </Fragment>
+      ))}
+    </StyledPanelTable>
+  );
 }
 
 export default TeamStability;
@@ -326,6 +290,6 @@ const PaddedIconArrow = styled(IconArrow)`
   margin: 0 ${space(0.5)};
 `;
 
-const SubText = styled('div')<{color: Color}>`
+const SubText = styled('div')<{color: ColorOrAlias}>`
   color: ${p => p.theme[p.color]};
 `;

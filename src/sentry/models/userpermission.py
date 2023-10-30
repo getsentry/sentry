@@ -1,18 +1,28 @@
-from typing import FrozenSet
+from __future__ import annotations
+
+from typing import FrozenSet, List
 
 from django.db import models
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.mixins import OverwritableConfigMixin
+from sentry.backup.scopes import ImportScope, RelocationScope
+from sentry.db.models import FlexibleForeignKey, control_silo_only_model, sane_repr
+from sentry.db.models.outboxes import ControlOutboxProducingModel
+from sentry.models.outbox import ControlOutboxBase, OutboxCategory
+from sentry.types.region import find_regions_for_user
 
 
-class UserPermission(Model):
+@control_silo_only_model
+class UserPermission(OverwritableConfigMixin, ControlOutboxProducingModel):
     """
     Permissions are applied to administrative users and control explicit scope-like permissions within the API.
 
     Generally speaking, they should only apply to active superuser sessions.
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Config
 
     user = FlexibleForeignKey("sentry.User")
     # permissions should be in the form of 'service-name.permission-name'
@@ -31,3 +41,36 @@ class UserPermission(Model):
         Return a set of permission for the given user ID.
         """
         return frozenset(cls.objects.filter(user=user_id).values_list("permission", flat=True))
+
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
+        regions = find_regions_for_user(self.user_id)
+        return [
+            outbox
+            for outbox in OutboxCategory.USER_UPDATE.as_control_outboxes(
+                region_names=regions,
+                shard_identifier=self.user_id,
+                object_identifier=self.user_id,
+            )
+        ]
+
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> int | None:
+        from sentry.models.user import User
+
+        old_user_id = self.user_id
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+
+        # If we are merging users, ignore the imported permissions and use the merged user's
+        # permissions instead.
+        if pk_map.get_kind(get_model_name(User), old_user_id) == ImportKind.Existing:
+            model_name = get_model_name(self)
+            permissions = self.__class__.objects.filter(user_id=self.user_id).all()
+            for permission in permissions:
+                pk_map.insert(model_name, self.pk, permission.pk, ImportKind.Existing)
+
+            return None
+
+        return old_pk

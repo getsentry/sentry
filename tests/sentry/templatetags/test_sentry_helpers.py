@@ -3,6 +3,9 @@ import datetime
 import pytest
 from django.template import engines
 
+from sentry.models.organization import Organization
+from sentry.testutils.helpers.features import Feature
+
 
 def test_system_origin():
     result = (
@@ -62,6 +65,69 @@ def test_absolute_uri(input, output):
         .strip()
     )
     assert result == output
+
+
+@pytest.mark.parametrize(
+    "input,output",
+    (
+        ("{% org_url organization '/issues/' %}", "http://testserver/issues/"),
+        (
+            "{% org_url organization '/issues/' query='referrer=alert' %}",
+            "http://testserver/issues/?referrer=alert",
+        ),
+        (
+            "{% org_url organization '/issues/' query='referrer=alert' fragment='test' %}",
+            "http://testserver/issues/?referrer=alert#test",
+        ),
+        ("{% org_url organization path %}", "http://testserver/organizations/sentry/issues/"),
+    ),
+)
+def test_org_url(input, output):
+    prefix = "{% load sentry_helpers %}"
+    org = Organization(id=1, slug="sentry", name="Sentry")
+    result = (
+        engines["django"]
+        .from_string(prefix + input)
+        .render(context={"organization": org, "path": "/organizations/sentry/issues/"})
+        .strip()
+    )
+    assert result == output
+
+
+@pytest.mark.parametrize(
+    "input,output",
+    (
+        (
+            "{% org_url organization '/organizations/sentry/discover/' %}",
+            "http://sentry.testserver/discover/",
+        ),
+        (
+            "{% org_url organization path query='referrer=alert' %}",
+            "http://sentry.testserver/issues/?referrer=alert",
+        ),
+    ),
+)
+def test_org_url_customer_domains(input, output):
+    prefix = "{% load sentry_helpers %}"
+    org = Organization(id=1, slug="sentry", name="Sentry")
+
+    with Feature("organizations:customer-domains"):
+        result = (
+            engines["django"]
+            .from_string(prefix + input)
+            .render(context={"organization": org, "path": "/organizations/sentry/issues/"})
+            .strip()
+        )
+        assert result == output
+
+
+def test_querystring():
+    input = """
+    {% load sentry_helpers %}
+    {% querystring transaction="testing" referrer="weekly_report" space="some thing"%}
+    """
+    result = engines["django"].from_string(input).render(context={}).strip()
+    assert result == "transaction=testing&amp;referrer=weekly_report&amp;space=some+thing"
 
 
 def test_date_handle_date_and_datetime():

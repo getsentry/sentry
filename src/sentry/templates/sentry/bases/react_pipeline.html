@@ -14,6 +14,6 @@
 {% endblock %}
 
 {% block scripts_main_entrypoint %}
-    {% frontend_app_asset_url "sentry" "entrypoints/pipeline.js" cache_bust=True as asset_url %}
-    {% script src=asset_url data-entry="true" %}{% endscript %}
+    {% frontend_app_asset_url "sentry" "entrypoints/pipeline.js" as asset_url %}
+    {% script src=asset_url crossorigin="anonymous" data-entry="true" %}{% endscript %}
 {% endblock %}

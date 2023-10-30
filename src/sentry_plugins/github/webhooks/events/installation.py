@@ -1,6 +1,6 @@
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 
 from . import Webhook
 
@@ -13,7 +13,7 @@ class InstallationEventWebhook(Webhook):
         # TODO(jess): handle uninstalls
         if action == "created":
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(Integration)):
                     Integration.objects.create(
                         provider="github_apps",
                         external_id=installation["id"],

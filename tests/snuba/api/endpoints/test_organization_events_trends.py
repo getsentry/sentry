@@ -2,9 +2,10 @@ from datetime import timedelta
 
 from django.urls import reverse
 
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
 
@@ -45,6 +46,7 @@ class OrganizationEventsTrendsBase(APITestCase, SnubaTestCase):
             assert data[key] == value, key
 
 
+@region_silo_test
 class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
     def setUp(self):
         super().setUp()
@@ -398,6 +400,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         self.assert_event(events["data"][0])
 
 
+@region_silo_test
 class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
     def setUp(self):
         super().setUp()
@@ -827,6 +830,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         ]
 
 
+@region_silo_test
 class OrganizationEventsTrendsPagingTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

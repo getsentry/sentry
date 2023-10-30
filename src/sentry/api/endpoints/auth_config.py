@@ -5,10 +5,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import newsletter
-from sentry.api.base import Endpoint
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.utils.auth import (
     get_org_redirect_url,
     has_user_registration,
@@ -19,9 +21,18 @@ from sentry.web.frontend.auth_login import additional_context
 from sentry.web.frontend.base import OrganizationMixin
 
 
+@control_silo_endpoint
 class AuthConfigEndpoint(Endpoint, OrganizationMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.ENTERPRISE
     # Disable authentication and permission requirements.
     permission_classes = []
+
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+        self.determine_active_organization(request)
+        return super().dispatch(request, *args, **kwargs)
 
     def get(self, request: Request, *args, **kwargs) -> Response:
         """
@@ -56,8 +67,9 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
         next_uri = self.get_next_uri(request)
 
         if not is_valid_redirect(next_uri, allowed_hosts=(request.get_host(),)):
-            active_org = self.get_active_organization(request)
-            next_uri = get_org_redirect_url(request, active_org)
+            next_uri = get_org_redirect_url(
+                request, self.active_organization.organization if self.active_organization else None
+            )
 
         return Response({"nextUri": next_uri})
 

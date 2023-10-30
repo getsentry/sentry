@@ -1,11 +1,11 @@
-import type {PlatformKey} from 'sentry/data/platformCategories';
+import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
+import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
-import type {Commit, PullRequest} from './integrations';
+import type {Commit, PullRequest, Repository} from './integrations';
 import type {Team} from './organization';
-import type {Project} from './project';
-import type {Release} from './release';
+import type {PlatformKey, Project} from './project';
 import type {AvatarUser, User} from './user';
 
 export type EntryData = Record<string, any | Array<any>>;
@@ -27,25 +27,105 @@ export type SavedSearch = {
   dateCreated: string;
   id: string;
   isGlobal: boolean;
-  isOrgCustom: boolean;
   isPinned: boolean;
   name: string;
   query: string;
   sort: string;
   type: SavedSearchType;
+  visibility: SavedSearchVisibility;
 };
+
+export enum SavedSearchVisibility {
+  ORGANIZATION = 'organization',
+  OWNER = 'owner',
+  OWNER_PINNED = 'owner_pinned',
+}
 
 export enum SavedSearchType {
   ISSUE = 0,
   EVENT = 1,
   SESSION = 2,
+  REPLAY = 3,
+  METRIC = 4,
 }
+
+export enum IssueCategory {
+  PERFORMANCE = 'performance',
+  ERROR = 'error',
+  CRON = 'cron',
+  PROFILE = 'profile',
+}
+
+export enum IssueType {
+  // Error
+  ERROR = 'error',
+
+  // Performance
+  PERFORMANCE_CONSECUTIVE_DB_QUERIES = 'performance_consecutive_db_queries',
+  PERFORMANCE_CONSECUTIVE_HTTP = 'performance_consecutive_http',
+  PERFORMANCE_FILE_IO_MAIN_THREAD = 'performance_file_io_main_thread',
+  PERFORMANCE_DB_MAIN_THREAD = 'performance_db_main_thread',
+  PERFORMANCE_N_PLUS_ONE_API_CALLS = 'performance_n_plus_one_api_calls',
+  PERFORMANCE_N_PLUS_ONE_DB_QUERIES = 'performance_n_plus_one_db_queries',
+  PERFORMANCE_SLOW_DB_QUERY = 'performance_slow_db_query',
+  PERFORMANCE_RENDER_BLOCKING_ASSET = 'performance_render_blocking_asset_span',
+  PERFORMANCE_UNCOMPRESSED_ASSET = 'performance_uncompressed_assets',
+  PERFORMANCE_LARGE_HTTP_PAYLOAD = 'performance_large_http_payload',
+  PERFORMANCE_HTTP_OVERHEAD = 'performance_http_overhead',
+  PERFORMANCE_DURATION_REGRESSION = 'performance_duration_regression',
+
+  // Profile
+  PROFILE_FILE_IO_MAIN_THREAD = 'profile_file_io_main_thread',
+  PROFILE_IMAGE_DECODE_MAIN_THREAD = 'profile_image_decode_main_thread',
+  PROFILE_JSON_DECODE_MAIN_THREAD = 'profile_json_decode_main_thread',
+  PROFILE_REGEX_MAIN_THREAD = 'profile_regex_main_thread',
+  PROFILE_FRAME_DROP = 'profile_frame_drop',
+  PROFILE_FRAME_DROP_EXPERIMENTAL = 'profile_frame_drop_experimental',
+  PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL = 'profile_function_regression_exp',
+}
+
+export enum IssueTitle {
+  PERFORMANCE_CONSECUTIVE_DB_QUERIES = 'Consecutive DB Queries',
+  PERFORMANCE_CONSECUTIVE_HTTP = 'Consecutive HTTP',
+  PERFORMANCE_FILE_IO_MAIN_THREAD = 'File IO on Main Thread',
+  PERFORMANCE_DB_MAIN_THREAD = 'DB on Main Thread',
+  PERFORMANCE_N_PLUS_ONE_API_CALLS = 'N+1 API Call',
+  PERFORMANCE_N_PLUS_ONE_DB_QUERIES = 'N+1 Query',
+  PERFORMANCE_SLOW_DB_QUERY = 'Slow DB Query',
+  PERFORMANCE_RENDER_BLOCKING_ASSET = 'Large Render Blocking Asset',
+  PERFORMANCE_UNCOMPRESSED_ASSET = 'Uncompressed Asset',
+  PERFORMANCE_LARGE_HTTP_PAYLOAD = 'Large HTTP payload',
+  PERFORMANCE_HTTP_OVERHEAD = 'HTTP/1.1 Overhead',
+  PERFORMANCE_DURATION_REGRESSION = 'Duration Regression',
+}
+
+export const getIssueTypeFromOccurrenceType = (
+  typeId: number | undefined
+): IssueType | null => {
+  const occurrenceTypeToIssueIdMap = {
+    1001: IssueType.PERFORMANCE_SLOW_DB_QUERY,
+    1004: IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
+    1006: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+    1007: IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
+    1008: IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD,
+    1009: IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
+    1010: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+    1012: IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
+    1013: IssueType.PERFORMANCE_DB_MAIN_THREAD,
+    1015: IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
+    1016: IssueType.PERFORMANCE_HTTP_OVERHEAD,
+  };
+  if (!typeId) {
+    return null;
+  }
+  return occurrenceTypeToIssueIdMap[typeId] ?? null;
+};
 
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
 export type IssueAttachment = {
   dateCreated: string;
   event_id: string;
-  headers: Object;
+  headers: object;
   id: string;
   mimetype: string;
   name: string;
@@ -55,7 +135,7 @@ export type IssueAttachment = {
 };
 
 // endpoint: /api/0/projects/:orgSlug/:projSlug/events/:eventId/attachments/
-export type EventAttachment = Omit<IssueAttachment, 'event_id'>;
+export type EventAttachment = IssueAttachment;
 
 /**
  * Issue Tags
@@ -63,7 +143,10 @@ export type EventAttachment = Omit<IssueAttachment, 'event_id'>;
 export type Tag = {
   key: string;
   name: string;
+
   isInput?: boolean;
+
+  kind?: FieldKind;
   /**
    * How many values should be suggested in autocomplete.
    * Overrides SmartSearchBar's `maxSearchItems` prop.
@@ -71,7 +154,10 @@ export type Tag = {
   maxSuggestedValues?: number;
   predefined?: boolean;
   totalValues?: number;
-  values?: string[];
+  /**
+   * Usually values are strings, but a predefined tag can define its SearchGroups
+   */
+  values?: string[] | SearchGroup[];
 };
 
 export type TagCollection = Record<string, Tag>;
@@ -99,6 +185,7 @@ type Topvalue = {
   value: string;
   // Might not actually exist.
   query?: string;
+  readable?: string;
 };
 
 export type TagWithTopValues = {
@@ -121,13 +208,28 @@ export type InboxReasonDetails = {
   window?: number | null;
 };
 
+export const enum GroupInboxReason {
+  NEW = 0,
+  UNIGNORED = 1,
+  REGRESSION = 2,
+  MANUAL = 3,
+  REPROCESSED = 4,
+  ESCALATING = 5,
+  ONGOING = 6,
+}
+
 export type InboxDetails = {
-  reason_details: InboxReasonDetails;
   date_added?: string;
-  reason?: number;
+  reason?: GroupInboxReason;
+  reason_details?: InboxReasonDetails | null;
 };
 
-export type SuggestedOwnerReason = 'suspectCommit' | 'ownershipRule';
+export type SuggestedOwnerReason =
+  | 'suspectCommit'
+  | 'ownershipRule'
+  | 'projectOwnership'
+  // TODO: codeowners may no longer exist
+  | 'codeowners';
 
 // Received from the backend to denote suggested owners of an issue
 export type SuggestedOwner = {
@@ -136,13 +238,23 @@ export type SuggestedOwner = {
   type: SuggestedOwnerReason;
 };
 
+export interface ParsedOwnershipRule {
+  matcher: {pattern: string; type: string};
+  owners: Actor[];
+}
+
 export type IssueOwnership = {
-  autoAssignment: boolean;
-  dateCreated: string;
+  autoAssignment:
+    | 'Auto Assign to Suspect Commits'
+    | 'Auto Assign to Issue Owner'
+    | 'Turn off Auto-Assignment';
+  codeownersAutoSync: boolean;
+  dateCreated: string | null;
   fallthrough: boolean;
   isActive: boolean;
-  lastUpdated: string;
-  raw: string;
+  lastUpdated: string | null;
+  raw: string | null;
+  schema?: {rules: ParsedOwnershipRule[]; version: number};
 };
 
 export enum GroupActivityType {
@@ -166,115 +278,136 @@ export enum GroupActivityType {
   MERGE = 'merge',
   REPROCESS = 'reprocess',
   MARK_REVIEWED = 'mark_reviewed',
+  AUTO_SET_ONGOING = 'auto_set_ongoing',
+  SET_ESCALATING = 'set_escalating',
 }
 
-type GroupActivityBase = {
+interface GroupActivityBase {
   dateCreated: string;
   id: string;
   project: Project;
   assignee?: string;
   issue?: Group;
   user?: null | User;
-};
+}
 
-type GroupActivityNote = GroupActivityBase & {
+interface GroupActivityNote extends GroupActivityBase {
   data: {
     text: string;
   };
   type: GroupActivityType.NOTE;
-};
+}
 
-type GroupActivitySetResolved = GroupActivityBase & {
+interface GroupActivitySetResolved extends GroupActivityBase {
   data: Record<string, any>;
   type: GroupActivityType.SET_RESOLVED;
-};
+}
 
-type GroupActivitySetUnresolved = GroupActivityBase & {
+interface GroupActivitySetUnresolved extends GroupActivityBase {
   data: Record<string, any>;
   type: GroupActivityType.SET_UNRESOLVED;
-};
+}
 
-type GroupActivitySetPublic = GroupActivityBase & {
+interface GroupActivitySetPublic extends GroupActivityBase {
   data: Record<string, any>;
   type: GroupActivityType.SET_PUBLIC;
-};
+}
 
-type GroupActivitySetPrivate = GroupActivityBase & {
+interface GroupActivitySetPrivate extends GroupActivityBase {
   data: Record<string, any>;
   type: GroupActivityType.SET_PRIVATE;
-};
+}
 
-type GroupActivitySetByAge = GroupActivityBase & {
+interface GroupActivitySetByAge extends GroupActivityBase {
   data: Record<string, any>;
   type: GroupActivityType.SET_RESOLVED_BY_AGE;
-};
+}
 
-type GroupActivityUnassigned = GroupActivityBase & {
+interface GroupActivityUnassigned extends GroupActivityBase {
   data: Record<string, any>;
   type: GroupActivityType.UNASSIGNED;
-};
+}
 
-type GroupActivityFirstSeen = GroupActivityBase & {
+interface GroupActivityFirstSeen extends GroupActivityBase {
   data: Record<string, any>;
   type: GroupActivityType.FIRST_SEEN;
-};
+}
 
-type GroupActivityMarkReviewed = GroupActivityBase & {
+interface GroupActivityMarkReviewed extends GroupActivityBase {
   data: Record<string, any>;
   type: GroupActivityType.MARK_REVIEWED;
-};
+}
 
-type GroupActivityRegression = GroupActivityBase & {
+interface GroupActivityRegression extends GroupActivityBase {
   data: {
+    /**
+     * True if the project is using semver to decide if the event is a regression.
+     * Available when the issue was resolved in a release.
+     */
+    follows_semver?: boolean;
+    /**
+     * The version that the issue was previously resolved in.
+     * Available when the issue was resolved in a release.
+     */
+    resolved_in_version?: string;
     version?: string;
   };
   type: GroupActivityType.SET_REGRESSION;
-};
+}
 
-export type GroupActivitySetByResolvedInRelease = GroupActivityBase & {
+export interface GroupActivitySetByResolvedInNextSemverRelease extends GroupActivityBase {
   data: {
-    current_release_version?: string;
+    // Set for semver releases
+    current_release_version: string;
+  };
+  type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
+}
+
+export interface GroupActivitySetByResolvedInRelease extends GroupActivityBase {
+  data: {
     version?: string;
   };
   type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
-};
+}
 
-type GroupActivitySetByResolvedInCommit = GroupActivityBase & {
+interface GroupActivitySetByResolvedInCommit extends GroupActivityBase {
   data: {
-    commit: Commit;
+    commit?: Commit;
   };
   type: GroupActivityType.SET_RESOLVED_IN_COMMIT;
-};
+}
 
-type GroupActivitySetByResolvedInPullRequest = GroupActivityBase & {
+interface GroupActivitySetByResolvedInPullRequest extends GroupActivityBase {
   data: {
-    pullRequest: PullRequest;
+    pullRequest?: PullRequest;
   };
   type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST;
-};
+}
 
-export type GroupActivitySetIgnored = GroupActivityBase & {
+export interface GroupActivitySetIgnored extends GroupActivityBase {
   data: {
     ignoreCount?: number;
     ignoreDuration?: number;
     ignoreUntil?: string;
+    /** Archived until escalating */
+    ignoreUntilEscalating?: boolean;
     ignoreUserCount?: number;
     ignoreUserWindow?: number;
     ignoreWindow?: number;
   };
   type: GroupActivityType.SET_IGNORED;
-};
+}
 
-export type GroupActivityReprocess = GroupActivityBase & {
+export interface GroupActivityReprocess extends GroupActivityBase {
   data: {
     eventCount: number;
     newGroupId: number;
     oldGroupId: number;
   };
   type: GroupActivityType.REPROCESS;
-};
+}
 
-type GroupActivityUnmergeDestination = GroupActivityBase & {
+interface GroupActivityUnmergeDestination extends GroupActivityBase {
   data: {
     fingerprints: Array<string>;
     source?: {
@@ -283,9 +416,9 @@ type GroupActivityUnmergeDestination = GroupActivityBase & {
     };
   };
   type: GroupActivityType.UNMERGE_DESTINATION;
-};
+}
 
-type GroupActivityUnmergeSource = GroupActivityBase & {
+interface GroupActivityUnmergeSource extends GroupActivityBase {
   data: {
     fingerprints: Array<string>;
     destination?: {
@@ -294,33 +427,60 @@ type GroupActivityUnmergeSource = GroupActivityBase & {
     };
   };
   type: GroupActivityType.UNMERGE_SOURCE;
-};
+}
 
-type GroupActivityMerge = GroupActivityBase & {
+interface GroupActivityMerge extends GroupActivityBase {
   data: {
     issues: Array<any>;
   };
   type: GroupActivityType.MERGE;
-};
+}
 
-export type GroupActivityAssigned = GroupActivityBase & {
+interface GroupActivityAutoSetOngoing extends GroupActivityBase {
+  data: {
+    afterDays?: number;
+  };
+  type: GroupActivityType.AUTO_SET_ONGOING;
+}
+
+export interface GroupActivitySetEscalating extends GroupActivityBase {
+  data: {
+    expired_snooze?: {
+      count: number | null;
+      until: Date | null;
+      user_count: number | null;
+      user_window: number | null;
+      window: number | null;
+    };
+    forecast?: number;
+  };
+  type: GroupActivityType.SET_ESCALATING;
+}
+
+export interface GroupActivityAssigned extends GroupActivityBase {
   data: {
     assignee: string;
     assigneeType: string;
     user: Team | User;
     assigneeEmail?: string;
+    /**
+     * If the user was assigned via an integration
+     */
+    integration?: 'projectOwnership' | 'codeowners' | 'slack' | 'msteams';
+    /** Codeowner or Project owner rule as a string */
+    rule?: string;
   };
   type: GroupActivityType.ASSIGNED;
-};
+}
 
-export type GroupActivityCreateIssue = GroupActivityBase & {
+export interface GroupActivityCreateIssue extends GroupActivityBase {
   data: {
     location: string;
     provider: string;
     title: string;
   };
   type: GroupActivityType.CREATE_ISSUE;
-};
+}
 
 export type GroupActivity =
   | GroupActivityNote
@@ -329,6 +489,7 @@ export type GroupActivity =
   | GroupActivitySetIgnored
   | GroupActivitySetByAge
   | GroupActivitySetByResolvedInRelease
+  | GroupActivitySetByResolvedInNextSemverRelease
   | GroupActivitySetByResolvedInCommit
   | GroupActivitySetByResolvedInPullRequest
   | GroupActivityFirstSeen
@@ -342,79 +503,108 @@ export type GroupActivity =
   | GroupActivityRegression
   | GroupActivityUnmergeSource
   | GroupActivityAssigned
-  | GroupActivityCreateIssue;
+  | GroupActivityCreateIssue
+  | GroupActivityAutoSetOngoing
+  | GroupActivitySetEscalating;
 
 export type Activity = GroupActivity;
 
-type GroupFiltered = {
+interface GroupFiltered {
   count: string;
   firstSeen: string;
   lastSeen: string;
   stats: Record<string, TimeseriesValue[]>;
   userCount: number;
-};
+}
 
-export type GroupStats = GroupFiltered & {
+export interface GroupStats extends GroupFiltered {
   filtered: GroupFiltered | null;
   id: string;
+  isUnhandled?: boolean;
+  // for issue alert previews, the last time a group triggered a rule
+  lastTriggered?: string;
   lifetime?: GroupFiltered;
   sessionCount?: string | null;
-};
-
-export type BaseGroupStatusReprocessing = {
-  status: 'reprocessing';
-  statusDetails: {
-    info: {
-      dateCreated: string;
-      totalEvents: number;
-    } | null;
-    pendingEvents: number;
-  };
-};
-
-/**
- * Issue Resolution
- */
-export enum ResolutionStatus {
-  RESOLVED = 'resolved',
-  UNRESOLVED = 'unresolved',
-  IGNORED = 'ignored',
 }
-export type ResolutionStatusDetails = {
+
+export interface IgnoredStatusDetails {
   actor?: AvatarUser;
-  autoResolved?: boolean;
   ignoreCount?: number;
   // Sent in requests. ignoreUntil is used in responses.
   ignoreDuration?: number;
   ignoreUntil?: string;
+  ignoreUntilEscalating?: boolean;
   ignoreUserCount?: number;
   ignoreUserWindow?: number;
   ignoreWindow?: number;
-  inCommit?: Commit;
+}
+export interface ResolvedStatusDetails {
+  actor?: AvatarUser;
+  autoResolved?: boolean;
+  inCommit?: {
+    commit?: string;
+    dateCreated?: string;
+    id?: string;
+    repository?: string | Repository;
+  };
   inNextRelease?: boolean;
   inRelease?: string;
-};
+  repository?: string;
+}
+interface ReprocessingStatusDetails {
+  info: {
+    dateCreated: string;
+    totalEvents: number;
+  } | null;
+  pendingEvents: number;
+}
 
-export type UpdateResolutionStatus = {
-  status: ResolutionStatus;
-  statusDetails?: ResolutionStatusDetails;
-};
+export interface UserParticipant extends User {
+  type: 'user';
+}
 
-type BaseGroupStatusResolution = {
-  status: ResolutionStatus;
-  statusDetails: ResolutionStatusDetails;
-};
+export interface TeamParticipant extends Team {
+  type: 'team';
+}
 
-export type GroupRelease = {
-  firstRelease: Release;
-  lastRelease: Release;
-};
+/**
+ * The payload sent when marking reviewed
+ */
+export interface MarkReviewed {
+  inbox: false;
+}
+/**
+ * The payload sent when updating a group's status
+ */
+
+export interface GroupStatusResolution {
+  status: GroupStatus.RESOLVED | GroupStatus.UNRESOLVED | GroupStatus.IGNORED;
+  statusDetails: ResolvedStatusDetails | IgnoredStatusDetails | {};
+  substatus?: GroupSubstatus | null;
+}
+
+export const enum GroupStatus {
+  RESOLVED = 'resolved',
+  UNRESOLVED = 'unresolved',
+  IGNORED = 'ignored',
+  REPROCESSING = 'reprocessing',
+}
+
+export const enum GroupSubstatus {
+  ARCHIVED_UNTIL_ESCALATING = 'archived_until_escalating',
+  ARCHIVED_UNTIL_CONDITION_MET = 'archived_until_condition_met',
+  ARCHIVED_FOREVER = 'archived_forever',
+  ESCALATING = 'escalating',
+  ONGOING = 'ongoing',
+  REGRESSED = 'regressed',
+  NEW = 'new',
+}
 
 // TODO(ts): incomplete
-export type BaseGroup = {
+export interface BaseGroup {
   activity: GroupActivity[];
   annotations: string[];
-  assignedTo: Actor;
+  assignedTo: Actor | null;
   culprit: string;
   firstSeen: string;
   hasSeen: boolean;
@@ -422,14 +612,14 @@ export type BaseGroup = {
   isBookmarked: boolean;
   isPublic: boolean;
   isSubscribed: boolean;
-  isUnhandled: boolean;
+  issueCategory: IssueCategory;
+  issueType: IssueType;
   lastSeen: string;
-  latestEvent: Event;
   level: Level;
-  logger: string;
+  logger: string | null;
   metadata: EventMetadata;
   numComments: number;
-  participants: User[];
+  participants: Array<UserParticipant | TeamParticipant>;
   permalink: string;
   platform: PlatformKey;
   pluginActions: any[]; // TODO(ts)
@@ -439,30 +629,52 @@ export type BaseGroup = {
   seenBy: User[];
   shareId: string;
   shortId: string;
-  status: string;
+  status: GroupStatus;
+  statusDetails: IgnoredStatusDetails | ResolvedStatusDetails | ReprocessingStatusDetails;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
-  tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
   title: string;
   type: EventOrGroupType;
   userReportCount: number;
   inbox?: InboxDetails | null | false;
+  latestEvent?: Event;
   owners?: SuggestedOwner[] | null;
-} & GroupRelease;
+  substatus?: GroupSubstatus | null;
+}
 
-export type GroupReprocessing = BaseGroup & GroupStats & BaseGroupStatusReprocessing;
-export type GroupResolution = BaseGroup & GroupStats & BaseGroupStatusResolution;
-export type Group = GroupResolution | GroupReprocessing;
-export type GroupCollapseRelease = Omit<Group, keyof GroupRelease> &
-  Partial<GroupRelease>;
+export interface GroupReprocessing extends BaseGroup, GroupStats {
+  status: GroupStatus.REPROCESSING;
+  statusDetails: ReprocessingStatusDetails;
+}
 
-export type GroupTombstone = {
+export interface GroupResolved extends BaseGroup, GroupStats {
+  status: GroupStatus.RESOLVED;
+  statusDetails: ResolvedStatusDetails;
+}
+
+export interface GroupIgnored extends BaseGroup, GroupStats {
+  status: GroupStatus.IGNORED;
+  statusDetails: IgnoredStatusDetails;
+}
+
+export interface GroupUnresolved extends BaseGroup, GroupStats {
+  status: GroupStatus.UNRESOLVED;
+  statusDetails: {};
+}
+
+export type Group = GroupUnresolved | GroupResolved | GroupIgnored | GroupReprocessing;
+
+export interface GroupTombstone {
   actor: AvatarUser;
   culprit: string;
   id: string;
   level: Level;
   metadata: EventMetadata;
-  title: string;
-};
+  type: EventOrGroupType;
+  title?: string;
+}
+export interface GroupTombstoneHelper extends GroupTombstone {
+  isTombstone: true;
+}
 
 export type ProcessingIssueItem = {
   checksum: string;
@@ -473,6 +685,8 @@ export type ProcessingIssueItem = {
     image_arch: string;
     image_path: string;
     image_uuid: string;
+    dist?: string;
+    release?: string;
   };
   id: string;
   lastSeen: string;
@@ -527,15 +741,19 @@ export type UserReport = {
   user: User;
 };
 
-export type KeyValueListData = {
+export type KeyValueListDataItem = {
   key: string;
   subject: string;
   actionButton?: React.ReactNode;
+  isContextData?: boolean;
+  isMultiValue?: boolean;
   meta?: Meta;
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;
   value?: React.ReactNode;
-}[];
+};
+
+export type KeyValueListData = KeyValueListDataItem[];
 
 // Response from ShortIdLookupEndpoint
 // /organizations/${orgId}/shortids/${query}/

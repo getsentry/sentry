@@ -1,16 +1,20 @@
+from __future__ import annotations
+
 import logging
 import pickle
 from base64 import b64encode
 from collections.abc import MutableMapping
+from typing import Any
 from uuid import uuid4
 
 from django.db.models.signals import post_delete
 
 from sentry import nodestore
 from sentry.db.models.utils import Creator
+from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
-from sentry.utils.strings import compress, decompress
+from sentry.utils.strings import decompress
 
 from .gzippeddict import GzippedDictField
 
@@ -104,10 +108,10 @@ class NodeData(MutableMapping):
             return self._node_data
 
         elif self.id:
-            self.bind_data(nodestore.get(self.id) or {})
+            self.bind_data(nodestore.backend.get(self.id) or {})
             return self._node_data
 
-        rv = {}
+        rv: dict[str, Any] = {}
         if self.wrapper is not None:
             rv = self.wrapper(rv)
         return rv
@@ -152,7 +156,7 @@ class NodeData(MutableMapping):
         subkeys = subkeys or {}
         subkeys[None] = to_write
 
-        nodestore.set_subkeys(self.id, subkeys)
+        nodestore.backend.set_subkeys(self.id, subkeys)
 
 
 class NodeField(GzippedDictField):
@@ -178,7 +182,7 @@ class NodeField(GzippedDictField):
         if not value.id:
             return
 
-        nodestore.delete(value.id)
+        nodestore.backend.delete(value.id)
 
     def to_python(self, value):
         node_id = None
@@ -187,15 +191,18 @@ class NodeField(GzippedDictField):
         # with a dict.
         if value and isinstance(value, str):
             try:
-                value = pickle.loads(decompress(value))
-            except Exception as e:
-                # TODO this is a bit dangerous as a failure to read/decode the
-                # node_id will end up with this record being replaced with an
-                # empty value under a new key, potentially orphaning an
-                # original value in nodestore. OTOH if we can't decode the info
-                # here, the node was already effectively orphaned.
-                logger.exception(e)
-                value = None
+                value = json.loads(value)
+            except (ValueError, TypeError):
+                try:
+                    value = pickle.loads(decompress(value))
+                except Exception as e:
+                    # TODO this is a bit dangerous as a failure to read/decode the
+                    # node_id will end up with this record being replaced with an
+                    # empty value under a new key, potentially orphaning an
+                    # original value in nodestore. OTOH if we can't decode the info
+                    # here, the node was already effectively orphaned.
+                    logger.exception(e)
+                    value = None
 
         if value:
             if "node_id" in value:
@@ -236,4 +243,5 @@ class NodeField(GzippedDictField):
             value.id = self.id_func()
 
         value.save()
-        return compress(pickle.dumps({"node_id": value.id}))
+
+        return json.dumps({"node_id": value.id})

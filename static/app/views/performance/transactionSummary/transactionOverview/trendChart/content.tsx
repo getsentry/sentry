@@ -1,4 +1,5 @@
 import {InjectedRouter} from 'react-router';
+import {Theme} from '@emotion/react';
 import {Query} from 'history';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -11,9 +12,14 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
-import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {
+  axisLabelFormatter,
+  getDurationUnit,
+  tooltipFormatter,
+} from 'sentry/utils/discover/charts';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {Theme} from 'sentry/utils/theme';
+import {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
+import {getIntervalLine} from 'sentry/views/performance/utils';
 
 import {transformEventStatsSmoothed} from '../../../trends/utils';
 
@@ -29,6 +35,8 @@ type Props = {
     end: number;
     start: number;
   };
+  transaction?: NormalizedTrendsTransaction;
+  withBreakpoint?: boolean;
 } & Omit<React.ComponentProps<typeof ReleaseSeries>, 'children' | 'queryExtra'> &
   Pick<LineChartProps, 'onLegendSelectChanged' | 'legend'>;
 
@@ -48,6 +56,8 @@ function Content({
   utc,
   queryExtra,
   router,
+  withBreakpoint,
+  transaction,
   onLegendSelectChanged,
 }: Props) {
   if (errored) {
@@ -57,36 +67,6 @@ function Content({
       </ErrorPanel>
     );
   }
-
-  const chartOptions: Omit<LineChartProps, 'series'> = {
-    grid: {
-      left: '10px',
-      right: '10px',
-      top: '40px',
-      bottom: '0px',
-    },
-    seriesOptions: {
-      showSymbol: false,
-    },
-    tooltip: {
-      trigger: 'axis',
-      valueFormatter: (value: number | null) => tooltipFormatter(value, 'p50()'),
-    },
-    xAxis: timeFrame
-      ? {
-          min: timeFrame.start,
-          max: timeFrame.end,
-        }
-      : undefined,
-    yAxis: {
-      min: 0,
-      axisLabel: {
-        color: theme.chartLabel,
-        // p50() coerces the axis to be time based
-        formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
-      },
-    },
-  };
 
   const series = data
     ? data
@@ -102,6 +82,43 @@ function Content({
         })
         .reverse()
     : [];
+
+  const needsLabel = false;
+  const breakpointSeries = withBreakpoint
+    ? getIntervalLine(theme, data || [], 0.5, needsLabel, transaction)
+    : [];
+
+  const durationUnit = getDurationUnit(series, legend);
+
+  const chartOptions: Omit<LineChartProps, 'series'> = {
+    grid: {
+      left: '10px',
+      right: '10px',
+      top: '40px',
+      bottom: '0px',
+    },
+    seriesOptions: {
+      showSymbol: false,
+    },
+    tooltip: {
+      valueFormatter: (value: number | null) => tooltipFormatter(value, 'duration'),
+    },
+    xAxis: timeFrame
+      ? {
+          min: timeFrame.start,
+          max: timeFrame.end,
+        }
+      : undefined,
+    yAxis: {
+      min: 0,
+      minInterval: durationUnit,
+      axisLabel: {
+        color: theme.chartLabel,
+        formatter: (value: number) =>
+          axisLabelFormatter(value, 'duration', undefined, durationUnit),
+      },
+    },
+  };
 
   const {smoothedResults} = transformEventStatsSmoothed(data, t('Smoothed'));
 
@@ -139,7 +156,12 @@ function Content({
                     {...chartOptions}
                     legend={legend}
                     onLegendSelectChanged={onLegendSelectChanged}
-                    series={[...series, ...smoothedSeries, ...releaseSeries]}
+                    series={[
+                      ...series,
+                      ...smoothedSeries,
+                      ...releaseSeries,
+                      ...breakpointSeries,
+                    ]}
                   />
                 ),
                 fixed: <Placeholder height="200px" testId="skeleton-ui" />,

@@ -1,21 +1,75 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence, Tuple
 
-from django.db import models, transaction
+from django.db import models
 
 from sentry import projectoptions
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
-from sentry.db.models.fields import EncryptedPickledObjectField
+from sentry.backup.dependencies import ImportKind
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
+from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.manager import OptionManager, ValidateFunction, Value
-from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
-    from sentry.models import Project
+    from sentry.models.project import Project
+
+OPTION_KEYS = frozenset(
+    [
+        # we need the epoch to fill in the defaults correctly
+        "sentry:option-epoch",
+        "sentry:origins",
+        "sentry:resolve_age",
+        "sentry:scrub_data",
+        "sentry:scrub_defaults",
+        "sentry:safe_fields",
+        "sentry:store_crash_reports",
+        "sentry:builtin_symbol_sources",
+        "sentry:symbol_sources",
+        "sentry:sensitive_fields",
+        "sentry:csp_ignored_sources_defaults",
+        "sentry:csp_ignored_sources",
+        "sentry:default_environment",
+        "sentry:reprocessing_active",
+        "sentry:blacklisted_ips",
+        "sentry:releases",
+        "sentry:error_messages",
+        "sentry:scrape_javascript",
+        "sentry:recap_server_url",
+        "sentry:recap_server_token",
+        "sentry:token",
+        "sentry:token_header",
+        "sentry:verify_ssl",
+        "sentry:scrub_ip_address",
+        "sentry:grouping_config",
+        "sentry:grouping_enhancements",
+        "sentry:grouping_enhancements_base",
+        "sentry:secondary_grouping_config",
+        "sentry:secondary_grouping_expiry",
+        "sentry:grouping_auto_update",
+        "sentry:fingerprinting_rules",
+        "sentry:relay_pii_config",
+        "sentry:dynamic_sampling",
+        "sentry:dynamic_sampling_biases",
+        "sentry:breakdowns",
+        "sentry:span_attributes",
+        "sentry:transaction_name_cluster_rules",
+        "sentry:span_description_cluster_rules",
+        "quotas:spike-protection-disabled",
+        "feedback:branding",
+        "digests:mail:minimum_delay",
+        "digests:mail:maximum_delay",
+        "mail:subject_prefix",
+        "mail:subject_template",
+        "filters:react-hydration-errors",
+        "filters:chunk-load-error",
+    ]
+)
 
 
-class ProjectOptionManager(OptionManager["Project"]):
+class ProjectOptionManager(OptionManager["ProjectOption"]):
     def get_value_bulk(self, instances: Sequence[Project], key: str) -> Mapping[Project, Any]:
         instance_map = {i.id: i for i in instances}
         queryset = self.filter(project__in=instances, key=key)
@@ -49,11 +103,9 @@ class ProjectOptionManager(OptionManager["Project"]):
         inst, created = self.create_or_update(project=project, key=key, values={"value": value})
         self.reload_cache(project.id, "projectoption.set_value")
 
-        # Explicitly typing to satisfy mypy.
-        success: bool = created or inst > 0
-        return success
+        return created or inst > 0
 
-    def get_all_values(self, project: Project) -> Mapping[str, Value]:
+    def get_all_values(self, project: Project | int) -> Mapping[str, Value]:
         if isinstance(project, models.Model):
             project_id = project.id
         else:
@@ -67,23 +119,13 @@ class ProjectOptionManager(OptionManager["Project"]):
             else:
                 self._option_cache[cache_key] = result
 
-        # Explicitly typing to satisfy mypy.
-        values: Mapping[str, Value] = self._option_cache.get(cache_key, {})
-        return values
+        return self._option_cache.get(cache_key, {})
 
     def reload_cache(self, project_id: int, update_reason: str) -> Mapping[str, Value]:
+        from sentry.tasks.relay import schedule_invalidate_project_config
+
         if update_reason != "projectoption.get_all_values":
-            # this hook may be called from model hooks during an
-            # open transaction. In that case, wait until the current transaction has
-            # been committed or rolled back to ensure we don't read stale data in the
-            # task.
-            #
-            # If there is no transaction open, on_commit should run immediately.
-            transaction.on_commit(
-                lambda: schedule_invalidate_project_config(
-                    project_id=project_id, trigger=update_reason
-                )
-            )
+            schedule_invalidate_project_config(project_id=project_id, trigger=update_reason)
         cache_key = self._make_key(project_id)
         result = {i.key: i.value for i in self.filter(project=project_id)}
         cache.set(cache_key, result)
@@ -97,7 +139,8 @@ class ProjectOptionManager(OptionManager["Project"]):
         self.reload_cache(instance.project_id, "projectoption.post_delete")
 
 
-class ProjectOption(Model):  # type: ignore
+@region_silo_only_model
+class ProjectOption(Model):
     """
     Project options apply only to an instance of a project.
 
@@ -105,13 +148,13 @@ class ProjectOption(Model):  # type: ignore
     their key. e.g. key='myplugin:optname'
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     project = FlexibleForeignKey("sentry.Project")
     key = models.CharField(max_length=64)
-    value = EncryptedPickledObjectField()
+    value = PickledObjectField()
 
-    objects = ProjectOptionManager()
+    objects: ProjectOptionManager = ProjectOptionManager()
 
     class Meta:
         app_label = "sentry"
@@ -119,3 +162,18 @@ class ProjectOption(Model):  # type: ignore
         unique_together = (("project", "key"),)
 
     __repr__ = sane_repr("project_id", "key", "value")
+
+    def write_relocation_import(
+        self, _s: ImportScope, _f: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
+        # Some `ProjectOption`s for the project are automatically generated at insertion time via a
+        # `post_save()` hook, so they should already exist with autogenerated data. We simply need
+        # to update them with the correct, imported values here.
+        (option, _) = self.__class__.objects.get_or_create(
+            project=self.project, key=self.key, defaults={"value": self.value}
+        )
+        if option:
+            self.pk = option.pk
+            self.save()
+
+        return (self.pk, ImportKind.Inserted)

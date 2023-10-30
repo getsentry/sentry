@@ -1,19 +1,35 @@
-from sentry.models import Integration, ObjectStatus, Organization, Repository
+from sentry.constants import ObjectStatus
+from sentry.models.integrations.integration import Integration
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
+from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.repository import repository_service
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.integrations import logger
 
 
 @instrumented_task(
     name="sentry.tasks.integrations.migrate_repo",
-    queue="integrations",
+    queue="integrations.control",
     default_retry_delay=60 * 5,
     max_retries=5,
+    silo_mode=SiloMode.CONTROL,
 )
 @retry(exclude=(Integration.DoesNotExist, Repository.DoesNotExist, Organization.DoesNotExist))
 def migrate_repo(repo_id: int, integration_id: int, organization_id: int) -> None:
-    integration = Integration.objects.get(id=integration_id)
+    from sentry.mediators.plugins.migrator import Migrator
+
+    integration = integration_service.get_integration(integration_id=integration_id)
+    if integration is None:
+        raise Integration.DoesNotExist
     installation = integration.get_installation(organization_id=organization_id)
-    repo = Repository.objects.get(id=repo_id)
+
+    repo = repository_service.get_repository(organization_id=organization_id, id=repo_id)
+    if repo is None:
+        raise Repository.DoesNotExist
+
     if installation.has_repo_access(repo):
         # This probably shouldn't happen, but log it just in case.
         if repo.integration_id is not None and repo.integration_id != integration_id:
@@ -32,8 +48,8 @@ def migrate_repo(repo_id: int, integration_id: int, organization_id: int) -> Non
         # Check against disabled specifically -- don't want to accidentally un-delete repos.
         original_status = repo.status
         if repo.status == ObjectStatus.DISABLED:
-            repo.status = ObjectStatus.VISIBLE
-        repo.save()
+            repo.status = ObjectStatus.ACTIVE
+        repository_service.update_repository(organization_id=organization_id, update=repo)
         logger.info(
             "repo.migrated",
             extra={
@@ -44,8 +60,8 @@ def migrate_repo(repo_id: int, integration_id: int, organization_id: int) -> Non
             },
         )
 
-        from sentry.mediators.plugins import Migrator
+        organization = organization_service.get(id=organization_id)
+        if organization is None:
+            raise Organization.DoesNotExist
 
-        Migrator.run(
-            integration=integration, organization=Organization.objects.get(id=organization_id)
-        )
+        Migrator.run(integration=integration, organization=organization)
