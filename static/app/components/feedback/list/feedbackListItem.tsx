@@ -75,7 +75,11 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
           </Flex>
           <TextOverflow>
             <span style={{gridArea: 'user'}}>
-              <FeedbackItemUsername feedbackItem={feedbackItem} detailDisplay={false} />
+              <FeedbackItemUsername
+                feedbackIssue={feedbackItem}
+                feedbackEvent={undefined}
+                detailDisplay={false}
+              />
             </span>
           </TextOverflow>
           <span style={{gridArea: 'time'}}>
