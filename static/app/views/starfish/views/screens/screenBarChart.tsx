@@ -2,6 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {BarChart} from 'sentry/components/charts/barChart';
+import {BaseChartProps} from 'sentry/components/charts/baseChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import {space} from 'sentry/styles/space';
@@ -14,15 +15,18 @@ export type ChartSelectOptions = {
   title: string;
   yAxis: string;
   series?: Series[];
+  xAxisLabel?: string[];
 };
 
 export function ScreensBarChart({
   chartHeight,
   chartOptions,
   isLoading,
+  chartProps,
 }: {
   chartOptions: ChartSelectOptions[];
   chartHeight?: number;
+  chartProps?: BaseChartProps;
   isLoading?: boolean;
 }) {
   const [selectedDisplay, setChartSetting] = useState(0);
@@ -67,6 +71,7 @@ export function ScreensBarChart({
       >
         <LoadingScreen loading={Boolean(isLoading)} />
         <BarChart
+          {...chartProps}
           height={chartHeight ?? 180}
           series={chartOptions[selectedDisplay].series ?? []}
           grid={{
@@ -74,6 +79,16 @@ export function ScreensBarChart({
             right: '0',
             top: '16px',
             bottom: '0',
+            containLabel: true,
+          }}
+          xAxis={{
+            type: 'category',
+            axisTick: {show: true},
+            data: chartOptions[selectedDisplay].xAxisLabel,
+            truncate: 14,
+            axisLabel: {
+              interval: 0,
+            },
           }}
         />
       </TransitionChart>
