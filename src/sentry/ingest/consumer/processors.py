@@ -15,7 +15,7 @@ from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
 from sentry.signals import event_accepted
-from sentry.tasks.store import preprocess_event, save_event_transaction
+from sentry.tasks.store import preprocess_event, save_event_feedback, save_event_transaction
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime
@@ -104,7 +104,6 @@ def process_event(message: IngestMessage, project: Project) -> None:
     # XXX: Do not use CanonicalKeyDict here. This may break preprocess_event
     # which assumes that data passed in is a raw dictionary.
     data = json.loads(payload, use_rapid_json=True)
-
     if project_id == settings.SENTRY_PROJECT:
         metrics.incr(
             "internal.captured.ingest_consumer.parsed",
@@ -141,6 +140,14 @@ def process_event(message: IngestMessage, project: Project) -> None:
         save_event_transaction.delay(
             cache_key=cache_key,
             data=None,
+            start_time=start_time,
+            event_id=event_id,
+            project_id=project_id,
+        )
+    elif data.get("type") == "feedback":
+        save_event_feedback.delay(
+            cache_key=None,  # no need to cache as volume is low
+            data=data,
             start_time=start_time,
             event_id=event_id,
             project_id=project_id,
