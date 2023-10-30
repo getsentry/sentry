@@ -60,8 +60,8 @@ def create_widget(
     aggregates: Sequence[str],
     query: str,
     project: Project,
-    columns: Optional[Sequence[str]] = None,
     title="Dashboard",
+    columns: Optional[Sequence[str]] = None,
 ) -> DashboardWidgetQuery:
     columns = columns or []
     dashboard = Dashboard.objects.create(
@@ -629,6 +629,7 @@ def test_get_metric_extraction_config_user_misery_with_tag_columns(default_proje
             [f"user_misery({threshold})"],
             f"transaction.duration:>={duration}",
             default_project,
+            "Dashboard",
             columns=["lcp.element", "custom"],
         )
 
@@ -649,8 +650,8 @@ def test_get_metric_extraction_config_user_misery_with_tag_columns(default_proje
                         "value": "frustrated",
                     },
                     {"key": "query_hash", "value": ANY},
-                    {"key": "event.tags.lcp.element", "field": "event.tags.lcp.element"},
-                    {"key": "event.tags.custom", "field": "event.tags.custom"},
+                    {"key": "lcp.element", "field": "event.tags.lcp.element"},
+                    {"key": "custom", "field": "event.tags.custom"},
                 ],
             }
         ]
@@ -664,6 +665,7 @@ def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project):
             ["epm()"],
             f"transaction.duration:>={duration}",
             default_project,
+            "Dashboard",
             columns=["user.id", "release"],
         )
 
@@ -678,8 +680,8 @@ def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project):
                 "mri": "c:transactions/on_demand@none",
                 "tags": [
                     {"key": "query_hash", "value": ANY},
-                    {"key": "event.user.id", "field": "event.user.id"},
-                    {"key": "event.release", "field": "event.release"},
+                    {"key": "user.id", "field": "event.user.id"},
+                    {"key": "release", "field": "event.release"},
                 ],
             }
         ]

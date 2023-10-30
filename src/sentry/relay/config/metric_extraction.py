@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional, Sequence, Set, Tuple, TypedDict, Union
-
+import random
 import sentry_sdk
 
 from sentry import features, options
@@ -41,6 +41,9 @@ _METRIC_EXTRACTION_VERSION = 1
 # advanced filter expressions.
 _MAX_ON_DEMAND_ALERTS = 50
 _MAX_ON_DEMAND_WIDGETS = 100
+
+# TTL for cardinality check
+_WIDGET_QUERY_CARDINALITY_TTL = 3600 * 24  # 24h
 
 HashedMetricSpec = Tuple[str, MetricSpec]
 
@@ -261,7 +264,7 @@ def _convert_widget_query_to_metric(
             widget_query.conditions,
             None,
             prefilling,
-            columns=widget_query.columns,
+            groupbys=widget_query.columns,
         ):
             _log_on_demand_metric_spec(
                 project_id=project.id,
@@ -281,6 +284,11 @@ def _convert_widget_query_to_metric(
     return metrics_specs
 
 
+def _get_widget_cardinality_query_ttl():
+    # Add ttl + 25% jitter to query so queries aren't all made at once.
+    return int(random.uniform(_WIDGET_QUERY_CARDINALITY_TTL, _WIDGET_QUERY_CARDINALITY_TTL * 1.25))
+
+
 def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project: Project):
     """
     Checks cardinality of existing widget queries before allowing the metric spec, so that
@@ -289,12 +297,13 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
     New queries will be checked upon creation and not allowed at that time.
     """
     params: dict[str, Any] = {
+        "statsPeriod": "1d",
         "project_objects": [project],
         "organization_id": project.organization_id,  # Organization id has to be specified to not violate allocation policy.
     }
-    now = timezone.now()
-    params["start"] = now
-    params["end"] = now - timedelta(day=1)
+    start, end = get_date_range_from_params(params)
+    params["start"] = start
+    params["end"] = end
 
     query_killswitch = options.get("on_demand.max_widget_cardinality.killswitch")
     if query_killswitch:
@@ -329,7 +338,7 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
         for index, column in enumerate(widget_query.columns):
             count = processed_results["data"][0][unique_columns[index]]
             if count > max_cardinality_allowed:
-                cache.set(cache_key, False)
+                cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
                 raise HighCardinalityWidgetException(
                     f"Cardinality exceeded for dashboard_widget_query:{widget_query.id} with count:{count} and column:{column}"
                 )
@@ -348,7 +357,7 @@ def _convert_aggregate_and_query_to_metric(
     query: str,
     environment: Optional[str],
     prefilling: bool,
-    columns: Optional[Sequence[str]] = None,
+    groupbys: Optional[Sequence[str]] = None,
 ) -> Optional[HashedMetricSpec]:
     """
     Converts an aggregate and a query to a metric spec with its hash value.
@@ -357,14 +366,14 @@ def _convert_aggregate_and_query_to_metric(
         # We can avoid injection of the environment in the query, since it's supported by standard, thus it won't change
         # the supported state of a query, since if it's standard, and we added environment it will still be standard
         # and if it's on demand, it will always be on demand irrespectively of what we add.
-        if not should_use_on_demand_metrics(dataset, aggregate, query, prefilling):
+        if not should_use_on_demand_metrics(dataset, aggregate, query, groupbys, prefilling):
             return None
 
         on_demand_spec = OnDemandMetricSpec(
             field=aggregate,
             query=query,
-            columns=columns,
             environment=environment,
+            groupbys=groupbys,
         )
 
         return on_demand_spec.query_hash, on_demand_spec.to_metric_spec(project)
