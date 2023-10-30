@@ -281,8 +281,45 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
     );
   }
 
+  renderCallout() {
+    const {installationData} = this.state;
+
+    if (this.integrationSlug !== 'github') {
+      return null;
+    }
+
+    const sender_url = `https://github.com/${installationData?.sender.login}`;
+    const target_url = `https://github.com/${installationData?.account.login}`;
+
+    return (
+      <Alert type="info" showIcon>
+        {tct(
+          `GitHub user [sender_login] has installed GitHub app to [account_type] [account_login]. Proceed if you want to attach this installation to your Sentry account.`,
+          {
+            account_type: <strong>{installationData?.account.type}</strong>,
+            account_login: (
+              <strong>
+                <ExternalLink href={target_url}>
+                  {installationData?.account.login}
+                </ExternalLink>
+              </strong>
+            ),
+            sender_id: <strong>{installationData?.sender.id}</strong>,
+            sender_login: (
+              <strong>
+                <ExternalLink href={sender_url}>
+                  {installationData?.sender.login}
+                </ExternalLink>
+              </strong>
+            ),
+          }
+        )}
+      </Alert>
+    );
+  }
+
   renderBody() {
-    const {selectedOrgSlug, installationData} = this.state;
+    const {selectedOrgSlug} = this.state;
     const options = this.state.organizations.map((org: Organization) => ({
       value: org.slug,
       label: (
@@ -295,42 +332,10 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
       ),
     }));
 
-    let integrationAlert;
-    if (this.integrationSlug === 'github') {
-      const sender_url = `https://github.com/${installationData?.sender.login}`;
-      const target_url = `https://github.com/${installationData?.account.login}`;
-
-      integrationAlert = (
-        <Alert type="info" showIcon>
-          {tct(
-            `GitHub user [sender_login] has installed GitHub app to [account_type] [account_login]. Proceed if you want to attach this installation to your Sentry account.`,
-            {
-              account_type: <strong>{installationData?.account.type}</strong>,
-              account_login: (
-                <strong>
-                  <ExternalLink href={target_url}>
-                    {installationData?.account.login}
-                  </ExternalLink>
-                </strong>
-              ),
-              sender_id: <strong>{installationData?.sender.id}</strong>,
-              sender_login: (
-                <strong>
-                  <ExternalLink href={sender_url}>
-                    {installationData?.sender.login}
-                  </ExternalLink>
-                </strong>
-              ),
-            }
-          )}
-        </Alert>
-      );
-    }
-
     return (
       <NarrowLayout>
         <h3>{t('Finish integration installation')}</h3>
-        {integrationAlert}
+        {this.renderCallout()}
         <p>
           {tct(
             `Please pick a specific [organization:organization] to link with
