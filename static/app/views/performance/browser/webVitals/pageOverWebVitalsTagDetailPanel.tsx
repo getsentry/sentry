@@ -55,7 +55,7 @@ const columnOrder: GridColumnOrder[] = [
   {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: 'Replay'},
   {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
   {key: 'transaction.duration', width: COL_WIDTH_UNDEFINED, name: 'Duration'},
-  {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Performance Score'},
+  {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
 ];
 
 const sort: GridColumnSortBy<keyof TransactionSampleRowWithScore> = {
@@ -297,6 +297,11 @@ export function PageOverviewWebVitalsTagDetailPanel({
     </LoadingIndicatorWrapper>
   );
 
+  const filteredColumnOrder =
+    tag?.key !== 'browser.name'
+      ? columnOrder.filter(({key}) => key !== 'browser')
+      : columnOrder;
+
   return (
     <PageErrorProvider>
       {tag && (
@@ -317,7 +322,7 @@ export function PageOverviewWebVitalsTagDetailPanel({
                 data={[
                   {
                     data: chartIsLoading ? [] : chartSeriesData.total,
-                    seriesName: 'performance score',
+                    seriesName: t('Performance Score'),
                   },
                 ]}
                 loading={chartIsLoading}
@@ -335,7 +340,7 @@ export function PageOverviewWebVitalsTagDetailPanel({
             <GridEditable
               data={tableData}
               isLoading={isSamplesTabledDataLoading || isRefetching}
-              columnOrder={columnOrder}
+              columnOrder={filteredColumnOrder}
               columnSortBy={[sort]}
               grid={{
                 renderHeadCell,
