@@ -835,10 +835,9 @@ class OnDemandMetricSpec:
         columns: Optional[Sequence[str]] = None,
         environment: Optional[str] = None,
     ):
-        columns = columns or []
         self.field = field
         self.query = query
-        self.columns = [column for column in columns if column != field]
+        self.columns = [column for column in columns or () if column != field]
         # Removes field if passed in selected_columns
         # For now, we just support the environment as extra, but in the future we might need more complex ways to
         # combine extra values that are outside the query string.
