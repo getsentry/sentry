@@ -66,6 +66,7 @@ function ScreenLoadSpans() {
   const {
     spanGroup,
     primaryRelease,
+    secondaryRelease,
     transaction: transactionName,
     spanDescription,
   } = location.query;
@@ -89,19 +90,20 @@ function ScreenLoadSpans() {
                     <DatePageFilter />
                   </PageFilterBar>
                   <ReleaseComparisonSelector />
-                  <ScreenMetricsRibbon
-                    additionalFilters={[`transaction:${transactionName}`]}
-                  />
                 </Container>
               </StarfishPageFiltersContainer>
+              <ScreenMetricsRibbon
+                additionalFilters={[`transaction:${transactionName}`]}
+              />
               <ScreenCharts
-                yAxes={[YAxis.COUNT, YAxis.TTID, YAxis.TTFD]}
+                yAxes={[YAxis.TTID, YAxis.TTFD]}
                 additionalFilters={[`transaction:${transactionName}`]}
                 chartHeight={120}
               />
               <ScreenLoadSpansTable
                 transaction={transactionName}
                 primaryRelease={primaryRelease}
+                secondaryRelease={secondaryRelease}
               />
               {spanGroup && (
                 <SampleList
@@ -134,6 +136,7 @@ const Container = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto;
   gap: ${space(2)};
+  padding-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-rows: auto;

@@ -145,7 +145,8 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   });
 
   const topTransactions =
-    topTransactionsData?.data?.slice(0, 5).map(datum => datum.transaction) ?? [];
+    topTransactionsData?.data?.slice(0, 5).map(datum => datum.transaction as string) ??
+    [];
 
   const topEventsQuery = new MutableSearch([
     'event.type:transaction',
@@ -170,10 +171,6 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
         query: topEventsQueryString,
         dataset: DiscoverDatasets.METRICS,
         version: 2,
-        interval: getInterval(
-          pageFilter.selection.datetime,
-          STARFISH_CHART_INTERVAL_FIDELITY
-        ),
       },
       location
     ),
@@ -316,6 +313,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
                 return {
                   title: t('%s by Release', CHART_TITLES[yAxis]),
                   yAxis: YAXIS_COLUMNS[yAxis],
+                  xAxisLabel: topTransactions,
                   series: Object.values(transformedReleaseEvents[YAXIS_COLUMNS[yAxis]]),
                 };
               })}
@@ -330,6 +328,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
                 return {
                   title: t('%s by Device Class', CHART_TITLES[yAxis]),
                   yAxis: YAXIS_COLUMNS[yAxis],
+                  xAxisLabel: topTransactions,
                   series: Object.values(transformedDeviceEvents[YAXIS_COLUMNS[yAxis]]),
                 };
               })}
