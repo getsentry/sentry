@@ -11,6 +11,7 @@ import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
+import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useExtractedDomNodes from 'sentry/utils/replays/hooks/useExtractedDomNodes';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -112,6 +113,12 @@ function Breadcrumbs() {
           style={style}
           expandPaths={Array.from(expandPathsRef.current?.get(index) || [])}
           onClick={() => {
+            const frameDetails = getFrameDetails(item);
+            frameDetails.title === 'Replay' &&
+              window.open(
+                'https://docs.sentry.io/platforms/javascript/session-replay/configuration/#mutation-limits',
+                '_blank'
+              );
             onClickTimestamp(item);
           }}
           onDimensionChange={handleDimensionChange}
