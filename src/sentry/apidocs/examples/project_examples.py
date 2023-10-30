@@ -351,7 +351,6 @@ detailed_project = {
             "profile-image-decode-main-thread-post-process-group",
             "performance-mep-bannerless-ui",
             "performance-uncompressed-assets-visible",
-            "getting-started-doc-with-product-selection",
             "performance-large-http-payload-visible",
             "performance-view",
             "promotion-mobperf-discount20",

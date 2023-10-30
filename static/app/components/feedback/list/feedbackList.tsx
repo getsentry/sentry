@@ -29,14 +29,19 @@ const cellMeasurer = {
 
 export default function FeedbackList() {
   const {
-    countLoadedRows,
+    // error,
+    // hasNextPage,
+    // isError,
+    isFetching, // If the network is active
+    isFetchingNextPage,
+    isFetchingPreviousPage,
+    isLoading, // If anything is loaded yet
+    // Below are fields that are shims for react-virtualized
     getRow,
-    isFetchingNext,
-    isFetchingPrev,
     isRowLoaded,
+    issues,
     loadMoreRows,
-    queryView,
-    totalHits,
+    // setFeedback,
   } = useInfiniteFeedbackListData();
 
   const {setParamValue} = useUrlParams('query');
@@ -46,8 +51,8 @@ export default function FeedbackList() {
 
   const listRef = useRef<ReactVirtualizedList>(null);
 
-  const hasRows = totalHits === undefined ? true : totalHits > 0;
-  const deps = useMemo(() => [queryView, hasRows], [queryView, hasRows]);
+  const hasRows = !isLoading;
+  const deps = useMemo(() => [hasRows], [hasRows]);
   const {cache, updateList} = useVirtualizedList({
     cellMeasurer,
     ref: listRef,
@@ -56,7 +61,7 @@ export default function FeedbackList() {
 
   useEffect(() => {
     updateList();
-  }, [updateList, countLoadedRows]);
+  }, [updateList, issues.length]);
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
     const item = getRow({index});
@@ -75,9 +80,9 @@ export default function FeedbackList() {
         <FeedbackListItem
           feedbackItem={item}
           style={style}
-          isChecked={checked.includes(item.feedback_id)}
+          isChecked={checked.includes(item.id)}
           onChecked={() => {
-            toggleChecked(item.feedback_id);
+            toggleChecked(item.id);
           }}
         />
       </CellMeasurer>
@@ -86,12 +91,12 @@ export default function FeedbackList() {
 
   return (
     <Fragment>
-      <FeedbackListHeader checked={checked} />
+      <FeedbackListHeader checked={checked} toggleChecked={toggleChecked} />
       <OverflowPanelItem noPadding>
         <InfiniteLoader
           isRowLoaded={isRowLoaded}
           loadMoreRows={loadMoreRows}
-          rowCount={totalHits}
+          rowCount={issues.length}
         >
           {({onRowsRendered, registerChild}) => (
             <AutoSizer onResize={updateList}>
@@ -100,11 +105,11 @@ export default function FeedbackList() {
                   deferredMeasurementCache={cache}
                   height={height}
                   noRowsRenderer={() =>
-                    isFetchingNext || isFetchingPrev ? (
+                    isFetching ? (
                       <LoadingIndicator />
                     ) : (
                       <NoRowRenderer
-                        unfilteredItems={totalHits === undefined ? [undefined] : []}
+                        unfilteredItems={issues}
                         clearSearchTerm={clearSearchTerm}
                       >
                         {t('No feedback received')}
@@ -113,10 +118,8 @@ export default function FeedbackList() {
                   }
                   onRowsRendered={onRowsRendered}
                   overscanRowCount={5}
-                  ref={e => {
-                    registerChild(e);
-                  }}
-                  rowCount={totalHits === undefined ? 1 : totalHits}
+                  ref={registerChild}
+                  rowCount={issues.length}
                   rowHeight={cache.rowHeight}
                   rowRenderer={renderRow}
                   width={width}
@@ -126,14 +129,14 @@ export default function FeedbackList() {
           )}
         </InfiniteLoader>
         <FloatingContainer style={{top: '2px'}}>
-          {isFetchingPrev ? (
+          {isFetchingPreviousPage ? (
             <Tooltip title={t('Loading more feedback...')}>
               <LoadingIndicator mini />
             </Tooltip>
           ) : null}
         </FloatingContainer>
         <FloatingContainer style={{bottom: '2px'}}>
-          {isFetchingNext ? (
+          {isFetchingNextPage ? (
             <Tooltip title={t('Loading more feedback...')}>
               <LoadingIndicator mini />
             </Tooltip>

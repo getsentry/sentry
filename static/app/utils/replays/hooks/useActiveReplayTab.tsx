@@ -8,7 +8,6 @@ export enum TabKey {
   A11Y = 'a11y',
   BREADCRUMBS = 'breadcrumbs',
   CONSOLE = 'console',
-  DOM = 'dom',
   ERRORS = 'errors',
   MEMORY = 'memory',
   NETWORK = 'network',

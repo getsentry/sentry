@@ -41,7 +41,7 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
 
   const timeline = hasNewTimeline ? null : (
     <ErrorBoundary mini>
-      <ReplayTimeline />
+      <ReplayTimeline size={100} />
     </ErrorBoundary>
   );
 
@@ -55,7 +55,6 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
 
   const controller = hasNewTimeline ? (
     <ErrorBoundary>
-      <ReplayTimeline />
       <ReplayController toggleFullscreen={toggleFullscreen} />
     </ErrorBoundary>
   ) : null;

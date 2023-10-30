@@ -3,7 +3,6 @@ from sentry.integrations.github.utils import get_jwt
 
 
 class GitHubEnterpriseAppsClient(GitHubClientMixin):
-    base_url = None
     integration_name = "github_enterprise"
 
     def __init__(self, base_url, integration, app_id, private_key, verify_ssl):

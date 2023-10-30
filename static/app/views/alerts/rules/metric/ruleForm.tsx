@@ -1,4 +1,4 @@
-import {ReactNode} from 'react';
+import {Fragment, ReactNode} from 'react';
 import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -10,6 +10,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {fetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
@@ -18,19 +19,22 @@ import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent
 import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {t} from 'sentry/locale';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t, tct} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import {space} from 'sentry/styles/space';
 import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
+import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {
   hasOnDemandMetricAlertFeature,
-  isOnDemandQueryString,
-} from 'sentry/utils/onDemandMetrics';
+  shouldShowOnDemandMetricAlertUI,
+} from 'sentry/utils/onDemandMetrics/features';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withProjects from 'sentry/utils/withProjects';
 import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
@@ -45,6 +49,10 @@ import {
   isValidOnDemandMetricAlert,
 } from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {AlertRuleType} from 'sentry/views/alerts/types';
+import {
+  hasMigrationFeatureFlag,
+  ruleNeedsMigration,
+} from 'sentry/views/alerts/utils/migrationUi';
 import {
   AlertWizardAlertNames,
   DatasetMEPAlertQueryTypes,
@@ -791,7 +799,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   handleTimeSeriesDataFetched = (data: EventsStats | MultiSeriesEventsStats | null) => {
     const {isExtrapolatedData} = data ?? {};
 
-    this.setState({isExtrapolatedChartData: Boolean(isExtrapolatedData)});
+    if (shouldShowOnDemandMetricAlertUI(this.props.organization)) {
+      this.setState({isExtrapolatedChartData: Boolean(isExtrapolatedData)});
+    }
 
     const {dataset, aggregate, query} = this.state;
     if (!isOnDemandMetricAlert(dataset, aggregate, query)) {
@@ -816,14 +826,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     // TODO: once all alerts are migrated to MEP, we can set the default to GENERIC_METRICS and remove this as well as
     // logic in handleMEPDataset, handleTimeSeriesDataFetched and checkOnDemandMetricsDataset
     const {dataset} = this.state;
-    const {ruleId, organization} = this.props;
+    const {organization} = this.props;
     const hasMetricsFeatureFlags =
       organization.features.includes('mep-rollout-flag') ||
-      organization.features.includes('on-demand-metrics-extraction');
+      hasOnDemandMetricAlertFeature(organization);
 
-    const isCreatingRule = !ruleId;
-
-    if (isCreatingRule && hasMetricsFeatureFlags && dataset === Dataset.TRANSACTIONS) {
+    if (hasMetricsFeatureFlags && dataset === Dataset.TRANSACTIONS) {
       return Dataset.GENERIC_METRICS;
     }
     return dataset;
@@ -969,6 +977,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const formDisabled = loading || !hasAlertWrite;
     const submitDisabled = formDisabled || !this.state.isQueryValid;
 
+    const showMigrationWarning =
+      !!ruleId && hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
+
     return (
       <Main fullWidth>
         <PermissionAlert access={['alerts:write']} project={project} />
@@ -1042,6 +1053,40 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             />
             <AlertListItem>{t('Set thresholds')}</AlertListItem>
             {thresholdTypeForm(formDisabled)}
+            {showMigrationWarning && (
+              <Alert
+                type="warning"
+                showIcon
+                trailingItems={
+                  <Button size="xs" type="submit">
+                    {t('Looks good to me!')}
+                  </Button>
+                }
+              >
+                {tct(
+                  'Check the chart above and make sure the current thresholds are still valid, given that this alert is now based on [tooltip:total events].',
+                  {
+                    tooltip: (
+                      <Tooltip
+                        showUnderline
+                        isHoverable
+                        title={
+                          <Fragment>
+                            {t(
+                              'Performance alerts are based on all the events you send to Sentry, not just the ones that are stored'
+                            )}
+                            <br />
+                            <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/">
+                              {t('Learn more')}
+                            </ExternalLink>
+                          </Fragment>
+                        }
+                      />
+                    ),
+                  }
+                )}
+              </Alert>
+            )}
             {triggerForm(formDisabled)}
             {ruleNameOwnerForm(formDisabled)}
           </List>

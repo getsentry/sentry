@@ -63,10 +63,19 @@ class TestCreatesOndemandMetricSpec:
         [
             # transaction duration not supported by standard metrics
             ("count()", "transaction.duration:>0"),
+            ("count()", "user.ip:192.168.0.1"),
+            ("count()", "user.username:foobar"),
             ("count()", "transaction.duration:>0 event.type:transaction project:abc"),
             ("count()", "(transaction.duration:>0) AND (event.type:transaction)"),
             ("p75(measurements.fp)", "transaction.duration:>0"),
             ("p75(transaction.duration)", "transaction.duration:>0"),
+            ("p100(transaction.duration)", "transaction.duration:>0"),
+            # we dont support custom percentiles that can be mapped to one of standard percentiles
+            ("percentile(transaction.duration, 0.5)", "transaction.duration>0"),
+            ("percentile(transaction.duration, 0.50)", "transaction.duration>0"),
+            ("percentile(transaction.duration, 0.95)", "transaction.duration>0"),
+            ("percentile(transaction.duration, 0.99)", "transaction.duration>0"),
+            ("percentile(transaction.duration, 1)", "transaction.duration>0"),
             ("count_if(transaction.duration,equals,0)", "transaction.duration:>0"),
             ("count_if(transaction.duration,notEquals,0)", "transaction.duration:>0"),
             (
@@ -80,9 +89,14 @@ class TestCreatesOndemandMetricSpec:
             ("failure_rate()", "transaction.duration:>100"),
             ("apdex(10)", "transaction.duration:>100"),
             (
+                "count_web_vitals(measurements.fcp,any)",
+                "transaction.duration:>0",
+            ),  # count_web_vitals supported by on demand
+            (
                 "apdex(10)",
                 "",
             ),  # apdex with specified threshold is on-demand metric even without query
+            ("count()", "transaction.duration:>0 my-transaction"),
         ],
     )
     def test_creates_on_demand_spec(self, aggregate, query):
@@ -99,6 +113,8 @@ class TestCreatesOndemandMetricSpec:
             ("last_seen()", "transaction.duration:>0"),  # last_seen not supported by on demand
             ("any(user)", "transaction.duration:>0"),  # any not supported by on demand
             ("p95(transaction.duration)", ""),  # p95 without query is supported by standard metrics
+            # we do not support custom percentiles that can not be mapped to one of standard percentiles
+            ("percentile(transaction.duration, 0.123)", "transaction.duration>0"),
             (
                 "count()",
                 "p75(transaction.duration):>0",
@@ -109,10 +125,6 @@ class TestCreatesOndemandMetricSpec:
                 "transaction.duration:>0",
             ),  # equation not supported by on demand
             ("p75(measurements.lcp)", "!event.type:transaction"),  # supported by standard metrics
-            (
-                "count_web_vitals(measurements.fcp,any)",
-                "transaction.duration:>0",
-            ),  # count_web_vitals not supported by on demand
             # supported by standard metrics
             ("p95(measurements.lcp)", ""),
             ("avg(spans.http)", ""),
@@ -141,6 +153,70 @@ def test_spec_simple_query_distribution():
     assert spec.field_to_extract == "event.measurements.fp.value"
     assert spec.op == "p75"
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
+
+
+def test_spec_simple_query_with_environment():
+    spec = OnDemandMetricSpec("count()", "transaction.duration:>1s", "production")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "sum"
+    assert spec.condition == {
+        "inner": [
+            {"name": "event.environment", "op": "eq", "value": "production"},
+            {"name": "event.duration", "op": "gt", "value": 1000.0},
+        ],
+        "op": "and",
+    }
+
+
+def test_spec_query_with_parentheses_and_environment():
+    spec = OnDemandMetricSpec(
+        "count()", "(transaction.duration:>1s OR http.status_code:200)", "dev"
+    )
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "sum"
+    assert spec.condition == {
+        "inner": [
+            {"name": "event.environment", "op": "eq", "value": "dev"},
+            {
+                "inner": [
+                    {"name": "event.duration", "op": "gt", "value": 1000.0},
+                    {"name": "event.contexts.response.status_code", "op": "eq", "value": "200"},
+                ],
+                "op": "or",
+            },
+        ],
+        "op": "and",
+    }
+
+
+def test_spec_complex_query_with_environment():
+    spec = OnDemandMetricSpec(
+        "count()",
+        "transaction.duration:>1s AND http.status_code:200 OR os.browser:Chrome",
+        "staging",
+    )
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "sum"
+    assert spec.condition == {
+        "inner": [
+            {
+                "inner": [
+                    {"name": "event.environment", "op": "eq", "value": "staging"},
+                    {"name": "event.duration", "op": "gt", "value": 1000.0},
+                    {"name": "event.contexts.response.status_code", "op": "eq", "value": "200"},
+                ],
+                "op": "and",
+            },
+            {"name": "event.tags.os.browser", "op": "eq", "value": "Chrome"},
+        ],
+        "op": "or",
+    }
 
 
 def test_spec_or_condition():
@@ -320,9 +396,9 @@ def test_spec_failure_rate(default_project):
 
 
 @django_db_all
-@patch("sentry.snuba.metrics.extraction._get_apdex_project_transaction_threshold")
-def test_spec_apdex(_get_apdex_project_transaction_threshold, default_project):
-    _get_apdex_project_transaction_threshold.return_value = 100, "transaction.duration"
+@patch("sentry.snuba.metrics.extraction._get_satisfactory_threshold_and_metric")
+def test_spec_apdex(_get_satisfactory_threshold_and_metric, default_project):
+    _get_satisfactory_threshold_and_metric.return_value = 100, "transaction.duration"
 
     spec = OnDemandMetricSpec("apdex(10)", "release:a")
 
@@ -368,9 +444,9 @@ def test_cleanup_equivalent_specs():
 
 
 @django_db_all
-@patch("sentry.snuba.metrics.extraction._get_apdex_project_transaction_threshold")
-def test_spec_apdex_without_condition(_get_apdex_project_transaction_threshold, default_project):
-    _get_apdex_project_transaction_threshold.return_value = 100, "transaction.duration"
+@patch("sentry.snuba.metrics.extraction._get_satisfactory_threshold_and_metric")
+def test_spec_apdex_without_condition(_get_satisfactory_threshold_and_metric, default_project):
+    _get_satisfactory_threshold_and_metric.return_value = 100, "transaction.duration"
 
     spec = OnDemandMetricSpec("apdex(10)", "")
 

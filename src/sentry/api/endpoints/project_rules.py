@@ -318,6 +318,20 @@ A list of actions that take place when all required conditions and filters for t
     "issueType": "1"
 }
 ```
+
+**Create a Jira Server Ticket**
+- `integration` - The integration ID associated with Jira Server.
+- `project` - The ID of the Jira Server project.
+- `issuetype` - The ID of the type of issue that the ticket should be created as.
+- `dynamic_form_fields` (optional) - A list of any custom fields you want to include in the ticket as objects.
+```json
+{
+    "id": "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
+    "integration": 321424,
+    "project": "349719"
+    "issueType": "1"
+}
+```
 """,
     )
     frequency = serializers.IntegerField(

@@ -16,6 +16,7 @@ export const frontend: PlatformKey[] = [
   'javascript',
   'javascript-angular',
   'javascript-angularjs',
+  'javascript-astro',
   'javascript-backbone',
   'javascript-ember',
   'javascript-gatsby',
@@ -245,6 +246,7 @@ export const releaseHealth: PlatformKey[] = [
   'javascript-react',
   'javascript-angular',
   'javascript-angularjs',
+  'javascript-astro',
   'javascript-backbone',
   'javascript-ember',
   'javascript-gatsby',
@@ -296,6 +298,7 @@ export const replayPlatforms: readonly PlatformKey[] = [
   'electron',
   'javascript-angular',
   // 'javascript-angularjs', // Unsupported, angularjs requires the v6.x core SDK
+  'javascript-astro',
   'javascript-backbone',
   'javascript-capacitor',
   'javascript-electron',
@@ -320,6 +323,7 @@ export const replayOnboardingPlatforms: readonly PlatformKey[] = [
   'capacitor',
   'electron',
   'javascript-angular',
+  'javascript-astro',
   // 'javascript-angularjs', // Unsupported, angularjs requires the v6.x core SDK
   // 'javascript-backbone', // No docs yet
   'javascript-capacitor',
