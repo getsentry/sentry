@@ -213,7 +213,6 @@ export function ThresholdGroupRows({
   return (
     <StyledThresholdGroup>
       {Array.from(thresholdIdSet).map((tId: string, idx: number) => {
-        // TODO: will not exist if `newGroup`
         const threshold = editingThresholds[tId] || thresholdsById[tId];
         let environmentName;
         if (editingThresholds[tId]) {

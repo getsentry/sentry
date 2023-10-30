@@ -102,9 +102,8 @@ function ReleaseThresholdList({}: Props) {
    */
   const filteredThresholds = selection.environments.length
     ? thresholds.filter(threshold => {
-        const envName = threshold.environment ? threshold.environment.name : '';
-        return envName
-          ? selection.environments.indexOf(envName) > -1
+        return threshold.environment?.name
+          ? selection.environments.indexOf(threshold.environment.name) > -1
           : !selection.environments.length;
       })
     : thresholds;
