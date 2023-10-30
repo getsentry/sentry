@@ -41,7 +41,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
     expect(closeModal).toHaveBeenCalledTimes(0);
   };
 
-  const addMockConfigsAPICall = (otherFields = {}) => {
+  const addMockConfigsAPICall = (otherField = {}) => {
     return MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/1/?ignored=Sprint',
       method: 'GET',
@@ -71,21 +71,24 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
             updatesForm: true,
             required: true,
           },
-          otherFields,
+          otherField,
         ],
       },
     });
   };
 
-  const renderComponent = (props: Partial<IssueAlertRuleAction> = {}) => {
-    const {organization, routerContext} = initializeOrg();
-    addMockConfigsAPICall({
+  const renderComponent = (
+    props: Partial<IssueAlertRuleAction> = {},
+    otherField = {
       label: 'Reporter',
       required: true,
       choices: [['a', 'a']],
       type: 'select',
       name: 'reporter',
-    });
+    }
+  ) => {
+    const {organization, routerContext} = initializeOrg();
+    addMockConfigsAPICall(otherField);
 
     const body = styled(c => c.children);
     return render(
@@ -144,6 +147,23 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       await selectEvent.select(screen.getByRole('textbox', {name: 'Assignee'}), 'b');
 
       await submitSuccess();
+    });
+
+    it('should ignore error checking when default is empty array', function () {
+      renderComponent({
+        otherField: {
+          label: 'Labels',
+          required: false,
+          choices: [['bug', `bug`]],
+          default: [],
+          type: 'select',
+          multiple: true,
+          name: 'labels',
+        },
+      });
+      expect(
+        screen.queryAllByText(`Could not fetch saved option for Labels. Please reselect.`)
+      ).toHaveLength(0);
     });
 
     it('should persist values when the modal is reopened', async function () {

@@ -179,7 +179,14 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   getErrors() {
     const errors: ExternalIssueFormErrors = {};
     for (const field of this.cleanFields()) {
-      if (field.type === 'select' && field.default) {
+      // If the field is a select and has a default value, make sure that the
+      // default value exists in the choices. Skip check if the default is not
+      // set, an empty string, or an empty array.
+      if (
+        field.type === 'select' &&
+        field.default &&
+        !(Array.isArray(field.default) && !field.default.length)
+      ) {
         const fieldChoices = (field.choices || []) as Choices;
         const found = fieldChoices.find(([value, _]) =>
           Array.isArray(field.default)
