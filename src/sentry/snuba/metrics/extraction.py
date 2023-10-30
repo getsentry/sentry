@@ -872,7 +872,7 @@ class OnDemandMetricSpec:
         return f"{self._metric_type}:{CUSTOM_ALERT_METRIC_NAME}@none"
 
     @cached_property
-    def _query_pre_hash(self) -> str:
+    def _query_str_for_hash(self) -> str:
         """Returns a hash of the query and field to be used as a unique identifier for the on-demand metric."""
         str_to_hash = f"{self._field_for_hash()};{self._query_for_hash()}"
         if len(self.columns):
