@@ -1347,14 +1347,14 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
                 ),
             ],
         )
-        assert cache.get(cache_key) == response
+        assert cache.get(cache_key)["data"] == self.data
         # Calling a second time should work
         response = self.github_client.get_blame_for_files([self.file1, self.file2, self.file3])
-        assert cache.get(cache_key) == response
+        assert cache.get(cache_key)["data"] == self.data
         # Calling again after the cache has been cleared should still work
         cache.delete(cache_key)
         response = self.github_client.get_blame_for_files([self.file1, self.file2, self.file3])
-        assert cache.get(cache_key) == response
+        assert cache.get(cache_key)["data"] == self.data
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
