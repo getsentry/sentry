@@ -433,6 +433,7 @@ class MonitorCheckInFailure(GroupType):
     description = "Monitor Check In Failed"
     category = GroupCategory.CRON.value
     released = True
+    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
 
 
 @dataclass(frozen=True)
@@ -442,6 +443,7 @@ class MonitorCheckInTimeout(GroupType):
     description = "Monitor Check In Timeout"
     category = GroupCategory.CRON.value
     released = True
+    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
 
 
 @dataclass(frozen=True)
@@ -451,6 +453,7 @@ class MonitorCheckInMissed(GroupType):
     description = "Monitor Check In Missed"
     category = GroupCategory.CRON.value
     released = True
+    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
 
 
 @dataclass(frozen=True)
