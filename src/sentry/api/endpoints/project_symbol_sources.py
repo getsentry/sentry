@@ -21,7 +21,6 @@ from sentry.lang.native.sources import (
     REDACTED_SOURCE_SCHEMA,
     REDACTED_SOURCES_SCHEMA,
     VALID_CASINGS,
-    VALID_FILE_TYPES,
     VALID_LAYOUTS,
     InvalidSourcesError,
     backfill_source,
@@ -86,11 +85,6 @@ class SourceSerializer(serializers.Serializer):
     name = serializers.CharField(
         required=True,
         help_text="The human-readable name of the source.",
-    )
-    filetypes = serializers.ListField(
-        child=serializers.ChoiceField(choices=VALID_FILE_TYPES),
-        required=False,
-        help_text="The allowed file types for the source. This is optional for HTTP, GCS, and S3 sources and invalid for AppStoreConnect sources.",
     )
     layout = LayoutSerializer(
         required=False,
@@ -180,13 +174,13 @@ class SourceSerializer(serializers.Serializer):
             allowed = required
         elif data["type"] == "http":
             required = ["type", "name", "url", "layout"]
-            allowed = required + ["filetypes", "username", "password"]
+            allowed = required + ["username", "password"]
         elif data["type"] == "s3":
             required = ["type", "name", "bucket", "region", "access_key", "secret_key", "layout"]
-            allowed = required + ["filetypes", "prefix"]
+            allowed = required + ["prefix"]
         else:
             required = ["type", "name", "bucket", "client_email", "private_key", "layout"]
-            allowed = required + ["filetypes", "prefix"]
+            allowed = required + ["prefix"]
 
         missing = [field for field in required if field not in data]
         invalid = [field for field in data if field not in allowed]

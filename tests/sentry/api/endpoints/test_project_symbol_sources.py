@@ -15,7 +15,6 @@ class ProjectSymbolSourcesTest(APITestCase):
             "layout": {
                 "type": "native",
             },
-            "filetypes": ["pe"],
             "type": "http",
             "url": "http://honk.beep",
             "username": "honkhonk",
@@ -42,7 +41,6 @@ class ProjectSymbolSourcesTest(APITestCase):
             "layout": {
                 "type": "native",
             },
-            "filetypes": ["pe"],
             "type": "http",
             "url": "http://honk.beep",
             "username": "honkhonk",
@@ -69,7 +67,6 @@ class ProjectSymbolSourcesDeleteTest(APITestCase):
             "layout": {
                 "type": "native",
             },
-            "filetypes": ["pe"],
             "type": "http",
             "url": "http://honk.beep",
             "username": "honkhonk",
@@ -93,7 +90,6 @@ class ProjectSymbolSourcesDeleteTest(APITestCase):
             "layout": {
                 "type": "native",
             },
-            "filetypes": ["pe"],
             "type": "http",
             "url": "http://honk.beep",
             "username": "honkhonk",
@@ -123,7 +119,6 @@ class ProjectSymbolSourcesPostTest(APITestCase):
             "layout": {
                 "type": "native",
             },
-            "filetypes": ["pe"],
             "type": "http",
             "url": "http://honk.beep",
             "username": "honkhonk",
@@ -154,7 +149,6 @@ class ProjectSymbolSourcesPostTest(APITestCase):
             "layout": {
                 "type": "native",
             },
-            "filetypes": ["pe"],
             "type": "http",
             "url": "http://honk.beep",
             "username": "honkhonk",
@@ -174,7 +168,6 @@ class ProjectSymbolSourcesPostTest(APITestCase):
             "layout": {
                 "type": "native",
             },
-            "filetypes": ["pe"],
             "type": "http",
             "url": "http://honk.beep",
             "username": "honkhonk",
@@ -193,7 +186,6 @@ class ProjectSymbolSourcesPostTest(APITestCase):
             "layout": {
                 "type": "native",
             },
-            "filetypes": ["pe"],
             "url": "http://honk.beep",
             "username": "honkhonk",
             "password": "beepbeep",
@@ -218,7 +210,6 @@ class ProjectSymbolSourcesPutTest(APITestCase):
                 "layout": {
                     "type": "native",
                 },
-                "filetypes": ["pe"],
                 "type": "http",
                 "url": "http://honk.beep",
                 "username": "honkhonk",
@@ -230,7 +221,6 @@ class ProjectSymbolSourcesPutTest(APITestCase):
                 "layout": {
                     "type": "native",
                 },
-                "filetypes": ["pe"],
                 "type": "http",
                 "url": "http://honk.beep",
                 "username": "honkhonk",
@@ -248,7 +238,6 @@ class ProjectSymbolSourcesPutTest(APITestCase):
             "layout": {
                 "type": "native",
             },
-            "filetypes": ["pe"],
             "type": "http",
             "url": "http://honk.beep",
             "username": "honkhonk",
@@ -268,7 +257,6 @@ class ProjectSymbolSourcesPutTest(APITestCase):
             "layout": {
                 "type": "native",
             },
-            "filetypes": ["pe"],
             "type": "http",
             "url": "http://honk.beep",
             "username": "honkhonk",
@@ -299,7 +287,6 @@ class ProjectSymbolSourcesPutTest(APITestCase):
                 "layout": {
                     "type": "native",
                 },
-                "filetypes": ["pe"],
                 "type": "http",
                 "url": "http://honk.beep",
                 "username": "honkhonk",
@@ -311,7 +298,6 @@ class ProjectSymbolSourcesPutTest(APITestCase):
                 "layout": {
                     "type": "native",
                 },
-                "filetypes": ["pe"],
                 "type": "http",
                 "url": "http://honk.beep",
                 "username": "honkhonk",
@@ -329,7 +315,6 @@ class ProjectSymbolSourcesPutTest(APITestCase):
             "layout": {
                 "type": "native",
             },
-            "filetypes": ["pe"],
             "url": "http://honk.beep",
             "username": "honkhonk",
             "password": "beepboop",

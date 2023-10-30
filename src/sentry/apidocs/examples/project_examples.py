@@ -432,7 +432,6 @@ symbol_sources = [
         "layout": {
             "type": "native",
         },
-        "filetypes": ["pe"],
         "type": "http",
         "url": "http://honk.beep",
         "username": "honkhonk",
@@ -444,7 +443,6 @@ symbol_sources = [
         "layout": {
             "type": "native",
         },
-        "filetypes": ["pe"],
         "type": "gcs",
         "bucket": "mybucket",
         "client_email": "honk@beep.com",
