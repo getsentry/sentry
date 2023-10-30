@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
 
 import sentry_sdk
 from django.utils.functional import cached_property
@@ -53,9 +53,10 @@ from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
     OnDemandMetricSpec,
     should_use_on_demand_metrics,
+    map_on_demand_field_name,
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
-from sentry.snuba.metrics.query import MetricField, MetricsQuery
+from sentry.snuba.metrics.query import MetricField, MetricGroupByField, MetricsQuery
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import DATASETS, bulk_snql_query, raw_snql_query
 
@@ -123,10 +124,17 @@ class MetricsQueryBuilder(QueryBuilder):
             return None
 
         field = self.selected_columns[0] if self.selected_columns else None
+
+        for agg in self.selected_columns:
+            if fields.is_function(agg):
+                field = agg
+
         if not field:
             return None
 
-        if not should_use_on_demand_metrics(self.dataset, field, self.query):
+        groupby_columns = [c for c in self.selected_columns if not fields.is_function(c)]
+
+        if not should_use_on_demand_metrics(self.dataset, field, self.query, groupby_columns):
             return None
 
         try:
@@ -134,13 +142,16 @@ class MetricsQueryBuilder(QueryBuilder):
             if self.params.environments:
                 environment = self.params.environments[0].name
 
-            return OnDemandMetricSpec(field, self.query, environment)
+            return OnDemandMetricSpec(field, self.query, environment, groupby_columns)
         except Exception as e:
             sentry_sdk.capture_exception(e)
             return None
 
     def _get_metrics_query_from_on_demand_spec(
-        self, spec: OnDemandMetricSpec, require_time_range: bool = True
+        self,
+        spec: OnDemandMetricSpec,
+        require_time_range: bool = True,
+        groupby: Optional[Sequence[MetricGroupByField]] = None,
     ) -> MetricsQuery:
         if self.params.organization is None:
             raise InvalidSearchQuery("An on demand metrics query requires an organization")
@@ -194,6 +205,7 @@ class MetricsQueryBuilder(QueryBuilder):
             org_id=self.params.organization.id,
             project_ids=[p.id for p in self.params.projects],
             include_series=include_series,
+            groupby=groupby,
             start=start,
             end=end,
         )
@@ -873,7 +885,13 @@ class MetricsQueryBuilder(QueryBuilder):
                     with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
                         if self._on_demand_metric_spec:
                             metrics_query = self._get_metrics_query_from_on_demand_spec(
-                                spec=self._on_demand_metric_spec, require_time_range=True
+                                spec=self._on_demand_metric_spec,
+                                require_time_range=True,
+                                groupby=[
+                                    MetricGroupByField(field=c)
+                                    for c in self.selected_columns
+                                    if not fields.is_function(c)
+                                ],
                             )
                         else:
                             metrics_query = transform_mqb_query_to_metrics_query(
@@ -891,6 +909,10 @@ class MetricsQueryBuilder(QueryBuilder):
                             tenant_ids=self.tenant_ids,
                         )
                 except Exception as err:
+                    import traceback
+
+                    traceback.print_exc()
+
                     raise IncompatibleMetricsQuery(err)
                 with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
                     metric_layer_result = self.convert_metric_layer_result(metrics_data)

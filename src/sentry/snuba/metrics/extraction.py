@@ -512,7 +512,7 @@ def _is_standard_metrics_search_term(field: str) -> bool:
 
 def _is_on_demand_supported_field(field: str) -> bool:
     try:
-        _map_field_name(field)
+        map_on_demand_field_name(field)
         return True
     except ValueError:
         return False
@@ -695,7 +695,7 @@ def failure_tag_spec(_1: Project, _2: Optional[Sequence[str]]) -> List[TagSpec]:
 
 def apdex_tag_spec(project: Project, arguments: Optional[Sequence[str]]) -> list[TagSpec]:
     apdex_threshold = _get_threshold(arguments)
-    field = _map_field_name(_get_satisfactory_threshold_and_metric(project)[1])
+    field = map_on_demand_field_name(_get_satisfactory_threshold_and_metric(project)[1])
 
     return [
         {
@@ -731,7 +731,7 @@ def count_web_vitals_spec(project: Project, arguments: Optional[Sequence[str]]) 
 
     measurement, measurement_rating = arguments
 
-    field = _map_field_name(measurement)
+    field = map_on_demand_field_name(measurement)
     _, vital = measurement.split(".")
 
     thresholds = VITAL_THRESHOLDS[vital]
@@ -781,7 +781,7 @@ def user_misery_tag_spec(project: Project, arguments: Optional[Sequence[str]]) -
     measured as a response time four times the satisfactory response time threshold (in milliseconds).
     It highlights transactions that have the highest impact on users."""
     threshold = _get_threshold(arguments)
-    field = _map_field_name(_get_satisfactory_threshold_and_metric(project)[1])
+    field = map_on_demand_field_name(_get_satisfactory_threshold_and_metric(project)[1])
 
     return [
         {
@@ -864,7 +864,7 @@ class OnDemandMetricSpec:
             return None
 
         if self.op in ("on_demand_user_misery"):
-            return _map_field_name("user.id")
+            return map_on_demand_field_name("user.id")
 
         if not self._arguments:
             return None
@@ -943,7 +943,7 @@ class OnDemandMetricSpec:
 
     def _tag_for_groupby(self, groupby: str) -> TagSpec:
         """Returns a TagSpec for a groupby"""
-        field = _map_field_name(groupby)
+        field = map_on_demand_field_name(groupby)
 
         return {
             "key": groupby,
@@ -1067,7 +1067,11 @@ class OnDemandMetricSpec:
             raise Exception(f"The operation {op} supports one or more parameters")
 
         arguments = parsed_field.arguments
-        return [_map_field_name(arguments[0])] if op not in _MULTIPLE_ARGS_METRICS else arguments
+        return (
+            [map_on_demand_field_name(arguments[0])]
+            if op not in _MULTIPLE_ARGS_METRICS
+            else arguments
+        )
 
     @staticmethod
     def _get_op(function: str, args: Sequence[str]) -> MetricOperationType:
@@ -1125,7 +1129,7 @@ def _convert_countif_filter(key: str, op: str, value: str) -> RuleCondition:
 
     condition: RuleCondition = {
         "op": _COUNTIF_TO_RELAY_OPERATORS[op],
-        "name": _map_field_name(key),
+        "name": map_on_demand_field_name(key),
         "value": fields.normalize_count_if_value({"column": key, "value": value}),
     }
 
@@ -1135,7 +1139,7 @@ def _convert_countif_filter(key: str, op: str, value: str) -> RuleCondition:
     return condition
 
 
-def _map_field_name(search_key: str) -> str:
+def map_on_demand_field_name(search_key: str) -> str:
     """
     Maps the name of a field in a search query to the event protocol path.
 
@@ -1292,7 +1296,7 @@ class SearchQueryConverter:
         if operator == "eq" and token.value.is_wildcard():
             condition: RuleCondition = {
                 "op": "glob",
-                "name": _map_field_name(key),
+                "name": map_on_demand_field_name(key),
                 "value": [value],
             }
         else:
@@ -1308,7 +1312,7 @@ class SearchQueryConverter:
 
             condition = {
                 "op": operator,
-                "name": _map_field_name(key),
+                "name": map_on_demand_field_name(key),
                 "value": value,
             }
 
