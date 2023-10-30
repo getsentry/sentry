@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from operator import attrgetter
-from typing import Any, Mapping, Sequence
+from typing import Any, Dict, List, Mapping, Sequence
 
 from django.urls import reverse
 
@@ -72,10 +72,11 @@ class GitHubIssueBasic(IssueBasicMixin):
 
     def get_create_issue_config(
         self, group: Group, user: User, **kwargs: Any
-    ) -> Sequence[Mapping[str, Any]]:
+    ) -> List[Dict[str, Any]]:
         kwargs["link_referrer"] = "github_integration"
         fields = super().get_create_issue_config(group, user, **kwargs)
-        default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
+        params = kwargs.pop("params", {})
+        default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
 
         assignees = self.get_allowed_assignees(default_repo) if default_repo else []
         labels = self.get_repo_labels(default_repo) if default_repo else []
@@ -108,7 +109,7 @@ class GitHubIssueBasic(IssueBasicMixin):
             {
                 "name": "labels",
                 "label": "Labels",
-                "default": "",
+                "default": [],
                 "type": "select",
                 "multiple": True,
                 "required": False,
@@ -145,8 +146,9 @@ class GitHubIssueBasic(IssueBasicMixin):
             "repo": repo,
         }
 
-    def get_link_issue_config(self, group: Group, **kwargs: Any) -> Sequence[Mapping[str, Any]]:
-        default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
+    def get_link_issue_config(self, group: Group, **kwargs: Any) -> List[Dict[str, Any]]:
+        params = kwargs.pop("params", {})
+        default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
 
         org = group.organization
         autocomplete_url = reverse(

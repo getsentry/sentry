@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useRef} from 'react';
-import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
 
 import {
@@ -22,7 +21,6 @@ import useRouter from 'sentry/utils/useRouter';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import {getDatetimeFromState, getStateFromQuery} from './parse';
-import {extractSelectionParameters} from './utils';
 
 type InitializeUrlStateProps = Omit<
   InitializeUrlStateParams,
@@ -147,21 +145,6 @@ function Container({
   // we need to update our store to reflect URL changes
   useEffect(() => {
     if (location.query === lastQuery.current) {
-      return;
-    }
-
-    // We may need to re-initialize the URL state if we completely clear
-    // out the global selection URL state, for example by navigating with
-    // the sidebar on the same view.
-    const oldSelectionQuery = extractSelectionParameters(lastQuery.current);
-    const newSelectionQuery = extractSelectionParameters(location.query);
-
-    // XXX: This re-initialization is only required in new-page-filter
-    // land, since we have implicit pinning in the old land which will
-    // cause page filters to commonly reset.
-    if (isEmpty(newSelectionQuery) && !isEqual(oldSelectionQuery, newSelectionQuery)) {
-      doInitialization();
-      lastQuery.current = location.query;
       return;
     }
 

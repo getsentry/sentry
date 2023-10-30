@@ -1,4 +1,5 @@
 import abc
+import copy
 from typing import Collection, Dict
 from unittest.mock import patch
 
@@ -18,6 +19,9 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection
+from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig
+
+sdk_configs = [SDKCrashDetectionConfig(sdk_name="cocoa", project_id=1234, sample_rate=1.0)]
 
 
 @pytest.fixture
@@ -40,7 +44,7 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
             project_id=self.project.id,
         )
 
-        sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=1.0)
+        sdk_crash_detection.detect_sdk_crash(event=event, configs=sdk_configs)
 
         if should_be_reported:
             assert mock_sdk_crash_reporter.report.call_count == 1
@@ -72,7 +76,7 @@ class PerformanceEventTestMixin(
             fingerprint=[fingerprint],
         )
 
-        sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=1.0)
+        sdk_crash_detection.detect_sdk_crash(event=event, configs=sdk_configs)
 
         assert mock_sdk_crash_reporter.report.call_count == 0
 
@@ -100,7 +104,7 @@ def test_sdks_detected(mock_sdk_crash_reporter, store_event, sdk_name, detected)
     set_path(event_data, "sdk", "name", value=sdk_name)
     event = store_event(data=event_data)
 
-    sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=1.0)
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=sdk_configs)
 
     if detected:
         assert mock_sdk_crash_reporter.report.call_count == 1
@@ -721,9 +725,12 @@ class SDKCrashReportTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        sdk_crash_event = sdk_crash_detection.detect_sdk_crash(
-            event=event, event_project_id=cocoa_sdk_crashes_project.id, sample_rate=1.0
-        )
+        configs = [
+            SDKCrashDetectionConfig(
+                sdk_name="cocoa", project_id=cocoa_sdk_crashes_project.id, sample_rate=1.0
+            )
+        ]
+        sdk_crash_event = sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
 
         assert sdk_crash_event is not None
 
@@ -757,7 +764,10 @@ class SDKCrashDetectionTest(
 def test_sample_is_rate_zero(mock_sdk_crash_reporter, mock_random, store_event):
     event = store_event(data=get_crash_event())
 
-    sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=0.0)
+    configs = copy.deepcopy(sdk_configs)
+    configs[0]["sample_rate"] = 0.0
+
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
 
     assert mock_sdk_crash_reporter.report.call_count == 0
 
@@ -769,11 +779,35 @@ def test_sample_is_rate_zero(mock_sdk_crash_reporter, mock_random, store_event):
 def test_sampling_rate(mock_sdk_crash_reporter, mock_random, store_event):
     event = store_event(data=get_crash_event())
 
+    configs = copy.deepcopy(sdk_configs)
+
     # not sampled
-    sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=0.09)
-    sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=0.1)
+    configs[0]["sample_rate"] = 0.09
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
+
+    configs[0]["sample_rate"] = 0.1
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
 
     # sampled
-    sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=0.11)
+    configs[0]["sample_rate"] = 0.11
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
 
     assert mock_sdk_crash_reporter.report.call_count == 1
+
+
+@django_db_all
+@pytest.mark.snuba
+@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+def test_multiple_configs_first_one_picked(mock_sdk_crash_reporter, store_event):
+    event = store_event(data=get_crash_event())
+
+    configs = [
+        SDKCrashDetectionConfig(sdk_name="cocoa", project_id=1234, sample_rate=1.0),
+        SDKCrashDetectionConfig(sdk_name="cocoa", project_id=12345, sample_rate=1.0),
+    ]
+
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
+
+    assert mock_sdk_crash_reporter.report.call_count == 1
+    project_id = mock_sdk_crash_reporter.report.call_args.args[1]
+    assert project_id == 1234

@@ -27,6 +27,7 @@ from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
+from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.shared_integrations.response.mapping import MappingApiResponse
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
@@ -665,17 +666,29 @@ class GitHubClientMixin(GithubProxyClient):
             sentry_sdk.capture_exception(e)
             return []
 
-        if contents.get("errors"):
-            err_message = ", ".join(
-                [error.get("message", "") for error in contents.get("errors", [])]
-            )
-            raise ApiError(err_message)
+        errors = contents.get("errors", [])
+        if len(errors) > 0:
+            if any([error for error in errors if error.get("type") == "RATE_LIMITED"]):
+                raise ApiRateLimitedError("GitHub rate limit exceeded")
 
-        ref = contents.get("data", {}).get("repository", {}).get("ref")
-        if ref is None:
-            raise ApiError("Branch does not exist in GitHub.")
+            # When data is present, it means that the query was at least partially successful,
+            # usually a missing repo/branch/file which is expected with wrong configurations.
+            # If data is not present, the query may be formed incorrectly, so raise an error.
+            if not contents.get("data"):
+                err_message = ", ".join([error.get("message", "") for error in errors])
+                raise ApiError(err_message)
 
-        return ref.get("target", {}).get("blame", {}).get("ranges", [])
+        response_data = contents.get("data")
+        if not isinstance(response_data, dict):
+            raise ApiError("GitHub returned no data.", 404)
+        response_repo = response_data.get("repository")
+        if not isinstance(response_repo, dict):
+            raise ApiError("Repository does not exist in GitHub.", 404)
+        response_ref = response_repo.get("ref")
+        if not isinstance(response_ref, dict):
+            raise ApiError("Branch does not exist in GitHub.", 404)
+
+        return response_ref.get("target", {}).get("blame", {}).get("ranges", [])
 
     def get_blame_for_files(self, files: Sequence[SourceLineInfo]) -> Sequence[FileBlameInfo]:
         rate_limit = self.get_rate_limit(specific_resource="graphql")
