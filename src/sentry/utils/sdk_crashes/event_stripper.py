@@ -166,7 +166,8 @@ def _strip_frames(
     def strip_frame(frame: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         # Set in_app to True for SDK frames for grouping. Anyways the grouping config will set in_app false
         # for all Cocoa SDK frames. To not change the grouping logic, we must add the following stacktrace
-        # rule  `stack.abs_path:Sentry.framework +app` to the project with the ID SDK_CRASH_DETECTION_PROJECT_ID.
+        # rule  `stack.abs_path:Sentry.framework +app` to the project with configured for Cocoa with the option
+        # `issues.sdk_crash_detection.cocoa.project_id`
         if sdk_crash_detector.is_sdk_frame(frame):
             frame["in_app"] = True
 
