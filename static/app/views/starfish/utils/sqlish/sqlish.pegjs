@@ -33,7 +33,7 @@ CollapsedColumns
   = ".." { return { type: 'CollapsedColumns', content: '..' } }
 
 Whitespace
-  = Whitespace:[\n\t ]+ { return { type: 'Whitespace', content: Whitespace.join("") } }
+  = Whitespace:[\n\t\r ]+ { return { type: 'Whitespace', content: Whitespace.join("") } }
 
 GenericToken
   = GenericToken:[a-zA-Z0-9"'`_\-.=><:,*;!\[\]?$%|/\\@#&~^+{}]+ { return { type: 'GenericToken', content: GenericToken.join('') } }
