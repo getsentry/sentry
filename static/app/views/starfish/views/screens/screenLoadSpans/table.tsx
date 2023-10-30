@@ -71,6 +71,8 @@ export function ScreenLoadSpansTable({transaction, primaryRelease}: Props) {
       SPAN_DESCRIPTION,
       `avg(${SPAN_SELF_TIME})`, // TODO: Update these to avgIf with primary release when available
       'count()',
+      'time_spent_percentage(local)',
+      `sum(${SPAN_SELF_TIME})`,
     ],
     query: queryStringPrimary,
     dataset: DiscoverDatasets.SPANS_METRICS,
@@ -94,6 +96,7 @@ export function ScreenLoadSpansTable({transaction, primaryRelease}: Props) {
     [SPAN_DESCRIPTION]: t('Span Description'),
     'count()': DataTitles.count,
     [`avg(${SPAN_SELF_TIME})`]: DataTitles.avg,
+    'time_spent_percentage(local)': DataTitles.timeSpent,
   };
 
   function renderBodyCell(column, row): React.ReactNode {

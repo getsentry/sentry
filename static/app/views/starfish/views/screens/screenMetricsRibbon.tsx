@@ -106,7 +106,7 @@ export function ScreenMetricsRibbon({additionalFilters}: {additionalFilters?: st
         </MeterBarContainer>
         <MeterBarContainer key="release1 - ttfd">
           <MeterBarBody>
-            <MeterHeader>{t('Avg TTID')}</MeterHeader>
+            <MeterHeader>{t('Avg TTFD')}</MeterHeader>
             <MeterValueText>
               {isLoading
                 ? undefinedText
@@ -123,7 +123,7 @@ export function ScreenMetricsRibbon({additionalFilters}: {additionalFilters?: st
         </MeterBarContainer>
         <MeterBarContainer key="release2 - ttfd">
           <MeterBarBody>
-            <MeterHeader>{t('Avg TTID')}</MeterHeader>
+            <MeterHeader>{t('Avg TTFD')}</MeterHeader>
             <MeterValueText>
               {isLoading
                 ? undefinedText
