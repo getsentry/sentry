@@ -1,5 +1,5 @@
+import random
 from abc import ABC, abstractmethod
-from random import random
 from typing import Any, Optional
 
 from sentry_kafka_schemas.codecs import Codec, ValidationError
@@ -38,16 +38,19 @@ class GenericMetricsSchemaValidator(MetricsSchemaValidator):
     def __init__(self, input_codec: Optional[Codec[Any]]) -> None:
         self.input_codec = input_codec
         self.schema_validation_rules = options.get(
-            "sentry-metrics.indexer.generic-metrics.schema-validation-rules"
+            "sentry-metrics.indexer.generic-metrics.schema-validation-rules", {}
         )
 
     def validate(self, message: ParsedMessage) -> None:
         if not self.input_codec:
             return None
 
-        validation_sample_rate = self.schema_validation_rules.get(message.use_case_id, 1.0)
-        if random.random() <= validation_sample_rate and not self.input_codec.is_valid(message):
-            raise ValidationError("Message is not valid")
+        if not message["use_case_id"]:
+            raise ValidationError("Use case id is not set")
+
+        validation_sample_rate = self.schema_validation_rules.get(message["use_case_id"], 1.0)
+        if random.random() <= validation_sample_rate:
+            self.input_codec.validate(message)
 
 
 class ReleaseHealthMetricsSchemaValidator(MetricsSchemaValidator):
@@ -63,5 +66,4 @@ class ReleaseHealthMetricsSchemaValidator(MetricsSchemaValidator):
         if not self.input_codec:
             return None
 
-        if not self.input_codec.is_valid(message):
-            raise ValidationError("Message is not valid")
+        self.input_codec.validate(message)

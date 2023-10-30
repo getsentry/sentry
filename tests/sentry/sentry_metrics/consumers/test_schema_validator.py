@@ -1,5 +1,4 @@
 from typing import Any, Mapping, Optional
-from unittest import mock
 
 import pytest
 from sentry_kafka_schemas.codecs import Codec, ValidationError
@@ -11,6 +10,8 @@ from sentry.sentry_metrics.consumers.indexer.schema_validator import (
     GenericMetricsSchemaValidator,
     ReleaseHealthMetricsSchemaValidator,
 )
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
 
 test_message: IngestMetric = IngestMetric(
     org_id=1,
@@ -58,7 +59,7 @@ bad_sample_release_health_message: ParsedMessage = ParsedMessage(
 )
 
 
-@pytest.mark.django_db
+@django_db_all
 @pytest.mark.parametrize(
     "codec,option,message,expected_result",
     [
@@ -109,9 +110,13 @@ def test_generic_metrics_schema_validator(
     message: ParsedMessage,
     expected_result: Optional[ValidationError],
 ) -> None:
+    """
+    Test the behavior of the GenericMetricsSchemaValidator class with different
+    parameters.
+    """
     validator = GenericMetricsSchemaValidator(codec)
-    with mock.patch(
-        "sentry.sentry_metrics.consumers.indexer.schema_validator.options.get", return_value=option
+    with override_options(
+        {"sentry-metrics.indexer.generic-metrics.schema-validation-rules": option}
     ):
         if expected_result:
             with pytest.raises(expected_result):
@@ -121,6 +126,10 @@ def test_generic_metrics_schema_validator(
 
 
 def test_release_health_metrics_schema_validator() -> None:
+    """
+    Test the behavior of the ReleaseHealthMetricsSchemaValidator class.
+    We can only get either a ValidationError or None.
+    """
     validator = ReleaseHealthMetricsSchemaValidator(INGEST_CODEC)
     assert validator.validate(good_sample_release_health_message) is None
     with pytest.raises(ValidationError):
