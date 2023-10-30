@@ -13,7 +13,7 @@ class GitHubCreateTicketAction(TicketEventAction):
     provider = "github"
 
     def generate_footer(self, rule_url: str) -> str:
-        return "\nThis work item was automatically created by Sentry via [{}]({})".format(
+        return "\nThis issue was automatically created by Sentry via [{}]({})".format(
             self.rule.label,
             absolute_uri(rule_url),
         )

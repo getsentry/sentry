@@ -77,7 +77,7 @@ FEATURES = [
     ),
     FeatureDescription(
         """
-        Automatically create GitHub tickets based on Issue Alert conditions.
+        Automatically create GitHub issues based on Issue Alert conditions.
         """,
         IntegrationFeatures.TICKET_RULES,
     ),
