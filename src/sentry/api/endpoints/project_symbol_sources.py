@@ -69,7 +69,7 @@ class LayoutSerializer(serializers.Serializer):
 
 class SourceSerializer(serializers.Serializer):
     type = serializers.ChoiceField(
-        choices=["appStoreConnect", "http", "gcs", "s3"],
+        choices=[("appStoreConnect", "App Store Connect"), ("http", "SymbolServer (HTTP)"), ("gcs", "Google Cloud Storage"), ("s3", "Amazon S3")],
         required=True,
         help_text="The type of the source.",
     )
