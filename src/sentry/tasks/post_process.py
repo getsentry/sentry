@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from datetime import datetime, timedelta
 from time import time
 from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union
@@ -872,17 +873,7 @@ def process_replay_link(job: PostProcessJob) -> None:
         # TODO: normalize this upstream in relay and javascript SDK. and eventually remove the tag
         # logic.
 
-        context_replay_id = get_path(event.data, "contexts", "replay", "replay_id")
-        if context_replay_id:
-            return context_replay_id
-
-        # Note: replay ids found in the tags are vulnerable to PII scrubbing. We check for the `*`
-        # character before returning the id.
-        tag_replay_id = event.get_tag("replayId")
-        if tag_replay_id and "*" not in tag_replay_id:
-            return tag_replay_id
-
-        return None
+        return get_path(event.data, "contexts", "replay", "replay_id") or event.get_tag("replayId")
 
     if job["is_reprocessed"]:
         return
@@ -897,8 +888,12 @@ def process_replay_link(job: PostProcessJob) -> None:
 
     group_event = job["event"]
     replay_id = _get_replay_id(group_event)
-    if not replay_id:
-        return
+
+    # Validate the UUID.
+    try:
+        uuid.UUID(replay_id)
+    except (ValueError, TypeError):
+        return None
 
     metrics.incr("post_process.process_replay_link.id_exists")
 
