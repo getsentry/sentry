@@ -1015,3 +1015,93 @@ class TestHandleAssignedTo(TestCase):
             assigned_by=None,
             had_to_deassign=True,
         )
+
+    @with_feature("organizations:participants-purge")
+    def test_user_in_reassigned_team(self):
+        """Test that the correct participants are present when re-assigning from user to team and vice versa"""
+        user1 = self.create_user("foo@example.com")
+        user2 = self.create_user("bar@example.com")
+        team1 = self.create_team()
+        member1 = self.create_member(user=user1, organization=self.organization, role="member")
+        member2 = self.create_member(user=user2, organization=self.organization, role="member")
+        self.create_team_membership(team1, member1, role="admin")
+        self.create_team_membership(team1, member2, role="admin")
+
+        # assign the issue to the team
+        assigned_to = handle_assigned_to(
+            (ActorTuple.from_actor_identifier(f"team:{team1.id}")),
+            None,
+            None,
+            self.group_list,
+            self.project_lookup,
+            self.user,
+        )
+
+        assert GroupAssignee.objects.filter(group=self.group, team=team1.id).exists()
+        assert GroupSubscription.objects.filter(
+            group=self.group,
+            project=self.group.project,
+            user_id=user1.id,
+            reason=GroupSubscriptionReason.assigned,
+        ).exists()
+        assert GroupSubscription.objects.filter(
+            group=self.group,
+            project=self.group.project,
+            user_id=user2.id,
+            reason=GroupSubscriptionReason.assigned,
+        ).exists()
+
+        # then assign it to user1
+        assigned_to = handle_assigned_to(
+            ActorTuple.from_actor_identifier(user1.id),
+            None,
+            None,
+            self.group_list,
+            self.project_lookup,
+            self.user,
+        )
+
+        assert GroupAssignee.objects.filter(group=self.group, user_id=user1.id).exists()
+        assert not GroupAssignee.objects.filter(group=self.group, team=team1.id).exists()
+        assert GroupSubscription.objects.filter(
+            group=self.group,
+            project=self.group.project,
+            user_id=user1.id,
+            reason=GroupSubscriptionReason.assigned,
+        ).exists()
+        assert not GroupSubscription.objects.filter(
+            group=self.group,
+            project=self.group.project,
+            user_id=user2.id,
+            reason=GroupSubscriptionReason.assigned,
+        ).exists()
+
+        assert assigned_to == {
+            "email": user1.email,
+            "id": str(user1.id),
+            "name": user1.username,
+            "type": "user",
+        }
+
+        # assign the issue back to the team
+        assigned_to = handle_assigned_to(
+            (ActorTuple.from_actor_identifier(f"team:{team1.id}")),
+            None,
+            None,
+            self.group_list,
+            self.project_lookup,
+            self.user,
+        )
+        assert GroupAssignee.objects.filter(group=self.group, team=team1.id).exists()
+        assert GroupSubscription.objects.filter(
+            group=self.group,
+            project=self.group.project,
+            user_id=user1.id,
+            reason=GroupSubscriptionReason.assigned,
+        ).exists()
+        assert GroupSubscription.objects.filter(
+            group=self.group,
+            project=self.group.project,
+            user_id=user2.id,
+            reason=GroupSubscriptionReason.assigned,
+        ).exists()
