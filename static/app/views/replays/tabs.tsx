@@ -35,11 +35,7 @@ export default function ReplayTabs({selected}: Props) {
     [organization.slug]
   );
 
-  const hasDeadClickFeature = organization.features.includes(
-    'session-replay-rage-dead-selectors'
-  );
-
-  return hasDeadClickFeature ? (
+  return (
     <Tabs value={selected}>
       <TabList hideBorder>
         {tabs.map(tab => (
@@ -55,5 +51,5 @@ export default function ReplayTabs({selected}: Props) {
         ))}
       </TabList>
     </Tabs>
-  ) : null;
+  );
 }
