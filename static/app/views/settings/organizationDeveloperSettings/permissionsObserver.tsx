@@ -84,12 +84,11 @@ export default class PermissionsObserver extends Component<Props, State> {
     this.setState({events});
   };
 
-  render() {
-    const {permissions, events, elevating} = this.state;
+  renderCallout() {
+    const {elevating} = this.state;
 
-    let elevating_alert;
     if (elevating === true) {
-      elevating_alert = (
+      return (
         <Alert type="warning" showIcon>
           {t(
             'You are going to increase privileges for this integration. Organization members who already had access to the Client Secret may gain extra permissions due to this change. If this is not what you are expecting, consider re-creating an integration.'
@@ -97,6 +96,12 @@ export default class PermissionsObserver extends Component<Props, State> {
         </Alert>
       );
     }
+
+    return null;
+  }
+
+  render() {
+    const {permissions, events} = this.state;
 
     return (
       <Fragment>
@@ -108,7 +113,7 @@ export default class PermissionsObserver extends Component<Props, State> {
               onChange={this.onPermissionChange}
               appPublished={this.props.appPublished}
             />
-            {elevating_alert}
+            {this.renderCallout()}
           </PanelBody>
         </Panel>
         <Panel>
