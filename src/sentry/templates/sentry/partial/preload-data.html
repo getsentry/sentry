@@ -1,8 +1,13 @@
 <script type="text/javascript">
   try {
-    var reg = new RegExp(/\/organizations\/(.+?(?=(\/|$)))(\/|$)/, 'i');
-    var organization = window.location.pathname;
-    var slug = organization.match(reg)[1];
+    var slug = window.__initialData.lastOrganization;
+    if (!slug && window.__initialData.customerDomain) {
+      slug = window.__initialData.customerDomain.subdomain;
+    }
+    var host = '';
+    if (window.__initialData.links && window.__initialData.links.regionUrl) {
+      var host = window.__initialData.links.regionUrl;
+    }
 
     function promiseRequest(url) {
       return new Promise(function (resolve, reject) {
@@ -25,20 +30,16 @@
     }
 
     function makeUrl(suffix) {
-      return '/api/0/organizations/' + slug + suffix;
+      return host + '/api/0/organizations/' + slug + suffix;
     }
 
-    // There are probably more, but this is at least one case where
-    // this should not be treated as a slug
-    if (slug !== 'new') {
-      var preloadPromises = {orgSlug: slug};
-      window.__sentry_preload = preloadPromises;
+    var preloadPromises = {orgSlug: slug};
+    window.__sentry_preload = preloadPromises;
 
-      preloadPromises.organization = promiseRequest(makeUrl('/?detailed=0'));
-      preloadPromises.projects = promiseRequest(
-        makeUrl('/projects/?all_projects=1&collapse=latestDeploys')
-      );
-      preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
-    }
+    preloadPromises.organization = promiseRequest(makeUrl('/?detailed=0'));
+    preloadPromises.projects = promiseRequest(
+      makeUrl('/projects/?all_projects=1&collapse=latestDeploys')
+    );
+    preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
   } catch (_) {}
 </script>

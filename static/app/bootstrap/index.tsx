@@ -34,7 +34,64 @@ async function bootWithHydration() {
   }
   window.__initialData = data;
 
-  return bootApplication(data);
+  bootApplication(data);
+  preloadOrganizationData(data);
+
+  return data;
+}
+
+function promiseRequest(url: string): Promise<any> {
+  return new Promise(function (resolve, reject) {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', url);
+    xhr.onload = function () {
+      try {
+        this.status >= 200 && this.status < 300
+          ? resolve([JSON.parse(xhr.response), this.statusText, xhr])
+          : reject([this.status, this.statusText]);
+      } catch (e) {
+        reject();
+      }
+    };
+    xhr.onerror = function () {
+      reject([this.status, this.statusText]);
+    };
+    xhr.send();
+  });
+}
+
+function preloadOrganizationData(config: Config) {
+  let slug = config.lastOrganization;
+  if (!slug && config.customerDomain) {
+    slug = config.customerDomain.subdomain;
+  }
+
+  let host = '';
+  if (config.links?.regionUrl) {
+    host = config.links.regionUrl;
+  }
+  // When running in 'dev-ui' mode we need to use /region/$region instead of
+  // subdomains so that webpack/vercel can proxy requests.
+  if (host && window.__SENTRY_DEV_UI) {
+    const domainpattern = /https?\:\/\/([^.]*)\.sentry.io/;
+    const domainmatch = host.match(domainpattern);
+    if (domainmatch) {
+      host = `/region/${domainmatch[1]}`;
+    }
+  }
+
+  function makeUrl(suffix: string) {
+    return host + '/api/0/organizations/' + slug + suffix;
+  }
+
+  const preloadPromises: Record<string, any> = {orgSlug: slug};
+  window.__sentry_preload = preloadPromises;
+
+  preloadPromises.organization = promiseRequest(makeUrl('/?detailed=0'));
+  preloadPromises.projects = promiseRequest(
+    makeUrl('/projects/?all_projects=1&collapse=latestDeploys')
+  );
+  preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
 }
 
 /**
