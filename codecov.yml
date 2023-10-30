@@ -100,7 +100,6 @@ cli:
       delete_uncompressed: true
   runners:
     pytest:
-      include_curr_dir: true
       # Same args used for the backend tests
       # See Makefile:135
       collect_tests_options:
