@@ -124,11 +124,7 @@ def _get_commit_info_from_blame_response(
     if response is None:
         return None
 
-    commits = [
-        _create_commit_from_blame(item.get("commit"), extra)
-        for item in response
-        if item.get("commit")
-    ]
+    commits = [_create_commit_from_blame(item.get("commit"), extra) for item in response]
     commits_with_required_info = [commit for commit in commits if commit is not None]
 
     if not commits_with_required_info:
@@ -156,7 +152,7 @@ def _create_commit_from_blame(
     if not committed_date:
         logger.warning(
             "get_blame_for_files.invalid_commit_response",
-            extra={**extra, "missing_property": "committed_date"},
+            extra={**extra, "commit_id": commit_id, "missing_property": "committed_date"},
         )
         return None
 

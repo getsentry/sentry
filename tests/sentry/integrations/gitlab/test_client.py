@@ -298,6 +298,13 @@ class GitLabBlameForFilesTest(GitLabClientTest):
             repo=self.repo,
             code_mapping=None,  # type: ignore
         )
+        self.file_4 = SourceLineInfo(
+            path="src/sentry/integrations/github/client_3.py",
+            lineno=20,
+            ref="master",
+            repo=self.repo,
+            code_mapping=None,  # type: ignore
+        )
         self.blame_1 = FileBlameInfo(
             **asdict(self.file_1),
             commit=CommitInfo(
@@ -408,7 +415,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
     )
     @responses.activate
     def test_failure_response_type(self, mock_logger_exception):
-        responses.add(responses.GET, "some text", status=200)
+        responses.add(responses.GET, self.make_blame_request(self.file_1), json={}, status=200)
         resp = self.gitlab_client.get_blame_for_files(files=[self.file_1])
 
         assert resp == []
@@ -498,15 +505,11 @@ class GitLabBlameForFilesTest(GitLabClientTest):
             },
         )
 
-    @mock.patch(
-        "sentry.integrations.gitlab.blame.logger.exception",
-    )
     @responses.activate
-    def test_invalid_commits(self, mock_logger_exception):
+    def test_invalid_commits(self):
         """
         Tests that commits lacking required data are thrown out
         """
-        responses.add(responses.GET, self.make_blame_request(self.file_1), status=404)
         responses.add(
             responses.GET,
             url=self.make_blame_request(self.file_1),
@@ -525,6 +528,14 @@ class GitLabBlameForFilesTest(GitLabClientTest):
             json=self.make_blame_response(committed_date="invalid date format"),
             status=200,
         )
-        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2, self.file_3])
+        responses.add(
+            responses.GET,
+            url=self.make_blame_request(self.file_4),
+            json={"lines": [], "commit": None},
+            status=200,
+        )
+        resp = self.gitlab_client.get_blame_for_files(
+            files=[self.file_1, self.file_2, self.file_3, self.file_4]
+        )
 
         assert resp == []
