@@ -421,7 +421,9 @@ def configure_sdk():
     exclude_beat_tasks = [
         "flush-buffers",
         "sync-options",
+        "sync-options-control",
         "schedule-digests",
+        "check-symbolicator-lpq-project-eligibility",  # defined in getsentry
     ]
 
     # turn on minimetrics

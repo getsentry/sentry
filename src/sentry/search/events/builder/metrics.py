@@ -126,14 +126,15 @@ class MetricsQueryBuilder(QueryBuilder):
         if not field:
             return None
 
-        if self.query is None:
-            return None
-
         if not should_use_on_demand_metrics(self.dataset, field, self.query):
             return None
 
         try:
-            return OnDemandMetricSpec(field, self.query)
+            environment = None
+            if self.params.environments:
+                environment = self.params.environments[0].name
+
+            return OnDemandMetricSpec(field, self.query, environment)
         except Exception as e:
             sentry_sdk.capture_exception(e)
             return None
@@ -173,6 +174,7 @@ class MetricsQueryBuilder(QueryBuilder):
             raise InvalidSearchQuery(
                 "The on demand metric query requires a time range to be executed"
             )
+
         where = [
             Condition(
                 lhs=Column(QUERY_HASH_KEY),
@@ -180,16 +182,6 @@ class MetricsQueryBuilder(QueryBuilder):
                 rhs=spec.query_hash,
             ),
         ]
-
-        if self.params.environments:
-            environment = self.params.environments[0].name
-            where.append(
-                Condition(
-                    Column("environment"),
-                    Op.EQ,
-                    environment,
-                )
-            )
 
         return MetricsQuery(
             select=[MetricField(spec.op, spec.mri, alias=alias)],
@@ -622,7 +614,6 @@ class MetricsQueryBuilder(QueryBuilder):
             raise Exception("Cannot get metrics layer snql query when use_metrics_layer is false")
 
         self.validate_having_clause()
-        self.validate_orderby_clause()
 
         prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
         return Query(
@@ -659,7 +650,6 @@ class MetricsQueryBuilder(QueryBuilder):
             raise NotImplementedError("Cannot get snql query when use_metrics_layer is true")
 
         self.validate_having_clause()
-        self.validate_orderby_clause()
 
         # Need to split orderby between the 3 possible tables
         primary, query_framework = self._create_query_framework()
@@ -793,16 +783,6 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return primary, query_framework
 
-    def validate_orderby_clause(self) -> None:
-        """Check that the orderby doesn't include any direct tags, this shouldn't raise an error for project since we
-        transform it"""
-        for orderby in self.orderby:
-            if (
-                isinstance(orderby.exp, Column)
-                and orderby.exp.subscriptable in ["tags", "tags_raw"]
-            ) or (isinstance(orderby.exp, Function) and orderby.exp.alias == "title"):
-                raise IncompatibleMetricsQuery("Can't orderby tags")
-
     def convert_metric_layer_result(self, metrics_data: Any) -> Any:
         """The metric_layer returns results in a non-standard format, this function changes it back to the expected
         one"""
@@ -927,7 +907,6 @@ class MetricsQueryBuilder(QueryBuilder):
                         meta_dict[meta["name"]] = meta["type"]
         else:
             self.validate_having_clause()
-            self.validate_orderby_clause()
 
             # TODO: this should happen regardless of whether the metrics_layer is being used
             granularity_condition, new_granularity = self.resolve_split_granularity()
@@ -1457,8 +1436,11 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                     continue
 
                 value = event.get(field)
+                # Ensure the project id fields stay as numbers, clickhouse 20 can't handle it, but 21 can
+                if field in {"project_id", "project.id"}:
+                    value = int(value)
                 # TODO: Handle potential None case
-                if value is not None:
+                elif value is not None:
                     value = self.resolve_tag_value(str(value))
                 values.add(value)
 

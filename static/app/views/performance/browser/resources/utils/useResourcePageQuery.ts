@@ -1,6 +1,11 @@
+import {Sort} from 'sentry/utils/discover/fields';
 import {useSpanTransactionMetrics} from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 
-export const useResourcePagesQuery = (groupId: string) => {
-  // We'll do more this when we have the transaction tag on resource spans.
-  return useSpanTransactionMetrics({'span.group': groupId});
+const {HTTP_RESPONSE_CONTENT_LENGTH} = SpanMetricsField;
+
+export const useResourcePagesQuery = (groupId: string, {sort}: {sort: Sort}) => {
+  return useSpanTransactionMetrics({'span.group': groupId}, [sort], undefined, [
+    `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
+  ]);
 };

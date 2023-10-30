@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import Optional, Tuple
+from typing import Optional
 
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.utils.encoding import force_str
 
-from sentry.backup.dependencies import ImportKind
+from sentry.backup.dependencies import PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.conf.server import SENTRY_SCOPES
@@ -15,12 +15,13 @@ from sentry.db.models import (
     ArrayField,
     BaseManager,
     FlexibleForeignKey,
-    Model,
     control_silo_only_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.models.organizationmapping import OrganizationMapping
+from sentry.db.models.outboxes import ReplicatedControlModel
+from sentry.models.organization import Organization
+from sentry.models.outbox import OutboxCategory
 from sentry.services.hybrid_cloud.orgauthtoken import orgauthtoken_service
 
 MAX_NAME_LENGTH = 255
@@ -33,8 +34,9 @@ def validate_scope_list(value):
 
 
 @control_silo_only_model
-class OrgAuthToken(Model):
+class OrgAuthToken(ReplicatedControlModel):
     __relocation_scope__ = RelocationScope.Organization
+    category = OutboxCategory.ORG_AUTH_TOKEN_UPDATE
 
     organization_id = HybridCloudForeignKey("sentry.Organization", null=False, on_delete="CASCADE")
     # The JWT token in hashed form
@@ -70,7 +72,7 @@ class OrgAuthToken(Model):
         return {"name": self.name, "scopes": self.get_scopes()}
 
     def get_allowed_origins(self):
-        return ()
+        return []
 
     def get_scopes(self):
         return self.scope_list
@@ -81,9 +83,9 @@ class OrgAuthToken(Model):
     def is_active(self) -> bool:
         return self.date_deactivated is None
 
-    def write_relocation_import(
-        self, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[Tuple[int, ImportKind]]:
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[int]:
         # TODO(getsentry/team-ospo#190): Prevents a circular import; could probably split up the
         # source module in such a way that this is no longer an issue.
         from sentry.api.utils import generate_region_url
@@ -99,28 +101,41 @@ class OrgAuthToken(Model):
             token_hashed=self.token_hashed
         ).first()
         if (not self.token_hashed) or matching_token_hashed:
-            org_mapping = OrganizationMapping.objects.filter(
-                organization_id=self.organization_id
-            ).first()
-            if org_mapping is None:
+            org_slug = pk_map.get_slug(get_model_name(Organization), self.organization_id)
+            if org_slug is None:
                 return None
+
             try:
-                token_str = generate_token(org_mapping.slug, generate_region_url())
+                token_str = generate_token(org_slug, generate_region_url())
             except SystemUrlPrefixMissingException:
                 return None
             self.token_hashed = hash_token(token_str)
             self.token_last_characters = token_str[-4:]
 
-        return super().write_relocation_import(scope, flags)
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+
+        return old_pk
+
+    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+        from sentry.services.hybrid_cloud.orgauthtoken.serial import serialize_org_auth_token
+        from sentry.services.hybrid_cloud.replica import region_replica_service
+
+        region_replica_service.upsert_replicated_org_auth_token(
+            token=serialize_org_auth_token(self),
+            region_name=region_name,
+        )
 
 
 def is_org_auth_token_auth(auth: object) -> bool:
     """:returns True when an API token is hitting the API."""
+    from sentry.hybridcloud.models.orgauthtokenreplica import OrgAuthTokenReplica
     from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 
     if isinstance(auth, AuthenticatedToken):
         return auth.kind == "org_auth_token"
-    return isinstance(auth, OrgAuthToken)
+    return isinstance(auth, OrgAuthToken) or isinstance(auth, OrgAuthTokenReplica)
 
 
 def get_org_auth_token_id_from_auth(auth: object) -> int | None:

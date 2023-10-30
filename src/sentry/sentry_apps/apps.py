@@ -145,10 +145,15 @@ class SentryAppUpdater:
                 raise APIError("Cannot update permissions on a published integration.")
             self.sentry_app.scope_list = self.scopes
             # update the scopes of active tokens tokens
-            ApiToken.objects.filter(
-                Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now()),
-                application=self.sentry_app.application,
-            ).update(scope_list=list(self.scopes))
+            tokens = list(
+                ApiToken.objects.filter(
+                    Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now()),
+                    application=self.sentry_app.application,
+                )
+            )
+            for token in tokens:
+                token.scope_list = self.scopes
+            ApiToken.objects.bulk_update(tokens, ["scope_list"])
 
     def _update_events(self) -> None:
         if self.events is not None:

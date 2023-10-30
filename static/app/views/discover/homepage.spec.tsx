@@ -31,6 +31,8 @@ describe('Discover > Homepage', () => {
         location: TestStubs.location(),
       },
     });
+
+    ProjectsStore.loadInitialData(organization.projects);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: [],
@@ -438,7 +440,10 @@ describe('Discover > Homepage', () => {
   });
 
   it('overrides homepage filters with pinned filters if they exist', async () => {
-    ProjectsStore.loadInitialData([TestStubs.Project({id: 2})]);
+    ProjectsStore.loadInitialData([
+      TestStubs.Project({id: 1}),
+      TestStubs.Project({id: 2}),
+    ]);
     jest.spyOn(pageFilterUtils, 'getPageFilterStorage').mockReturnValueOnce({
       pinnedFilters: new Set(['projects']),
       state: {

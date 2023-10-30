@@ -55,6 +55,7 @@ EXPOSABLE_FEATURES = [
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-ga-modules",
     "projects:span-metrics-extraction-all-modules",
+    "projects:span-metrics-extraction-resource",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:transaction-name-normalize",
     "organizations:profiling",
@@ -406,6 +407,27 @@ def _get_project_config(
             "drop": features.has(
                 "organizations:release-health-drop-sessions", project.organization
             ),
+        }
+
+    if features.has("organizations:performance-calculate-score-relay", project.organization):
+        config["performanceScore"] = {
+            "profiles": [
+                {
+                    "name": "Desktop",
+                    "scoreComponents": [
+                        {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600},
+                        {"measurement": "lcp", "weight": 0.30, "p10": 1200, "p50": 2400},
+                        {"measurement": "fid", "weight": 0.30, "p10": 100, "p50": 300},
+                        {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
+                        {"measurement": "ttfb", "weight": 0.10, "p10": 200, "p50": 400},
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Chrome",
+                    },
+                }
+            ]
         }
 
     config["spanAttributes"] = project.get_option("sentry:span_attributes")

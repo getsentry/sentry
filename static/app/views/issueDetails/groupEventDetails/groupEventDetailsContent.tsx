@@ -10,19 +10,19 @@ import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventCause} from 'sentry/components/events/eventCause';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {EventEntry} from 'sentry/components/events/eventEntry';
-import {EventErrors} from 'sentry/components/events/eventErrors';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
-import EventSpanOpBreakdown from 'sentry/components/events/eventStatisticalDetector/aggregateSpanOps/spanOpBreakdown';
 import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
 import {EventAffectedTransactions} from 'sentry/components/events/eventStatisticalDetector/eventAffectedTransactions';
 import EventComparison from 'sentry/components/events/eventStatisticalDetector/eventComparison';
 import {EventFunctionComparisonList} from 'sentry/components/events/eventStatisticalDetector/eventFunctionComparisonList';
+import {EventFunctionRegressionEvidence} from 'sentry/components/events/eventStatisticalDetector/eventFunctionRegressionEvidence';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
 import RegressionMessage from 'sentry/components/events/eventStatisticalDetector/regressionMessage';
+import EventSpanOpBreakdown from 'sentry/components/events/eventStatisticalDetector/spanOpBreakdown';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
@@ -96,9 +96,6 @@ function DefaultGroupEventDetailsContent({
 
   return (
     <Fragment>
-      {!hasActionableItems && (
-        <EventErrors event={event} project={project} isShare={false} />
-      )}
       {hasActionableItems && (
         <ActionableItems event={event} project={project} isShare={false} />
       )}
@@ -234,6 +231,9 @@ function ProfilingDurationRegressionIssueDetailsContent({
         <RegressionMessage event={event} group={group} />
         <ErrorBoundary mini>
           <EventFunctionBreakpointChart event={event} />
+        </ErrorBoundary>
+        <ErrorBoundary mini>
+          <EventFunctionRegressionEvidence event={event} />
         </ErrorBoundary>
         <ErrorBoundary mini>
           <EventAffectedTransactions event={event} group={group} project={project} />

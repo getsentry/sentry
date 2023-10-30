@@ -201,34 +201,6 @@ def web(bind, workers, upgrade, with_lock, noinput):
         SentryHTTPServer(host=bind[0], port=bind[1], workers=workers).run()
 
 
-@run.command()
-@click.option(
-    "--bind",
-    "-b",
-    default=None,
-    help="Bind address.",
-    metavar="ADDRESS",
-    callback=_address_validate,
-)
-@click.option("--upgrade", default=False, is_flag=True, help="Upgrade before starting.")
-@click.option(
-    "--noinput", default=False, is_flag=True, help="Do not prompt the user for input of any kind."
-)
-@configuration
-def smtp(bind, upgrade, noinput):
-    "Run inbound email service."
-    if upgrade:
-        click.echo("Performing upgrade before service startup...")
-        from sentry.runner import call_command
-
-        call_command("sentry.runner.commands.upgrade.upgrade", verbosity=0, noinput=noinput)
-
-    from sentry.services.smtp import SentrySMTPServer
-
-    with managed_bgtasks(role="smtp"):
-        SentrySMTPServer(host=bind[0], port=bind[1]).run()
-
-
 def run_worker(**options):
     """
     This is the inner function to actually start worker.
@@ -706,6 +678,12 @@ def profiles_consumer(**options):
     help="A file to touch roughly every second to indicate that the consumer is still alive. See https://getsentry.github.io/arroyo/strategies/healthcheck.html for more information.",
 )
 @click.option(
+    "--enable-dlq",
+    help="Enable dlq to route invalid messages to. See https://getsentry.github.io/arroyo/dlqs.html#arroyo.dlq.DlqPolicy for more information.",
+    is_flag=True,
+    default=False,
+)
+@click.option(
     "--log-level",
     type=click.Choice(["debug", "info", "warning", "error", "critical"], case_sensitive=False),
     help="log level to pass to the arroyo consumer",
@@ -776,6 +754,7 @@ def dev_consumer(consumer_names):
             max_poll_interval_ms=None,
             synchronize_commit_group=None,
             synchronize_commit_log_topic=None,
+            enable_dlq=False,
             healthcheck_file_path=None,
             validate_schema=True,
         )

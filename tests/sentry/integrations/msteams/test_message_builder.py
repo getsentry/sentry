@@ -35,7 +35,7 @@ from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageB
 from sentry.integrations.msteams.card_builder.notifications import (
     MSTeamsNotificationsMessageBuilder,
 )
-from sentry.models.group import GroupStatus, GroupSubStatus
+from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -47,6 +47,7 @@ from sentry.testutils.helpers.notifications import (
     DummyNotificationWithMoreFields,
 )
 from sentry.testutils.skips import requires_snuba
+from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 
 pytestmark = [requires_snuba]

@@ -1142,16 +1142,15 @@ class GetSendToTeamTestV2(GetSendToTeamTest):
     @with_feature("organizations:notification-settings-v2")
     def test_send_to_team_direct(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSettingProvider.objects.create(
+            NotificationSettingProvider.objects.filter(
                 team_id=self.team.id,
                 scope_type="team",
                 scope_identifier=self.team.id,
                 provider="slack",
                 type="alerts",
-                value="always",
-            )
+            ).update(value="always")
         assert self.get_send_to_team() == {
-            ExternalProviders.EMAIL: {RpcActor.from_orm_user(self.user)},
+            ExternalProviders.SLACK: {RpcActor.from_orm_team(self.team)}
         }
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -1186,7 +1185,6 @@ class GetSendToOwnersTestV2(GetSendToOwnersTest):
     def store_event_owners(self, filename: str) -> Event:
         return super().store_event(data=make_event_data(filename), project_id=self.project.id)
 
-    @with_feature("organizations:notifications-double-write")
     def setUp(self):
         super().setUp()
 
@@ -1243,7 +1241,6 @@ class GetSendToOwnersTestV2(GetSendToOwnersTest):
             slack=[self.user.id],
         )
 
-    @with_feature("organizations:notifications-double-write")
     @with_feature("organizations:notification-settings-v2")
     def test_disable_alerts_multiple_scopes(self):
         super().test_disable_alerts_multiple_scopes()

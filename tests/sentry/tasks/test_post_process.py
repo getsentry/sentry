@@ -19,6 +19,7 @@ from sentry.buffer.redis import RedisBuffer
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.ingest.transaction_clusterer import ClustererNamespace
+from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo
 from sentry.issues.escalating import manage_issue_states
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.issues.ingest import save_issue_occurrence
@@ -40,9 +41,11 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.replays.lib import kafka as replays_kafka
+from sentry.replays.lib.kafka import clear_replay_publisher
 from sentry.rules import init_registry
+from sentry.rules.actions.base import EventAction
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import unguarded_write
+from sentry.silo import SiloMode, unguarded_write
 from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import (
@@ -54,8 +57,9 @@ from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase, Snuba
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
@@ -395,8 +399,8 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
             "sentry.rules.processor.rules", init_registry()
         ) as rules:
             MockAction = mock.Mock()
-            MockAction.rule_type = "action/event"
             MockAction.id = "tests.sentry.tasks.post_process.tests.MockAction"
+            MockAction.return_value = mock.Mock(spec=EventAction)
             MockAction.return_value.after.return_value = []
             rules.add(MockAction)
 
@@ -1379,11 +1383,10 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         )
         self.cache_key = write_event_to_cache(self.created_event)
         self.repo = self.create_repo(
-            name="example",
-            integration_id=self.integration.id,
+            name="example", integration_id=self.integration.id, provider="github"
         )
         self.code_mapping = self.create_code_mapping(
-            repo=self.repo, project=self.project, stack_root="src/"
+            repo=self.repo, project=self.project, stack_root="sentry/", source_root="sentry/"
         )
         self.commit_author = self.create_commit_author(project=self.project, user=self.user)
         self.commit = self.create_commit(
@@ -1393,6 +1396,23 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
             key="asdfwreqr",
             message="placeholder commit message",
         )
+
+        self.github_blame_all_files_return_value = [
+            FileBlameInfo(
+                code_mapping=self.code_mapping,
+                lineno=39,
+                path="sentry/models/release.py",
+                ref="master",
+                repo=self.repo,
+                commit=CommitInfo(
+                    commitId="asdfwreqr",
+                    committedDate=(datetime.now(timezone.utc) - timedelta(days=2)),
+                    commitMessage="placeholder commit message",
+                    commitAuthorName="",
+                    commitAuthorEmail="admin@localhost",
+                ),
+            )
+        ]
 
     @with_feature("organizations:commit-context")
     @patch(
@@ -1421,10 +1441,11 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         return_value=github_blame_return_value,
     )
     def test_logic_fallback_no_scm(self, mock_get_commit_context):
-        with unguarded_write(using=router.db_for_write(Integration)):
-            Integration.objects.all().delete()
-        integration = Integration.objects.create(provider="bitbucket")
-        integration.add_organization(self.organization)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            with unguarded_write(using=router.db_for_write(Integration)):
+                Integration.objects.all().delete()
+            integration = Integration.objects.create(provider="bitbucket")
+            integration.add_organization(self.organization)
         with self.tasks():
             self.call_post_process_group(
                 is_new=True,
@@ -1433,6 +1454,55 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
                 event=self.created_event,
             )
         assert not cache.has_key(f"process-commit-context-{self.created_event.group_id}")
+
+    @with_feature("organizations:commit-context")
+    @with_feature("organizations:suspect-commits-all-frames")
+    @patch("sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames")
+    def test_skip_when_not_is_new(self, mock_get_commit_context):
+        """
+        Tests that when the organizations:suspect-commits-all-frames feature is enabled,
+        and the group is not new, that we do not process commit context.
+        """
+        with self.tasks():
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=self.created_event,
+            )
+        assert not mock_get_commit_context.called
+        assert not GroupOwner.objects.filter(
+            group=self.created_event.group,
+            project=self.created_event.project,
+            organization=self.created_event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        ).exists()
+
+    @with_feature("organizations:commit-context")
+    @with_feature("organizations:suspect-commits-all-frames")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
+    )
+    def test_does_not_skip_when_is_new(self, mock_get_commit_context):
+        """
+        Tests that when the organizations:suspect-commits-all-frames feature is enabled,
+        and the group is new, the commit context should be processed.
+        """
+        mock_get_commit_context.return_value = self.github_blame_all_files_return_value
+        with self.tasks():
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=self.created_event,
+            )
+        assert mock_get_commit_context.called
+        assert GroupOwner.objects.get(
+            group=self.created_event.group,
+            project=self.created_event.project,
+            organization=self.created_event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        )
 
 
 class SnoozeTestMixin(BasePostProgressGroupMixin):
@@ -1589,8 +1659,12 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection")
 class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
     @with_feature("organizations:sdk-crash-detection")
-    @override_settings(SDK_CRASH_DETECTION_PROJECT_ID=1234)
-    @override_settings(SDK_CRASH_DETECTION_SAMPLE_RATE=0.1234)
+    @override_options(
+        {
+            "issues.sdk_crash_detection.cocoa.project_id": 1234,
+            "issues.sdk_crash_detection.cocoa.sample_rate": 1.0,
+        }
+    )
     def test_sdk_crash_monitoring_is_called(self, mock_sdk_crash_detection):
         event = self.create_event(
             data={"message": "testing"},
@@ -1608,8 +1682,29 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
 
         args = mock_sdk_crash_detection.detect_sdk_crash.call_args[-1]
         assert args["event"].project.id == event.project.id
-        assert args["event_project_id"] == 1234
-        assert args["sample_rate"] == 0.1234
+        assert args["configs"] == [{"sdk_name": "cocoa", "project_id": 1234, "sample_rate": 1.0}]
+
+    @with_feature("organizations:sdk-crash-detection")
+    @override_options(
+        {
+            "issues.sdk_crash_detection.cocoa.project_id": 1234,
+            "issues.sdk_crash_detection.cocoa.sample_rate": 0.0,
+        }
+    )
+    def test_sdk_crash_monitoring_not_called_without_sample_rate(self, mock_sdk_crash_detection):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_sdk_crash_detection.detect_sdk_crash.assert_not_called()
 
     def test_sdk_crash_monitoring_is_not_called_with_disabled_feature(
         self, mock_sdk_crash_detection
@@ -1628,6 +1723,11 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
 
         mock_sdk_crash_detection.detect_sdk_crash.assert_not_called()
 
+    @override_options(
+        {
+            "issues.sdk_crash_detection.cocoa.project_id": None,
+        }
+    )
     @with_feature("organizations:sdk-crash-detection")
     def test_sdk_crash_monitoring_is_not_called_without_project_id(self, mock_sdk_crash_detection):
         event = self.create_event(
@@ -1669,7 +1769,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
             ret_value = json.loads(kafka_producer.return_value.publish.call_args[0][1])
 
             assert ret_value["type"] == "replay_event"
-            assert ret_value["start_time"] > int(event.datetime.timestamp())
+            assert ret_value["start_time"]
             assert ret_value["replay_id"] == replay_id
             assert ret_value["project_id"] == self.project.id
             assert ret_value["segment_id"] is None
@@ -1703,7 +1803,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
                 event=event,
             )
             assert kafka_producer.return_value.publish.call_count == 0
-            incr.assert_called_with("post_process.process_replay_link.id_sampled")
+            incr.assert_any_call("post_process.process_replay_link.id_sampled")
 
     def test_0_sample_rate_replays(self, incr, kafka_producer, kafka_publisher):
 
@@ -1724,7 +1824,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
                 self.assertNotEqual(args, ("post_process.process_replay_link.id_sampled"))
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class PostProcessGroupErrorTest(
     TestCase,
     AssignmentTestMixin,
@@ -1739,6 +1839,10 @@ class PostProcessGroupErrorTest(
     SDKCrashMonitoringTestMixin,
     ReplayLinkageTestMixin,
 ):
+    def setUp(self):
+        super().setUp()
+        clear_replay_publisher()
+
     def create_event(self, data, project_id, assert_no_errors=True):
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
 
@@ -1759,7 +1863,8 @@ class PostProcessGroupErrorTest(
 
     @with_feature("organizations:escalating-metrics-backend")
     @patch("sentry.sentry_metrics.client.generic_metrics_backend.counter")
-    def test_generic_metrics_backend_counter(self, generic_metrics_backend_mock):
+    @patch("sentry.utils.metrics.incr")
+    def test_generic_metrics_backend_counter(self, metric_incr_mock, generic_metrics_backend_mock):
         min_ago = iso_format(before_now(minutes=1))
         event = self.create_event(
             data={
@@ -1782,9 +1887,13 @@ class PostProcessGroupErrorTest(
         )
 
         assert generic_metrics_backend_mock.call_count == 1
+        metric_incr_mock.assert_any_call(
+            "sentry.tasks.post_process.post_process_group.completed",
+            tags={"issue_category": "error", "pipeline": "process_rules"},
+        )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class PostProcessGroupPerformanceTest(
     TestCase,
     SnubaTestCase,
@@ -1957,7 +2066,7 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
         ]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class PostProcessGroupGenericTest(
     TestCase,
     SnubaTestCase,

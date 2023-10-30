@@ -9,6 +9,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.serializers import ListField
 
 from sentry import audit_log, features
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -23,7 +24,7 @@ from sentry.api.decorators import sudo_required
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
-from sentry.api.serializers.rest_framework.list import EmptyListField, ListField
+from sentry.api.serializers.rest_framework.list import EmptyListField
 from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.project_examples import ProjectExamples
@@ -32,7 +33,8 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.datascrubbing import validate_pii_config_update
 from sentry.dynamic_sampling import generate_rules, get_supported_biases_ids, get_user_biases
-from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
+from sentry.grouping.enhancer import Enhancements
+from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.lang.native.sources import (
@@ -100,7 +102,42 @@ class ProjectMemberSerializer(serializers.Serializer):
     )
 
 
-@extend_schema_serializer(exclude_fields=["options"])
+@extend_schema_serializer(
+    exclude_fields=[
+        "options",
+        "team",
+        "digestsMinDelay",
+        "digestsMaxDelay",
+        "securityToken",
+        "securityTokenHeader",
+        "verifySSL",
+        "defaultEnvironment",
+        "dataScrubber",
+        "dataScrubberDefaults",
+        "sensitiveFields",
+        "safeFields",
+        "storeCrashReports",
+        "relayPiiConfig",
+        "builtinSymbolSources",
+        "symbolSources",
+        "scrubIPAddresses",
+        "groupingConfig",
+        "groupingEnhancements",
+        "fingerprintingRules",
+        "secondaryGroupingConfig",
+        "secondaryGroupingExpiry",
+        "groupingAutoUpdate",
+        "scrapeJavaScript",
+        "allowedDomains",
+        "copy_from_project",
+        "dynamicSamplingBiases",
+        "performanceIssueCreationRate",
+        "performanceIssueCreationThroughPlatform",
+        "performanceIssueSendToPlatform",
+        "recapServerUrl",
+        "recapServerToken",
+    ]
+)
 class ProjectAdminSerializer(ProjectMemberSerializer, PreventNumericSlugMixin):
     name = serializers.CharField(
         help_text="The name for the project",

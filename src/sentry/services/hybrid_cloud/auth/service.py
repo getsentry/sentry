@@ -4,17 +4,9 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
-from typing import Any, List, Mapping, Optional, cast
+from typing import Any, List, Mapping, Optional
 
-from sentry.services.hybrid_cloud.auth import (
-    AuthenticationContext,
-    AuthenticationRequest,
-    MiddlewareAuthenticationResponse,
-    RpcApiKey,
-    RpcAuthenticatorType,
-    RpcAuthProvider,
-    RpcOrganizationAuthConfig,
-)
+from sentry.services.hybrid_cloud.auth import RpcApiKey, RpcAuthProvider, RpcOrganizationAuthConfig
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
@@ -28,18 +20,6 @@ class AuthService(RpcService):
         from sentry.services.hybrid_cloud.auth.impl import DatabaseBackedAuthService
 
         return DatabaseBackedAuthService()
-
-    @rpc_method
-    @abc.abstractmethod
-    def authenticate(self, *, request: AuthenticationRequest) -> MiddlewareAuthenticationResponse:
-        pass
-
-    @rpc_method
-    @abc.abstractmethod
-    def authenticate_with(
-        self, *, request: AuthenticationRequest, authenticator_types: List[RpcAuthenticatorType]
-    ) -> AuthenticationContext:
-        pass
 
     @rpc_method
     @abc.abstractmethod
@@ -99,7 +79,13 @@ class AuthService(RpcService):
     @rpc_method
     @abc.abstractmethod
     def enable_partner_sso(
-        self, *, organization_id: int, provider_key: str, provider_config: Mapping[str, Any]
+        self,
+        *,
+        organization_id: int,
+        provider_key: str,
+        provider_config: Mapping[str, Any],
+        user_id: Optional[int] = None,
+        sender: Optional[str] = None,
     ) -> None:
         pass
 
@@ -118,4 +104,4 @@ class AuthService(RpcService):
         pass
 
 
-auth_service: AuthService = cast(AuthService, AuthService.create_delegation())
+auth_service = AuthService.create_delegation()

@@ -1,19 +1,15 @@
 import types
-from unittest import mock
 from urllib.parse import parse_qs, urlparse
 
-import pytest
-
 from sentry.models.notificationsetting import NotificationSetting
-from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.rule import Rule
 from sentry.notifications.helpers import (
     collect_groups_by_project,
     get_scope_type,
     get_settings_by_provider,
     get_subscription_from_attributes,
+    get_team_members,
     get_values_by_provider_by_type,
-    is_double_write_enabled,
     validate,
 )
 from sentry.notifications.notify import notification_providers
@@ -27,88 +23,13 @@ from sentry.notifications.utils import (
     get_group_settings_link,
     get_rules,
 )
-from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils.cases import TestCase
 from sentry.types.integrations import ExternalProviders
 
 
 def mock_event(*, transaction, data=None):
     return types.SimpleNamespace(data=data or {}, transaction=transaction)
-
-
-class DoubleWriteTests(TestCase):
-    @mock.patch("sentry.notifications.helpers.features.has", return_value=False)
-    def test_is_double_write_enabled_user(self, mock_has):
-        # Create dummy users and organizations
-        user1 = self.create_user()
-        user2 = self.create_user()
-        org1 = self.create_organization()
-        org2 = self.create_organization()
-        org3 = self.create_organization()
-
-        # Add users to organizations
-        self.create_member(user=user1, organization=org1)
-        self.create_member(user=user2, organization=org2)
-        self.create_member(user=user1, organization=org3)
-
-        is_double_write_enabled(user_id=user1.id)
-
-        mapped_org1 = OrganizationMapping.objects.get(organization_id=org1.id)
-        mapped_org2 = OrganizationMapping.objects.get(organization_id=org2.id)
-        mapped_org3 = OrganizationMapping.objects.get(organization_id=org3.id)
-        # Ensure mock_has is called on the right organizations
-        mock_has.assert_any_call(
-            "organizations:notifications-double-write", serialize_organization_mapping(mapped_org1)
-        )
-        mock_has.assert_any_call(
-            "organizations:notifications-double-write", serialize_organization_mapping(mapped_org3)
-        )
-        for call in mock_has.call_args_list:
-            self.assertNotEqual(
-                call[0],
-                (
-                    "organizations:notifications-double-write",
-                    serialize_organization_mapping(mapped_org2),
-                ),
-            )
-
-    @mock.patch("sentry.notifications.helpers.features.has", return_value=False)
-    def test_is_double_write_enabled_team(self, mock_has):
-        # Create dummy users and organizations
-        org1 = self.create_organization()
-        org2 = self.create_organization()
-
-        team1 = self.create_team(organization=org1)
-        self.create_team(organization=org2)
-
-        is_double_write_enabled(organization_id_for_team=team1.organization_id)
-
-        mapped_org1 = OrganizationMapping.objects.get(organization_id=org1.id)
-        mapped_org2 = OrganizationMapping.objects.get(organization_id=org2.id)
-
-        # Ensure mock_has is called on the right organizations
-        mock_has.assert_any_call(
-            "organizations:notifications-double-write", serialize_organization_mapping(mapped_org1)
-        )
-        for call in mock_has.call_args_list:
-            self.assertNotEqual(
-                call[0],
-                (
-                    "organizations:notifications-double-write",
-                    serialize_organization_mapping(mapped_org2),
-                ),
-            )
-
-    def test_test_is_double_write_invalid_input(self):
-        with pytest.raises(ValueError):
-            is_double_write_enabled()
-
-    @mock.patch("sentry.notifications.helpers.features.has", return_value=False)
-    def test_no_orgs(self, mock_has):
-        user1 = self.create_user()
-
-        assert is_double_write_enabled(user_id=user1.id)
-        mock_has.assert_not_called()
 
 
 class NotificationHelpersTest(TestCase):
@@ -287,3 +208,16 @@ class NotificationHelpersTest(TestCase):
             }
             for rule_detail in rule_details
         }
+
+    def test_get_team_members(self):
+        user1 = self.create_user()
+        user2 = self.create_user()
+        team1 = self.create_team()
+        team2 = self.create_team()
+        team3 = self.create_team()
+        self.create_member(organization=self.organization, teams=[team1], user=user1)
+        self.create_member(organization=self.organization, teams=[team2], user=user2)
+
+        assert get_team_members(team1) == [RpcActor.from_object(user1)]
+        assert get_team_members(team2) == [RpcActor.from_object(user2)]
+        assert get_team_members(team3) == []

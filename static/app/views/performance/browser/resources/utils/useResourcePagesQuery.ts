@@ -5,6 +5,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
+
+const {SPAN_DOMAIN, SPAN_OP} = SpanMetricsField;
 
 /**
  * Gets a list of pages that have a resource.
@@ -14,10 +17,14 @@ export const useResourcePagesQuery = () => {
   const pageFilters = usePageFilters();
   const {slug: orgSlug} = useOrganization();
   const resourceFilters = useResourceModuleFilters();
+  const {[SPAN_DOMAIN]: spanDomain} = resourceFilters;
 
-  const fields = ['transaction', 'avg(span.self_time)']; // TODO: this query fails without avg(span.self_time)
+  const fields = ['transaction', 'count()']; // count() is only here because an aggregation is required for the query to work
 
-  const queryConditions = [`span.op:${resourceFilters.type || 'resource.*'}`]; // TODO: We will need to consider other ops
+  const queryConditions = [
+    `${SPAN_OP}:${resourceFilters[SPAN_OP] || 'resource.*'}`,
+    ...(spanDomain ? [`${SPAN_DOMAIN}:${spanDomain}`] : []),
+  ]; // TODO: We will need to consider other ops
 
   const eventView = EventView.fromNewQueryWithPageFilters(
     {

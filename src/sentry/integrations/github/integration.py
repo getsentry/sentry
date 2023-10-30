@@ -22,7 +22,11 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import RepositoryMixin
-from sentry.integrations.mixins.commit_context import CommitContextMixin
+from sentry.integrations.mixins.commit_context import (
+    CommitContextMixin,
+    FileBlameInfo,
+    SourceLineInfo,
+)
 from sentry.integrations.utils.code_mapping import RepoTree
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -242,6 +246,11 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             return False
         return True
 
+    def get_commit_context_all_frames(
+        self, files: Sequence[SourceLineInfo]
+    ) -> Sequence[FileBlameInfo]:
+        return self.get_blame_for_files(files)
+
     def get_commit_context(
         self, repo: Repository, filepath: str, ref: str, event_frame: Mapping[str, Any]
     ) -> Mapping[str, str] | None:
@@ -375,6 +384,9 @@ class GitHubIntegrationProvider(IntegrationProvider):
             },
         }
 
+        if state.get("sender"):
+            integration["metadata"]["sender"] = state["sender"]
+
         if state.get("reinstall_id"):
             integration["reinstall_id"] = state["reinstall_id"]
 
@@ -461,5 +473,9 @@ class GitHubInstallationRedirect(PipelineView):
                     },
                     request=request,
                 )
+            else:
+                # OrganizationIntegration does not exist, but Integration does exist.
+                pipeline.bind_state("installation_id", request.GET["installation_id"])
+                return pipeline.next_step()
 
         return self.redirect(self.get_app_url())

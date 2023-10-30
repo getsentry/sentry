@@ -1,6 +1,7 @@
 import {ComponentProps, ReactNode, useState} from 'react';
 import styled from '@emotion/styled';
 
+import Accordion from 'sentry/components/accordion/accordion';
 import {LinkButton} from 'sentry/components/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -15,7 +16,6 @@ import {ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import Accordion from 'sentry/views/performance/landing/widgets/components/accordion';
 import {
   ContentContainer,
   HeaderContainer,
@@ -43,11 +43,13 @@ function DeadRageSelectorCards() {
                 <QuestionTooltip
                   size="xs"
                   position="top"
-                  title={t('The top selectors your users have dead clicked on.')}
+                  title={t(
+                    'The top selectors your users have dead clicked on (i.e., a user click that does not result in any page activity after 7 seconds).'
+                  )}
                   isHoverable
                 />
               </TitleTooltipContainer>
-              <FeatureBadge type="beta" />
+              <FeatureBadge type="new" />
             </StyledWidgetHeader>
             <Subtitle>{t('Suggested replays to watch')}</Subtitle>
           </div>
@@ -64,11 +66,13 @@ function DeadRageSelectorCards() {
                 <QuestionTooltip
                   size="xs"
                   position="top"
-                  title={t('The top selectors your users have rage clicked on.')}
+                  title={t(
+                    'The top selectors your users have rage clicked on (i.e., 5 or more clicks on a dead element, which exhibits no page activity after 7 seconds).'
+                  )}
                   isHoverable
                 />
               </TitleTooltipContainer>
-              <FeatureBadge type="beta" />
+              <FeatureBadge type="new" />
             </StyledWidgetHeader>
             <Subtitle>{t('Suggested replays to watch')}</Subtitle>
           </div>
@@ -103,9 +107,7 @@ function AccordionWidget({
   return (
     <StyledWidgetContainer>
       <StyledHeaderContainer>
-        <ClickColor color={clickColor}>
-          <IconCursorArrow />
-        </ClickColor>
+        <IconCursorArrow color={clickColor} />
         {header}
       </StyledHeaderContainer>
       {isLoading ? (
@@ -120,7 +122,7 @@ function AccordionWidget({
             <div>{t('No results found')}</div>
             <EmptySubtitle>
               {tct(
-                "Once your users start clicking around, you'll see the top selectors that were [type] clicked here.",
+                'There were no [type] clicks within this timeframe. Expand your timeframe, or increase your replay sample rate to see more data.',
                 {type: deadOrRage}
               )}
             </EmptySubtitle>
@@ -130,6 +132,7 @@ function AccordionWidget({
         <LeftAlignedContentContainer>
           <Accordion
             buttonOnLeft
+            collapsible
             expandedIndex={selectedListIndex}
             setExpandedIndex={setSelectListIndex}
             items={filteredData.map(d => {
@@ -182,10 +185,10 @@ function AccordionItemHeader({
   selectorQuery: string;
 }) {
   const clickCount = (
-    <ClickColor color={clickColor}>
-      <IconCursorArrow size="xs" />
+    <ClickCount>
+      <IconCursorArrow size="xs" color={clickColor} />
       {count}
-    </ClickColor>
+    </ClickCount>
   );
   return (
     <StyledAccordionHeader>
@@ -243,8 +246,8 @@ const SplitCardContainer = styled('div')`
   align-items: stretch;
 `;
 
-const ClickColor = styled(TextOverflow)<{color: ColorOrAlias}>`
-  color: ${p => p.theme[p.color]};
+const ClickCount = styled(TextOverflow)`
+  color: ${p => p.theme.gray400};
   display: grid;
   grid-template-columns: auto auto;
   gap: ${space(0.75)};
@@ -305,11 +308,12 @@ export const RightAlignedCell = styled('div')`
   align-items: center;
   justify-content: center;
   gap: ${space(1)};
+  padding-left: ${space(1)};
 `;
 
 const EmptySubtitle = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 1.8em;
+  line-height: 1.6em;
   padding-left: ${space(1)};
   padding-right: ${space(1)};
 `;

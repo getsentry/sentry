@@ -17,6 +17,7 @@ from sentry.notifications.types import (
     NOTIFICATION_SETTING_TYPES,
     NotificationSettingEnum,
     NotificationSettingTypes,
+    UnsubscribeContext,
     get_notification_setting_type_name,
 )
 from sentry.notifications.utils.actions import MessageAction
@@ -121,14 +122,13 @@ class BaseNotification(abc.ABC):
         context = getattr(self, "context", None)
         return context["text_description"] if context else None
 
-    def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
+    def get_unsubscribe_key(self) -> UnsubscribeContext | None:
         return None
 
     def get_log_params(self, recipient: RpcActor) -> Mapping[str, Any]:
         group = getattr(self, "group", None)
         params = {
             "organization_id": self.organization.id,
-            "actor_id": recipient.actor_id,
             "id": recipient.id,
             "actor_type": recipient.actor_type,
             "group_id": group.id if group else None,

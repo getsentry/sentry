@@ -80,26 +80,28 @@ function LineChart({statsData, evidenceData, start, end, chartLabel}: ChartProps
             grid={{
               left: '10px',
               right: '10px',
-              top: '40px',
+              top: '20px',
               bottom: '0px',
             }}
-            visualMap={VisualMap({
-              show: false,
-              type: 'piecewise',
-              selectedMode: false,
-              dimension: 0,
-              pieces: [
-                {
-                  gte: 0,
-                  lt: evidenceData?.breakpoint ? evidenceData.breakpoint * 1000 : 0,
-                  color: theme.gray500,
-                },
-                {
-                  gte: evidenceData?.breakpoint ? evidenceData.breakpoint * 1000 : 0,
-                  color: theme.red300,
-                },
-              ],
-            })}
+            options={{
+              visualMap: VisualMap({
+                show: false,
+                type: 'piecewise',
+                selectedMode: false,
+                dimension: 0,
+                pieces: [
+                  {
+                    gte: 0,
+                    lt: evidenceData?.breakpoint ? evidenceData.breakpoint * 1000 : 0,
+                    color: theme.gray500,
+                  },
+                  {
+                    gte: evidenceData?.breakpoint ? evidenceData.breakpoint * 1000 : 0,
+                    color: theme.red300,
+                  },
+                ],
+              }),
+            }}
             xAxis={{
               type: 'time',
             }}

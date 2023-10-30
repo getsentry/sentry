@@ -317,13 +317,12 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
       return null;
     }
 
-    const isAggregateSpan =
-      event.type === EventOrGroupType.AGGREGATE_TRANSACTION && span.type === 'aggregate';
+    const isAggregateEvent = event.type === EventOrGroupType.AGGREGATE_TRANSACTION;
 
-    if (isAggregateSpan) {
+    if (isAggregateEvent) {
       return (
         <AggregateSpanDetail
-          span={span}
+          span={span as AggregateSpanType}
           organization={organization}
           event={event}
           isRoot={!!isRoot}

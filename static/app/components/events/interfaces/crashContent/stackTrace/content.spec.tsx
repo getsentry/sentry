@@ -1,5 +1,4 @@
 import {EventEntryStacktrace} from 'sentry-fixture/eventEntryStacktrace';
-import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -156,89 +155,79 @@ describe('StackTrace', function () {
     expect(omittedFrames).toBeInTheDocument();
   });
 
-  describe('with stacktrace improvements feature flag enabled', function () {
-    const organization = Organization({
-      features: ['issue-details-stacktrace-improvements'],
+  it('does not render non in app tags', function () {
+    const dataFrames = [...data.frames];
+    dataFrames[0] = {...dataFrames[0], inApp: false};
+
+    const newData = {
+      ...data,
+      frames: dataFrames,
+    };
+
+    renderedComponent({
+      data: newData,
     });
 
-    it('does not render non in app tags', function () {
-      const dataFrames = [...data.frames];
-      dataFrames[0] = {...dataFrames[0], inApp: false};
+    expect(screen.queryByText('System')).not.toBeInTheDocument();
+  });
 
-      const newData = {
-        ...data,
-        frames: dataFrames,
-      };
+  it('displays a toggle button when there is more than one non-inapp frame', function () {
+    const dataFrames = [...data.frames];
+    dataFrames[0] = {...dataFrames[0], inApp: true};
 
-      renderedComponent({
-        organization,
-        data: newData,
-      });
+    const newData = {
+      ...data,
+      frames: dataFrames,
+    };
 
-      expect(screen.queryByText('System')).not.toBeInTheDocument();
+    renderedComponent({
+      data: newData,
+      includeSystemFrames: false,
     });
 
-    it('displays a toggle button when there is more than one non-inapp frame', function () {
-      const dataFrames = [...data.frames];
-      dataFrames[0] = {...dataFrames[0], inApp: true};
+    expect(screen.getByText('Show 3 more frames')).toBeInTheDocument();
+  });
 
-      const newData = {
-        ...data,
-        frames: dataFrames,
-      };
+  it('shows/hides frames when toggle button clicked', async function () {
+    const dataFrames = [...data.frames];
+    dataFrames[0] = {...dataFrames[0], inApp: true};
+    dataFrames[1] = {...dataFrames[1], function: 'non-in-app-frame'};
+    dataFrames[2] = {...dataFrames[2], function: 'non-in-app-frame'};
+    dataFrames[3] = {...dataFrames[3], function: 'non-in-app-frame'};
+    dataFrames[4] = {...dataFrames[4], function: 'non-in-app-frame'};
 
-      renderedComponent({
-        organization,
-        data: newData,
-        includeSystemFrames: false,
-      });
+    const newData = {
+      ...data,
+      frames: dataFrames,
+    };
 
-      expect(screen.getByText('Show 3 more frames')).toBeInTheDocument();
+    renderedComponent({
+      data: newData,
+      includeSystemFrames: false,
+    });
+    await userEvent.click(screen.getByText('Show 3 more frames'));
+    expect(screen.getAllByText('non-in-app-frame')).toHaveLength(4);
+    await userEvent.click(screen.getByText('Hide 3 more frames'));
+    expect(screen.getByText('non-in-app-frame')).toBeInTheDocument();
+  });
+
+  it('does not display a toggle button when there is only one non-inapp frame', function () {
+    const dataFrames = [...data.frames];
+    dataFrames[0] = {...dataFrames[0], inApp: true};
+    dataFrames[2] = {...dataFrames[2], inApp: true};
+    dataFrames[4] = {...dataFrames[4], inApp: true};
+
+    const newData = {
+      ...data,
+      frames: dataFrames,
+    };
+
+    renderedComponent({
+      data: newData,
+      includeSystemFrames: false,
     });
 
-    it('shows/hides frames when toggle button clicked', async function () {
-      const dataFrames = [...data.frames];
-      dataFrames[0] = {...dataFrames[0], inApp: true};
-      dataFrames[1] = {...dataFrames[1], function: 'non-in-app-frame'};
-      dataFrames[2] = {...dataFrames[2], function: 'non-in-app-frame'};
-      dataFrames[3] = {...dataFrames[3], function: 'non-in-app-frame'};
-      dataFrames[4] = {...dataFrames[4], function: 'non-in-app-frame'};
-
-      const newData = {
-        ...data,
-        frames: dataFrames,
-      };
-
-      renderedComponent({
-        organization,
-        data: newData,
-        includeSystemFrames: false,
-      });
-      await userEvent.click(screen.getByText('Show 3 more frames'));
-      expect(screen.getAllByText('non-in-app-frame')).toHaveLength(4);
-      await userEvent.click(screen.getByText('Hide 3 more frames'));
-      expect(screen.getByText('non-in-app-frame')).toBeInTheDocument();
-    });
-
-    it('does not display a toggle button when there is only one non-inapp frame', function () {
-      const dataFrames = [...data.frames];
-      dataFrames[0] = {...dataFrames[0], inApp: true};
-      dataFrames[2] = {...dataFrames[2], inApp: true};
-      dataFrames[4] = {...dataFrames[4], inApp: true};
-
-      const newData = {
-        ...data,
-        frames: dataFrames,
-      };
-
-      renderedComponent({
-        organization,
-        data: newData,
-        includeSystemFrames: false,
-      });
-
-      expect(screen.queryByText(/Show .* more frames*/)).not.toBeInTheDocument();
-    });
+    expect(screen.queryByText(/Show .* more frames*/)).not.toBeInTheDocument();
   });
 
   describe('if there is a frame with in_app equal to true, display only in_app frames', function () {
