@@ -29,7 +29,6 @@ export const useProjectWebVitalsQuery = ({transaction, tag}: Props = {}) => {
         'failure_count()',
         'p95(transaction.duration)',
         'eps()',
-        'project',
       ],
       name: 'Web Vitals',
       query:

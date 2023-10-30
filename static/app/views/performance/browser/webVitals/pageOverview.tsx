@@ -34,7 +34,6 @@ import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVita
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 
 import {transactionSummaryRouteWithQuery} from '../../transactionSummary/utils';
-import {getProjectID} from '../../utils';
 
 import {PageOverviewWebVitalsTagDetailPanel} from './pageOverWebVitalsTagDetailPanel';
 
@@ -97,13 +96,14 @@ export default function PageOverview() {
   }
 
   const transactionSummaryTarget =
-    pageData?.data[0].project &&
+    project &&
+    !Array.isArray(location.query.project) && // Only navigate to transaction summary when one project is selected.
     transaction &&
     transactionSummaryRouteWithQuery({
       orgSlug: organization.slug,
       transaction,
       query: {...location.query},
-      projectID: getProjectID(pageData?.data[0] ?? {}, projects),
+      projectID: project.id,
     });
 
   const projectScore = isLoading
