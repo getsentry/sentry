@@ -50,7 +50,7 @@ class GenericMetricsSchemaValidator(MetricsSchemaValidator):
 
         validation_sample_rate = self.schema_validation_rules.get(message["use_case_id"], 1.0)
         if random.random() <= validation_sample_rate:
-            self.input_codec.validate(message)
+            return self.input_codec.validate(message)
 
 
 class ReleaseHealthMetricsSchemaValidator(MetricsSchemaValidator):
@@ -66,4 +66,4 @@ class ReleaseHealthMetricsSchemaValidator(MetricsSchemaValidator):
         if not self.input_codec:
             return None
 
-        self.input_codec.validate(message)
+        return self.input_codec.validate(message)

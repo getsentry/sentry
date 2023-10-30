@@ -2,7 +2,6 @@ from typing import Any, Mapping, Optional
 
 import pytest
 from sentry_kafka_schemas.codecs import Codec, ValidationError
-from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
 
 from sentry.sentry_metrics.consumers.indexer.parsed_message import ParsedMessage
 from sentry.sentry_metrics.consumers.indexer.processing import INGEST_CODEC
@@ -10,10 +9,11 @@ from sentry.sentry_metrics.consumers.indexer.schema_validator import (
     GenericMetricsSchemaValidator,
     ReleaseHealthMetricsSchemaValidator,
 )
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 
-test_message: IngestMetric = IngestMetric(
+good_sample_transactions_message: ParsedMessage = ParsedMessage(
     org_id=1,
     project_id=2,
     name="metric_name",
@@ -22,84 +22,95 @@ test_message: IngestMetric = IngestMetric(
     tags={"tag1": "value1", "tag2": "value2"},
     value=1,
     retention_days=90,
-)
-good_sample_transactions_message: ParsedMessage = ParsedMessage(
-    use_case_id="transactions",
-    **test_message,
+    use_case_id=UseCaseID("transactions"),
 )
 good_sample_spans_message: ParsedMessage = ParsedMessage(
-    use_case_id="spans",
-    **test_message,
+    org_id=1,
+    project_id=2,
+    name="metric_name",
+    type="c",
+    timestamp=1629360000,
+    tags={"tag1": "value1", "tag2": "value2"},
+    value=1,
+    retention_days=90,
+    use_case_id=UseCaseID("spans"),
 )
 bad_sample_transactions_message: ParsedMessage = ParsedMessage(
-    use_case_id="transactions",
     org_id=1,
     project_id=2,
     name="metric_name",
-    type="unknown_type",  # this is the bad part
+    type="c",
     timestamp=1629360000,
     tags={"tag1": "value1", "tag2": "value2"},
     value=1,
-    retention_days=90,
+    retention_days=90000000,  # this is the bad part
+    use_case_id=UseCaseID("transactions"),
 )
 good_sample_release_health_message: ParsedMessage = ParsedMessage(
-    use_case_id="release_health",
-    **test_message,
-)
-bad_sample_release_health_message: ParsedMessage = ParsedMessage(
-    use_case_id="release_health",
     org_id=1,
     project_id=2,
     name="metric_name",
-    type="unknown_type",  # this is the bad part
+    type="c",
     timestamp=1629360000,
     tags={"tag1": "value1", "tag2": "value2"},
     value=1,
     retention_days=90,
+    use_case_id=UseCaseID("sessions"),
+)
+bad_sample_release_health_message: ParsedMessage = ParsedMessage(
+    org_id=1,
+    project_id=2,
+    name="metric_name",
+    type="c",
+    timestamp=1629360000,
+    tags={"tag1": "value1", "tag2": "value2"},
+    value=1,
+    retention_days=9000000,  # this is the bad part
+    use_case_id=UseCaseID("sessions"),
 )
 
 
 @django_db_all
 @pytest.mark.parametrize(
-    "codec,option,message,expected_result",
+    "codec,option,message,is_valid",
     [
-        pytest.param(None, None, good_sample_transactions_message, None, id="no codec"),
+        pytest.param(None, None, good_sample_transactions_message, True, id="no codec"),
         pytest.param(
-            INGEST_CODEC, None, good_sample_transactions_message, None, id="no option set"
+            INGEST_CODEC, None, good_sample_transactions_message, True, id="no option set"
         ),
         pytest.param(
             INGEST_CODEC,
             {"transactions": 0.0},
             good_sample_transactions_message,
-            None,
+            True,
             id="no validation, good message",
         ),
         pytest.param(
             INGEST_CODEC,
             {"transactions": 0.0},
             bad_sample_transactions_message,
-            ValidationError,
+            False,
             id="no validation, bad message",
         ),
         pytest.param(
             INGEST_CODEC,
             {"transactions": 0.0},
             good_sample_spans_message,
-            None,
+            True,
             id="no option on use case, good message",
         ),
         pytest.param(
             INGEST_CODEC,
             {"transactions": 1.0},
             good_sample_transactions_message,
-            None,
+            True,
             id="full validation, good message",
         ),
         pytest.param(
             INGEST_CODEC,
             {"transactions": 1.0},
             bad_sample_transactions_message,
-            ValidationError,
+            False,
             id="full validation, bad message",
         ),
     ],
@@ -108,7 +119,7 @@ def test_generic_metrics_schema_validator(
     codec: Optional[Codec[Any]],
     option: Optional[Mapping],
     message: ParsedMessage,
-    expected_result: Optional[ValidationError],
+    is_valid: bool,
 ) -> None:
     """
     Test the behavior of the GenericMetricsSchemaValidator class with different
@@ -118,11 +129,11 @@ def test_generic_metrics_schema_validator(
     with override_options(
         {"sentry-metrics.indexer.generic-metrics.schema-validation-rules": option}
     ):
-        if expected_result:
-            with pytest.raises(expected_result):
-                validator.validate(message)
+        if is_valid:
+            validator.validate(message)
         else:
-            assert validator.validate(message) == expected_result
+            with pytest.raises(ValidationError):
+                return validator.validate(message)
 
 
 def test_release_health_metrics_schema_validator() -> None:
@@ -131,6 +142,6 @@ def test_release_health_metrics_schema_validator() -> None:
     We can only get either a ValidationError or None.
     """
     validator = ReleaseHealthMetricsSchemaValidator(INGEST_CODEC)
-    assert validator.validate(good_sample_release_health_message) is None
+    validator.validate(good_sample_release_health_message)
     with pytest.raises(ValidationError):
-        validator.validate(bad_sample_release_health_message)
+        return validator.validate(bad_sample_release_health_message)
