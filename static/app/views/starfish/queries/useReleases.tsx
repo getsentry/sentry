@@ -28,31 +28,31 @@ export function useReleases(searchTerm?: string) {
     {staleTime: Infinity}
   );
 
-  let releaseStats: {
+  const releaseStats: {
     dateCreated: string;
     platform: string;
     projectSlug: string;
     'sum(session)': number | undefined;
     version: string;
-  }[] = [];
-  if (result.data && result.data.length) {
-    releaseStats = result.data.map(release => {
-      const releaseVersion = release.version;
-      const releaseProject = release.projects[0];
-      const dateCreated = release.dateCreated;
+  }[] =
+    result.data && result.data.length
+      ? result.data.map(release => {
+          const releaseVersion = release.version;
+          const releaseProject = release.projects[0];
+          const dateCreated = release.dateCreated;
 
-      const projectSlug = releaseProject.slug;
-      const platform = releaseProject.platform;
-      const sessionCount = releaseProject.healthData?.totalSessions;
-      return {
-        projectSlug,
-        'sum(session)': sessionCount,
-        platform,
-        dateCreated,
-        version: releaseVersion,
-      };
-    });
-  }
+          const projectSlug = releaseProject.slug;
+          const platform = releaseProject.platform;
+          const sessionCount = releaseProject.healthData?.totalSessions;
+          return {
+            projectSlug,
+            'sum(session)': sessionCount,
+            platform,
+            dateCreated,
+            version: releaseVersion,
+          };
+        })
+      : [];
 
   return {
     ...result,
