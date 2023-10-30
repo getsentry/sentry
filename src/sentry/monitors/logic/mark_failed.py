@@ -297,31 +297,35 @@ def create_issue_platform_occurrence(
     else:
         trace_id = None
 
+    event_data = {
+        "contexts": {"monitor": get_monitor_environment_context(monitor_env)},
+        "environment": monitor_env.environment.name,
+        "event_id": occurrence.event_id,
+        "fingerprint": fingerprint
+        if fingerprint
+        else [
+            "monitor",
+            str(monitor_env.monitor.guid),
+            occurrence_data["reason"],
+        ],
+        "platform": "other",
+        "project_id": monitor_env.monitor.project_id,
+        "received": current_timestamp.isoformat(),
+        "sdk": None,
+        "tags": {
+            "monitor.id": str(monitor_env.monitor.guid),
+            "monitor.slug": str(monitor_env.monitor.slug),
+        },
+        "timestamp": current_timestamp.isoformat(),
+    }
+
+    if trace_id:
+        event_data["contexts"]["trace"] = {"trace_id": trace_id, "span_id": None}
+
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE,
         occurrence=occurrence,
-        event_data={
-            "contexts": {"monitor": get_monitor_environment_context(monitor_env)},
-            "environment": monitor_env.environment.name,
-            "event_id": occurrence.event_id,
-            "fingerprint": fingerprint
-            if fingerprint
-            else [
-                "monitor",
-                str(monitor_env.monitor.guid),
-                occurrence_data["reason"],
-            ],
-            "platform": "other",
-            "project_id": monitor_env.monitor.project_id,
-            "received": current_timestamp.isoformat(),
-            "sdk": None,
-            "tags": {
-                "monitor.id": str(monitor_env.monitor.guid),
-                "monitor.slug": str(monitor_env.monitor.slug),
-            },
-            "trace_id": trace_id,
-            "timestamp": current_timestamp.isoformat(),
-        },
+        event_data=event_data,
     )
 
 
