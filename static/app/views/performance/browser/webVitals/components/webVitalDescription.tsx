@@ -56,7 +56,7 @@ type WebVitalDetailHeaderProps = {
   isProjectScoreCalculated: boolean;
   projectScore: ProjectScore;
   tag: Tag;
-  value: string;
+  value: React.ReactNode;
 };
 
 export function WebVitalDetailHeader({score, value, webVital}: Props) {
