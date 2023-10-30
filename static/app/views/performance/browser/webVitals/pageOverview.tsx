@@ -33,6 +33,8 @@ import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types'
 import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 
+import {transactionSummaryRouteWithQuery} from '../../transactionSummary/utils';
+
 import {PageOverviewWebVitalsTagDetailPanel} from './pageOverWebVitalsTagDetailPanel';
 
 export enum LandingDisplayField {
@@ -93,6 +95,17 @@ export default function PageOverview() {
     return null;
   }
 
+  const transactionSummaryTarget =
+    project &&
+    !Array.isArray(location.query.project) && // Only navigate to transaction summary when one project is selected.
+    transaction &&
+    transactionSummaryRouteWithQuery({
+      orgSlug: organization.slug,
+      transaction,
+      query: {...location.query},
+      projectID: project.id,
+    });
+
   const projectScore = isLoading
     ? undefined
     : calculatePerformanceScore({
@@ -142,7 +155,13 @@ export default function PageOverview() {
               <FeatureBadge type="alpha" />
             </Layout.Title>
           </Layout.HeaderContent>
-          <Layout.HeaderActions />
+          <Layout.HeaderActions>
+            {transactionSummaryTarget && (
+              <LinkButton to={transactionSummaryTarget} size="sm">
+                {t('View Transaction Summary')}
+              </LinkButton>
+            )}
+          </Layout.HeaderActions>
           <TabList hideBorder>
             {LANDING_DISPLAYS.map(({label, field}) => (
               <TabList.Item key={field}>{label}</TabList.Item>
