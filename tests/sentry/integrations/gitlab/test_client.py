@@ -12,6 +12,7 @@ import responses
 from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.integrations.gitlab.blame import GitLabCommitResponse, GitLabFileBlameResponseItem
+from sentry.integrations.gitlab.utils import get_rate_limit_info_from_response
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.models.identity import Identity
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
@@ -244,7 +245,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         )
         resp = self.gitlab_client.get_user()
 
-        rate_limit_info = self.gitlab_client.get_rate_limit_info_from_response(resp)
+        rate_limit_info = get_rate_limit_info_from_response(resp)
 
         assert rate_limit_info
 
@@ -267,7 +268,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         )
         resp = self.gitlab_client.get_user()
 
-        rate_limit_info = self.gitlab_client.get_rate_limit_info_from_response(resp)
+        rate_limit_info = get_rate_limit_info_from_response(resp)
 
         assert not rate_limit_info
 
