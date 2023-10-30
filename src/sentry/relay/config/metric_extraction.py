@@ -292,10 +292,9 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
         "project_objects": [project],
         "organization_id": project.organization_id,  # Organization id has to be specified to not violate allocation policy.
     }
-    params["statsPeriod"] = "1d"
-    start, end = get_date_range_from_params(params)
-    params["start"] = start
-    params["end"] = end
+    now = timezone.now()
+    params["start"] = now
+    params["end"] = now - timedelta(day=1)
 
     query_killswitch = options.get("on_demand.max_widget_cardinality.killswitch")
     if query_killswitch:
