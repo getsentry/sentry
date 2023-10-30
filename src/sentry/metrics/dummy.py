@@ -13,6 +13,7 @@ class DummyMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         amount: Union[float, int] = 1,
         sample_rate: float = 1,
+        unit: Optional[str] = None,
     ) -> None:
         pass
 
@@ -33,5 +34,17 @@ class DummyMetricsBackend(MetricsBackend):
         instance: Optional[str] = None,
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
+        unit: Optional[str] = None,
+    ) -> None:
+        pass
+
+    def distribution(
+        self,
+        key: str,
+        value: float,
+        instance: Optional[str] = None,
+        tags: Optional[Tags] = None,
+        sample_rate: float = 1,
+        unit: Optional[str] = None,
     ) -> None:
         pass
