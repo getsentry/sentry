@@ -43,10 +43,8 @@ django==3.2.20
 django-crispy-forms==1.14.0
 django-csp==3.7
 django-pg-zero-downtime-migrations==0.13
-django-stubs==4.2.3
-django-stubs-ext==4.2.2
+django-stubs-ext==4.2.5
 djangorestframework==3.14.0
-djangorestframework-stubs==3.14.0
 docker==3.7.0
 docker-pycreds==0.4.0
 drf-spectacular==0.26.3
@@ -99,7 +97,7 @@ more-itertools==8.13.0
 msgpack==1.0.4
 msgpack-types==0.2.0
 multidict==6.0.4
-mypy==1.4.1
+mypy==1.6.1
 mypy-extensions==1.0.0
 nodeenv==1.6.0
 oauthlib==3.1.0
@@ -171,6 +169,8 @@ s3transfer==0.6.1
 selenium==4.3.0
 sentry-arroyo==2.14.12
 sentry-cli==2.16.0
+sentry-forked-django-stubs==4.2.6.post2
+sentry-forked-djangorestframework-stubs==3.14.4.post1
 sentry-kafka-schemas==0.1.33
 sentry-redis-tools==0.1.7
 sentry-relay==0.8.33
