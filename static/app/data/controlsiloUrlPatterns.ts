@@ -125,6 +125,7 @@ const patterns: RegExp[] = [
   new RegExp('^auth/login/[^/]+/$'),
   new RegExp('^auth/channel/[^/]+/[^/]+/$'),
   new RegExp('^auth/link/[^/]+/$'),
+  new RegExp('^auth/2fa/$'),
   new RegExp('^auth/sso/$'),
   new RegExp('^auth/register/$'),
   new RegExp('^avatar/[^/]+/$'),

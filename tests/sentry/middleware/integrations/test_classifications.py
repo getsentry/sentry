@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+from django.http import HttpResponse
 from django.test import RequestFactory, override_settings
 
 from sentry.middleware.integrations.classifications import (
@@ -115,7 +116,7 @@ class IntegrationClassificationTest(BaseClassificationTestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(SlackRequestParser, "get_response")
     def test_returns_parser_get_response(self, mock_parser_get_response):
-        result = {"ok": True}
+        result = HttpResponse(status=204)
         mock_parser_get_response.return_value = result
         response = self.integration_cls.get_response(
             self.factory.post(f"{self.prefix}{SlackRequestParser.provider}/webhook/")

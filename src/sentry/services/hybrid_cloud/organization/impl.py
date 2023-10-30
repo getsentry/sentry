@@ -368,6 +368,29 @@ class DatabaseBackedOrganizationService(OrganizationService):
         # created, but doing so would require a list of project IDs. We can implement
         # that if a return value is needed in the future.
 
+    def get_or_create_team_member(
+        self,
+        *,
+        organization_id: int,
+        team_id: int,
+        organization_member_id: int,
+        role: Optional[str] = "contributor",
+    ) -> None:
+        team_member_query = OrganizationMemberTeam.objects.filter(
+            team_id=team_id, organizationmember_id=organization_member_id
+        )
+        if team_member_query.exists():
+            team_member = team_member_query[0]
+            if role and team_member.role != role:
+                team_member.update(role=role)
+        else:
+            team_member = OrganizationMemberTeam.objects.create(
+                team_id=team_id, organizationmember_id=organization_member_id, role=role
+            )
+        # It might be nice to return an RpcTeamMember to represent what we just
+        # created, but doing so would require a list of project IDs. We can implement
+        # that if a return value is needed in the future.
+
     def get_team_members(self, *, team_id: int) -> Iterable[RpcOrganizationMember]:
         team_members = OrganizationMemberTeam.objects.filter(team_id=team_id)
         return [serialize_member(team_member.organizationmember) for team_member in team_members]
@@ -563,6 +586,12 @@ class DatabaseBackedOrganizationService(OrganizationService):
         args: Mapping[str, str | int | None],
     ) -> None:
         signal.signal.send_robust(None, organization_id=organization_id, **args)
+
+    def get_organization_owner_members(self, organization_id: int) -> List[RpcOrganizationMember]:
+        org: Organization = Organization.objects.get(id=organization_id)
+        owner_members = org.get_members_with_org_roles(roles=[roles.get_top_dog().id])
+
+        return list(map(serialize_member, owner_members))
 
 
 class OutboxBackedOrganizationSignalService(OrganizationSignalService):

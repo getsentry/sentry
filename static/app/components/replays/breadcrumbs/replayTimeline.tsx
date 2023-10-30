@@ -14,18 +14,20 @@ import {
   CompactTimelineScrubber,
   TimelineScrubber,
 } from 'sentry/components/replays/player/scrubber';
-import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
+import {useTimelineScrubberMouseTracking} from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {divide} from 'sentry/components/replays/utils';
+import toPercent from 'sentry/utils/number/toPercent';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type Props = {};
+type Props = {size: number};
 
-function ReplayTimeline({}: Props) {
-  const {replay} = useReplayContext();
+function ReplayTimeline({size}: Props) {
+  const {replay, currentTime} = useReplayContext();
 
   const panelRef = useRef<HTMLDivElement>(null);
-  const mouseTrackingProps = useScrubberMouseTracking({elem: panelRef});
+  const mouseTrackingProps = useTimelineScrubberMouseTracking({elem: panelRef}, size);
 
   const stackedRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions<HTMLDivElement>({elementRef: stackedRef});
@@ -42,9 +44,25 @@ function ReplayTimeline({}: Props) {
   const chapterFrames = replay.getChapterFrames();
   const networkFrames = replay.getNetworkFrames();
 
+  // start of the timeline is in the middle
+  const initialTranslatePercentage = 50 / size;
+
+  const translatePercentage = toPercent(
+    initialTranslatePercentage -
+      (currentTime > durationMs ? 1 : divide(currentTime, durationMs))
+  );
+
   return hasNewTimeline ? (
-    <PanelNoMarginBorder ref={panelRef} {...mouseTrackingProps}>
-      <Stacked ref={stackedRef}>
+    <VisiblePanel ref={panelRef} {...mouseTrackingProps}>
+      <Stacked
+        style={{
+          width: `${size}%`,
+          transform: `translate(${translatePercentage}, 0%)`,
+        }}
+        ref={stackedRef}
+      >
+        <MinorGridlines durationMs={durationMs} width={width} />
+        <MajorGridlines durationMs={durationMs} width={width} />
         <CompactTimelineScrubber />
         <TimelineEventsContainer>
           <ReplayTimelineEvents
@@ -55,7 +73,7 @@ function ReplayTimeline({}: Props) {
           />
         </TimelineEventsContainer>
       </Stacked>
-    </PanelNoMarginBorder>
+    </VisiblePanel>
   ) : (
     <PanelNoMargin ref={panelRef} {...mouseTrackingProps}>
       <Stacked ref={stackedRef}>
@@ -86,9 +104,11 @@ const PanelNoMargin = styled(Panel)`
   margin: 0;
 `;
 
-const PanelNoMarginBorder = styled(Panel)`
+const VisiblePanel = styled(Panel)`
   margin: 0;
   border: 0;
+  overflow: hidden;
+  background: ${p => p.theme.translucentInnerBorder};
 `;
 
 const TimelineEventsContainer = styled('div')`

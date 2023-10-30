@@ -41,9 +41,11 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.replays.lib import kafka as replays_kafka
+from sentry.replays.lib.kafka import clear_replay_publisher
 from sentry.rules import init_registry
+from sentry.rules.actions.base import EventAction
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import unguarded_write
+from sentry.silo import SiloMode, unguarded_write
 from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import (
@@ -56,7 +58,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
@@ -396,8 +398,8 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
             "sentry.rules.processor.rules", init_registry()
         ) as rules:
             MockAction = mock.Mock()
-            MockAction.rule_type = "action/event"
             MockAction.id = "tests.sentry.tasks.post_process.tests.MockAction"
+            MockAction.return_value = mock.Mock(spec=EventAction)
             MockAction.return_value.after.return_value = []
             rules.add(MockAction)
 
@@ -1383,7 +1385,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
             name="example", integration_id=self.integration.id, provider="github"
         )
         self.code_mapping = self.create_code_mapping(
-            repo=self.repo, project=self.project, stack_root="src/"
+            repo=self.repo, project=self.project, stack_root="sentry/", source_root="sentry/"
         )
         self.commit_author = self.create_commit_author(project=self.project, user=self.user)
         self.commit = self.create_commit(
@@ -1438,10 +1440,11 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         return_value=github_blame_return_value,
     )
     def test_logic_fallback_no_scm(self, mock_get_commit_context):
-        with unguarded_write(using=router.db_for_write(Integration)):
-            Integration.objects.all().delete()
-        integration = Integration.objects.create(provider="bitbucket")
-        integration.add_organization(self.organization)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            with unguarded_write(using=router.db_for_write(Integration)):
+                Integration.objects.all().delete()
+            integration = Integration.objects.create(provider="bitbucket")
+            integration.add_organization(self.organization)
         with self.tasks():
             self.call_post_process_group(
                 is_new=True,
@@ -1790,7 +1793,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
                 self.assertNotEqual(args, ("post_process.process_replay_link.id_sampled"))
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class PostProcessGroupErrorTest(
     TestCase,
     AssignmentTestMixin,
@@ -1805,6 +1808,10 @@ class PostProcessGroupErrorTest(
     SDKCrashMonitoringTestMixin,
     ReplayLinkageTestMixin,
 ):
+    def setUp(self):
+        super().setUp()
+        clear_replay_publisher()
+
     def create_event(self, data, project_id, assert_no_errors=True):
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
 
@@ -1855,7 +1862,7 @@ class PostProcessGroupErrorTest(
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class PostProcessGroupPerformanceTest(
     TestCase,
     SnubaTestCase,
@@ -2028,7 +2035,7 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
         ]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class PostProcessGroupGenericTest(
     TestCase,
     SnubaTestCase,

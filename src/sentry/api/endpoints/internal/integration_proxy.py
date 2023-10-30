@@ -54,7 +54,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         identifier = request.headers.get(PROXY_OI_HEADER)
         base_url = request.headers.get(PROXY_BASE_URL_HEADER)
         if signature is None or identifier is None or base_url is None:
-            logger.error("invalid_sender_headers", extra=self.log_extra)
+            logger.info("integration_proxy.invalid_sender_headers", extra=self.log_extra)
             return False
         is_valid = verify_subnet_signature(
             base_url=base_url,
@@ -64,7 +64,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             provided_signature=signature,
         )
         if not is_valid:
-            logger.error("invalid_sender_signature", extra=self.log_extra)
+            logger.info("integration_proxy.invalid_sender_signature", extra=self.log_extra)
 
         return is_valid
 
@@ -77,7 +77,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         # Get the organization integration
         org_integration_id = request.headers.get(PROXY_OI_HEADER)
         if org_integration_id is None:
-            logger.error("missing_org_integration", extra=self.log_extra)
+            logger.info("integration_proxy.missing_org_integration", extra=self.log_extra)
             return False
         self.log_extra["org_integration_id"] = org_integration_id
 
@@ -90,14 +90,14 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             .first()
         )
         if self.org_integration is None:
-            logger.error("invalid_org_integration", extra=self.log_extra)
+            logger.info("integration_proxy.invalid_org_integration", extra=self.log_extra)
             return False
         self.log_extra["integration_id"] = self.org_integration.integration_id
 
         # Get the integration
         self.integration = self.org_integration.integration
         if not self.integration or self.integration.status is not ObjectStatus.ACTIVE:
-            logger.error("invalid_integration", extra=self.log_extra)
+            logger.info("integration_proxy.invalid_integration", extra=self.log_extra)
             return False
 
         # Get the integration client
@@ -108,7 +108,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         client_class = self.client.__class__
         self.log_extra["client_type"] = client_class.__name__
         if not issubclass(client_class, IntegrationProxyClient):
-            logger.error("invalid_client", extra=self.log_extra)
+            logger.info("integration_proxy.invalid_client", extra=self.log_extra)
             return False
 
         return True
@@ -123,12 +123,12 @@ class InternalIntegrationProxyEndpoint(Endpoint):
 
         is_valid_sender = self._validate_sender(request=request)
         if not is_valid_sender:
-            metrics.incr("hc.integration_proxy.failure.invalid_sender")
+            metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_sender", sample_rate=1.0)
             return False
 
         is_valid_request = self._validate_request(request=request)
         if not is_valid_request:
-            metrics.incr("hc.integration_proxy.failure.invalid_request")
+            metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_request", sample_rate=1.0)
             return False
 
         return True
@@ -169,6 +169,8 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         if not self._should_operate(request):
             raise Http404
 
+        metrics.incr("hybrid_cloud.integration_proxy.initialize", sample_rate=1.0)
+
         base_url = request.headers.get(PROXY_BASE_URL_HEADER)
         base_url = base_url.rstrip("/")
 
@@ -187,6 +189,10 @@ class InternalIntegrationProxyEndpoint(Endpoint):
                 request=request, full_url=full_url, headers=headers
             )
 
-        metrics.incr("hc.integration_proxy.success")
+        metrics.incr(
+            "hybrid_cloud.integration_proxy.complete.response_code",
+            tags={"status": response.status_code},
+            sample_rate=1.0,
+        )
         logger.info("proxy_success", extra=self.log_extra)
         return response

@@ -205,20 +205,47 @@ class ScheduleType:
 class Monitor(Model):
     __relocation_scope__ = RelocationScope.Organization
 
-    guid = UUIDField(unique=True, auto_add=True)
-    slug = models.SlugField()
+    date_added = models.DateTimeField(default=timezone.now)
     organization_id = BoundedBigIntegerField(db_index=True)
     project_id = BoundedBigIntegerField(db_index=True)
+
+    guid = UUIDField(unique=True, auto_add=True)
+    """
+    Globally unique identifier for the monitor. Mostly legacy, used in legacy
+    API endpoints.
+    """
+
+    slug = models.SlugField()
+    """
+    Organization unique slug of the monitor. Used to identify the monitor in
+    check-in payloads. The slug can be changed.
+    """
+
     name = models.CharField(max_length=128)
+    """
+    Human readible name of the monitor. Used for display purposes.
+    """
+
     status = BoundedPositiveIntegerField(
         default=MonitorObjectStatus.ACTIVE, choices=MonitorObjectStatus.as_choices()
     )
+    """
+    Active status of the monitor. This is similar to most other ObjectStatus's
+    within the app. Used to mark monitors as disabled and pending deletions
+    """
+
     type = BoundedPositiveIntegerField(
         default=MonitorType.UNKNOWN,
         choices=[(k, str(v)) for k, v in MonitorType.as_choices()],
     )
+    """
+    Type of monitor. Currently there are only CRON_JOB monitors.
+    """
+
     config: models.Field[dict[str, Any], dict[str, Any]] = JSONField(default=dict)
-    date_added = models.DateTimeField(default=timezone.now)
+    """
+    Stores the monitor configuration. See MONITOR_CONFIG for the schema.
+    """
 
     class Meta:
         app_label = "sentry"
@@ -451,9 +478,17 @@ class MonitorCheckIn(Model):
         app_label = "sentry"
         db_table = "sentry_monitorcheckin"
         indexes = [
+            # used for endpoints for monitor stats + list check-ins
             models.Index(fields=["monitor", "date_added", "status"]),
+            # used for latest in monitor consumer
+            models.Index(fields=["monitor", "status", "date_added"]),
+            # used for has_newer_result + thresholds
             models.Index(fields=["monitor_environment", "date_added", "status"]),
+            # used for latest on api endpoints
+            models.Index(fields=["monitor_environment", "status", "date_added"]),
+            # used for timeout task
             models.Index(fields=["status", "timeout_at"]),
+            # used for check-in list
             models.Index(fields=["trace_id"]),
         ]
 

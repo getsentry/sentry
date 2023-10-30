@@ -1,12 +1,12 @@
 import logging
 import time
 from functools import partial
-from typing import Any, Mapping, MutableMapping, Optional
+from typing import Any, Mapping, MutableMapping, Optional, Union
 
 from arroyo.backends.abstract import Producer as AbstractProducer
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
-from arroyo.types import Commit, Message, Partition
+from arroyo.types import Commit, FilteredPayload, Message, Partition
 from confluent_kafka import Producer
 
 from sentry.utils import kafka_config, metrics
@@ -68,7 +68,14 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
             self.__commit_function(self.__produced_message_offsets)
             self.__produced_message_offsets = {}
 
-    def submit(self, message: Message[KafkaPayload]) -> None:
+    def submit(self, message: Message[Union[KafkaPayload, FilteredPayload]]) -> None:
+        if isinstance(message.payload, FilteredPayload):
+            # FilteredPayload will not be commited, this may cause the the indexer to consume
+            # and produce invalid message to the DLQ twice if the last messages it consume
+            # are invalid and is then shutdown. But it will never produce valid messages
+            # twice to snuba
+            # TODO: Use the arroyo producer which handles FilteredPayload elegantly
+            return
         self.__producer.produce(
             topic=self.__producer_topic,
             key=None,

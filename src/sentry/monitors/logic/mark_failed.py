@@ -317,7 +317,7 @@ def create_issue_platform_occurrence(
             "sdk": None,
             "tags": {
                 "monitor.id": str(monitor_env.monitor.guid),
-                "monitor.slug": monitor_env.monitor.slug,
+                "monitor.slug": str(monitor_env.monitor.slug),
             },
             "trace_id": trace_id,
             "timestamp": current_timestamp.isoformat(),
@@ -332,7 +332,7 @@ def get_monitor_environment_context(monitor_environment: MonitorEnvironment):
 
     return {
         "id": str(monitor_environment.monitor.guid),
-        "slug": monitor_environment.monitor.slug,
+        "slug": str(monitor_environment.monitor.slug),
         "name": monitor_environment.monitor.name,
         "config": monitor_environment.monitor.config,
         "status": monitor_environment.get_status_display(),
@@ -343,7 +343,9 @@ def get_monitor_environment_context(monitor_environment: MonitorEnvironment):
 def get_occurrence_data(checkin: MonitorCheckIn):
     if checkin.status == CheckInStatus.MISSED:
         expected_time = (
-            checkin.expected_time.strftime(SUBTITLE_DATETIME_FORMAT)
+            checkin.expected_time.astimezone(checkin.monitor.timezone).strftime(
+                SUBTITLE_DATETIME_FORMAT
+            )
             if checkin.expected_time
             else "the expected time"
         )

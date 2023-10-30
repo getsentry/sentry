@@ -9,11 +9,12 @@ import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 
 interface Props {
+  eventTimestampMs: number;
   organization: Organization;
   replayId: string;
 }
 
-export default function ReplaySection({organization, replayId}: Props) {
+export default function ReplaySection({eventTimestampMs, organization, replayId}: Props) {
   const replayPreview = useCallback(
     () => import('sentry/components/events/eventReplay/replayPreview'),
     []
@@ -27,7 +28,7 @@ export default function ReplaySection({organization, replayId}: Props) {
             component={replayPreview}
             replaySlug={replayId}
             orgSlug={organization.slug}
-            eventTimestampMs={0}
+            eventTimestampMs={eventTimestampMs}
             buttonProps={{
               analyticsEventKey: 'issue_details.open_replay_details_clicked',
               analyticsEventName: 'Issue Details: Open Replay Details Clicked',
