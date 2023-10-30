@@ -93,70 +93,79 @@ class SourceSerializer(serializers.Serializer):
         min_length=36,
         max_length=36,
         required=False,
-        help_text="Required for AppStoreConnect sources, invalid for all others.",
+        help_text="The [App Store Connect Issuer ID](https://developer.apple.com/documentation/appstoreserverapi/generating_tokens_for_api_requests). Required for AppStoreConnect sources, invalid for all others.",
     )
     appconnectKey = (
         serializers.CharField(
             min_length=2,
             max_length=20,
             required=False,
-            help_text="The [App Store Connect API Key](https://developer.apple.com/documentation/appstoreconnectapi/creating_api_keys_for_app_store_connect_api) ID. Note that the key must have the "Developer" role for Sentry to discover the app builds. Required for AppStoreConnect sources, invalid for all others.",
+            help_text='The [App Store Connect API Key](https://developer.apple.com/documentation/appstoreconnectapi/creating_api_keys_for_app_store_connect_api) ID. Note that the key must have the "Developer" role for Sentry to discover the app builds. Required for AppStoreConnect sources, invalid for all others.',
         ),
     )
     appconnectPrivateKey = serializers.CharField(
-        required=False, help_text="Required for AppStoreConnect sources, invalid for all others."
+        required=False,
+        help_text="The [App Store Connect API Private Key](https://developer.apple.com/documentation/appstoreconnectapi/creating_api_keys_for_app_store_connect_api). Required for AppStoreConnect sources, invalid for all others.",
     )
     appName = (
         serializers.CharField(
             min_length=1,
             max_length=512,
             required=False,
-            help_text="Required for AppStoreConnect sources, invalid for all others.",
+            help_text="The [App Store Connect App Name](https://developer.apple.com/help/app-store-connect/create-an-app-record/add-a-new-app). Required for AppStoreConnect sources, invalid for all others.",
         ),
     )
     appId = serializers.CharField(
         min_length=1,
         required=False,
-        help_text="Required for AppStoreConnect sources, invalid for all others.",
+        help_text="The App Store Connect App ID. Required for AppStoreConnect sources, invalid for all others.",
     )
     bundleId = (
         serializers.CharField(
             min_length=1,
             required=False,
-            help_text="Required for AppStoreConnect sources, invalid for all others.",
+            help_text="The [App Store Connect App Bundle](https://developer.apple.com/help/app-store-connect/create-an-app-record/create-and-submit-app-bundles) ID. Required for AppStoreConnect sources, invalid for all others.",
         ),
     )
     url = serializers.CharField(
-        required=False, help_text="Optional for HTTP sources, invalid for all others."
+        required=False,
+        help_text="The source's URL. Optional for HTTP sources, invalid for all others.",
     )
     username = serializers.CharField(
-        required=False, help_text="Optional for HTTP sources, invalid for all others."
+        required=False,
+        help_text="The user name for accessing the source. Optional for HTTP sources, invalid for all others.",
     )
     password = serializers.CharField(
-        required=False, help_text="Optional for HTTP sources, invalid for all others."
+        required=False,
+        help_text="The password for accessing the source. Optional for HTTP sources, invalid for all others.",
     )
     bucket = serializers.CharField(
         required=False,
-        help_text="Required for GCS and S3 sourcse, invalid for HTTP and AppStoreConnect sources.",
+        help_text="The GCS or S3 bucket where the source resides. Required for GCS and S3 sourcse, invalid for HTTP and AppStoreConnect sources.",
     )
     region = serializers.CharField(
-        required=False, help_text="Required for S3 sources, invalid for all others."
+        required=False,
+        help_text="The source's [S3 region](https://docs.aws.amazon.com/general/latest/gr/s3.html). Required for S3 sources, invalid for all others.",
     )
     access_key = serializers.CharField(
-        required=False, help_text="Required for S3 sources, invalid for all others."
+        required=False,
+        help_text="The [AWS Access Key](https://docs.aws.amazon.com/IAM/latest/UserGuide/security-creds.html#access-keys-and-secret-access-keys).Required for S3 sources, invalid for all others.",
     )
     secret_key = serializers.CharField(
-        required=False, help_text="Required for S3 sources, invalid for all others."
+        required=False,
+        help_text="The [AWS Secret Access Key](https://docs.aws.amazon.com/IAM/latest/UserGuide/security-creds.html#access-keys-and-secret-access-keys).Required for S3 sources, invalid for all others.",
     )
     prefix = serializers.CharField(
         required=False,
-        help_text="Optional for GCS and S3 sourcse, invalid for HTTP and AppStoreConnect sources.",
+        help_text="The GCS or [S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-prefixes.html) prefix. Optional for GCS and S3 sourcse, invalid for HTTP and AppStoreConnect sources.",
     )
     client_email = serializers.CharField(
-        required=False, help_text="Required for GCS sources, invalid for all others."
+        required=False,
+        help_text="The GCS email address for authentication. Required for GCS sources, invalid for all others.",
     )
-    privite_key = serializers.CharField(
-        required=False, help_text="Required for GCS sources, invalid for all others."
+    private_key = serializers.CharField(
+        required=False,
+        help_text="The GCS private key. Required for GCS sources, invalid for all others.",
     )
 
     def validate(self, data):
