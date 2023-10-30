@@ -84,23 +84,17 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
       owners={owners}
     >
       {({loading, isOpen, getActorProps}) => (
-        <StyledButton size="xs" data-test-id="assignee-selector" {...getActorProps({})}>
+        <Button size="xs" data-test-id="assignee-selector" {...getActorProps({})}>
           <ActorWrapper>
-            {loading ? (
-              <IconWrapper>
-                <IconUser size="xs" />
-              </IconWrapper>
-            ) : feedbackIssue.assignedTo ? (
+            {loading || !feedbackIssue.assignedTo ? (
+              <IconUser size="sm" />
+            ) : (
               <ActorAvatar
                 data-test-id="assigned-avatar"
                 actor={feedbackIssue.assignedTo}
                 hasTooltip={false}
                 size={16}
               />
-            ) : (
-              <IconWrapper>
-                <IconUser size="xs" />
-              </IconWrapper>
             )}
             <ActorName>{getAssignedToDisplayName(feedbackIssue, true)}</ActorName>
             <IconChevron
@@ -109,7 +103,7 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
               size="sm"
             />
           </ActorWrapper>
-        </StyledButton>
+        </Button>
       )}
     </AssigneeSelectorDropdown>
   );
@@ -117,19 +111,12 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
   return dropdown;
 }
 
-const StyledButton = styled(Button)``;
-
 const ActorWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
   max-width: 150px;
   line-height: 1;
-`;
-
-const IconWrapper = styled('div')`
-  display: flex;
-  padding: ${space(0.25)};
 `;
 
 const ActorName = styled('div')`
