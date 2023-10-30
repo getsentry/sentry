@@ -878,7 +878,7 @@ class OnDemandMetricSpec:
         if len(self.columns):
             # For compatibility with existing deployed metrics, leave existing hash untouched unless conditions are now
             # included in the spec.
-            return f"{str_to_hash}:{self._columns_for_hash()}"
+            return f"{str_to_hash};{self._columns_for_hash()}"
         return str_to_hash
 
     @cached_property
