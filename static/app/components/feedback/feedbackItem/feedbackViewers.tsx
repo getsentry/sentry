@@ -16,7 +16,7 @@ export default function FeedbackViewers({feedbackItem}: Props) {
   const displayUsers = feedbackItem.seenBy;
 
   return (
-    <Tooltip title={t('People who have viewed this report')}>
+    <Tooltip title={t('People who have viewed this feedback')}>
       <AvatarList
         users={displayUsers}
         avatarSize={28}
