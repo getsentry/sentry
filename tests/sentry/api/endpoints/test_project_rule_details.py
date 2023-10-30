@@ -450,6 +450,14 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert_rule_from_payload(self.rule, payload)
         assert send_robust.called
 
+    def test_missing_fields_are_not_modified(self):
+        original_rule = self.rule
+        self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200, method="PUT"
+        )
+        for key in self.rule.data:
+            assert self.rule.data[key] == original_rule.data[key]
+
     def test_no_owner(self):
         conditions = [
             {
