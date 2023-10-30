@@ -1,4 +1,3 @@
-from curses.ascii import isdigit
 from datetime import datetime
 from typing import Mapping, Optional
 
@@ -65,7 +64,7 @@ def get_rate_limit_info_from_response(
         "used": response.headers.get("RateLimit-Observed"),
     }
 
-    if not all([value and isdigit(value) for value in rate_limit_params.values()]):
+    if not all([value and value.isdigit() for value in rate_limit_params.values()]):
         return None
 
     return GitLabRateLimitInfo(
