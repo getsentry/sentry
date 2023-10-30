@@ -32,6 +32,7 @@ import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
+import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters, Project} from 'sentry/types';
@@ -72,6 +73,8 @@ import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils
 
 import {MostRegressedProfileFunctions} from './regressedProfileFunctions';
 import {SlowestProfileFunctions} from './slowestProfileFunctions';
+
+const noop = () => void 0;
 
 function decodeViewOrDefault(
   value: string | string[] | null | undefined,
@@ -344,6 +347,10 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     [setVisualization]
   );
 
+  const [hideRegressions, setHideRegressions] = useLocalStorageState<boolean>(
+    'flamegraph-hide-regressions',
+    false
+  );
   const [frameFilter, setFrameFilter] = useLocalStorageState<
     'system' | 'application' | 'all'
   >('flamegraph-frame-filter', 'application');
@@ -394,6 +401,10 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     [location]
   );
 
+  const onHideRegressionsClick = useCallback(() => {
+    return setHideRegressions(!hideRegressions);
+  }, [hideRegressions, setHideRegressions]);
+
   return (
     <SentryDocumentTitle
       title={t('Profiling \u2014 Profile Summary')}
@@ -436,7 +447,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
           {view === 'profiles' ? (
             <ProfilesTable />
           ) : (
-            <ProfileVisualizationContainer>
+            <ProfileVisualizationContainer hideRegressions={hideRegressions}>
               <ProfileVisualization>
                 <ProfileGroupProvider
                   traceID=""
@@ -456,7 +467,8 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                             frameFilter={frameFilter}
                             onFrameFilterChange={onFrameFilterChange}
                             hideSystemFrames={false}
-                            setHideSystemFrames={() => void 0}
+                            setHideSystemFrames={noop}
+                            onHideRegressionsClick={onHideRegressionsClick}
                           />
                           {isLoading ? (
                             <RequestStateMessageContainer>
@@ -487,13 +499,15 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                   </FlamegraphStateProvider>
                 </ProfileGroupProvider>
               </ProfileVisualization>
-              <ProfileDigestContainer>
-                <ProfileDigestScrollContainer>
-                  <ProfileDigest onViewChange={onSetView} />
-                  <MostRegressedProfileFunctions transaction={transaction} />
-                  <SlowestProfileFunctions transaction={transaction} />
-                </ProfileDigestScrollContainer>
-              </ProfileDigestContainer>
+              {hideRegressions ? null : (
+                <ProfileDigestContainer>
+                  <ProfileDigestScrollContainer>
+                    <ProfileDigest onViewChange={onSetView} />
+                    <MostRegressedProfileFunctions transaction={transaction} />
+                    <SlowestProfileFunctions transaction={transaction} />
+                  </ProfileDigestScrollContainer>
+                </ProfileDigestContainer>
+              )}
             </ProfileVisualizationContainer>
           )}
         </PageFiltersContainer>
@@ -531,6 +545,7 @@ interface AggregateFlamegraphToolbarProps {
   frameFilter: 'system' | 'application' | 'all';
   hideSystemFrames: boolean;
   onFrameFilterChange: (value: 'system' | 'application' | 'all') => void;
+  onHideRegressionsClick: () => void;
   onVisualizationChange: (value: 'flamegraph' | 'call tree') => void;
   scheduler: CanvasScheduler;
   setHideSystemFrames: (value: boolean) => void;
@@ -590,6 +605,13 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
         size="xs"
         options={frameSelectOptions}
       />
+      <Button
+        size="xs"
+        onClick={props.onHideRegressionsClick}
+        title={t('Expand or collapse the flamegraph')}
+      >
+        <IconPanel size="xs" direction="right" />
+      </Button>
     </AggregateFlamegraphToolbarContainer>
   );
 }
@@ -642,10 +664,13 @@ const ProfileDigestScrollContainer = styled('div')`
   flex-direction: column;
 `;
 
-const ProfileVisualizationContainer = styled('div')`
+const ProfileVisualizationContainer = styled('div')<{hideRegressions}>`
   display: grid;
-  grid-template-areas: 'visualization digest';
-  grid-template-columns: 60% 40%;
+  /* false positive for grid layout */
+  /* stylelint-disable */
+  grid-template-areas: ${p =>
+    p.hideRegressions ? "'visualization'" : "'visualization digest'"};
+  grid-template-columns: ${p => (p.hideRegressions ? `100%` : `60% 40%`)};
   flex: 1 1 100%;
 `;
 
