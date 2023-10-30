@@ -10,6 +10,7 @@ import {Button} from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import IdBadge from 'sentry/components/idBadge';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
@@ -29,10 +30,22 @@ import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIn
 type Props = RouteComponentProps<{integrationSlug: string; installationId?: string}, {}>;
 
 type State = DeprecatedAsyncView['state'] & {
+  installationData?: GitHubIntegrationInstallation;
   organization?: Organization;
   provider?: IntegrationProvider;
   selectedOrgSlug?: string;
 };
+
+interface GitHubIntegrationInstallation {
+  account: {
+    login: string;
+    type: string;
+  };
+  sender: {
+    id: number;
+    login: string;
+  };
+}
 
 export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
   Props,
@@ -118,8 +131,17 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
       if (providers.length === 0) {
         throw new Error('Invalid provider');
       }
+
+      let installationData = undefined;
+      if (this.integrationSlug === 'github') {
+        const {installationId} = this.props.params;
+        installationData = await this.controlSiloApi.requestPromise(
+          `/../../extensions/github/installation/${installationId}/`
+        );
+      }
+
       this.setState(
-        {organization, reloading: false, provider: providers[0]},
+        {organization, reloading: false, provider: providers[0], installationData},
         this.trackOpened
       );
     } catch (_err) {
@@ -260,7 +282,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
   }
 
   renderBody() {
-    const {selectedOrgSlug} = this.state;
+    const {selectedOrgSlug, installationData} = this.state;
     const options = this.state.organizations.map((org: Organization) => ({
       value: org.slug,
       label: (
@@ -273,9 +295,42 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
       ),
     }));
 
+    let integrationAlert;
+    if (this.integrationSlug === 'github') {
+      const sender_url = `https://github.com/${installationData?.sender.login}`;
+      const target_url = `https://github.com/${installationData?.account.login}`;
+
+      integrationAlert = (
+        <Alert type="info" showIcon>
+          {tct(
+            `GitHub user [sender_login] has installed GitHub app to [account_type] [account_login]. Proceed if you want to attach this installation to your Sentry account.`,
+            {
+              account_type: <strong>{installationData?.account.type}</strong>,
+              account_login: (
+                <strong>
+                  <ExternalLink href={target_url}>
+                    {installationData?.account.login}
+                  </ExternalLink>
+                </strong>
+              ),
+              sender_id: <strong>{installationData?.sender.id}</strong>,
+              sender_login: (
+                <strong>
+                  <ExternalLink href={sender_url}>
+                    {installationData?.sender.login}
+                  </ExternalLink>
+                </strong>
+              ),
+            }
+          )}
+        </Alert>
+      );
+    }
+
     return (
       <NarrowLayout>
         <h3>{t('Finish integration installation')}</h3>
+        {integrationAlert}
         <p>
           {tct(
             `Please pick a specific [organization:organization] to link with
