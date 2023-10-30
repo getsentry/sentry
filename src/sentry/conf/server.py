@@ -1796,8 +1796,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:sdk-crash-detection": False,
     # Enable functionality for recap server polling.
     "organizations:recap-server": False,
-    # Enable the new notification settings system
-    "organizations:notification-settings-v2": False,
     # Enable new release UI
     "organizations:release-ui-v2": False,
     # Enable User Feedback v2 ingest
