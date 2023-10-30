@@ -103,9 +103,8 @@ class GroupAssigneeManager(BaseManager):
                 and new_assignee_type == "user"
                 and new_assignee_id in team_members
             ):
-                for member in team_members:
-                    if member == new_assignee_id:
-                        team_members.remove(member)
+                team_members.remove(new_assignee_id)
+
             GroupSubscription.objects.filter(
                 group=group,
                 project=group.project,
