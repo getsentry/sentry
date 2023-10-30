@@ -3793,12 +3793,9 @@ MAX_ENVIRONMENTS_PER_MONITOR = 1000
 # tests)
 SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
 
-# The project ID for SDK Crash Detection to save the detected SDK crashed to.
-# Currently, this is a single value, as the SDK Crash Detection feature only detects crashes for the Cocoa SDK.
-# Once we start detecting crashes for other SDKs, this will be a mapping of SDK name to project ID or something similar.
+# Settings for the SDK crash detection. These are deprecated and will be removed
+# in a subsequent PR.
 SDK_CRASH_DETECTION_PROJECT_ID: Optional[int] = None
-
-# The percentage of events to sample for SDK Crash Detection. 0.0 = 0%, 0.5 = 50% 1.0 = 100%.
 SDK_CRASH_DETECTION_SAMPLE_RATE = 0.0
 
 # The Redis cluster to use for monitoring the service / consumer health.

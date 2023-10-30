@@ -57,6 +57,7 @@ from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase, Snuba
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -1658,8 +1659,12 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection")
 class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
     @with_feature("organizations:sdk-crash-detection")
-    @override_settings(SDK_CRASH_DETECTION_PROJECT_ID=1234)
-    @override_settings(SDK_CRASH_DETECTION_SAMPLE_RATE=0.1234)
+    @override_options(
+        {
+            "issues.sdk_crash_detection.cocoa.project_id": 1234,
+            "issues.sdk_crash_detection.cocoa.sample_rate": 1.0,
+        }
+    )
     def test_sdk_crash_monitoring_is_called(self, mock_sdk_crash_detection):
         event = self.create_event(
             data={"message": "testing"},
@@ -1677,8 +1682,29 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
 
         args = mock_sdk_crash_detection.detect_sdk_crash.call_args[-1]
         assert args["event"].project.id == event.project.id
-        assert args["event_project_id"] == 1234
-        assert args["sample_rate"] == 0.1234
+        assert args["configs"] == [{"sdk_name": "cocoa", "project_id": 1234, "sample_rate": 1.0}]
+
+    @with_feature("organizations:sdk-crash-detection")
+    @override_options(
+        {
+            "issues.sdk_crash_detection.cocoa.project_id": 1234,
+            "issues.sdk_crash_detection.cocoa.sample_rate": 0.0,
+        }
+    )
+    def test_sdk_crash_monitoring_not_called_without_sample_rate(self, mock_sdk_crash_detection):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_sdk_crash_detection.detect_sdk_crash.assert_not_called()
 
     def test_sdk_crash_monitoring_is_not_called_with_disabled_feature(
         self, mock_sdk_crash_detection
@@ -1697,6 +1723,11 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
 
         mock_sdk_crash_detection.detect_sdk_crash.assert_not_called()
 
+    @override_options(
+        {
+            "issues.sdk_crash_detection.cocoa.project_id": None,
+        }
+    )
     @with_feature("organizations:sdk-crash-detection")
     def test_sdk_crash_monitoring_is_not_called_without_project_id(self, mock_sdk_crash_detection):
         event = self.create_event(
