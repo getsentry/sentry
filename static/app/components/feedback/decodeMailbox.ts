@@ -1,6 +1,6 @@
 import {decodeScalar} from 'sentry/utils/queryString';
 
-type Mailbox = 'unresolved' | 'resolved' | 'archived';
+type Mailbox = 'unresolved' | 'resolved';
 
 export default function decodeMailbox(
   value: string | string[] | undefined | null
@@ -9,7 +9,7 @@ export default function decodeMailbox(
     case 'resolved':
       return 'resolved';
     case 'archived':
-      return 'archived';
+      return 'resolved';
     default:
       return 'unresolved';
   }

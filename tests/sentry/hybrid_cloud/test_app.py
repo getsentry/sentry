@@ -10,8 +10,6 @@ def test_create_internal_integration_for_channel_request():
     integration_creator = Factories.create_user(email="test@sentry.io")
     app_service.create_internal_integration_for_channel_request(
         organization_id=org.id,
-        # email is ignored if id is provided during transition time
-        integration_creator="another-test@sentry.io",
         integration_name="Test Integration",
         integration_scopes=["prject:read"],
         integration_creator_id=integration_creator.id,
@@ -20,7 +18,7 @@ def test_create_internal_integration_for_channel_request():
     assert sentry_app_query.count() == 1
     app_service.create_internal_integration_for_channel_request(
         organization_id=org.id,
-        integration_creator="test@sentry.io",
+        integration_creator_id=integration_creator.id,
         integration_name="Test Integration",
         integration_scopes=["prject:read"],
     )

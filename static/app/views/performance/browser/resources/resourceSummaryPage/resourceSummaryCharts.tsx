@@ -48,7 +48,7 @@ function ResourceSummaryCharts(props: {groupId: string}) {
               valueFormatter: bytes =>
                 getDynamicText({
                   value: formatBytesBase2(bytes),
-                  fixed: 'xx KB',
+                  fixed: 'xx KiB',
                 }),
             }}
           />
