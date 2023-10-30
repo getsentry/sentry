@@ -1176,13 +1176,13 @@ def sdk_crash_monitoring(job: PostProcessJob):
     cocoa_project_id = options.get(
         "issues.sdk_crash_detection.cocoa.project_id",
     )
-    if cocoa_project_id == 0:
+    if not cocoa_project_id or cocoa_project_id == 0:
         sentry_sdk.capture_message("Cocoa project_id is not set.")
         return None
 
     cocoa_sample_rate = options.get("issues.sdk_crash_detection.cocoa.sample_rate")
     # When the sample rate is 0, we can skip the sdk crash detection.
-    if cocoa_sample_rate == 0:
+    if not cocoa_sample_rate or cocoa_sample_rate == 0:
         return None
 
     cocoa_config = SDKCrashDetectionConfig(
