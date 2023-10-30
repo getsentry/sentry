@@ -1,9 +1,9 @@
 from urllib.parse import urlencode
 
+import pytest
 import responses
 from django.test import override_settings
 from django.urls import reverse
-from pytest_rerunfailures import pytest
 from rest_framework.exceptions import NotFound
 
 from sentry.silo import SiloMode
