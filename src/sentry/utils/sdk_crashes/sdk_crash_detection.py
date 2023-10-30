@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import random
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Sequence
+
+import sentry_sdk
 
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import GroupCategory
 from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.cocoa_sdk_crash_detector import CocoaSDKCrashDetector
 from sentry.utils.sdk_crashes.event_stripper import strip_event_data
+from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
 
@@ -34,30 +37,57 @@ class SDKCrashDetection:
     def __init__(
         self,
         sdk_crash_reporter: SDKCrashReporter,
-        sdk_crash_detector: SDKCrashDetector,
+        sdk_crash_detectors: Mapping[str, SDKCrashDetector],
     ):
+        """
+        Initializes the SDK crash detection.
+
+        :param sdk_crash_reporter: Stores the stripped crash event to a Sentry project.
+        :param sdk_crash_detectors: A mapping of SDK name to SDK crash detector. The name of the SDK must match the sdk_name of th SDKCrashDetectionConfig.
+        """
         self.sdk_crash_reporter = sdk_crash_reporter
-        self.cocoa_sdk_crash_detector = sdk_crash_detector
+        self.sdk_crash_detectors = sdk_crash_detectors
 
     def detect_sdk_crash(
-        self, event: Event, event_project_id: int, sample_rate: float
+        self, event: Event, configs: Sequence[SDKCrashDetectionConfig]
     ) -> Optional[Event]:
         """
         Checks if the passed-in event is an SDK crash and stores the stripped event to a Sentry
-        project specified with event_project_id.
+        project specified with project_id in the configs.
 
         :param event: The event to check for an SDK crash.
-        :param event_project_id: The project ID to store the SDK crash event to if one is detected.
-        :param sample_rate: Sampling gets applied after an event is considered an SDK crash.
+        :param configs: The list of configs per SDK.
         """
 
-        should_detect_sdk_crash = (
-            event.group
-            and event.group.issue_category == GroupCategory.ERROR
-            and self.cocoa_sdk_crash_detector.should_detect_sdk_crash(event.data)
-        )
-        if not should_detect_sdk_crash:
+        is_error = event.group and event.group.issue_category == GroupCategory.ERROR
+        if not is_error:
             return None
+
+        sdk_crash_detectors = [
+            (sdk_name, detector)
+            for sdk_name, detector in self.sdk_crash_detectors.items()
+            if detector.should_detect_sdk_crash(event.data)
+        ]
+
+        if not sdk_crash_detectors:
+            return None
+
+        # Only report the first matching SDK crash detector. We don't want to report the same
+        # event multiple times.
+        sdk_name, sdk_crash_detector = sdk_crash_detectors[0]
+
+        config = [x for x in configs if x["sdk_name"] == sdk_name]
+        if not config:
+            sentry_sdk.capture_message(f"No config found for sdk_name={sdk_name}")
+            return None
+
+        if len(config) > 1:
+            sentry_sdk.capture_message(
+                "Multiple configs found for sdk_name={sdk_name}. Taking first one."
+            )
+
+        sample_rate = config[0]["sample_rate"]
+        project_id = config[0]["project_id"]
 
         context = get_path(event.data, "contexts", "sdk_crash_detection")
         if context is not None:
@@ -67,11 +97,11 @@ class SDKCrashDetection:
         if not frames:
             return None
 
-        if self.cocoa_sdk_crash_detector.is_sdk_crash(frames):
+        if sdk_crash_detector.is_sdk_crash(frames):
             if random.random() >= sample_rate:
                 return None
 
-            sdk_crash_event_data = strip_event_data(event.data, self.cocoa_sdk_crash_detector)
+            sdk_crash_event_data = strip_event_data(event.data, sdk_crash_detector)
 
             set_path(
                 sdk_crash_event_data,
@@ -89,7 +119,7 @@ class SDKCrashDetection:
             # So Sentry can tell how many projects are impacted by this SDK crash
             set_path(sdk_crash_event_data, "user", "id", value=event.project.id)
 
-            return self.sdk_crash_reporter.report(sdk_crash_event_data, event_project_id)
+            return self.sdk_crash_reporter.report(sdk_crash_event_data, project_id)
 
         return None
 
@@ -97,4 +127,4 @@ class SDKCrashDetection:
 _crash_reporter = SDKCrashReporter()
 _cocoa_sdk_crash_detector = CocoaSDKCrashDetector()
 
-sdk_crash_detection = SDKCrashDetection(_crash_reporter, _cocoa_sdk_crash_detector)
+sdk_crash_detection = SDKCrashDetection(_crash_reporter, {"cocoa": _cocoa_sdk_crash_detector})
