@@ -62,6 +62,16 @@ def make_ref_time(**kwargs):
     return task_run_ts, sub_task_run_ts, trimmed_ts
 
 
+def get_checkin_timeout_kwargs(checkin: MonitorCheckIn):
+    return {
+        "monitor_id": checkin.monitor.id,
+        "monitor_environment_id": checkin.monitor_environment.id,
+        "status": checkin.status,
+        "date_added": checkin.date_added,
+        "timeout_at": checkin.timeout_at,
+    }
+
+
 class MonitorTaskCheckMissingTest(TestCase):
     @mock.patch("sentry.monitors.tasks.mark_environment_missing")
     def test_missing_checkin(self, mark_environment_missing_mock):
@@ -652,15 +662,18 @@ class MonitorTaskCheckTimeoutTest(TestCase):
         assert mark_checkin_timeout_mock.delay.call_count == 0
 
         # Timout at 12:30
+        checkin_kwargs = get_checkin_timeout_kwargs(checkin)
         check_timeout(task_run_ts + timedelta(minutes=30))
         assert mark_checkin_timeout_mock.delay.call_count == 1
         assert mark_checkin_timeout_mock.delay.mock_calls[0] == mock.call(
             checkin.id,
             sub_task_run_ts + timedelta(minutes=30),
+            **checkin_kwargs,
         )
         mark_checkin_timeout(
             checkin.id,
             sub_task_run_ts + timedelta(minutes=30),
+            **checkin_kwargs,
         )
 
         # Check in is marked as timed out
@@ -744,16 +757,19 @@ class MonitorTaskCheckTimeoutTest(TestCase):
         assert mark_checkin_timeout_mock.delay.call_count == 0
 
         # First checkin timed out
+        checkin_kwargs = get_checkin_timeout_kwargs(checkin1)
         check_timeout(task_run_ts + timedelta(minutes=30))
         assert mark_checkin_timeout_mock.delay.call_count == 1
         assert mark_checkin_timeout_mock.delay.mock_calls[0] == mock.call(
             checkin1.id,
             sub_task_run_ts + timedelta(minutes=30),
+            **checkin_kwargs,
         )
 
         mark_checkin_timeout(
             checkin1.id,
             sub_task_run_ts + timedelta(minutes=30),
+            **checkin_kwargs,
         )
 
         # First checkin is marked as timed out
@@ -819,13 +835,15 @@ class MonitorTaskCheckTimeoutTest(TestCase):
         )
 
         # Check in was marked as timed out
+        checkin_kwargs = get_checkin_timeout_kwargs(checkin)
         check_timeout(task_run_ts)
         assert mark_checkin_timeout_mock.delay.call_count == 1
         assert mark_checkin_timeout_mock.delay.mock_calls[0] == mock.call(
             checkin.id,
             sub_task_run_ts,
+            **checkin_kwargs,
         )
-        mark_checkin_timeout(checkin.id, sub_task_run_ts)
+        mark_checkin_timeout(checkin.id, sub_task_run_ts, **checkin_kwargs)
 
         # First checkin is marked as timed out
         assert MonitorCheckIn.objects.filter(id=checkin.id, status=CheckInStatus.TIMEOUT).exists()
@@ -879,15 +897,18 @@ class MonitorTaskCheckTimeoutTest(TestCase):
         )
 
         # Timout at 12:05
+        checkin_kwargs = get_checkin_timeout_kwargs(checkin)
         check_timeout(task_run_ts + timedelta(minutes=5))
         assert mark_checkin_timeout_mock.delay.call_count == 1
         assert mark_checkin_timeout_mock.delay.mock_calls[0] == mock.call(
             checkin.id,
             sub_task_run_ts + timedelta(minutes=5),
+            **checkin_kwargs,
         )
         mark_checkin_timeout(
             checkin.id,
             sub_task_run_ts + timedelta(minutes=5),
+            **checkin_kwargs,
         )
 
         # Check in is marked as timed out
@@ -958,6 +979,7 @@ class MonitorTaskCheckTimeoutTest(TestCase):
 
         # Running check monitor will mark the first checkin as timed out. The
         # second checkin was already marked as OK.
+        checkin_kwargs = get_checkin_timeout_kwargs(checkin1)
         check_timeout(task_run_ts)
 
         # assert that task is called for the specific checkin
@@ -965,9 +987,10 @@ class MonitorTaskCheckTimeoutTest(TestCase):
         assert mark_checkin_timeout_mock.delay.mock_calls[0] == mock.call(
             checkin1.id,
             sub_task_run_ts,
+            **checkin_kwargs,
         )
 
-        mark_checkin_timeout(checkin1.id, sub_task_run_ts)
+        mark_checkin_timeout(checkin1.id, sub_task_run_ts, **checkin_kwargs)
 
         # The first checkin is marked as timed out
         assert MonitorCheckIn.objects.filter(id=checkin1.id, status=CheckInStatus.TIMEOUT).exists()

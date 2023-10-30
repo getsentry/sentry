@@ -338,7 +338,15 @@ def check_timeout(current_datetime: datetime):
     metrics.gauge("sentry.monitors.tasks.check_timeout.count", qs.count(), sample_rate=1)
     # check for any monitors which are still running and have exceeded their maximum runtime
     for checkin in qs:
-        mark_checkin_timeout.delay(checkin.id, current_datetime)
+        # used for temporary debugging
+        kwargs = {
+            "monitor_id": checkin.monitor.id,
+            "monitor_environment_id": checkin.monitor_environment.id,
+            "status": checkin.status,
+            "date_added": checkin.date_added,
+            "timeout_at": checkin.timeout_at,
+        }
+        mark_checkin_timeout.delay(checkin.id, current_datetime, **kwargs)
 
 
 @instrumented_task(
