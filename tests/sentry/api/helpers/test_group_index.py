@@ -1018,8 +1018,7 @@ class TestHandleAssignedTo(TestCase):
 
     @with_feature("organizations:participants-purge")
     def test_user_in_reassigned_team(self):
-        # user to team (with user in it)
-        # team (with user in it) to user
+        """Test that the correct participants are present when re-assigning from user to team and vice versa"""
         user1 = self.create_user("foo@example.com")
         user2 = self.create_user("bar@example.com")
         team1 = self.create_team()
