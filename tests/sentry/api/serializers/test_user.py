@@ -4,6 +4,7 @@ from sentry.auth.authenticators import available_authenticators
 from sentry.models.authenticator import Authenticator
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
+from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.useremail import UserEmail
 from sentry.models.userpermission import UserPermission
 from sentry.testutils.cases import TestCase
@@ -83,6 +84,19 @@ class DetailedUserSerializerTest(TestCase):
         self.create_organization(owner=user)
         result = serialize(user, user, DetailedUserSerializer())
         assert result["canReset2fa"] is False
+
+    def test_with_avatar(self):
+        UserAvatar.objects.create(
+            user_id=self.user.id,
+            avatar_type=1,  # upload
+            ident="abc123",
+            control_file_id=1,
+        )
+        result = serialize(self.user, self.user, DetailedUserSerializer())
+        assert "avatar" in result
+        assert result["avatar"]["avatarUuid"] == "abc123"
+        assert result["avatar"]["avatarType"] == "upload"
+        assert result["avatar"]["avatarUrl"] == "http://testserver/avatar/abc123/"
 
 
 @control_silo_test

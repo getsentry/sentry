@@ -50,6 +50,8 @@ class UserAvatar(ControlAvatarBase):
         app_label = "sentry"
         db_table = "sentry_useravatar"
 
+    url_path = "avatar"
+
     def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
         regions = find_regions_for_user(self.user_id)
         return OutboxCategory.USER_UPDATE.as_control_outboxes(

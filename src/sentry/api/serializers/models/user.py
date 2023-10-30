@@ -165,7 +165,7 @@ class UserSerializer(Serializer):
         return data
 
     def serialize(
-        self, obj: User, attrs: MutableMapping[User, Any], user: User | AnonymousUser | RpcUser
+        self, obj: User, attrs: MutableMapping[str, Any], user: User | AnonymousUser | RpcUser
     ) -> Union[UserSerializerResponse, UserSerializerResponseSelf]:
         experiment_assignments = experiments.all(user=user)
 
@@ -214,9 +214,10 @@ class UserSerializer(Serializer):
             avatar: SerializedAvatarFields = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
                 "avatarUuid": attrs["avatar"].ident if attrs["avatar"].get_file_id() else None,
+                "avatarUrl": attrs["avatar"].absolute_url(),
             }
         else:
-            avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
+            avatar = {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None}
         d["avatar"] = avatar
 
         # TODO(dcramer): move this to DetailedUserSerializer

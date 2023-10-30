@@ -58,6 +58,8 @@ class SentryAppAvatar(ControlAvatarBase):
         app_label = "sentry"
         db_table = "sentry_sentryappavatar"
 
+    url_path = "sentry-app-avatar"
+
     def get_cache_key(self, size):
         color_identifier = "color" if self.color else "simple"
         return f"sentry_app_avatar:{self.sentry_app_id}:{color_identifier}:{size}"

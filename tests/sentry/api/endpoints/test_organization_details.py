@@ -314,6 +314,29 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         resp = self.get_response(self.organization.slug, method="put", sensitiveFields=value)
         assert resp.status_code == 400
 
+    def test_with_avatar_image(self):
+        organization = self.organization
+        OrganizationAvatar.objects.create(
+            organization_id=organization.id,
+            avatar_type=1,  # upload
+            file_id=1,
+            ident="abc123",
+        )
+        resp = self.get_response(organization.slug)
+        assert resp.status_code == 200
+        assert "avatar" in resp.data
+        assert resp.data["avatar"]["avatarType"] == "upload"
+        assert resp.data["avatar"]["avatarUuid"] == "abc123"
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            assert (
+                resp.data["avatar"]["avatarUrl"]
+                == "http://us.testserver/organization-avatar/abc123/"
+            )
+        else:
+            assert (
+                resp.data["avatar"]["avatarUrl"] == "http://testserver/organization-avatar/abc123/"
+            )
+
 
 @region_silo_test(stable=True)
 class OrganizationUpdateTest(OrganizationDetailsTestBase):

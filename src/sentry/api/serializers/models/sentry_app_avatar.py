@@ -13,5 +13,6 @@ class SentryAppAvatarSerializer(Serializer):
         return {
             "avatarType": obj.get_avatar_type_display(),
             "avatarUuid": obj.ident,
+            "avatarUrl": obj.absolute_url(),
             "color": obj.color,
         }
