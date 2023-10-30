@@ -1,5 +1,6 @@
 import {Component, Fragment} from 'react';
 
+import {Alert} from 'sentry/components/alert';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -23,6 +24,7 @@ type Props = DefaultProps & {
 };
 
 type State = {
+  elevating: boolean;
   events: WebhookEvent[];
   permissions: Permissions;
 };
@@ -38,6 +40,7 @@ export default class PermissionsObserver extends Component<Props, State> {
     this.state = {
       permissions: this.scopeListToPermissionState(),
       events: this.props.events,
+      elevating: false,
     };
   }
 
@@ -74,8 +77,7 @@ export default class PermissionsObserver extends Component<Props, State> {
       return false;
     });
 
-    console.log('Elevating:', elevating);
-    // TODO: if elevating === true, then add a confirmation dialog handler to the "Save Changes" button
+    this.setState({elevating});
   };
 
   onEventChange = (events: WebhookEvent[]) => {
@@ -83,7 +85,19 @@ export default class PermissionsObserver extends Component<Props, State> {
   };
 
   render() {
-    const {permissions, events} = this.state;
+    const {permissions, events, elevating} = this.state;
+
+    let elevating_alert;
+    if (elevating === true) {
+      elevating_alert = (
+        <Alert type="warning" showIcon>
+          {t(
+            'You are going to increase privileges for this integration. Organization members who already had access to the Client Secret may gain extra permissions due to this change. If this is not what you are expecting, consider re-creating an integration.'
+          )}
+        </Alert>
+      );
+    }
+
     return (
       <Fragment>
         <Panel>
@@ -94,6 +108,7 @@ export default class PermissionsObserver extends Component<Props, State> {
               onChange={this.onPermissionChange}
               appPublished={this.props.appPublished}
             />
+            {elevating_alert}
           </PanelBody>
         </Panel>
         <Panel>
