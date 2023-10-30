@@ -1,3 +1,4 @@
+from curses.ascii import isdigit
 from datetime import datetime
 from typing import Mapping, Optional
 
@@ -50,8 +51,8 @@ class GitLabApiClientPath:
 def get_rate_limit_info_from_response(
     response: BaseApiResponse,
 ) -> Optional[GitLabRateLimitInfo]:
-    """Extract rate limit info from response headers
-
+    """
+    Extract rate limit info from response headers
     See https://docs.gitlab.com/ee/administration/settings/user_and_ip_rate_limits.html#response-headers
     """
     if not response.headers:
@@ -64,7 +65,9 @@ def get_rate_limit_info_from_response(
         "used": response.headers.get("RateLimit-Observed"),
     }
 
-    if not all(rate_limit_params.values()):
+    if not all([value and isdigit(value) for value in rate_limit_params.values()]):
         return None
 
-    return GitLabRateLimitInfo(dict({(k, int(v)) for k, v in rate_limit_params.items()}))
+    return GitLabRateLimitInfo(
+        dict({(k, int(v) if v else 0) for k, v in rate_limit_params.items()})
+    )
