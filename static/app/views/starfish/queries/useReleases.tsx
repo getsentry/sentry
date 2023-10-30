@@ -28,7 +28,7 @@ export function useReleases(searchTerm?: string) {
     {staleTime: Infinity}
   );
 
-  const releaseStats: {
+  let releaseStats: {
     dateCreated: string;
     platform: string;
     projectSlug: string;
@@ -36,7 +36,7 @@ export function useReleases(searchTerm?: string) {
     version: string;
   }[] = [];
   if (result.data && result.data.length) {
-    result.data.forEach(release => {
+    releaseStats = result.data.map(release => {
       const releaseVersion = release.version;
       const releaseProject = release.projects[0];
       const dateCreated = release.dateCreated;
@@ -44,13 +44,13 @@ export function useReleases(searchTerm?: string) {
       const projectSlug = releaseProject.slug;
       const platform = releaseProject.platform;
       const sessionCount = releaseProject.healthData?.totalSessions;
-      releaseStats.push({
+      return {
         projectSlug,
         'sum(session)': sessionCount,
         platform,
         dateCreated,
         version: releaseVersion,
-      });
+      };
     });
   }
 
