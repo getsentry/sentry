@@ -88,14 +88,7 @@ function AccordionItem({
   return buttonOnLeft ? (
     <StyledLineItem>
       <ButtonLeftListItemContainer>
-        <Button
-          icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
-          aria-label={t('Expand')}
-          aria-expanded={isExpanded}
-          size="zero"
-          borderless
-          onClick={() => setExpandedIndex(index)}
-        />
+        {button}
         <StyledPanel onClick={() => setExpandedIndex(index)}>{children}</StyledPanel>
       </ButtonLeftListItemContainer>
       <LeftContentContainer>{isExpanded && content}</LeftContentContainer>
