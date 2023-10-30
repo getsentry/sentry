@@ -331,16 +331,14 @@ export function ProjectPageFilter({
         0
       );
 
-    // Calculate an appropriate width for the menu. It should be between 20 (22 if
-    // there's a desynced message) and 28em. Within that range, the width is a function
-    // of the length of the longest slug. The project slugs take up to (longestSlugLength
-    // * 0.6)em of horizontal space (each character occupies roughly 0.6em). We also need
-    // to add 12em to account for padding, trailing buttons, and the checkbox.
-    return `${Math.max(
-      desynced ? 22 : 20,
-      Math.min(28, longestSlugLength * 0.6 + 12)
-    )}em`;
-  }, [options, desynced]);
+    // Calculate an appropriate width for the menu. It should be between 22  and 28em.
+    // Within that range, the width is a function of the length of the longest slug.
+    // The project slugs take up to (longestSlugLength * 0.6)em of horizontal space
+    // (each character occupies roughly 0.6em).
+    // We also need to add 12em to account for padding, trailing buttons, and the checkbox.
+    const minWidthEm = 22;
+    return `${Math.max(minWidthEm, Math.min(28, longestSlugLength * 0.6 + 12))}em`;
+  }, [options]);
 
   const [stagedValue, setStagedValue] = useState<number[]>(value);
   const selectionLimitExceeded = useMemo(() => {
