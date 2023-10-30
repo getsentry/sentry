@@ -110,6 +110,8 @@ class OutboxCategory(IntEnum):
     ACTOR_UPDATE = 31
     API_TOKEN_UPDATE = 32
     ORG_AUTH_TOKEN_UPDATE = 33
+    ISSUE_COMMENT_UPDATE = 34
+    EXTERNAL_ACTOR_UPDATE = 35
 
     @classmethod
     def as_choices(cls):
@@ -236,6 +238,7 @@ class OutboxCategory(IntEnum):
         shard_identifier: int | None,
     ) -> Tuple[int, int]:
         from sentry.models.apiapplication import ApiApplication
+        from sentry.models.integrations import Integration
         from sentry.models.organization import Organization
         from sentry.models.user import User
 
@@ -264,6 +267,11 @@ class OutboxCategory(IntEnum):
                     shard_identifier = model.id
                 elif hasattr(model, "api_application_id"):
                     shard_identifier = model.api_application_id
+            if scope == OutboxScope.INTEGRATION_SCOPE:
+                if isinstance(model, Integration):
+                    shard_identifier = model.id
+                elif hasattr(model, "integration_id"):
+                    shard_identifier = model.integration_id
 
         assert (
             model is not None
@@ -305,6 +313,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.ORG_AUTH_TOKEN_UPDATE,
             OutboxCategory.PARTNER_ACCOUNT_UPDATE,
             OutboxCategory.ACTOR_UPDATE,
+            OutboxCategory.ISSUE_COMMENT_UPDATE,
         },
     )
     USER_SCOPE = scope_categories(
@@ -328,9 +337,7 @@ class OutboxScope(IntEnum):
     )
     INTEGRATION_SCOPE = scope_categories(
         5,
-        {
-            OutboxCategory.INTEGRATION_UPDATE,
-        },
+        {OutboxCategory.INTEGRATION_UPDATE, OutboxCategory.EXTERNAL_ACTOR_UPDATE},
     )
     APP_SCOPE = scope_categories(
         6,

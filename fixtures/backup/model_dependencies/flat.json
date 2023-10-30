@@ -14,6 +14,13 @@
     "sentry.organization",
     "sentry.user"
   ],
+  "hybridcloud.externalactorreplica": [
+    "sentry.externalactor",
+    "sentry.integration",
+    "sentry.organization",
+    "sentry.team",
+    "sentry.user"
+  ],
   "hybridcloud.organizationslugreservationreplica": [
     "sentry.organization",
     "sentry.organizationslugreservation",
@@ -42,7 +49,9 @@
   "sentry.alertrule": [
     "sentry.actor",
     "sentry.organization",
-    "sentry.snubaquery"
+    "sentry.snubaquery",
+    "sentry.team",
+    "sentry.user"
   ],
   "sentry.alertruleactivity": [
     "sentry.alertrule",

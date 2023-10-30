@@ -11,9 +11,10 @@ from sentry import ratelimits as ratelimiter
 from sentry.auth.authenticators.sms import SMSRateLimitExceeded
 from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.models.authenticator import Authenticator
+from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.utils import auth, json
 from sentry.web.forms.accounts import TwoFactorForm
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
 COOKIE_NAME = "s2fai"
@@ -22,6 +23,7 @@ COOKIE_MAX_AGE = 60 * 60 * 24 * 31
 logger = logging.getLogger(__name__)
 
 
+@control_silo_view
 class TwoFactorAuthView(BaseView):
     auth_required = False
 
@@ -190,6 +192,7 @@ class TwoFactorAuthView(BaseView):
         )
 
 
+@control_silo_function
 def u2f_appid(request):
     facets = options.get("u2f.facets")
     if not facets:

@@ -1,8 +1,11 @@
 import datetime
 from uuid import uuid4
 
+import jsonschema
+
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.utils.dates import ensure_aware
 
@@ -20,18 +23,32 @@ def make_evidence(feedback):
         evidence_display.append(
             IssueEvidence(name="message", value=feedback["message"], important=True)
         )
+    if feedback.get("name"):
+        evidence_data["name"] = feedback["name"]
+        evidence_display.append(IssueEvidence(name="name", value=feedback["name"], important=False))
+
     return evidence_data, evidence_display
 
 
-def _fix_for_issue_platform(event_data):
+def fix_for_issue_platform(event_data):
     # the issue platform has slightly different requirements than ingest
     # for event schema, so we need to massage the data a bit
     event_data["timestamp"] = ensure_aware(
         datetime.datetime.fromtimestamp(event_data["timestamp"])
     ).isoformat()
+    if "contexts" not in event_data:
+        event_data["contexts"] = {}
 
-    if event_data.get("feedback"):
+    if event_data.get("feedback") and not event_data.get("contexts", {}).get("feedback"):
+        event_data["contexts"]["feedback"] = event_data["feedback"]
         del event_data["feedback"]
+
+        if not event_data["contexts"].get("replay") and event_data["contexts"]["feedback"].get(
+            "replay_id"
+        ):
+            event_data["contexts"]["replay"] = {
+                "replay_id": event_data["contexts"]["feedback"].get("replay_id")
+            }
 
     if event_data.get("dist") is not None:
         del event_data["dist"]
@@ -76,7 +93,10 @@ def create_feedback_issue(event, project_id):
         "tags": event.get("tags", {}),
         **event,
     }
-    _fix_for_issue_platform(event_data)
+    fix_for_issue_platform(event_data)
+
+    # make sure event data is valid for issue platform
+    jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
 
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_data

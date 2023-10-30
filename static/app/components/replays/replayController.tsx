@@ -12,6 +12,7 @@ import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubb
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {formatTime} from 'sentry/components/replays/utils';
 import {
+  IconAdd,
   IconContract,
   IconExpand,
   IconNext,
@@ -20,6 +21,7 @@ import {
   IconPrevious,
   IconRewind10,
   IconSettings,
+  IconSubtract,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -51,7 +53,7 @@ function ReplayPlayPauseBar() {
   } = useReplayContext();
 
   return (
-    <ButtonBar merged>
+    <ButtonBar gap={1}>
       <Button
         size="sm"
         title={t('Rewind 10s')}
@@ -61,19 +63,21 @@ function ReplayPlayPauseBar() {
       />
       {isFinished ? (
         <Button
-          size="sm"
+          size="md"
           title={t('Restart Replay')}
-          icon={<IconPrevious size="sm" />}
+          icon={<IconPrevious size="md" />}
           onClick={restart}
           aria-label={t('Restart Replay')}
+          priority="primary"
         />
       ) : (
         <Button
-          size="sm"
+          size="md"
           title={isPlaying ? t('Pause') : t('Play')}
-          icon={isPlaying ? <IconPause size="sm" /> : <IconPlay size="sm" />}
+          icon={isPlaying ? <IconPause size="md" /> : <IconPlay size="md" />}
           onClick={() => togglePlayPause(!isPlaying)}
           aria-label={isPlaying ? t('Pause') : t('Play')}
+          priority="primary"
         />
       )}
       <Button
@@ -142,6 +146,29 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
   );
 }
 
+function TimelineSizeBar({size, setSize}) {
+  return (
+    <ButtonBar merged>
+      <Button
+        size="xs"
+        title={t('Zoom out')}
+        icon={<IconSubtract size="xs" />}
+        borderless
+        onClick={() => setSize(Math.max(size - 50, 100))}
+        aria-label={t('Zoom out')}
+      />
+      <Button
+        size="xs"
+        title={t('Zoom in')}
+        icon={<IconAdd size="xs" />}
+        borderless
+        onClick={() => setSize(Math.min(size + 50, 1000))}
+        aria-label={t('Zoom in')}
+      />
+    </ButtonBar>
+  );
+}
+
 function ReplayControls({
   toggleFullscreen,
   speedOptions = [0.1, 0.25, 0.5, 1, 2, 4, 8, 16],
@@ -153,6 +180,7 @@ function ReplayControls({
   const isFullscreen = useIsFullscreen();
   const {currentTime, replay} = useReplayContext();
   const durationMs = replay?.getDurationMs();
+  const [size, setSize] = useState(300);
 
   // If the browser supports going fullscreen or not. iPhone Safari won't do
   // it. https://caniuse.com/fullscreen
@@ -189,14 +217,35 @@ function ReplayControls({
     <ButtonGrid ref={barRef} isCompact={isCompact}>
       <ReplayPlayPauseBar />
       <Container>
-        {hasNewTimeline ? <ReplayTimeline /> : null}
-        <TimeAndScrubber isCompact={isCompact}>
-          <Time>{formatTime(currentTime)}</Time>
-          <StyledScrubber ref={elem} {...mouseTrackingProps}>
-            <PlayerScrubber />
-          </StyledScrubber>
-          <Time>{durationMs ? formatTime(durationMs) : '--:--'}</Time>
-        </TimeAndScrubber>
+        {hasNewTimeline ? (
+          <TimeAndScrubberGrid isCompact={isCompact}>
+            <Time style={{gridArea: 'currentTime'}}>{formatTime(currentTime)}</Time>
+            <div style={{gridArea: 'timeline'}}>
+              <ReplayTimeline size={size} />
+            </div>
+            <div style={{gridArea: 'timelineSize'}}>
+              <TimelineSizeBar size={size} setSize={setSize} />
+            </div>
+            <StyledScrubber
+              style={{gridArea: 'scrubber'}}
+              ref={elem}
+              {...mouseTrackingProps}
+            >
+              <PlayerScrubber />
+            </StyledScrubber>
+            <Time style={{gridArea: 'duration'}}>
+              {durationMs ? formatTime(durationMs) : '--:--'}
+            </Time>
+          </TimeAndScrubberGrid>
+        ) : (
+          <TimeAndScrubber isCompact={isCompact}>
+            <Time>{formatTime(currentTime)}</Time>
+            <StyledScrubber ref={elem} {...mouseTrackingProps}>
+              <PlayerScrubber />
+            </StyledScrubber>
+            <Time>{durationMs ? formatTime(durationMs) : '--:--'}</Time>
+          </TimeAndScrubber>
+        )}
       </Container>
       <ButtonBar gap={1}>
         <ReplayOptionsMenu speedOptions={speedOptions} />
@@ -216,7 +265,7 @@ function ReplayControls({
 
 const ButtonGrid = styled('div')<{isCompact: boolean}>`
   display: flex;
-  gap: 0 ${space(1)};
+  gap: 0 ${space(2)};
   flex-direction: row;
   justify-content: space-between;
   ${p => (p.isCompact ? `flex-wrap: wrap;` : '')}
@@ -226,6 +275,7 @@ const Container = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1 1;
+  justify-content: center;
 `;
 
 const TimeAndScrubber = styled('div')<{isCompact: boolean}>`
@@ -244,8 +294,28 @@ const TimeAndScrubber = styled('div')<{isCompact: boolean}>`
       : ''}
 `;
 
+const TimeAndScrubberGrid = styled('div')<{isCompact: boolean}>`
+  width: 100%;
+  display: grid;
+  grid-template-areas:
+    '. timeline timelineSize'
+    'currentTime scrubber duration';
+  grid-column-gap: ${space(1)};
+  grid-template-columns: max-content auto max-content;
+  align-items: center;
+  ${p =>
+    p.isCompact
+      ? `
+        order: -1;
+        min-width: 100%;
+        margin-top: -8px;
+      `
+      : ''}
+`;
+
 const Time = styled('span')`
   font-variant-numeric: tabular-nums;
+  padding: 0 ${space(1.5)};
 `;
 
 const StyledScrubber = styled('div')`

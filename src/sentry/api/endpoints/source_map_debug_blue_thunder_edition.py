@@ -498,6 +498,7 @@ class ReleaseLookupData:
                             matching_file, headers = archive.get_file_by_url(
                                 potential_source_file_name
                             )
+                            headers = ArtifactBundleArchive.normalize_headers(headers)
                             self.source_file_lookup_result = "found"
                             self.found_source_file_name = potential_source_file_name
                             sourcemap_header = headers.get("sourcemap", headers.get("x-sourcemap"))

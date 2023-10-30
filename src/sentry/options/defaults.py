@@ -1492,6 +1492,7 @@ register(
 )
 
 register("hybrid_cloud.outbox_rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
 register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Decides whether an incoming span triggers an update of the clustering rule applied to it.
@@ -1665,3 +1666,21 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register("metric_alerts.rate_limit", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# SDK Crash Detection
+#
+# The project ID belongs to the sentry organization: https://sentry.sentry.io/projects/cocoa-sdk-crashes/?project=4505469596663808.
+register(
+    "issues.sdk_crash_detection.cocoa.project_id",
+    default=4505469596663808,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.sdk_crash_detection.cocoa.sample_rate",
+    default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# END: SDK Crash Detection

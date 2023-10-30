@@ -174,6 +174,8 @@ class DatabaseBackedAppService(AppService):
                 query = query.filter(uuid__in=filters["uuids"])
             if "status" in filters:
                 query = query.filter(status=filters["status"])
+            if "api_token_id" in filters:
+                query = query.filter(api_token_id=filters["api_token_id"])
 
             return query
 
@@ -230,12 +232,11 @@ class DatabaseBackedAppService(AppService):
         self,
         *,
         organization_id: int,
-        integration_creator: str,
         integration_name: str,
         integration_scopes: List[str],
+        integration_creator_id,
     ) -> RpcSentryAppInstallation:
-        # if the 'integration' already exists, don't recreate it...
-        admin_user = User.objects.get(email=integration_creator)
+        admin_user = User.objects.get(id=integration_creator_id)
 
         sentry_app_query = SentryApp.objects.filter(
             owner_id=organization_id,
