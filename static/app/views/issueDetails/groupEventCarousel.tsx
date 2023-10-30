@@ -272,18 +272,6 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
       }),
   });
 
-  const {onClick: copyEventDetailLink} = useCopyToClipboard({
-    successMessage: t('Event URL copied to clipboard'),
-    text:
-      window.location.origin +
-      normalizeUrl(
-        eventDetailsRoute({
-          eventSlug: generateEventSlug({project: projectSlug, id: event.id}),
-          orgSlug: organization.slug,
-        })
-      ),
-  });
-
   const {onClick: copyEventId} = useCopyToClipboard({
     successMessage: t('Event ID copied to clipboard'),
     text: event.id,
@@ -356,15 +344,6 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
           title={t('Copy link to this issue event')}
           size={BUTTON_SIZE}
           onClick={copyLink}
-          aria-label={t('Copy Link')}
-          icon={<IconLink />}
-        />
-      )}
-      {xlargeViewport && (
-        <Button
-          title={t('Copy link to this event')}
-          size={BUTTON_SIZE}
-          onClick={copyEventDetailLink}
           aria-label={t('Copy Link')}
           icon={<IconLink />}
         />
