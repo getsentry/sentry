@@ -1,7 +1,6 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
 import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import PlatformList from 'sentry/components/platformList';
@@ -76,28 +75,26 @@ function BaseProjectPageFilterTrigger(
     : value.length - projectsToShow.length;
 
   return (
-    <GuideAnchor target="new_project_filter" position="bottom" disabled={!ready}>
-      <DropdownButton
-        {...props}
-        ref={forwardedRef}
-        data-test-id="page-filter-project-selector"
-        icon={
-          <TriggerIconWrap>
-            {!ready || isAllProjectsSelected || isMyProjectsSelected ? (
-              <IconProject />
-            ) : (
-              <PlatformList
-                platforms={projectsToShow.map(p => p.platform ?? 'other').reverse()}
-              />
-            )}
-            {desynced && <DesyncedFilterIndicator role="presentation" />}
-          </TriggerIconWrap>
-        }
-      >
-        <TriggerLabel>{ready ? label : t('Loading\u2026')}</TriggerLabel>
-        {remainingCount > 0 && <StyledBadge text={`+${remainingCount}`} />}
-      </DropdownButton>
-    </GuideAnchor>
+    <DropdownButton
+      {...props}
+      ref={forwardedRef}
+      data-test-id="page-filter-project-selector"
+      icon={
+        <TriggerIconWrap>
+          {!ready || isAllProjectsSelected || isMyProjectsSelected ? (
+            <IconProject />
+          ) : (
+            <PlatformList
+              platforms={projectsToShow.map(p => p.platform ?? 'other').reverse()}
+            />
+          )}
+          {desynced && <DesyncedFilterIndicator role="presentation" />}
+        </TriggerIconWrap>
+      }
+    >
+      <TriggerLabel>{ready ? label : t('Loading\u2026')}</TriggerLabel>
+      {remainingCount > 0 && <StyledBadge text={`+${remainingCount}`} />}
+    </DropdownButton>
   );
 }
 
