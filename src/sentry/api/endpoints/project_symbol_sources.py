@@ -88,7 +88,6 @@ class SourceSerializer(serializers.Serializer):
     )
     layout = LayoutSerializer(
         required=False,
-        help_text="Layout settings for the source. This is required for HTTP, GCS, and S3 sources and invalid for AppStoreConnect sources.",
     )
     appconnectIssuer = serializers.CharField(
         min_length=36,
