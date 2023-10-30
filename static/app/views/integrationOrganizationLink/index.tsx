@@ -288,32 +288,44 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
       return null;
     }
 
+    if (!installationData) {
+      return (
+        <Alert type="warning" showIcon>
+          {t(
+            'We could not verify the authenticity of the installation request. We recommend to restart the installation process.'
+          )}
+        </Alert>
+      );
+    }
+
     const sender_url = `https://github.com/${installationData?.sender.login}`;
     const target_url = `https://github.com/${installationData?.account.login}`;
 
+    const alertText = tct(
+      `GitHub user [sender_login] has installed GitHub app to [account_type] [account_login]. Proceed if you want to attach this installation to your Sentry account.`,
+      {
+        account_type: <strong>{installationData?.account.type}</strong>,
+        account_login: (
+          <strong>
+            <ExternalLink href={target_url}>
+              {installationData?.account.login}
+            </ExternalLink>
+          </strong>
+        ),
+        sender_id: <strong>{installationData?.sender.id}</strong>,
+        sender_login: (
+          <strong>
+            <ExternalLink href={sender_url}>
+              {installationData?.sender.login}
+            </ExternalLink>
+          </strong>
+        ),
+      }
+    );
+
     return (
       <Alert type="info" showIcon>
-        {tct(
-          `GitHub user [sender_login] has installed GitHub app to [account_type] [account_login]. Proceed if you want to attach this installation to your Sentry account.`,
-          {
-            account_type: <strong>{installationData?.account.type}</strong>,
-            account_login: (
-              <strong>
-                <ExternalLink href={target_url}>
-                  {installationData?.account.login}
-                </ExternalLink>
-              </strong>
-            ),
-            sender_id: <strong>{installationData?.sender.id}</strong>,
-            sender_login: (
-              <strong>
-                <ExternalLink href={sender_url}>
-                  {installationData?.sender.login}
-                </ExternalLink>
-              </strong>
-            ),
-          }
-        )}
+        {alertText}
       </Alert>
     );
   }
