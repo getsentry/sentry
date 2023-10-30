@@ -9,10 +9,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import ResourceTable from 'sentry/views/performance/browser/resources/imageView/resourceTable';
 import {useImageResourceSort} from 'sentry/views/performance/browser/resources/imageView/utils/useImageResourceSort';
 import {FilterOptionsContainer} from 'sentry/views/performance/browser/resources/jsCssView';
+import DomainSelector from 'sentry/views/performance/browser/resources/shared/domainSelector';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 
-const {RESOURCE_RENDER_BLOCKING_STATUS} = SpanIndexedField;
+const {RESOURCE_RENDER_BLOCKING_STATUS, SPAN_DOMAIN} = SpanIndexedField;
 
 function ImageView() {
   const sort = useImageResourceSort();
@@ -34,6 +35,7 @@ function ImageView() {
   return (
     <Fragment>
       <FilterOptionsContainer>
+        <DomainSelector value={filters[SPAN_DOMAIN] || ''} />
         <SwitchContainer>
           <SwitchButton
             toggle={handleBlockingToggle}
