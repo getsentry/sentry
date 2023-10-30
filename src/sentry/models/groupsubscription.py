@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Iterable, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Iterable, List, Mapping, Optional, Sequence, Union
 
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
@@ -172,7 +172,6 @@ class GroupSubscriptionManager(BaseManager):
         :param group: Group object
         """
         from sentry import features
-        from sentry.models.team import Team
         from sentry.notifications.utils.participants import ParticipantMap
 
         all_possible_actors = RpcActor.many_from_object(group.project.get_members_as_rpc_users())
@@ -186,17 +185,13 @@ class GroupSubscriptionManager(BaseManager):
         has_team_workflow = features.has(
             "organizations:team-workflow-notifications", group.project.organization
         )
+
         if should_use_notifications_v2(group.project.organization) and has_team_workflow:
-            possible_teams_ids = Team.objects.filter(id__in=self.get_participating_team_ids(group))
-            possible_teams_actors = RpcActor.many_from_object(possible_teams_ids)
-            all_possible_actors += possible_teams_actors
-            active_and_disabled_team_subscriptions = self.filter(
-                group=group, team_id__in=[t.id for t in all_possible_actors]
+            possible_team_actors = self.get_possible_team_actors(group)
+            all_possible_actors += possible_team_actors
+            subscriptions_by_team_id = self.get_subscriptions_by_team_id(
+                group, possible_team_actors
             )
-            subscriptions_by_team_id = {
-                subscription.team_id: subscription
-                for subscription in active_and_disabled_team_subscriptions
-            }
 
         if should_use_notifications_v2(group.project.organization):
             if not all_possible_actors:  # no actors, no notifications
@@ -267,6 +262,23 @@ class GroupSubscriptionManager(BaseManager):
                 result.add(provider, user, reason)
 
         return result
+
+    def get_possible_team_actors(self, group: Group) -> List[RpcActor]:
+        from sentry.models.team import Team
+
+        possible_teams_ids = Team.objects.filter(id__in=self.get_participating_team_ids(group))
+        return RpcActor.many_from_object(possible_teams_ids)
+
+    def get_subscriptions_by_team_id(
+        self, group: Group, possible_team_actors: List[RpcActor]
+    ) -> Mapping[int, int]:
+        active_and_disabled_team_subscriptions = self.filter(
+            group=group, team_id__in=[t.id for t in possible_team_actors]
+        )
+        return {
+            subscription.team_id: subscription
+            for subscription in active_and_disabled_team_subscriptions
+        }
 
     @staticmethod
     def get_participating_user_ids(group: Group) -> Sequence[int]:
