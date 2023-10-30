@@ -20,7 +20,6 @@ export type SpanTransactionMetrics = {
   'time_spent_percentage()': number;
   transaction: string;
   'transaction.method': string;
-  'transaction.op': string;
 };
 
 export const useSpanTransactionMetrics = (
@@ -76,7 +75,6 @@ function getEventView(
         `sum(${SPAN_SELF_TIME})`,
         `avg(${SPAN_SELF_TIME})`,
         'time_spent_percentage()',
-        'transaction.op',
         'http_error_count()',
         ...extraFields,
       ],
