@@ -165,7 +165,7 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   setSpeed: () => {},
   setTimelineSize: () => {},
   speed: 1,
-  timelineSize: 300,
+  timelineSize: 100,
   togglePlayPause: () => {},
   toggleSkipInactive: () => {},
 });
@@ -232,7 +232,7 @@ export function Provider({
   const [buffer, setBufferTime] = useState({target: -1, previous: -1});
   const playTimer = useRef<number | undefined>(undefined);
   const didApplyInitialOffset = useRef(false);
-  const [timelineSize, setTimelineSize] = useState(300);
+  const [timelineSize, setTimelineSize] = useState(100);
 
   const isFinished = replayerRef.current?.getCurrentTime() === finishedAtMS;
 
