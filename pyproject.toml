@@ -247,7 +247,6 @@ module = [
     "sentry.api.endpoints.project_release_files",
     "sentry.api.endpoints.project_release_stats",
     "sentry.api.endpoints.project_repo_path_parsing",
-    "sentry.api.endpoints.project_rule_details",
     "sentry.api.endpoints.project_rule_preview",
     "sentry.api.endpoints.project_rule_task_details",
     "sentry.api.endpoints.project_rules",
