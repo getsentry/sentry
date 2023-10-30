@@ -299,32 +299,30 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
   };
 
   handleEditNotificationOption = async (data: NotificationOptionsObject) => {
-    let notificationOption: NotificationOptionsObject;
     try {
-      notificationOption = await this.api.requestPromise(
+      const notificationOption: NotificationOptionsObject = await this.api.requestPromise(
         '/users/me/notification-options/',
         {
           method: 'PUT',
           data,
         }
       );
+      this.setState(state => {
+        // Replace the item in the state
+        const newNotificationOptions = state.notificationOptions.map(option => {
+          if (option.id === data.id) {
+            return notificationOption;
+          }
+          return option;
+        });
+        return {
+          notificationOptions: newNotificationOptions,
+        };
+      });
+      addSuccessMessage(t('Updated notification setting'));
     } catch (err) {
       addErrorMessage(t('Unable to update notification setting'));
     }
-
-    this.setState(state => {
-      // Replace the item in the state
-      const newNotificationOptions = state.notificationOptions.map(option => {
-        if (option.id === data.id) {
-          return notificationOption;
-        }
-        return option;
-      });
-      return {
-        notificationOptions: newNotificationOptions,
-      };
-    });
-    addSuccessMessage(t('Updated notification setting'));
   };
 
   renderBody() {
