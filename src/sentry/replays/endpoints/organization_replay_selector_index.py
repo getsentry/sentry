@@ -25,11 +25,12 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
+from sentry.api.bases.organization import NoProjects
 from sentry.api.event_search import ParenExpression, SearchFilter, parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
+from sentry.replays.endpoints.base import BaseReplaysOrganizationEndpoint
 from sentry.replays.lib.new_query.conditions import IntegerScalar
 from sentry.replays.lib.new_query.fields import FieldProtocol, IntegerColumnField
 from sentry.replays.lib.new_query.parsers import parse_int
@@ -40,7 +41,7 @@ from sentry.utils.snuba import raw_snql_query
 
 
 @region_silo_endpoint
-class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
+class OrganizationReplaySelectorIndexEndpoint(BaseReplaysOrganizationEndpoint):
     owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
