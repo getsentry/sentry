@@ -1142,16 +1142,15 @@ class GetSendToTeamTestV2(GetSendToTeamTest):
     @with_feature("organizations:notification-settings-v2")
     def test_send_to_team_direct(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSettingProvider.objects.create(
+            NotificationSettingProvider.objects.filter(
                 team_id=self.team.id,
                 scope_type="team",
                 scope_identifier=self.team.id,
                 provider="slack",
                 type="alerts",
-                value="always",
-            )
+            ).update(value="always")
         assert self.get_send_to_team() == {
-            ExternalProviders.EMAIL: {RpcActor.from_orm_user(self.user)},
+            ExternalProviders.SLACK: {RpcActor.from_orm_team(self.team)}
         }
 
         with assume_test_silo_mode(SiloMode.CONTROL):

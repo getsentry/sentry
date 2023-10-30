@@ -38,7 +38,6 @@ from sentry.notifications.helpers import (
     should_use_notifications_v2,
     transform_to_notification_settings_by_recipient,
 )
-from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.notify import notification_providers
 from sentry.notifications.types import (
     NOTIFICATION_SETTING_TYPES,
@@ -586,14 +585,12 @@ def get_recipients_by_provider(
 
     if should_use_notifications_v2(project.organization):
         # get by team
-        controller = NotificationController(
+        teams_by_provider = notifications_service.get_notification_recipients(
             recipients=teams,
+            type=setting_type,
             organization_id=project.organization_id,
             project_ids=[project.id],
-            type=setting_type,
-        )
-        teams_by_provider = controller.get_notification_recipients(
-            type=setting_type, actor_type=ActorType.TEAM
+            actor_type=ActorType.TEAM,
         )
     else:
         teams_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
@@ -613,14 +610,12 @@ def get_recipients_by_provider(
     # Repeat for users.
     users_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
     if should_use_notifications_v2(project.organization):
-        controller = NotificationController(
+        users_by_provider = notifications_service.get_notification_recipients(
             recipients=users,
+            type=setting_type,
             organization_id=project.organization_id,
             project_ids=[project.id],
-            type=setting_type,
-        )
-        users_by_provider = controller.get_notification_recipients(
-            type=setting_type, actor_type=ActorType.USER
+            actor_type=ActorType.USER,
         )
     else:
         users_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
