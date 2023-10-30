@@ -316,7 +316,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         return Response(data=redacted[0], status=201)
 
     @extend_schema(
-        operation_id="Update a Symbol Source in a Project",
+        operation_id="Update a Project's Symbol Source",
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
