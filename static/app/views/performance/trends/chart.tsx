@@ -20,7 +20,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
-import {getIntervalLine} from 'sentry/views/performance/utils';
+import {getIntervalLine, IntervalLineFormat} from 'sentry/views/performance/utils';
 
 import {ViewProps} from '../types';
 
@@ -209,6 +209,8 @@ export function Chart({
     needsLabel,
     transaction,
     applyRegressionFormatToInterval
+      ? IntervalLineFormat.REGRESSION_TIMESERIES
+      : IntervalLineFormat.DEFAULT
   );
 
   const yDiff = yMax - yMin;
