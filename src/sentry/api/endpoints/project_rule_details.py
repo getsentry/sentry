@@ -192,7 +192,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
     def put(self, request: Request, project, rule) -> Response:
         """
         Updates an issue alert rule.
-        > Please note that this endpoint rewrites the specified issue alert rule completely.
+        > Warning: Calling this endpoint fully overwrites the specified issue alert.
 
         An issue alert rule triggers whenever a new event is received for any issue in a project that matches the specified alert conditions. These conditions can include a resolved issue re-appearing or an issue affecting many users. Alert conditions have three parts:
         - Triggers - specify what type of activity you'd like monitored or when an alert should be triggered.

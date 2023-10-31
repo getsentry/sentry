@@ -16,6 +16,7 @@ const {
   SPAN_SELF_TIME,
   RESOURCE_RENDER_BLOCKING_STATUS,
   HTTP_RESPONSE_CONTENT_LENGTH,
+  PROJECT_ID,
 } = SpanMetricsField;
 
 type Props = {
@@ -65,7 +66,7 @@ export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Pr
         SPAN_GROUP,
         SPAN_DOMAIN,
         `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
-        'count_unique(transaction)',
+        'project.id',
       ],
       name: 'Resource module - resource table',
       query: queryConditions.join(' '),
@@ -102,6 +103,7 @@ export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Pr
       | 'non-blocking'
       | 'blocking',
     [SPAN_DOMAIN]: row[SPAN_DOMAIN][0]?.toString(),
+    [PROJECT_ID]: row[PROJECT_ID] as number,
     [`avg(http.response_content_length)`]: row[
       `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`
     ] as number,

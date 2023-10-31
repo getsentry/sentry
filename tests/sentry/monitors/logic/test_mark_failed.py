@@ -316,7 +316,11 @@ class MarkFailedTestCase(TestCase):
                         "id": str(monitor.guid),
                         "name": monitor.name,
                         "slug": monitor.slug,
-                    }
+                    },
+                    "trace": {
+                        "trace_id": trace_id.hex,
+                        "span_id": None,
+                    },
                 },
                 "environment": monitor_environment.environment.name,
                 "event_id": occurrence["event_id"],
@@ -328,7 +332,6 @@ class MarkFailedTestCase(TestCase):
                     "monitor.id": str(monitor.guid),
                     "monitor.slug": str(monitor.slug),
                 },
-                "trace_id": trace_id.hex,
             },
         ) == dict(event)
 
@@ -433,7 +436,6 @@ class MarkFailedTestCase(TestCase):
                     "monitor.id": str(monitor.guid),
                     "monitor.slug": str(monitor.slug),
                 },
-                "trace_id": None,
             },
         ) == dict(event)
 
@@ -541,7 +543,6 @@ class MarkFailedTestCase(TestCase):
                     "monitor.id": str(monitor.guid),
                     "monitor.slug": str(monitor.slug),
                 },
-                "trace_id": None,
             },
         ) == dict(event)
 

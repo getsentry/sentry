@@ -11,7 +11,10 @@ import GridEditable, {
   GridColumnOrder,
   GridColumnSortBy,
 } from 'sentry/components/gridEditable';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {Tag} from 'sentry/types';
 import {EChartClickHandler, EChartHighlightHandler, Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
@@ -138,7 +141,9 @@ export function PageOverviewWebVitalsTagDetailPanel({
     const shouldHighlight = row.id === highlightedSampleId;
 
     const commonProps = {
-      style: (shouldHighlight ? {fontWeight: 'bold'} : {}) satisfies CSSProperties,
+      style: (shouldHighlight
+        ? {textShadow: '0 0 0.5px black'}
+        : {}) satisfies CSSProperties,
       onMouseEnter: () => setHighlightedSampleId(row.id),
       onMouseLeave: () => setHighlightedSampleId(undefined),
     };
@@ -273,13 +278,32 @@ export function PageOverviewWebVitalsTagDetailPanel({
   const chartIsLoading =
     chartSeriesDataIsLoading || isSamplesTabledDataLoading || isRefetching;
 
+  const p75TransactionDuration = projectData?.data[0][`p75(transaction.duration)`];
+  const subTitle = p75TransactionDuration ? (
+    <SubtitleWrapper>
+      <span>{getDuration((p75TransactionDuration as number) / 1000, 2, true)}</span>
+      <QuestionTooltip
+        title={t(
+          `The p75(transaction.duration) of the route with %s as %s`,
+          tag?.key,
+          tag?.name
+        )}
+        size="xs"
+      />
+    </SubtitleWrapper>
+  ) : (
+    <LoadingIndicatorWrapper>
+      <LoadingIndicator mini />
+    </LoadingIndicatorWrapper>
+  );
+
   return (
     <PageErrorProvider>
       {tag && (
         <DetailPanel detailKey={tag?.key} onClose={onClose}>
           <Fragment>
             <WebVitalTagsDetailHeader
-              value="TBD"
+              value={subTitle}
               tag={tag}
               projectScore={projectScore}
               isProjectScoreCalculated={!projectDataLoading}
@@ -336,4 +360,16 @@ const NoOverflow = styled('span')`
 const AlignCenter = styled('span')`
   text-align: center;
   width: 100%;
+`;
+
+const SubtitleWrapper = styled('span')`
+  display: flex;
+  align-items: flex-start;
+  gap: ${space(0.5)};
+`;
+
+const LoadingIndicatorWrapper = styled('span')`
+  .loading.mini {
+    margin: 10px ${space(0.5)};
+  }
 `;

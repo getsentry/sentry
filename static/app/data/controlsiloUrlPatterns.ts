@@ -140,6 +140,7 @@ const patterns: RegExp[] = [
   new RegExp('^extensions/jira-server/search/[^/]+/[^/]+/$'),
   new RegExp('^extensions/slack/link-identity/[^/]+/$'),
   new RegExp('^extensions/slack/unlink-identity/[^/]+/$'),
+  new RegExp('^extensions/github/webhook/$'),
   new RegExp('^extensions/github/search/[^/]+/[^/]+/$'),
   new RegExp('^extensions/gitlab/search/[^/]+/[^/]+/$'),
   new RegExp('^extensions/vsts/search/[^/]+/[^/]+/$'),

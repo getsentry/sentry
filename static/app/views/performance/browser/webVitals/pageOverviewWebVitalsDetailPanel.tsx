@@ -240,7 +240,7 @@ export function PageOverviewWebVitalsDetailPanel({
   return (
     <PageErrorProvider>
       <DetailPanel detailKey={webVital ?? undefined} onClose={onClose}>
-        {webVital && (
+        {webVital && projectData && (
           <WebVitalDetailHeader
             value={
               webVital !== 'cls'
