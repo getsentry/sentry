@@ -66,7 +66,7 @@ function HasSelection({checked, mailbox, toggleChecked}) {
               mailbox === 'resolved'
                 ? resolve(GroupStatus.UNRESOLVED)
                 : resolve(GroupStatus.RESOLVED);
-              checked.length ? checked.forEach(c => toggleChecked(c)) : null;
+              checked.forEach(c => toggleChecked(c));
             }}
           >
             {mailbox === 'resolved' ? t('Unresolve') : t('Resolve')}
