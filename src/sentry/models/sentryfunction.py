@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
@@ -11,7 +13,7 @@ from sentry.db.models import (
 from sentry.db.models.fields.array import ArrayField
 
 
-class SentryFunctionManager(BaseManager):
+class SentryFunctionManager(BaseManager["SentryFunction"]):
     def get_sentry_functions(self, organization_id, event_type):
         functions = self.filter(organization_id=organization_id, events__contains=event_type)
         return functions
@@ -30,7 +32,7 @@ class SentryFunction(DefaultFieldsModel):
     code = models.TextField(null=True)
     events = ArrayField(of=models.TextField, null=True)
     env_variables = EncryptedJsonField(default=dict)
-    objects = SentryFunctionManager()
+    objects: ClassVar[SentryFunctionManager] = SentryFunctionManager()
 
     class Meta:
         app_label = "sentry"

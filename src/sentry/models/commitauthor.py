@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, ClassVar, List
 
 from django.db import models
 
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.user import RpcUser
 
 
-class CommitAuthorManager(BaseManager):
+class CommitAuthorManager(BaseManager["CommitAuthor"]):
     def get_or_create(self, organization_id, email, defaults, **kwargs):
         # Force email address to lowercase because many providers do this. Note though that this isn't technically
         # to spec; only the domain part of the email address is actually case-insensitive.
@@ -31,7 +31,7 @@ class CommitAuthor(Model):
     email = models.CharField(max_length=200)
     external_id = models.CharField(max_length=164, null=True)
 
-    objects = CommitAuthorManager()
+    objects: ClassVar[CommitAuthorManager] = CommitAuthorManager()
 
     class Meta:
         app_label = "sentry"

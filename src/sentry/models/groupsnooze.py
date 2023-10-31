@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 from datetime import timedelta
+from typing import ClassVar
 
 from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
+from typing_extensions import Self
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -48,7 +52,7 @@ class GroupSnooze(Model):
     state = JSONField(null=True)
     actor_id = BoundedPositiveIntegerField(null=True)
 
-    objects = BaseManager(cache_fields=("group",))
+    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("group",))
 
     class Meta:
         db_table = "sentry_groupsnooze"

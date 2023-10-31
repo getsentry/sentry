@@ -4,7 +4,7 @@ import logging
 import secrets
 import warnings
 from string import ascii_letters, digits
-from typing import Any, List, Mapping, Optional, Tuple
+from typing import Any, ClassVar, List, Mapping, Optional, Tuple
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
@@ -52,7 +52,7 @@ RANDOM_PASSWORD_ALPHABET = ascii_letters + digits
 RANDOM_PASSWORD_LENGTH = 32
 
 
-class UserManager(BaseManager, DjangoUserManager):
+class UserManager(BaseManager["User"], DjangoUserManager):
     def get_users_with_only_one_integration_for_provider(
         self, provider: ExternalProviders, organization_id: int
     ) -> QuerySet:
@@ -171,7 +171,7 @@ class User(BaseModel, AbstractBaseUser):
     avatar_type = models.PositiveSmallIntegerField(default=0, choices=UserAvatar.AVATAR_TYPES)
     avatar_url = models.CharField(_("avatar url"), max_length=120, null=True)
 
-    objects = UserManager(cache_fields=["pk"])
+    objects: ClassVar[UserManager] = UserManager(cache_fields=["pk"])
 
     USERNAME_FIELD = "username"
     REQUIRED_FIELDS = ["email"]

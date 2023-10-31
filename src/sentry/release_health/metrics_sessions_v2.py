@@ -698,9 +698,7 @@ def _order_by_preflight_query_results(
                     # will never have null group values except when the group exists in the
                     # preflight query but not in the metrics dataset
                     group_key_dict.update({key: None})  # type: ignore
-                result_groups += [
-                    {"by": group_key_dict, **default_group_gen_func()}  # type: ignore
-                ]
+                result_groups += [{"by": group_key_dict, **default_group_gen_func()}]
 
         # Pop extra groups returned to match request limit
         if len(result_groups) > limit.limit:

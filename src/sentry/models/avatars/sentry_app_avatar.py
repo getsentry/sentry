@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from enum import Enum
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, ClassVar, List
 
 from django.db import models
 
@@ -24,7 +24,7 @@ class SentryAppAvatarTypes(Enum):
         return tuple((_.value, _.name.lower()) for _ in SentryAppAvatarTypes)
 
 
-class SentryAppAvatarManager(BaseManager):
+class SentryAppAvatarManager(BaseManager["SentryAppAvatar"]):
     def get_by_apps_as_dict(self, sentry_apps: List[SentryApp]):
         """
         Returns a dict mapping sentry_app_id (key) to List[SentryAppAvatar] (value)
@@ -43,7 +43,7 @@ class SentryAppAvatar(ControlAvatarBase):
     and specifies which type of logo it is.
     """
 
-    objects = SentryAppAvatarManager()
+    objects: ClassVar[SentryAppAvatarManager] = SentryAppAvatarManager()
 
     AVATAR_TYPES = SentryAppAvatarTypes.get_choices()
 

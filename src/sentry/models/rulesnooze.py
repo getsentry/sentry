@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from django.db import models
 from django.db.models import CheckConstraint, Q, UniqueConstraint
 from django.utils import timezone
@@ -13,7 +15,7 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
-class RuleSnoozeManager(BaseManager):
+class RuleSnoozeManager(BaseManager["RuleSnooze"]):
     def is_snoozed_for_all(self, rule=None, alert_rule=None):
         """Check whether the given rule is snoozed for everyone"""
         return RuleSnooze.objects.filter(
@@ -42,7 +44,7 @@ class RuleSnooze(Model):
     until = models.DateTimeField(null=True, db_index=True)
     date_added = models.DateTimeField(default=timezone.now)
 
-    objects = RuleSnoozeManager()
+    objects: ClassVar[RuleSnoozeManager] = RuleSnoozeManager()
 
     class Meta:
         db_table = "sentry_rulesnooze"

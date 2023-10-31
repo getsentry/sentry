@@ -1,8 +1,9 @@
 from enum import Enum, IntEnum
-from typing import Sequence, Tuple
+from typing import ClassVar, Sequence, Tuple
 
 from django.db import models
 from django.utils import timezone
+from typing_extensions import Self
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
@@ -59,7 +60,7 @@ class Rule(Model):
 
     date_added = models.DateTimeField(default=timezone.now)
 
-    objects = BaseManager(cache_fields=("pk",))
+    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("pk",))
 
     class Meta:
         db_table = "sentry_rule"

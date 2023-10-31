@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Iterable, Optional, Sequence, Union
+from typing import TYPE_CHECKING, ClassVar, Iterable, Optional, Sequence, Union
 
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
@@ -39,7 +39,7 @@ if TYPE_CHECKING:
     from sentry.notifications.utils.participants import ParticipantMap
 
 
-class GroupSubscriptionManager(BaseManager):
+class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
     def subscribe(
         self,
         group: Group,
@@ -285,7 +285,7 @@ class GroupSubscription(Model):
     reason = BoundedPositiveIntegerField(default=GroupSubscriptionReason.unknown)
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
-    objects = GroupSubscriptionManager()
+    objects: ClassVar[GroupSubscriptionManager] = GroupSubscriptionManager()
 
     class Meta:
         app_label = "sentry"

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 import secrets
-from typing import Any, Optional, Tuple
+from typing import Any, ClassVar, Optional, Tuple
 from urllib.parse import urlparse
 
 import petname
@@ -40,7 +40,7 @@ class ProjectKeyStatus:
     INACTIVE = 1
 
 
-class ProjectKeyManager(BaseManager):
+class ProjectKeyManager(BaseManager["ProjectKey"]):
     def post_save(self, instance, **kwargs):
         schedule_invalidate_project_config(
             public_key=instance.public_key, trigger="projectkey.post_save"
@@ -82,7 +82,7 @@ class ProjectKey(Model):
     rate_limit_count = BoundedPositiveIntegerField(null=True)
     rate_limit_window = BoundedPositiveIntegerField(null=True)
 
-    objects = ProjectKeyManager(
+    objects: ClassVar[ProjectKeyManager] = ProjectKeyManager(
         cache_fields=("public_key", "secret_key"),
         # store projectkeys in memcached for longer than other models,
         # specifically to make the relay_projectconfig endpoint faster.

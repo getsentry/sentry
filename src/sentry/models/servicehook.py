@@ -2,10 +2,12 @@ import hmac
 import secrets
 from functools import cached_property
 from hashlib import sha256
+from typing import ClassVar
 from uuid import uuid4
 
 from django.db import models
 from django.utils import timezone
+from typing_extensions import Self
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
@@ -71,7 +73,7 @@ class ServiceHook(Model):
     version = BoundedPositiveIntegerField(default=0, choices=((0, "0"),))
     date_added = models.DateTimeField(default=timezone.now)
 
-    objects = BaseManager(cache_fields=("guid",))
+    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("guid",))
 
     class Meta:
         app_label = "sentry"

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional, Sequence, Tuple, Union
 from uuid import uuid4
 
 import jsonschema
@@ -12,6 +12,7 @@ from django.db import models
 from django.db.models.signals import post_delete, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
+from typing_extensions import Self
 
 from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
@@ -472,7 +473,7 @@ class MonitorCheckIn(Model):
     attachment_id = BoundedBigIntegerField(null=True)
     config = JSONField(default=dict)
 
-    objects = BaseManager(cache_fields=("guid",))
+    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("guid",))
 
     class Meta:
         app_label = "sentry"
@@ -524,7 +525,7 @@ class MonitorLocation(Model):
     guid = UUIDField(unique=True, auto_add=True)
     name = models.CharField(max_length=128)
     date_added = models.DateTimeField(default=timezone.now)
-    objects = BaseManager(cache_fields=("guid",))
+    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("guid",))
 
     class Meta:
         app_label = "sentry"
@@ -533,7 +534,7 @@ class MonitorLocation(Model):
     __repr__ = sane_repr("guid", "name")
 
 
-class MonitorEnvironmentManager(BaseManager):
+class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
     """
     A manager that consolidates logic for monitor environment updates
     """
@@ -596,7 +597,7 @@ class MonitorEnvironment(Model):
     The last time that the monitor changed state. Used for issue fingerprinting.
     """
 
-    objects = MonitorEnvironmentManager()
+    objects: ClassVar[MonitorEnvironmentManager] = MonitorEnvironmentManager()
 
     class Meta:
         app_label = "sentry"

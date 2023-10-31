@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Mapping, TypedDict
+from typing import Any, ClassVar, List, Mapping, TypedDict
 
 from django.db import models, router, transaction
 from django.utils import timezone
@@ -38,7 +38,9 @@ class OrganizationIntegration(ReplicatedControlModel):
     # After the grace period, we will mark the status as disabled.
     grace_period_end = models.DateTimeField(null=True, blank=True, db_index=True)
 
-    objects = ControlOutboxProducingManager["OrganizationIntegration"]()
+    objects: ClassVar[
+        ControlOutboxProducingManager[OrganizationIntegration]
+    ] = ControlOutboxProducingManager()
 
     class Meta:
         app_label = "sentry"

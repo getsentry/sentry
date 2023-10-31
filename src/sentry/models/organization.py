@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import IntEnum
-from typing import Any, Collection, FrozenSet, Mapping, Optional, Sequence
+from typing import Any, ClassVar, Collection, FrozenSet, Mapping, Optional, Sequence
 
 from django.conf import settings
 from django.db import models, router, transaction
@@ -85,7 +85,7 @@ OrganizationStatus_labels = {
 }
 
 
-class OrganizationManager(BaseManager):
+class OrganizationManager(BaseManager["Organization"]):
     def get_for_user_ids(self, user_ids: Collection[int]) -> QuerySet:
         """Returns the QuerySet of all organizations that a set of Users have access to."""
         return self.filter(
@@ -209,7 +209,7 @@ class Organization(
 
         bitfield_default = 1
 
-    objects = OrganizationManager(cache_fields=("pk", "slug"))
+    objects: ClassVar[OrganizationManager] = OrganizationManager(cache_fields=("pk", "slug"))
 
     # Not persisted. Getsentry fills this in in post-save hooks and we use it for synchronizing data across silos.
     customer_id: Optional[str] = None

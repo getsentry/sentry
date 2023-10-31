@@ -5,7 +5,7 @@ import logging
 import re
 from dataclasses import dataclass
 from time import time
-from typing import List, Mapping, Optional, Sequence, Union
+from typing import ClassVar, List, Mapping, Optional, Sequence, Union
 
 import sentry_sdk
 from django.db import IntegrityError, models, router
@@ -71,7 +71,7 @@ class ReleaseCommitError(Exception):
     pass
 
 
-class ReleaseProjectModelManager(BaseManager):
+class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
     @staticmethod
     def _on_post(project, trigger):
         from sentry.dynamic_sampling import ProjectBoostedReleases
@@ -104,7 +104,7 @@ class ReleaseProject(Model):
     unadopted = models.DateTimeField(null=True, blank=True)
     first_seen_transaction = models.DateTimeField(null=True, blank=True)
 
-    objects = ReleaseProjectModelManager()
+    objects: ClassVar[ReleaseProjectModelManager] = ReleaseProjectModelManager()
 
     class Meta:
         app_label = "sentry"
@@ -364,7 +364,7 @@ def _get_cache_key(project_id: int, group_id: int, first: bool) -> str:
     return f"g-r:{group_id}-{project_id}-{first}"
 
 
-class ReleaseModelManager(BaseManager):
+class ReleaseModelManager(BaseManager["Release"]):
     def get_queryset(self):
         return ReleaseQuerySet(self.model, using=self._db)
 
@@ -518,7 +518,7 @@ class Release(Model):
     user_agent = models.TextField(null=True)
 
     # Custom Model Manager required to override create method
-    objects = ReleaseModelManager()
+    objects: ClassVar[ReleaseModelManager] = ReleaseModelManager()
 
     class Meta:
         app_label = "sentry"
