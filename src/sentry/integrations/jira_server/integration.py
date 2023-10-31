@@ -839,7 +839,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 # allowedValues for some reason doesn't pass enough info.
                 field["choices"] = self.make_choices(client.get_priorities(project_id))
                 field["default"] = defaults.get("priority", "")
-                # Don't restore the prior fixVersions choices upon re-rendering b/c it's dependent on the project.
+                # Don't restore the prior priority choices upon re-rendering b/c it's dependent on the project.
                 field["ignorePriorChoices"] = True
             elif field["name"] == "fixVersions":
                 field["choices"] = self.make_choices(client.get_versions(project_id))
