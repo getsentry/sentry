@@ -24,6 +24,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
+import {Recommendations} from 'sentry/views/performance/browser/webVitals/components/recommendations';
 import {WebVitalDetailHeader} from 'sentry/views/performance/browser/webVitals/components/webVitalDescription';
 import {
   calculatePerformanceScore,
@@ -145,6 +146,9 @@ export function PageOverviewWebVitalsDetailPanel({
     if (col.key === 'score') {
       return <AlignCenter>{`${webVital} ${col.name}`}</AlignCenter>;
     }
+    if (col.key === 'replayId' || col.key === 'profile.id') {
+      return <AlignCenter>{col.name}</AlignCenter>;
+    }
     return <NoOverflow>{col.name}</NoOverflow>;
   };
 
@@ -204,17 +208,17 @@ export function PageOverviewWebVitalsDetailPanel({
           undefined
         );
 
-      return (
-        <NoOverflow>
-          {row.replayId && replayTarget && (
-            <Link to={replayTarget}>{getShortEventId(row.replayId)}</Link>
-          )}
-        </NoOverflow>
+      return row.replayId && replayTarget ? (
+        <AlignCenter>
+          <Link to={replayTarget}>{getShortEventId(row.replayId)}</Link>
+        </AlignCenter>
+      ) : (
+        <AlignCenter>{' \u2014 '}</AlignCenter>
       );
     }
     if (key === 'profile.id') {
       if (!defined(project) || !defined(row['profile.id'])) {
-        return null;
+        return <AlignCenter>{' \u2014 '}</AlignCenter>;
       }
       const target = generateProfileFlamechartRoute({
         orgSlug: organization.slug,
@@ -223,11 +227,11 @@ export function PageOverviewWebVitalsDetailPanel({
       });
 
       return (
-        <NoOverflow>
+        <AlignCenter>
           <Link to={target} onClick={onClose}>
             {getShortEventId(row['profile.id'])}
           </Link>
-        </NoOverflow>
+        </AlignCenter>
       );
     }
     return <AlignRight>{row[key]}</AlignRight>;
@@ -253,6 +257,9 @@ export function PageOverviewWebVitalsDetailPanel({
             webVital={webVital}
             score={projectScore[`${webVital}Score`]}
           />
+        )}
+        {transaction && webVital && (
+          <Recommendations transaction={transaction} webVital={webVital} />
         )}
         <GridEditable
           data={tableData}

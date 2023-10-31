@@ -5,7 +5,7 @@ import jsonschema
 
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
+from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.utils.dates import ensure_aware
 
@@ -96,8 +96,19 @@ def create_feedback_issue(event, project_id):
     fix_for_issue_platform(event_data)
 
     # make sure event data is valid for issue platform
-    jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
+    validate_issue_platform_event_schema(event_data)
 
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_data
     )
+
+
+def validate_issue_platform_event_schema(event_data):
+    """
+    The issue platform schema validation does not run in dev atm so we have to do the validation
+    ourselves, or else our tests are not representative of what happens in prod.
+    """
+    try:
+        jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
+    except jsonschema.exceptions.ValidationError:
+        jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)

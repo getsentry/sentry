@@ -763,7 +763,7 @@ def test_performance_calculate_score(default_project):
     with Feature(features):
         config = get_project_config(default_project, full_config=True).to_dict()["config"]
 
-        validate_project_config(json.dumps(config), strict=False)
+        validate_project_config(json.dumps(config), strict=True)
         performance_score = config["performanceScore"]
         assert performance_score == {
             "profiles": [

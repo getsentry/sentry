@@ -170,7 +170,7 @@ const WebVitalText = styled('div')`
 `;
 
 const Container = styled('div')`
-  margin: ${space(2)} 0;
+  margin: 48px 0;
 `;
 
 const Flex = styled('div')<{gap?: number}>`

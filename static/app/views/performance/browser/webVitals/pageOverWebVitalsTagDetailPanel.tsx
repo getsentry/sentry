@@ -11,7 +11,10 @@ import GridEditable, {
   GridColumnOrder,
   GridColumnSortBy,
 } from 'sentry/components/gridEditable';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {Tag} from 'sentry/types';
 import {EChartClickHandler, EChartHighlightHandler, Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
@@ -52,7 +55,7 @@ const columnOrder: GridColumnOrder[] = [
   {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: 'Replay'},
   {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
   {key: 'transaction.duration', width: COL_WIDTH_UNDEFINED, name: 'Duration'},
-  {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Performance Score'},
+  {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
 ];
 
 const sort: GridColumnSortBy<keyof TransactionSampleRowWithScore> = {
@@ -106,7 +109,7 @@ export function PageOverviewWebVitalsTagDetailPanel({
     isRefetching,
     refetch,
   } = useTransactionSamplesWebVitalsQuery({
-    limit: 3,
+    limit: 9,
     transaction: transaction ?? '',
     query: tag ? `${tag.key}:${tag.name}` : undefined,
     enabled: Boolean(tag),
@@ -275,13 +278,37 @@ export function PageOverviewWebVitalsTagDetailPanel({
   const chartIsLoading =
     chartSeriesDataIsLoading || isSamplesTabledDataLoading || isRefetching;
 
+  const p75TransactionDuration = projectData?.data[0][`p75(transaction.duration)`];
+  const subTitle = p75TransactionDuration ? (
+    <SubtitleWrapper>
+      <span>{getDuration((p75TransactionDuration as number) / 1000, 2, true)}</span>
+      <QuestionTooltip
+        title={t(
+          `The p75(transaction.duration) of the route with %s as %s`,
+          tag?.key,
+          tag?.name
+        )}
+        size="xs"
+      />
+    </SubtitleWrapper>
+  ) : (
+    <LoadingIndicatorWrapper>
+      <LoadingIndicator mini />
+    </LoadingIndicatorWrapper>
+  );
+
+  const filteredColumnOrder =
+    tag?.key !== 'browser.name'
+      ? columnOrder.filter(({key}) => key !== 'browser')
+      : columnOrder;
+
   return (
     <PageErrorProvider>
       {tag && (
         <DetailPanel detailKey={tag?.key} onClose={onClose}>
           <Fragment>
             <WebVitalTagsDetailHeader
-              value="TBD"
+              value={subTitle}
               tag={tag}
               projectScore={projectScore}
               isProjectScoreCalculated={!projectDataLoading}
@@ -295,7 +322,7 @@ export function PageOverviewWebVitalsTagDetailPanel({
                 data={[
                   {
                     data: chartIsLoading ? [] : chartSeriesData.total,
-                    seriesName: 'performance score',
+                    seriesName: t('Performance Score'),
                   },
                 ]}
                 loading={chartIsLoading}
@@ -313,7 +340,7 @@ export function PageOverviewWebVitalsTagDetailPanel({
             <GridEditable
               data={tableData}
               isLoading={isSamplesTabledDataLoading || isRefetching}
-              columnOrder={columnOrder}
+              columnOrder={filteredColumnOrder}
               columnSortBy={[sort]}
               grid={{
                 renderHeadCell,
@@ -333,9 +360,22 @@ export function PageOverviewWebVitalsTagDetailPanel({
 const NoOverflow = styled('span')`
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const AlignCenter = styled('span')`
   text-align: center;
   width: 100%;
+`;
+
+const SubtitleWrapper = styled('span')`
+  display: flex;
+  align-items: flex-start;
+  gap: ${space(0.5)};
+`;
+
+const LoadingIndicatorWrapper = styled('span')`
+  .loading.mini {
+    margin: 10px ${space(0.5)};
+  }
 `;
