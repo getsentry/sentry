@@ -12,11 +12,10 @@ import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
 import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
-import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {IconJson, IconLink} from 'sentry/icons';
+import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, GroupStatus} from 'sentry/types';
@@ -67,7 +66,7 @@ export default function FeedbackItem({
         <Flex gap={space(2)} justify="space-between">
           <Flex column>
             <Flex align="center" gap={space(0.5)}>
-              <FeedbackItemUsername feedbackItem={feedbackItem} detailDisplay />
+              <FeedbackItemUsername feedbackIssue={feedbackItem} detailDisplay />
               {feedbackItem.metadata.contact_email ? (
                 <CopyToClipboardButton
                   size="xs"
@@ -136,27 +135,6 @@ export default function FeedbackItem({
         ) : null}
 
         <TagsSection tags={tags} />
-
-        <Section icon={<IconJson size="xs" />} title={t('Raw Issue Data')}>
-          <ObjectInspector
-            data={feedbackItem}
-            expandLevel={3}
-            theme={{
-              TREENODE_FONT_SIZE: '0.7rem',
-              ARROW_FONT_SIZE: '0.5rem',
-            }}
-          />
-        </Section>
-        <Section icon={<IconJson size="xs" />} title={t('Raw Event Data')}>
-          <ObjectInspector
-            data={eventData}
-            expandLevel={3}
-            theme={{
-              TREENODE_FONT_SIZE: '0.7rem',
-              ARROW_FONT_SIZE: '0.5rem',
-            }}
-          />
-        </Section>
       </OverflowPanelItem>
     </Fragment>
   );
