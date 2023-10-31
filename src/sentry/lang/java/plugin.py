@@ -1,6 +1,5 @@
 import sentry_sdk
 from symbolic.proguard import ProguardMapper
-from symbolic.sourcemap import SourceView
 
 from sentry.lang.java.processing import deobfuscate_exception_value
 from sentry.lang.java.utils import (
@@ -248,7 +247,7 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
             for archive in self._archives:
                 try:
                     result, _ = archive.get_file_by_url(source_file_name)
-                    source_view = SourceView.from_bytes(result.read())
+                    source_view = list(result.readlines())
                     source_context = get_source_context(source_view, lineno)
 
                     (pre_context, context_line, post_context) = source_context

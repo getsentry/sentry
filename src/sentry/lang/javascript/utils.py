@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from os.path import splitext
-from typing import List, Sequence, Tuple
+from typing import List, Tuple
 from urllib.parse import urlsplit
 
 # number of surrounding lines (on each side) to fetch
@@ -10,8 +10,8 @@ LINES_OF_CONTEXT = 5
 
 
 def get_source_context(
-    source: Sequence[str], lineno: int, context=LINES_OF_CONTEXT
-) -> Tuple[List[str] | None, str, List[str] | None]:
+    source: List[str], lineno: int, context=LINES_OF_CONTEXT
+) -> Tuple[List[str] | None, str | None, List[str] | None]:
     if not source:
         return None, None, None
 
@@ -94,7 +94,7 @@ CLEAN_MODULE_RE = re.compile(
 VERSION_RE = re.compile(r"^[a-f0-9]{32}|[a-f0-9]{40}$", re.I)
 
 
-def generate_module(src: str) -> str:
+def generate_module(src: str | None) -> str:
     """
     Converts a url into a made-up module name by doing the following:
      * Extract just the path name ignoring querystrings
