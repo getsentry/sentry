@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Mapping, Sequence, Set
 
@@ -21,8 +20,10 @@ class SDKCrashDetectorConfig:
 
     sdk_frame_filename_matchers: Set[str]
 
+    sdk_crash_ignore_functions_matchers: Set[str]
 
-class SDKCrashDetector(ABC):
+
+class SDKCrashDetector:
     """
     This class is still a work in progress. The plan is that every SDK has to define a subclass of
     this base class to get SDK crash detection up and running. We most likely will have to pull
@@ -66,14 +67,39 @@ class SDKCrashDetector(ABC):
 
         return True
 
-    @abstractmethod
     def is_sdk_crash(self, frames: Sequence[Mapping[str, Any]]) -> bool:
         """
         Returns true if the stacktrace stems from an SDK crash.
 
         :param frames: The stacktrace frames ordered from newest to oldest.
         """
-        raise NotImplementedError
+
+        if not frames:
+            return False
+
+        # The frames are ordered from caller to callee, or oldest to youngest.
+        # The last frame is the one creating the exception.
+        # Therefore, we must iterate in reverse order.
+        # In a first iteration of this algorithm, we checked for in_app frames, but
+        # customers can change the in_app configuration, so we can't rely on that.
+        # Furthermore, if they use static linking for including, for example, the Sentry Cocoa,
+        # Cocoa SDK frames can be marked as in_app. Therefore, the algorithm only checks if frames
+        # are SDK frames or from system libraries.
+        for frame in reversed(frames):
+
+            function = frame.get("function")
+            if function:
+                for matcher in self.config.sdk_crash_ignore_functions_matchers:
+                    if glob_match(function, matcher, ignorecase=True):
+                        return False
+
+            if self.is_sdk_frame(frame):
+                return True
+
+            if not self.is_system_library_frame(frame):
+                return False
+
+        return False
 
     def is_sdk_frame(self, frame: Mapping[str, Any]) -> bool:
         """
