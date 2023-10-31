@@ -1703,6 +1703,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-new-event-counts": False,
     # Enable the Replay Details > New timeline
     "organizations:session-replay-new-timeline": False,
+    # Enable the accessibility issues endpoint
+    "organizations:session-replay-accessibility-issues": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
