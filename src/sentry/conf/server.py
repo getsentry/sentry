@@ -1707,6 +1707,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
     "organizations:starfish-view": False,
+    # Enables the resource module ui
+    "organizations:starfish-browser-resource-module-ui": False,
     # Enable the aggregate span waterfall view
     "organizations:starfish-aggregate-span-waterfall": False,
     # Enable starfish endpoint that's used for regressing testing purposes
