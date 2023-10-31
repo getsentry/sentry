@@ -43,23 +43,26 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
                 previous_checkin["status"] == CheckInStatus.OK
                 for previous_checkin in previous_checkins
             )
+        else:
+            incident_recovering = True
 
-            # Resolve the incident
-            if incident_recovering:
-                MonitorIncident.objects.filter(
-                    monitor_environment=monitor_env,
-                    grouphash=monitor_env.incident_grouphash,
-                ).update(
-                    resolving_checkin=checkin,
-                    resolving_timestamp=checkin.date_added,
-                )
+        # Resolve the incident
+        if incident_recovering:
+            params["last_state_change"] = ts
 
-                params["last_state_change"] = ts
-
+            # Only send an occurrence if we have an active incident
+            affected = MonitorIncident.objects.filter(
+                monitor_environment=monitor_env,
+                grouphash=monitor_env.incident_grouphash,
+            ).update(
+                resolving_checkin=checkin,
+                resolving_timestamp=checkin.date_added,
+            )
+            if affected:
                 resolve_incident_group(monitor_env.incident_grouphash, checkin.monitor.project_id)
-            else:
-                # Don't update status if incident isn't recovered
-                params.pop("status", None)
+        else:
+            # Don't update status if incident isn't recovered
+            params.pop("status", None)
 
     MonitorEnvironment.objects.filter(id=monitor_env.id).exclude(last_checkin__gt=ts).update(
         **params
