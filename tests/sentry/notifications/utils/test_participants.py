@@ -40,7 +40,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import Feature, with_feature
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
@@ -99,22 +99,6 @@ class GetSendToMemberTest(_ParticipantsTest):
         assert self.get_send_to_member(self.project, 900001) == {}
 
     def test_send_to_user(self):
-        # first with the feature
-        with Feature({"organizations:notification-settings-v2", True}):
-            self.assert_recipients_are(
-                self.get_send_to_member(), email=[self.user.id], slack=[self.user.id]
-            )
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                NotificationSettingProvider.objects.create(
-                    user_id=self.user.id,
-                    scope_type="user",
-                    scope_identifier=self.user.id,
-                    provider="email",
-                    type="alerts",
-                    value="never",
-                )
-
-        # now without it
         self.assert_recipients_are(
             self.get_send_to_member(), email=[self.user.id], slack=[self.user.id]
         )
@@ -127,7 +111,7 @@ class GetSendToMemberTest(_ParticipantsTest):
                 type="alerts",
                 value="never",
             )
-
+        # now without it
         self.assert_recipients_are(self.get_send_to_member(), slack=[self.user.id])
 
     def test_other_org_user(self):
@@ -161,21 +145,6 @@ class GetSendToTeamTest(_ParticipantsTest):
     def setUp(self):
         super().setUp()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            # disable slack
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.NEVER,
-                team_id=self.team.id,
-                organization_id_for_team=self.organization.id,
-            )
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.NEVER,
-                user_id=self.user.id,
-            )
-            # disable Slack
             NotificationSettingProvider.objects.create(
                 team_id=self.team.id,
                 scope_type="team",
@@ -223,16 +192,15 @@ class GetSendToTeamTest(_ParticipantsTest):
 
     def test_send_to_team_direct(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSettingProvider.objects.create(
+            NotificationSettingProvider.objects.filter(
                 team_id=self.team.id,
                 scope_type="team",
                 scope_identifier=self.team.id,
                 provider="slack",
                 type="alerts",
-                value="always",
-            )
+            ).update(value="always")
         assert self.get_send_to_team() == {
-            ExternalProviders.EMAIL: {RpcActor.from_orm_user(self.user)},
+            ExternalProviders.SLACK: {RpcActor.from_orm_team(self.team)}
         }
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -918,14 +886,13 @@ class GetSendToFallthroughTest(_ParticipantsTest):
         project: Project,
         fallthrough_choice: Optional[FallthroughChoiceType] = None,
     ) -> Mapping[ExternalProviders, Set[RpcActor]]:
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            return get_send_to(
-                project,
-                target_type=ActionTargetType.ISSUE_OWNERS,
-                target_identifier=None,
-                event=event,
-                fallthrough_choice=fallthrough_choice,
-            )
+        return get_send_to(
+            project,
+            target_type=ActionTargetType.ISSUE_OWNERS,
+            target_identifier=None,
+            event=event,
+            fallthrough_choice=fallthrough_choice,
+        )
 
     def store_event(self, filename: str, project: Project) -> Event:
         return super().store_event(data=make_event_data(filename), project_id=project.id)
