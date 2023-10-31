@@ -23,29 +23,29 @@ class OrganizationMonitorScheduleSampleDataEndpoint(OrganizationEndpoint):
         num_ticks = int(request.GET.get("numTicks", 0))
         schedule_type = request.GET.get("scheduleType")
         cron_schedule = request.GET.get("cronSchedule")
-        interval = int(request.GET.get("interval", 0))
-        frequency = request.GET.get("frequency")
+        interval = int(request.GET.get("intervalFrequency", 0))
+        unit = request.GET.get("intervalUnit")
 
         if not num_ticks or num_ticks > 100 or not schedule_type:
-            return self.respond([], status=400)
+            return Response([], status=400)
 
         # Align the reference ts to the nearest hour
         reference_ts = timezone.now().replace(minute=0, second=0, microsecond=0)
-        ticks = []
+        ticks: list[datetime] = []
         if schedule_type == "crontab":
-            if not cron_schedule:
-                return self.respond(ticks, status=400)
+            if not cron_schedule or not croniter.is_valid(cron_schedule):
+                return Response(ticks, status=400)
 
             iterator = croniter(cron_schedule, reference_ts)
             while len(ticks) < num_ticks:
                 ticks.append(iterator.get_next(datetime))
 
         elif schedule_type == "interval":
-            if not interval or not frequency:
-                return self.respond(ticks, status=400)
+            if not interval or not unit or unit not in SCHEDULE_INTERVAL_MAP or interval < 1:
+                return Response(ticks, status=400)
 
             rule = rrule.rrule(
-                freq=SCHEDULE_INTERVAL_MAP[frequency],
+                freq=SCHEDULE_INTERVAL_MAP[unit],
                 interval=interval,
                 dtstart=reference_ts,
                 count=num_ticks,
@@ -56,4 +56,4 @@ class OrganizationMonitorScheduleSampleDataEndpoint(OrganizationEndpoint):
                 new_date = rule.after(new_date)
                 ticks.append(new_date)
 
-        return self.respond(ticks)
+        return Response(ticks)

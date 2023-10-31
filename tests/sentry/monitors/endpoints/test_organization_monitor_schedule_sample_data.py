@@ -50,8 +50,8 @@ class SampleScheduleDataTest(APITestCase):
             qs_params={
                 "numTicks": 5,
                 "scheduleType": "interval",
-                "frequency": "hour",
-                "interval": 1,
+                "intervalUnit": "hour",
+                "intervalFrequency": 1,
             },
         )
         assert response.data == expected_ticks
@@ -80,5 +80,37 @@ class SampleScheduleDataTest(APITestCase):
         self.get_error_response(
             self.organization.slug,
             qs_params={"scheduleType": "crontab"},
+            status_code=400,
+        )
+
+    def test_bad_params(self):
+        # Invalid crontab schedule
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"numTicks": 5, "scheduleType": "crontab", "cronSchedule": "0 * * *"},
+            status_code=400,
+        )
+
+        # Invalid interval unit
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={
+                "numTicks": 5,
+                "scheduleType": "interval",
+                "intervalUnit": "second",
+                "intervalFrequency": "1",
+            },
+            status_code=400,
+        )
+
+        # Invalid interval frequency
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={
+                "numTicks": 5,
+                "scheduleType": "interval",
+                "intervalUnit": "month",
+                "intervalFrequency": "-1",
+            },
             status_code=400,
         )
