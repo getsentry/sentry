@@ -12,7 +12,7 @@ acts as a validation step as must as a type coercion step.
 """
 from __future__ import annotations
 
-from sentry.replays.lib.new_query.conditions import IntegerScalar, StringScalar
+from sentry.replays.lib.new_query.conditions import IntegerScalar, UUIDScalar
 from sentry.replays.lib.new_query.fields import (
     ColumnField,
     CountField,
@@ -107,7 +107,7 @@ search_config: dict[str, FieldProtocol] = {
     "info_ids": ComputedField(parse_uuid, SumOfInfoIdScalar),
     # Backwards Compat: We pass a simple string to the UUID column. Older versions of ClickHouse
     # do not understand the UUID type.
-    "id": ColumnField("replay_id", lambda x: str(parse_uuid(x)), StringScalar),
+    "id": ColumnField("replay_id", parse_uuid, UUIDScalar),
     "os.name": string_field("os_name"),
     "os.version": string_field("os_version"),
     "platform": string_field("platform"),
