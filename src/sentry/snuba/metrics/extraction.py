@@ -63,6 +63,7 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "environment": "environment",
     "transaction": "transaction",
     "platform": "platform",
+    "platform.name": "platform",
     # Top-level structures ("interfaces")
     "user.email": "user.email",
     "user.id": "user.id",
@@ -890,10 +891,12 @@ class OnDemandMetricSpec:
 
         return self._arguments[0]
 
-    def _query_for_hash(self):
+    def _query_for_hash(self) -> str:
         # In order to reduce the amount of metric being extracted, we perform a sort of the conditions tree. This
         # heuristic allows us to perform some de-duplication to minimize the number of metrics extracted for
         # semantically identical queries.
+        #
+        # In case we have `None` condition, we will use `None` string for hashing, so it's a sentinel value.
         return str(_deep_sorted(self.condition))
 
     @cached_property
