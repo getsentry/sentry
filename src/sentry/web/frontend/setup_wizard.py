@@ -10,6 +10,7 @@ from django.http import HttpRequest, HttpResponse
 
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY, SETUP_WIZARD_CACHE_TIMEOUT
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.project import STATUS_LABELS
 from sentry.api.utils import generate_region_url
 from sentry.cache import default_cache
 from sentry.models.apitoken import ApiToken
@@ -70,13 +71,13 @@ class SetupWizardView(BaseView):
             status=OrganizationStatus.ACTIVE,
         ).order_by("-date_created")
 
-        # TODO: Make wizard compatible with hybrid cloud. For now, we're only going to combine all
-        # the data from every region users belong to to form the `organizations`, and `projects`, but
-        # we should probably add a step in the wizard to ask which region they're setting up in, or
-        # provide the region data in the CLI some how. Without this, users can accidentally use DSNs
-        # from projects that exist in other regions with the same names/slugs.
+        # TODO: Make wizard compatible with hybrid cloud. For now, we combine all region data for these
+        # responses, but project names/slugs aren't unique across regions which could confuse some users.
+        # Wizard should display region beside project/orgs or have a step to ask which region.
+
+        region_data_map = defaultdict(lambda: defaultdict(list))
         # {'us': {'org_ids': [...], 'projects': [...], 'keys': [...]}}
-        region_data_map = defaultdict(defaultdict(list))
+
         for mapping in org_mappings:
             region_data_map[mapping.region_name]["org_ids"].append(mapping.organization_id)
 
@@ -96,17 +97,22 @@ class SetupWizardView(BaseView):
 
         org_mappings_map = {}
         for mapping in org_mappings:
+            status = OrganizationStatus(mapping.status)
             serialized_mapping = {
                 "id": mapping.organization_id,
                 "name": mapping.name,
                 "slug": mapping.slug,
                 "region": mapping.region_name,
+                "status": {"id": status.name.lower(), "name": status.label},
             }
             org_mappings_map[mapping.organization_id] = serialized_mapping
 
         keys_map = defaultdict(list)
         for key in region_data["keys"]:
-            serialized_key = {"dsn": {"public": key.dsn_public}}
+            serialized_key = {
+                "dsn": {"public": key.dsn_public},
+                "isActive": key.is_active,
+            }
             keys_map[key.project_id].append(serialized_key)
 
         filled_projects = []
@@ -117,6 +123,7 @@ class SetupWizardView(BaseView):
             enriched_project = {
                 "slug": project.slug,
                 "id": project.id,
+                "status": STATUS_LABELS.get(project.status, "unknown"),
             }
             # The wizard only reads the `slug` field so serializing the mapping should work fine
             # Maybe security concerns though?
@@ -132,7 +139,7 @@ class SetupWizardView(BaseView):
         key = f"{SETUP_WIZARD_CACHE_KEY}{wizard_hash}"
         default_cache.set(key, result, SETUP_WIZARD_CACHE_TIMEOUT)
 
-        context["organizations"] = org_mappings_map.values()
+        context["organizations"] = list(org_mappings_map.values())
         return render_to_response("sentry/setup-wizard.html", context, request)
 
 
@@ -148,11 +155,11 @@ def get_token(mappings: List[OrganizationMapping], user: User):
             return token
 
     # Otherwise, generate a user token
-    tokens = ApiToken.objects.filter(user=user)
+    tokens = ApiToken.objects.filter(user_id=user.id)
     token = next((token for token in tokens if "project:releases" in token.get_scopes()), None)
     if token is None:
         token = ApiToken.objects.create(
-            user=user,
+            user_id=user.id,
             scope_list=["project:releases"],
             refresh_token=None,
             expires_at=None,
