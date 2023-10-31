@@ -1,5 +1,6 @@
 import {ReactNode} from 'react';
 
+import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconCursorArrow,
@@ -124,13 +125,27 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
   'replay.mutations': (frame: MutationFrame) => ({
     color: 'yellow300',
     description: frame.data.limit
-      ? t(
-          'A large number of mutations was detected (%s). Replay is now stopped to prevent poor performance for your customer.',
-          frame.data.count
+      ? tct(
+          'A large number of mutations was detected [count]. Replay is now stopped to prevent poor performance for your customer. [link]',
+          {
+            count: frame.data.count,
+            link: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/configuration/#mutation-limits">
+                {t('Read the docs.')}
+              </ExternalLink>
+            ),
+          }
         )
-      : t(
-          'A large number of mutations was detected (%s). This can slow down the Replay SDK and impact your customers.',
-          frame.data.count
+      : tct(
+          'A large number of mutations was detected [count]. This can slow down the Replay SDK and impact your customers. [link]',
+          {
+            count: frame.data.count,
+            link: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/configuration/#mutation-limits">
+                {t('Read the docs.')}
+              </ExternalLink>
+            ),
+          }
         ),
     tabKey: TabKey.BREADCRUMBS,
     title: 'Replay',
