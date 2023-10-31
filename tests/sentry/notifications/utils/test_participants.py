@@ -40,7 +40,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.features import Feature, with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
@@ -99,10 +99,25 @@ class GetSendToMemberTest(_ParticipantsTest):
         assert self.get_send_to_member(self.project, 900001) == {}
 
     def test_send_to_user(self):
+        # first with the feature
+        with Feature({"organizations:notification-settings-v2", True}):
+            self.assert_recipients_are(
+                self.get_send_to_member(), email=[self.user.id], slack=[self.user.id]
+            )
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                NotificationSettingProvider.objects.create(
+                    user_id=self.user.id,
+                    scope_type="user",
+                    scope_identifier=self.user.id,
+                    provider="email",
+                    type="alerts",
+                    value="never",
+                )
+
+        # now without it
         self.assert_recipients_are(
             self.get_send_to_member(), email=[self.user.id], slack=[self.user.id]
         )
-
         with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSettingProvider.objects.create(
                 user_id=self.user.id,

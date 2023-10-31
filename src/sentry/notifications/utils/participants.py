@@ -55,7 +55,7 @@ from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviders, get_provider_enum_from_string
 from sentry.utils import metrics
 from sentry.utils.committers import AuthorCommitsSerialized, get_serialized_event_file_committers
 
@@ -585,13 +585,18 @@ def get_recipients_by_provider(
 
     if should_use_notifications_v2(project.organization):
         # get by team
-        teams_by_provider = notifications_service.get_notification_recipients(
+        teams_by_provider_raw = notifications_service.get_notification_recipients(
             recipients=teams,
             type=setting_type,
             organization_id=project.organization_id,
             project_ids=[project.id],
             actor_type=ActorType.TEAM,
         )
+        # convert from string to enum
+        teams_by_provider = {
+            get_provider_enum_from_string(provider): actors
+            for provider, actors in teams_by_provider_raw.items()
+        }
     else:
         teams_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
             project, teams, notification_type
@@ -610,13 +615,18 @@ def get_recipients_by_provider(
     # Repeat for users.
     users_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
     if should_use_notifications_v2(project.organization):
-        users_by_provider = notifications_service.get_notification_recipients(
+        users_by_provider_raw = notifications_service.get_notification_recipients(
             recipients=users,
             type=setting_type,
             organization_id=project.organization_id,
             project_ids=[project.id],
             actor_type=ActorType.USER,
         )
+        # convert from string to enum
+        users_by_provider = {
+            get_provider_enum_from_string(provider): actors
+            for provider, actors in users_by_provider_raw.items()
+        }
     else:
         users_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
             project, users, notification_type
