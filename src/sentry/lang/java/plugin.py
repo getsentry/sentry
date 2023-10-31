@@ -9,7 +9,7 @@ from sentry.lang.java.utils import (
     get_proguard_images,
     has_proguard_file,
 )
-from sentry.lang.javascript.processor import get_source_context, trim_line
+from sentry.lang.javascript.utils import get_source_context, trim_line
 from sentry.models.artifactbundle import ArtifactBundleArchive
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.eventerror import EventError
