@@ -207,7 +207,7 @@ function PerformanceDurationRegressionIssueDetailsContent({
           <AggregateSpanDiff event={event} projectId={project.id} />
         </ErrorBoundary>
         <ErrorBoundary mini>
-          <EventComparison event={event} group={group} project={project} />
+          <EventComparison event={event} project={project} />
         </ErrorBoundary>
       </Fragment>
     </Feature>
