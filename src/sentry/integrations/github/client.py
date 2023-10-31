@@ -698,6 +698,7 @@ class GitHubClientMixin(GithubProxyClient):
             "provider": "github",
             "organization_integration_id": self.org_integration_id,
         }
+        metrics.incr("sentry.integrations.github.get_blame_for_files")
         rate_limit = self.get_rate_limit(specific_resource="graphql")
         if rate_limit.remaining < MINIMUM_REQUESTS:
             metrics.incr("sentry.integrations.github.get_blame_for_files.rate_limit")
