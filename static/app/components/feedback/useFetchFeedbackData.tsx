@@ -45,10 +45,10 @@ export default function useFetchFeedbackData({feedbackId}: Props) {
   // Until that is fixed, we're going to run `markAsRead` after the issue is
   // initially fetched in order to speedup initial fetch and avoid race conditions.
   useEffect(() => {
-    if (issueData) {
+    if (issueResult.isFetched && !issueData?.hasSeen) {
       markAsRead(true);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [issueResult.isFetched]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     eventData,

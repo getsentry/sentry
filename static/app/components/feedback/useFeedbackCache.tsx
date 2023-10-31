@@ -15,7 +15,7 @@ export default function useFeedbackCache() {
   const {getItemQueryKeys, getListQueryKey} = useFeedbackQueryKeys();
 
   const updateCachedIssue = useCallback(
-    (ids: string[], data: Partial<FeedbackIssue>) => {
+    (ids: string[], payload: Partial<FeedbackIssue>) => {
       ids
         .map(id => getItemQueryKeys(id).issueQueryKey)
         .forEach(issueQueryKey => {
@@ -26,7 +26,7 @@ export default function useFeedbackCache() {
             return feedbackIssue
               ? {
                   ...feedbackIssue,
-                  ...data,
+                  ...payload,
                 }
               : feedbackIssue;
           });
@@ -39,13 +39,14 @@ export default function useFeedbackCache() {
     (ids: string[], payload: Partial<FeedbackIssue>) => {
       const queryKey = getListQueryKey();
       const listData = queryClient.getQueryData<ListCache>(queryKey);
-
-      const pages = listData?.pages.map(([data, statusText, resp]) => [
-        data.map(item => (ids.includes(item.id) ? {...item, ...payload} : item)),
-        statusText,
-        resp,
-      ]);
-      queryClient.setQueryData(queryKey, {...listData, pages});
+      if (listData) {
+        const pages = listData.pages.map(([data, statusText, resp]) => [
+          data.map(item => (ids.includes(item.id) ? {...item, ...payload} : item)),
+          statusText,
+          resp,
+        ]);
+        queryClient.setQueryData(queryKey, {...listData, pages});
+      }
     },
     [getListQueryKey, queryClient]
   );
