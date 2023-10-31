@@ -29,14 +29,11 @@ const cellMeasurer = {
 
 export default function FeedbackList() {
   const {
-    // error,
     hasNextPage,
-    // isError,
     isFetching, // If the network is active
     isFetchingNextPage,
     isFetchingPreviousPage,
     isLoading, // If anything is loaded yet
-    // Below are fields that are shims for react-virtualized
     getRow,
     isRowLoaded,
     issues,

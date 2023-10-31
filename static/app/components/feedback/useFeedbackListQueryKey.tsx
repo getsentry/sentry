@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import moment from 'moment';
 
 import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import type {Organization} from 'sentry/types';
@@ -40,13 +39,13 @@ export default function useFeedbackListQueryKey({organization}: Props): ApiQuery
     // for a while) they can trigger that specifically.
 
     const {statsPeriod, ...rest} = queryView;
-    const now = new Date();
-    const ms = intervalToMilliseconds(statsPeriod);
+    const now = Date.now();
+    const statsPeriodMs = intervalToMilliseconds(statsPeriod);
     return statsPeriod
       ? {
           ...rest,
-          start: moment(now).subtract(ms, 'milliseconds').toISOString(),
-          end: now.toISOString(),
+          start: new Date(now - statsPeriodMs).toISOString(),
+          end: new Date(now).toISOString(),
         }
       : // The issues endpoint cannot handle when statsPeroid has a value of "", so
         // we remove that from the rest and do not use it to query.
