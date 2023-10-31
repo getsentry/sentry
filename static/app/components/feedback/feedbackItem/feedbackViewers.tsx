@@ -1,7 +1,9 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import AvatarList from 'sentry/components/avatar/avatarList';
 import DateTime from 'sentry/components/dateTime';
+import {space} from 'sentry/styles/space';
 import type {AvatarUser} from 'sentry/types';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {userDisplayName} from 'sentry/utils/formatters';
@@ -14,7 +16,7 @@ export default function FeedbackViewers({feedbackItem}: Props) {
   const displayUsers = feedbackItem.seenBy;
 
   return (
-    <AvatarList
+    <StyledAvatarList
       users={displayUsers}
       avatarSize={28}
       maxVisibleAvatars={13}
@@ -26,7 +28,11 @@ export default function FeedbackViewers({feedbackItem}: Props) {
           <DateTime date={(user as AvatarUser).lastSeen} />
         </Fragment>
       )}
-      alignLeft
     />
   );
 }
+
+const StyledAvatarList = styled(AvatarList)`
+  flex-direction: row;
+  margin-left: ${space(0.75)};
+`;
