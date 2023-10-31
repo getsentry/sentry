@@ -31,16 +31,17 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
     def setUp(self) -> None:
         super().setUp()
 
-        self.metrics: Mapping[str, Literal["counter", "set", "distribution"]] = {
+        self.metrics: Mapping[str, Literal["counter", "set", "distribution", "gauge"]] = {
             TransactionMRI.DURATION.value: "distribution",
             TransactionMRI.USER.value: "set",
             TransactionMRI.COUNT_PER_ROOT_PROJECT.value: "counter",
+            "g:custom/test_gauge@none": "gauge",
         }
         self.now = datetime.now(tz=timezone.utc).replace(microsecond=0)
         self.hour_ago = self.now - timedelta(hours=1)
         self.org_id = self.project.organization_id
         for mri, metric_type in self.metrics.items():
-            assert metric_type in {"counter", "distribution", "set"}
+            assert metric_type in {"counter", "distribution", "set", "gauge"}
             for i in range(360):
                 self.store_metric(
                     self.org_id,
@@ -374,3 +375,31 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
         # 30 since it's every 2 minutes.
         # # TODO(evanh): There's a flaky off by one error that comes from the interval rounding I don't care to fix right now, hence the 31 option.
         assert len(result["data"]) in [30, 31]
+
+    def test_gauges(self) -> None:
+        query = MetricsQuery(
+            query=Timeseries(
+                metric=Metric(
+                    None,
+                    "g:custom/test_gauge@none",
+                ),
+                aggregate="max",
+            ),
+            start=self.hour_ago,
+            end=self.now,
+            rollup=Rollup(interval=60, totals=True, granularity=60),
+            scope=MetricsScope(
+                org_ids=[self.org_id],
+                project_ids=[self.project.id],
+            ),
+        )
+
+        request = Request(
+            dataset="generic_metrics",
+            app_id="tests",
+            query=query,
+            tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
+        )
+        result = run_query(request)
+        assert len(result["data"]) == 54
+        assert result["totals"]["aggregate_value"] == 59
