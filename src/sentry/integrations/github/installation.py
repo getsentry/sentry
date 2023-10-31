@@ -7,6 +7,8 @@ from django.http import HttpResponse
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint
 from sentry.constants import ObjectStatus
 from sentry.models.integrations.integration import Integration
@@ -19,6 +21,11 @@ INSTALLATION_EXPOSURE_MAX_TIME = 10 * 60
 
 
 class GitHubIntegrationsInstallationEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+    owner = ApiOwner.ENTERPRISE
+
     permission_classes = (IsAuthenticated,)
 
     def get(self, request: Request, installation_id):
