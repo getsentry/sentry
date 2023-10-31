@@ -712,6 +712,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 # allowedValues for some reason doesn't pass enough info.
                 field["choices"] = self.make_choices(client.get_priorities())
                 field["default"] = defaults.get("priority", "")
+                field["ignorePriorChoices"] = True
             elif field["name"] == "fixVersions":
                 field["choices"] = self.make_choices(client.get_versions(meta["key"]))
             elif field["name"] == "labels":

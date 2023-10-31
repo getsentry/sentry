@@ -173,19 +173,26 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       await submitSuccess();
     });
 
-    it('should not persist values when specified by the field', async function () {
-      renderComponent(
-        {data: {reporter: 'a'}},
-        {
-          label: 'Reporter',
-          required: true,
-          choices: [['a', 'a']],
-          type: 'select',
-          name: 'reporter',
-          ignorePriorChoices: true,
-        }
-      );
-      await submitErrors(1);
+    it('should not persist value when specified by ignorePriorChoices', async function () {
+      renderComponent();
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Reporter'}), 'a');
+
+      addMockConfigsAPICall({
+        label: 'Reporter',
+        required: true,
+        choices: [['b', 'b']],
+        type: 'select',
+        name: 'reporter',
+        ignorePriorChoices: true,
+      });
+
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Issue Type'}), 'Epic');
+      await expect(
+        selectEvent.select(screen.getByRole('textbox', {name: 'Reporter'}), 'a')
+      ).rejects.toThrow();
+
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Reporter'}), 'b');
+      await submitSuccess();
     });
 
     it('should get async options from URL', async function () {
