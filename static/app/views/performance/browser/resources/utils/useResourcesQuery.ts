@@ -20,10 +20,10 @@ const {
 } = SpanMetricsField;
 
 type Props = {
-  query: string;
   sort: ValidSort;
   defaultResourceTypes?: string[];
   limit?: number;
+  query?: string;
 };
 
 export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Props) => {
