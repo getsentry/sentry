@@ -596,21 +596,6 @@ def metrics_parallel_consumer(**options):
     run_processor_with_signals(streamer)
 
 
-@run.command("billing-metrics-consumer")
-@log_options()
-@kafka_options("billing-metrics-consumer")
-@strict_offset_reset_option()
-@configuration
-def metrics_billing_consumer(**options):
-    from sentry.consumers import print_deprecation_warning
-
-    print_deprecation_warning("billing-metrics-consumer", options["group_id"])
-    from sentry.ingest.billing_metrics_consumer import get_metrics_billing_consumer
-
-    consumer = get_metrics_billing_consumer(**options)
-    run_processor_with_signals(consumer)
-
-
 @run.command("ingest-profiles")
 @log_options()
 @click.option("--topic", default="profiles", help="Topic to get profiles data from.")
