@@ -24,6 +24,7 @@ class CocoaSDKCrashDetector(SDKCrashDetector):
             # the frames contain the full paths required for detecting system frames in is_system_library_frame.
             # Therefore, we require at least sentry-cocoa 8.2.0.
             min_sdk_version="8.2.0",
+            system_library_paths={"/System/Library/", "/usr/lib/"},
         )
         super().__init__(config)
 
@@ -73,17 +74,6 @@ class CocoaSDKCrashDetector(SDKCrashDetector):
             filenameMatchers = ["Sentry**"]
             for matcher in filenameMatchers:
                 if glob_match(filename, matcher, ignorecase=True):
-                    return True
-
-        return False
-
-    def is_system_library_frame(self, frame: Mapping[str, Any]) -> bool:
-        system_library_paths = {"/System/Library/", "/usr/lib/"}
-
-        for field in self.fields_containing_paths:
-            for system_library_path in system_library_paths:
-                field_with_path = frame.get(field)
-                if field_with_path and field_with_path.startswith(system_library_path):
                     return True
 
         return False
