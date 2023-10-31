@@ -218,6 +218,12 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         result = serializer.validated_data
 
+        if getattr(member.flags, "partnership:restricted"):
+            return Response(
+                {"detail": "This is a partnership user."},
+                status=403,
+            )
+
         # XXX(dcramer): if/when this expands beyond reinvite we need to check
         # access level
         if result.get("reinvite"):
@@ -407,6 +413,12 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         if getattr(member.flags, "idp:provisioned"):
             return Response(
                 {"detail": "This user is managed through your organization's identity provider."},
+                status=403,
+            )
+
+        if getattr(member.flags, "partnership:restricted"):
+            return Response(
+                {"detail": "This is a partnership user."},
                 status=403,
             )
 

@@ -274,6 +274,12 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
 
         result = serializer.validated_data
 
+        if getattr(member.flags, "partnership:restricted"):
+            return Response(
+                {"detail": "This is a partnership user."},
+                status=403,
+            )
+
         for operation in result["operations"]:
             # we only support setting active to False which deletes the orgmember
             if self._should_delete_member(operation):
@@ -310,6 +316,12 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         """
         Delete an organization member with a SCIM User DELETE Request.
         """
+        if getattr(member.flags, "partnership:restricted"):
+            return Response(
+                {"detail": "This is a partnership user."},
+                status=403,
+            )
+
         self._delete_member(request, organization, member)
         metrics.incr("sentry.scim.member.delete", tags={"organization": organization})
         return Response(status=204)
@@ -347,6 +359,12 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
                 member, serializer=_scim_member_serializer_with_expansion(organization)
             )
             return Response(context, status=200)
+
+        if getattr(member.flags, "partnership:restricted"):
+            return Response(
+                {"detail": "This is a partnership user."},
+                status=403,
+            )
 
         if request.data.get("sentryOrgRole"):
             # Don't update if the org role is the same
