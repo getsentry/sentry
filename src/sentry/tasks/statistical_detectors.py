@@ -859,23 +859,11 @@ BACKEND_TRANSACTION_OPS = [
     "function.aws",
     "function.aws.lambda",
     "http.server",
-    "queue.process",
     "serverless.function",
-    "task",
-    "websocket.server",
     # Python
     "asgi.server",
-    "celery.task",
-    "queue.task.celery",
-    "queue.task.rq",
-    "rq.task",
     # Ruby
-    "queue.active_job",
-    "queue.delayed_job",
-    "queue.sidekiq",
-    "rails.action_cable",
     "rails.request",
-    "sidekiq",
 ]
 
 
