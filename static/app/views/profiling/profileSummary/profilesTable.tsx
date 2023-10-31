@@ -13,6 +13,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 
 const FIELDS = [
+  'profile.id',
   'timestamp',
   'profile.duration',
   'release',
@@ -21,7 +22,6 @@ const FIELDS = [
   'os.version',
   'trace',
   'trace.transaction',
-  'profile.id',
 ] as const;
 
 type FieldType = (typeof FIELDS)[number];
