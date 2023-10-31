@@ -284,14 +284,15 @@ class DatabaseBackedNotificationsService(NotificationsService):
         project_ids: Optional[List[int]] = None,
         organization_id: Optional[int] = None,
         actor_type: Optional[ActorType] = None,
-    ) -> Mapping[ExternalProviders, set[RpcActor]]:
+    ) -> Mapping[str, set[RpcActor]]:
         controller = NotificationController(
             recipients=recipients,
             organization_id=organization_id,
             project_ids=project_ids,
             type=type,
         )
-        return controller.get_notification_recipients(type=type, actor_type=actor_type)
+        raw_output = controller.get_notification_recipients(type=type, actor_type=actor_type)
+        return {provider.name: actors for provider, actors in raw_output.items()}
 
     class _NotificationSettingsQuery(
         FilterQueryDatabaseImpl[
