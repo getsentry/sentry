@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 
 import {LinkButton} from 'sentry/components/button';
 import {noFilter} from 'sentry/components/events/interfaces/spans/filter';
@@ -13,9 +14,10 @@ import {LandingDisplayField} from 'sentry/views/performance/browser/webVitals/pa
 
 type Props = {
   transaction: string;
+  aggregateSpansLocation?: Location;
 };
 
-export function MiniAggregateWaterfall({transaction}: Props) {
+export function MiniAggregateWaterfall({transaction, aggregateSpansLocation}: Props) {
   const location = useLocation();
   // Pageload transactions don't seem to store http.method, so don't include one here
   const {waterfallModel, event, isLoading} =
@@ -23,7 +25,7 @@ export function MiniAggregateWaterfall({transaction}: Props) {
   if (isLoading) {
     return <LoadingIndicator />;
   }
-  const AggregateSpanWaterfallLocation = {
+  const AggregateSpanWaterfallLocation = aggregateSpansLocation ?? {
     ...location,
     query: {
       ...location.query,

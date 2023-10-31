@@ -76,6 +76,8 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "geo.subdivision": "user.geo.subdivision",
     "http.method": "request.method",
     "http.url": "request.url",
+    # url is a tag extracted by Sentry itself, on Relay it's received as `request.url`
+    "url": "request.url",
     "sdk.name": "sdk.name",
     "sdk.version": "sdk.version",
     # Subset of context fields
@@ -957,8 +959,10 @@ class OnDemandMetricSpec:
             # Third step is to generate the actual Relay rule that contains all rules nested. We assume that the query
             # being passed here, can be satisfied ONLY by on demand metrics.
             rule_condition = SearchQueryConverter(parsed_query.conditions).convert()
-        except Exception as e:
-            logger.error(f"Error while converting search query: {e}")
+        except Exception as exc:
+            if not parsed_query.is_empty():
+                logger.error(f"Error while converting search query '{self.query}'", exc_info=exc)
+
             return None
 
         # If we don't have to merge the aggregate, we can just return the parsed rules.

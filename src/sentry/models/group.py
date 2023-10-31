@@ -597,13 +597,24 @@ class Group(Model):
         # Built manually in preference to django.urls.reverse,
         # because reverse has a measured performance impact.
         organization = self.organization
-        path = f"/organizations/{organization.slug}/issues/{self.id}/"
-        if event_id:
-            path += f"events/{event_id}/"
-        query = None
-        if params:
+
+        if self.issue_category == GroupCategory.FEEDBACK:
+            path = f"/organizations/{organization.slug}/feedback/"
+            slug = {"feedbackSlug": f"{self.project.slug}:{self.id}"}
+            params = {
+                **(params or {}),
+                **slug,
+            }
             query = urlencode(params)
-        return organization.absolute_url(path, query=query)
+            return organization.absolute_url(path, query=query)
+        else:
+            path = f"/organizations/{organization.slug}/issues/{self.id}/"
+            if event_id:
+                path += f"events/{event_id}/"
+            query = None
+            if params:
+                query = urlencode(params)
+            return organization.absolute_url(path, query=query)
 
     @property
     def qualified_short_id(self):

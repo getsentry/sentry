@@ -13,6 +13,7 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Literal,
     MutableMapping,
     MutableSet,
     Sequence,
@@ -441,9 +442,11 @@ def validate_no_cross_silo_deletions(
 
 
 def _is_relation_cross_silo(
-    model: Type[Model],
-    related: Type[Model],
+    model: Type[Model] | Literal["self"],
+    related: Type[Model] | Literal["self"],
 ) -> bool:
+    if model == "self" or related == "self":
+        return False
     for mode in _model_silo_limit(model).modes:
         if mode not in _model_silo_limit(related).modes:
             return True
@@ -451,9 +454,11 @@ def _is_relation_cross_silo(
 
 
 def validate_relation_does_not_cross_silo_foreign_keys(
-    model: Type[Model],
-    related: Type[Model],
+    model: Type[Model] | Literal["self"],
+    related: Type[Model] | Literal["self"],
 ) -> None:
+    if model == "self" or related == "self":
+        return
     for mode in _model_silo_limit(model).modes:
         if mode not in _model_silo_limit(related).modes:
             raise ValueError(

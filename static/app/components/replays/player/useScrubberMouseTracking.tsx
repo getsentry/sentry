@@ -54,7 +54,7 @@ export function useTimelineScrubberMouseTracking<T extends Element>(
 
       if (left >= 0) {
         const percent = (left - width / 2) / width;
-        const time = currentTime + (percent * durationMs) / (size / 100);
+        const time = currentTime + (percent * durationMs) / size;
         setCurrentHoverTime(time);
       } else {
         setCurrentHoverTime(undefined);
