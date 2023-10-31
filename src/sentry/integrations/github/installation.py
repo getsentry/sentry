@@ -4,9 +4,10 @@ import logging
 import time
 
 from django.http import HttpResponse
-from django.views.generic import View
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 
+from sentry.api.base import Endpoint
 from sentry.constants import ObjectStatus
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -17,7 +18,9 @@ logger = logging.getLogger("sentry.webhooks")
 INSTALLATION_EXPOSURE_MAX_TIME = 10 * 60
 
 
-class GitHubIntegrationsInstallationEndpoint(View):
+class GitHubIntegrationsInstallationEndpoint(Endpoint):
+    permission_classes = (IsAuthenticated,)
+
     def get(self, request: Request, installation_id):
         try:
             integration = Integration.objects.get(
