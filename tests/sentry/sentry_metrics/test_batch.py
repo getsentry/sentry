@@ -10,8 +10,7 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
-from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
-from sentry.sentry_metrics.consumers.indexer.common import BrokerMeta
+from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch, PartitionIdxOffset
 from sentry.sentry_metrics.consumers.indexer.tags_validator import ReleaseHealthTagsValidator
 from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, Metadata
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -250,7 +249,6 @@ def test_extract_strings_with_rollout(should_index_tag_values, expected):
     )
 
     assert batch.extract_strings() == expected
-    assert not batch.invalid_msg_meta
 
 
 @pytest.mark.django_db
@@ -414,7 +412,6 @@ def test_extract_strings_with_single_use_case_ids_blocked():
             }
         }
     }
-    assert not batch.invalid_msg_meta
 
 
 @override_options({"sentry-metrics.indexer.disabled-namespaces": ["spans", "escalating_issues"]})
@@ -487,7 +484,6 @@ def test_extract_strings_with_multiple_use_case_ids_blocked():
             }
         },
     }
-    assert not batch.invalid_msg_meta
 
 
 @pytest.mark.django_db
@@ -590,7 +586,6 @@ def test_extract_strings_with_invalid_mri():
             }
         },
     }
-    assert batch.invalid_msg_meta == {BrokerMeta(Partition(Topic("topic"), 0), 0)}
 
 
 @pytest.mark.django_db
@@ -681,7 +676,6 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
             }
         },
     }
-    assert not batch.invalid_msg_meta
 
 
 @pytest.mark.django_db
@@ -734,7 +728,6 @@ def test_resolved_with_aggregation_options(caplog, settings):
             }
         }
     )
-    assert not batch.invalid_msg_meta
 
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
@@ -875,7 +868,6 @@ def test_all_resolved(caplog, settings):
             }
         }
     )
-    assert not batch.invalid_msg_meta
 
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
@@ -1186,7 +1178,6 @@ def test_all_resolved_retention_days_honored(caplog, settings):
             }
         }
     )
-    assert not batch.invalid_msg_meta
 
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
@@ -1339,7 +1330,6 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
             }
         }
     )
-    assert not batch.invalid_msg_meta
 
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
@@ -1484,7 +1474,6 @@ def test_metric_id_rate_limited(caplog, settings):
             }
         }
     )
-    assert not batch.invalid_msg_meta
 
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
@@ -1599,7 +1588,6 @@ def test_tag_key_rate_limited(caplog, settings):
             }
         }
     )
-    assert not batch.invalid_msg_meta
 
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
@@ -1691,7 +1679,6 @@ def test_tag_value_rate_limited(caplog, settings):
             }
         }
     )
-    assert not batch.invalid_msg_meta
 
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
@@ -1834,7 +1821,6 @@ def test_one_org_limited(caplog, settings):
             }
         }
     )
-    assert not batch.invalid_msg_meta
 
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
@@ -1946,12 +1932,12 @@ def test_cardinality_limiter(caplog, settings):
         input_codec=_INGEST_CODEC,
         tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
-    keys_to_remove = list(batch.parsed_payloads_by_meta)[:2]
+    keys_to_remove = list(batch.parsed_payloads_by_offset)[:2]
     # the messages come in a certain order, and Python dictionaries preserve
     # their insertion order. So we can hardcode offsets here.
     assert keys_to_remove == [
-        BrokerMeta(partition=Partition(Topic("topic"), 0), offset=0),
-        BrokerMeta(partition=Partition(Topic("topic"), 0), offset=1),
+        PartitionIdxOffset(partition_idx=0, offset=0),
+        PartitionIdxOffset(partition_idx=0, offset=1),
     ]
     batch.filter_messages(keys_to_remove)
     assert batch.extract_strings() == {
@@ -1967,7 +1953,6 @@ def test_cardinality_limiter(caplog, settings):
             },
         }
     }
-    assert not batch.invalid_msg_meta
 
     snuba_payloads = batch.reconstruct_messages(
         {

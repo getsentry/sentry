@@ -5,6 +5,7 @@ from typing import Any, Mapping, Sequence, Set
 from packaging.version import InvalidVersion, Version
 
 from sentry.db.models import NodeData
+from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
 
 
@@ -13,6 +14,12 @@ class SDKCrashDetectorConfig:
     sdk_names: Sequence[str]
 
     min_sdk_version: str
+
+    system_library_paths: Set[str]
+
+    sdk_frame_function_matchers: Set[str]
+
+    sdk_frame_filename_matchers: Set[str]
 
 
 class SDKCrashDetector(ABC):
@@ -68,15 +75,32 @@ class SDKCrashDetector(ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
     def is_sdk_frame(self, frame: Mapping[str, Any]) -> bool:
         """
         Returns true if frame is an SDK frame.
 
         :param frame: The frame of a stacktrace.
         """
-        raise NotImplementedError
 
-    @abstractmethod
+        function = frame.get("function")
+        if function:
+            for matcher in self.config.sdk_frame_function_matchers:
+                if glob_match(function, matcher, ignorecase=True):
+                    return True
+
+        filename = frame.get("filename")
+        if filename:
+            for matcher in self.config.sdk_frame_filename_matchers:
+                if glob_match(filename, matcher, ignorecase=True):
+                    return True
+
+        return False
+
     def is_system_library_frame(self, frame: Mapping[str, Any]) -> bool:
-        raise NotImplementedError
+        for field in self.fields_containing_paths:
+            for system_library_path in self.config.system_library_paths:
+                field_with_path = frame.get(field)
+                if field_with_path and field_with_path.startswith(system_library_path):
+                    return True
+
+        return False

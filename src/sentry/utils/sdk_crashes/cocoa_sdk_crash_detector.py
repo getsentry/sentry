@@ -1,6 +1,5 @@
 from typing import Any, Mapping, Sequence
 
-from sentry.utils.glob import glob_match
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector, SDKCrashDetectorConfig
 
 
@@ -24,6 +23,14 @@ class CocoaSDKCrashDetector(SDKCrashDetector):
             # the frames contain the full paths required for detecting system frames in is_system_library_frame.
             # Therefore, we require at least sentry-cocoa 8.2.0.
             min_sdk_version="8.2.0",
+            system_library_paths={"/System/Library/", "/usr/lib/"},
+            sdk_frame_function_matchers={
+                r"*sentrycrash*",
+                r"*\[Sentry*",
+                r"*(Sentry*)*",  # Objective-C class extension categories
+                r"SentryMX*",  # MetricKit Swift classes
+            },
+            sdk_frame_filename_matchers={"Sentry**"},
         )
         super().__init__(config)
 
@@ -51,39 +58,5 @@ class CocoaSDKCrashDetector(SDKCrashDetector):
 
             if not self.is_system_library_frame(frame):
                 return False
-
-        return False
-
-    def is_sdk_frame(self, frame: Mapping[str, Any]) -> bool:
-
-        function = frame.get("function")
-        if function:
-            function_matchers = [
-                r"*sentrycrash*",
-                r"*\[Sentry*",
-                r"*(Sentry*)*",  # Objective-C class extension categories
-                r"SentryMX*",  # MetricKit Swift classes
-            ]
-            for matcher in function_matchers:
-                if glob_match(function, matcher, ignorecase=True):
-                    return True
-
-        filename = frame.get("filename")
-        if filename:
-            filenameMatchers = ["Sentry**"]
-            for matcher in filenameMatchers:
-                if glob_match(filename, matcher, ignorecase=True):
-                    return True
-
-        return False
-
-    def is_system_library_frame(self, frame: Mapping[str, Any]) -> bool:
-        system_library_paths = {"/System/Library/", "/usr/lib/"}
-
-        for field in self.fields_containing_paths:
-            for system_library_path in system_library_paths:
-                field_with_path = frame.get(field)
-                if field_with_path and field_with_path.startswith(system_library_path):
-                    return True
 
         return False
