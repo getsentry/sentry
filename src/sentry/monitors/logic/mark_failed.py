@@ -300,7 +300,7 @@ def create_issue_platform_occurrence(
         "contexts": {"monitor": get_monitor_environment_context(monitor_env)},
         "environment": monitor_env.environment.name,
         "event_id": occurrence.event_id,
-        "fingerprint": fingerprint
+        "fingerprint": [fingerprint]
         if fingerprint
         else [
             "monitor",
