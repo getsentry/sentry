@@ -252,12 +252,9 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         field = instance._meta.get_field(key)
         return getattr(instance, field.attname)
 
-    def contribute_to_class(self, model: M, name: str) -> None:
+    def contribute_to_class(self, model: type[Model], name: str) -> None:
         super().contribute_to_class(model, name)
         class_prepared.connect(self.__class_prepared, sender=model)
-
-    def get(self, *args: Any, **kwargs: Any) -> M:
-        return super().get(*args, **kwargs)
 
     @django_test_transaction_water_mark()
     def get_from_cache(
