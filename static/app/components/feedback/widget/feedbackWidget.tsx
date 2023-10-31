@@ -32,7 +32,6 @@ export default function FeedbackWidget() {
       styles={css`
         #sentry-feedback {
           --z-index: ${theme.zIndex.toast - 1};
-          color: hotpink !important;
         }
       `}
     />
