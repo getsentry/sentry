@@ -66,6 +66,7 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
 
     return () => {
       unmounted = true;
+      api.clear();
     };
   }, [api, feedbackEvent, organization, project.slug]);
 
@@ -85,13 +86,12 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
       owners={owners}
     >
       {({loading, isOpen, getActorProps}) => (
-        <Button size="xs" data-test-id="assignee-selector" {...getActorProps({})}>
+        <Button size="xs" aria-label={t('Assigned dropdown')} {...getActorProps({})}>
           <ActorWrapper>
             {loading || !feedbackIssue.assignedTo ? (
               <IconUser size="sm" />
             ) : (
               <ActorAvatar
-                data-test-id="assigned-avatar"
                 actor={feedbackIssue.assignedTo}
                 hasTooltip={false}
                 size={16}
@@ -100,11 +100,7 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
             <ActorName>
               {getAssignedToDisplayName(feedbackIssue) ?? t('Unassigned')}
             </ActorName>
-            <IconChevron
-              data-test-id="assigned-to-chevron-icon"
-              direction={isOpen ? 'up' : 'down'}
-              size="sm"
-            />
+            <IconChevron direction={isOpen ? 'up' : 'down'} size="sm" />
           </ActorWrapper>
         </Button>
       )}
