@@ -9,7 +9,7 @@ from rest_framework.request import Request
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.constants import ObjectStatus
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -20,6 +20,7 @@ logger = logging.getLogger("sentry.webhooks")
 INSTALLATION_EXPOSURE_MAX_TIME = 10 * 60
 
 
+@control_silo_endpoint
 class GitHubIntegrationsInstallationEndpoint(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
