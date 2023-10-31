@@ -17,7 +17,7 @@ import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import useRouter from 'sentry/utils/useRouter';
 import {transformEventStats} from 'sentry/views/performance/trends/chart';
 import {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
-import {getIntervalLine, IntervalLineFormat} from 'sentry/views/performance/utils';
+import {getIntervalLine} from 'sentry/views/performance/utils';
 
 interface ChartProps {
   chartLabel: string;
@@ -40,7 +40,7 @@ function LineChart({statsData, evidenceData, start, end, chartLabel}: ChartProps
     0.5,
     needsLabel,
     evidenceData,
-    IntervalLineFormat.REGRESSION_TIMESERIES
+    true
   );
 
   const series = [...resultSeries, ...intervalSeries];

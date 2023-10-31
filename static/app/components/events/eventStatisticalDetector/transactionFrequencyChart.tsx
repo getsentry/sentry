@@ -1,4 +1,4 @@
-import {useTheme} from '@emotion/react';
+import {Theme, useTheme} from '@emotion/react';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {
@@ -9,6 +9,7 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {DataSection} from 'sentry/components/events/styles';
 import {Event, EventsStatsData} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import {getUserTimezone} from 'sentry/utils/dates';
 import {
   axisLabelFormatter,
@@ -16,7 +17,7 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import EventView, {MetaType} from 'sentry/utils/discover/eventView';
-import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {aggregateOutputType, RateUnits} from 'sentry/utils/discover/fields';
 import {
   DiscoverQueryProps,
   useGenericDiscoverQuery,
@@ -28,7 +29,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {transformEventStats} from 'sentry/views/performance/trends/chart';
 import {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
-import {getIntervalLine, IntervalLineFormat} from 'sentry/views/performance/utils';
+import {transformTransaction} from 'sentry/views/performance/utils';
 
 function camelToUnderscore(key: string) {
   return key.replace(/([A-Z\d])/g, '_$1').toLowerCase();
@@ -81,7 +82,7 @@ function TransactionFrequencyChart({event}: TransactionFrequencyChartProps) {
       // Manually inject y-axis for events-stats because
       // getEventsAPIPayload doesn't pass it along
       ...eventView.getEventsAPIPayload(location),
-      yAxis: 'count()',
+      yAxis: 'epm()',
     }),
   });
 
@@ -115,17 +116,8 @@ function Chart({statsData, evidenceData, start, end, chartLabel}: ChartProps) {
 
   const resultSeries = transformEventStats(statsData, chartLabel);
 
-  const needsLabel = true;
-  const intervalSeries = getIntervalLine(
-    theme,
-    resultSeries || [],
-    0.5,
-    needsLabel,
-    evidenceData,
-    IntervalLineFormat.REGRESSION_EPM
-  );
-
-  const series = [...resultSeries, ...intervalSeries];
+  const dividingLine = getDividingLine(evidenceData, resultSeries, theme);
+  const series = dividingLine ? [...resultSeries, dividingLine] : resultSeries;
 
   const durationUnit = getDurationUnit(series);
 
@@ -140,7 +132,13 @@ function Chart({statsData, evidenceData, start, end, chartLabel}: ChartProps) {
       axisLabel: {
         color: theme.chartLabel,
         formatter: (value: number) =>
-          axisLabelFormatter(value, 'rate', undefined, durationUnit),
+          axisLabelFormatter(
+            value,
+            'rate',
+            undefined,
+            durationUnit,
+            RateUnits.PER_MINUTE
+          ),
       },
     },
   };
@@ -170,6 +168,48 @@ function Chart({statsData, evidenceData, start, end, chartLabel}: ChartProps) {
       }}
     </ChartZoom>
   );
+}
+
+function getDividingLine(
+  transaction: NormalizedTrendsTransaction,
+  series: Series[],
+  theme: Theme
+): Series | undefined {
+  if (!transaction || !series.length || !series[0].data || !series[0].data.length) {
+    return undefined;
+  }
+
+  const transformedTransaction = transformTransaction(transaction);
+  const {breakpoint} = transformedTransaction;
+  const seriesStart = parseInt(series[0].data[0].name as string, 10);
+  const seriesEnd = parseInt(series[0].data.slice(-1)[0].name as string, 10);
+  const seriesDiff = seriesEnd - seriesStart;
+  const seriesLine = seriesDiff * 0.5 + seriesStart;
+  const divider = breakpoint || seriesLine;
+
+  return {
+    data: [],
+    color: theme.red300,
+    seriesName: 'Baseline',
+    markLine: {
+      data: [
+        {
+          xAxis: divider,
+        },
+      ],
+      label: {show: false},
+      lineStyle: {
+        color: theme.red300,
+        type: 'solid',
+        width: 2,
+      },
+      symbol: ['none', 'none'],
+      tooltip: {
+        show: false,
+      },
+      silent: true,
+    },
+  };
 }
 
 export default TransactionFrequencyChart;
