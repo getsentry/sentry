@@ -109,7 +109,7 @@ export function PageOverviewWebVitalsTagDetailPanel({
     isRefetching,
     refetch,
   } = useTransactionSamplesWebVitalsQuery({
-    limit: 3,
+    limit: 9,
     transaction: transaction ?? '',
     query: tag ? `${tag.key}:${tag.name}` : undefined,
     enabled: Boolean(tag),
