@@ -14,14 +14,14 @@ import {useLocation} from 'sentry/utils/useLocation';
 
 const FIELDS = [
   'profile.id',
-  'trace',
-  'trace.transaction',
-  'profile.duration',
   'timestamp',
+  'profile.duration',
   'release',
   'environment',
   'os.name',
   'os.version',
+  'trace',
+  'trace.transaction',
 ] as const;
 
 type FieldType = (typeof FIELDS)[number];
