@@ -1,7 +1,10 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.utils import timezone
 
+from sentry.issues.producer import PayloadType
+from sentry.models.group import GroupStatus
 from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.models import (
     CheckInStatus,
@@ -62,7 +65,8 @@ class MarkOkTestCase(TestCase):
         assert monitor_environment.next_checkin_latest == now + timedelta(minutes=2)
         assert monitor_environment.last_checkin == now
 
-    def test_mark_ok_recovery_threshold(self):
+    @patch("sentry.issues.producer.produce_occurrence_to_kafka")
+    def test_mark_ok_recovery_threshold(self, mock_produce_occurrence_to_kafka):
         now = timezone.now().replace(second=0, microsecond=0)
 
         recovery_threshold = 8
@@ -128,11 +132,13 @@ class MarkOkTestCase(TestCase):
         assert incident.resolving_timestamp is None
 
         # create another failed check-in to break the chain
+        now = now + timedelta(minutes=1)
         last_checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
             project_id=self.project.id,
             status=CheckInStatus.ERROR,
+            date_added=now,
         )
 
         # Still not resolved
@@ -166,3 +172,21 @@ class MarkOkTestCase(TestCase):
         # Incident resolved
         assert incident.resolving_checkin == last_checkin
         assert incident.resolving_timestamp == last_checkin.date_added
+
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
+
+        # assert status change is sent to kafka occurrence consumer
+        kwargs = mock_produce_occurrence_to_kafka.call_args.kwargs
+        payload_type, status_change = kwargs["payload_type"], kwargs["status_change"]
+        status_change = status_change.to_dict()
+
+        assert payload_type == PayloadType.STATUS_CHANGE
+        assert dict(
+            status_change,
+            **{
+                "fingerprint": [incident.grouphash],
+                "project_id": monitor.project_id,
+                "new_status": GroupStatus.RESOLVED,
+                "new_substatus": None,
+            },
+        ) == dict(status_change)

@@ -56,7 +56,7 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
 
                 params["last_state_change"] = ts
 
-                resolve_incident_group(monitor_env.incident_grouphash, monitor_env.project_id)
+                resolve_incident_group(monitor_env.incident_grouphash, checkin.monitor.project_id)
             else:
                 # Don't update status if incident isn't recovered
                 params.pop("status", None)
@@ -78,6 +78,7 @@ def resolve_incident_group(
         fingerprint=[grouphash],
         project_id=project_id,
         new_status=GroupStatus.RESOLVED,
+        new_substatus=None,
     )
 
     produce_occurrence_to_kafka(
