@@ -307,21 +307,21 @@ def test_detect_transaction_trends_ratelimit(
                 project_id=project.id,
                 group="/1",
                 count=100,
-                value=100 if i < n / 2 else 300,
+                value=100 if i < n / 2 else 301,
                 timestamp=ts,
             ),
             DetectorPayload(
                 project_id=project.id,
                 group="/2",
                 count=100,
-                value=100 if i < n / 2 else 600,
+                value=100 if i < n / 2 else 302,
                 timestamp=ts,
             ),
             DetectorPayload(
                 project_id=project.id,
                 group="/3",
                 count=100,
-                value=100 if i < n / 2 else 900,
+                value=100 if i < n / 2 else 303,
                 timestamp=ts,
             ),
         ]
@@ -338,22 +338,23 @@ def test_detect_transaction_trends_ratelimit(
         for ts in timestamps:
             detect_transaction_trends([project.organization.id], [project.id], ts)
 
-    delay = 12 * 60 * 60
-    calls = [
-        mock.call(
-            args=[[(project.id, "/3")], timestamp + timedelta(hours=2)],
-            countdown=delay,
-        ),
-        mock.call(
-            args=[[(project.id, "/2")], timestamp + timedelta(hours=3)],
-            countdown=delay,
-        ),
-        mock.call(
-            args=[[(project.id, "/1")], timestamp + timedelta(hours=5)],
-            countdown=delay,
-        ),
-    ][:expected_calls]
-    detect_transaction_change_points.apply_async.assert_has_calls(calls)
+    if expected_calls > 0:
+        detect_transaction_change_points.apply_async.assert_has_calls(
+            [
+                mock.call(
+                    args=[
+                        [(project.id, "/1"), (project.id, "/2"), (project.id, "/3")][
+                            -expected_calls:
+                        ],
+                        timestamp + timedelta(hours=5),
+                    ],
+                    countdown=12 * 60 * 60,
+                ),
+            ],
+        )
+        assert detect_transaction_change_points.apply_async.call_count == 1
+    else:
+        assert detect_transaction_change_points.apply_async.call_count == 0
 
 
 @mock.patch("sentry.tasks.statistical_detectors.query_functions")
@@ -416,21 +417,21 @@ def test_detect_function_trends_ratelimit(
                 project_id=project.id,
                 group=1,
                 count=100,
-                value=100 if i < n / 2 else 300,
+                value=100 if i < n / 2 else 301,
                 timestamp=ts,
             ),
             DetectorPayload(
                 project_id=project.id,
                 group=2,
                 count=100,
-                value=100 if i < n / 2 else 600,
+                value=100 if i < n / 2 else 302,
                 timestamp=ts,
             ),
             DetectorPayload(
                 project_id=project.id,
                 group=3,
                 count=100,
-                value=100 if i < n / 2 else 900,
+                value=100 if i < n / 2 else 303,
                 timestamp=ts,
             ),
         ]
@@ -447,22 +448,21 @@ def test_detect_function_trends_ratelimit(
         for ts in timestamps:
             detect_function_trends([project.id], ts)
 
-    delay = 12 * 60 * 60
-    calls = [
-        mock.call(
-            args=[[(project.id, 3)], timestamp + timedelta(hours=2)],
-            countdown=delay,
-        ),
-        mock.call(
-            args=[[(project.id, 2)], timestamp + timedelta(hours=3)],
-            countdown=delay,
-        ),
-        mock.call(
-            args=[[(project.id, 1)], timestamp + timedelta(hours=5)],
-            countdown=delay,
-        ),
-    ][:expected_calls]
-    detect_function_change_points.apply_async.assert_has_calls(calls)
+    if expected_calls > 0:
+        detect_function_change_points.apply_async.assert_has_calls(
+            [
+                mock.call(
+                    args=[
+                        [(project.id, 1), (project.id, 2), (project.id, 3)][-expected_calls:],
+                        timestamp + timedelta(hours=5),
+                    ],
+                    countdown=12 * 60 * 60,
+                ),
+            ],
+        )
+        assert detect_function_change_points.apply_async.call_count == 1
+    else:
+        assert detect_function_change_points.apply_async.call_count == 0
 
 
 @mock.patch("sentry.tasks.statistical_detectors.emit_function_regression_issue")
