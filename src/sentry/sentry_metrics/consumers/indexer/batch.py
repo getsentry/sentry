@@ -1,6 +1,6 @@
 import logging
 import random
-from collections import defaultdict, deque
+from collections import defaultdict
 from typing import (
     Any,
     Callable,
@@ -126,13 +126,8 @@ class IndexerBatch:
                 parsed_payload = self._extract_message(msg)
                 self._validate_message(parsed_payload)
                 self.parsed_payloads_by_meta[broker_meta] = parsed_payload
-            except Exception as e:
+            except Exception:
                 self.invalid_msg_meta.add(broker_meta)
-                logger.error(
-                    e,
-                    extra={"payload_value": str(msg.payload.value)},
-                    exc_info=True,
-                )
 
         for namespace, cnt in skipped_msgs_cnt.items():
             metrics.incr(
@@ -168,7 +163,17 @@ class IndexerBatch:
                 extra={"payload_value": str(msg.payload.value)},
                 exc_info=True,
             )
-        parsed_payload["use_case_id"] = use_case_id = extract_use_case_id(parsed_payload["name"])
+        try:
+            parsed_payload["use_case_id"] = use_case_id = extract_use_case_id(
+                parsed_payload["name"]
+            )
+        except ValidationError:
+            logger.error(
+                "process_messages.invalid_metric_resource_identifier",
+                extra={"payload_value": str(msg.payload.value)},
+                exc_info=True,
+            )
+            raise
 
         self.__message_count[use_case_id] += 1
         self.__message_size_max[use_case_id] = max(
@@ -496,6 +501,5 @@ class IndexerBatch:
             )
         return IndexerOutputMessageBatch(
             new_messages,
-            deque(sorted(self.invalid_msg_meta)),
             cogs_usage,
         )
