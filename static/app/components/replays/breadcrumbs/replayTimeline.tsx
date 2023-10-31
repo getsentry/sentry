@@ -21,13 +21,16 @@ import toPercent from 'sentry/utils/number/toPercent';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type Props = {size: number};
+type Props = {};
 
-function ReplayTimeline({size}: Props) {
-  const {replay, currentTime} = useReplayContext();
+function ReplayTimeline({}: Props) {
+  const {replay, currentTime, timelineScale} = useReplayContext();
 
   const panelRef = useRef<HTMLDivElement>(null);
-  const mouseTrackingProps = useTimelineScrubberMouseTracking({elem: panelRef}, size);
+  const mouseTrackingProps = useTimelineScrubberMouseTracking(
+    {elem: panelRef},
+    timelineScale
+  );
 
   const stackedRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions<HTMLDivElement>({elementRef: stackedRef});
@@ -45,19 +48,17 @@ function ReplayTimeline({size}: Props) {
   const networkFrames = replay.getNetworkFrames();
 
   // start of the timeline is in the middle
-  const initialTranslatePercentage = 50 / size;
+  const initialTranslate = 0.5 / timelineScale;
 
-  const translatePercentage = toPercent(
-    initialTranslatePercentage -
-      (currentTime > durationMs ? 1 : divide(currentTime, durationMs))
-  );
+  const translate =
+    initialTranslate - (currentTime > durationMs ? 1 : divide(currentTime, durationMs));
 
   return hasNewTimeline ? (
     <VisiblePanel ref={panelRef} {...mouseTrackingProps}>
       <Stacked
         style={{
-          width: `${size}%`,
-          transform: `translate(${translatePercentage}, 0%)`,
+          width: `${toPercent(timelineScale)}`,
+          transform: `translate(${toPercent(translate)}, 0%)`,
         }}
         ref={stackedRef}
       >

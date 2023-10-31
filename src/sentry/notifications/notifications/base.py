@@ -12,7 +12,6 @@ from sentry.db.models import Model
 from sentry.models.environment import Environment
 from sentry.models.notificationsetting import NotificationSetting
 from sentry.notifications.helpers import should_use_notifications_v2
-from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import (
     NOTIFICATION_SETTING_TYPES,
     NotificationSettingEnum,
@@ -22,7 +21,12 @@ from sentry.notifications.types import (
 )
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.services.hybrid_cloud.notifications import notifications_service
+from sentry.types.integrations import (
+    EXTERNAL_PROVIDERS,
+    ExternalProviders,
+    get_provider_enum_from_string,
+)
 from sentry.utils.safe import safe_execute
 
 if TYPE_CHECKING:
@@ -240,12 +244,14 @@ class BaseNotification(abc.ABC):
             else NotificationSettingEnum.ISSUE_ALERTS
         )
         if should_use_notifications_v2(self.organization):
-            controller = NotificationController(
-                recipients=recipients,
-                organization_id=self.organization.id,
-                type=setting_type,
+            accepting_recipients = notifications_service.get_notification_recipients(
+                recipients=recipients, organization_id=self.organization.id, type=setting_type
             )
-            return controller.get_notification_recipients(type=setting_type)
+            # convert from string to enum
+            return {
+                get_provider_enum_from_string(provider): actors
+                for provider, actors in accepting_recipients.items()
+            }
 
         accepting_recipients: Mapping[
             ExternalProviders, Iterable[RpcActor]
