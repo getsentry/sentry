@@ -149,10 +149,7 @@ export function getOwnerList(
   }));
 }
 
-export function getAssignedToDisplayName(
-  group: Group | FeedbackIssue,
-  isFeedback?: boolean
-) {
+export function getAssignedToDisplayName(group: Group | FeedbackIssue) {
   if (group.assignedTo?.type === 'team') {
     const team = TeamStore.getById(group.assignedTo.id);
     return `#${team?.slug ?? group.assignedTo.name}`;
@@ -162,7 +159,7 @@ export function getAssignedToDisplayName(
     return user?.name ?? group.assignedTo.name;
   }
 
-  return group.assignedTo?.name ?? isFeedback ? t('Unassigned') : t('No one');
+  return group.assignedTo?.name;
 }
 
 function AssignedTo({
@@ -264,7 +261,7 @@ function AssignedTo({
                     <IconUser size="md" />
                   </IconWrapper>
                 )}
-                <ActorName>{getAssignedToDisplayName(group)}</ActorName>
+                <ActorName>{getAssignedToDisplayName(group) ?? t('No one')}</ActorName>
               </ActorWrapper>
               {!disableDropdown && (
                 <IconChevron

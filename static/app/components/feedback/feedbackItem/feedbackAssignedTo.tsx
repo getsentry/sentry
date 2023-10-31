@@ -11,6 +11,7 @@ import {
   getOwnerList,
 } from 'sentry/components/group/assignedTo';
 import {IconChevron, IconUser} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {FeedbackEvent, FeedbackIssue} from 'sentry/utils/feedback/types';
@@ -96,7 +97,9 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
                 size={16}
               />
             )}
-            <ActorName>{getAssignedToDisplayName(feedbackIssue, true)}</ActorName>
+            <ActorName>
+              {getAssignedToDisplayName(feedbackIssue) ?? t('Unassigned')}
+            </ActorName>
             <IconChevron
               data-test-id="assigned-to-chevron-icon"
               direction={isOpen ? 'up' : 'down'}
