@@ -259,7 +259,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         assert len(responses.calls) >= 1
         data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
         assert (
-            f"The {self.team.slug} team will now receive issue alert notifications in the {external_actors[0].external_name} channel."
+            f"The {self.team.slug} team will now receive issue alert and workflow notifications in the {external_actors[0].external_name} channel."
             in get_response_text(data)
         )
 
