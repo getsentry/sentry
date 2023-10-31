@@ -801,6 +801,9 @@ class FieldParsingResult:
 class QueryParsingResult:
     conditions: Sequence[QueryToken]
 
+    def is_empty(self) -> bool:
+        return len(self.conditions) == 0
+
 
 @dataclass
 class OnDemandMetricSpec:
@@ -926,41 +929,34 @@ class OnDemandMetricSpec:
 
     def _process_field(self) -> Tuple[MetricOperationType, str, Optional[Sequence[str]]]:
         parsed_field = self._parse_field(self.field)
-        if parsed_field is None:
-            raise Exception(f"Unable to parse the field {self.field}")
-
         op = self._get_op(parsed_field.function, parsed_field.arguments)
         metric_type = self._get_metric_type(parsed_field.function)
 
         return op, metric_type, self._parse_arguments(op, metric_type, parsed_field)
 
     def _process_query(self) -> Optional[RuleCondition]:
-        parsed_field = self._parse_field(self.field)
-        if parsed_field is None:
-            raise Exception(f"Unable to parse the field {self.field}")
-
         # First step is to parse the query string into our internal AST format.
         parsed_query = self._parse_query(self.query)
-        # Second step is to extract the conditions that might be present in the aggregate function.
-        aggregate_conditions = self._aggregate_conditions(parsed_field)
-
-        # An on demand metric must have at least a condition, otherwise we can just use a classic metric.
-        if parsed_query is None or len(parsed_query.conditions) == 0:
-            if aggregate_conditions is None:
-                # derived metrics have their conditions injected in the tags
-                if self._get_op(parsed_field.function, parsed_field.arguments) in _DERIVED_METRICS:
-                    return None
-
-                raise Exception("This query should not use on demand metrics")
-
-            return aggregate_conditions
-
-        # We extend the parsed query with other conditions that we want to inject externally from the query. For now
-        # we support only the environment.
+        # We extend the parsed query with other conditions that we want to inject externally from the query.
         parsed_query = self._extend_parsed_query(parsed_query)
 
-        # Third step is to generate the actual Relay rule that contains all rules nested.
-        rule_condition = SearchQueryConverter(parsed_query.conditions).convert()
+        # Second step is to extract the conditions that might be present in the aggregate function (e.g. count_if).
+        parsed_field = self._parse_field(self.field)
+        aggregate_conditions = self._aggregate_conditions(parsed_field)
+
+        # In case we have an empty query, but we have some conditions from the aggregate, we can just return them.
+        if parsed_query.is_empty() and aggregate_conditions:
+            return aggregate_conditions
+
+        try:
+            # Third step is to generate the actual Relay rule that contains all rules nested. We assume that the query
+            # being passed here, can be satisfied ONLY by on demand metrics.
+            rule_condition = SearchQueryConverter(parsed_query.conditions).convert()
+        except Exception as e:
+            logger.error(f"Error while converting search query: {e}")
+            return None
+
+        # If we don't have to merge the aggregate, we can just return the parsed rules.
         if not aggregate_conditions:
             return rule_condition
 
@@ -984,7 +980,6 @@ class OnDemandMetricSpec:
                     value=SearchValue(raw_value=self.environment),
                 )
             )
-            new_conditions.append("AND")
 
         extended_conditions = new_conditions + conditions
         return QueryParsingResult(
@@ -1041,7 +1036,7 @@ class OnDemandMetricSpec:
         raise Exception(f"Unsupported aggregate function {function}")
 
     @staticmethod
-    def _parse_field(value: str) -> Optional[FieldParsingResult]:
+    def _parse_field(value: str) -> FieldParsingResult:
         try:
             match = fields.is_function(value)
             if not match:
@@ -1049,18 +1044,18 @@ class OnDemandMetricSpec:
 
             function, _, arguments, alias = query_builder.parse_function(match)
             return FieldParsingResult(function=function, arguments=arguments, alias=alias)
-        except InvalidSearchQuery:
-            return None
+        except InvalidSearchQuery as e:
+            raise Exception(f"Unable to parse the field '{value}' in on demand spec: {e}")
 
     @staticmethod
-    def _parse_query(value: str) -> Optional[QueryParsingResult]:
+    def _parse_query(value: str) -> QueryParsingResult:
         """Parse query string into our internal AST format."""
         try:
             conditions = event_search.parse_search_query(value)
             clean_conditions = cleanup_query(_remove_event_type_and_project_filter(conditions))
             return QueryParsingResult(conditions=clean_conditions)
-        except InvalidSearchQuery:
-            return None
+        except InvalidSearchQuery as e:
+            raise Exception(f"Invalid search query '{value}' in on demand spec: {e}")
 
 
 def _convert_countif_filter(key: str, op: str, value: str) -> RuleCondition:
