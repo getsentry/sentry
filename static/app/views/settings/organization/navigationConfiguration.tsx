@@ -72,6 +72,7 @@ const organizationNavigation: NavigationSection[] = [
       {
         path: `${pathPrefix}/relay/`,
         title: t('Relay'),
+        show: ({features}) => features!.has('relay'),
         description: t('Manage relays connected to the organization'),
         id: 'relay',
       },
