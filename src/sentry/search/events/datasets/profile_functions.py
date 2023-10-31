@@ -243,13 +243,13 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "cpm",  # calls per minute
                     snql_aggregate=lambda args, alias: self._resolve_cpm(args, alias),
-                    default_result_type="integer",
+                    default_result_type="number",
                 ),
                 SnQLFunction(
                     "cpm_before",
                     required_args=[TimestampArg("timestamp")],
                     snql_aggregate=lambda args, alias: self._resolve_cpm_cond(args, alias, "less"),
-                    default_result_type="integer",
+                    default_result_type="number",
                 ),
                 SnQLFunction(
                     "cpm_after",
@@ -257,13 +257,13 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                     snql_aggregate=lambda args, alias: self._resolve_cpm_cond(
                         args, alias, "greater"
                     ),
-                    default_result_type="integer",
+                    default_result_type="number",
                 ),
                 SnQLFunction(
                     "cpm_delta",
                     required_args=[TimestampArg("timestamp")],
                     snql_aggregate=self._resolve_cpm_delta,
-                    default_result_type="integer",
+                    default_result_type="number",
                 ),
                 SnQLFunction(
                     "count_unique",
