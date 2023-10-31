@@ -194,6 +194,7 @@ def _get_known_entity_of_metric_mri(metric_mri: str) -> Optional[EntityKey]:
                 "c": EntityKey.GenericMetricsCounters,
                 "d": EntityKey.GenericMetricsDistributions,
                 "s": EntityKey.GenericMetricsSets,
+                "g": EntityKey.GenericMetricsGauges,
             }[entity_prefix]
     except (ValueError, IndexError, KeyError):
         pass
