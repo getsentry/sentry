@@ -119,7 +119,6 @@ class MessageProcessor:
             outer_message,
             should_index_tag_values=should_index_tag_values,
             is_output_sliced=is_output_sliced,
-            input_codec=INGEST_CODEC,
             tags_validator=self.__get_tags_validator(),
             schema_validator=self.__get_schema_validator(),
         )
