@@ -8,7 +8,7 @@ from django.core.cache import cache
 from django.db.models import ProtectedError
 from django.utils import timezone
 
-from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.issues.grouptype import FeedbackGroup, ProfileFileIOGroupType
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models.group import Group, GroupStatus, get_group_with_redirect
 from sentry.models.groupredirect import GroupRedirect
@@ -235,6 +235,20 @@ class GroupTest(TestCase, SnubaTestCase):
             group = self.create_group(id=group_id, project=project)
             actual = group.get_absolute_url(params)
             assert actual == expected
+
+    def test_get_absolute_url_feedback(self):
+        org_slug = "org1"
+        org = self.create_organization(slug=org_slug)
+        project = self.create_project(organization=org)
+        group_id = 23
+        params = None
+        expected = (
+            f"http://testserver/organizations/org1/feedback/?feedbackSlug={project.slug}%3A23"
+        )
+
+        group = self.create_group(id=group_id, project=project, type=FeedbackGroup.type_id)
+        actual = group.get_absolute_url(params)
+        assert actual == expected
 
     def test_get_absolute_url_event(self):
         project = self.create_project()
