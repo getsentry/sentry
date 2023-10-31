@@ -24,12 +24,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 type Props = {};
 
 function ReplayTimeline({}: Props) {
-  const {replay, currentTime, timelineSize} = useReplayContext();
+  const {replay, currentTime, timelineScale} = useReplayContext();
 
   const panelRef = useRef<HTMLDivElement>(null);
   const mouseTrackingProps = useTimelineScrubberMouseTracking(
     {elem: panelRef},
-    timelineSize
+    timelineScale
   );
 
   const stackedRef = useRef<HTMLDivElement>(null);
@@ -48,19 +48,17 @@ function ReplayTimeline({}: Props) {
   const networkFrames = replay.getNetworkFrames();
 
   // start of the timeline is in the middle
-  const initialTranslatePercentage = 50 / timelineSize;
+  const initialTranslate = 0.5 / timelineScale;
 
-  const translatePercentage = toPercent(
-    initialTranslatePercentage -
-      (currentTime > durationMs ? 1 : divide(currentTime, durationMs))
-  );
+  const translate =
+    initialTranslate - (currentTime > durationMs ? 1 : divide(currentTime, durationMs));
 
   return hasNewTimeline ? (
     <VisiblePanel ref={panelRef} {...mouseTrackingProps}>
       <Stacked
         style={{
-          width: `${timelineSize}%`,
-          transform: `translate(${translatePercentage}, 0%)`,
+          width: `${toPercent(timelineScale)}`,
+          transform: `translate(${toPercent(translate)}, 0%)`,
         }}
         ref={stackedRef}
       >

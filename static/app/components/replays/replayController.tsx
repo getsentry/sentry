@@ -147,7 +147,9 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
 }
 
 function TimelineSizeBar() {
-  const {timelineSize, setTimelineSize} = useReplayContext();
+  const {timelineScale, setTimelineScale, replay} = useReplayContext();
+  const durationMs = replay?.getDurationMs();
+  const maxScale = durationMs ? Math.ceil(durationMs / 60000) : 10;
   return (
     <ButtonBar merged>
       <Button
@@ -155,18 +157,18 @@ function TimelineSizeBar() {
         title={t('Zoom out')}
         icon={<IconSubtract size="xs" />}
         borderless
-        onClick={() => setTimelineSize(Math.max(timelineSize - 50, 100))}
+        onClick={() => setTimelineScale(Math.max(timelineScale - 0.5, 1))}
         aria-label={t('Zoom out')}
-        disabled={timelineSize === 100 ? true : false}
+        disabled={timelineScale === 1}
       />
       <Button
         size="xs"
         title={t('Zoom in')}
         icon={<IconAdd size="xs" />}
         borderless
-        onClick={() => setTimelineSize(Math.min(timelineSize + 50, 1000))}
+        onClick={() => setTimelineScale(Math.min(timelineScale + 0.5, maxScale))}
         aria-label={t('Zoom in')}
-        disabled={timelineSize === 1000 ? true : false}
+        disabled={timelineScale === maxScale}
       />
     </ButtonBar>
   );
