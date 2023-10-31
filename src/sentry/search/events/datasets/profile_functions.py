@@ -241,11 +241,6 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                     default_result_type="integer",
                 ),
                 SnQLFunction(
-                    "cpm",  # calls per minute
-                    snql_aggregate=lambda args, alias: self._resolve_cpm(args, alias),
-                    default_result_type="integer",
-                ),
-                SnQLFunction(
                     "cpm_before",
                     required_args=[TimestampArg("timestamp")],
                     snql_aggregate=lambda args, alias: self._resolve_cpm_cond(args, alias, "less"),
@@ -523,22 +518,6 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                     [args["column"]],
                 ),
                 1,
-            ],
-            alias,
-        )
-
-    def _resolve_cpm(
-        self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: str | None,
-    ) -> SelectType:
-        interval = (self.builder.params.end - self.builder.params.start).total_seconds()
-
-        return Function(
-            "divide",
-            [
-                Function("countMerge", [SnQLColumn("count")]),
-                Function("divide", [interval, 60]),
             ],
             alias,
         )

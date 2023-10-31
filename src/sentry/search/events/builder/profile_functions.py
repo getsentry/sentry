@@ -49,8 +49,6 @@ class ProfileFunctionsQueryBuilder(ProfileFunctionsQueryBuilderMixin, QueryBuild
 class ProfileFunctionsTimeseriesQueryBuilder(
     ProfileFunctionsQueryBuilderMixin, TimeseriesQueryBuilder
 ):
-    function_alias_prefix = "sentry_"
-
     @property
     def time_column(self) -> SelectType:
         return Function(
