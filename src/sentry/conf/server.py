@@ -1699,8 +1699,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-trace-table": False,
     # Enable the AM1 trial ended banner on sentry.io
     "organizations:session-replay-trial-ended-banner": False,
-    # Enable the Replay rage and dead click selector tables in the UI
-    "organizations:session-replay-rage-dead-selectors": False,
     # Enable the new event linking columns to be queried
     "organizations:session-replay-new-event-counts": False,
     # Enable the Replay Details > New timeline
@@ -1709,6 +1707,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
     "organizations:starfish-view": False,
+    # Enables the resource module ui
+    "organizations:starfish-browser-resource-module-ui": False,
     # Enable the aggregate span waterfall view
     "organizations:starfish-aggregate-span-waterfall": False,
     # Enable starfish endpoint that's used for regressing testing purposes
