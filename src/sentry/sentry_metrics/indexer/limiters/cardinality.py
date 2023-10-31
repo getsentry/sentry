@@ -14,7 +14,7 @@ from sentry.ratelimits.cardinality import (
     Timestamp,
 )
 from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
-from sentry.sentry_metrics.consumers.indexer.common import BrokerMeta
+from sentry.sentry_metrics.consumers.indexer.batch import PartitionIdxOffset
 from sentry.sentry_metrics.use_case_id_registry import (
     USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS,
     UseCaseID,
@@ -32,7 +32,7 @@ class CardinalityLimiterState:
     _metric_path_key: UseCaseKey
     _grants: Optional[Sequence[GrantedQuota]]
     _timestamp: Optional[Timestamp]
-    keys_to_remove: Sequence[BrokerMeta]
+    keys_to_remove: Sequence[PartitionIdxOffset]
 
 
 def _build_quota_key(use_case_id: UseCaseID, org_id: OrgId) -> str:
@@ -80,10 +80,10 @@ class TimeseriesCardinalityLimiter:
         self.backend: CardinalityLimiter = rate_limiter
 
     def check_cardinality_limits(
-        self, metric_path_key: UseCaseKey, messages: Mapping[BrokerMeta, InboundMessage]
+        self, metric_path_key: UseCaseKey, messages: Mapping[PartitionIdxOffset, InboundMessage]
     ) -> CardinalityLimiterState:
         request_hashes = defaultdict(set)
-        hash_to_meta: Mapping[str, Dict[int, BrokerMeta]] = defaultdict(dict)
+        hash_to_offset: Mapping[str, Dict[int, PartitionIdxOffset]] = defaultdict(dict)
         prefix_to_quota = {}
 
         # this works by applying one cardinality limiter rollout option
@@ -109,7 +109,7 @@ class TimeseriesCardinalityLimiter:
                 16,
             )
             prefix = _build_quota_key(message["use_case_id"], org_id)
-            hash_to_meta[prefix][message_hash] = key
+            hash_to_offset[prefix][message_hash] = key
             request_hashes[prefix].add(message_hash)
             configured_quota = _construct_quotas(message["use_case_id"])
 
@@ -144,10 +144,10 @@ class TimeseriesCardinalityLimiter:
 
         timestamp, grants = self.backend.check_within_quotas(requested_quotas)
 
-        keys_to_remove = hash_to_meta
-        # make sure that hash_to_broker_meta is no longer used, as the underlying
+        keys_to_remove = hash_to_offset
+        # make sure that hash_to_offset is no longer used, as the underlying
         # dict will be mutated
-        del hash_to_meta
+        del hash_to_offset
 
         for grant in grants:
             for hash in grant.granted_unit_hashes:
