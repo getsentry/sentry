@@ -172,7 +172,9 @@ export function ScreenCharts({yAxes, additionalFilters, chartHeight}: Props) {
           name: deviceClass,
           value: row[YAXIS_COLUMNS[val]],
           itemStyle: {
-            color: isPrimary ? theme.gray300 : Color(theme.gray300).lighten(0.5).string(),
+            color: isPrimary
+              ? theme.charts.getColorPalette(1)[0]
+              : Color(theme.charts.getColorPalette(1)[0]).lighten(0.5).string(),
           },
         } as SeriesDataUnit;
       });
