@@ -39,7 +39,7 @@ export default function FeedbackListHeader({checked, toggleChecked}: Props) {
         }}
       />
       {checked.length ? (
-        <HasSelection checked={checked} mailbox={mailbox} />
+        <HasSelection checked={checked} mailbox={mailbox} toggleChecked={toggleChecked} />
       ) : (
         <MailboxPicker value={mailbox} onChange={setMailbox} />
       )}
@@ -47,7 +47,7 @@ export default function FeedbackListHeader({checked, toggleChecked}: Props) {
   );
 }
 
-function HasSelection({checked, mailbox}) {
+function HasSelection({checked, mailbox, toggleChecked}) {
   const organization = useOrganization();
   const {markAsRead, resolve} = useBulkMutateFeedback({
     feedbackList: checked,
@@ -62,11 +62,12 @@ function HasSelection({checked, mailbox}) {
       <Flex gap={space(1)} justify="flex-end">
         <ErrorBoundary mini>
           <Button
-            onClick={() =>
+            onClick={() => {
               mailbox === 'resolved'
                 ? resolve(GroupStatus.UNRESOLVED)
-                : resolve(GroupStatus.RESOLVED)
-            }
+                : resolve(GroupStatus.RESOLVED);
+              checked.length ? checked.forEach(c => toggleChecked(c)) : null;
+            }}
           >
             {mailbox === 'resolved' ? t('Unresolve') : t('Resolve')}
           </Button>
