@@ -100,11 +100,11 @@ export default function MonitorCreateForm() {
               );
               return (
                 <Fragment>
-                  <SchedulePanel highlighted={scheduleType === ScheduleType.CRONTAB}>
-                    <PanelBody
-                      withPadding
-                      onClick={() => changeScheduleType(ScheduleType.CRONTAB)}
-                    >
+                  <SchedulePanel
+                    highlighted={scheduleType === ScheduleType.CRONTAB}
+                    onClick={() => changeScheduleType(ScheduleType.CRONTAB)}
+                  >
+                    <PanelBody withPadding>
                       <ScheduleLabel>Crontab Schedule</ScheduleLabel>
                       <MultiColumnInput columns="1fr 1fr">
                         <StyledTextField
@@ -128,11 +128,11 @@ export default function MonitorCreateForm() {
                       </MultiColumnInput>
                     </PanelBody>
                   </SchedulePanel>
-                  <SchedulePanel highlighted={scheduleType === ScheduleType.INTERVAL}>
-                    <PanelBody
-                      withPadding
-                      onClick={() => changeScheduleType(ScheduleType.INTERVAL)}
-                    >
+                  <SchedulePanel
+                    highlighted={scheduleType === ScheduleType.INTERVAL}
+                    onClick={() => changeScheduleType(ScheduleType.INTERVAL)}
+                  >
+                    <PanelBody withPadding>
                       <ScheduleLabel>Interval Schedule</ScheduleLabel>
                       <MultiColumnInput columns="auto 1fr 2fr">
                         <Label>{t('Every')}</Label>
