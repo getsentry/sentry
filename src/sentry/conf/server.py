@@ -3793,11 +3793,6 @@ MAX_ENVIRONMENTS_PER_MONITOR = 1000
 # tests)
 SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
 
-# Settings for the SDK crash detection. These are deprecated and will be removed
-# in a subsequent PR.
-SDK_CRASH_DETECTION_PROJECT_ID: Optional[int] = None
-SDK_CRASH_DETECTION_SAMPLE_RATE = 0.0
-
 # The Redis cluster to use for monitoring the service / consumer health.
 SENTRY_SERVICE_MONITORING_REDIS_CLUSTER = "default"
 
