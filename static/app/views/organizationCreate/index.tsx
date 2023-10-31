@@ -1,6 +1,9 @@
+import {useState} from 'react';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import ApiForm from 'sentry/components/forms/apiForm';
 import CheckboxField from 'sentry/components/forms/fields/checkboxField';
+import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -9,9 +12,32 @@ import ConfigStore from 'sentry/stores/configStore';
 import {OrganizationSummary} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
+enum RegionDisplayName {
+  US = '🇺🇸 United States of America (USA)',
+  DE = '🇪🇺 European Union (EU)',
+}
+
+function get_region_choices() {
+  const regions = ConfigStore.get('regions');
+
+  return regions.map(({name, url}) => {
+    const regionName = name.toUpperCase();
+    if (RegionDisplayName[regionName]) {
+      return [url, RegionDisplayName[regionName]];
+    }
+
+    return [url, name];
+  });
+}
+
+function should_display_regions(): boolean {
+  return ConfigStore.get('features').has('organizations:multi-region-selector');
+}
+
 function OrganizationCreate() {
   const termsUrl = ConfigStore.get('termsUrl');
   const privacyUrl = ConfigStore.get('privacyUrl');
+  const [regionUrl, setRegion] = useState<string | undefined>();
 
   return (
     <SentryDocumentTitle title={t('Create Organization')}>
@@ -29,6 +55,7 @@ function OrganizationCreate() {
           submitLabel={t('Create Organization')}
           apiEndpoint="/organizations/"
           apiMethod="POST"
+          hostOverride={regionUrl}
           onSubmitSuccess={(createdOrg: OrganizationSummary) => {
             const hasCustomerDomain = createdOrg?.features.includes('customer-domains');
             let nextUrl = normalizeUrl(
@@ -59,7 +86,18 @@ function OrganizationCreate() {
             stacked
             required
           />
-
+          {should_display_regions() && (
+            <SelectField
+              name="region"
+              label="Data Storage"
+              help="Where will this organization reside?"
+              choices={get_region_choices()}
+              onChange={setRegion}
+              stacked
+              inline={false}
+              required
+            />
+          )}
           {termsUrl && privacyUrl && (
             <CheckboxField
               name="agreeTerms"
