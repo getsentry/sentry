@@ -67,7 +67,6 @@ import {
 import {ProfilesSummaryChart} from 'sentry/views/profiling/landing/profilesSummaryChart';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfilingFieldType} from 'sentry/views/profiling/profileSummary/content';
-import {LegacySummaryPage} from 'sentry/views/profiling/profileSummary/legacySummaryPage';
 import {ProfilesTable} from 'sentry/views/profiling/profileSummary/profilesTable';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
@@ -817,21 +816,11 @@ const ProfileDigestLabel = styled('span')`
 `;
 
 export default function ProfileSummaryPageToggle(props: ProfileSummaryPageProps) {
-  const organization = useOrganization();
-
-  if (organization.features.includes('profiling-summary-redesign')) {
-    return (
-      <ProfileSummaryContainer data-test-id="profile-summary-redesign">
-        <ErrorBoundary>
-          <ProfileSummaryPage {...props} />
-        </ErrorBoundary>
-      </ProfileSummaryContainer>
-    );
-  }
-
   return (
-    <div data-test-id="profile-summary-legacy">
-      <LegacySummaryPage {...props} />
-    </div>
+    <ProfileSummaryContainer data-test-id="profile-summary-redesign">
+      <ErrorBoundary>
+        <ProfileSummaryPage {...props} />
+      </ErrorBoundary>
+    </ProfileSummaryContainer>
   );
 }

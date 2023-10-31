@@ -1,13 +1,21 @@
+from __future__ import annotations
+
 import base64
+from dataclasses import asdict
+from datetime import datetime, timezone
 from unittest import mock
+from urllib.parse import quote
 
 import pytest
 import responses
 
 from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.integrations.gitlab.blame import GitLabCommitResponse, GitLabFileBlameResponseItem
+from sentry.integrations.gitlab.utils import get_rate_limit_info_from_response
+from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.models.identity import Identity
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
@@ -18,10 +26,7 @@ GITLAB_CODEOWNERS = {
 }
 
 
-@control_silo_test(stable=True)
-class GitlabRefreshAuthTest(GitLabTestCase):
-    get_user_should_succeed = True
-
+class GitLabClientTest(GitLabTestCase):
     def setUp(self):
         super().setUp()
         self.gitlab_client = self.installation.get_client()
@@ -39,6 +44,14 @@ class GitlabRefreshAuthTest(GitLabTestCase):
         self.repo = self.create_repo(name="Test-Org/foo", external_id=123)
         self.original_identity_data = dict(self.gitlab_client.identity.data)
         self.gitlab_id = 123
+
+
+@control_silo_test(stable=True)
+class GitlabRefreshAuthTest(GitLabClientTest):
+    get_user_should_succeed = True
+
+    def setUp(self):
+        super().setUp()
 
     def tearDown(self):
         responses.reset()
@@ -232,7 +245,7 @@ class GitlabRefreshAuthTest(GitLabTestCase):
         )
         resp = self.gitlab_client.get_user()
 
-        rate_limit_info = self.gitlab_client.get_rate_limit_info_from_response(resp)
+        rate_limit_info = get_rate_limit_info_from_response(resp)
 
         assert rate_limit_info
 
@@ -255,6 +268,274 @@ class GitlabRefreshAuthTest(GitLabTestCase):
         )
         resp = self.gitlab_client.get_user()
 
-        rate_limit_info = self.gitlab_client.get_rate_limit_info_from_response(resp)
+        rate_limit_info = get_rate_limit_info_from_response(resp)
 
         assert not rate_limit_info
+
+
+@control_silo_test(stable=True)
+class GitLabBlameForFilesTest(GitLabClientTest):
+    def setUp(self):
+        super().setUp()
+        self.file_1 = SourceLineInfo(
+            path="src/sentry/integrations/github/client_1.py",
+            lineno=10,
+            ref="master",
+            repo=self.repo,
+            code_mapping=None,  # type: ignore
+        )
+        self.file_2 = SourceLineInfo(
+            path="src/sentry/integrations/github/client_1.py",
+            lineno=15,
+            ref="master",
+            repo=self.repo,
+            code_mapping=None,  # type: ignore
+        )
+        self.file_3 = SourceLineInfo(
+            path="src/sentry/integrations/github/client_2.py",
+            lineno=20,
+            ref="master",
+            repo=self.repo,
+            code_mapping=None,  # type: ignore
+        )
+        self.file_4 = SourceLineInfo(
+            path="src/sentry/integrations/github/client_3.py",
+            lineno=20,
+            ref="master",
+            repo=self.repo,
+            code_mapping=None,  # type: ignore
+        )
+        self.blame_1 = FileBlameInfo(
+            **asdict(self.file_1),
+            commit=CommitInfo(
+                commitId="1",
+                commitMessage="test message",
+                committedDate=datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                commitAuthorEmail="marvin@place.com",
+                commitAuthorName="Marvin",
+            ),
+        )
+        self.blame_2 = FileBlameInfo(
+            **asdict(self.file_2),
+            commit=CommitInfo(
+                commitId="2",
+                commitMessage="test message",
+                committedDate=datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                commitAuthorEmail="marvin@place.com",
+                commitAuthorName="Marvin",
+            ),
+        )
+        self.blame_3 = FileBlameInfo(
+            **asdict(self.file_3),
+            commit=CommitInfo(
+                commitId="3",
+                commitMessage="test message",
+                committedDate=datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                commitAuthorEmail="marvin@place.com",
+                commitAuthorName="Marvin",
+            ),
+        )
+
+    def set_up_success_responses(self):
+        responses.add(
+            responses.GET,
+            url=self.make_blame_request(self.file_1),
+            json=self.make_blame_response(id="1"),
+            status=200,
+        )
+        responses.add(
+            responses.GET,
+            url=self.make_blame_request(self.file_2),
+            json=self.make_blame_response(id="2"),
+            status=200,
+        )
+        responses.add(
+            responses.GET,
+            url=self.make_blame_request(self.file_3),
+            json=self.make_blame_response(id="3"),
+            status=200,
+        )
+
+    def make_blame_request(self, file: SourceLineInfo) -> str:
+        return f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/{quote(file.path, safe='')}/blame?ref={file.ref}&range[start]={file.lineno}&range[end]={file.lineno}"
+
+    def make_blame_response(self, **kwargs) -> list[GitLabFileBlameResponseItem]:
+        return [
+            GitLabFileBlameResponseItem(
+                lines=[],
+                commit=GitLabCommitResponse(
+                    id=kwargs.get("id", "1"),
+                    message=kwargs.get("message", "test message"),
+                    committed_date=kwargs.get("committed_date", "2023-01-01T00:00:00.000Z"),
+                    author_name=kwargs.get("author_name", "Marvin"),
+                    author_email=kwargs.get("author_email", "marvin@place.com"),
+                    committer_email=None,
+                    committer_name=None,
+                ),
+            )
+        ]
+
+    @responses.activate
+    def test_success_single_file(self):
+        self.set_up_success_responses()
+        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1])
+
+        assert resp == [self.blame_1]
+
+    @responses.activate
+    def test_success_multiple_files(self):
+        self.set_up_success_responses()
+        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2, self.file_3])
+
+        assert resp == [self.blame_1, self.blame_2, self.blame_3]
+
+    @mock.patch(
+        "sentry.integrations.gitlab.blame.logger.exception",
+    )
+    @responses.activate
+    def test_failure_404(self, mock_logger_exception):
+        responses.add(responses.GET, self.make_blame_request(self.file_1), status=404)
+        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1])
+
+        assert resp == []
+        mock_logger_exception.assert_called_with(
+            "get_blame_for_files.api_error",
+            extra={
+                "provider": "gitlab",
+                "org_integration_id": self.gitlab_client.org_integration_id,
+                "repo_name": self.repo.name,
+                "file_path": self.file_1.path,
+                "branch_name": self.file_1.ref,
+                "file_lineno": self.file_1.lineno,
+            },
+        )
+
+    @mock.patch(
+        "sentry.integrations.gitlab.blame.logger.exception",
+    )
+    @responses.activate
+    def test_failure_response_type(self, mock_logger_exception):
+        responses.add(responses.GET, self.make_blame_request(self.file_1), json={}, status=200)
+        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1])
+
+        assert resp == []
+        mock_logger_exception.assert_called_with(
+            "get_blame_for_files.api_error",
+            extra={
+                "provider": "gitlab",
+                "org_integration_id": self.gitlab_client.org_integration_id,
+                "repo_name": self.repo.name,
+                "file_path": self.file_1.path,
+                "branch_name": self.file_1.ref,
+                "file_lineno": self.file_1.lineno,
+            },
+        )
+
+    @mock.patch(
+        "sentry.integrations.gitlab.blame.logger.exception",
+    )
+    @responses.activate
+    def test_failure_approaching_rate_limit(self, mock_logger_exception):
+        """
+        If there aren't enough requests left to stay above the minimum request
+        limit, should raise a ApiRateLimitedError.
+        """
+        responses.add(
+            responses.GET,
+            self.make_blame_request(self.file_1),
+            adding_headers={
+                "RateLimit-Limit": "1000",
+                "RateLimit-Remaining": "10",
+                "RateLimit-Reset": "1372700873",
+                "RateLimit-Observed": "900",
+            },
+            json=self.make_blame_response(id="1"),
+            status=200,
+        )
+
+        with pytest.raises(ApiRateLimitedError) as excinfo:
+            self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2])
+
+        assert excinfo.value.text == "Approaching GitLab API rate limit"
+        mock_logger_exception.assert_called_with(
+            "get_blame_for_files.rate_limit_too_low",
+            extra={
+                "provider": "gitlab",
+                "org_integration_id": self.gitlab_client.org_integration_id,
+                "num_files": 2,
+                "remaining_requests": 10,
+                "total_requests": 1000,
+                "next_window": "17:47:53",
+            },
+        )
+
+    @mock.patch(
+        "sentry.integrations.gitlab.blame.logger.exception",
+    )
+    @responses.activate
+    def test_failure_partial(self, mock_logger_exception):
+        """
+        Tests that blames are still returned when some succeed
+        and others fail.
+        """
+        # First file doesn't exist, second returns successfully
+        responses.add(responses.GET, self.make_blame_request(self.file_1), status=404)
+        responses.add(
+            responses.GET,
+            url=self.make_blame_request(self.file_2),
+            json=self.make_blame_response(id="2"),
+            status=200,
+        )
+        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2])
+
+        # Should return the successful response
+        assert resp == [self.blame_2]
+
+        # Should log the unsuccessful one
+        mock_logger_exception.assert_called_once()
+        mock_logger_exception.assert_called_with(
+            "get_blame_for_files.api_error",
+            extra={
+                "provider": "gitlab",
+                "org_integration_id": self.gitlab_client.org_integration_id,
+                "repo_name": self.repo.name,
+                "file_path": self.file_1.path,
+                "branch_name": self.file_1.ref,
+                "file_lineno": self.file_1.lineno,
+            },
+        )
+
+    @responses.activate
+    def test_invalid_commits(self):
+        """
+        Tests that commits lacking required data are thrown out
+        """
+        responses.add(
+            responses.GET,
+            url=self.make_blame_request(self.file_1),
+            json=self.make_blame_response(id=None),
+            status=200,
+        )
+        responses.add(
+            responses.GET,
+            url=self.make_blame_request(self.file_2),
+            json=self.make_blame_response(committed_date=None),
+            status=200,
+        )
+        responses.add(
+            responses.GET,
+            url=self.make_blame_request(self.file_3),
+            json=self.make_blame_response(committed_date="invalid date format"),
+            status=200,
+        )
+        responses.add(
+            responses.GET,
+            url=self.make_blame_request(self.file_4),
+            json={"lines": [], "commit": None},
+            status=200,
+        )
+        resp = self.gitlab_client.get_blame_for_files(
+            files=[self.file_1, self.file_2, self.file_3, self.file_4]
+        )
+
+        assert resp == []

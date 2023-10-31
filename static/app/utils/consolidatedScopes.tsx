@@ -5,9 +5,10 @@ import pick from 'lodash/pick';
 import {Permissions} from 'sentry/types';
 
 const PERMISSION_LEVELS = {
-  read: 0,
-  write: 1,
-  admin: 2,
+  'no-access': 0,
+  read: 1,
+  write: 2,
+  admin: 3,
 };
 
 const HUMAN_RESOURCE_NAMES = {
@@ -46,6 +47,9 @@ const permissionLevel = (scope: string): number => {
 };
 
 const compareScopes = (a: string, b: string) => permissionLevel(a) - permissionLevel(b);
+
+const comparePermissionLevels = (a: string, b: string) =>
+  PERMISSION_LEVELS[a] - PERMISSION_LEVELS[b];
 
 /**
  * Return the most permissive scope for each resource.
@@ -132,4 +136,4 @@ function toPermissions(scopes: string[]): PermissionLevelResources {
   return {...defaultPermissions, ...permissions};
 }
 
-export {toPermissions, toResourcePermissions};
+export {comparePermissionLevels, toPermissions, toResourcePermissions};

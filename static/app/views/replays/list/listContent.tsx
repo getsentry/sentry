@@ -14,7 +14,6 @@ import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import DeadRageSelectorCards from 'sentry/views/replays/deadRageClick/deadRageSelectorCards';
 import ReplaysFilters from 'sentry/views/replays/list/filters';
 import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
-import ReplaysErroneousDeadRageCards from 'sentry/views/replays/list/replaysErroneousDeadRageCards';
 import ReplaysList from 'sentry/views/replays/list/replaysList';
 import ReplaysSearch from 'sentry/views/replays/list/search';
 
@@ -22,9 +21,6 @@ export default function ListContent() {
   const organization = useOrganization();
   const hasSessionReplay = organization.features.includes('session-replay');
   const hasSentReplays = useHaveSelectedProjectsSentAnyReplayEvents();
-  const hasdeadRageClickFeature = organization.features.includes(
-    'session-replay-rage-dead-selectors'
-  );
 
   const {
     selection: {projects},
@@ -77,20 +73,12 @@ export default function ListContent() {
         <ReplaysFilters />
         <SearchWrapper>
           <ReplaysSearch />
-          {hasdeadRageClickFeature ? (
-            <Button onClick={() => setWidgetIsOpen(!widgetIsOpen)}>
-              {widgetIsOpen ? t('Hide Widgets') : t('Show Widgets')}
-            </Button>
-          ) : null}
+          <Button onClick={() => setWidgetIsOpen(!widgetIsOpen)}>
+            {widgetIsOpen ? t('Hide Widgets') : t('Show Widgets')}
+          </Button>
         </SearchWrapper>
       </FiltersContainer>
-      {hasdeadRageClickFeature ? (
-        widgetIsOpen ? (
-          <DeadRageSelectorCards />
-        ) : null
-      ) : (
-        <ReplaysErroneousDeadRageCards />
-      )}
+      {widgetIsOpen ? <DeadRageSelectorCards /> : null}
       <ReplaysList />
     </Fragment>
   );

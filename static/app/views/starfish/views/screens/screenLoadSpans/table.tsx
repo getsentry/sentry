@@ -38,10 +38,15 @@ const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
 
 type Props = {
   primaryRelease?: string;
+  secondaryRelease?: string;
   transaction?: string;
 };
 
-export function ScreenLoadSpansTable({transaction, primaryRelease}: Props) {
+export function ScreenLoadSpansTable({
+  transaction,
+  primaryRelease,
+  secondaryRelease,
+}: Props) {
   const location = useLocation();
   const {selection} = usePageFilters();
   const organization = useOrganization();
@@ -53,7 +58,11 @@ export function ScreenLoadSpansTable({transaction, primaryRelease}: Props) {
     `transaction:${transaction}`,
     'span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction]',
   ]);
-  const queryStringPrimary = appendReleaseFilters(searchQuery, primaryRelease);
+  const queryStringPrimary = appendReleaseFilters(
+    searchQuery,
+    primaryRelease,
+    secondaryRelease
+  );
 
   const sort = fromSorts(
     decodeScalar(location.query[QueryParameterNames.SPANS_SORT])
@@ -69,8 +78,11 @@ export function ScreenLoadSpansTable({transaction, primaryRelease}: Props) {
       SPAN_OP,
       SPAN_GROUP,
       SPAN_DESCRIPTION,
-      `avg(${SPAN_SELF_TIME})`, // TODO: Update these to avgIf with primary release when available
+      `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
+      `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
       'count()',
+      'time_spent_percentage()',
+      `sum(${SPAN_SELF_TIME})`,
     ],
     query: queryStringPrimary,
     dataset: DiscoverDatasets.SPANS_METRICS,
@@ -93,7 +105,13 @@ export function ScreenLoadSpansTable({transaction, primaryRelease}: Props) {
     [SPAN_OP]: t('Operation'),
     [SPAN_DESCRIPTION]: t('Span Description'),
     'count()': DataTitles.count,
-    [`avg(${SPAN_SELF_TIME})`]: DataTitles.avg,
+    'time_spent_percentage()': DataTitles.timeSpent,
+    [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
+      'Avg Duration (Release 1)'
+    ),
+    [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t(
+      'Avg Duration  (Release 2)'
+    ),
   };
 
   function renderBodyCell(column, row): React.ReactNode {
