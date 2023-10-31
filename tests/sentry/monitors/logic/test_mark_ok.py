@@ -130,6 +130,8 @@ class MarkOkTestCase(TestCase):
         # Incident has not resolved
         assert incident.resolving_checkin is None
         assert incident.resolving_timestamp is None
+        # no status change is sent to kafka occurrence consumer
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
 
         # create another failed check-in to break the chain
         now = now + timedelta(minutes=1)
@@ -173,9 +175,9 @@ class MarkOkTestCase(TestCase):
         assert incident.resolving_checkin == last_checkin
         assert incident.resolving_timestamp == last_checkin.date_added
 
+        # assert status change is sent to kafka occurrence consumer
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
 
-        # assert status change is sent to kafka occurrence consumer
         kwargs = mock_produce_occurrence_to_kafka.call_args.kwargs
         payload_type, status_change = kwargs["payload_type"], kwargs["status_change"]
         status_change = status_change.to_dict()
