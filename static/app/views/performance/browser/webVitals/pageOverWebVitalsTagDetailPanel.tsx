@@ -360,6 +360,7 @@ export function PageOverviewWebVitalsTagDetailPanel({
 const NoOverflow = styled('span')`
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const AlignCenter = styled('span')`
