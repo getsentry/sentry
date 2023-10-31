@@ -1,9 +1,11 @@
 import {useEffect} from 'react';
+import {css, Global} from '@emotion/react';
 import {BrowserClient, getCurrentHub} from '@sentry/react';
 import {Feedback} from '@sentry-internal/feedback';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import theme from 'sentry/utils/theme';
 
 /**
  * Use this to display the Feedback widget in certain routes/components
@@ -24,5 +26,14 @@ export default function FeedbackWidget() {
     };
   }, [widgetTheme]);
 
-  return null;
+  // z-index needs to be below our indicators which is 10001
+  return (
+    <Global
+      styles={css`
+        #sentry-feedback {
+          --z-index: ${theme.zIndex.toast - 1};
+        }
+      `}
+    />
+  );
 }
