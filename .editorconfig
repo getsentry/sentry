@@ -1,0 +1,18 @@
+# top-most EditorConfig file
+root = true
+
+# https://prettier.io/docs/en/configuration.html#editorconfig
+[*]
+charset = utf-8
+insert_final_newline = true
+end_of_line = lf
+indent_style = space
+indent_size = 2
+max_line_length = 100
+
+[Makefile]
+indent_style = tab
+indent_size = 8
+
+[*.py]
+indent_size = 4

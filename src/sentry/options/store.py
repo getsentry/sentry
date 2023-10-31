@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import dataclasses
 import logging
 from random import random
 from time import time
-from typing import Any, Optional, Set
+from typing import Optional
 
 from django.conf import settings
 from django.db.utils import OperationalError, ProgrammingError
@@ -17,38 +16,6 @@ CACHE_FETCH_ERR = "Unable to fetch option cache for %s"
 CACHE_UPDATE_ERR = "Unable to update option cache for %s"
 
 logger = logging.getLogger("sentry")
-
-
-@dataclasses.dataclass
-class GroupingInfo:
-    # Name of the group of options to include this option in
-    name: str
-    # Order of the option within the group
-    order: int
-
-
-@dataclasses.dataclass
-class Key:
-    name: str
-    default: Any
-    type: type
-    flags: int
-    ttl: int
-    grace: int
-    cache_key: str
-    grouping_info: Optional[GroupingInfo]
-
-    def has_any_flag(self, flags: Set[int]) -> bool:
-        """
-        Returns true if the option is registered with at least one
-        of the flags passed as argument.
-        """
-        assert flags, "Flags must be provided to check the option."
-        for f in flags:
-            if self.flags & f:
-                return True
-
-        return False
 
 
 def _make_cache_value(key, value):

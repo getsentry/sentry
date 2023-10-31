@@ -36,7 +36,7 @@ import os.path
 #  SENTRY_SINGLE_ORGANIZATION
 #  SENTRY_SECRET_KEY
 from sentry.conf.server import *
-from sentry.utils.types import Bool
+from sentry.utils import coerce
 
 CONF_ROOT = os.path.dirname(__file__)
 env = os.environ.get
@@ -67,7 +67,7 @@ SENTRY_USE_BIG_INTS = True
 
 # Instruct Sentry that this install intends to be run by a single organization
 # and thus various UI optimizations should be enabled.
-SENTRY_SINGLE_ORGANIZATION = Bool(env("SENTRY_SINGLE_ORGANIZATION", True))
+SENTRY_SINGLE_ORGANIZATION = coerce.Bool(env("SENTRY_SINGLE_ORGANIZATION", True))
 
 #########
 # Redis #
@@ -223,8 +223,8 @@ if email:
     SENTRY_OPTIONS["mail.password"] = env("SENTRY_EMAIL_PASSWORD") or ""
     SENTRY_OPTIONS["mail.username"] = env("SENTRY_EMAIL_USER") or ""
     SENTRY_OPTIONS["mail.port"] = int(env("SENTRY_EMAIL_PORT") or 25)
-    SENTRY_OPTIONS["mail.use-tls"] = Bool(env("SENTRY_EMAIL_USE_TLS", False))
-    SENTRY_OPTIONS["mail.use-ssl"] = Bool(env("SENTRY_EMAIL_USE_SSL", False))
+    SENTRY_OPTIONS["mail.use-tls"] = coerce.Bool(env("SENTRY_EMAIL_USE_TLS", False))
+    SENTRY_OPTIONS["mail.use-ssl"] = coerce.Bool(env("SENTRY_EMAIL_USE_SSL", False))
 else:
     SENTRY_OPTIONS["mail.backend"] = "dummy"
 
@@ -239,7 +239,7 @@ SENTRY_OPTIONS["mail.mailgun-api-key"] = env("SENTRY_MAILGUN_API_KEY") or ""
 if SENTRY_OPTIONS["mail.mailgun-api-key"]:
     SENTRY_OPTIONS["mail.enable-replies"] = True
 else:
-    SENTRY_OPTIONS["mail.enable-replies"] = Bool(env("SENTRY_ENABLE_EMAIL_REPLIES", False))
+    SENTRY_OPTIONS["mail.enable-replies"] = coerce.Bool(env("SENTRY_ENABLE_EMAIL_REPLIES", False))
 
 if SENTRY_OPTIONS["mail.enable-replies"]:
     SENTRY_OPTIONS["mail.reply-hostname"] = env("SENTRY_SMTP_HOSTNAME") or ""

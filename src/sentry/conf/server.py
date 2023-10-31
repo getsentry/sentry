@@ -11,7 +11,21 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Final, Mapping, MutableSequence, Optional, Union, overload
+from typing_extensions import (
+    assert_never,
+    cast,
+    Union,
+    Any,
+    Callable,
+    Dict,
+    Never,
+    List,
+    Mapping,
+    MutableSequence,
+    Optional,
+    TypeVar,
+)
+from typing import Final
 from urllib.parse import urlparse
 
 import sentry
@@ -19,9 +33,8 @@ from sentry.conf.types.consumer_definition import ConsumerDefinition
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.topic_definition import TopicDefinition
-from sentry.utils import json  # NOQA (used in getsentry config)
+from sentry.utils import coerce
 from sentry.utils.celery import crontab_with_minute_jitter
-from sentry.utils.types import Type, type_from_value
 
 
 def gettext_noop(s: str) -> str:
@@ -31,60 +44,52 @@ def gettext_noop(s: str) -> str:
 socket.setdefaulttimeout(5)
 
 
-_EnvTypes = Union[str, float, int, list, dict]
+UNSET = object()
+#_EnvTypes = Union[str, float, int]
+_EnvTypes = Union[str, float, int , List[Any], Dict[Any, Any]]
+T = TypeVar("T", bound=_EnvTypes)
 
+DEFAULT_LIST = cast(List[Never], ())
 
-@overload
-def env(key: str) -> str:
-    ...
-
-
-@overload
-def env(key: str, default: _EnvTypes, type: Optional[Type] = None) -> _EnvTypes:
-    ...
-
-
-def env(
-    key: str,
-    default: str | _EnvTypes = "",
-    type: Optional[Type] = None,
-) -> _EnvTypes:
+# is that arg even used?
+## type: Optional[type] = None,
+# :param type: The type of the returned object (defaults to the type of `default`).
+def env(key: str, default: T) -> T:
     """
     Extract an environment variable for use in configuration
 
     :param key: The environment variable to be extracted.
     :param default: The value to be returned if `key` is not found.
-    :param type: The type of the returned object (defaults to the type of `default`).
-       Type parsers must come from sentry.utils.types and not python stdlib.
     :return: The environment variable if it exists, else `default`.
     """
+    if isinstance(default, object):
+        cls = type(default)
+        coercion = coerce.to_type(cls)
+    else:
+        assert_never(default)
 
     # First check an internal cache, so we can `pop` multiple times
     # without actually losing the value.
-    try:
-        rv = _env_cache[key]
-    except KeyError:
+    result = _env_cache.get(key)
+    if result is None:
+        getenv: Callable[[str], str | None]
         if "SENTRY_RUNNING_UWSGI" in os.environ:
             # We do this so when the process forks off into uwsgi
             # we want to actually be popping off values. This is so that
             # at runtime, the variables aren't actually available.
-            fn: Callable[[str], str] = os.environ.pop
+            getenv = os.environ.pop
         else:
-            fn = os.environ.__getitem__
+            getenv = os.getenv
 
-        try:
-            rv = fn(key)
-            _env_cache[key] = rv
-        except KeyError:
-            rv = default
+        result = _env_cache[key] = getenv(key)
+        if result is None:
+            result = default
 
-    if type is None:
-        type = type_from_value(default)
-
-    return type(rv)
+    result = coercion(result)
+    return result
 
 
-_env_cache: dict[str, object] = {}
+_env_cache: dict[str, str] = {}
 
 ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 
@@ -155,11 +160,11 @@ CONF_DIR = os.path.abspath(os.path.dirname(__file__))
 # XXX(dcramer): handle case when we've installed from source vs just running
 # this straight out of the repository
 if "site-packages" in __file__:
-    NODE_MODULES_ROOT = os.path.join(PROJECT_ROOT, "node_modules")
+    _NODE_MODULES_ROOT = os.path.join(PROJECT_ROOT, "node_modules")
 else:
-    NODE_MODULES_ROOT = os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "node_modules")
+    _NODE_MODULES_ROOT = os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "node_modules")
 
-NODE_MODULES_ROOT = os.path.normpath(NODE_MODULES_ROOT)
+NODE_MODULES_ROOT = os.path.normpath(_NODE_MODULES_ROOT)
 
 DEVSERVICES_CONFIG_DIR = os.path.normpath(
     os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config")
@@ -219,7 +224,7 @@ TIME_ZONE = "UTC"
 # http://www.i18nguy.com/unicode/language-identifiers.html
 LANGUAGE_CODE = "en-us"
 
-LANGUAGES: tuple[tuple[str, str], ...] = (
+_LANGUAGES: tuple[tuple[str, str], ...] = (
     ("af", gettext_noop("Afrikaans")),
     ("ar", gettext_noop("Arabic")),
     ("az", gettext_noop("Azerbaijani")),
@@ -297,7 +302,7 @@ LANGUAGES: tuple[tuple[str, str], ...] = (
 
 from .locale import CATALOGS
 
-LANGUAGES = tuple((code, name) for code, name in LANGUAGES if code in CATALOGS)
+LANGUAGES = tuple((code, name) for code, name in _LANGUAGES if code in CATALOGS)
 
 SUPPORTED_LANGUAGES = frozenset(CATALOGS)
 
@@ -435,52 +440,22 @@ SILENCED_SYSTEM_CHECKS = (
     "urls.E007",
 )
 
-CSP_INCLUDE_NONCE_IN = [
-    "script-src",
-]
+CSP_INCLUDE_NONCE_IN = ["script-src"]
 
-CSP_DEFAULT_SRC = [
-    "'none'",
-]
-CSP_SCRIPT_SRC = [
-    "'self'",
-    "'unsafe-inline'",
-    "'report-sample'",
-]
-CSP_FONT_SRC = [
-    "'self'",
-    "data:",
-]
-CSP_CONNECT_SRC = [
-    "'self'",
-]
-CSP_FRAME_ANCESTORS = [
-    "'none'",
-]
-CSP_OBJECT_SRC = [
-    "'none'",
-]
-CSP_BASE_URI = [
-    "'none'",
-]
-CSP_STYLE_SRC = [
-    "'self'",
-    "'unsafe-inline'",
-]
-CSP_IMG_SRC = [
-    "'self'",
-    "blob:",
-    "data:",
-    "https://secure.gravatar.com",
-]
+CSP_DEFAULT_SRC = ["'none'"]
+CSP_FONT_SRC = ["'self'", "data:"]
+CSP_FRAME_ANCESTORS = ["'none'"]
+CSP_OBJECT_SRC = ["'none'"]
+CSP_BASE_URI = ["'none'"]
+CSP_STYLE_SRC = ["'self'", "'unsafe-inline'"]
+CSP_IMG_SRC = ["'self'", "blob:", "data:", "https://secure.gravatar.com"]
 
 if ENVIRONMENT == "development":
-    CSP_SCRIPT_SRC += [
-        "'unsafe-eval'",
-    ]
-    CSP_CONNECT_SRC += [
-        "ws://127.0.0.1:8000",
-    ]
+    CSP_SCRIPT_SRC += ["'unsafe-eval'"]
+    CSP_CONNECT_SRC += ["ws://127.0.0.1:8000"]
+else:
+    CSP_SCRIPT_SRC = ["'self'", "'unsafe-inline'", "'report-sample'"]
+    CSP_CONNECT_SRC = ["'self'"]
 
 # Before enforcing Content Security Policy, we recommend creating a separate
 # Sentry project and collecting CSP violations in report only mode:
@@ -499,9 +474,7 @@ STATIC_URL = "/_static/{version}/"
 STATIC_FRONTEND_APP_URL = "/_static/dist/"
 
 # The webpack output directory
-STATICFILES_DIRS = [
-    os.path.join(STATIC_ROOT, "sentry", "dist"),
-]
+STATICFILES_DIRS = [os.path.join(STATIC_ROOT, "sentry", "dist")]
 
 # various middleware will use this to identify resources which should not access
 # cookies
@@ -557,12 +530,8 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "sentry.auth.password_validation.MaximumLengthValidator",
         "OPTIONS": {"max_length": 256},
     },
-    {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-    },
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
 SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = "sentry.User"
@@ -653,9 +622,6 @@ SENTRY_REGION_CONFIG: Any = ()
 # Shared secret used to sign cross-region RPC requests.
 RPC_SHARED_SECRET = None
 
-# The protocol, host and port for control silo
-# Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
-SENTRY_CONTROL_ADDRESS = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
 
 # Fallback region name for monolith deployments
 # This region name is also used by the ApiGateway to proxy org-less region
@@ -852,14 +818,8 @@ CELERY_QUEUES_REGION = [
     ),
     Queue("group_owners.process_commit_context", routing_key="group_owners.process_commit_context"),
     Queue("integrations", routing_key="integrations"),
-    Queue(
-        "releasemonitor",
-        routing_key="releasemonitor",
-    ),
-    Queue(
-        "dynamicsampling",
-        routing_key="dynamicsampling",
-    ),
+    Queue("releasemonitor", routing_key="releasemonitor"),
+    Queue("dynamicsampling", routing_key="dynamicsampling"),
     Queue("incidents", routing_key="incidents"),
     Queue("incident_snapshots", routing_key="incident_snapshots"),
     Queue("incidents", routing_key="incidents"),
@@ -933,7 +893,7 @@ CELERYBEAT_SCHEDULE_CONTROL = {
     },
     "reattempt-deletions-control": {
         "task": "sentry.tasks.deletion.reattempt_deletions_control",
-        "schedule": crontab(hour=10, minute=0),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
+        "schedule": crontab(hour='10', minute='0'),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
         "options": {"expires": 60 * 25, "queue": "cleanup.control"},
     },
     "schedule-hybrid-cloud-foreign-key-jobs-control": {
@@ -954,7 +914,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     "send-beacon": {
         "task": "sentry.tasks.send_beacon",
         # Run every hour
-        "schedule": crontab(minute=0, hour="*/1"),
+        "schedule": crontab(minute='0', hour="*/1"),
         "options": {"expires": 3600},
     },
     "send-ping": {
@@ -1004,7 +964,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "collect-project-platforms": {
         "task": "sentry.tasks.collect_project_platforms",
-        "schedule": crontab_with_minute_jitter(hour=3),
+        "schedule": crontab_with_minute_jitter(hour='3'),
         "options": {"expires": 3600 * 24},
     },
     "deliver-from-outbox": {
@@ -1039,21 +999,21 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "reattempt-deletions": {
         "task": "sentry.tasks.deletion.reattempt_deletions",
-        "schedule": crontab(hour=10, minute=0),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
+        "schedule": crontab(hour='10', minute='0'),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
         "options": {"expires": 60 * 25},
     },
     "schedule-weekly-organization-reports-new": {
         "task": "sentry.tasks.weekly_reports.schedule_organizations",
         "schedule": crontab(
-            minute=0, hour=12, day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
+            minute='0', hour='12', day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
         ),
         "options": {"expires": 60 * 60 * 3},
     },
     # "schedule-monthly-invite-missing-org-members": {
     #     "task": "sentry.tasks.invite_missing_org_members.schedule_organizations",
     #     "schedule": crontab(
-    #         minute=0,
-    #         hour=7,
+    #         minute='0',
+    #         hour='7',
     #         day_of_month="1",  # 00:00 PDT, 03:00 EDT, 7:00 UTC
     #     ),
     #     "options": {"expires": 60 * 25},
@@ -1065,7 +1025,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "monitor-release-adoption": {
         "task": "sentry.release_health.tasks.monitor_release_adoption",
-        "schedule": crontab(minute=0),
+        "schedule": crontab(minute='0'),
         "options": {"expires": 3600, "queue": "releasemonitor"},
     },
     "fetch-release-registry-data": {
@@ -1077,7 +1037,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     "fetch-appstore-builds": {
         "task": "sentry.tasks.app_store_connect.refresh_all_builds",
         # Run every hour
-        "schedule": crontab(minute=0, hour="*/1"),
+        "schedule": crontab(minute='0', hour="*/1"),
         "options": {"expires": 3600},
     },
     "snuba-subscription-checker": {
@@ -1088,18 +1048,18 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "transaction-name-clusterer": {
         "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
-        "schedule": crontab(minute=17),
+        "schedule": crontab(minute='17'),
         "options": {"expires": 3600},
     },
     "span.descs.clusterer": {
         "task": "sentry.ingest.span_clusterer.tasks.spawn_span_cluster_projects",
-        "schedule": crontab(minute=42),
+        "schedule": crontab(minute='42'),
         "options": {"expires": 3600},
     },
     "auto-enable-codecov": {
         "task": "sentry.tasks.auto_enable_codecov.enable_for_org",
         # Run job once a day at 00:30
-        "schedule": crontab(minute=30, hour="0"),
+        "schedule": crontab(minute='30', hour="0"),
         "options": {"expires": 3600},
     },
     "dynamic-sampling-boost-low-volume-projects": {
@@ -1125,7 +1085,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
         # TODO: Change this to run weekly once we verify the results
-        "schedule": crontab(minute=0, hour="*/6"),
+        "schedule": crontab(minute='0', hour="*/6"),
         # TODO: Increase expiry time to x4 once we change this to run weekly
         "options": {"expires": 60 * 60 * 3},
     },
@@ -1137,7 +1097,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "github_comment_reactions": {
         "task": "sentry.tasks.integrations.github_comment_reactions",
-        "schedule": crontab(minute=0, hour=16),  # 9:00 PDT, 12:00 EDT, 16:00 UTC
+        "schedule": crontab(minute='0', hour='16'),  # 9:00 PDT, 12:00 EDT, 16:00 UTC
     },
     "poll_recap_servers": {
         "task": "sentry.tasks.poll_recap_servers",
@@ -1152,7 +1112,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "statistical-detectors-detect-regressions": {
         "task": "sentry.tasks.statistical_detectors.run_detection",
-        "schedule": crontab(minute=0, hour="*/1"),
+        "schedule": crontab(minute='0', hour="*/1"),
     },
     "backfill-artifact-bundle-index": {
         "task": "sentry.debug_files.tasks.backfill_artifact_index_updates",
@@ -1211,12 +1171,7 @@ PROCESSING_QUEUES = [
 ]
 
 # We prefer using crontab, as the time for timedelta will reset on each deployment. More information:  https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html#periodic-tasks
-TIMEDELTA_ALLOW_LIST = {
-    "flush-buffers",
-    "sync-options",
-    "sync-options-control",
-    "schedule-digests",
-}
+TIMEDELTA_ALLOW_LIST = {"flush-buffers", "sync-options", "sync-options-control", "schedule-digests"}
 
 BGTASKS = {
     "sentry.bgtasks.clean_dsymcache:clean_dsymcache": {"interval": 5 * 60, "roles": ["worker"]},
@@ -2293,7 +2248,7 @@ SENTRY_SCOPE_SETS = (
         ("org:write", "Read and write access to organization details."),
         ("org:read", "Read access to organization details."),
     ),
-    (("org:integrations", "Read, write, and admin access to organization integrations."),),
+    (("org:integrations", "Read, write, and admin access to organization integrations.")),
     (
         ("member:admin", "Read, write, and admin access to organization members."),
         ("member:write", "Read and write access to organization members."),
@@ -2315,10 +2270,7 @@ SENTRY_SCOPE_SETS = (
         ("event:write", "Read and write access to events."),
         ("event:read", "Read access to events."),
     ),
-    (
-        ("alerts:write", "Read and write alerts"),
-        ("alerts:read", "Read alerts"),
-    ),
+    (("alerts:write", "Read and write alerts"), ("alerts:read", "Read alerts")),
     (("openid", "Confirms authentication status and provides basic information."),),
     (
         (
@@ -2622,7 +2574,7 @@ def build_cdc_postgres_init_db_volume(settings: Any) -> dict[str, dict[str, str]
 APPLE_ARM64 = sys.platform == "darwin" and platform.processor() in {"arm", "arm64"}
 
 SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
-    "redis": lambda settings, options: (
+    "redis": lambda _settings, _options: (
         {
             "image": "ghcr.io/getsentry/image-mirror-library-redis:5.0-alpine",
             "ports": {"6379/tcp": 6379},
@@ -2641,7 +2593,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "volumes": {"redis": {"bind": "/data"}},
         }
     ),
-    "redis-cluster": lambda settings, options: (
+    "redis-cluster": lambda settings, _options: (
         {
             "image": "ghcr.io/getsentry/docker-redis-cluster:7.0.10",
             "ports": {f"700{idx}/tcp": f"700{idx}" for idx in range(6)},
@@ -2650,7 +2602,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "only_if": settings.SENTRY_DEV_USE_REDIS_CLUSTER,
         }
     ),
-    "rabbitmq": lambda settings, options: (
+    "rabbitmq": lambda settings, _options: (
         {
             "image": "ghcr.io/getsentry/image-mirror-library-rabbitmq:3-management",
             "ports": {"5672/tcp": 5672, "15672/tcp": 15672},
@@ -2658,7 +2610,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "only_if": settings.SENTRY_DEV_USE_RABBITMQ,
         }
     ),
-    "postgres": lambda settings, options: (
+    "postgres": lambda settings, _options: (
         {
             "image": f"ghcr.io/getsentry/image-mirror-library-postgres:{PG_VERSION}-alpine",
             "ports": {"5432/tcp": 5432},
@@ -2681,7 +2633,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "entrypoint": "/cdc/postgres-entrypoint.sh" if settings.SENTRY_USE_CDC_DEV else None,
         }
     ),
-    "kafka": lambda settings, options: (
+    "kafka": lambda settings, _options: (
         {
             "image": "ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:7.5.0",
             "ports": {"9092/tcp": 9092},
@@ -2709,7 +2661,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             or settings.SENTRY_USE_PROFILING,
         }
     ),
-    "clickhouse": lambda settings, options: (
+    "clickhouse": lambda settings, _options: (
         {
             "image": "ghcr.io/getsentry/image-mirror-yandex-clickhouse-server:20.3.9.70"
             if not APPLE_ARM64
@@ -2735,7 +2687,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             },
         }
     ),
-    "snuba": lambda settings, options: (
+    "snuba": lambda settings, _options: (
         {
             "image": "ghcr.io/getsentry/snuba:latest",
             "ports": {"1218/tcp": 1218, "1219/tcp": 1219},
@@ -2768,7 +2720,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             or "kafka" in settings.SENTRY_EVENTSTREAM,
         }
     ),
-    "bigtable": lambda settings, options: (
+    "bigtable": lambda settings, _options: (
         {
             "image": "us.gcr.io/sentryio/cbtemulator:23c02d92c7a1747068eb1fc57dddbad23907d614",
             "ports": {"8086/tcp": 8086},
@@ -2778,7 +2730,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             or "bigtable" in settings.SENTRY_NODESTORE,
         }
     ),
-    "memcached": lambda settings, options: (
+    "memcached": lambda settings, _options: (
         {
             "image": "ghcr.io/getsentry/image-mirror-library-memcached:1.5-alpine",
             "ports": {"11211/tcp": 11211},
@@ -2794,7 +2746,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "only_if": options.get("symbolicator.enabled"),
         }
     ),
-    "relay": lambda settings, options: (
+    "relay": lambda settings, _options: (
         {
             "image": "us.gcr.io/sentryio/relay:nightly",
             "ports": {"7899/tcp": settings.SENTRY_RELAY_PORT},
@@ -2818,7 +2770,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             or options.get("chart-rendering.enabled"),
         }
     ),
-    "cdc": lambda settings, options: (
+    "cdc": lambda settings, _options: (
         {
             "image": "ghcr.io/getsentry/cdc:latest",
             "only_if": settings.SENTRY_USE_CDC_DEV,
@@ -2826,7 +2778,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "volumes": {settings.CDC_CONFIG_DIR: {"bind": "/etc/cdc"}},
         }
     ),
-    "vroom": lambda settings, options: (
+    "vroom": lambda settings, _options: (
         {
             "image": "us.gcr.io/sentryio/vroom:nightly",
             "volumes": {"profiles": {"bind": "/var/lib/sentry-profiles"}},
@@ -3623,9 +3575,7 @@ ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 300
 
 
 # Default string indexer cache options
-SENTRY_STRING_INDEXER_CACHE_OPTIONS = {
-    "cache_name": "default",
-}
+SENTRY_STRING_INDEXER_CACHE_OPTIONS = {"cache_name": "default"}
 SENTRY_POSTGRES_INDEXER_RETRY_COUNT = 2
 
 SENTRY_FUNCTIONS_PROJECT_NAME = None
@@ -3671,11 +3621,13 @@ if USE_SILOS:
     ]
     SENTRY_MONOLITH_REGION = SENTRY_REGION_CONFIG[0]["name"]
     # RPC authentication and address information
-    RPC_SHARED_SECRET = [
-        "a-long-value-that-is-shared-but-also-secret",
-    ]
+    RPC_SHARED_SECRET = ["a-long-value-that-is-shared-but-also-secret"]
     control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8000")
     SENTRY_CONTROL_ADDRESS = f"http://127.0.0.1:{control_port}"
+else:
+    # The protocol, host and port for control silo
+    # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
+    SENTRY_CONTROL_ADDRESS = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
 
 
 # How long we should wait for a gateway proxy request to return before giving up

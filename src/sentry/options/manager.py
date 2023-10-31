@@ -1,19 +1,23 @@
+import builtins
 import logging
 import sys
 from enum import Enum
-from typing import Optional, Sequence, Tuple
+from types import NoneType
+from typing import Callable, Optional, Sequence, Tuple, Type, TypeAlias, TypeVar, Union
 
 from django.conf import settings
 
+from sentry.options.key import Key
+from sentry.utils import coerce
 from sentry.utils.hashlib import md5_text
-from sentry.utils.types import Any, type_from_value
-
-# Prevent ourselves from clobbering the builtin
-_type = type
 
 logger = logging.getLogger("sentry")
 
-NoneType = type(None)
+T = TypeVar("T")
+
+_OptionValues: TypeAlias = Union[str, int, None]
+_OptionTypes: TypeAlias = Union[type[str], type[int], None]
+O = TypeVar("O", bound=_OptionValues)
 
 
 class UpdateChannel(Enum):
@@ -165,7 +169,7 @@ class OptionsManager:
 
     def __init__(self, store):
         self.store = store
-        self.registry = {}
+        self.registry: dict[str, Key] = {}
 
     def set(self, key: str, value, coerce=True, channel: UpdateChannel = UpdateChannel.UNKNOWN):
         """
@@ -200,8 +204,8 @@ class OptionsManager:
         opt = self.lookup_key(key)
         if coerce:
             value = opt.type(value)
-        elif not opt.type.test(value):
-            raise TypeError(f"got {_type(value)!r}, expected {opt.type!r}")
+        elif not isinstance(value, opt.type):
+            raise TypeError(f"got {type(value)!r}, expected {opt.type!r}")
 
         return self.store.set(opt, value, channel=channel)
 
@@ -209,7 +213,6 @@ class OptionsManager:
         try:
             return self.registry[key]
         except KeyError:
-
             # HACK: Historically, Options were used for random ad hoc things.
             # Fortunately, they all share the same prefix, 'sentry:', so
             # we special case them here and construct a faux key until we migrate.
@@ -217,25 +220,23 @@ class OptionsManager:
                 logger.debug("Using legacy key: %s", key, exc_info=True)
                 # History shows, there was an expectation of no types, and empty string
                 # as the default response value
-                return self.make_key(key, lambda: "", Any, DEFAULT_FLAGS, 0, 0, None)
+                return self.make_key(key, lambda: "", coerce.AnyCoercion, DEFAULT_FLAGS, 0, 0, None)
             raise UnknownOption(key)
 
     def make_key(
         self,
         name: str,
         default,
-        type,
+        coercion,
         flags: int,
         ttl: int,
         grace: int,
         grouping_info,
     ):
-        from sentry.options.store import Key
-
         return Key(
             name,
             default,
-            type,
+            coercion,
             flags,
             int(ttl),
             int(grace),
@@ -331,8 +332,8 @@ class OptionsManager:
     def register(
         self,
         key: str,
-        default=None,
-        type=None,
+        default: Union[Callable[[], _OptionValues], _OptionValues],
+        _type: Type[_OptionValues],
         flags: int = DEFAULT_FLAGS,
         ttl: int = DEFAULT_KEY_TTL,
         grace: int = DEFAULT_KEY_GRACE,
@@ -358,41 +359,45 @@ class OptionsManager:
         # If our default is a callable, execute it to
         # see what value is returns, so we can use that to derive the type
         if not callable(default):
-            default_value = default
+            d0: _OptionValues = type(default)
+            coercion = coerce.to_type(d0)
 
-            def default():
+            def default2():
                 return default_value
 
         else:
             default_value = default()
+            default2 = default
 
         # Guess type based on the default value
-        if type is None:
+        if _type is None:
             # the default value would be equivalent to '' if no type / default
             # is specified and we assume str for safety
             if default_value is None:
                 default_value = ""
 
-                def default():
+                def default2():
                     return default_value
 
-            type = type_from_value(default_value)
+                coercion = coerce.to_type(type(default_value))
 
         # We disallow None as a value for options since this is ambiguous and doesn't
         # really make sense as config options. There should be a sensible default
-        # value instead that matches the type expected, rather than relying on None.
-        if type is NoneType:
+        # value instead that matches the coercion expected, rather than relying on None.
+        default_type = type(default_value)
+        coercion = coerce.to_type(default_type)
+        if coercion is NoneType:
             raise TypeError("Options must not be None")
 
-        # Make sure the type is correct at registration time
-        if default_value is not None and not type.test(default_value):
-            raise TypeError(f"got {_type(default)!r}, expected {type!r}")
+        # Make sure the coercion is correct at registration time
+        if default_value is not None and not coercion.test(default_value):
+            raise TypeError(f"got {type(default_value)!r}, expected {coercion!r}")
 
-        # If we don't have a default, but we have a type, pull the default
-        # value from the type
+        # If we don't have a default, but we have a coercion, pull the default
+        # value from the coercion
         if default_value is None:
-            default = type
-            default_value = default()
+            default = coercion
+            default_value = default2()
 
         # Boolean values need to be set to ALLOW_EMPTY because otherwise, "False"
         # would be treated as a not valid value
@@ -401,7 +406,7 @@ class OptionsManager:
 
         settings.SENTRY_DEFAULT_OPTIONS[key] = default_value
 
-        self.registry[key] = self.make_key(key, default, type, flags, ttl, grace, grouping_info)
+        self.registry[key] = self.make_key(key, default, coercion, flags, ttl, grace, grouping_info)
 
     def unregister(self, key: str) -> None:
         try:
@@ -422,8 +427,8 @@ class OptionsManager:
     def validate_option(self, key: str, value):
         opt = self.lookup_key(key)
         assert not (opt.flags & FLAG_STOREONLY), "%r is not allowed to be loaded from config" % key
-        if not opt.type.test(value):
-            raise TypeError(f"{key!r}: got {_type(value)!r}, expected {opt.type!r}")
+        if not isinstance(value, opt.type):
+            raise TypeError(f"{key!r}: got {type(value)!r}, expected {opt.type!r}")
 
     def all(self):
         """

@@ -10,25 +10,29 @@ from sentry.utils.yaml import safe_load
 
 __all__ = ("InvalidTypeError", "Any", "Bool", "Int", "Float", "String", "Dict", "Sequence")
 
+From = typing.TypeVar("From")
+To = typing.TypeVar("To")
 T = typing.TypeVar("T")
+K = typing.TypeVar("K")
+V = typing.TypeVar("V")
 
 
 class InvalidTypeError(TypeError):
     pass
 
 
-class Type(typing.Generic[T]):
-    """Base Type that provides type coercion"""
+class Coercion(typing.Generic[From, To]):
+    """Base type that provides type coercion"""
 
     name = ""
     # Default value to be returned when initializing
-    default: T
+    default: To
     # Types that do not need to be coerced
-    expected_types: tuple[type[object], ...] = ()
+    expected_types: tuple[type[To], ...]
     # Types that are acceptable for coercion
-    compatible_types: tuple[type[object], ...] = (str,)
+    compatible_types: tuple[type[From], ...]
 
-    def __call__(self, value: object | None = None) -> T:
+    def __call__(self, value: From | To | None = None) -> To:
         if value is None:
             return self._default()
         if self.test(value):
@@ -44,10 +48,10 @@ class Type(typing.Generic[T]):
     def convert(self, value):
         return value
 
-    def _default(self) -> T:
+    def _default(self) -> To:
         return self.default
 
-    def test(self, value: object) -> TypeGuard[T]:
+    def test(self, value: object) -> TypeGuard[To]:
         """Check if the value is the correct type or not"""
         return isinstance(value, self.expected_types)
 
@@ -55,7 +59,7 @@ class Type(typing.Generic[T]):
         return self.name
 
 
-class AnyType(Type[typing.Any]):
+class AnyCoercion(Coercion[typing.Any, typing.Any]):
     """A type that accepts any value and does no coercion"""
 
     name = "any"
@@ -64,7 +68,7 @@ class AnyType(Type[typing.Any]):
     compatible_types = (object,)
 
 
-class BoolType(Type[bool]):
+class BoolCoercion(Coercion["str | int", bool]):
     "Coerce a boolean from a string"
     name = "boolean"
     default = False
@@ -83,7 +87,7 @@ class BoolType(Type[bool]):
             return None
 
 
-class IntType(Type[int]):
+class IntCoercion(Coercion[str, int]):
     """Coerce an integer from a string"""
 
     name = "integer"
@@ -97,13 +101,13 @@ class IntType(Type[int]):
             return None
 
 
-class FloatType(Type[float]):
+class FloatCoercion(Coercion["str | int", float]):
     """Coerce a float from a string or integer"""
 
     name = "float"
     default = 0.0
     expected_types = (float,)
-    compatible_types = (str, int, float)
+    compatible_types = (str, int)
 
     def convert(self, value):
         try:
@@ -112,7 +116,7 @@ class FloatType(Type[float]):
             return None
 
 
-class StringType(Type[str]):
+class StringCoercion(Coercion[str, str]):
     """String type without any coercion, must be a string"""
 
     name = "string"
@@ -121,7 +125,7 @@ class StringType(Type[str]):
     compatible_types = (str,)
 
 
-class DictType(Type[dict]):
+class DictCoercion(typing.Generic[K, V], Coercion[str, typing.Dict[K, V]]):
     """Coerce a dict out of a json/yaml string"""
 
     name = "dictionary"
@@ -138,12 +142,12 @@ class DictType(Type[dict]):
             return None
 
 
-class SequenceType(Type[list]):
+class SequenceCoercion(typing.Generic[T], Coercion["str | tuple", typing.List[T]]):
     """Coerce a list out of a json/yaml string or a list"""
 
     name = "sequence"
     expected_types = (list,)
-    compatible_types = (str, tuple, list)
+    compatible_types = (str, tuple)
 
     def _default(self) -> typing.List[typing.Any]:
         # make sure we create a fresh list each time
@@ -161,16 +165,16 @@ class SequenceType(Type[list]):
 
 
 # Initialize singletons of each type for easy reuse
-Any = AnyType()
-Bool = BoolType()
-Int = IntType()
-Float = FloatType()
-String = StringType()
-Dict = DictType()
-Sequence = SequenceType()
+Any = AnyCoercion()
+Bool = BoolCoercion()
+Int = IntCoercion()
+Float = FloatCoercion()
+String = StringCoercion()
+Dict = DictCoercion()
+Sequence = SequenceCoercion()
 
-# Mapping for basic types into what their Type is
-_type_mapping: dict[type[object], Type] = {
+# Find a coercion, given a destination type
+_to_type: dict[type[object], Coercion] = {
     bool: Bool,
     int: Int,
     float: Float,
@@ -181,43 +185,46 @@ _type_mapping: dict[type[object], Type] = {
 }
 
 
-# @typing.overload
-# def type_from_value(value: bool) -> BoolType:
-
-
 @typing.overload
-def type_from_value(value: int) -> IntType:
+def to_type(type: None) -> StringCoercion:
     ...
 
 
 @typing.overload
-def type_from_value(value: float) -> FloatType:
+def to_type(type: type[bool]) -> BoolCoercion:
     ...
 
 
 @typing.overload
-def type_from_value(value: bytes) -> StringType:
+def to_type(type: type[int]) -> IntCoercion:
     ...
 
 
 @typing.overload
-def type_from_value(value: str) -> StringType:
+def to_type(type: type[float]) -> FloatCoercion:
     ...
 
 
 @typing.overload
-def type_from_value(value: dict) -> DictType:
+def to_type(type: type[bytes]) -> StringCoercion:
     ...
 
 
 @typing.overload
-def type_from_value(value: list) -> SequenceType:
+def to_type(type: type[str]) -> StringCoercion:
     ...
 
 
-def type_from_value(value):
-    """Fetch Type based on a primitive value"""
-    return _type_mapping[type(value)]
+@typing.overload
+def to_type(type: type[dict[K, V]]) -> DictCoercion[K, V]:
+    ...
 
 
-AnyCallable = typing.Callable[..., AnyType]
+@typing.overload
+def to_type(type: type[list[T]]) -> SequenceCoercion[T]:
+    ...
+
+
+def to_type(type):
+    """Fetch Coercion based on a primitive value"""
+    return _to_type[type]

@@ -6,6 +6,8 @@ build-backend = "setuptools.build_meta"
 # File filtering is taken care of in pre-commit.
 line-length = 100
 target-version = ['py38']
+skip-magic-trailing-comma = true
+
 
 [tool.isort]
 profile = "black"
@@ -44,19 +46,64 @@ filterwarnings = [
 looponfailroots = ["src", "tests"]
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.11"
 mypy_path = ["fixtures/stubs-for-mypy"]
-plugins = ["pydantic.mypy", "mypy_django_plugin.main", "tools.mypy_helpers.plugin"]
+###plugins = ["pydantic.mypy", "mypy_django_plugin.main", "tools.mypy_helpers.plugin"]
 files = ["."]
 exclude = ["^.venv/", "^self-hosted/"]
+new_type_inference = true
 
 # minimal strictness settings
 check_untyped_defs = true
 no_implicit_reexport = true
-warn_unreachable = true
+warn_unreachable = false
 warn_unused_configs = true
 warn_unused_ignores = true
 warn_redundant_casts = true
+
+[tool.mypy-strict]
+files = [
+  "src/sentry/utils/coerce.py",
+  "src/sentry/conf/server.py",
+  "src/sentry/options/manager.py",
+  "self-hosted/sentry.conf.py",
+  "demo*.py",
+]
+
+strict = true
+
+# disallow Any typing:
+disallow_any_unimported = true
+disallow_any_expr = true
+disallow_any_decorated = true
+disallow_any_explicit = true
+
+implicit_reexport = false
+
+warn_no_return = true
+warn_unreachable = true
+
+[tool.pyright]
+pythonVersion = "3.11"
+strict = ['.']
+reportUnusedVariable = true
+reportUnusedExpression = true
+reportGeneralTypeIssues = true
+
+# these are all the options not set to "error" by "strict:true"
+enableExperimentalFeatures = true
+reportCallInDefaultInitializer = true
+reportImplicitOverride = true
+reportImplicitStringConcatenation = true
+reportImportCycles = true
+reportMissingSuperCall = true
+reportPropertyTypeMismatch = true
+reportShadowedImports = true
+reportUninitializedInstanceVariable = true
+reportUnnecessaryTypeIgnoreComment = true
+
+# it's too common to call a function without using its return
+reportUnusedCallResult = false
 
 [tool.django-stubs]
 django_settings_module = "sentry.conf.server_mypy"
@@ -818,3 +865,14 @@ disable_error_code = [
     "var-annotated",
 ]
 # end: sentry modules with typing issues
+
+[tool.pylsp.plugins.pycodestyle]
+enabled = false
+[pylsp.plugins.pycodestyle]
+enabled = false
+
+
+[tool.pylsp-mypy]
+enabled = true
+live_mode = true
+strict = true
