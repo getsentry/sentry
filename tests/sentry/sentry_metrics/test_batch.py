@@ -1,7 +1,6 @@
 import logging
 from collections.abc import MutableMapping
 from datetime import datetime, timezone
-from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -10,9 +9,18 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
+from sentry.sentry_metrics.configuration import (
+    GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME,
+    RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME,
+)
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
 from sentry.sentry_metrics.consumers.indexer.common import BrokerMeta
-from sentry.sentry_metrics.consumers.indexer.tags_validator import ReleaseHealthTagsValidator
+from sentry.sentry_metrics.consumers.indexer.processing import INGEST_CODEC
+from sentry.sentry_metrics.consumers.indexer.schema_validator import MetricsSchemaValidator
+from sentry.sentry_metrics.consumers.indexer.tags_validator import (
+    GenericMetricsTagsValidator,
+    ReleaseHealthTagsValidator,
+)
 from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, Metadata
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
@@ -91,10 +99,6 @@ extracted_string_output = {
         }
     }
 }
-
-_INGEST_CODEC: sentry_kafka_schemas.codecs.Codec[Any] = sentry_kafka_schemas.get_codec(
-    "ingest-metrics"
-)
 
 
 def _construct_messages(payloads):
@@ -245,8 +249,10 @@ def test_extract_strings_with_rollout(should_index_tag_values, expected):
         outer_message,
         should_index_tag_values,
         False,
-        input_codec=_INGEST_CODEC,
         tags_validator=ReleaseHealthTagsValidator().is_allowed,
+        schema_validator=MetricsSchemaValidator(
+            INGEST_CODEC, RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME
+        ).validate,
     )
 
     assert batch.extract_strings() == expected
@@ -312,8 +318,10 @@ def test_extract_strings_with_multiple_use_case_ids():
         outer_message,
         True,
         False,
-        input_codec=_INGEST_CODEC,
-        tags_validator=ReleaseHealthTagsValidator().is_allowed,
+        tags_validator=GenericMetricsTagsValidator().is_allowed,
+        schema_validator=MetricsSchemaValidator(
+            INGEST_CODEC, GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME
+        ).validate,
     )
     assert batch.extract_strings() == {
         UseCaseID.SPANS: {
@@ -400,8 +408,10 @@ def test_extract_strings_with_single_use_case_ids_blocked():
         outer_message,
         True,
         False,
-        input_codec=_INGEST_CODEC,
-        tags_validator=ReleaseHealthTagsValidator().is_allowed,
+        tags_validator=GenericMetricsTagsValidator().is_allowed,
+        schema_validator=MetricsSchemaValidator(
+            INGEST_CODEC, GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME
+        ).validate,
     )
     assert batch.extract_strings() == {
         UseCaseID.SPANS: {
@@ -473,8 +483,10 @@ def test_extract_strings_with_multiple_use_case_ids_blocked():
         outer_message,
         True,
         False,
-        input_codec=_INGEST_CODEC,
-        tags_validator=ReleaseHealthTagsValidator().is_allowed,
+        tags_validator=GenericMetricsTagsValidator().is_allowed,
+        schema_validator=MetricsSchemaValidator(
+            INGEST_CODEC, GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME
+        ).validate,
     )
     assert batch.extract_strings() == {
         UseCaseID.TRANSACTIONS: {
@@ -562,8 +574,10 @@ def test_extract_strings_with_invalid_mri():
         outer_message,
         True,
         False,
-        input_codec=_INGEST_CODEC,
-        tags_validator=ReleaseHealthTagsValidator().is_allowed,
+        tags_validator=GenericMetricsTagsValidator().is_allowed,
+        schema_validator=MetricsSchemaValidator(
+            INGEST_CODEC, GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME
+        ).validate,
     )
     assert batch.extract_strings() == {
         UseCaseID.SPANS: {
@@ -651,8 +665,10 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
         outer_message,
         True,
         False,
-        input_codec=_INGEST_CODEC,
-        tags_validator=ReleaseHealthTagsValidator().is_allowed,
+        tags_validator=GenericMetricsTagsValidator().is_allowed,
+        schema_validator=MetricsSchemaValidator(
+            INGEST_CODEC, GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME
+        ).validate,
     )
     assert batch.extract_strings() == {
         UseCaseID.SPANS: {
@@ -718,8 +734,10 @@ def test_resolved_with_aggregation_options(caplog, settings):
         outer_message,
         False,
         False,
-        input_codec=_INGEST_CODEC,
-        tags_validator=ReleaseHealthTagsValidator().is_allowed,
+        tags_validator=GenericMetricsTagsValidator().is_allowed,
+        schema_validator=MetricsSchemaValidator(
+            INGEST_CODEC, GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME
+        ).validate,
     )
     assert batch.extract_strings() == (
         {
@@ -855,8 +873,10 @@ def test_all_resolved(caplog, settings):
         outer_message,
         True,
         False,
-        input_codec=_INGEST_CODEC,
         tags_validator=ReleaseHealthTagsValidator().is_allowed,
+        schema_validator=MetricsSchemaValidator(
+            INGEST_CODEC, RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME
+        ).validate,
     )
     assert batch.extract_strings() == (
         {
@@ -1004,8 +1024,10 @@ def test_all_resolved_with_routing_information(caplog, settings):
         outer_message,
         True,
         True,
-        input_codec=_INGEST_CODEC,
         tags_validator=ReleaseHealthTagsValidator().is_allowed,
+        schema_validator=MetricsSchemaValidator(
+            INGEST_CODEC, RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME
+        ).validate,
     )
     assert batch.extract_strings() == (
         {
@@ -1166,8 +1188,10 @@ def test_all_resolved_retention_days_honored(caplog, settings):
         outer_message,
         True,
         False,
-        input_codec=_INGEST_CODEC,
         tags_validator=ReleaseHealthTagsValidator().is_allowed,
+        schema_validator=MetricsSchemaValidator(
+            INGEST_CODEC, RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME
+        ).validate,
     )
     assert batch.extract_strings() == (
         {
@@ -1323,8 +1347,10 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
         outer_message,
         False,
         False,
-        input_codec=_INGEST_CODEC,
         tags_validator=ReleaseHealthTagsValidator().is_allowed,
+        schema_validator=MetricsSchemaValidator(
+            INGEST_CODEC, RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME
+        ).validate,
     )
     assert batch.extract_strings() == (
         {
@@ -1464,8 +1490,10 @@ def test_metric_id_rate_limited(caplog, settings):
         outer_message,
         True,
         False,
-        input_codec=_INGEST_CODEC,
         tags_validator=ReleaseHealthTagsValidator().is_allowed,
+        schema_validator=MetricsSchemaValidator(
+            INGEST_CODEC, RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME
+        ).validate,
     )
     assert batch.extract_strings() == (
         {
@@ -1579,8 +1607,10 @@ def test_tag_key_rate_limited(caplog, settings):
         outer_message,
         True,
         False,
-        input_codec=_INGEST_CODEC,
         tags_validator=ReleaseHealthTagsValidator().is_allowed,
+        schema_validator=MetricsSchemaValidator(
+            INGEST_CODEC, RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME
+        ).validate,
     )
     assert batch.extract_strings() == (
         {
@@ -1671,8 +1701,10 @@ def test_tag_value_rate_limited(caplog, settings):
         outer_message,
         True,
         False,
-        input_codec=_INGEST_CODEC,
         tags_validator=ReleaseHealthTagsValidator().is_allowed,
+        schema_validator=MetricsSchemaValidator(
+            INGEST_CODEC, RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME
+        ).validate,
     )
     assert batch.extract_strings() == (
         {
@@ -1811,8 +1843,10 @@ def test_one_org_limited(caplog, settings):
         outer_message,
         True,
         False,
-        input_codec=_INGEST_CODEC,
         tags_validator=ReleaseHealthTagsValidator().is_allowed,
+        schema_validator=MetricsSchemaValidator(
+            INGEST_CODEC, RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME
+        ).validate,
     )
     assert batch.extract_strings() == (
         {
@@ -1943,8 +1977,10 @@ def test_cardinality_limiter(caplog, settings):
         outer_message,
         True,
         False,
-        input_codec=_INGEST_CODEC,
         tags_validator=ReleaseHealthTagsValidator().is_allowed,
+        schema_validator=MetricsSchemaValidator(
+            INGEST_CODEC, RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME
+        ).validate,
     )
     keys_to_remove = list(batch.parsed_payloads_by_meta)[:2]
     # the messages come in a certain order, and Python dictionaries preserve

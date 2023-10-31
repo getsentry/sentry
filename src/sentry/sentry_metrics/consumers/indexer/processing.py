@@ -14,6 +14,8 @@ from sentry.sentry_metrics.configuration import (
 )
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
 from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch, MessageBatch
+from sentry.sentry_metrics.consumers.indexer.parsed_message import ParsedMessage
+from sentry.sentry_metrics.consumers.indexer.schema_validator import MetricsSchemaValidator
 from sentry.sentry_metrics.consumers.indexer.tags_validator import (
     GenericMetricsTagsValidator,
     ReleaseHealthTagsValidator,
@@ -64,6 +66,15 @@ class MessageProcessor:
         else:
             return GenericMetricsTagsValidator().is_allowed
 
+    def __get_schema_validator(self) -> Callable[[ParsedMessage], None]:
+        """
+        Get the schema validator function for the current use case.
+        """
+        return MetricsSchemaValidator(
+            input_codec=INGEST_CODEC,
+            validation_option=self._config.schema_validation_rule_option_name,
+        ).validate
+
     def process_messages(self, outer_message: Message[MessageBatch]) -> IndexerOutputMessageBatch:
         with sentry_sdk.start_transaction(
             name="sentry.sentry_metrics.consumers.indexer.processing.process_messages",
@@ -110,6 +121,7 @@ class MessageProcessor:
             is_output_sliced=is_output_sliced,
             input_codec=INGEST_CODEC,
             tags_validator=self.__get_tags_validator(),
+            schema_validator=self.__get_schema_validator(),
         )
 
         sdk.set_measurement("indexer_batch.payloads.len", len(batch.parsed_payloads_by_meta))
