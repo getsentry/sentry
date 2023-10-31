@@ -292,7 +292,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
             type=type,
         )
         raw_output = controller.get_notification_recipients(type=type, actor_type=actor_type)
-        return {provider.name: actors for provider, actors in raw_output.items()}
+        return {str(provider.name): actors for provider, actors in raw_output.items()}
 
     class _NotificationSettingsQuery(
         FilterQueryDatabaseImpl[
