@@ -131,7 +131,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
             count: frame.data.count,
             link: (
               <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/configuration/#mutation-limits">
-                {t('Read the docs.')}
+                {t('Learn more.')}
               </ExternalLink>
             ),
           }
@@ -142,7 +142,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
             count: frame.data.count,
             link: (
               <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/configuration/#mutation-limits">
-                {t('Read the docs.')}
+                {t('Learn more.')}
               </ExternalLink>
             ),
           }
