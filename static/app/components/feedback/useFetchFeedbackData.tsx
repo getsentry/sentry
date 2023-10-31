@@ -18,7 +18,7 @@ export default function useFetchFeedbackData({feedbackId}: Props) {
     organization,
   });
 
-  const {data: issue, ...issueResult} = useApiQuery<FeedbackIssue>(
+  const {data: issueData, ...issueResult} = useApiQuery<FeedbackIssue>(
     issueQueryKey ?? [''],
     {
       staleTime: 0,
@@ -26,7 +26,7 @@ export default function useFetchFeedbackData({feedbackId}: Props) {
     }
   );
 
-  const {data: event, ...eventResult} = useApiQuery<FeedbackEvent>(
+  const {data: eventData, ...eventResult} = useApiQuery<FeedbackEvent>(
     eventQueryKey ?? [''],
     {
       staleTime: 0,
@@ -34,7 +34,7 @@ export default function useFetchFeedbackData({feedbackId}: Props) {
     }
   );
 
-  const tags = useMemo(() => hydrateEventTags(event), [event]);
+  const tags = useMemo(() => hydrateEventTags(eventData), [eventData]);
 
   const {markAsRead} = useMutateFeedback({
     feedbackIds: [feedbackId],
@@ -47,15 +47,15 @@ export default function useFetchFeedbackData({feedbackId}: Props) {
   // Until that is fixed, we're going to run `markAsRead` after the issue is
   // initially fetched in order to speedup initial fetch and avoid race conditions.
   useEffect(() => {
-    if (issue) {
+    if (issueData) {
       markAsRead(true);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
-    event,
+    eventData,
     eventResult,
-    issue,
+    issueData,
     issueResult,
     tags,
   };

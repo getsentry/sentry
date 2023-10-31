@@ -36,7 +36,9 @@ export default function useFetchFeedbackInfiniteListData() {
     isFetchingNextPage,
     isFetchingPreviousPage,
     isLoading, // If anything is loaded yet
-  } = useInfiniteApiQuery<FeedbackIssueList>({queryKey});
+  } = useInfiniteApiQuery<FeedbackIssueList>({
+    queryKey,
+  });
 
   const issues = useMemo(
     () => data?.pages.flatMap(([pageData]) => pageData) ?? [],

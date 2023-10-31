@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 
 export default function FeedbackItemLoader() {
   const feedbackId = useCurrentFeedbackId();
-  const {issueResult, issue, tags, event} = useFetchFeedbackData({feedbackId});
+  const {issueResult, issueData, tags, eventData} = useFetchFeedbackData({feedbackId});
 
   // There is a case where we are done loading, but we're fetching updates
   // This happens when the user has seen a feedback, clicks around a bit, then
@@ -21,9 +21,9 @@ export default function FeedbackItemLoader() {
     <Placeholder height="100%" />
   ) : issueResult.isError ? (
     <FeedbackErrorDetails error={t('Unable to load feedback')} />
-  ) : !issue ? (
+  ) : !issueData ? (
     <FeedbackEmptyDetails />
   ) : (
-    <FeedbackItem eventData={event} feedbackItem={issue} tags={tags} />
+    <FeedbackItem eventData={eventData} feedbackItem={issueData} tags={tags} />
   );
 }

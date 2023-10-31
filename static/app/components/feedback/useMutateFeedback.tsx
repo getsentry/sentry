@@ -47,14 +47,19 @@ export default function useMutateFeedback({feedbackIds, organization}: Props) {
   });
 
   const markAsRead = useCallback(
-    (hasSeen: boolean, options?: MutateOptions<TData, TError, TVariables, TContext>) =>
-      mutation.mutate([feedbackIds, {hasSeen}], options),
+    (hasSeen: boolean, options?: MutateOptions<TData, TError, TVariables, TContext>) => {
+      mutation.mutate([feedbackIds, {hasSeen}], options);
+    },
     [mutation, feedbackIds]
   );
 
   const resolve = useCallback(
-    (status: GroupStatus, options?: MutateOptions<TData, TError, TVariables, TContext>) =>
-      mutation.mutate([feedbackIds, {status}], options),
+    (
+      status: GroupStatus,
+      options?: MutateOptions<TData, TError, TVariables, TContext>
+    ) => {
+      mutation.mutate([feedbackIds, {status}], options);
+    },
     [mutation, feedbackIds]
   );
 

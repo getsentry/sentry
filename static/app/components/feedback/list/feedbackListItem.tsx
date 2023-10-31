@@ -11,7 +11,7 @@ import Link from 'sentry/components/links/link';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCircle, IconCircleFill, IconPlay} from 'sentry/icons';
+import {IconCircleFill, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -88,10 +88,8 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
               justifyContent: 'center',
             }}
           >
-            {feedbackItem.hasSeen ? (
-              <IconCircle size="xs" color="purple400" />
-            ) : (
-              <IconCircleFill size="xs" color="purple400" />
+            {feedbackItem.hasSeen ? null : (
+              <IconCircleFill size="xs" color={isSelected ? 'white' : 'purple400'} />
             )}
           </span>
           <div style={{gridArea: 'message'}}>
