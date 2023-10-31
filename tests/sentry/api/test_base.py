@@ -443,21 +443,21 @@ class EndpointJSONBodyTest(APITestCase):
         self.request.META["CONTENT_TYPE"] = "application/json"
 
     def test_json(self):
-        self.request._body = '{"foo":"bar"}'
+        self.request._body = b'{"foo":"bar"}'
 
         Endpoint().load_json_body(self.request)
 
         assert self.request.json_body == {"foo": "bar"}
 
     def test_invalid_json(self):
-        self.request._body = "hello"
+        self.request._body = b"hello"
 
         Endpoint().load_json_body(self.request)
 
         assert not self.request.json_body
 
     def test_empty_request_body(self):
-        self.request._body = ""
+        self.request._body = b""
 
         Endpoint().load_json_body(self.request)
 
