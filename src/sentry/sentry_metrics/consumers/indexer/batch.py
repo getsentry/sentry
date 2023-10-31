@@ -299,7 +299,13 @@ class IndexerBatch:
             broker_meta = BrokerMeta(message.value.partition, message.value.offset)
             if broker_meta in self.invalid_msg_meta or broker_meta in self.filtered_msg_meta:
                 continue
-            old_payload_value = self.parsed_payloads_by_meta.pop(broker_meta)
+
+            # Hotfix for INC-552: Since extract_messages might fail for many reasons, we need to
+            # handle the case where the message is not in parsed_payloads_by_meta
+            try:
+                old_payload_value = self.parsed_payloads_by_meta.pop(broker_meta)
+            except KeyError:
+                continue
 
             metric_name = old_payload_value["name"]
             org_id = old_payload_value["org_id"]
