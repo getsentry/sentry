@@ -6,22 +6,17 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
 import {space} from 'sentry/styles/space';
 import {MEPTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
-import {RELEASE_LEVEL} from 'sentry/views/performance/database/settings';
 
 import {
   GenericPerformanceWidgetProps,
   WidgetDataConstraint,
   WidgetDataProps,
 } from '../types';
-import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 export function WidgetHeader<T extends WidgetDataConstraint>(
   props: GenericPerformanceWidgetProps<T> & WidgetDataProps<T>
 ) {
-  const {title, titleTooltip, Subtitle, HeaderActions, InteractiveTitle, chartSetting} =
-    props;
-  const isStarfishDBWidget =
-    chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES;
+  const {title, titleTooltip, Subtitle, HeaderActions, InteractiveTitle} = props;
   return (
     <WidgetHeaderContainer>
       <TitleContainer>
@@ -31,7 +26,6 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
           ) : (
             <TextOverflow>{title}</TextOverflow>
           )}
-          {isStarfishDBWidget && <FeatureBadge type={RELEASE_LEVEL} />}
           <MEPTag />
           {titleTooltip && (
             <QuestionTooltip position="top" size="sm" title={titleTooltip} />
