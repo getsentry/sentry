@@ -432,6 +432,7 @@ class ProfileFunctionRegressionType(GroupType):
     type_id = 2011
     slug = "profile_function_regression"
     description = "Function Regression"
+    category = GroupCategory.PERFORMANCE.value
     enable_auto_resolve = False
 
 
