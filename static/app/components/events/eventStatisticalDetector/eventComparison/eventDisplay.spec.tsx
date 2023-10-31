@@ -108,6 +108,43 @@ describe('eventDisplay', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders a button that links to the event detail page', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      method: 'GET',
+      body: {
+        data: [
+          {
+            timestamp: new Date().toISOString(),
+            id: 'mock-id',
+            'project.name': mockProject.name,
+          },
+        ],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/events/${mockProject.slug}:mock-id/`,
+      method: 'GET',
+      body: Event({tags: [{key: 'mock-tag', value: 'mock-value'}]}),
+    });
+
+    render(
+      <EventDisplay
+        durationBaseline={0}
+        end={0}
+        eventSelectLabel="Prefix"
+        project={mockProject}
+        start={0}
+        transaction=""
+      />
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Full Event Details'})
+    ).toHaveAttribute('href', '/organizations/org-slug/discover/project-slug:1/');
+  });
+
   it('allows for pagination if there are more events loaded', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
