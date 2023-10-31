@@ -957,7 +957,10 @@ class OnDemandMetricSpec:
             # Third step is to generate the actual Relay rule that contains all rules nested. We assume that the query
             # being passed here, can be satisfied ONLY by on demand metrics.
             rule_condition = SearchQueryConverter(parsed_query.conditions).convert()
-        except Exception:
+        except Exception as e:
+            if not parsed_query.is_empty():
+                logger.error(f"Error while converting search query: {e}")
+
             return None
 
         # If we don't have to merge the aggregate, we can just return the parsed rules.
