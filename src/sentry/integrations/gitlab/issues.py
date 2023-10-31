@@ -29,6 +29,8 @@ class GitlabIssueBasic(IssueBasicMixin):
 
         # XXX: In GitLab repositories are called projects but get_repository_choices
         # expects the param to be called 'repo', so we need to rename it here.
+        # Django QueryDicts are immutable, so we need to copy it first.
+        params = params.copy()
         params["repo"] = params.get("project") or defaults.get("project")
 
         default_project, project_choices = self.get_repository_choices(group, params, **kwargs)
