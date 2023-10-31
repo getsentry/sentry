@@ -83,9 +83,10 @@ def _fetch_file_blame(
     project_id = file.repo.config.get("project_id")
     encoded_path = quote(file.path, safe="")
     request_path = GitLabApiClientPath.blame.format(project=project_id, path=encoded_path)
-    response = client.get(
+    response = client.get_cached(
         request_path,
         params={"ref": file.ref, "range[start]": file.lineno, "range[end]": file.lineno},
+        cache_time=60,
     )
 
     if not isinstance(response, SequenceApiResponse):

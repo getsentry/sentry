@@ -18,6 +18,7 @@ from sentry.models.identity import Identity
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
+from sentry.utils.cache import cache
 
 GITLAB_CODEOWNERS = {
     "filepath": "CODEOWNERS",
@@ -277,6 +278,9 @@ class GitlabRefreshAuthTest(GitLabClientTest):
 class GitLabBlameForFilesTest(GitLabClientTest):
     def setUp(self):
         super().setUp()
+        self.cache_key = "integration.gitlab.client:90c877e3983404c2ccf5756f578abd5f"
+        self.cache_key2 = "integration.gitlab.client:4d9a6af2411001e36cd3b66f50c1bf78"
+        self.cache_key3 = "integration.gitlab.client:9cae8cea1a0f2b48037a956e61b7134c"
         self.file_1 = SourceLineInfo(
             path="src/sentry/integrations/github/client_1.py",
             lineno=10,
@@ -383,11 +387,52 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         assert resp == [self.blame_1]
 
     @responses.activate
+    def test_success_single_file_cached(self):
+        self.set_up_success_responses()
+        assert cache.get(self.cache_key) is None
+        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1])
+        assert resp == [self.blame_1]
+        assert cache.get(self.cache_key) == self.make_blame_response(id="1")
+
+        # Nothing changes if we call it again
+        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1])
+        assert cache.get(self.cache_key) == self.make_blame_response(id="1")
+
+        # Calling again after the cache has been cleared should still work
+        cache.delete(self.cache_key)
+        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1])
+        assert cache.get(self.cache_key) == self.make_blame_response(id="1")
+
+    @responses.activate
     def test_success_multiple_files(self):
         self.set_up_success_responses()
         resp = self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2, self.file_3])
 
         assert resp == [self.blame_1, self.blame_2, self.blame_3]
+
+    @responses.activate
+    def test_success_multiple_files_cached(self):
+        self.set_up_success_responses()
+        assert cache.get(self.cache_key) is None
+        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2, self.file_3])
+
+        assert resp == [self.blame_1, self.blame_2, self.blame_3]
+        assert cache.get(self.cache_key) == self.make_blame_response(id="1")
+        assert cache.get(self.cache_key2) == self.make_blame_response(id="2")
+        assert cache.get(self.cache_key3) == self.make_blame_response(id="3")
+
+        # Nothing changes if we call it again
+        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2, self.file_3])
+        assert cache.get(self.cache_key) == self.make_blame_response(id="1")
+        assert cache.get(self.cache_key2) == self.make_blame_response(id="2")
+        assert cache.get(self.cache_key3) == self.make_blame_response(id="3")
+
+        # Calling again after the cache has been cleared should still work
+        cache.delete(self.cache_key)
+        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2, self.file_3])
+        assert cache.get(self.cache_key) == self.make_blame_response(id="1")
+        assert cache.get(self.cache_key2) == self.make_blame_response(id="2")
+        assert cache.get(self.cache_key3) == self.make_blame_response(id="3")
 
     @mock.patch(
         "sentry.integrations.gitlab.blame.logger.exception",
