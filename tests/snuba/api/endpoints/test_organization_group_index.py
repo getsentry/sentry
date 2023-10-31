@@ -10,7 +10,11 @@ from django.utils import timezone
 from rest_framework import status
 
 from sentry import options
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, PerformanceSlowDBQueryGroupType
+from sentry.issues.grouptype import (
+    FeedbackGroup,
+    PerformanceNPlusOneGroupType,
+    PerformanceSlowDBQueryGroupType,
+)
 from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken
 from sentry.models.group import Group, GroupStatus
@@ -500,6 +504,22 @@ class GroupListTest(APITestCase, SnubaTestCase):
             response = self.get_success_response(query="issue.category:performance")
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(perf_group.id)
+
+    def test_feedback_issue_doesnt_show_default(self):
+        self.create_group(type=FeedbackGroup.type_id)
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(query="issue.category:feedback")
+        assert len(response.data) == 0
+
+    def test_feedback_issue_shows_with_referrer(self):
+        self.create_group(type=FeedbackGroup.type_id)
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(
+            query="issue.category:feedback", referrer="api.feedback_index"
+        )
+        assert len(response.data) == 0
 
     def test_lookup_by_event_id(self):
         project = self.project

@@ -164,10 +164,14 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         },
     }
 
-    referrer = "search.group_index"
-
     def _search(
-        self, request: Request, organization, projects, environments, extra_query_kwargs=None
+        self,
+        request: Request,
+        organization,
+        projects,
+        environments,
+        referrer,
+        extra_query_kwargs=None,
     ):
         with start_span(op="_search"):
             query_kwargs = build_query_params_from_request(
@@ -184,7 +188,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 query_kwargs.pop("sort_by")
                 result = inbox_search(**query_kwargs)
             else:
-                query_kwargs["referrer"] = self.referrer
+                query_kwargs["referrer"] = referrer
                 result = search.query(**query_kwargs)
             return result, query_kwargs
 
@@ -233,6 +237,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :qparam list collapse: an optional list of strings to opt out of certain pieces of data. Supports `stats`, `lifetime`, `base`, `unhandled`
         """
         stats_period = request.GET.get("groupStatsPeriod")
+        referrer = request.GET.get("referrer", "default")
         try:
             start, end = get_date_range_from_stats_period(request.GET)
         except InvalidParams as e:
@@ -334,6 +339,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 organization,
                 projects,
                 environments,
+                referrer,
                 {"count_hits": True, "date_to": end, "date_from": start},
             )
         except (ValidationError, discover.InvalidSearchQuery) as exc:
