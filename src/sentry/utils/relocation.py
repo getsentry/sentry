@@ -17,6 +17,10 @@ class OrderedTask(Enum):
     NONE = 0
     UPLOADING_COMPLETE = 1
     PREPROCESSING_SCAN = 2
+    PREPROCESSING_BASELINE_CONFIG = 3
+    PREPROCESSING_COLLIDING_USERS = 4
+    PREPROCESSING_COMPLETE = 5
+    VALIDATING_START = 6
 
 
 # The file type for a relocation export tarball of any kind.
@@ -35,7 +39,7 @@ RELOCATION_FILE_TYPE = "relocation.file"
 RELOCATION_BLOB_SIZE = int((2**31) / 32)
 
 
-def start_task(
+def start_relocation_task(
     uuid: str, step: Relocation.Step, task: OrderedTask, allowed_task_attempts: int
 ) -> Tuple[Optional[Relocation], int]:
     """
@@ -77,7 +81,7 @@ def start_task(
         return (None, 0)
     else:
         relocation.latest_task = task.name
-        relocation.latest_task_attempts += 1
+        relocation.latest_task_attempts = 1
 
     relocation.step = step.value
     relocation.save()
