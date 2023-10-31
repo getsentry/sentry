@@ -12,6 +12,7 @@ import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubb
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {formatTime} from 'sentry/components/replays/utils';
 import {
+  IconAdd,
   IconContract,
   IconExpand,
   IconNext,
@@ -20,6 +21,7 @@ import {
   IconPrevious,
   IconRewind10,
   IconSettings,
+  IconSubtract,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -144,6 +146,29 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
   );
 }
 
+function TimelineSizeBar({size, setSize}) {
+  return (
+    <ButtonBar merged>
+      <Button
+        size="xs"
+        title={t('Zoom out')}
+        icon={<IconSubtract size="xs" />}
+        borderless
+        onClick={() => setSize(Math.max(size - 50, 100))}
+        aria-label={t('Zoom out')}
+      />
+      <Button
+        size="xs"
+        title={t('Zoom in')}
+        icon={<IconAdd size="xs" />}
+        borderless
+        onClick={() => setSize(Math.min(size + 50, 1000))}
+        aria-label={t('Zoom in')}
+      />
+    </ButtonBar>
+  );
+}
+
 function ReplayControls({
   toggleFullscreen,
   speedOptions = [0.1, 0.25, 0.5, 1, 2, 4, 8, 16],
@@ -155,6 +180,7 @@ function ReplayControls({
   const isFullscreen = useIsFullscreen();
   const {currentTime, replay} = useReplayContext();
   const durationMs = replay?.getDurationMs();
+  const [size, setSize] = useState(300);
 
   // If the browser supports going fullscreen or not. iPhone Safari won't do
   // it. https://caniuse.com/fullscreen
@@ -195,7 +221,10 @@ function ReplayControls({
           <TimeAndScrubberGrid isCompact={isCompact}>
             <Time style={{gridArea: 'currentTime'}}>{formatTime(currentTime)}</Time>
             <div style={{gridArea: 'timeline'}}>
-              <ReplayTimeline />
+              <ReplayTimeline size={size} />
+            </div>
+            <div style={{gridArea: 'timelineSize'}}>
+              <TimelineSizeBar size={size} setSize={setSize} />
             </div>
             <StyledScrubber
               style={{gridArea: 'scrubber'}}
@@ -246,6 +275,7 @@ const Container = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1 1;
+  justify-content: center;
 `;
 
 const TimeAndScrubber = styled('div')<{isCompact: boolean}>`
@@ -268,9 +298,9 @@ const TimeAndScrubberGrid = styled('div')<{isCompact: boolean}>`
   width: 100%;
   display: grid;
   grid-template-areas:
-    '. timeline .'
+    '. timeline timelineSize'
     'currentTime scrubber duration';
-  grid-column-gap: ${space(2)};
+  grid-column-gap: ${space(1)};
   grid-template-columns: max-content auto max-content;
   align-items: center;
   ${p =>
@@ -285,6 +315,7 @@ const TimeAndScrubberGrid = styled('div')<{isCompact: boolean}>`
 
 const Time = styled('span')`
   font-variant-numeric: tabular-nums;
+  padding: 0 ${space(1.5)};
 `;
 
 const StyledScrubber = styled('div')`

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 
+import sentry_sdk
+
 from sentry.integrations.jira.endpoints import JiraDescriptorEndpoint, JiraSearchEndpoint
 from sentry.integrations.jira.views import (
     JiraExtensionConfigurationView,
@@ -44,7 +46,7 @@ class JiraRequestParser(BaseRequestParser):
         try:
             return parse_integration_from_request(request=self.request, provider=self.provider)
         except AtlassianConnectValidationError as e:
-            logger.error("auth_invalid", extra={"error": e, "path": self.request.path})
+            sentry_sdk.capture_exception(e)
         return None
 
     def get_response(self):
@@ -53,13 +55,16 @@ class JiraRequestParser(BaseRequestParser):
 
         regions = self.get_regions_from_organizations()
         if len(regions) == 0:
-            logger.error("no_regions", extra={"path": self.request.path})
+            logger.info(f"{self.provider}.no_regions", extra={"path": self.request.path})
             return self.get_response_from_control_silo()
 
         if len(regions) > 1:
             # Since Jira is region_restricted (see JiraIntegrationProvider) we can just pick the
             # first region to forward along to.
-            logger.error("too_many_regions", extra={"path": self.request.path, "regions": regions})
+            logger.info(
+                f"{self.provider}.too_many_regions",
+                extra={"path": self.request.path, "regions": regions},
+            )
             return self.get_response_from_control_silo()
 
         if self.view_class in self.immediate_response_region_classes:
@@ -67,3 +72,5 @@ class JiraRequestParser(BaseRequestParser):
 
         if self.view_class in self.outbox_response_region_classes:
             return self.get_response_from_outbox_creation(regions=regions)
+
+        return self.get_response_from_control_silo()

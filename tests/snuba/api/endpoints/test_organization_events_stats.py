@@ -14,7 +14,7 @@ from sentry.constants import MAX_TOP_EVENTS
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.snuba.discover import OTHER_KEY
-from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, ProfilesSnubaTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
@@ -2526,6 +2526,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         assert "Other" not in response.data
 
+    @pytest.mark.xfail(reason="Started failing on ClickHouse 21.8")
     def test_top_events_with_equation_including_unselected_fields_passes_field_validation(self):
         with self.feature(self.enabled_features):
             response = self.client.get(
@@ -2568,3 +2569,115 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             )
 
         assert response.status_code == 200
+
+
+@region_silo_test
+class OrganizationEventsStatsProfileFunctionDatasetEndpointTest(
+    APITestCase, ProfilesSnubaTestCase, SearchIssueTestMixin
+):
+    endpoint = "sentry-api-0-organization-events-stats"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+
+        self.one_day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+        self.two_days_ago = before_now(days=2).replace(hour=10, minute=0, second=0, microsecond=0)
+        self.three_days_ago = before_now(days=3).replace(hour=10, minute=0, second=0, microsecond=0)
+
+        self.project = self.create_project()
+
+        self.url = reverse(
+            "sentry-api-0-organization-events-stats",
+            kwargs={"organization_slug": self.project.organization.slug},
+        )
+
+    def test_functions_dataset_simple(self):
+        self.store_functions(
+            [
+                {
+                    "self_times_ns": [100 for _ in range(100)],
+                    "package": "foo",
+                    "function": "bar",
+                    "in_app": True,
+                },
+            ],
+            project=self.project,
+            timestamp=self.two_days_ago,
+        )
+
+        data = {
+            "dataset": "profileFunctions",
+            "start": iso_format(self.three_days_ago),
+            "end": iso_format(self.one_day_ago),
+            "interval": "1d",
+            "yAxis": "cpm()",
+        }
+
+        response = self.client.get(self.url, data=data, format="json")
+        assert response.status_code == 200, response.content
+        assert sum(row[1][0]["count"] for row in response.data["data"]) == pytest.approx(
+            100 / ((self.one_day_ago - self.three_days_ago).total_seconds() / 60), rel=1e-3
+        )
+
+
+@region_silo_test
+class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
+    APITestCase, ProfilesSnubaTestCase, SearchIssueTestMixin
+):
+    endpoint = "sentry-api-0-organization-events-stats"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+
+        self.one_day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+        self.two_days_ago = before_now(days=2).replace(hour=10, minute=0, second=0, microsecond=0)
+        self.three_days_ago = before_now(days=3).replace(hour=10, minute=0, second=0, microsecond=0)
+
+        self.project = self.create_project()
+
+        self.url = reverse(
+            "sentry-api-0-organization-events-stats",
+            kwargs={"organization_slug": self.project.organization.slug},
+        )
+
+    def test_functions_dataset_simple(self):
+        self.store_functions(
+            [
+                {
+                    "self_times_ns": [100 for _ in range(100)],
+                    "package": "pkg",
+                    "function": "foo",
+                    "in_app": True,
+                },
+                {
+                    "self_times_ns": [100 for _ in range(10)],
+                    "package": "pkg",
+                    "function": "bar",
+                    "in_app": True,
+                },
+            ],
+            project=self.project,
+            timestamp=self.two_days_ago,
+        )
+
+        data = {
+            "dataset": "profileFunctions",
+            "field": ["function", "count()"],
+            "start": iso_format(self.three_days_ago),
+            "end": iso_format(self.one_day_ago),
+            "yAxis": "cpm()",
+            "interval": "1d",
+            "topEvents": 2,
+            "excludeOther": 1,
+        }
+
+        response = self.client.get(self.url, data=data, format="json")
+        assert response.status_code == 200, response.content
+        assert sum(row[1][0]["count"] for row in response.data["foo"]["data"]) == pytest.approx(
+            100 / ((self.one_day_ago - self.three_days_ago).total_seconds() / 60), rel=1e-3
+        )
+        assert sum(row[1][0]["count"] for row in response.data["bar"]["data"]) == pytest.approx(
+            10 / ((self.one_day_ago - self.three_days_ago).total_seconds() / 60), rel=1e-3
+        )

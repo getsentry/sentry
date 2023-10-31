@@ -1,38 +1,65 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import Button from 'sentry/components/actions/button';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
-import useUpdateFeedback from 'sentry/components/feedback/feedbackItem/useUpdateFeedback';
+import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
+import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {IconEllipsis, IconJson, IconLink} from 'sentry/icons';
+import {IconJson, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, GroupStatus} from 'sentry/types';
-import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
+import type {FeedbackIssue} from 'sentry/utils/feedback/types';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   eventData: Event | undefined;
-  feedbackItem: HydratedFeedbackItem;
-  replayId: string;
+  feedbackItem: FeedbackIssue;
+  refetchIssue: () => void;
   tags: Record<string, string>;
 }
 
-export default function FeedbackItem({feedbackItem, eventData, tags, replayId}: Props) {
+export default function FeedbackItem({
+  feedbackItem,
+  eventData,
+  refetchIssue,
+  tags,
+}: Props) {
   const organization = useOrganization();
-  const {onSetStatus} = useUpdateFeedback({feedbackItem});
+  const hasReplayId = useFeedbackHasReplayId({feedbackId: feedbackItem.id});
+  const {markAsRead, resolve} = useMutateFeedback({
+    feedbackId: feedbackItem.id,
+    organization,
+    refetchIssue,
+  });
+  const api = useApi();
+
+  const markReadUrl = `/organizations/${organization.slug}/issues/${feedbackItem.id}/`;
+
+  useEffect(() => {
+    (async () => {
+      await api.requestPromise(markReadUrl, {
+        method: 'PUT',
+        data: {hasSeen: true},
+      });
+      refetchIssue();
+    })();
+  }, []); // eslint-disable-line
+
   const url = eventData?.tags.find(tag => tag.key === 'url');
+  const replayId = eventData?.contexts?.feedback?.replay_id;
 
   return (
     <Fragment>
@@ -40,7 +67,11 @@ export default function FeedbackItem({feedbackItem, eventData, tags, replayId}: 
         <Flex gap={space(2)} justify="space-between">
           <Flex column>
             <Flex align="center" gap={space(0.5)}>
-              <FeedbackItemUsername feedbackItem={feedbackItem} detailDisplay />
+              <FeedbackItemUsername
+                feedbackIssue={feedbackItem}
+                feedbackEvent={eventData}
+                detailDisplay
+              />
               {feedbackItem.metadata.contact_email ? (
                 <CopyToClipboardButton
                   size="xs"
@@ -65,72 +96,24 @@ export default function FeedbackItem({feedbackItem, eventData, tags, replayId}: 
               <FeedbackViewers feedbackItem={feedbackItem} />
             </ErrorBoundary>
             <ErrorBoundary mini>
-              <DropdownMenu
-                position="bottom-end"
-                triggerLabel={
-                  feedbackItem.status === GroupStatus.IGNORED
-                    ? t('Archived')
-                    : feedbackItem.status === GroupStatus.RESOLVED
-                    ? t('Resolved')
-                    : t('Unresolved')
-                }
-                triggerProps={{
-                  'aria-label': t('Resolve or Archive Menu'),
-                  showChevron: true,
-                  size: 'xs',
+              <Button
+                onClick={() => {
+                  feedbackItem.status === 'resolved'
+                    ? resolve(GroupStatus.UNRESOLVED)
+                    : resolve(GroupStatus.RESOLVED);
                 }}
-                items={[
-                  {
-                    key: 'resolve',
-                    label:
-                      feedbackItem.status === GroupStatus.RESOLVED
-                        ? t('Unresolve')
-                        : t('Resolve'),
-                    onAction: () =>
-                      onSetStatus(
-                        feedbackItem.status === GroupStatus.RESOLVED
-                          ? GroupStatus.UNRESOLVED
-                          : GroupStatus.RESOLVED
-                      ),
-                  },
-                  {
-                    key: 'archive',
-                    label:
-                      feedbackItem.status === GroupStatus.IGNORED
-                        ? t('Unarchive')
-                        : t('Archive'),
-                    onAction: () =>
-                      onSetStatus(
-                        feedbackItem.status === GroupStatus.IGNORED
-                          ? GroupStatus.UNRESOLVED
-                          : GroupStatus.IGNORED
-                      ),
-                  },
-                ]}
-              />
+              >
+                {feedbackItem.status === 'resolved' ? t('Unresolve') : t('Resolve')}
+              </Button>
             </ErrorBoundary>
             <ErrorBoundary mini>
-              <DropdownMenu
-                position="bottom-end"
-                triggerProps={{
-                  'aria-label': t('Read Menu'),
-                  icon: <IconEllipsis size="xs" />,
-                  showChevron: false,
-                  size: 'xs',
+              <Button
+                onClick={() => {
+                  feedbackItem.hasSeen ? markAsRead(false) : markAsRead(true);
                 }}
-                items={[
-                  {
-                    key: 'mark read',
-                    label: t('Mark as read'),
-                    onAction: () => {},
-                  },
-                  {
-                    key: 'mark unread',
-                    label: t('Mark as unread'),
-                    onAction: () => {},
-                  },
-                ]}
-              />
+              >
+                {feedbackItem.hasSeen ? t('Mark Unread') : t('Mark Read')}
+              </Button>
             </ErrorBoundary>
           </Flex>
         </Flex>
@@ -148,8 +131,12 @@ export default function FeedbackItem({feedbackItem, eventData, tags, replayId}: 
           </ErrorBoundary>
         </Section>
 
-        {replayId ? (
-          <ReplaySection organization={organization} replayId={replayId} />
+        {hasReplayId && replayId ? (
+          <ReplaySection
+            eventTimestampMs={new Date(feedbackItem.firstSeen).getTime()}
+            organization={organization}
+            replayId={replayId}
+          />
         ) : null}
 
         <TagsSection tags={tags} />

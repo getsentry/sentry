@@ -1,11 +1,13 @@
 import {Fragment} from 'react';
 import {Link} from 'react-router';
 
+import FileSize from 'sentry/components/fileSize';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
+import Pagination from 'sentry/components/pagination';
 import {RateUnits} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
@@ -16,6 +18,7 @@ import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/render
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
 
 type Row = {
+  'avg(http.response_content_length)': number;
   'avg(span.self_time)': number;
   'spm()': number;
   transaction: string;
@@ -27,7 +30,7 @@ function ResourceSummaryTable() {
   const location = useLocation();
   const {groupId} = useParams();
   const sort = useResourceSummarySort();
-  const {data, isLoading} = useResourcePagesQuery(groupId, {sort});
+  const {data, isLoading, pageLinks} = useResourcePagesQuery(groupId, {sort});
 
   const columnOrder: GridColumnOrder<keyof Row>[] = [
     {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Found on page'},
@@ -41,6 +44,11 @@ function ResourceSummaryTable() {
       width: COL_WIDTH_UNDEFINED,
       name: 'Avg Duration',
     },
+    {
+      key: 'avg(http.response_content_length)',
+      width: COL_WIDTH_UNDEFINED,
+      name: 'Avg Resource Size',
+    },
   ];
 
   const renderBodyCell = (col: Column, row: Row) => {
@@ -50,6 +58,9 @@ function ResourceSummaryTable() {
     }
     if (key === 'avg(span.self_time)') {
       return <DurationCell milliseconds={row[key]} />;
+    }
+    if (key === 'avg(http.response_content_length)') {
+      return <FileSize bytes={row[key]} />;
     }
     if (key === 'transaction') {
       return (
@@ -92,6 +103,7 @@ function ResourceSummaryTable() {
         }}
         location={location}
       />
+      <Pagination pageLinks={pageLinks} />
     </Fragment>
   );
 }

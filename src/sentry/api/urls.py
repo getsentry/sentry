@@ -117,6 +117,9 @@ from sentry.replays.endpoints.organization_replay_index import OrganizationRepla
 from sentry.replays.endpoints.organization_replay_selector_index import (
     OrganizationReplaySelectorIndexEndpoint,
 )
+from sentry.replays.endpoints.project_replay_accessibility_issues import (
+    ProjectReplayAccessibilityIssuesEndpoint,
+)
 from sentry.replays.endpoints.project_replay_clicks_index import ProjectReplayClicksIndexEndpoint
 from sentry.replays.endpoints.project_replay_details import ProjectReplayDetailsEndpoint
 from sentry.replays.endpoints.project_replay_recording_segment_details import (
@@ -259,7 +262,6 @@ from .endpoints.internal import (
     InternalStatsEndpoint,
     InternalWarningsEndpoint,
 )
-from .endpoints.issue_occurrence import IssueOccurrenceEndpoint
 from .endpoints.notification_defaults import NotificationDefaultsEndpoints
 from .endpoints.notifications import (
     NotificationActionsAvailableEndpoint,
@@ -2271,6 +2273,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-replay-details",
     ),
     re_path(
+        r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/accessibility-issues/$",
+        ProjectReplayAccessibilityIssuesEndpoint.as_view(),
+        name="sentry-api-0-project-replay-accessibility-issues",
+    ),
+    re_path(
         r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/clicks/$",
         ProjectReplayClicksIndexEndpoint.as_view(),
         name="sentry-api-0-project-replay-clicks-index",
@@ -2664,6 +2671,13 @@ SENTRY_APP_URLS = [
         name="sentry-api-0-sentry-app-stats",
     ),
     re_path(
+        r"^(?P<sentry_app_slug>[^\/]+)/publish-request/$",
+        SentryAppPublishRequestEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-publish-request",
+    ),
+    # The following a region endpoints as interactions and request logs
+    # are per-region.
+    re_path(
         r"^(?P<sentry_app_slug>[^\/]+)/requests/$",
         SentryAppRequestsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-requests",
@@ -2672,11 +2686,6 @@ SENTRY_APP_URLS = [
         r"^(?P<sentry_app_slug>[^\/]+)/interaction/$",
         SentryAppInteractionEndpoint.as_view(),
         name="sentry-api-0-sentry-app-interaction",
-    ),
-    re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/publish-request/$",
-        SentryAppPublishRequestEndpoint.as_view(),
-        name="sentry-api-0-sentry-app-publish-request",
     ),
 ]
 
@@ -2691,6 +2700,8 @@ SENTRY_APP_INSTALLATION_URLS = [
         SentryAppAuthorizationsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-installation-authorizations",
     ),
+    # The following endpoints are region scoped, not control
+    # like most of sentryapps.
     re_path(
         r"^(?P<uuid>[^\/]+)/external-requests/$",
         SentryAppInstallationExternalRequestsEndpoint.as_view(),
@@ -2958,12 +2969,6 @@ urlpatterns = [
         r"^integration-features/$",
         IntegrationFeaturesEndpoint.as_view(),
         name="sentry-api-0-integration-features",
-    ),
-    # Issue Occurrences
-    re_path(
-        r"^issue-occurrence/$",
-        IssueOccurrenceEndpoint.as_view(),
-        name="sentry-api-0-issue-occurrence",
     ),
     # Grouping configs
     re_path(

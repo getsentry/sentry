@@ -130,7 +130,6 @@ export const CompactTimelineScrubber = styled(Scrubber)`
   height: 100%;
 
   ${Meter} {
-    border-radius: ${p => p.theme.borderRadius};
     background: transparent;
   }
 

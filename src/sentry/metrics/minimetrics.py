@@ -109,6 +109,15 @@ class MiniMetricsMetricsBackend(MetricsBackend):
     def _keep_metric(sample_rate: float) -> bool:
         return random.random() < sample_rate
 
+    @staticmethod
+    def _to_minimetrics_unit(unit: Optional[str], default: Optional[str] = None) -> str:
+        if unit is None and default is None:
+            return "none"
+        elif unit is None:
+            return default
+        else:
+            return unit
+
     def incr(
         self,
         key: str,
@@ -116,12 +125,14 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         amount: Union[float, int] = 1,
         sample_rate: float = 1,
+        unit: Optional[str] = None,
     ) -> None:
         if self._keep_metric(sample_rate):
             sentry_sdk.metrics.incr(
                 key=self._get_key(key),
                 value=amount,
                 tags=tags,
+                unit=self._to_minimetrics_unit(unit=unit),
             )
 
     def timing(
@@ -134,7 +145,11 @@ class MiniMetricsMetricsBackend(MetricsBackend):
     ) -> None:
         if self._keep_metric(sample_rate):
             sentry_sdk.metrics.distribution(
-                key=self._get_key(key), value=value, tags=tags, unit="second"
+                key=self._get_key(key),
+                value=value,
+                tags=tags,
+                # Timing is defaulted to seconds.
+                unit="second",
             )
 
     def gauge(
@@ -144,7 +159,30 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         instance: Optional[str] = None,
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
+        unit: Optional[str] = None,
     ) -> None:
         if self._keep_metric(sample_rate):
             # XXX: make this into a gauge later
-            sentry_sdk.metrics.incr(key=self._get_key(key), value=value, tags=tags)
+            sentry_sdk.metrics.incr(
+                key=self._get_key(key),
+                value=value,
+                tags=tags,
+                unit=self._to_minimetrics_unit(unit=unit),
+            )
+
+    def distribution(
+        self,
+        key: str,
+        value: float,
+        instance: Optional[str] = None,
+        tags: Optional[Tags] = None,
+        sample_rate: float = 1,
+        unit: Optional[str] = None,
+    ) -> None:
+        if self._keep_metric(sample_rate):
+            sentry_sdk.metrics.distribution(
+                key=self._get_key(key),
+                value=value,
+                tags=tags,
+                unit=self._to_minimetrics_unit(unit=unit),
+            )

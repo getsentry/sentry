@@ -113,6 +113,7 @@
   "replays_replayrecordingsegment",
   "hybridcloud_orgauthtokenreplica",
   "hybridcloud_organizationslugreservationreplica",
+  "hybridcloud_externalactorreplica",
   "hybridcloud_apikeyreplica",
   "feedback_feedback",
   "sentry_userreport",

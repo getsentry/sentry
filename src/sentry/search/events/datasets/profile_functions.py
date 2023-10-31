@@ -241,6 +241,31 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                     default_result_type="integer",
                 ),
                 SnQLFunction(
+                    "cpm",  # calls per minute
+                    snql_aggregate=lambda args, alias: self._resolve_cpm(args, alias),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "cpm_before",
+                    required_args=[TimestampArg("timestamp")],
+                    snql_aggregate=lambda args, alias: self._resolve_cpm_cond(args, alias, "less"),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "cpm_after",
+                    required_args=[TimestampArg("timestamp")],
+                    snql_aggregate=lambda args, alias: self._resolve_cpm_cond(
+                        args, alias, "greater"
+                    ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "cpm_delta",
+                    required_args=[TimestampArg("timestamp")],
+                    snql_aggregate=self._resolve_cpm_delta,
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
                     "count_unique",
                     required_args=[ProfileFunctionColumnArg("column")],
                     snql_aggregate=lambda args, alias: Function("uniq", [args["column"]], alias),
@@ -405,6 +430,35 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
+                SnQLFunction(
+                    "regression_score",
+                    required_args=[
+                        ProfileFunctionNumericColumn("column"),
+                        NumberRange("percentile", 0, 1),
+                        TimestampArg("timestamp"),
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        "minus",
+                        [
+                            Function(
+                                "multiply",
+                                [
+                                    self._resolve_cpm_cond(args, None, "greater"),
+                                    self._resolve_percentile_cond(args, None, "greater"),
+                                ],
+                            ),
+                            Function(
+                                "multiply",
+                                [
+                                    self._resolve_cpm_cond(args, None, "less"),
+                                    self._resolve_percentile_cond(args, None, "less"),
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="number",
+                ),
             ]
         }
 
@@ -469,6 +523,70 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                     [args["column"]],
                 ),
                 1,
+            ],
+            alias,
+        )
+
+    def _resolve_cpm(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: str | None,
+    ) -> SelectType:
+        interval = (self.builder.params.end - self.builder.params.start).total_seconds()
+
+        return Function(
+            "divide",
+            [
+                Function("countMerge", [SnQLColumn("count")]),
+                Function("divide", [interval, 60]),
+            ],
+            alias,
+        )
+
+    def _resolve_cpm_cond(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: str | None,
+        cond: str,
+    ) -> SelectType:
+        if cond == "greater":
+            interval = (self.builder.params.end - args["timestamp"]).total_seconds()
+        elif cond == "less":
+            interval = (args["timestamp"] - self.builder.params.start).total_seconds()
+        else:
+            raise InvalidSearchQuery(f"Unsupported condition for cpm: {cond}")
+
+        return Function(
+            "divide",
+            [
+                Function(
+                    "countMergeIf",
+                    [
+                        SnQLColumn("count"),
+                        Function(
+                            cond,
+                            [
+                                self.builder.column("timestamp"),
+                                args["timestamp"],
+                            ],
+                        ),
+                    ],
+                ),
+                Function("divide", [interval, 60]),
+            ],
+            alias,
+        )
+
+    def _resolve_cpm_delta(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: str,
+    ) -> SelectType:
+        return Function(
+            "minus",
+            [
+                self._resolve_cpm_cond(args, None, "greater"),
+                self._resolve_cpm_cond(args, None, "less"),
             ],
             alias,
         )

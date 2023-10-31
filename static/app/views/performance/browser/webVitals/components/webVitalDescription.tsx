@@ -1,16 +1,24 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ProgressRing from 'sentry/components/progressRing';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {Tag} from 'sentry/types';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {getScoreColor} from 'sentry/views/performance/browser/webVitals/utils/getScoreColor';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
+
+import {ProjectScore} from '../utils/calculatePerformanceScore';
+
+import PerformanceScoreRingWithTooltips from './performanceScoreRingWithTooltips';
 
 type Props = {
   score: number;
@@ -44,6 +52,13 @@ const VITAL_DESCRIPTIONS: Partial<Record<WebVital, string>> = {
   ),
 };
 
+type WebVitalDetailHeaderProps = {
+  isProjectScoreCalculated: boolean;
+  projectScore: ProjectScore;
+  tag: Tag;
+  value: React.ReactNode;
+};
+
 export function WebVitalDetailHeader({score, value, webVital}: Props) {
   const theme = useTheme();
   return (
@@ -66,6 +81,51 @@ export function WebVitalDetailHeader({score, value, webVital}: Props) {
         backgroundColor={`${getScoreColor(score, theme)}33`}
       />
     </Header>
+  );
+}
+
+export function WebVitalTagsDetailHeader({
+  projectScore,
+  value,
+  tag,
+  isProjectScoreCalculated,
+}: WebVitalDetailHeaderProps) {
+  const theme = useTheme();
+  const ringSegmentColors = theme.charts.getColorPalette(3);
+  const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
+  const title = `${tag.key}:${tag.name}`;
+  return (
+    <StyledHeader>
+      <span>
+        <TitleWrapper>
+          <WebVitalName>{title}</WebVitalName>
+          <StyledCopyToClipboardButton borderless text={title} size="sm" iconSize="sm" />
+        </TitleWrapper>
+        <Value>{value}</Value>
+      </span>
+      {isProjectScoreCalculated && projectScore ? (
+        <ProgressRingWrapper>
+          <PerformanceScoreRingWithTooltips
+            hideWebVitalLabels
+            projectScore={projectScore}
+            text={
+              <ProgressRingTextContainer>
+                <ProgressRingText>{projectScore.totalScore}</ProgressRingText>
+                <StyledTooltip title={title} showOnlyOnOverflow skipWrapper>
+                  <ProgressRingTabSubText>{title.toUpperCase()}</ProgressRingTabSubText>
+                </StyledTooltip>
+              </ProgressRingTextContainer>
+            }
+            width={220}
+            height={180}
+            ringBackgroundColors={ringBackgroundColors}
+            ringSegmentColors={ringSegmentColors}
+          />
+        </ProgressRingWrapper>
+      ) : (
+        <StyledLoadingIndicator size={50} />
+      )}
+    </StyledHeader>
   );
 }
 
@@ -127,6 +187,8 @@ const Value = styled('h2')`
 const WebVitalName = styled('h4')`
   margin-bottom: ${space(1)};
   margin-top: 40px;
+  max-width: 400px;
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const ProgressRingTextContainer = styled('div')`
@@ -144,4 +206,38 @@ const ProgressRingText = styled('h4')`
 const ProgressRingSubText = styled('h5')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.textColor};
+`;
+
+const ProgressRingTabSubText = styled(ProgressRingSubText)`
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  max-width: 70px;
+  text-transform: capitalize;
+  ${p => p.theme.overflowEllipsis}
+`;
+
+const StyledHeader = styled(Header)`
+  align-items: end;
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  ${p => p.theme.overflowEllipsis}
+`;
+
+const TitleWrapper = styled('div')`
+  display: flex;
+  align-items: baseline;
+`;
+
+const StyledCopyToClipboardButton = styled(CopyToClipboardButton)`
+  padding-left: ${space(0.25)};
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin: 20px 65px;
+`;
+
+const ProgressRingWrapper = styled('span')`
+  position: absolute;
+  right: 0;
+  top: 15px;
 `;
