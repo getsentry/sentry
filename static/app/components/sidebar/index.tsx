@@ -271,6 +271,15 @@ function Sidebar({location, organization}: Props) {
                   icon={<SubitemDot collapsed={collapsed} />}
                 />
               </Feature>
+              <Feature features={['starfish-browser-resource-module-ui']}>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
+                  to={`/organizations/${organization.slug}/performance/browser/resources`}
+                  id="performance-browser-resources"
+                  icon={<IconFile />}
+                />
+              </Feature>
             </SidebarAccordion>
           );
         }
@@ -317,13 +326,6 @@ function Sidebar({location, organization}: Props) {
           to={`/organizations/${organization.slug}/performance/browser/interactions`}
           id="performance-browser-interactions"
           icon={<SubitemDot collapsed={collapsed} />}
-        />
-        <SidebarItem
-          {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/performance/browser/resources`}
-          id="performance-browser-resources"
-          icon={<IconFile />}
         />
         <SidebarItem
           {...sidebarItemProps}
