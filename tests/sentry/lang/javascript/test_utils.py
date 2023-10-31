@@ -7,7 +7,7 @@ from sentry.lang.javascript.utils import generate_module, trim_line
 LONG_LINE = "The public is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it lives with. The new becomes threatening, the old reassuring."
 
 
-def test_trim_line(self):
+def test_trim_line():
     assert trim_line("foo") == "foo"
     assert (
         trim_line(LONG_LINE)
@@ -88,7 +88,7 @@ def test_generate_module():
     )
 
 
-def test_ensure_module_names(self):
+def test_ensure_module_names():
     data: Dict[str, Any] = {
         "message": "hello",
         "platform": "javascript",
