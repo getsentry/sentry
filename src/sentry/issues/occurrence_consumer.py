@@ -15,7 +15,7 @@ from sentry.eventstore.models import Event
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueOccurrence, IssueOccurrenceData
-from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
+from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
 from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_consumer import process_status_change_message
 from sentry.models.organization import Organization
@@ -173,7 +173,15 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                         sample_rate=1.0,
                         tags={"occurrence_type": occurrence_data["type"]},
                     )
-                    raise
+                    try:
+                        jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
+                    except jsonschema.exceptions.ValidationError:
+                        metrics.incr(
+                            "occurrence_ingest.legacy_event_payload_invalid",
+                            sample_rate=1.0,
+                            tags={"occurrence_type": occurrence_data["type"]},
+                        )
+                        raise
 
                 event_data["metadata"] = {
                     # This allows us to show the title consistently in discover

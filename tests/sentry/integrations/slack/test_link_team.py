@@ -17,6 +17,7 @@ from sentry.notifications.types import NotificationScopeType
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import add_identity, get_response_text, install_slack, link_team
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -227,6 +228,19 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
                 organization=team.organization, team_ids=[team.id]
             )
             assert len(external_actors) == 1
+
+    @responses.activate
+    @with_feature("organizations:team-workflow-notifications")
+    def test_message_includes_workflow(self):
+        self.get_success_response(data={"team": self.team.id})
+        external_actors = self.get_linked_teams()
+
+        assert len(responses.calls) >= 1
+        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        assert (
+            f"The {self.team.slug} team will now receive issue alert and workflow notifications in the {external_actors[0].external_name} channel."
+            in get_response_text(data)
+        )
 
 
 @region_silo_test(stable=True)

@@ -21,6 +21,8 @@ SUPPORTED_RUNTIMES = [
     "python3.7",
     "python3.8",
     "python3.9",
+    "python3.10",
+    "python3.11",
 ]
 
 INVALID_LAYER_TEXT = "Invalid existing layer %s"

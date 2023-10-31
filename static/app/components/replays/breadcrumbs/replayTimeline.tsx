@@ -14,7 +14,7 @@ import {
   CompactTimelineScrubber,
   TimelineScrubber,
 } from 'sentry/components/replays/player/scrubber';
-import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
+import {useTimelineScrubberMouseTracking} from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {divide} from 'sentry/components/replays/utils';
 import toPercent from 'sentry/utils/number/toPercent';
@@ -24,11 +24,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 type Props = {};
 
 function ReplayTimeline({}: Props) {
-  const {replay, currentTime} = useReplayContext();
+  const {replay, currentTime, timelineScale} = useReplayContext();
 
   const panelRef = useRef<HTMLDivElement>(null);
-  const mouseTrackingProps = useScrubberMouseTracking({elem: panelRef});
-  const panelWidth = useDimensions<HTMLDivElement>({elementRef: panelRef}).width;
+  const mouseTrackingProps = useTimelineScrubberMouseTracking(
+    {elem: panelRef},
+    timelineScale
+  );
 
   const stackedRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions<HTMLDivElement>({elementRef: stackedRef});
@@ -45,27 +47,23 @@ function ReplayTimeline({}: Props) {
   const chapterFrames = replay.getChapterFrames();
   const networkFrames = replay.getNetworkFrames();
 
-  // timeline size is 300% larger
-  const timelineWidthPercentage = 300;
-
   // start of the timeline is in the middle
-  const initialTranslatePercentage = 50 / timelineWidthPercentage;
+  const initialTranslate = 0.5 / timelineScale;
 
-  const translatePercentage = toPercent(
-    initialTranslatePercentage -
-      (currentTime > durationMs ? 1 : divide(currentTime, durationMs))
-  );
+  const translate =
+    initialTranslate - (currentTime > durationMs ? 1 : divide(currentTime, durationMs));
 
   return hasNewTimeline ? (
     <VisiblePanel ref={panelRef} {...mouseTrackingProps}>
       <Stacked
         style={{
-          width: `${timelineWidthPercentage}%`,
-          transform: `translate(${translatePercentage}, 0%)`,
+          width: `${toPercent(timelineScale)}`,
+          transform: `translate(${toPercent(translate)}, 0%)`,
         }}
         ref={stackedRef}
       >
-        <MajorGridlines durationMs={durationMs} width={panelWidth} />
+        <MinorGridlines durationMs={durationMs} width={width} />
+        <MajorGridlines durationMs={durationMs} width={width} />
         <CompactTimelineScrubber />
         <TimelineEventsContainer>
           <ReplayTimelineEvents

@@ -291,7 +291,7 @@ def test_detect_transaction_trends(
                 project_id=project.id,
                 group="/123",
                 count=100,
-                value=100 if i < n / 2 else 200,
+                value=100 if i < n / 2 else 300,
                 timestamp=ts,
             ),
         ]
@@ -397,7 +397,12 @@ def test_detect_function_change_points(
         ]
     }
 
-    with override_options({"statistical_detectors.enable": True}):
+    with override_options(
+        {
+            "statistical_detectors.enable": True,
+            "statistical_detectors.enable.projects.profiling": [project.id],
+        }
+    ):
         detect_function_change_points([(project.id, fingerprint)], timestamp)
     assert mock_emit_function_regression_issue.called
 
@@ -631,9 +636,9 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
             timeseries
             for timeseries in query_transactions_timeseries(
                 [
-                    (self.projects[0].id, "transaction_1"),
-                    (self.projects[0].id, "transaction_2"),
-                    (self.projects[1].id, "transaction_1"),
+                    (self.projects[0], "transaction_1"),
+                    (self.projects[0], "transaction_2"),
+                    (self.projects[1], "transaction_1"),
                 ],
                 self.now,
                 "p95(transaction.duration)",
@@ -747,9 +752,7 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
         results = [
             timeseries
             for timeseries in query_transactions_timeseries(
-                [
-                    (self.projects[0].id, "transaction_1"),
-                ],
+                [(self.projects[0], "transaction_1")],
                 self.now,
                 "p95(transaction.duration)",
             )
@@ -778,7 +781,14 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
                 },
             ]
         }
-        with override_options({"statistical_detectors.enable": True}):
+        with override_options(
+            {
+                "statistical_detectors.enable": True,
+                "statistical_detectors.enable.projects.performance": [
+                    project.id for project in self.projects
+                ],
+            }
+        ):
             detect_transaction_change_points(
                 [
                     (self.projects[0].id, "transaction_1"),

@@ -16,6 +16,7 @@ import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
 import {ScratchpadSelector} from 'sentry/views/ddm/scratchpadSelector';
+import {TraceTable} from 'sentry/views/ddm/traceTable';
 
 function DDM() {
   const organization = useOrganization();
@@ -52,6 +53,7 @@ function DDM() {
                 <ScratchpadSelector />
               </PaddedContainer>
               <MetricScratchpad />
+              <TraceTable />
             </Layout.Main>
           </Layout.Body>
         </Layout.Page>

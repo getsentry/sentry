@@ -12,6 +12,7 @@ import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubb
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {formatTime} from 'sentry/components/replays/utils';
 import {
+  IconAdd,
   IconContract,
   IconExpand,
   IconNext,
@@ -20,6 +21,7 @@ import {
   IconPrevious,
   IconRewind10,
   IconSettings,
+  IconSubtract,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -144,6 +146,34 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
   );
 }
 
+function TimelineSizeBar() {
+  const {timelineScale, setTimelineScale, replay} = useReplayContext();
+  const durationMs = replay?.getDurationMs();
+  const maxScale = durationMs ? Math.ceil(durationMs / 60000) : 10;
+  return (
+    <ButtonBar merged>
+      <Button
+        size="xs"
+        title={t('Zoom out')}
+        icon={<IconSubtract size="xs" />}
+        borderless
+        onClick={() => setTimelineScale(Math.max(timelineScale - 0.5, 1))}
+        aria-label={t('Zoom out')}
+        disabled={timelineScale === 1}
+      />
+      <Button
+        size="xs"
+        title={t('Zoom in')}
+        icon={<IconAdd size="xs" />}
+        borderless
+        onClick={() => setTimelineScale(Math.min(timelineScale + 0.5, maxScale))}
+        aria-label={t('Zoom in')}
+        disabled={timelineScale === maxScale}
+      />
+    </ButtonBar>
+  );
+}
+
 function ReplayControls({
   toggleFullscreen,
   speedOptions = [0.1, 0.25, 0.5, 1, 2, 4, 8, 16],
@@ -197,6 +227,9 @@ function ReplayControls({
             <div style={{gridArea: 'timeline'}}>
               <ReplayTimeline />
             </div>
+            <div style={{gridArea: 'timelineSize'}}>
+              <TimelineSizeBar />
+            </div>
             <StyledScrubber
               style={{gridArea: 'scrubber'}}
               ref={elem}
@@ -246,6 +279,7 @@ const Container = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1 1;
+  justify-content: center;
 `;
 
 const TimeAndScrubber = styled('div')<{isCompact: boolean}>`
@@ -268,9 +302,9 @@ const TimeAndScrubberGrid = styled('div')<{isCompact: boolean}>`
   width: 100%;
   display: grid;
   grid-template-areas:
-    '. timeline .'
+    '. timeline timelineSize'
     'currentTime scrubber duration';
-  grid-column-gap: ${space(2)};
+  grid-column-gap: ${space(1)};
   grid-template-columns: max-content auto max-content;
   align-items: center;
   ${p =>
@@ -285,6 +319,7 @@ const TimeAndScrubberGrid = styled('div')<{isCompact: boolean}>`
 
 const Time = styled('span')`
   font-variant-numeric: tabular-nums;
+  padding: 0 ${space(1.5)};
 `;
 
 const StyledScrubber = styled('div')`

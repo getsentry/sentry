@@ -174,6 +174,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
             "end": datetime.now(),
             "project_id": [p.id for p in self.context.get("projects")],
             "organization_id": self.context.get("organization").id,
+            "environment": self.context.get("environment"),
         }
 
         try:

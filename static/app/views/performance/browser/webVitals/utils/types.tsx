@@ -12,6 +12,7 @@ export type Row = {
 };
 
 export type TransactionSampleRow = {
+  browser: string;
   id: string;
   'measurements.cls': number | null;
   'measurements.fcp': number | null;
@@ -19,6 +20,7 @@ export type TransactionSampleRow = {
   'measurements.lcp': number | null;
   'measurements.ttfb': number | null;
   'profile.id': string;
+  projectSlug: string;
   replayId: string;
   timestamp: string;
   transaction: string;

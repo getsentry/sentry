@@ -9,6 +9,7 @@ import GridEditable, {
   GridColumnSortBy,
 } from 'sentry/components/gridEditable';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {getDuration} from 'sentry/utils/formatters';
@@ -17,11 +18,13 @@ import {
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
+import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
+import {Recommendations} from 'sentry/views/performance/browser/webVitals/components/recommendations';
 import {WebVitalDetailHeader} from 'sentry/views/performance/browser/webVitals/components/webVitalDescription';
 import {
   calculatePerformanceScore,
@@ -97,6 +100,7 @@ export function PageOverviewWebVitalsDetailPanel({
         ? `measurements.${webVital}:<${PERFORMANCE_SCORE_P90S[webVital]}`
         : undefined,
       enabled: Boolean(webVital),
+      withProfiles: true,
     });
 
   const {data: mehData, isLoading: isMehTransactionWebVitalsQueryLoading} =
@@ -107,6 +111,7 @@ export function PageOverviewWebVitalsDetailPanel({
         ? `measurements.${webVital}:<${PERFORMANCE_SCORE_MEDIANS[webVital]} measurements.${webVital}:>=${PERFORMANCE_SCORE_P90S[webVital]}`
         : undefined,
       enabled: Boolean(webVital),
+      withProfiles: true,
     });
 
   const {data: poorData, isLoading: isPoorTransactionWebVitalsQueryLoading} =
@@ -117,6 +122,7 @@ export function PageOverviewWebVitalsDetailPanel({
         ? `measurements.${webVital}:>=${PERFORMANCE_SCORE_MEDIANS[webVital]}`
         : undefined,
       enabled: Boolean(webVital),
+      withProfiles: true,
     });
 
   const data = [...goodData, ...mehData, ...poorData];
@@ -139,6 +145,9 @@ export function PageOverviewWebVitalsDetailPanel({
     }
     if (col.key === 'score') {
       return <AlignCenter>{`${webVital} ${col.name}`}</AlignCenter>;
+    }
+    if (col.key === 'replayId' || col.key === 'profile.id') {
+      return <AlignCenter>{col.name}</AlignCenter>;
     }
     return <NoOverflow>{col.name}</NoOverflow>;
   };
@@ -175,7 +184,7 @@ export function PageOverviewWebVitalsDetailPanel({
       return <AlignRight>{formattedValue}</AlignRight>;
     }
     if (key === 'id') {
-      const eventSlug = generateEventSlug({...row, project: project?.slug});
+      const eventSlug = generateEventSlug({...row, project: row.projectSlug});
       const eventTarget = getTransactionDetailsUrl(organization.slug, eventSlug);
       return (
         <NoOverflow>
@@ -199,23 +208,30 @@ export function PageOverviewWebVitalsDetailPanel({
           undefined
         );
 
-      return (
-        <NoOverflow>
-          {row.replayId && replayTarget && (
-            <Link to={replayTarget}>{getShortEventId(row.replayId)}</Link>
-          )}
-        </NoOverflow>
+      return row.replayId && replayTarget ? (
+        <AlignCenter>
+          <Link to={replayTarget}>{getShortEventId(row.replayId)}</Link>
+        </AlignCenter>
+      ) : (
+        <AlignCenter>{' \u2014 '}</AlignCenter>
       );
     }
     if (key === 'profile.id') {
-      const eventSlug = generateEventSlug({...row, project: project?.slug});
-      const eventTarget = getTransactionDetailsUrl(organization.slug, eventSlug);
+      if (!defined(project) || !defined(row['profile.id'])) {
+        return <AlignCenter>{' \u2014 '}</AlignCenter>;
+      }
+      const target = generateProfileFlamechartRoute({
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+        profileId: String(row['profile.id']),
+      });
+
       return (
-        <NoOverflow>
-          <Link to={eventTarget} onClick={onClose}>
-            {row['profile.id']}
+        <AlignCenter>
+          <Link to={target} onClick={onClose}>
+            {getShortEventId(row['profile.id'])}
           </Link>
-        </NoOverflow>
+        </AlignCenter>
       );
     }
     return <AlignRight>{row[key]}</AlignRight>;
@@ -224,7 +240,7 @@ export function PageOverviewWebVitalsDetailPanel({
   return (
     <PageErrorProvider>
       <DetailPanel detailKey={webVital ?? undefined} onClose={onClose}>
-        {webVital && (
+        {webVital && projectData && (
           <WebVitalDetailHeader
             value={
               webVital !== 'cls'
@@ -241,6 +257,9 @@ export function PageOverviewWebVitalsDetailPanel({
             webVital={webVital}
             score={projectScore[`${webVital}Score`]}
           />
+        )}
+        {transaction && webVital && (
+          <Recommendations transaction={transaction} webVital={webVital} />
         )}
         <GridEditable
           data={tableData}

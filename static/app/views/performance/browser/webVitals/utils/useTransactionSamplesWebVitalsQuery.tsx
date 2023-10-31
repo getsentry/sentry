@@ -18,6 +18,7 @@ type Props = {
   limit?: number;
   orderBy?: WebVitals | null;
   query?: string;
+  withProfiles?: boolean;
 };
 
 export const useTransactionSamplesWebVitalsQuery = ({
@@ -26,6 +27,7 @@ export const useTransactionSamplesWebVitalsQuery = ({
   transaction,
   query,
   enabled,
+  withProfiles,
 }: Props) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -47,10 +49,12 @@ export const useTransactionSamplesWebVitalsQuery = ({
         'replayId',
         'timestamp',
         'profile.id',
+        'browser',
+        'project',
       ],
       name: 'Web Vitals',
       query: `transaction.op:pageload transaction:"${transaction}" ${query ? query : ''}`,
-      orderby: mapWebVitalToOrderBy(orderBy),
+      orderby: mapWebVitalToOrderBy(orderBy) ?? withProfiles ? '-profile.id' : undefined,
       version: 2,
     },
     pageFilters.selection
@@ -76,6 +80,7 @@ export const useTransactionSamplesWebVitalsQuery = ({
             'user.display': row['user.display']?.toString(),
             transaction: row.transaction?.toString(),
             'transaction.op': row['transaction.op']?.toString(),
+            browser: row.browser?.toString(),
             'measurements.lcp': toNumber(row['measurements.lcp']),
             'measurements.fcp': toNumber(row['measurements.fcp']),
             'measurements.cls': toNumber(row['measurements.cls']),
@@ -83,7 +88,8 @@ export const useTransactionSamplesWebVitalsQuery = ({
             'measurements.fid': toNumber(row['measurements.fid']),
             'transaction.duration': toNumber(row['transaction.duration']),
             replayId: row.replayId?.toString(),
-            'profile.id': row.profileId?.toString(),
+            'profile.id': row['profile.id']?.toString(),
+            projectSlug: row.project?.toString(),
             timestamp: row.timestamp?.toString(),
           }))
           .map(row => {
