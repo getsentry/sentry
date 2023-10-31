@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import secrets
 from datetime import timedelta
-from typing import Collection, Optional, Tuple
+from typing import ClassVar, Collection, Optional, Tuple
 
 from django.db import models, router, transaction
 from django.utils import timezone
@@ -42,7 +42,9 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     expires_at = models.DateTimeField(null=True, default=default_expiration)
     date_added = models.DateTimeField(default=timezone.now)
 
-    objects = ControlOutboxProducingManager["ApiToken"](cache_fields=("token",))
+    objects: ClassVar[ControlOutboxProducingManager[ApiToken]] = ControlOutboxProducingManager(
+        cache_fields=("token",)
+    )
 
     class Meta:
         app_label = "sentry"
