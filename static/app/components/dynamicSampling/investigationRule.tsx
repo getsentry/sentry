@@ -255,6 +255,7 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
       )}
     >
       <Button
+        priority="primary"
         {...props.buttonProps}
         onClick={() => createInvestigationRule({organization, period, projects, query})}
         icon={<IconStack size="xs" />}
