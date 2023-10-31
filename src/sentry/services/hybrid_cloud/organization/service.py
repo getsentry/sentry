@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 import abc
 from abc import abstractmethod
-from typing import Any, Iterable, List, Mapping, Optional, Union
+from typing import Any, Collection, Iterable, List, Mapping, Optional, Union
 
 from django.dispatch import Signal
 
@@ -75,6 +75,59 @@ class OrganizationService(RpcService):
         is also given in the response.  See RpcUserOrganizationContext for more info.
         """
         pass
+
+    @regional_rpc_method(
+        resolve=ByOrganizationId("resolving_org_id"), return_none_if_mapping_not_found=True
+    )
+    @abstractmethod
+    def get_organization_batch(
+        self, *, user_id: Optional[int] = None, resolving_org_id: int, more_org_ids: List[int]
+    ) -> Optional[List[RpcUserOrganizationContext]]:
+        """Fetch as many organizations as are part of one region.
+
+        Resolve to the region of the first given org ID. Return a list containing the
+        object representation of the that org, plus those of any other orgs among the
+        given IDs that are in the same region. Any orgs excluded from the returned
+        list either belong to other regions or have been deleted.
+
+        As a special case, return None if the "resolving" org has been deleted. The
+        other orgs may still exist, in which case they must be resolved to their
+        regions in subsequent calls.
+        """
+
+    def get_organizations_in_batches(
+        self, *, user_id: Optional[int] = None, organization_ids: Collection[int]
+    ) -> List[RpcUserOrganizationContext]:
+        """Fetch several organizations that may be part of one or more regions.
+
+        This is a limited case of "fanning out" to multiple regions. The contract
+        with `get_organization_batch` guarantees that we fan out only to the minimum
+        number of regions that contain at least one of the organizations we're
+        looking for.
+
+        Deleted organizations are omitted from the returned list.
+        """
+
+        remaining_ids = set(organization_ids)
+        results = []
+        while remaining_ids:
+            resolving_id = remaining_ids.pop()  # arbitrary order
+            batch = self.get_organization_batch(
+                user_id=user_id, resolving_org_id=resolving_id, more_org_ids=list(remaining_ids)
+            )
+            if batch is not None:
+                for obj in batch:
+                    try:
+                        remaining_ids.remove(obj.organization.id)
+                    except KeyError:
+                        assert obj.organization.id == resolving_id  # expected once
+                results += batch
+            # Else, assume the "resolving" org was deleted and move on.
+
+        original_order = {org_id: index for (index, org_id) in enumerate(organization_ids)}
+        results.sort(key=lambda org_context: original_order[org_context.organization.id])
+
+        return results
 
     @regional_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
     @abstractmethod

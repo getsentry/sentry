@@ -99,6 +99,30 @@ class DatabaseBackedOrganizationService(OrganizationService):
             user_id=user_id, organization=serialize_rpc_organization(org), member=membership
         )
 
+    def get_organization_batch(
+        self, *, user_id: Optional[int] = None, resolving_org_id: int, more_org_ids: List[int]
+    ) -> List[RpcUserOrganizationContext]:
+        all_ids = [resolving_org_id] + more_org_ids
+
+        memberships = {
+            member.organization.id: serialize_member(member)
+            for member in (
+                OrganizationMember.objects.filter(user_id=user_id, organization_id__in=all_ids)
+                if user_id is not None
+                else ()
+            )
+        }
+
+        orgs = Organization.objects.filter(id__in=all_ids)
+        return [
+            RpcUserOrganizationContext(
+                user_id=user_id,
+                organization=serialize_rpc_organization(org),
+                member=memberships.get(org.id),
+            )
+            for org in orgs
+        ]
+
     def get_org_by_slug(
         self,
         *,
