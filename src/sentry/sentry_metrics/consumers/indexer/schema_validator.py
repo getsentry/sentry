@@ -43,9 +43,10 @@ class MetricsSchemaValidator:
         if not self.input_codec:
             return None
 
-        if not message["use_case_id"]:
+        if "use_case_id" not in message:
             raise ValidationError("Use case id is not set")
 
-        validation_sample_rate = self.schema_validation_rules.get(message["use_case_id"], 1.0)
+        use_case_id = message["use_case_id"].value
+        validation_sample_rate = self.schema_validation_rules.get(use_case_id, 1.0)
         if random.random() <= validation_sample_rate:
             return self.input_codec.validate(message)
