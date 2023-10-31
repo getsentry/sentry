@@ -24,26 +24,12 @@ import {OrganizationSelectHeader} from './organizationSelectHeader';
 
 type Value = 'always' | 'never' | 'subscribe_only' | 'committed_only';
 
-const getLabelForValue = (value: Value) => {
-  switch (value) {
-    case 'always':
-      return t('On');
-    case 'never':
-      return t('Off');
-    case 'subscribe_only':
-      return t('Subscribed Only');
-    case 'committed_only':
-      return t('Committed Only');
-    default:
-      return '';
-  }
-};
-
 interface NotificationSettingsByEntityProps {
   entityType: 'project' | 'organization';
   handleAddNotificationOption: (
     notificationOption: Omit<NotificationOptionsObject, 'id'>
   ) => void;
+  handleEditNotificationOption: (notificationOption: NotificationOptionsObject) => void;
   handleRemoveNotificationOption: (id: string) => void;
   notificationOptions: NotificationOptionsObject[];
   notificationType: string;
@@ -53,6 +39,7 @@ interface NotificationSettingsByEntityProps {
 function NotificationSettingsByEntity({
   entityType,
   handleAddNotificationOption,
+  handleEditNotificationOption,
   handleRemoveNotificationOption,
   notificationOptions,
   notificationType,
@@ -120,6 +107,8 @@ function NotificationSettingsByEntity({
     handleAddNotificationOption(data);
   };
 
+  const valueOptions = NOTIFICATION_SETTING_FIELDS_V2[notificationType].choices;
+
   const renderOverrides = () => {
     const matchedOptions = notificationOptions.filter(
       option => option.type === notificationType && option.scopeType === entityType
@@ -146,7 +135,18 @@ function NotificationSettingsByEntity({
               disableLink
             />
           </div>
-          <div style={{marginLeft: space(2)}}>{getLabelForValue(option.value)}</div>
+          <SelectControl
+            placeholder={t('Value\u2026')}
+            value={option.value}
+            name={`${entity.id}-value`}
+            choices={valueOptions}
+            onChange={({value}: {value: string}) => {
+              handleEditNotificationOption({
+                ...option,
+                value: value as Value,
+              });
+            }}
+          />
           <RemoveButtonWrapper>
             <Button
               aria-label={t('Delete')}
@@ -213,7 +213,6 @@ function NotificationSettingsByEntity({
         ]
       : entityOptions;
 
-  const valueOptions = NOTIFICATION_SETTING_FIELDS_V2[notificationType].choices;
   return (
     <MinHeight>
       <Panel>
