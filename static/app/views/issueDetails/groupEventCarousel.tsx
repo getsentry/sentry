@@ -485,11 +485,11 @@ const ActionsWrapper = styled('div')`
   gap: ${space(0.5)};
 `;
 
-export const StyledNavButton = styled(Button)`
+const StyledNavButton = styled(Button)`
   border-radius: 0;
 `;
 
-export const NavButtons = styled('div')`
+const NavButtons = styled('div')`
   display: flex;
 
   > * {
