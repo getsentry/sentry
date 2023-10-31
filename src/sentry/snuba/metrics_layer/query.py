@@ -116,6 +116,7 @@ GENERIC_ENTITIES = {
     "c": EntityKey.GenericMetricsCounters,
     "d": EntityKey.GenericMetricsDistributions,
     "s": EntityKey.GenericMetricsSets,
+    "g": EntityKey.GenericMetricsGauges,
 }
 
 
