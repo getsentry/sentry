@@ -130,6 +130,7 @@ class JiraServerIntegrationTest(APITestCase):
                     "type": "select",
                     "name": "priority",
                     "default": "",
+                    "ignorePriorChoices": True,
                 },
                 {
                     "label": "Fix Version/s",
@@ -436,6 +437,7 @@ class JiraServerIntegrationTest(APITestCase):
                 "name": "priority",
                 "label": "Priority",
                 "required": False,
+                "ignorePriorChoices": True,
             }
 
     def test_get_create_issue_config_with_default_and_param(self):
