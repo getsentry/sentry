@@ -179,7 +179,7 @@ const SchedulePanel = styled(Panel)<{highlighted: boolean}>`
   ${p =>
     p.highlighted &&
     css`
-      border: 2px solid purple;
+      border: 2px solid ${p.theme.purple300};
     `};
 
   &:first-child {
