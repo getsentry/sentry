@@ -225,9 +225,9 @@ class ReleaseThresholdStatusTest(APITestCase):
         assert temp_key in r1_keys
         assert len(data[temp_key]) == 1
 
-    def test_get_success_release_id_filter(self):
+    def test_get_success_release_filter(self):
         """
-        Tests fetching thresholds within the past 24hrs filtered on release_id's
+        Tests fetching thresholds within the past 24hrs filtered on release versions
 
         Set up creates
         - 2 releases
@@ -252,7 +252,7 @@ class ReleaseThresholdStatusTest(APITestCase):
         now = str(datetime.now())
         yesterday = str(datetime.now() - timedelta(hours=24))
         response = self.get_success_response(
-            self.organization.slug, start=yesterday, end=now, release_id=[self.release1.id]
+            self.organization.slug, start=yesterday, end=now, release=[self.release1.version]
         )
 
         assert len(response.data.keys()) == 3

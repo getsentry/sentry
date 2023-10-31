@@ -69,9 +69,7 @@ class ReleaseThresholdStatusIndexSerializer(serializers.Serializer):
     project = serializers.ListField(
         required=False, allow_empty=True, child=serializers.IntegerField()
     )
-    release_id = serializers.ListField(
-        required=False, allow_empty=True, child=serializers.IntegerField()
-    )
+    release = serializers.ListField(required=False, allow_empty=True, child=serializers.CharField())
 
     def validate(self, data):
         if data["start"] >= data["end"]:
@@ -90,7 +88,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         """
         List all derived statuses of releases that fall within the provided start/end datetimes
 
-        Constructs a response key'd off release_id, project_id, environment, and lists thresholds with their status for *specified* projects
+        Constructs a response key'd off release_version, project_id, environment, and lists thresholds with their status for *specified* projects
         Each returned enriched threshold will contain the full serialized release_threshold instance as well as it's derived health status
 
         {
@@ -135,7 +133,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
 
         environments_list = serializer.validated_data.get("environment")
         project_ids_list = serializer.validated_data.get("project")
-        release_ids_list = serializer.validated_data.get("release_id")
+        releases_list = serializer.validated_data.get("release")
 
         # ========================================================================
         # Step 2: Fetch releases, prefetch projects & release_thresholds
@@ -151,9 +149,9 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
             release_query &= Q(
                 projects__id__in=project_ids_list,
             )
-        if release_ids_list:
+        if releases_list:
             release_query &= Q(
-                id__in=release_ids_list,
+                version__in=releases_list,
             )
 
         queryset = (
@@ -288,7 +286,8 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         NOTE: environment names can contain special characters... `-` delimiter may not be appropriate
         TODO: move this into a separate helper?
         """
-        return f"{project.id}-{threshold.environment.name}-{release.version}"
+        environment = threshold.environment.name if threshold.environment else "None"
+        return f"{project.id}-{environment}-{release.version}"
 
 
 def is_error_count_healthy(ethreshold: EnrichedThreshold, timeseries: List[Dict[str, Any]]) -> bool:
