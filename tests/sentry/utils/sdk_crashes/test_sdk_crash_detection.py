@@ -19,9 +19,9 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection
-from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig
+from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig, SdkName
 
-sdk_configs = [SDKCrashDetectionConfig(sdk_name="cocoa", project_id=1234, sample_rate=1.0)]
+sdk_configs = [SDKCrashDetectionConfig(sdk_name=SdkName.Cocoa, project_id=1234, sample_rate=1.0)]
 
 
 @pytest.fixture
@@ -727,7 +727,7 @@ class SDKCrashReportTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
 
         configs = [
             SDKCrashDetectionConfig(
-                sdk_name="cocoa", project_id=cocoa_sdk_crashes_project.id, sample_rate=1.0
+                sdk_name=SdkName.Cocoa, project_id=cocoa_sdk_crashes_project.id, sample_rate=1.0
             )
         ]
         sdk_crash_event = sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
@@ -802,8 +802,8 @@ def test_multiple_configs_first_one_picked(mock_sdk_crash_reporter, store_event)
     event = store_event(data=get_crash_event())
 
     configs = [
-        SDKCrashDetectionConfig(sdk_name="cocoa", project_id=1234, sample_rate=1.0),
-        SDKCrashDetectionConfig(sdk_name="cocoa", project_id=12345, sample_rate=1.0),
+        SDKCrashDetectionConfig(sdk_name=SdkName.Cocoa, project_id=1234, sample_rate=1.0),
+        SDKCrashDetectionConfig(sdk_name=SdkName.Cocoa, project_id=12345, sample_rate=1.0),
     ]
 
     sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)

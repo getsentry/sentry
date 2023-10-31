@@ -65,6 +65,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.cache import cache
+from sentry.utils.sdk_crashes.sdk_crash_detection_config import SdkName
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
@@ -1682,7 +1683,9 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
 
         args = mock_sdk_crash_detection.detect_sdk_crash.call_args[-1]
         assert args["event"].project.id == event.project.id
-        assert args["configs"] == [{"sdk_name": "cocoa", "project_id": 1234, "sample_rate": 1.0}]
+        assert args["configs"] == [
+            {"sdk_name": SdkName.Cocoa, "project_id": 1234, "sample_rate": 1.0}
+        ]
 
     @with_feature("organizations:sdk-crash-detection")
     @override_options(
