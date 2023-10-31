@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconFile} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -59,12 +60,12 @@ function FcpRecommendations({transaction}: {transaction: string}) {
               return (
                 <ResourceListItem key={description}>
                   <Flex>
-                    <span>
-                      <ResourceType resourceType={op} />
-                      <ResourceDescription>
-                        {formatDescription(description)}
-                      </ResourceDescription>
-                    </span>
+                    <ResourceDescription>
+                      <StyledTooltip title={description}>
+                        <ResourceType resourceType={op} />
+                        {description}
+                      </StyledTooltip>
+                    </ResourceDescription>
                     <span>{getFormattedDuration(duration)}</span>
                   </Flex>
                 </ResourceListItem>
@@ -116,14 +117,6 @@ function ResourceType({resourceType}: {resourceType: `resource.${string}`}) {
   }
 }
 
-function formatDescription(description: string) {
-  // Center truncate the description
-  if (description.length > 50) {
-    return `${description.slice(0, 25)}...${description.slice(description.length - 25)}`;
-  }
-  return description;
-}
-
 const getFormattedDuration = (value: number | null) => {
   if (value === null) {
     return null;
@@ -142,12 +135,6 @@ const RecommendationSubHeader = styled('li')`
   margin-bottom: ${space(1)};
 `;
 
-const ResourceListItem = styled('li')`
-  margin-bottom: ${space(1)};
-  list-style: none;
-  white-space: nowrap;
-`;
-
 const RecommendationsHeaderContainer = styled('div')`
   margin-bottom: ${space(1)};
   font-size: ${p => p.theme.fontSizeExtraLarge};
@@ -157,13 +144,30 @@ const ResourceList = styled('ul')`
   padding-left: ${space(1)};
 `;
 
-const ResourceDescription = styled('span')``;
+const ResourceListItem = styled('li')`
+  margin-bottom: ${space(0.5)};
+  list-style: none;
+  white-space: nowrap;
+`;
+
+const ResourceDescription = styled('span')`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
 
 const Flex = styled('span')`
   display: flex;
   justify-content: space-between;
+  gap: ${space(1)};
 `;
 
 const RecommendationsContainer = styled('div')`
   margin-bottom: ${space(4)};
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
