@@ -79,7 +79,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
 
   const renderComponent = (
     props: Partial<IssueAlertRuleAction> = {},
-    otherField = {
+    otherField: Record<string, any> = {
       label: 'Reporter',
       required: true,
       choices: [['a', 'a']],
@@ -149,21 +149,23 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       await submitSuccess();
     });
 
-    it('should ignore error checking when default is empty array', function () {
-      renderComponent({
-        otherField: {
-          label: 'Labels',
-          required: false,
-          choices: [['bug', `bug`]],
-          default: [],
-          type: 'select',
-          multiple: true,
-          name: 'labels',
-        },
+    it('should ignore error checking when default is empty array', async function () {
+      renderComponent(undefined, {
+        label: 'Labels',
+        required: false,
+        choices: [['bug', `bug`]],
+        default: [],
+        type: 'select',
+        multiple: true,
+        name: 'labels',
       });
       expect(
         screen.queryAllByText(`Could not fetch saved option for Labels. Please reselect.`)
       ).toHaveLength(0);
+
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Issue Type'}), 'Epic');
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Labels'}), 'bug');
+      await submitSuccess();
     });
 
     it('should persist values when the modal is reopened', async function () {
@@ -171,9 +173,23 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       await submitSuccess();
     });
 
+    it('should not persist values when specified by the field', async function () {
+      renderComponent(
+        {data: {reporter: 'a'}},
+        {
+          label: 'Reporter',
+          required: true,
+          choices: [['a', 'a']],
+          type: 'select',
+          name: 'reporter',
+          ignorePriorChoices: true,
+        }
+      );
+      await submitErrors(1);
+    });
+
     it('should get async options from URL', async function () {
-      renderComponent();
-      addMockConfigsAPICall({
+      renderComponent(undefined, {
         label: 'Assignee',
         required: true,
         url: 'http://example.com',

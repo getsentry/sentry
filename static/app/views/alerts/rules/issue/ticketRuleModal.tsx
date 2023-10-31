@@ -167,8 +167,8 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
         // Skip fields if they already exist.
         .filter(field => !fields.map(f => f.name).includes(field.name))
         .map(field => {
-          // Overwrite defaults from cache.
-          if (instance.hasOwnProperty(field.name)) {
+          // Overwrite defaults from cache as long as the field is not set to ignorePriorChoices.
+          if (instance.hasOwnProperty(field.name) && !field.ignorePriorChoices) {
             field.default = instance[field.name] || field.default;
           }
           return field;

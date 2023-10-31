@@ -436,6 +436,7 @@ export type IssueConfigField = Field & {
   name: string;
   choices?: Choices;
   default?: string | number | Choice;
+  ignorePriorChoices?: boolean;
   multiple?: boolean;
   url?: string;
 };

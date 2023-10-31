@@ -317,8 +317,11 @@ export default class AbstractExternalIssueForm<
     const configsFromAPI = (integrationDetails || {})[this.getConfigName()];
     return (configsFromAPI || []).map(field => {
       const fieldCopy = {...field};
-      // Overwrite choices from cache.
-      if (fetchedFieldOptionsCache?.hasOwnProperty(field.name)) {
+      // Overwrite choices from cache as long as the field is not set to ignorePriorChoices.
+      if (
+        fetchedFieldOptionsCache?.hasOwnProperty(field.name) &&
+        !field.ignorePriorChoices
+      ) {
         fieldCopy.choices = fetchedFieldOptionsCache[field.name];
       }
 
