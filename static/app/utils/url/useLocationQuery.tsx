@@ -51,11 +51,15 @@ export default function useLocationQuery<
   const stringyForwardedFields = JSON.stringify(forwardedFields);
   const stringyLocationFields = JSON.stringify(locationFields);
 
+  // console.log('locationquery', {stringyForwardedFields, stringyLocationFields});
   return useMemo(
-    () => ({
-      ...(forwardedFields as any),
-      ...(locationFields as any),
-    }),
+    () => {
+      // console.log('recompute locationQuery');
+      return {
+        ...(forwardedFields as any),
+        ...(locationFields as any),
+      };
+    },
     [stringyForwardedFields, stringyLocationFields] // eslint-disable-line
   );
 }

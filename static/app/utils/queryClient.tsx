@@ -214,7 +214,7 @@ function useInfiniteApiQuery<TResponseData>({queryKey}: {queryKey: ApiQueryKey})
 
 type ApiMutationVariables<
   Headers = Record<string, string>,
-  Query = Record<string, string>,
+  Query = Record<string, any>,
 > =
   | ['PUT' | 'POST' | 'DELETE', string]
   | ['PUT' | 'POST' | 'DELETE', string, QueryKeyEndpointOptions<Headers, Query>]

@@ -2,7 +2,7 @@ import type {Organization} from 'sentry/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 
 interface Props {
-  feedbackId: undefined | string;
+  feedbackId: string;
   organization: Organization;
 }
 

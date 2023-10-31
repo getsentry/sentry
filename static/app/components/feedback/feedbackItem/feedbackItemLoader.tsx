@@ -1,24 +1,14 @@
 import FeedbackEmptyDetails from 'sentry/components/feedback/details/feedbackEmptyDetails';
 import FeedbackErrorDetails from 'sentry/components/feedback/details/feedbackErrorDetails';
 import FeedbackItem from 'sentry/components/feedback/feedbackItem/feedbackItem';
-import getFeedbackItemQueryKey from 'sentry/components/feedback/getFeedbackItemQueryKey';
-import useFeedbackIdFromLocation from 'sentry/components/feedback/useFeedbackIdFromLocation';
+import useCurrentFeedbackId from 'sentry/components/feedback/useCurrentFeedbackId';
 import useFetchFeedbackData from 'sentry/components/feedback/useFetchFeedbackData';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
 
 export default function FeedbackItemLoader() {
-  const organization = useOrganization();
-
-  const feedbackId = useFeedbackIdFromLocation();
-  const queryKeys = getFeedbackItemQueryKey({feedbackId, organization});
-  const {
-    issueResult,
-    issueData: feedbackIssue,
-    tags,
-    eventData: feedbackEvent,
-  } = useFetchFeedbackData(queryKeys);
+  const feedbackId = useCurrentFeedbackId();
+  const {issueResult, issue, tags, event} = useFetchFeedbackData({feedbackId});
 
   // There is a case where we are done loading, but we're fetching updates
   // This happens when the user has seen a feedback, clicks around a bit, then
@@ -31,14 +21,9 @@ export default function FeedbackItemLoader() {
     <Placeholder height="100%" />
   ) : issueResult.isError ? (
     <FeedbackErrorDetails error={t('Unable to load feedback')} />
-  ) : !feedbackIssue ? (
+  ) : !issue ? (
     <FeedbackEmptyDetails />
   ) : (
-    <FeedbackItem
-      eventData={feedbackEvent}
-      feedbackItem={feedbackIssue}
-      refetchIssue={issueResult.refetch}
-      tags={tags}
-    />
+    <FeedbackItem eventData={event} feedbackItem={issue} tags={tags} />
   );
 }

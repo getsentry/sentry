@@ -1,97 +1,60 @@
 import {useCallback} from 'react';
 import first from 'lodash/first';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
-import getFeedbackItemQueryKey from 'sentry/components/feedback/getFeedbackItemQueryKey';
-import {t} from 'sentry/locale';
-import {GroupStatus, Organization} from 'sentry/types';
-import {FeedbackIssue} from 'sentry/utils/feedback/types';
-import {
-  fetchMutation,
-  setApiQueryData,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
+import type {GroupStatus, Organization} from 'sentry/types';
+import {fetchMutation, MutateOptions, useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
-interface Props {
-  feedbackIds: string[];
-  organization: Organization;
-  refetchIssue: () => void;
-}
-
-type TData = {hasSeen: boolean} | {status: GroupStatus};
+type TFeedbackIds = string[];
+type TPayload = {hasSeen: boolean} | {status: GroupStatus};
+type TData = unknown;
 type TError = unknown;
-type TVariables = [string[], TData];
+type TVariables = [TFeedbackIds, TPayload];
 type TContext = unknown;
 
-export default function useBulkMutateFeedback({
-  feedbackIds,
-  organization,
-  refetchIssue,
-}: Props) {
-  const api = useApi();
-  const queryClient = useQueryClient();
+interface Props {
+  feedbackIds: TFeedbackIds;
+  organization: Organization;
+}
+
+export default function useMutateFeedback({feedbackIds, organization}: Props) {
+  const api = useApi({
+    persistInFlight: false,
+  });
+  const {updateCached, invalidateCached} = useFeedbackCache();
 
   const mutation = useMutation<TData, TError, TVariables, TContext>({
-    onMutate: ([ids, data]) => {
-      addLoadingMessage(t('Updating feedback...'));
-
-      const queryKeysForIds = ids.map(feedbackId =>
-        getFeedbackItemQueryKey({feedbackId, organization})
-      );
-
-      if (queryKeysForIds.length) {
-        queryKeysForIds.forEach(queryKeys => {
-          if (queryKeys.issueQueryKey) {
-            setApiQueryData(
-              queryClient,
-              queryKeys.issueQueryKey,
-              (feedbackIssue: FeedbackIssue) => ({
-                ...feedbackIssue,
-                ...data,
-              })
-            );
-          }
-        });
-      }
+    onMutate: ([ids, payload]) => {
+      updateCached(ids, payload);
     },
-    mutationFn: ([ids, data]) => {
+    mutationFn: ([ids, payload]) => {
       const url =
         ids.length === 1
           ? `/organizations/${organization.slug}/issues/${first(ids)}/`
           : `/organizations/${organization.slug}/issues/`;
 
-      const options = {};
-      return fetchMutation(api)(['PUT', url, options, data]);
+      // TODO: it would be excellent if `PUT /issues/` could return the same data
+      // as `GET /issues/` when query params are set. IE: it should expand inbox & owners
+      // Then we could push new data into the cache instead of re-fetching it again
+      const options = ids.length === 1 ? {} : {query: {id: ids}};
+      return fetchMutation(api)(['PUT', url, options, payload]);
     },
-    onError: () => {
-      addErrorMessage(t('An error occurred while updating the feedback.'));
-    },
-    onSuccess: () => {
-      addSuccessMessage(t('Updated feedback'));
-    },
-    onSettled: () => {
-      refetchIssue();
+    onSettled: (_resp, _error, [ids, _payload]) => {
+      invalidateCached(ids);
     },
     cacheTime: 0,
   });
 
   const markAsRead = useCallback(
-    (hasSeen: boolean) => {
-      mutation.mutate([feedbackIds, {hasSeen}]);
-    },
+    (hasSeen: boolean, options?: MutateOptions<TData, TError, TVariables, TContext>) =>
+      mutation.mutate([feedbackIds, {hasSeen}], options),
     [mutation, feedbackIds]
   );
 
   const resolve = useCallback(
-    (status: GroupStatus) => {
-      mutation.mutate([feedbackIds, {status}]);
-    },
+    (status: GroupStatus, options?: MutateOptions<TData, TError, TVariables, TContext>) =>
+      mutation.mutate([feedbackIds, {status}], options),
     [mutation, feedbackIds]
   );
 

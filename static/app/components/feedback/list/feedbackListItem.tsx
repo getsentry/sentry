@@ -11,7 +11,7 @@ import Link from 'sentry/components/links/link';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCircleFill, IconPlay} from 'sentry/icons';
+import {IconCircle, IconCircleFill, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -81,17 +81,19 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
           <span style={{gridArea: 'time'}}>
             <TimeSince date={feedbackItem.firstSeen} />
           </span>
-          {feedbackItem.hasSeen ? null : (
-            <span
-              style={{
-                gridArea: 'unread',
-                display: 'flex',
-                justifyContent: 'center',
-              }}
-            >
-              <IconCircleFill size="xs" color="purple300" />
-            </span>
-          )}
+          <span
+            style={{
+              gridArea: 'unread',
+              display: 'flex',
+              justifyContent: 'center',
+            }}
+          >
+            {feedbackItem.hasSeen ? (
+              <IconCircle size="xs" color="purple400" />
+            ) : (
+              <IconCircleFill size="xs" color="purple400" />
+            )}
+          </span>
           <div style={{gridArea: 'message'}}>
             <TextOverflow>{feedbackItem.metadata.message}</TextOverflow>
           </div>
