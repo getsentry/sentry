@@ -697,18 +697,14 @@ DS_DENYLIST = frozenset(
 # Also it covers: livez, readyz
 HEALTH_CHECK_GLOBS = [
     "*healthcheck*",
-    "*healthy*",
-    "live",
-    "live[z/-]*",
-    "*[/-]live",
-    "*[/-]live[z/-]*",
-    "ready",
-    "ready[z/-]*",
-    "*[/-]ready",
-    "*[/-]ready[z/-]*",
     "*heartbeat*",
     "*/health",
+    "*/healthy",
     "*/healthz",
+    "*/live",
+    "*/livez",
+    "*/ready",
+    "*/readyz",
     "*/ping",
 ]
 

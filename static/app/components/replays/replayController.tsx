@@ -146,7 +146,10 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
   );
 }
 
-function TimelineSizeBar({size, setSize}) {
+function TimelineSizeBar() {
+  const {timelineScale, setTimelineScale, replay} = useReplayContext();
+  const durationMs = replay?.getDurationMs();
+  const maxScale = durationMs ? Math.ceil(durationMs / 60000) : 10;
   return (
     <ButtonBar merged>
       <Button
@@ -154,16 +157,18 @@ function TimelineSizeBar({size, setSize}) {
         title={t('Zoom out')}
         icon={<IconSubtract size="xs" />}
         borderless
-        onClick={() => setSize(Math.max(size - 50, 100))}
+        onClick={() => setTimelineScale(Math.max(timelineScale - 0.5, 1))}
         aria-label={t('Zoom out')}
+        disabled={timelineScale === 1}
       />
       <Button
         size="xs"
         title={t('Zoom in')}
         icon={<IconAdd size="xs" />}
         borderless
-        onClick={() => setSize(Math.min(size + 50, 1000))}
+        onClick={() => setTimelineScale(Math.min(timelineScale + 0.5, maxScale))}
         aria-label={t('Zoom in')}
+        disabled={timelineScale === maxScale}
       />
     </ButtonBar>
   );
@@ -180,7 +185,6 @@ function ReplayControls({
   const isFullscreen = useIsFullscreen();
   const {currentTime, replay} = useReplayContext();
   const durationMs = replay?.getDurationMs();
-  const [size, setSize] = useState(300);
 
   // If the browser supports going fullscreen or not. iPhone Safari won't do
   // it. https://caniuse.com/fullscreen
@@ -221,10 +225,10 @@ function ReplayControls({
           <TimeAndScrubberGrid isCompact={isCompact}>
             <Time style={{gridArea: 'currentTime'}}>{formatTime(currentTime)}</Time>
             <div style={{gridArea: 'timeline'}}>
-              <ReplayTimeline size={size} />
+              <ReplayTimeline />
             </div>
             <div style={{gridArea: 'timelineSize'}}>
-              <TimelineSizeBar size={size} setSize={setSize} />
+              <TimelineSizeBar />
             </div>
             <StyledScrubber
               style={{gridArea: 'scrubber'}}

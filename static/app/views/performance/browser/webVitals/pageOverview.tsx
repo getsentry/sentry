@@ -97,7 +97,7 @@ export default function PageOverview() {
 
   const transactionSummaryTarget =
     project &&
-    !Array.isArray(location.query.project) && // Only navigate to transaction summary when one project is selected.
+    !Array.isArray(location.query.project) && // Only render button to transaction summary when one project is selected.
     transaction &&
     transactionSummaryRouteWithQuery({
       orgSlug: organization.slug,
