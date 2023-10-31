@@ -287,7 +287,7 @@ def _convert_widget_query_to_metric(
 
 def _get_widget_cardinality_query_ttl():
     # Add ttl + 25% jitter to query so queries aren't all made at once.
-    return int(random.uniform(_WIDGET_QUERY_CARDINALITY_TTL, _WIDGET_QUERY_CARDINALITY_TTL * 1.25))
+    return int(random.uniform(_WIDGET_QUERY_CARDINALITY_TTL, _WIDGET_QUERY_CARDINALITY_TTL * 1.5))
 
 
 def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project: Project):
@@ -332,8 +332,13 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
         ),
     )
 
-    results = query_builder.run_query(Referrer.METRIC_EXTRACTION_CARDINALITY_CHECK.value)
-    processed_results = query_builder.process_results(results)
+    try:
+        results = query_builder.run_query(Referrer.METRIC_EXTRACTION_CARDINALITY_CHECK.value)
+        processed_results = query_builder.process_results(results)
+    except Exception as error:
+        sentry_sdk.capture_exception(error)
+        cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
+        return False
 
     try:
         for index, column in enumerate(widget_query.columns):
