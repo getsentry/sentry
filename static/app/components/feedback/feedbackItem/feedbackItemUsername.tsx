@@ -2,12 +2,11 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {FeedbackEvent, FeedbackIssue} from 'sentry/utils/feedback/types';
+import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 
 interface Props {
   detailDisplay: boolean;
   feedbackIssue: FeedbackIssue;
-  feedbackEvent?: FeedbackEvent | undefined;
 }
 
 export default function FeedbackItemUsername({feedbackIssue, detailDisplay}: Props) {
