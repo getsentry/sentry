@@ -14,6 +14,8 @@ class SDKCrashDetectorConfig:
 
     min_sdk_version: str
 
+    system_library_paths: Set[str]
+
 
 class SDKCrashDetector(ABC):
     """
@@ -77,6 +79,11 @@ class SDKCrashDetector(ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
     def is_system_library_frame(self, frame: Mapping[str, Any]) -> bool:
-        raise NotImplementedError
+        for field in self.fields_containing_paths:
+            for system_library_path in self.config.system_library_paths:
+                field_with_path = frame.get(field)
+                if field_with_path and field_with_path.startswith(system_library_path):
+                    return True
+
+        return False
