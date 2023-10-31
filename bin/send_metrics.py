@@ -149,7 +149,13 @@ def produce_msgs(messages, is_generic, host, dryrun):
     show_default=True,
     help="Specify which org id(s) to send",
 )
-def main(use_cases, rand_str, host, dryrun, org_id):
+@click.option(
+    "--num-bad-msg",
+    default=0,
+    show_default=True,
+    help="Number of additional badly formatted metric messages to send",
+)
+def main(use_cases, rand_str, host, dryrun, org_id, num_bad_msg):
     if UseCaseID.SESSIONS.value in use_cases and len(use_cases) > 1:
         click.secho(
             "ERROR: UseCaseID.SESSIONS is in use_cases and there are more than 1 use cases",
@@ -158,9 +164,10 @@ def main(use_cases, rand_str, host, dryrun, org_id):
         )
         exit(1)
 
+    rand_str = rand_str or "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
+
     is_generic = UseCaseID.SESSIONS.value not in use_cases
 
-    rand_str = rand_str or "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
     messages = list(
         itertools.chain.from_iterable(
             (
@@ -172,6 +179,9 @@ def main(use_cases, rand_str, host, dryrun, org_id):
             for org in org_id
         )
     )
+
+    messages.extend([{"BAD_VALUE": rand_str, "idx": i} for i in range(num_bad_msg)])
+
     random.shuffle(messages)
 
     produce_msgs(messages, is_generic, host, dryrun)
