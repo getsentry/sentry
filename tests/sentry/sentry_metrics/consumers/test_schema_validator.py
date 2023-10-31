@@ -26,6 +26,17 @@ good_sample_transactions_message: ParsedMessage = ParsedMessage(
     retention_days=90,
     use_case_id=UseCaseID("transactions"),
 )
+bad_sample_transactions_message: ParsedMessage = ParsedMessage(
+    org_id=1,
+    project_id=2,
+    name="metric_name",
+    type="c",
+    timestamp=1629360000,
+    tags={"tag1": "value1", "tag2": "value2"},
+    value=1,
+    retention_days=90000000,  # this is the bad part
+    use_case_id=UseCaseID("transactions"),
+)
 good_sample_spans_message: ParsedMessage = ParsedMessage(
     org_id=1,
     project_id=2,
@@ -37,7 +48,7 @@ good_sample_spans_message: ParsedMessage = ParsedMessage(
     retention_days=90,
     use_case_id=UseCaseID("spans"),
 )
-bad_sample_transactions_message: ParsedMessage = ParsedMessage(
+bad_sample_spans_message: ParsedMessage = ParsedMessage(
     org_id=1,
     project_id=2,
     name="metric_name",
@@ -45,8 +56,8 @@ bad_sample_transactions_message: ParsedMessage = ParsedMessage(
     timestamp=1629360000,
     tags={"tag1": "value1", "tag2": "value2"},
     value=1,
-    retention_days=90000000,  # this is the bad part
-    use_case_id=UseCaseID("transactions"),
+    retention_days=900000,  # this is the bad part
+    use_case_id=UseCaseID("spans"),
 )
 good_sample_release_health_message: ParsedMessage = ParsedMessage(
     org_id=1,
@@ -83,18 +94,34 @@ bad_sample_release_health_message: ParsedMessage = ParsedMessage(
         pytest.param(
             INGEST_CODEC,
             __GENERIC_METRICS_OPTION_NAME,
+            {},
+            good_sample_transactions_message,
+            True,
+            id="empty option on good message should pass",
+        ),
+        pytest.param(
+            INGEST_CODEC,
+            __GENERIC_METRICS_OPTION_NAME,
+            {},
+            bad_sample_transactions_message,
+            False,
+            id="empty option on bad message should fail",
+        ),
+        pytest.param(
+            INGEST_CODEC,
+            __GENERIC_METRICS_OPTION_NAME,
             {"transactions": 0.0},
             good_sample_transactions_message,
             True,
-            id="no validation, good message",
+            id="no sampling on good message should pass",
         ),
         pytest.param(
             INGEST_CODEC,
             __GENERIC_METRICS_OPTION_NAME,
             {"transactions": 0.0},
             bad_sample_transactions_message,
-            False,
-            id="no validation, bad message",
+            True,
+            id="no sampling on bad message should pass",
         ),
         pytest.param(
             INGEST_CODEC,
@@ -102,7 +129,15 @@ bad_sample_release_health_message: ParsedMessage = ParsedMessage(
             {"transactions": 0.0},
             good_sample_spans_message,
             True,
-            id="no option on use case, good message",
+            id="no sampling on good spans message should pass",
+        ),
+        pytest.param(
+            INGEST_CODEC,
+            __GENERIC_METRICS_OPTION_NAME,
+            {"transactions": 0.0},
+            bad_sample_spans_message,
+            False,
+            id="no sampling on bad spans message should fail",
         ),
         pytest.param(
             INGEST_CODEC,
@@ -110,7 +145,7 @@ bad_sample_release_health_message: ParsedMessage = ParsedMessage(
             {"transactions": 1.0},
             good_sample_transactions_message,
             True,
-            id="full validation, good message",
+            id="full sampling on good message should pass",
         ),
         pytest.param(
             INGEST_CODEC,
@@ -118,27 +153,27 @@ bad_sample_release_health_message: ParsedMessage = ParsedMessage(
             {"transactions": 1.0},
             bad_sample_transactions_message,
             False,
-            id="full validation, bad message",
+            id="full sampling on bad message should fail",
         ),
         pytest.param(
             INGEST_CODEC,
             __RELEASE_HEALTH_METRICS_OPTION_NAME,
-            {"sessions": 1.0},
+            {},
             good_sample_release_health_message,
             True,
-            id="release health validation good message",
+            id="release health empty option on good message should pass",
         ),
         pytest.param(
             INGEST_CODEC,
             __RELEASE_HEALTH_METRICS_OPTION_NAME,
-            {"sessions": 0.0},
+            {},
             bad_sample_release_health_message,
             False,
-            id="release health validation bad message",
+            id="release health empty option on bad message should fail",
         ),
     ],
 )
-def test_generic_metrics_schema_validator(
+def test_metrics_schema_validator(
     codec: Optional[Codec[Any]],
     option_name: Optional[str],
     option_value: Optional[Mapping],
@@ -146,11 +181,10 @@ def test_generic_metrics_schema_validator(
     is_valid: bool,
 ) -> None:
     """
-    Test the behavior of the GenericMetricsSchemaValidator class with different
-    parameters.
+    Test the behavior of the MetricsSchemaValidator class with different parameters.
     """
-    validator = MetricsSchemaValidator(codec, option_name if option_name else None)
     with override_options({option_name: option_value}):
+        validator = MetricsSchemaValidator(codec, option_name if option_name else None)
         if is_valid:
             validator.validate(message)
         else:
