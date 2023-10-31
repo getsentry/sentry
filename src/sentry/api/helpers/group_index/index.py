@@ -79,7 +79,7 @@ def build_query_params_from_request(
         except ValueError:
             raise ParseError(detail="Invalid cursor parameter.")
     query = request.GET.get("query", "is:unresolved").strip()
-    if not request.GET.get("savedSearch"):
+    if request.GET.get("savedSearch") == "0":
         saved_searches = (
             SavedSearch.objects
             # Do not include pinned or personal searches from other users in
@@ -94,11 +94,20 @@ def build_query_params_from_request(
             )
             .extra(order_by=["name"])
         )
-        pinned_search = saved_searches.filter(visibility=Visibility.OWNER_PINNED)
-        if pinned_search.exists():
-            search = pinned_search.first()
-            query_kwargs["sort_by"] = search.sort
-            query = search.query
+        selected_search_id = request.GET.get("searchId", None)
+        if selected_search_id:
+            selected_search = saved_searches.filter(id=int(selected_search_id))
+            if selected_search.exists():
+                search = selected_search.first()
+                query_kwargs["sort_by"] = search.sort
+                query = search.query
+
+        else:
+            pinned_search = saved_searches.filter(visibility=Visibility.OWNER_PINNED)
+            if pinned_search.exists():
+                search = pinned_search.first()
+                query_kwargs["sort_by"] = search.sort
+                query = search.query
 
     sentry_sdk.set_tag("search.query", query)
     sentry_sdk.set_tag("search.sort", query)
