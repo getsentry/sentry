@@ -187,11 +187,11 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
         else:
-            # Filter only non-issue alert rules
             datasets = request.GET.getlist("dataset", [])
             if len(datasets) > 0:
                 alert_rules = alert_rules.filter(snuba_query__dataset__in=datasets)
-                issue_rules = Rule.objects.none()
+                if Dataset.Events.value not in datasets:
+                    issue_rules = Rule.objects.none()
 
         name = request.GET.get("name", None)
         if name:
