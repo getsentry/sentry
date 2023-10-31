@@ -10,12 +10,8 @@ interface Props {
   feedbackEvent?: FeedbackEvent | undefined;
 }
 
-export default function FeedbackItemUsername({
-  feedbackIssue,
-  feedbackEvent,
-  detailDisplay,
-}: Props) {
-  const name = feedbackEvent?.contexts?.feedback?.name;
+export default function FeedbackItemUsername({feedbackIssue, detailDisplay}: Props) {
+  const name = feedbackIssue.metadata.name;
   const email = feedbackIssue.metadata.contact_email;
 
   if (!email && !name) {
@@ -32,7 +28,7 @@ export default function FeedbackItemUsername({
     );
   }
 
-  return <strong>{email}</strong>;
+  return <strong>{name ?? email}</strong>;
 }
 
 const Purple = styled('span')`
