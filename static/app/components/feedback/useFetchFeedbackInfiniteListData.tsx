@@ -1,9 +1,10 @@
 import {useCallback, useMemo} from 'react';
 import {Index, IndexRange} from 'react-virtualized';
 
-import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
+import useFeedbackListQueryKey from 'sentry/components/feedback/useFeedbackListQueryKey';
 import {FeedbackIssueList} from 'sentry/utils/feedback/types';
 import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export const EMPTY_INFINITE_LIST_DATA: ReturnType<
   typeof useFetchFeedbackInfiniteListData
@@ -23,8 +24,8 @@ export const EMPTY_INFINITE_LIST_DATA: ReturnType<
 };
 
 export default function useFetchFeedbackInfiniteListData() {
-  const {getListQueryKey} = useFeedbackQueryKeys();
-  const queryKey = getListQueryKey();
+  const organization = useOrganization();
+  const queryKey = useFeedbackListQueryKey({organization});
   const {
     data,
     error,

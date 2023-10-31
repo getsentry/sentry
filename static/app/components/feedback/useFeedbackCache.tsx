@@ -1,9 +1,11 @@
 import {useCallback} from 'react';
 
 import type {ApiResult} from 'sentry/api';
-import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
+import getFeedbackItemQueryKey from 'sentry/components/feedback/getFeedbackItemQueryKey';
+import useFeedbackListQueryKey from 'sentry/components/feedback/useFeedbackListQueryKey';
 import type {FeedbackIssue, FeedbackIssueList} from 'sentry/utils/feedback/types';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export type ListCache = {
   pageParams: unknown[];
@@ -11,13 +13,16 @@ export type ListCache = {
 };
 
 export default function useFeedbackCache() {
+  const organization = useOrganization();
   const queryClient = useQueryClient();
-  const {getItemQueryKeys, getListQueryKey} = useFeedbackQueryKeys();
+  const listQueryKey = useFeedbackListQueryKey({organization});
 
   const updateCachedIssue = useCallback(
     (ids: string[], data: Partial<FeedbackIssue>) => {
       ids
-        .map(id => getItemQueryKeys(id).issueQueryKey)
+        .map(
+          feedbackId => getFeedbackItemQueryKey({feedbackId, organization}).issueQueryKey
+        )
         .forEach(issueQueryKey => {
           if (!issueQueryKey) {
             return;
@@ -32,22 +37,21 @@ export default function useFeedbackCache() {
           });
         });
     },
-    [getItemQueryKeys, queryClient]
+    [organization, queryClient]
   );
 
   const updateCachedListPage = useCallback(
     (ids: string[], payload: Partial<FeedbackIssue>) => {
-      const queryKey = getListQueryKey();
-      const listData = queryClient.getQueryData<ListCache>(queryKey);
+      const listData = queryClient.getQueryData<ListCache>(listQueryKey);
 
       const pages = listData?.pages.map(([data, statusText, resp]) => [
         data.map(item => (ids.includes(item.id) ? {...item, ...payload} : item)),
         statusText,
         resp,
       ]);
-      queryClient.setQueryData(queryKey, {...listData, pages});
+      queryClient.setQueryData(listQueryKey, {...listData, pages});
     },
-    [getListQueryKey, queryClient]
+    [listQueryKey, queryClient]
   );
 
   const updateCached = useCallback(
@@ -62,23 +66,26 @@ export default function useFeedbackCache() {
     (ids: string[]) => {
       ids.forEach(feedbackId => {
         // Only need to invalidate & re-fetch issue data. Event data will not change.
-        const {issueQueryKey: queryKey} = getItemQueryKeys(feedbackId);
+        const {issueQueryKey: queryKey} = getFeedbackItemQueryKey({
+          feedbackId,
+          organization,
+        });
         queryClient.invalidateQueries({queryKey});
       });
     },
-    [getItemQueryKeys, queryClient]
+    [organization, queryClient]
   );
 
   const invalidateCachedListPage = useCallback(
     (ids: string[]) => {
       queryClient.invalidateQueries({
-        queryKey: getListQueryKey(),
+        queryKey: listQueryKey,
         refetchPage: ([results]: ApiResult<FeedbackIssueList>) => {
           return results.some(item => ids.includes(item.id));
         },
       });
     },
-    [getListQueryKey, queryClient]
+    [listQueryKey, queryClient]
   );
 
   const invalidateCached = useCallback(

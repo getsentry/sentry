@@ -6,7 +6,6 @@ import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
 import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
 import FeedbackSearch from 'sentry/components/feedback/feedbackSearch';
 import FeedbackList from 'sentry/components/feedback/list/feedbackList';
-import {FeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -24,27 +23,25 @@ export default function FeedbackListPage({}: Props) {
   return (
     <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
       <FullViewport>
-        <FeedbackQueryKeys organization={organization}>
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Layout.Title>{t('User Feedback')}</Layout.Title>
-            </Layout.HeaderContent>
-          </Layout.Header>
-          <PageFiltersContainer>
-            <ErrorBoundary>
-              <LayoutGrid>
-                <FeedbackFilters style={{gridArea: 'filters'}} />
-                <FeedbackSearch style={{gridArea: 'search'}} />
-                <Container style={{gridArea: 'list'}}>
-                  <FeedbackList />
-                </Container>
-                <Container style={{gridArea: 'details'}}>
-                  <FeedbackItemLoader />
-                </Container>
-              </LayoutGrid>
-            </ErrorBoundary>
-          </PageFiltersContainer>
-        </FeedbackQueryKeys>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Layout.Title>{t('User Feedback')}</Layout.Title>
+          </Layout.HeaderContent>
+        </Layout.Header>
+        <PageFiltersContainer>
+          <ErrorBoundary>
+            <LayoutGrid>
+              <FeedbackFilters style={{gridArea: 'filters'}} />
+              <FeedbackSearch style={{gridArea: 'search'}} />
+              <Container style={{gridArea: 'list'}}>
+                <FeedbackList />
+              </Container>
+              <Container style={{gridArea: 'details'}}>
+                <FeedbackItemLoader />
+              </Container>
+            </LayoutGrid>
+          </ErrorBoundary>
+        </PageFiltersContainer>
       </FullViewport>
     </SentryDocumentTitle>
   );
