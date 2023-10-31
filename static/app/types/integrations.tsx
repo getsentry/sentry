@@ -436,7 +436,10 @@ export type IssueConfigField = Field & {
   name: string;
   choices?: Choices;
   default?: string | number | Choice;
+  // When 'ignorePriorChoices' is true, the field will not restore its previous
+  // choice when re-rendering the modal.
   ignorePriorChoices?: boolean;
+  // Allows you to choose multiple choices in a select box
   multiple?: boolean;
   url?: string;
 };

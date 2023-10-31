@@ -311,13 +311,20 @@ export default class AbstractExternalIssueForm<
     };
   };
 
+  /**
+   * Return integrationDetails fields overridden with choices from the cache. If
+   * the field is async, this is also required in order to populate the field choices
+   * with the webhook response.
+   */
   getCleanedFields = (): IssueConfigField[] => {
     const {fetchedFieldOptionsCache, integrationDetails} = this.state;
 
     const configsFromAPI = (integrationDetails || {})[this.getConfigName()];
     return (configsFromAPI || []).map(field => {
       const fieldCopy = {...field};
-      // Overwrite choices from cache as long as the field is not set to ignorePriorChoices.
+      // If the field has `ignorePriorChoices` set to True, we don't
+      // pull from the cache. This is used for fields that should not persist
+      // upon re-rendering, usually because they are dependent on another field.
       if (
         fetchedFieldOptionsCache?.hasOwnProperty(field.name) &&
         !field.ignorePriorChoices
