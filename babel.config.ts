@@ -25,7 +25,7 @@ const config: TransformOptions = {
     '@emotion/babel-plugin',
     '@babel/plugin-transform-runtime',
     '@babel/plugin-transform-class-properties',
-    '@fullstory/babel-plugin-annotate-react',
+    ['@fullstory/babel-plugin-annotate-react', {'annotate-fragments': false}],
   ],
   env: {
     production: {
