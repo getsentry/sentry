@@ -1,9 +1,8 @@
 import logging
 import time
 from dataclasses import dataclass
-from typing import Any, List, Mapping, MutableMapping, MutableSequence, NamedTuple, Optional, Union
+from typing import Any, List, Mapping, MutableMapping, MutableSequence, Optional, Union
 
-from arroyo import Partition
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.processing.strategies import MessageRejected
@@ -14,12 +13,6 @@ from arroyo.types import Message, Value
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import kafka_config, metrics
-
-
-class BrokerMeta(NamedTuple):
-    partition: Partition
-    offset: int
-
 
 MessageBatch = List[Message[KafkaPayload]]
 
