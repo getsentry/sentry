@@ -1313,7 +1313,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 assert response.status_code == 400
                 assert (
                     response.content
-                    == b'{"detail":"Replay search query limits exceeded. Please narrow the time-range."}'
+                    == b'{"detail":"Query limits exceeded. Try narrowing your request."}'
                 )
 
     @pytest.mark.skip(reason="flaky: Date logic breaks - possibly due to stats-period.")
