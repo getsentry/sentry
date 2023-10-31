@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from html import escape
-from typing import Any, Mapping
+from typing import Any, Mapping, Optional
 from urllib.parse import urlencode
 
 from sentry_relay.processing import parse_release
@@ -21,7 +20,7 @@ class ResolvedInReleaseActivityNotification(GroupActivityNotification):
         self.version = self.activity.data.get("version", "")
         self.version_parsed = parse_release(self.version)["description"]
 
-    def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
+    def get_description(self) -> tuple[str, Optional[str], Mapping[str, Any]]:
         if self.version:
             url = self.organization.absolute_url(
                 f"/organizations/{self.organization.slug}/releases/{self.version}/",
@@ -34,12 +33,17 @@ class ResolvedInReleaseActivityNotification(GroupActivityNotification):
                 ),
             )
 
+            params = {
+                "url": url,
+                "version": self.version_parsed,
+            }
+
             return (
                 "{author} marked {an issue} as resolved in {version}",
-                {"version": self.version_parsed},
-                {"version": f'<a href="{url}">{escape(self.version_parsed)}</a>'},
+                '{author} marked {an issue} as resolved in <a href="{url}">{version}</a>',
+                params,
             )
-        return "{author} marked {an issue} as resolved in an upcoming release", {}, {}
+        return "{author} marked {an issue} as resolved in an upcoming release", None, {}
 
     def get_notification_title(
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None

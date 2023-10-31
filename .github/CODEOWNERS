@@ -108,6 +108,7 @@ tsconfig.*                                               @getsentry/owners-js-bu
 webpack.config.*                                         @getsentry/owners-js-build
 babel.config.*                                           @getsentry/owners-js-build
 build-utils/                                             @getsentry/owners-js-build
+.volta.json                                              @getsentry/owners-js-deps
 package.json                                             @getsentry/owners-js-deps
 yarn.lock                                                @getsentry/owners-js-deps
 
@@ -153,6 +154,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/views/projectDetail/                          @getsentry/issues
 /static/app/views/releases/                               @getsentry/issues
 /static/app/views/organizationStats/teamInsights/         @getsentry/issues
+/static/app/views/settings/account/notifications/         @getsentry/issues
 
 /src/sentry/templates/sentry/emails/incidents/            @getsentry/issues
 /src/sentry/incidents/                                    @getsentry/issues
@@ -165,6 +167,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_searches.py        @getsentry/issues
 /src/sentry/api/helpers/group_index.py                    @getsentry/issues
 /src/sentry/api/helpers/events.py                         @getsentry/issues
+/src/sentry/api/helpers/group_index/update.py             @getsentry/issues
 
 /src/sentry/snuba/models.py                               @getsentry/issues
 /src/sentry/snuba/query_subscription_consumer.py          @getsentry/issues

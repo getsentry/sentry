@@ -333,7 +333,7 @@ describe('SampledProfile', () => {
     expect(profile.callTree.children[0].children[0].children[0].frame.selfWeight).toBe(6);
   });
 
-  it('flamegraph tracks node occurences', () => {
+  it('flamegraph tracks node occurrences', () => {
     const trace: Profiling.SampledProfile = {
       name: 'profile',
       startValue: 0,
@@ -386,5 +386,38 @@ describe('SampledProfile', () => {
     expect(profile.callTree.children[0].frame.name).toEqual('f0');
     // the f1 frame is filtered out, so the f0 frame has no children
     expect(profile.callTree.children[0].children).toHaveLength(0);
+  });
+
+  it('aggregates durations for flamegraph', () => {
+    const trace: Profiling.SampledProfile = {
+      name: 'profile',
+      startValue: 0,
+      endValue: 1000,
+      unit: 'milliseconds',
+      threadID: 0,
+      type: 'sampled',
+      weights: [1, 1],
+      sample_durations_ns: [10, 5],
+      samples: [
+        [0, 1],
+        [0, 2],
+      ],
+    };
+
+    const profile = SampledProfile.FromProfile(
+      trace,
+      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}]),
+      {
+        type: 'flamegraph',
+      }
+    );
+
+    expect(profile.callTree.children[0].frame.name).toBe('f0');
+    expect(profile.callTree.children[0].aggregate_duration_ns).toBe(15);
+    expect(profile.callTree.children[0].children[0].aggregate_duration_ns).toBe(10);
+    expect(profile.callTree.children[0].children[1].aggregate_duration_ns).toBe(5);
+    expect(profile.callTree.children[0].frame.aggregateDuration).toBe(15);
+    expect(profile.callTree.children[0].children[0].frame.aggregateDuration).toBe(10);
+    expect(profile.callTree.children[0].children[1].frame.aggregateDuration).toBe(5);
   });
 });

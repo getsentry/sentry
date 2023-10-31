@@ -1,3 +1,5 @@
+import abc
+
 from sentry.incidents.models import IncidentSubscription
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.testutils.cases import TestCase
@@ -10,9 +12,11 @@ class Base:
         def create_instance(self):
             raise NotImplementedError()
 
+        @abc.abstractproperty
         def view_name(self):
             raise NotImplementedError()
 
+        @abc.abstractmethod
         def assert_unsubscribed(self, instance, user):
             raise NotImplementedError()
 

@@ -38,7 +38,6 @@ from sentry.notifications.helpers import (
     should_use_notifications_v2,
     transform_to_notification_settings_by_recipient,
 )
-from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.notify import notification_providers
 from sentry.notifications.types import (
     NOTIFICATION_SETTING_TYPES,
@@ -214,11 +213,11 @@ def get_participants_for_release(
 
     actors = RpcActor.many_from_object(RpcUser(id=user_id) for user_id in user_ids)
     if should_use_notifications_v2(organization):
+        # don't pass in projects since the settings are scoped to the organization only for now
         providers_by_recipient = notifications_service.get_participants(
-            recipients=actors,
-            project_ids=[project.id for project in projects],
-            organization_id=organization.id,
             type=NotificationSettingEnum.DEPLOY,
+            recipients=actors,
+            organization_id=organization.id,
         )
 
         users_to_reasons_by_provider = ParticipantMap()
@@ -392,9 +391,7 @@ def determine_eligible_recipients(
         ).first()
         if group_assignee:
             outcome = "match"
-            assignee_actor = RpcActor.from_orm_actor(
-                group_assignee.assigned_actor().resolve_to_actor()
-            )
+            assignee_actor = group_assignee.assigned_actor()
             suggested_assignees.append(assignee_actor)
 
         suspect_commit_users = None
@@ -584,17 +581,16 @@ def get_recipients_by_provider(
 
     # First evaluate the teams.
     setting_type = NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[notification_type])
-    controller = None
     teams_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
+
     if should_use_notifications_v2(project.organization):
-        controller = NotificationController(
-            recipients=users,
+        # get by team
+        teams_by_provider = notifications_service.get_notification_recipients(
+            recipients=teams,
+            type=setting_type,
             organization_id=project.organization_id,
             project_ids=[project.id],
-            type=setting_type,
-        )
-        teams_by_provider = controller.get_notification_recipients(
-            type=setting_type, actor_type=ActorType.TEAM
+            actor_type=ActorType.TEAM,
         )
     else:
         teams_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
@@ -614,15 +610,12 @@ def get_recipients_by_provider(
     # Repeat for users.
     users_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
     if should_use_notifications_v2(project.organization):
-        if not controller:
-            controller = NotificationController(
-                recipients=users,
-                organization_id=project.organization_id,
-                project_ids=[project.id],
-                type=setting_type,
-            )
-        users_by_provider = controller.get_notification_recipients(
-            type=setting_type, actor_type=ActorType.USER
+        users_by_provider = notifications_service.get_notification_recipients(
+            recipients=users,
+            type=setting_type,
+            organization_id=project.organization_id,
+            project_ids=[project.id],
+            actor_type=ActorType.USER,
         )
     else:
         users_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(

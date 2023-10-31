@@ -1,35 +1,41 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
+import {space} from 'sentry/styles/space';
+import type {FeedbackEvent, FeedbackIssue} from 'sentry/utils/feedback/types';
 
 interface Props {
-  feedbackItem: HydratedFeedbackItem;
+  detailDisplay: boolean;
+  feedbackIssue: FeedbackIssue;
+  feedbackEvent?: FeedbackEvent | undefined;
 }
 
-export default function FeedbackItemUsername({feedbackItem}: Props) {
-  const displayValue = feedbackItem.user.display_name || feedbackItem.contact_email;
-  const hasBoth = feedbackItem.user.display_name && feedbackItem.contact_email;
-  if (!displayValue) {
-    return <strong>{t('Unknown User')}</strong>;
+export default function FeedbackItemUsername({
+  feedbackIssue,
+  feedbackEvent,
+  detailDisplay,
+}: Props) {
+  const name = feedbackEvent?.contexts?.feedback?.name;
+  const email = feedbackIssue.metadata.contact_email;
+
+  if (!email && !name) {
+    return <strong>{t('Anonymous User')}</strong>;
   }
 
-  return (
-    <strong>
-      {hasBoth ? (
-        <Fragment>
-          {feedbackItem.user.display_name}
-          <Purple>•</Purple>
-          {feedbackItem.contact_email}
-        </Fragment>
-      ) : (
-        displayValue
-      )}
-    </strong>
-  );
+  if (detailDisplay) {
+    return (
+      <strong>
+        {name ?? t('No Name')}
+        <Purple>•</Purple>
+        {email ?? t('No Email')}
+      </strong>
+    );
+  }
+
+  return <strong>{email}</strong>;
 }
 
 const Purple = styled('span')`
   color: ${p => p.theme.purple300};
+  padding: ${space(0.5)};
 `;

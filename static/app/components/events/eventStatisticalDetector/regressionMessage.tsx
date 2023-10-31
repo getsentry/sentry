@@ -47,29 +47,39 @@ function EventStatisticalDetectorRegressedPerformanceMessage({
 }: EventStatisticalDetectorMessageProps) {
   const organization = useOrganization();
 
-  const transactionName = event?.occurrence?.evidenceData?.transaction;
+  const {transaction, breakpoint, aggregateRange1, aggregateRange2, trendPercentage} =
+    event?.occurrence?.evidenceData ?? {};
   const transactionSummaryLink = transactionSummaryRouteWithQuery({
     orgSlug: organization.slug,
-    transaction: transactionName,
+    transaction,
     query: {},
     trendFunction: 'p95',
     projectID: event.projectID,
     display: DisplayModes.TREND,
   });
-  const detectionTime = new Date(event?.occurrence?.evidenceData?.breakpoint * 1000);
+  const detectionTime = new Date(breakpoint * 1000);
 
   return (
     <DataSection>
       <div style={{display: 'inline'}}>
         {tct(
-          '[detected] Based on the transaction [transactionName], there was a [amount] increase in duration (P95) around [date] at [time]. Overall operation percentage changes indicate what may have changed in the regression.',
+          'Based on the transaction [transactionName], there was a [absoluteChange] ([percentageAmount]) increase in duration (P95) from [previousDuration] to [regressionDuration] around [date] at [time]. Overall operation percentage changes indicate what may have changed in the regression.',
           {
-            detected: <strong>{t('Detected:')}</strong>,
             transactionName: (
-              <Link to={normalizeUrl(transactionSummaryLink)}>{transactionName}</Link>
+              <Link to={normalizeUrl(transactionSummaryLink)}>{transaction}</Link>
             ),
-            amount: formatPercentage(
-              event?.occurrence?.evidenceData?.trendPercentage - 1
+            absoluteChange: (
+              <PerformanceDuration
+                abbreviation
+                milliseconds={aggregateRange2 - aggregateRange1}
+              />
+            ),
+            percentageAmount: formatPercentage(trendPercentage - 1),
+            previousDuration: (
+              <PerformanceDuration abbreviation milliseconds={aggregateRange1} />
+            ),
+            regressionDuration: (
+              <PerformanceDuration abbreviation milliseconds={aggregateRange2} />
             ),
             date: <DateTime date={detectionTime} dateOnly />,
             time: <DateTime date={detectionTime} timeOnly />,
@@ -84,23 +94,37 @@ function EventStatisticalDetectorRegressedFunctionMessage({
   event,
 }: EventStatisticalDetectorMessageProps) {
   const evidenceData = event?.occurrence?.evidenceData;
+  const absoluteChange = evidenceData?.trendDifference;
   const percentageChange = evidenceData?.trendPercentage;
   const detectionTime = new Date(evidenceData?.breakpoint * 1000);
+  const functionName = evidenceData?.function as string;
 
   return (
     <DataSection>
       <div style={{display: 'inline'}}>
         {tct(
-          'There was [change] in duration (P95) from [before] to [after] around [date] at [time]. The example profiles may indicate what changed in the regression.',
+          '[functionName] had [change] in duration (P95) from [before] to [after] around [date] at [time]. The example profiles may indicate what changed in the regression.',
           {
-            change: defined(percentageChange)
-              ? t('a %s increase', formatPercentage(percentageChange))
-              : t('an increase'),
+            functionName: <code>{functionName}</code>,
+            change:
+              defined(absoluteChange) && defined(percentageChange)
+                ? t(
+                    'a %s (%s) increase',
+                    <PerformanceDuration abbreviation nanoseconds={absoluteChange} />,
+                    formatPercentage(percentageChange - 1)
+                  )
+                : t('an increase'),
             before: (
-              <PerformanceDuration nanoseconds={evidenceData?.aggregateRange1 ?? 0} />
+              <PerformanceDuration
+                abbreviation
+                nanoseconds={evidenceData?.aggregateRange1 ?? 0}
+              />
             ),
             after: (
-              <PerformanceDuration nanoseconds={evidenceData?.aggregateRange2 ?? 0} />
+              <PerformanceDuration
+                abbreviation
+                nanoseconds={evidenceData?.aggregateRange2 ?? 0}
+              />
             ),
             date: <DateTime date={detectionTime} dateOnly />,
             time: <DateTime date={detectionTime} timeOnly />,

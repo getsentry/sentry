@@ -1,5 +1,6 @@
 import {Release} from '@sentry/release-parser';
 import round from 'lodash/round';
+import moment from 'moment';
 
 import {t, tn} from 'sentry/locale';
 import {CommitAuthor, User} from 'sentry/types';
@@ -71,6 +72,33 @@ export const SECOND = 1000;
  *
  * Use `getExactDuration` for exact durations
  */
+
+const DURATION_LABELS = {
+  mo: t('mo'),
+  w: t('w'),
+  wk: t('wk'),
+  week: t('week'),
+  weeks: t('weeks'),
+  d: t('d'),
+  day: t('day'),
+  days: t('days'),
+  h: t('h'),
+  hr: t('hr'),
+  hour: t('hour'),
+  hours: t('hours'),
+  m: t('m'),
+  min: t('min'),
+  minute: t('minute'),
+  minutes: t('minutes'),
+  s: t('s'),
+  sec: t('sec'),
+  secs: t('secs'),
+  second: t('second'),
+  seconds: t('seconds'),
+  ms: t('ms'),
+  millisecond: t('millisecond'),
+  milliseconds: t('milliseconds'),
+};
 export function getDuration(
   seconds: number,
   fixedDigits: number = 0,
@@ -85,16 +113,18 @@ export function getDuration(
 
   if (absValue >= MONTH && !extraShort) {
     const {label, result} = roundWithFixed(msValue / MONTH, fixedDigits);
-    return `${label}${abbreviation ? t('mo') : ` ${tn('month', 'months', result)}`}`;
+    return `${label}${
+      abbreviation ? DURATION_LABELS.mo : ` ${tn('month', 'months', result)}`
+    }`;
   }
 
   if (absValue >= WEEK) {
     const {label, result} = roundWithFixed(msValue / WEEK, fixedDigits);
     if (extraShort) {
-      return `${label}${t('w')}`;
+      return `${label}${DURATION_LABELS.w}`;
     }
     if (abbreviation) {
-      return `${label}${t('wk')}`;
+      return `${label}${DURATION_LABELS.wk}`;
     }
     return `${label} ${tn('week', 'weeks', result)}`;
   }
@@ -103,7 +133,7 @@ export function getDuration(
     const {label, result} = roundWithFixed(msValue / DAY, fixedDigits);
 
     if (extraShort || abbreviation) {
-      return `${label}${t('d')}`;
+      return `${label}${DURATION_LABELS.d}`;
     }
     return `${label} ${tn('day', 'days', result)}`;
   }
@@ -111,10 +141,10 @@ export function getDuration(
   if (absValue >= HOUR) {
     const {label, result} = roundWithFixed(msValue / HOUR, fixedDigits);
     if (extraShort) {
-      return `${label}${t('h')}`;
+      return `${label}${DURATION_LABELS.h}`;
     }
     if (abbreviation) {
-      return `${label}${t('hr')}`;
+      return `${label}${DURATION_LABELS.hr}`;
     }
     return `${label} ${tn('hour', 'hours', result)}`;
   }
@@ -122,10 +152,10 @@ export function getDuration(
   if (absValue >= MINUTE) {
     const {label, result} = roundWithFixed(msValue / MINUTE, fixedDigits);
     if (extraShort) {
-      return `${label}${t('m')}`;
+      return `${label}${DURATION_LABELS.m}`;
     }
     if (abbreviation) {
-      return `${label}${t('min')}`;
+      return `${label}${DURATION_LABELS.min}`;
     }
     return `${label} ${tn('minute', 'minutes', result)}`;
   }
@@ -133,7 +163,7 @@ export function getDuration(
   if (absValue >= SECOND) {
     const {label, result} = roundWithFixed(msValue / SECOND, fixedDigits);
     if (extraShort || abbreviation) {
-      return `${label}${t('s')}`;
+      return `${label}${DURATION_LABELS.s}`;
     }
     return `${label} ${tn('second', 'seconds', result)}`;
   }
@@ -141,18 +171,34 @@ export function getDuration(
   const {label, result} = roundWithFixed(msValue, fixedDigits);
 
   if (extraShort || abbreviation) {
-    return `${label}${t('ms')}`;
+    return `${label}${DURATION_LABELS.ms}`;
   }
 
   return `${label} ${tn('millisecond', 'milliseconds', result)}`;
 }
 
+const SUFFIX_ABBR = {
+  years: t('yr'),
+  weeks: t('wk'),
+  days: t('d'),
+  hours: t('hr'),
+  minutes: t('min'),
+  seconds: t('s'),
+  milliseconds: t('ms'),
+};
 /**
  * Returns a human readable exact duration.
+ * 'precision' arg will truncate the results to the specified suffix
  *
  * e.g. 1 hour 25 minutes 15 seconds
  */
-export function getExactDuration(seconds: number, abbreviation: boolean = false) {
+export function getExactDuration(
+  seconds: number,
+  abbreviation: boolean = false,
+  precision: keyof typeof SUFFIX_ABBR = 'milliseconds'
+) {
+  const minSuffix = ` ${precision}`;
+
   const convertDuration = (secs: number, abbr: boolean): string => {
     // value in milliseconds
     const msValue = round(secs * 1000);
@@ -165,35 +211,45 @@ export function getExactDuration(seconds: number, abbreviation: boolean = false)
       };
     };
 
-    if (value >= WEEK) {
+    if (value >= WEEK || (value && minSuffix === ' weeks')) {
       const {quotient, remainder} = divideBy(WEEK);
       const suffix = abbr ? t('wk') : ` ${tn('week', 'weeks', quotient)}`;
 
-      return `${quotient}${suffix} ${convertDuration(remainder / 1000, abbr)}`;
+      return `${quotient}${suffix} ${
+        minSuffix === suffix ? '' : convertDuration(remainder / 1000, abbr)
+      }`;
     }
-    if (value >= DAY) {
+    if (value >= DAY || (value && minSuffix === ' days')) {
       const {quotient, remainder} = divideBy(DAY);
       const suffix = abbr ? t('d') : ` ${tn('day', 'days', quotient)}`;
 
-      return `${quotient}${suffix} ${convertDuration(remainder / 1000, abbr)}`;
+      return `${quotient}${suffix} ${
+        minSuffix === suffix ? '' : convertDuration(remainder / 1000, abbr)
+      }`;
     }
-    if (value >= HOUR) {
+    if (value >= HOUR || (value && minSuffix === ' hours')) {
       const {quotient, remainder} = divideBy(HOUR);
       const suffix = abbr ? t('hr') : ` ${tn('hour', 'hours', quotient)}`;
 
-      return `${quotient}${suffix} ${convertDuration(remainder / 1000, abbr)}`;
+      return `${quotient}${suffix} ${
+        minSuffix === suffix ? '' : convertDuration(remainder / 1000, abbr)
+      }`;
     }
-    if (value >= MINUTE) {
+    if (value >= MINUTE || (value && minSuffix === ' minutes')) {
       const {quotient, remainder} = divideBy(MINUTE);
       const suffix = abbr ? t('min') : ` ${tn('minute', 'minutes', quotient)}`;
 
-      return `${quotient}${suffix} ${convertDuration(remainder / 1000, abbr)}`;
+      return `${quotient}${suffix} ${
+        minSuffix === suffix ? '' : convertDuration(remainder / 1000, abbr)
+      }`;
     }
-    if (value >= SECOND) {
+    if (value >= SECOND || (value && minSuffix === ' seconds')) {
       const {quotient, remainder} = divideBy(SECOND);
       const suffix = abbr ? t('s') : ` ${tn('second', 'seconds', quotient)}`;
 
-      return `${quotient}${suffix} ${convertDuration(remainder / 1000, abbr)}`;
+      return `${quotient}${suffix} ${
+        minSuffix === suffix ? '' : convertDuration(remainder / 1000, abbr)
+      }`;
     }
 
     if (value === 0) {
@@ -211,7 +267,52 @@ export function getExactDuration(seconds: number, abbreviation: boolean = false)
     return result;
   }
 
-  return `0${abbreviation ? t('ms') : ` ${t('milliseconds')}`}`;
+  return `0${abbreviation ? SUFFIX_ABBR[precision] : minSuffix}`;
+}
+
+export const SEC_IN_WK = 604800;
+export const SEC_IN_DAY = 86400;
+export const SEC_IN_HR = 3600;
+export const SEC_IN_MIN = 60;
+
+type Level = [lvlSfx: moment.unitOfTime.DurationConstructor, denominator: number];
+
+type ParsedLargestSuffix = [val: number, suffix: moment.unitOfTime.DurationConstructor];
+/**
+ * Given a length of time in seconds, provide me the largest divisible suffix and value for that time period.
+ * eg. 60 -> [1, 'minutes']
+ * eg. 7200 -> [2, 'hours']
+ * eg. 7260 -> [121, 'minutes']
+ *
+ * @param seconds
+ * @param maxSuffix     determines the largest suffix we should pin the response to
+ */
+export function parseLargestSuffix(
+  seconds: number,
+  maxSuffix: string = 'days'
+): ParsedLargestSuffix {
+  const levels: Level[] = [
+    ['minutes', SEC_IN_MIN],
+    ['hours', SEC_IN_HR],
+    ['days', SEC_IN_DAY],
+    ['weeks', SEC_IN_WK],
+  ];
+  let val = seconds;
+  let suffix: moment.unitOfTime.DurationConstructor = 'seconds';
+  if (val === 0) {
+    return [val, suffix];
+  }
+  for (const [lvlSfx, denominator] of levels) {
+    if (seconds % denominator) {
+      break;
+    }
+    val = seconds / denominator;
+    suffix = lvlSfx;
+    if (lvlSfx === maxSuffix) {
+      break;
+    }
+  }
+  return [val, suffix];
 }
 
 export function formatSecondsToClock(

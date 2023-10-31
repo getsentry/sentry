@@ -42,12 +42,7 @@ type Props = {
   showDropdownFilters?: boolean;
 };
 
-export type ReferrerTableType =
-  | 'main'
-  | 'dead-table'
-  | 'errors-table'
-  | 'rage-table'
-  | 'selector-widget';
+export type ReferrerTableType = 'main' | 'selector-widget';
 
 type EditType = 'set' | 'remove';
 
@@ -309,33 +304,19 @@ export function ReplayCell({
     },
   };
 
-  const replayDetailsErrorTab = {
+  const replayDetailsDeadRage = {
     pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
     query: {
       referrer,
       ...eventView.generateQueryStringObject(),
-      t_main: 'errors',
-    },
-  };
-
-  const replayDetailsDOMEventsTab = {
-    pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
-    query: {
-      referrer,
-      ...eventView.generateQueryStringObject(),
-      t_main: 'dom',
-      f_d_type: 'ui.slowClickDetected',
+      f_b_type: 'rageOrDead',
     },
   };
 
   const detailsTab = () => {
     switch (referrer_table) {
-      case 'errors-table':
-        return replayDetailsErrorTab;
-      case 'dead-table':
-      case 'rage-table':
       case 'selector-widget':
-        return replayDetailsDOMEventsTab;
+        return replayDetailsDeadRage;
       default:
         return replayDetails;
     }
@@ -352,14 +333,14 @@ export function ReplayCell({
 
   if (replay.is_archived) {
     return (
-      <Item isArchived={replay.is_archived}>
+      <Item isArchived={replay.is_archived} isReplayCell>
         <Row gap={1}>
           <StyledIconDelete color="gray500" size="md" />
           <div>
             <Row gap={0.5}>{t('Deleted Replay')}</Row>
             <Row gap={0.5}>
               {project ? <Avatar size={12} project={project} /> : null}
-              {getShortEventId(replay.id)}
+              <ArchivedId>{getShortEventId(replay.id)}</ArchivedId>
             </Row>
           </div>
         </Row>
@@ -377,17 +358,17 @@ export function ReplayCell({
           <Link to={detailsTab} onClick={trackNavigationEvent}>
             {getShortEventId(replay.id)}
           </Link>
-        </Row>
-        <Row gap={0.5}>
-          <IconCalendar color="gray300" size="xs" />
-          <TimeSince date={replay.started_at} />
+          <Row gap={0.5}>
+            <IconCalendar color="gray300" size="xs" />
+            <TimeSince date={replay.started_at} />
+          </Row>
         </Row>
       </Row>
     </Cols>
   );
 
   return (
-    <Item isWidget={isWidget}>
+    <Item isWidget={isWidget} isReplayCell>
       <UserBadge
         avatarSize={24}
         displayName={
@@ -406,6 +387,10 @@ export function ReplayCell({
     </Item>
   );
 }
+
+const ArchivedId = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
 
 const StyledIconDelete = styled(IconDelete)`
   margin: ${space(0.25)};
@@ -465,7 +450,7 @@ export function OSCell({replay, showDropdownFilters}: Props) {
   return (
     <Item>
       <Container>
-        <Tooltip title={`${name} ${version}`}>
+        <Tooltip title={`${name ?? ''} ${version ?? ''}`}>
           <ContextIcon
             name={name ?? ''}
             version={version && hasRoomForColumns ? version : undefined}
@@ -533,7 +518,7 @@ export function RageClickCountCell({replay, showDropdownFilters}: Props) {
       <Container>
         {replay.count_rage_clicks ? (
           <RageClickCount>
-            <IconCursorArrow size="sm" />
+            <IconCursorArrow size="sm" color="red300" />
             {replay.count_rage_clicks}
           </RageClickCount>
         ) : (
@@ -559,7 +544,7 @@ export function DeadClickCountCell({replay, showDropdownFilters}: Props) {
       <Container>
         {replay.count_dead_clicks ? (
           <DeadClickCount>
-            <IconCursorArrow size="sm" />
+            <IconCursorArrow size="sm" color="yellow300" />
             {replay.count_dead_clicks}
           </DeadClickCount>
         ) : (
@@ -585,7 +570,7 @@ export function ErrorCountCell({replay, showDropdownFilters}: Props) {
       <Container>
         {replay.count_errors ? (
           <ErrorCount>
-            <IconFire />
+            <IconFire color="red300" />
             {replay.count_errors}
           </ErrorCount>
         ) : (
@@ -625,7 +610,11 @@ export function ActivityCell({replay, showDropdownFilters}: Props) {
   );
 }
 
-const Item = styled('div')<{isArchived?: boolean; isWidget?: boolean}>`
+const Item = styled('div')<{
+  isArchived?: boolean;
+  isReplayCell?: boolean;
+  isWidget?: boolean;
+}>`
   display: flex;
   align-items: center;
   gap: ${space(1)};
@@ -634,6 +623,7 @@ const Item = styled('div')<{isArchived?: boolean; isWidget?: boolean}>`
       ? `padding: ${space(0.75)} ${space(1.5)} ${space(1.5)} ${space(1.5)};`
       : `padding: ${space(1.5)};`};
   ${p => (p.isArchived ? 'opacity: 0.5;' : '')};
+  ${p => (p.isReplayCell ? 'overflow: auto;' : '')};
 `;
 
 const Count = styled('span')`
@@ -644,21 +634,18 @@ const DeadClickCount = styled(Count)`
   display: flex;
   width: 40px;
   gap: ${space(0.5)};
-  color: ${p => p.theme.yellow300};
 `;
 
 const RageClickCount = styled(Count)`
   display: flex;
   width: 40px;
   gap: ${space(0.5)};
-  color: ${p => p.theme.red300};
 `;
 
 const ErrorCount = styled(Count)`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  color: ${p => p.theme.red400};
 `;
 
 const Time = styled('span')`

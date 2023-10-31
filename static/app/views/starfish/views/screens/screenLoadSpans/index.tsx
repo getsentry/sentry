@@ -3,8 +3,8 @@ import {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
-import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -20,8 +20,12 @@ import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releas
 import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {ScreensView, YAxis} from 'sentry/views/starfish/views/screens';
+import {
+  ScreenCharts,
+  YAxis,
+} from 'sentry/views/starfish/views/screens/screenLoadSpans/charts';
 import {ScreenLoadSpansTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/table';
+import {ScreenMetricsRibbon} from 'sentry/views/starfish/views/screens/screenMetricsRibbon';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 
 type Query = {
@@ -31,6 +35,7 @@ type Query = {
   spanGroup: string;
   transaction: string;
   [QueryParameterNames.SPANS_SORT]: string;
+  spanDescription?: string;
 };
 
 function ScreenLoadSpans() {
@@ -63,6 +68,7 @@ function ScreenLoadSpans() {
     primaryRelease,
     secondaryRelease,
     transaction: transactionName,
+    spanDescription,
   } = location.query;
 
   return (
@@ -81,13 +87,16 @@ function ScreenLoadSpans() {
               <StarfishPageFiltersContainer>
                 <Container>
                   <PageFilterBar condensed>
-                    <DatePageFilter alignDropdown="left" />
+                    <DatePageFilter />
                   </PageFilterBar>
                   <ReleaseComparisonSelector />
                 </Container>
               </StarfishPageFiltersContainer>
-              <ScreensView
-                yAxes={[YAxis.THROUGHPUT, YAxis.TTID, YAxis.TTFD]}
+              <ScreenMetricsRibbon
+                additionalFilters={[`transaction:${transactionName}`]}
+              />
+              <ScreenCharts
+                yAxes={[YAxis.TTID, YAxis.TTFD]}
                 additionalFilters={[`transaction:${transactionName}`]}
                 chartHeight={120}
               />
@@ -100,6 +109,7 @@ function ScreenLoadSpans() {
                 <SampleList
                   groupId={spanGroup}
                   transactionName={transactionName}
+                  spanDescription={spanDescription}
                   onClose={() => {
                     router.replace({
                       pathname: router.location.pathname,
@@ -126,7 +136,7 @@ const Container = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto;
   gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  padding-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-rows: auto;

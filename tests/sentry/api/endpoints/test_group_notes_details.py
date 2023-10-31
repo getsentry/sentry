@@ -6,11 +6,14 @@ import responses
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration import Integration
+from sentry.notifications.types import GroupSubscriptionReason
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.types.activity import ActivityType
 
 
 @region_silo_test(stable=True)
@@ -54,6 +57,77 @@ class GroupNotesDetailsTest(APITestCase):
         assert not Activity.objects.filter(id=self.activity.id).exists()
 
         assert Group.objects.get(id=self.group.id).num_comments == 0
+
+    def test_delete_with_participants_flag(self):
+        """Test that if a user deletes their comment on an issue, we delete the subscription too"""
+        self.login_as(user=self.user)
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+        group: Group = event.group
+
+        # create a comment
+        comment_url = f"/api/0/issues/{group.id}/comments/"
+        response = self.client.post(comment_url, format="json", data={"text": "hi haters"})
+        assert response.status_code == 201, response.content
+        assert GroupSubscription.objects.filter(
+            group=group,
+            project=group.project,
+            user_id=self.user.id,
+            reason=GroupSubscriptionReason.comment,
+        ).exists()
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.NOTE.value, user_id=self.user.id
+        )
+
+        with self.feature("organizations:participants-purge"):
+            url = f"/api/0/issues/{group.id}/comments/{activity.id}/"
+            response = self.client.delete(url, format="json")
+
+        assert response.status_code == 204, response.status_code
+        assert not GroupSubscription.objects.filter(
+            group=group,
+            project=self.group.project,
+            user_id=self.user.id,
+            reason=GroupSubscriptionReason.comment,
+        ).exists()
+
+    def test_delete_with_participants_flag_multiple_comments(self):
+        """Test that if a user has commented multiple times on an issue and deletes one, we don't remove the subscription"""
+        self.login_as(user=self.user)
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+        group: Group = event.group
+
+        # create a comment
+        comment_url = f"/api/0/issues/{group.id}/comments/"
+        response = self.client.post(comment_url, format="json", data={"text": "hi haters"})
+        assert response.status_code == 201, response.content
+        assert GroupSubscription.objects.filter(
+            group=group,
+            project=group.project,
+            user_id=self.user.id,
+            reason=GroupSubscriptionReason.comment,
+        ).exists()
+
+        # create another comment that we'll delete
+        response = self.client.post(comment_url, format="json", data={"text": "bye haters"})
+        assert response.status_code == 201, response.content
+
+        activity = Activity.objects.filter(
+            group=group, type=ActivityType.NOTE.value, user_id=self.user.id
+        ).first()
+
+        with self.feature("organizations:participants-purge"):
+            url = f"/api/0/issues/{group.id}/comments/{activity.id}/"
+            response = self.client.delete(url, format="json")
+
+        assert response.status_code == 204, response.status_code
+        assert GroupSubscription.objects.filter(
+            group=group,
+            project=self.group.project,
+            user_id=self.user.id,
+            reason=GroupSubscriptionReason.comment,
+        ).exists()
 
     @patch("sentry.integrations.mixins.IssueBasicMixin.update_comment")
     @responses.activate

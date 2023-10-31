@@ -1,17 +1,15 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {forwardRef, Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {FrameCallersTableCell} from 'sentry/components/profiling/flamegraph/flamegraphDrawer/flamegraphDrawer';
-import {FlamegraphTreeTableRow} from 'sentry/components/profiling/flamegraph/flamegraphDrawer/flamegraphTreeTableRow';
+import PerformanceDuration from 'sentry/components/performanceDuration';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {IconArrow} from 'sentry/icons';
+import {IconArrow, IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
-import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
@@ -22,19 +20,312 @@ import {
   useVirtualizedTree,
   UseVirtualizedTreeProps,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import {VirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTree';
 import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 import {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useFlamegraph} from 'sentry/views/profiling/flamegraphProvider';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
-import {FlamegraphTreeContextMenu} from './flamegraphDrawer/flamegraphTreeContextMenu';
+import {AggregateFlamegraphTreeContextMenu} from './aggregateFlamegraphTreeContextMenu';
+
+function computeRelativeWeight(base: number, value: number) {
+  // Make sure we dont divide by zero
+  if (!base || !value) {
+    return 0;
+  }
+  return (value / base) * 100;
+}
+
+const enum FastFrameCallersTableClassNames {
+  ROW = 'FrameCallersRow',
+  CELL = 'FrameCallersTableCell',
+  FRAME_CELL = 'FrameCallersTableCellFrame',
+  WEIGHT = 'FrameCallersTableCellWeight',
+  BACKGROUND_WEIGHT = 'FrameCallersTableCellWeightBar',
+  FRAME_TYPE = 'FrameCallersTableCellFrameType',
+  COLOR_INDICATOR = 'FrameCallersTableCellColorIndicator',
+  EXPAND_BUTTON = 'FrameCallersTableCellExpandButton',
+  GHOST_ROW_CELL = 'FrameCallersTableCellGhostRow',
+  GHOST_ROW_CONTAINER = 'FrameCallersTableCellGhostRowContainer',
+}
+
+interface FastFrameCallersRowsProps {
+  formatDuration: (value: number) => string;
+  frameColor: string;
+  node: VirtualizedTreeNode<FlamegraphFrame>;
+  onExpandClick: (
+    node: VirtualizedTreeNode<FlamegraphFrame>,
+    expand: boolean,
+    opts?: {expandChildren: boolean}
+  ) => void;
+  referenceNode: FlamegraphFrame;
+  tabIndex: number;
+}
+
+interface FastFrameCallerRowProps {
+  children: React.ReactNode;
+  onClick: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
+  onKeyDown: (event: React.KeyboardEvent) => void;
+  onMouseEnter: () => void;
+  tabIndex: number;
+  top: string;
+}
+const FastFrameCallersRow = forwardRef<HTMLDivElement, FastFrameCallerRowProps>(
+  (props, ref) => {
+    return (
+      <div
+        ref={ref}
+        className={FastFrameCallersTableClassNames.ROW}
+        style={{top: props.top}}
+        tabIndex={props.tabIndex}
+        onClick={props.onClick}
+        onKeyDown={props.onKeyDown}
+        onMouseEnter={props.onMouseEnter}
+        onContextMenu={props.onContextMenu}
+      >
+        {props.children}
+      </div>
+    );
+  }
+);
+
+const TEXT_ALIGN_RIGHT: React.CSSProperties = {textAlign: 'right'};
+function FastFrameCallersFixedRows(props: FastFrameCallersRowsProps) {
+  const totalWeight = computeRelativeWeight(
+    props.referenceNode.node.totalWeight,
+    props.node.node.node.totalWeight
+  );
+
+  const totalAggregateDuration = computeRelativeWeight(
+    props.referenceNode.node.aggregate_duration_ns,
+    props.node.node.node.aggregate_duration_ns
+  );
+
+  return (
+    <Fragment>
+      <div className={FastFrameCallersTableClassNames.CELL} style={TEXT_ALIGN_RIGHT}>
+        {props.node.node.node.totalWeight}
+        <div className={FastFrameCallersTableClassNames.WEIGHT}>
+          {totalWeight.toFixed(2)}%
+          <div
+            className={FastFrameCallersTableClassNames.BACKGROUND_WEIGHT}
+            style={{transform: `scaleX(${totalWeight / 100})`}}
+          />
+        </div>
+      </div>
+      <div className={FastFrameCallersTableClassNames.CELL} style={TEXT_ALIGN_RIGHT}>
+        <PerformanceDuration
+          nanoseconds={props.node.node.node.aggregate_duration_ns}
+          abbreviation
+        />
+        <div className={FastFrameCallersTableClassNames.WEIGHT}>
+          {totalAggregateDuration.toFixed(2)}%
+          <div
+            className={FastFrameCallersTableClassNames.BACKGROUND_WEIGHT}
+            style={{transform: `scaleX(${totalAggregateDuration / 100})`}}
+          />
+        </div>
+        <div className={FastFrameCallersTableClassNames.FRAME_TYPE}>
+          {props.node.node.node.frame.is_application ? (
+            <IconUser size="xs" />
+          ) : (
+            <IconSettings size="xs" />
+          )}
+        </div>
+      </div>
+    </Fragment>
+  );
+}
+
+function FastFrameCallersDynamicRows(props: FastFrameCallersRowsProps) {
+  const handleExpanding = (evt: React.MouseEvent) => {
+    evt.stopPropagation();
+    props.onExpandClick(props.node, !props.node.expanded, {
+      expandChildren: evt.metaKey,
+    });
+  };
+
+  return (
+    <div
+      className={FastFrameCallersTableClassNames.FRAME_CELL}
+      style={{paddingLeft: props.node.depth * 14 + 8, width: '100%'}}
+    >
+      <div
+        className={FastFrameCallersTableClassNames.COLOR_INDICATOR}
+        style={{backgroundColor: props.frameColor}}
+      />
+      <button
+        className={FastFrameCallersTableClassNames.EXPAND_BUTTON}
+        style={props.node.expanded ? {transform: 'rotate(90deg)'} : {}}
+        onClick={handleExpanding}
+      >
+        {props.node.node.children.length > 0 ? '\u203A' : null}
+      </button>
+      <div>
+        <div>{props.node.node.frame.name}</div>
+      </div>
+    </div>
+  );
+}
+
+const FrameCallersTable = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin: 0;
+  overflow: auto;
+  max-height: 100%;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: ${p => p.theme.background};
+
+  .${FastFrameCallersTableClassNames.ROW} {
+    display: flex;
+    line-height: 24px;
+    font-size: 12px;
+    position: absolute;
+    width: 100%;
+
+    &:focus {
+      outline: none;
+    }
+
+    &[tabindex='0'] {
+      background: ${p => p.theme.blue300};
+      color: #fff;
+
+      .${FastFrameCallersTableClassNames.WEIGHT} {
+        color: ${p => p.theme.white};
+        opacity: 0.7;
+      }
+
+      .${FastFrameCallersTableClassNames.BACKGROUND_WEIGHT} {
+        background-color: ${props => props.theme.yellow100};
+        border-bottom: 1px solid ${props => props.theme.yellow200};
+      }
+
+      .${FastFrameCallersTableClassNames.FRAME_TYPE} {
+        color: ${p => p.theme.white};
+        opacity: 0.7;
+      }
+    }
+
+    &[data-hovered='true']:not([tabindex='0']) {
+      background: ${p => p.theme.surface200};
+    }
+  }
+
+  .${FastFrameCallersTableClassNames.CELL} {
+    position: relative;
+    width: 164px;
+    border-right: 1px solid ${p => p.theme.border};
+    display: flex;
+    align-items: center;
+    padding-right: ${space(1)};
+    justify-content: flex-end;
+
+    &:nth-child(2) {
+      padding-right: 0;
+    }
+
+    &:focus {
+      outline: none;
+    }
+  }
+
+  .${FastFrameCallersTableClassNames.FRAME_CELL} {
+    display: flex;
+    align-items: center;
+    padding: 0 ${space(1)};
+
+    &:focus {
+      outline: none;
+    }
+  }
+  .${FastFrameCallersTableClassNames.WEIGHT} {
+    display: inline-block;
+    min-width: 7ch;
+    padding-right: 0px;
+    color: ${p => p.theme.subText};
+    opacity: 1;
+  }
+  .${FastFrameCallersTableClassNames.BACKGROUND_WEIGHT} {
+    pointer-events: none;
+    position: absolute;
+    right: 0;
+    top: 0;
+    background-color: ${props => props.theme.yellow100};
+    border-bottom: 1px solid ${props => props.theme.yellow200};
+    transform-origin: center right;
+    height: 100%;
+    width: 100%;
+  }
+
+  .${FastFrameCallersTableClassNames.FRAME_TYPE} {
+    flex-shrink: 0;
+    width: 26px;
+    height: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${p => p.theme.subText};
+    opacity: ${_p => 1};
+  }
+
+  .${FastFrameCallersTableClassNames.COLOR_INDICATOR} {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    display: inline-block;
+    flex-shrink: 0;
+    margin-right: ${space(0.5)};
+  }
+
+  .${FastFrameCallersTableClassNames.EXPAND_BUTTON} {
+    width: 10px;
+    height: 10px;
+    display: flex;
+    flex-shrink: 0;
+    padding: 0;
+    border: none;
+    background-color: transparent;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    transform: rotate(0deg);
+    margin-right: ${space(0.25)};
+  }
+
+  .${FastFrameCallersTableClassNames.GHOST_ROW_CELL} {
+    width: 164px;
+    height: 100%;
+    border-right: 1px solid ${p => p.theme.border};
+    position: absolute;
+    left: 0;
+    top: 0;
+
+    &:nth-child(2) {
+      left: 164px;
+    }
+  }
+
+  .${FastFrameCallersTableClassNames.GHOST_ROW_CONTAINER} {
+    display: flex;
+    width: 100%;
+    pointer-events: none;
+    position: absolute;
+    height: 100%;
+  }
+`;
 
 function makeSortFunction(
-  property: 'total weight' | 'self weight' | 'name',
+  property: 'sample count' | 'duration' | 'name',
   direction: 'asc' | 'desc'
 ) {
-  if (property === 'total weight') {
+  if (property === 'sample count') {
     return direction === 'desc'
       ? (
           a: VirtualizedTreeNode<FlamegraphFrame>,
@@ -50,19 +341,19 @@ function makeSortFunction(
         };
   }
 
-  if (property === 'self weight') {
+  if (property === 'duration') {
     return direction === 'desc'
       ? (
           a: VirtualizedTreeNode<FlamegraphFrame>,
           b: VirtualizedTreeNode<FlamegraphFrame>
         ) => {
-          return b.node.node.selfWeight - a.node.node.selfWeight;
+          return b.node.node.aggregate_duration_ns - a.node.node.aggregate_duration_ns;
         }
       : (
           a: VirtualizedTreeNode<FlamegraphFrame>,
           b: VirtualizedTreeNode<FlamegraphFrame>
         ) => {
-          return a.node.node.selfWeight - b.node.node.selfWeight;
+          return a.node.node.aggregate_duration_ns - b.node.node.aggregate_duration_ns;
         };
   }
 
@@ -99,18 +390,21 @@ interface AggregateFlamegraphTreeTableProps {
 
 export function AggregateFlamegraphTreeTable({
   expanded,
-  canvasPoolManager,
   canvasScheduler,
   recursion,
   frameFilter,
 }: AggregateFlamegraphTreeTableProps) {
   const dispatch = useDispatchFlamegraphState();
-  const {colorCoding} = useFlamegraphPreferences();
   const profiles = useFlamegraphProfiles();
   const profileGroup = useProfileGroup();
   const flamegraph = useFlamegraph();
   const theme = useFlamegraphTheme();
   const referenceNode = flamegraph.root;
+
+  const [treeView, setTreeView] = useLocalStorageState<'bottom up' | 'top down'>(
+    'profiling-aggregate-call-tree-view',
+    'bottom up'
+  );
 
   const rootNodes = useMemo(() => {
     return flamegraph.root.children;
@@ -126,19 +420,22 @@ export function AggregateFlamegraphTreeTable({
     }
 
     const maybeFilteredRoots =
-      frameFilter !== 'all' ? filterFlamegraphTree(rootNodes, skipFunction) : rootNodes;
+      frameFilter === 'all' ? rootNodes : filterFlamegraphTree(rootNodes, skipFunction);
 
+    if (treeView === 'top down') {
+      return maybeFilteredRoots;
+    }
     return invertCallTree(maybeFilteredRoots);
-  }, [frameFilter, rootNodes]);
+  }, [frameFilter, rootNodes, treeView]);
 
   const {colorMap} = useMemo(() => {
     return theme.COLORS.STACK_TO_COLOR(
       flamegraph.frames,
-      theme.COLORS.COLOR_MAPS[colorCoding],
+      theme.COLORS.COLOR_MAPS['by symbol name'],
       theme.COLORS.COLOR_BUCKET,
       theme
     );
-  }, [theme, flamegraph.frames, colorCoding]);
+  }, [theme, flamegraph.frames]);
 
   const getFrameColor = useCallback(
     (frame: FlamegraphFrame) => {
@@ -168,85 +465,98 @@ export function AggregateFlamegraphTreeTable({
     }
   }, [profileGroup, profiles.threadId, dispatch]);
 
-  const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
-    null
-  );
-  const [sort, setSort] = useState<'total weight' | 'self weight' | 'name'>(
-    'total weight'
-  );
+  const [scrollContainerRef, setFixedScrollContainerRef] =
+    useState<HTMLDivElement | null>(null);
+  const [dynamicScrollContainerRef, setDynamicScrollContainerRef] =
+    useState<HTMLDivElement | null>(null);
+  const [sort, setSort] = useState<'sample count' | 'duration' | 'name'>('sample count');
   const [direction, setDirection] = useState<'asc' | 'desc'>('desc');
   const sortFunction = useMemo(() => {
     return makeSortFunction(sort, direction);
   }, [sort, direction]);
 
-  const [clickedContextMenuNode, setClickedContextMenuClose] =
-    useState<VirtualizedTreeNode<FlamegraphFrame> | null>(null);
-  const contextMenu = useContextMenu({container: scrollContainerRef});
-
-  const handleZoomIntoFrameClick = useCallback(() => {
-    if (!clickedContextMenuNode) {
-      return;
-    }
-
-    canvasPoolManager.dispatch('zoom at frame', [clickedContextMenuNode.node, 'exact']);
-    canvasPoolManager.dispatch('highlight frame', [
-      [clickedContextMenuNode.node],
-      'selected',
-    ]);
-  }, [canvasPoolManager, clickedContextMenuNode]);
-
-  const onHighlightAllOccurencesClick = useCallback(() => {
-    if (!clickedContextMenuNode) {
-      return;
-    }
-
-    canvasPoolManager.dispatch('highlight frame', [
-      flamegraph.findAllMatchingFrames(
-        clickedContextMenuNode.node.frame.name,
-        clickedContextMenuNode.node.frame.package ??
-          clickedContextMenuNode.node.frame.module ??
-          ''
-      ),
-      'selected',
-    ]);
-  }, [canvasPoolManager, clickedContextMenuNode, flamegraph]);
-
-  const renderRow: UseVirtualizedTreeProps<FlamegraphFrame>['renderRow'] = useCallback(
-    (
-      r,
-      {
-        handleRowClick,
-        handleRowMouseEnter,
-        handleExpandTreeNode,
-        handleRowKeyDown,
-        selectedNodeIndex,
-      }
-    ) => {
-      return (
-        <FlamegraphTreeTableRow
-          ref={n => {
-            r.ref = n;
-          }}
-          key={r.key}
-          node={r.item}
-          style={r.styles}
-          referenceNode={referenceNode}
-          frameColor={getFrameColor(r.item.node)}
-          formatDuration={flamegraph.formatter}
-          tabIndex={selectedNodeIndex === r.key ? 0 : 1}
-          onClick={handleRowClick}
-          onExpandClick={handleExpandTreeNode}
-          onKeyDown={handleRowKeyDown}
-          onMouseEnter={handleRowMouseEnter}
-          onContextMenu={evt => {
-            setClickedContextMenuClose(r.item);
-            contextMenu.handleContextMenu(evt);
-          }}
-        />
-      );
-    },
-    [contextMenu, referenceNode, flamegraph.formatter, getFrameColor]
+  const [tableParentContainer, setTableParentContainer] = useState<HTMLDivElement | null>(
+    null
   );
+  const contextMenu = useContextMenu({container: tableParentContainer});
+
+  const fixedRenderRow: UseVirtualizedTreeProps<FlamegraphFrame>['renderRow'] =
+    useCallback(
+      (
+        r,
+        {
+          handleRowClick,
+          handleRowMouseEnter,
+          handleExpandTreeNode,
+          handleRowKeyDown,
+          selectedNodeIndex,
+        }
+      ) => {
+        return (
+          <FastFrameCallersRow
+            key={r.key}
+            ref={n => {
+              r.ref = n;
+            }}
+            top={r.styles.top}
+            tabIndex={selectedNodeIndex === r.key ? 0 : 1}
+            onKeyDown={handleRowKeyDown}
+            onClick={handleRowClick}
+            onMouseEnter={handleRowMouseEnter}
+            onContextMenu={contextMenu.handleContextMenu}
+          >
+            <FastFrameCallersFixedRows
+              node={r.item}
+              referenceNode={referenceNode}
+              frameColor={getFrameColor(r.item.node)}
+              formatDuration={flamegraph.formatter}
+              tabIndex={selectedNodeIndex === r.key ? 0 : 1}
+              onExpandClick={handleExpandTreeNode}
+            />
+          </FastFrameCallersRow>
+        );
+      },
+      [referenceNode, flamegraph.formatter, getFrameColor, contextMenu]
+    );
+
+  const dynamicRenderRow: UseVirtualizedTreeProps<FlamegraphFrame>['renderRow'] =
+    useCallback(
+      (
+        r,
+        {
+          handleRowClick,
+          handleRowMouseEnter,
+          handleExpandTreeNode,
+          handleRowKeyDown,
+          selectedNodeIndex,
+        }
+      ) => {
+        return (
+          <FastFrameCallersRow
+            key={r.key}
+            ref={n => {
+              r.ref = n;
+            }}
+            top={r.styles.top}
+            tabIndex={selectedNodeIndex === r.key ? 0 : 1}
+            onKeyDown={handleRowKeyDown}
+            onClick={handleRowClick}
+            onMouseEnter={handleRowMouseEnter}
+            onContextMenu={contextMenu.handleContextMenu}
+          >
+            <FastFrameCallersDynamicRows
+              node={r.item}
+              referenceNode={referenceNode}
+              frameColor={getFrameColor(r.item.node)}
+              formatDuration={flamegraph.formatter}
+              tabIndex={selectedNodeIndex === r.key ? 0 : 1}
+              onExpandClick={handleExpandTreeNode}
+            />
+          </FastFrameCallersRow>
+        );
+      },
+      [referenceNode, flamegraph.formatter, getFrameColor, contextMenu]
+    );
 
   // This is slighlty unfortunate and ugly, but because our two columns are sticky
   // we need to scroll the container to the left when we scroll to a node. This
@@ -256,9 +566,12 @@ export function AggregateFlamegraphTreeTable({
     useCallback(
       (
         node: VirtualizedTreeRenderedRow<FlamegraphFrame> | undefined,
-        scrollContainer: HTMLElement | null,
+        scrollContainer: HTMLElement | HTMLElement[] | null,
         coordinates?: {depth: number; top: number}
       ) => {
+        if (!scrollContainer) {
+          return;
+        }
         if (node) {
           const lastCell = node.ref?.lastChild?.firstChild as
             | HTMLElement
@@ -270,41 +583,73 @@ export function AggregateFlamegraphTreeTable({
             });
 
             const left = -328 + (node.item.depth * 14 + 8);
-            scrollContainer?.scrollBy({
+            if (Array.isArray(scrollContainer)) {
+              scrollContainer.forEach(c => {
+                c.scrollBy({
+                  left,
+                });
+              });
+            } else {
+              scrollContainer.scrollBy({
+                left,
+              });
+            }
+          }
+        } else if (coordinates && scrollContainer) {
+          const left = -328 + (coordinates.depth * 14 + 8);
+
+          if (Array.isArray(scrollContainer)) {
+            scrollContainer.forEach(c => {
+              c.scrollBy({
+                left,
+              });
+            });
+          } else {
+            scrollContainer.scrollBy({
               left,
             });
           }
-        } else if (coordinates) {
-          const left = -328 + (coordinates.depth * 14 + 8);
-          scrollContainer?.scrollBy({
-            left,
-          });
         }
       },
       []
     );
 
+  const virtualizedTree = useMemo(() => {
+    return VirtualizedTree.fromRoots(tree ?? []);
+  }, [tree]);
+
+  const scrollContainers = useMemo(() => {
+    return [scrollContainerRef, dynamicScrollContainerRef].filter(
+      c => !!c
+    ) as HTMLElement[];
+  }, [dynamicScrollContainerRef, scrollContainerRef]);
+
   const {
-    renderedItems,
-    scrollContainerStyles,
-    containerStyles,
+    items: renderItems,
+    scrollContainerStyles: scrollContainerStyles,
+    containerStyles: fixedContainerStyles,
     handleSortingChange,
     handleScrollTo,
-    clickedGhostRowRef,
-    hoveredGhostRowRef,
+    handleExpandTreeNode,
+    handleRowClick,
+    handleRowKeyDown,
+    handleRowMouseEnter,
+    selectedNodeIndex,
+    clickedGhostRowRef: clickedGhostRowRef,
+    hoveredGhostRowRef: hoveredGhostRowRef,
   } = useVirtualizedTree({
     expanded,
     skipFunction: recursion === 'collapsed' ? skipRecursiveNodes : undefined,
     sortFunction,
     onScrollToNode,
-    renderRow,
-    scrollContainer: scrollContainerRef,
+    scrollContainer: scrollContainers,
     rowHeight: 24,
     tree,
+    virtualizedTree,
   });
 
   const onSortChange = useCallback(
-    (newSort: 'total weight' | 'self weight' | 'name') => {
+    (newSort: 'sample count' | 'duration' | 'name') => {
       const newDirection =
         newSort === sort ? (direction === 'asc' ? 'desc' : 'asc') : 'desc';
 
@@ -322,52 +667,64 @@ export function AggregateFlamegraphTreeTable({
       handleScrollTo(el => el.node === frame.node);
     }
 
+    canvasScheduler.on('zoom at frame', onShowInTableView);
     canvasScheduler.on('show in table view', onShowInTableView);
-    return () => canvasScheduler.off('show in table view', onShowInTableView);
+    return () => {
+      canvasScheduler.off('show in table view', onShowInTableView);
+      canvasScheduler.off('zoom at frame', onShowInTableView);
+    };
   }, [canvasScheduler, handleScrollTo]);
+
+  const onSortBySampleCount = useCallback(() => {
+    onSortChange('sample count');
+  }, [onSortChange]);
+
+  const onSortByName = useCallback(() => {
+    onSortChange('name');
+  }, [onSortChange]);
+
+  const onSortByDuration = useCallback(() => {
+    onSortChange('duration');
+  }, [onSortChange]);
 
   return (
     <FrameBar>
       <FrameCallersTable>
         <FrameCallersTableHeader>
           <FrameWeightCell>
-            <TableHeaderButton onClick={() => onSortChange('self weight')}>
+            <TableHeaderButton onClick={onSortBySampleCount}>
               <InteractionStateLayer />
               <span>
-                {t('Self Time')}{' '}
+                {t('Samples')}{' '}
                 <QuestionTooltip
-                  title={t(
-                    'Self time is the amount of time spent by this function excluding the time spent by other functions called within it.'
-                  )}
+                  title={t('How often this frame appeared in stack samples.')}
                   size="sm"
                   position="top"
                 />
               </span>
-              {sort === 'self weight' ? (
+              {sort === 'sample count' ? (
                 <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
               ) : null}
             </TableHeaderButton>
           </FrameWeightCell>
           <FrameWeightCell>
-            <TableHeaderButton onClick={() => onSortChange('total weight')}>
+            <TableHeaderButton onClick={onSortByDuration}>
               <InteractionStateLayer />
               <span>
-                {t('Total Time')}{' '}
+                {t('Duration')}{' '}
                 <QuestionTooltip
-                  title={t(
-                    'Total time is the total amount of time spent by this function.'
-                  )}
+                  title={t('Aggregated duration of this frame across different samples')}
                   size="sm"
                   position="top"
                 />
               </span>
-              {sort === 'total weight' ? (
+              {sort === 'duration' ? (
                 <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
               ) : null}
             </TableHeaderButton>
           </FrameWeightCell>
           <FrameNameCell>
-            <TableHeaderButton onClick={() => onSortChange('name')}>
+            <TableHeaderButton onClick={onSortByName}>
               <InteractionStateLayer />
               {t('Frame')}{' '}
               {sort === 'name' ? (
@@ -376,52 +733,98 @@ export function AggregateFlamegraphTreeTable({
             </TableHeaderButton>
           </FrameNameCell>
         </FrameCallersTableHeader>
-        <FlamegraphTreeContextMenu
-          onZoomIntoFrameClick={handleZoomIntoFrameClick}
-          onHighlightAllFramesClick={onHighlightAllOccurencesClick}
-          contextMenu={contextMenu}
-        />
-        <TableItemsContainer>
-          {/*
+        <AggregateFlamegraphTableContainer ref={setTableParentContainer}>
+          <AggregateFlamegraphTreeContextMenu
+            onBottomUpClick={() => setTreeView('bottom up')}
+            onTopDownClick={() => setTreeView('top down')}
+            contextMenu={contextMenu}
+          />
+          <FixedTableItemsContainer>
+            {/*
           The order of these two matters because we want clicked state to
           be on top of hover in cases where user is hovering a clicked row.
            */}
-          <div ref={hoveredGhostRowRef} />
-          <div ref={clickedGhostRowRef} />
-          <div ref={setScrollContainerRef} style={scrollContainerStyles}>
-            <div style={containerStyles}>
-              {renderedItems}
-              {/*
-              This is a ghost row, we stretch its width and height to fit the entire table
-              so that borders on columns are shown across the entire table and not just the rows.
-              This is useful when number of rows does not fill up the entire table height.
-             */}
-              <GhostRowContainer>
-                <FrameCallersTableCell />
-                <FrameCallersTableCell />
-                <FrameCallersTableCell style={{width: '100%'}} />
-              </GhostRowContainer>
+            <div ref={setFixedScrollContainerRef} style={scrollContainerStyles}>
+              <div style={fixedContainerStyles}>
+                {renderItems.map(r => {
+                  return fixedRenderRow(r, {
+                    handleRowClick: handleRowClick(r.key),
+                    handleRowMouseEnter: handleRowMouseEnter(r.key),
+                    handleExpandTreeNode,
+                    handleRowKeyDown,
+                    selectedNodeIndex,
+                  });
+                })}
+                <div className={FastFrameCallersTableClassNames.GHOST_ROW_CONTAINER}>
+                  <div className={FastFrameCallersTableClassNames.GHOST_ROW_CELL} />
+                  <div className={FastFrameCallersTableClassNames.GHOST_ROW_CELL} />
+                </div>
+              </div>
             </div>
-          </div>
-        </TableItemsContainer>
+          </FixedTableItemsContainer>
+          <DynamicTableItemsContainer>
+            {/*
+          The order of these two matters because we want clicked state to
+          be on top of hover in cases where user is hovering a clicked row.
+           */}
+            <div ref={setDynamicScrollContainerRef} style={scrollContainerStyles}>
+              <div style={fixedContainerStyles}>
+                {renderItems.map(r => {
+                  return dynamicRenderRow(r, {
+                    handleRowClick: handleRowClick(r.key),
+                    handleRowMouseEnter: handleRowMouseEnter(r.key),
+                    handleExpandTreeNode,
+                    handleRowKeyDown,
+                    selectedNodeIndex,
+                  });
+                })}
+              </div>
+            </div>
+          </DynamicTableItemsContainer>
+          <div ref={hoveredGhostRowRef} style={{zIndex: 0}} />
+          <div ref={clickedGhostRowRef} style={{zIndex: 0}} />
+        </AggregateFlamegraphTableContainer>
       </FrameCallersTable>
     </FrameBar>
   );
 }
-const TableItemsContainer = styled('div')`
-  position: relative;
-  height: 100%;
-  overflow: hidden;
-  background: ${p => p.theme.background};
+
+const AggregateFlamegraphTableContainer = styled('div')`
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  right: 0;
 `;
 
-const GhostRowContainer = styled('div')`
-  display: flex;
-  width: 100%;
-  pointer-events: none;
+const FRAME_WEIGHT_CELL_WIDTH_PX = 164;
+const FixedTableItemsContainer = styled('div')`
   position: absolute;
+  left: 0;
+  top: 0;
   height: 100%;
-  z-index: -1;
+  width: ${2 * FRAME_WEIGHT_CELL_WIDTH_PX}px;
+  overflow: hidden;
+  z-index: 1;
+
+  /* Hide scrollbar so we dont end up with double scrollbars */
+  > div {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+`;
+
+const DynamicTableItemsContainer = styled('div')`
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: calc(100% - ${2 * FRAME_WEIGHT_CELL_WIDTH_PX}px);
+  overflow: hidden;
+  z-index: 1;
 `;
 
 const TableHeaderButton = styled('button')`
@@ -451,19 +854,6 @@ const FrameBar = styled('div')`
   grid-area: table;
 `;
 
-const FrameCallersTable = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  margin: 0;
-  overflow: auto;
-  max-height: 100%;
-  height: 100%;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-`;
-
-const FRAME_WEIGHT_CELL_WIDTH_PX = 164;
-
 const FrameWeightCell = styled('div')`
   width: ${FRAME_WEIGHT_CELL_WIDTH_PX}px;
 `;
@@ -475,9 +865,8 @@ const FrameNameCell = styled('div')`
 const FrameCallersTableHeader = styled('div')`
   top: 0;
   position: sticky;
-  z-index: 1;
+  z-index: 2;
   display: flex;
-  flex: 1;
 
   > div {
     position: relative;

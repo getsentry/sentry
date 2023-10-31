@@ -1,3 +1,4 @@
+from collections import namedtuple
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from hashlib import md5
@@ -7,6 +8,7 @@ from unittest.mock import patch
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.issues.grouptype import (
     ErrorGroupType,
+    FeedbackGroup,
     GroupCategory,
     GroupType,
     GroupTypeRegistry,
@@ -27,7 +29,7 @@ from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release, ReleaseProject
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
-from sentry.ratelimits.sliding_windows import Quota
+from sentry.ratelimits.sliding_windows import RequestedQuota
 from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
@@ -207,6 +209,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
             )
 
     def test_rate_limited(self) -> None:
+        MockGranted = namedtuple("MockGranted", ["granted"])
         event = self.store_event(data={}, project_id=self.project.id)
         occurrence = self.build_occurrence()
         group_info = save_issue_from_occurrence(occurrence, event, None)
@@ -215,10 +218,19 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         new_event = self.store_event(data={}, project_id=self.project.id)
         new_occurrence = self.build_occurrence(fingerprint=["another-fingerprint"])
         with mock.patch("sentry.issues.ingest.metrics") as metrics, mock.patch(
-            "sentry.issues.ingest.ISSUE_QUOTA", Quota(3600, 60, 1)
-        ):
+            "sentry.issues.ingest.issue_rate_limiter.check_and_use_quotas",
+            return_value=[MockGranted(granted=False)],
+        ) as check_and_use_quotas:
             assert save_issue_from_occurrence(new_occurrence, new_event, None) is None
             metrics.incr.assert_called_once_with("issues.issue.dropped.rate_limiting")
+            assert check_and_use_quotas.call_count == 1
+            assert check_and_use_quotas.call_args[0][0] == [
+                RequestedQuota(
+                    f"issue-platform-issues:{self.project.id}:{occurrence.type.slug}",
+                    1,
+                    [occurrence.type.creation_quota],
+                )
+            ]
 
     def test_noise_reduction(self) -> None:
         with patch("sentry.issues.grouptype.registry", new=GroupTypeRegistry()):
@@ -321,6 +333,29 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "title": occurrence.issue_title,
             "value": occurrence.subtitle,
             "dogs": "are great",
+        }
+
+    def test_populates_feedback_metadata(self) -> None:
+        occurrence = self.build_occurrence(
+            type=FeedbackGroup.type_id,
+            evidence_data={
+                "contact_email": "test@test.com",
+                "message": "test",
+                "name": "Name Test",
+            },
+        )
+        event = self.store_event(data={}, project_id=self.project.id)
+        event.data.setdefault("metadata", {})
+        event.data["metadata"]["dogs"] = "are great"  # should not get clobbered
+
+        materialized = materialize_metadata(occurrence, event)
+        assert materialized["metadata"] == {
+            "title": occurrence.issue_title,
+            "value": occurrence.subtitle,
+            "dogs": "are great",
+            "contact_email": "test@test.com",
+            "message": "test",
+            "name": "Name Test",
         }
 
 

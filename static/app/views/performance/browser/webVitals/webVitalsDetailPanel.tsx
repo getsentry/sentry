@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 import {Link} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import MarkArea from 'sentry/components/charts/components/markArea';
@@ -14,16 +13,19 @@ import GridEditable, {
   GridColumnOrder,
   GridColumnSortBy,
 } from 'sentry/components/gridEditable';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/formatters';
 import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
+import {WebVitalDescription} from 'sentry/views/performance/browser/webVitals/components/webVitalDescription';
 import {calculateOpportunity} from 'sentry/views/performance/browser/webVitals/utils/calculateOpportunity';
 import {
   calculatePerformanceScore,
@@ -38,7 +40,6 @@ import {
 import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
 import {useProjectWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsValuesTimeseriesQuery';
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionWebVitalsQuery';
-import {WebVitalDescription} from 'sentry/views/performance/browser/webVitals/webVitalsDescriptions/webVitalDescription';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
 type Column = GridColumnHeader;
@@ -62,19 +63,19 @@ export function WebVitalsDetailPanel({
   onClose: () => void;
   webVital: WebVitals | null;
 }) {
+  const organization = useOrganization();
   const location = useLocation();
-  const {projects} = useProjects();
   const theme = useTheme();
   const pageFilters = usePageFilters();
   const router = useRouter();
   const {period, start, end, utc} = pageFilters.selection.datetime;
+  const transaction = location.query.transaction
+    ? Array.isArray(location.query.transaction)
+      ? location.query.transaction[0]
+      : location.query.transaction
+    : undefined;
 
-  const project = useMemo(
-    () => projects.find(p => p.id === String(location.query.project)),
-    [projects, location.query.project]
-  );
-
-  const {data: projectData} = useProjectWebVitalsQuery();
+  const {data: projectData} = useProjectWebVitalsQuery({transaction});
 
   const projectScore = calculatePerformanceScore({
     lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
@@ -85,6 +86,7 @@ export function WebVitalsDetailPanel({
   });
 
   const {data, isLoading} = useTransactionWebVitalsQuery({
+    transaction,
     orderBy: webVital,
     limit: 100,
   });
@@ -109,7 +111,7 @@ export function WebVitalsDetailPanel({
   }, [data, projectData?.data, projectScore, webVital]);
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
-    useProjectWebVitalsValuesTimeseriesQuery();
+    useProjectWebVitalsValuesTimeseriesQuery({transaction});
 
   const webVitalData: LineChartSeries[] = [
     {
@@ -124,6 +126,15 @@ export function WebVitalsDetailPanel({
     },
   ];
 
+  const showPoorMarkLine = webVitalData[0].data?.some(
+    ({value}) => value > PERFORMANCE_SCORE_MEDIANS[webVital ?? '']
+  );
+  const showMehMarkLine = webVitalData[0].data?.some(
+    ({value}) => value >= PERFORMANCE_SCORE_P90S[webVital ?? '']
+  );
+  const showGoodMarkLine = webVitalData[0].data?.every(
+    ({value}) => value < PERFORMANCE_SCORE_P90S[webVital ?? '']
+  );
   const goodMarkArea = MarkArea({
     silent: true,
     itemStyle: {
@@ -185,11 +196,18 @@ export function WebVitalsDetailPanel({
       position: 'insideEndBottom',
       color: theme.green300,
     },
-    data: [
-      {
-        yAxis: PERFORMANCE_SCORE_P90S[webVital ?? ''],
-      },
-    ],
+    data: showGoodMarkLine
+      ? [
+          [
+            {xAxis: 'min', y: 10},
+            {xAxis: 'max', y: 10},
+          ],
+        ]
+      : [
+          {
+            yAxis: PERFORMANCE_SCORE_P90S[webVital ?? ''],
+          },
+        ],
   });
   const mehMarkLine = MarkLine({
     silent: true,
@@ -201,10 +219,35 @@ export function WebVitalsDetailPanel({
       position: 'insideEndBottom',
       color: theme.yellow300,
     },
+    data:
+      showMehMarkLine && !showPoorMarkLine
+        ? [
+            [
+              {xAxis: 'min', y: 10},
+              {xAxis: 'max', y: 10},
+            ],
+          ]
+        : [
+            {
+              yAxis: PERFORMANCE_SCORE_MEDIANS[webVital ?? ''],
+            },
+          ],
+  });
+  const poorMarkLine = MarkLine({
+    silent: true,
+    lineStyle: {
+      color: theme.red300,
+    },
+    label: {
+      formatter: () => 'Poor',
+      position: 'insideEndBottom',
+      color: theme.red300,
+    },
     data: [
-      {
-        yAxis: PERFORMANCE_SCORE_MEDIANS[webVital ?? ''],
-      },
+      [
+        {xAxis: 'min', y: 10},
+        {xAxis: 'max', y: 10},
+      ],
     ],
   });
 
@@ -243,6 +286,15 @@ export function WebVitalsDetailPanel({
     data: [],
   });
 
+  if (showPoorMarkLine) {
+    webVitalData.push({
+      seriesName: '',
+      type: 'line',
+      markLine: poorMarkLine,
+      data: [],
+    });
+  }
+
   const detailKey = webVital;
 
   const renderHeadCell = (col: Column) => {
@@ -255,7 +307,25 @@ export function WebVitalsDetailPanel({
     if (col.key === 'score') {
       return <AlignCenter>{`${webVital} ${col.name}`}</AlignCenter>;
     }
+    if (col.key === 'opportunity') {
+      return (
+        <Tooltip
+          title={t(
+            'The biggest opportunities to improve your cumulative performance score.'
+          )}
+        >
+          <OpportunityHeader>{col.name}</OpportunityHeader>
+        </Tooltip>
+      );
+    }
     return <AlignRight>{col.name}</AlignRight>;
+  };
+
+  const getFormattedDuration = (value: number) => {
+    if (value < 1000) {
+      return getDuration(value / 1000, 0, true);
+    }
+    return getDuration(value / 1000, 2, true);
   };
 
   const renderBodyCell = (col: Column, row: RowWithScore) => {
@@ -270,20 +340,33 @@ export function WebVitalsDetailPanel({
     if (col.key === 'webVital') {
       let value: string | number = row[mapWebVitalToColumn(webVital)];
       if (webVital && ['lcp', 'fcp', 'ttfb', 'fid'].includes(webVital)) {
-        value = getDuration(value / 1000, 2, true);
+        value = getFormattedDuration(value);
       } else if (webVital === 'cls') {
         value = value?.toFixed(2);
       }
       return <AlignRight>{value}</AlignRight>;
     }
     if (key === 'transaction') {
-      const link = `/performance/summary/?${qs.stringify({
-        project: project?.id,
-        transaction: row.transaction,
-      })}`;
       return (
         <NoOverflow>
-          <Link to={link}>{row.transaction}</Link>
+          <Link
+            to={{
+              ...location,
+              ...(organization.features.includes(
+                'starfish-browser-webvitals-pageoverview-v2'
+              )
+                ? {pathname: `${location.pathname}overview/`}
+                : {}),
+              query: {
+                ...location.query,
+                transaction: row.transaction,
+                webVital,
+              },
+            }}
+            onClick={onClose}
+          >
+            {row.transaction}
+          </Link>
         </NoOverflow>
       );
     }
@@ -326,22 +409,32 @@ export function WebVitalsDetailPanel({
                     top: 10,
                     bottom: 0,
                   }}
+                  yAxis={
+                    webVital === 'cls'
+                      ? {}
+                      : {axisLabel: {formatter: getFormattedDuration}}
+                  }
+                  tooltip={
+                    webVital === 'cls' ? {} : {valueFormatter: getFormattedDuration}
+                  }
                 />
               )}
             </ChartZoom>
           )}
         </ChartContainer>
-        <GridEditable
-          data={dataByOpportunity}
-          isLoading={isLoading}
-          columnOrder={columnOrder}
-          columnSortBy={[sort]}
-          grid={{
-            renderHeadCell,
-            renderBodyCell,
-          }}
-          location={location}
-        />
+        {!transaction && (
+          <GridEditable
+            data={dataByOpportunity}
+            isLoading={isLoading}
+            columnOrder={columnOrder}
+            columnSortBy={[sort]}
+            grid={{
+              renderHeadCell,
+              renderBodyCell,
+            }}
+            location={location}
+          />
+        )}
         <PageErrorAlert />
       </DetailPanel>
     </PageErrorProvider>
@@ -384,4 +477,8 @@ const ChartContainer = styled('div')`
 const AlignCenter = styled('span')`
   text-align: center;
   width: 100%;
+`;
+
+const OpportunityHeader = styled('span')`
+  ${p => p.theme.tooltipUnderline()};
 `;

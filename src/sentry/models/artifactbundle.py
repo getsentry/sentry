@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import zipfile
 from enum import Enum
-from typing import IO, Callable, Dict, List, Mapping, Optional, Set, Tuple
+from typing import IO, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 
 import sentry_sdk
 from django.conf import settings
@@ -379,33 +379,11 @@ class ArtifactBundleArchive:
     def get_all_urls(self) -> List[str]:
         return [url for url in self._entries_by_url.keys()]
 
-    def get_all_debug_ids(self) -> List[str]:
-        return list({debug_id for debug_id, _ty in self._entries_by_debug_id.keys()})
+    def get_all_debug_ids(self) -> Sequence[Tuple[str, SourceFileType]]:
+        return self._entries_by_debug_id.keys()
 
     def has_debug_ids(self):
         return len(self._entries_by_debug_id) > 0
-
-    def extract_debug_ids_from_manifest(
-        self,
-    ) -> Set[Tuple[SourceFileType, str]]:
-        # We use a set, since we might have the same debug_id and file_type.
-        debug_ids_with_types = set()
-
-        files = self.manifest.get("files", {})
-        for info in files.values():
-            headers = self.normalize_headers(info.get("headers", {}))
-            if (debug_id := headers.get("debug-id")) is not None:
-                debug_id = self.normalize_debug_id(debug_id)
-                file_type = info.get("type")
-                if (
-                    debug_id is not None
-                    and file_type is not None
-                    and (source_file_type := SourceFileType.from_lowercase_key(file_type))
-                    is not None
-                ):
-                    debug_ids_with_types.add((source_file_type, debug_id))
-
-        return debug_ids_with_types
 
     def extract_bundle_id(self) -> Optional[str]:
         bundle_id = self.manifest.get("debug_id")

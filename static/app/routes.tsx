@@ -1470,6 +1470,30 @@ function buildRoutes() {
       </Route>
     </Fragment>
   );
+  const releaseThresholdRoutes = (
+    <Fragment>
+      {usingCustomerDomain && (
+        <Route
+          path="/release-thresholds/"
+          component={withDomainRequired(NoOp)}
+          key="orgless-release-thresholds-route"
+        >
+          <IndexRoute
+            component={make(() => import('sentry/views/releases/thresholdsList'))}
+          />
+        </Route>
+      )}
+      <Route
+        path="/organizations/:orgId/release-thresholds/"
+        component={withDomainRedirect(NoOp)}
+        key="org-release-thresholds"
+      >
+        <IndexRoute
+          component={make(() => import('sentry/views/releases/thresholdsList'))}
+        />
+      </Route>
+    </Fragment>
+  );
 
   const activityRoutes = (
     <Fragment>
@@ -1623,19 +1647,36 @@ function buildRoutes() {
             )}
           />
         </Route>
-        <Route
-          path="pageloads/"
-          component={make(
-            () =>
-              import('sentry/views/performance/browser/webVitals/webVitalsLandingPage')
-          )}
-        />
-        <Route
-          path="resources/"
-          component={make(
-            () => import('sentry/views/performance/browser/resources/index')
-          )}
-        />
+        <Route path="pageloads/">
+          <IndexRoute
+            component={make(
+              () =>
+                import('sentry/views/performance/browser/webVitals/webVitalsLandingPage')
+            )}
+          />
+          <Route
+            path="overview/"
+            component={make(
+              () => import('sentry/views/performance/browser/webVitals/pageOverview')
+            )}
+          />
+        </Route>
+        <Route path="resources/">
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/performance/browser/resources/index')
+            )}
+          />
+          <Route
+            path="spans/span/:groupId/"
+            component={make(
+              () =>
+                import(
+                  'sentry/views/performance/browser/resources/resourceSummaryPage/index'
+                )
+            )}
+          />
+        </Route>
       </Route>
       <Route path="summary/">
         <IndexRoute
@@ -2281,6 +2322,7 @@ function buildRoutes() {
       {cronsRoutes}
       {replayRoutes}
       {releasesRoutes}
+      {releaseThresholdRoutes}
       {activityRoutes}
       {statsRoutes}
       {discoverRoutes}

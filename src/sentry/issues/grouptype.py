@@ -10,6 +10,7 @@ import sentry_sdk
 
 from sentry import features
 from sentry.features.base import OrganizationFeature
+from sentry.ratelimits.sliding_windows import Quota
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -118,6 +119,10 @@ class GroupType:
     # If True this group type should be released everywhere. If False, fall back to features to
     # decide if this is released.
     released: bool = False
+
+    # Allow automatic resolution of an issue type, using the project-level option.
+    enable_auto_resolve: bool = True
+    creation_quota: Quota = Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
 
     def __init_subclass__(cls: Type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -329,6 +334,7 @@ class PerformanceDurationRegressionGroupType(PerformanceGroupTypeDefaults, Group
     description = "Transaction Duration Regression (Experimental)"
     noise_config = NoiseConfig(ignore_limit=0)
     category = GroupCategory.PERFORMANCE.value
+    enable_auto_resolve = False
 
 
 @dataclass(frozen=True)
@@ -338,6 +344,7 @@ class PerformanceP95DurationRegressionGroupType(PerformanceGroupTypeDefaults, Gr
     description = "Transaction Duration Regression"
     noise_config = NoiseConfig(ignore_limit=0)
     category = GroupCategory.PERFORMANCE.value
+    enable_auto_resolve = False
 
 
 # 2000 was ProfileBlockingFunctionMainThreadType
@@ -426,6 +433,7 @@ class MonitorCheckInFailure(GroupType):
     description = "Monitor Check In Failed"
     category = GroupCategory.CRON.value
     released = True
+    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
 
 
 @dataclass(frozen=True)
@@ -435,6 +443,7 @@ class MonitorCheckInTimeout(GroupType):
     description = "Monitor Check In Timeout"
     category = GroupCategory.CRON.value
     released = True
+    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
 
 
 @dataclass(frozen=True)
@@ -444,6 +453,7 @@ class MonitorCheckInMissed(GroupType):
     description = "Monitor Check In Missed"
     category = GroupCategory.CRON.value
     released = True
+    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
 
 
 @dataclass(frozen=True)
@@ -460,6 +470,7 @@ class FeedbackGroup(GroupType):
     slug = "feedback"
     description = "Feedback"
     category = GroupCategory.FEEDBACK.value
+    creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
 
 
 @metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)

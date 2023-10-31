@@ -85,6 +85,7 @@ MetricOperationType = Literal[
     "p90",
     "p95",
     "p99",
+    "p100",
     "percentage",
     "histogram",
     "rate",
@@ -101,6 +102,8 @@ MetricOperationType = Literal[
     "on_demand_eps",
     "on_demand_failure_count",
     "on_demand_failure_rate",
+    "on_demand_count_web_vitals",
+    "on_demand_user_misery",
 ]
 MetricUnit = Literal[
     "nanosecond",
@@ -275,6 +278,7 @@ OPERATIONS_PERCENTILES = (
     "p90",
     "p95",
     "p99",
+    "p100",
 )
 DERIVED_OPERATIONS = (
     "histogram",
@@ -293,6 +297,8 @@ DERIVED_OPERATIONS = (
     "on_demand_eps",
     "on_demand_failure_count",
     "on_demand_failure_rate",
+    "on_demand_count_web_vitals",
+    "on_demand_user_misery",
 )
 OPERATIONS = (
     (

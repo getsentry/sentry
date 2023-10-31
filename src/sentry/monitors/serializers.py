@@ -18,6 +18,7 @@ class MonitorEnvironmentSerializerResponse(TypedDict):
     dateCreated: datetime
     lastCheckIn: datetime
     nextCheckIn: datetime
+    nextCheckInLatest: datetime
 
 
 @register(MonitorEnvironment)
@@ -26,9 +27,10 @@ class MonitorEnvironmentSerializer(Serializer):
         return {
             "name": obj.environment.name,
             "status": obj.get_status_display(),
+            "dateCreated": obj.monitor.date_added,
             "lastCheckIn": obj.last_checkin,
             "nextCheckIn": obj.next_checkin,
-            "dateCreated": obj.monitor.date_added,
+            "nextCheckInLatest": obj.next_checkin_latest,
         }
 
 

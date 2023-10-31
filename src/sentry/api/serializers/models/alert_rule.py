@@ -70,7 +70,7 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     status: int
     query: str
     aggregate: str
-    timeWindow: str
+    timeWindow: int
     resolution: float
     thresholdPeriod: int
     triggers: List[dict]
@@ -110,9 +110,13 @@ class AlertRuleSerializer(Serializer):
                 "triggers", []
             )
             for action in serialized.get("actions", []):
-                install = sentry_app_installations_by_sentry_app_id.get(
-                    str(action.get("sentryAppId"))
-                )
+                if action is None:
+                    continue
+
+                sentry_app_id = str(action.get("sentryAppId"))
+                install = None
+                if sentry_app_id:
+                    install = sentry_app_installations_by_sentry_app_id.get(sentry_app_id)
                 if install:
                     action["_sentry_app_component"] = install.get("sentry_app_component")
                     action["_sentry_app_installation"] = install.get("sentry_app_installation")

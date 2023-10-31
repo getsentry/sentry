@@ -1,12 +1,18 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
-import * as Sentry from '@sentry/react';
+import {useCallback, useMemo, useState} from 'react';
 
-import {IssueCategory, Organization} from 'sentry/types';
+import {DateString, IssueCategory, Organization} from 'sentry/types';
+import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import toArray from 'sentry/utils/toArray';
-import useApi from 'sentry/utils/useApi';
+
+type DateTime = {
+  end: DateString;
+  start: DateString;
+};
 
 type Options = {
   organization: Organization;
+  datetime?: DateTime;
+  extraConditions?: string;
   groupIds?: string | string[];
   issueCategory?: IssueCategory;
   replayIds?: string | string[];
@@ -21,16 +27,16 @@ function useReplaysCount({
   organization,
   replayIds,
   transactionNames,
+  extraConditions,
+  datetime,
 }: Options) {
-  const api = useApi();
-
-  const [replayCounts, setReplayCounts] = useState<CountState>({});
+  const [lastData, setLastData] = useState<CountState>({});
 
   const filterUnseen = useCallback(
     (ids: string | string[]) => {
-      return toArray(ids).filter(id => !(id in replayCounts));
+      return toArray(ids).filter(id => !(id in lastData));
     },
-    [replayCounts]
+    [lastData]
   );
 
   const zeroCounts = useMemo(() => {
@@ -43,7 +49,7 @@ function useReplaysCount({
     }, {});
   }, [groupIds, replayIds, transactionNames]);
 
-  const query = useMemo(() => {
+  const queryField = useMemo(() => {
     const fieldsProvided = [
       groupIds !== undefined,
       transactionNames !== undefined,
@@ -95,41 +101,68 @@ function useReplaysCount({
     return null;
   }, [filterUnseen, groupIds, replayIds, transactionNames]);
 
-  const fetchReplayCount = useCallback(async () => {
-    let dataSource = 'discover';
-    if (issueCategory && issueCategory === IssueCategory.PERFORMANCE) {
-      dataSource = 'search_issues';
+  const hasSessionReplay = organization.features.includes('session-replay');
+  const {data, isFetched} = useApiQuery<CountState>(
+    makeReplayCountsQueryKey({
+      organization,
+      conditions: [queryField?.conditions ?? '', extraConditions ?? ''],
+      datetime,
+      issueCategory,
+    }),
+    {
+      staleTime: Infinity,
+      enabled: Boolean(queryField) && hasSessionReplay,
     }
+  );
 
-    try {
-      if (!query) {
-        return;
-      }
-      const response = await api.requestPromise(
-        `/organizations/${organization.slug}/replay-count/`,
-        {
-          query: {
-            query: query.conditions,
-            data_source: dataSource,
-            statsPeriod: '14d',
-            project: -1,
-          },
-        }
-      );
-      setReplayCounts({...zeroCounts, ...response});
-    } catch (err) {
-      Sentry.captureException(err);
+  return useMemo(() => {
+    if (isFetched) {
+      const merged = {
+        ...zeroCounts,
+        ...lastData,
+        ...data,
+      };
+      setLastData(merged);
+      return merged;
     }
-  }, [api, organization.slug, query, zeroCounts, issueCategory]);
+    return {
+      ...lastData,
+      ...data,
+    };
+  }, [isFetched, zeroCounts, lastData, data]);
+}
 
-  useEffect(() => {
-    const hasSessionReplay = organization.features.includes('session-replay');
-    if (hasSessionReplay) {
-      fetchReplayCount();
-    }
-  }, [fetchReplayCount, organization]);
+function makeReplayCountsQueryKey({
+  conditions,
+  datetime,
+  issueCategory,
+  organization,
+}: {
+  conditions: string[];
+  datetime: undefined | DateTime;
+  issueCategory: undefined | IssueCategory;
+  organization: Organization;
+}): ApiQueryKey {
+  return [
+    `/organizations/${organization.slug}/replay-count/`,
+    {
+      query: {
+        query: conditions.filter(Boolean).join(' ').trim(),
+        data_source: getDatasource(issueCategory),
+        project: -1,
+        ...(datetime ? {...datetime, statsPeriod: undefined} : {statsPeriod: '14d'}),
+      },
+    },
+  ];
+}
 
-  return replayCounts;
+function getDatasource(issueCategory: undefined | IssueCategory) {
+  switch (issueCategory) {
+    case IssueCategory.PERFORMANCE:
+      return 'search_issues';
+    default:
+      return 'discover';
+  }
 }
 
 export default useReplaysCount;

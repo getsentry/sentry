@@ -355,3 +355,31 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             )
             assert is_escalating(archived_group) == (True, 1)
             logger.error.assert_called_once()
+
+    @freeze_time(datetime(2023, 10, 5, hour=6, minute=6, second=0, microsecond=0))
+    def test_is_escalating_two_weeks(self) -> None:
+        """
+        Test when an archived until escalating issue starts escalating after exactly 2 weeks.
+        This can happen when the previous nodestore forecast hasn't expired yet.
+        """
+        with self.feature("organizations:escalating-issues"):
+            # The group had 6 events in the last hour
+            event = self._create_events_for_group(count=6)
+            assert event.group is not None
+            archived_group = event.group
+            self.archive_until_escalating(archived_group)
+
+            # The escalating forecast for today is 5, thus, it should escalate
+            forecast_values = [5] * 14
+            self.save_mock_escalating_group_forecast(
+                group=archived_group,
+                forecast_values=forecast_values,
+                date_added=datetime(2023, 9, 21),
+            )
+            assert is_escalating(archived_group) == (True, 5)
+
+            # Test cache
+            assert (
+                cache.get(f"hourly-group-count:{archived_group.project.id}:{archived_group.id}")
+                == 6
+            )

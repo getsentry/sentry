@@ -12,6 +12,7 @@ import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import {parseCursor} from 'sentry/utils/cursor';
 import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {Sort} from 'sentry/utils/discover/fields';
@@ -263,7 +264,13 @@ class _TransactionsList extends Component<Props> {
     return generatePerformanceTransactionEventsView?.() ?? this.getEventView();
   }
 
-  renderHeader({numSamples}: {numSamples: number | null | undefined}): React.ReactNode {
+  renderHeader({
+    cursor,
+    numSamples,
+  }: {
+    numSamples: number | null | undefined;
+    cursor?: string | undefined;
+  }): React.ReactNode {
     const {
       organization,
       selected,
@@ -275,7 +282,9 @@ class _TransactionsList extends Component<Props> {
       breakdown,
       eventView,
     } = this.props;
-
+    const cursorOffset = parseCursor(cursor)?.offset ?? 0;
+    numSamples = numSamples ?? null;
+    const totalNumSamples = numSamples === null ? null : numSamples + cursorOffset;
     return (
       <Fragment>
         <div>
@@ -286,14 +295,13 @@ class _TransactionsList extends Component<Props> {
             onChange={opt => handleDropdownChange(opt.value)}
           />
         </div>
-        <div>
+        <InvestigationRuleWrapper>
           <InvestigationRuleCreation
             buttonProps={{size: 'xs'}}
             eventView={eventView}
-            organization={organization}
-            numSamples={numSamples}
+            numSamples={totalNumSamples}
           />
-        </div>
+        </InvestigationRuleWrapper>
         {!this.isTrend() &&
           (handleOpenAllEventsClick ? (
             <GuideAnchor target="release_transactions_open_in_transaction_events">
@@ -391,7 +399,10 @@ class _TransactionsList extends Component<Props> {
             isLoading={isLoading}
             pageLinks={pageLinks}
             tableData={tableData}
-            header={this.renderHeader({numSamples: tableData?.data?.length ?? null})}
+            header={this.renderHeader({
+              numSamples: tableData?.data?.length ?? null,
+              cursor,
+            })}
           />
         )}
       </DiscoverQuery>
@@ -468,6 +479,10 @@ const Header = styled('div')`
 
 const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${space(1)};
+`;
+
+const InvestigationRuleWrapper = styled('div')`
+  margin-right: ${space(1)};
 `;
 
 function TransactionsList(

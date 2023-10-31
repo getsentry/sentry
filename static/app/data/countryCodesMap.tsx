@@ -251,4 +251,8 @@ const countryCodesMap = {
   Mozambique: 'MZ',
 } as const;
 
+export const COUNTRY_CODE_TO_NAME_MAP = Object.fromEntries(
+  Object.entries(countryCodesMap).map(([key, value]) => [value, key])
+);
+
 export default countryCodesMap;

@@ -17,6 +17,18 @@ interface SourceMapDebugBlueThunderResponseFrame {
     source_map_lookup_result: 'found' | 'wrong-dist' | 'unsuccessful';
     source_map_reference: string | null;
   } | null;
+  scraping_process?: {
+    source_file:
+      | {status: 'success'; url: string}
+      | {reason: string; status: 'failure'; url: string; details?: string}
+      | {status: 'not_attempted'; url: string}
+      | null;
+    source_map:
+      | {status: 'success'; url: string}
+      | {reason: string; status: 'failure'; url: string; details?: string}
+      | {status: 'not_attempted'; url: string}
+      | null;
+  };
 }
 
 interface SourceMapDebugBlueThunderResponse {
@@ -31,6 +43,8 @@ interface SourceMapDebugBlueThunderResponse {
   release_has_some_artifact: boolean;
   sdk_debug_id_support: 'not-supported' | 'unofficial-sdk' | 'needs-upgrade' | 'full';
   sdk_version: string | null;
+  has_scraping_data?: boolean;
+  min_debug_id_sdk_version?: string | null;
 }
 
 export function useSourceMapDebuggerData(event: Event, projectSlug: string) {
@@ -96,21 +110,21 @@ function getReleaseProgress(
   return {releaseProgress, releaseProgressPercent: releaseProgress / 4};
 }
 
-function getScrapingProgress() {
-  const scrapingProgress = 0;
+function getScrapingProgress(debuggerFrame: SourceMapDebugBlueThunderResponseFrame) {
+  let scrapingProgress = 0;
 
-  // TODO: Once we have data on scraping uncomment below and add logic to track progress.
+  if (debuggerFrame.scraping_process?.source_file?.status === 'success') {
+    scrapingProgress++;
+  }
 
-  // if (sourceResolutionResults.sourceFileScrapingStatus.status === 'found') {
-  //   scrapingProgress++;
-  // }
-  // if (todo === 'found') {
-  //   // We give this step a relative weight of 4/5ths because this is actually way
-  //   // harder than step 1 and we want do deprioritize this tab over the others
-  //   // because the scraping process comes with a few downsides that aren't immediately
-  //   // obvious.
-  //   scrapingProgress += 4;
-  // }
+  if (debuggerFrame.scraping_process?.source_map?.status === 'success') {
+    // We give this step a relative weight of 4/5ths because this is actually way
+    // harder than step 1 and we want do deprioritize this tab over the others
+    // because the scraping process comes with a few downsides that aren't immediately
+    // obvious.
+    scrapingProgress += 4;
+  }
+
   return {scrapingProgress, scrapingProgressPercent: scrapingProgress / 5};
 }
 
@@ -126,7 +140,7 @@ export function prepareSourceMapDebuggerFrameInformation(
     sourceMapDebuggerData,
     debuggerFrame
   );
-  const {scrapingProgressPercent, scrapingProgress} = getScrapingProgress();
+  const {scrapingProgressPercent, scrapingProgress} = getScrapingProgress(debuggerFrame);
 
   const frameIsResolved =
     debugIdProgressPercent === 1 ||
@@ -145,10 +159,10 @@ export function prepareSourceMapDebuggerFrameInformation(
     sdkDebugIdSupport: sourceMapDebuggerData.sdk_debug_id_support,
     sourceFileReleaseNameFetchingResult:
       debuggerFrame.release_process?.source_file_lookup_result ?? 'unsuccessful',
-    sourceFileScrapingStatus: {status: 'none'},
+    sourceFileScrapingStatus: debuggerFrame.scraping_process?.source_file ?? null,
     sourceMapReleaseNameFetchingResult:
       debuggerFrame.release_process?.source_map_lookup_result ?? 'unsuccessful',
-    sourceMapScrapingStatus: {status: 'none'},
+    sourceMapScrapingStatus: debuggerFrame.scraping_process?.source_map ?? null,
     stackFrameDebugId: debuggerFrame.debug_id_process.debug_id,
     stackFramePath: debuggerFrame.release_process?.abs_path ?? null,
     uploadedSomeArtifactWithDebugId:
@@ -167,5 +181,7 @@ export function prepareSourceMapDebuggerFrameInformation(
     scrapingProgressPercent,
     scrapingProgress,
     frameIsResolved,
+    hasScrapingData: sourceMapDebuggerData.has_scraping_data ?? false,
+    minDebugIdSdkVersion: sourceMapDebuggerData.min_debug_id_sdk_version ?? null,
   } satisfies FrameSourceMapDebuggerData;
 }

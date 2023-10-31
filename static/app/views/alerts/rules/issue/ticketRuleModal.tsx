@@ -20,13 +20,13 @@ type Props = {
   index: number;
   // The AlertRuleAction from DB.
   instance: IssueAlertRuleAction;
+  link: string | null;
   onSubmitAction: (
     data: {[key: string]: string},
     fetchedFieldOptionsCache: Record<string, Choices>
   ) => void;
   organization: Organization;
-  link?: string;
-  ticketType?: string;
+  ticketType: string;
 } & AbstractExternalIssueForm['props'];
 
 type State = {
@@ -179,7 +179,14 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   getErrors() {
     const errors: ExternalIssueFormErrors = {};
     for (const field of this.cleanFields()) {
-      if (field.type === 'select' && field.default) {
+      // If the field is a select and has a default value, make sure that the
+      // default value exists in the choices. Skip check if the default is not
+      // set, an empty string, or an empty array.
+      if (
+        field.type === 'select' &&
+        field.default &&
+        !(Array.isArray(field.default) && !field.default.length)
+      ) {
         const fieldChoices = (field.choices || []) as Choices;
         const found = fieldChoices.find(([value, _]) =>
           Array.isArray(field.default)
@@ -200,17 +207,26 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   renderBodyText = () => {
     // `ticketType` already includes indefinite article.
     const {ticketType, link} = this.props;
-    return (
-      <BodyText>
-        {tct(
-          'When this alert is triggered [ticketType] will be created with the following fields. It will also [linkToDocs] with the new Sentry Issue.',
-          {
-            linkToDocs: <ExternalLink href={link}>{t('stay in sync')}</ExternalLink>,
-            ticketType,
-          }
-        )}
-      </BodyText>
-    );
+
+    let body: React.ReactNode;
+    if (link) {
+      body = tct(
+        'When this alert is triggered [ticketType] will be created with the following fields. It will also [linkToDocs:stay in sync] with the new Sentry Issue.',
+        {
+          linkToDocs: <ExternalLink href={link} />,
+          ticketType,
+        }
+      );
+    } else {
+      body = tct(
+        'When this alert is triggered [ticketType] will be created with the following fields.',
+        {
+          ticketType,
+        }
+      );
+    }
+
+    return <BodyText>{body}</BodyText>;
   };
 
   render() {

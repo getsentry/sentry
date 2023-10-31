@@ -16,12 +16,19 @@ from requests.exceptions import Timeout
 from rest_framework.exceptions import NotFound
 
 from sentry.api.exceptions import RequestTimeout
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.silo.util import (
     PROXY_DIRECT_LOCATION_HEADER,
     clean_outbound_headers,
     clean_proxy_headers,
 )
-from sentry.types.region import Region, RegionResolutionError, get_region_for_organization
+from sentry.types.region import (
+    Region,
+    RegionResolutionError,
+    get_region_by_name,
+    get_region_for_organization,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +83,27 @@ def proxy_request(request: HttpRequest, org_slug: str) -> StreamingHttpResponse:
         region = get_region_for_organization(org_slug)
     except RegionResolutionError as e:
         logger.info("region_resolution_error", extra={"org_slug": org_slug})
+        raise NotFound from e
+
+    return proxy_region_request(request, region)
+
+
+def proxy_sentryappinstallation_request(
+    request: HttpRequest, installation_uuid: str
+) -> StreamingHttpResponse:
+    """Take a django request object and proxy it to a remote location given a sentryapp installation uuid"""
+    try:
+        installation = SentryAppInstallation.objects.get(uuid=installation_uuid)
+    except SentryAppInstallation.DoesNotExist as e:
+        logger.info("region_resolution_error", extra={"installation_uuid": installation_uuid})
+        raise NotFound from e
+    try:
+        organization_mapping = OrganizationMapping.objects.get(
+            organization_id=installation.organization_id
+        )
+        region = get_region_by_name(organization_mapping.region_name)
+    except (RegionResolutionError, OrganizationMapping.DoesNotExist) as e:
+        logger.info("region_resolution_error", extra={"installation_id": installation_uuid})
         raise NotFound from e
 
     return proxy_region_request(request, region)

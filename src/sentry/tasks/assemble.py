@@ -213,8 +213,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     Assembles uploaded chunks into a ``ProjectDebugFile``.
     """
     from sentry.lang.native.sources import record_last_upload
-    from sentry.models import debugfile
-    from sentry.models.debugfile import BadDif
+    from sentry.models.debugfile import BadDif, create_dif_from_id, detect_dif_from_path
     from sentry.models.project import Project
     from sentry.reprocessing import bump_reprocessing_revision
 
@@ -245,9 +244,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
             # We only permit split difs to hit this endpoint.
             # The client is required to split them up first or we error.
             try:
-                result = debugfile.detect_dif_from_path(
-                    temp_file.name, name=name, debug_id=debug_id
-                )
+                result = detect_dif_from_path(temp_file.name, name=name, debug_id=debug_id)
             except BadDif as e:
                 set_assemble_status(
                     AssembleTask.DIF, project_id, checksum, ChunkFileState.ERROR, detail=e.args[0]
@@ -261,7 +258,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
                 )
                 return
 
-            dif, created = debugfile.create_dif_from_id(project, result[0], file=file)
+            dif, created = create_dif_from_id(project, result[0], file=file)
             delete_file = False
 
             if created:
@@ -531,10 +528,6 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
                 if len(project_ids) > 0:
                     self.project_ids = project_ids
 
-        # We want to measure how much time it takes to extract debug ids from manifest.
-        with metrics.timer("tasks.assemble.artifact_bundle.extract_debug_ids"):
-            debug_ids_with_types = self.archive.extract_debug_ids_from_manifest()
-
         bundle_id = self.archive.extract_bundle_id()
         if not bundle_id:
             # In case we didn't find the bundle_id in the manifest, we will just generate our own.
@@ -549,7 +542,7 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
 
         # We don't allow the creation of a bundle if no debug ids and release are present, since we are not able to
         # efficiently index
-        if len(debug_ids_with_types) == 0 and not self.release:
+        if not self.archive.has_debug_ids() and not self.release:
             raise AssembleArtifactsError(
                 "uploading a bundle without debug ids or release is prohibited"
             )
@@ -613,7 +606,7 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
                         source_file_type=source_file_type.value,
                         date_added=date_snapshot,
                     )
-                    for source_file_type, debug_id in debug_ids_with_types
+                    for debug_id, source_file_type in self.archive.get_all_debug_ids()
                 ]
                 DebugIdArtifactBundle.objects.bulk_create(
                     debug_id_to_insert, batch_size=50, ignore_conflicts=True
@@ -634,6 +627,7 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
             # After we committed the transaction we want to try and run indexing by passing non-null release and
             # dist. The dist here can be "" since it will be the equivalent of NULL for the db query.
             self._index_bundle_if_needed(
+                artifact_bundle,
                 release=self.release,
                 dist=(self.dist or NULL_STRING),
                 date_snapshot=date_snapshot,
@@ -720,7 +714,9 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
         ArtifactBundle.objects.filter(Q(id__in=ids), organization_id=self.organization.id).delete()
 
     @sentry_sdk.tracing.trace
-    def _index_bundle_if_needed(self, release: str, dist: str, date_snapshot: datetime):
+    def _index_bundle_if_needed(
+        self, artifact_bundle: ArtifactBundle, release: str, dist: str, date_snapshot: datetime
+    ):
         # We collect how many times we tried to perform indexing.
         metrics.incr("tasks.assemble.artifact_bundle.try_indexing")
 
@@ -765,7 +761,10 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
                 # In case of concurrency issues, we might do extra work but due to the idempotency of the indexing
                 # function no consistency issues should arise.
                 bundles_to_index = [
-                    associated_bundle
+                    (
+                        associated_bundle,
+                        self.archive if associated_bundle.id == artifact_bundle.id else None,
+                    )
                     for associated_bundle in associated_bundles
                     if associated_bundle.indexing_state
                     == ArtifactBundleIndexingState.NOT_INDEXED.value
@@ -776,8 +775,6 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
                     index_artifact_bundles_for_release(
                         organization_id=self.organization.id,
                         artifact_bundles=bundles_to_index,
-                        release=release,
-                        dist=dist,
                     )
             except Exception as e:
                 # We want to capture any exception happening during indexing, since it's crucial to understand if

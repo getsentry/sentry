@@ -19,7 +19,6 @@ from sentry.testutils.silo import no_silo_test
 from sentry.utils import json
 
 FEATURES = {
-    "projects:performance-suspect-spans-ingestion": True,
     "organizations:performance-n-plus-one-api-calls-detector": True,
 }
 

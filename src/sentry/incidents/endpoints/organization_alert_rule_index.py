@@ -177,14 +177,22 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 team_filter_query = team_filter_query | Q(owner_id=None)
 
         alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
-        if not features.has("organizations:performance-view", organization):
-            # Filter to only error alert rules
-            alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
         issue_rules = Rule.objects.filter(
             status__in=[ObjectStatus.ACTIVE, ObjectStatus.DISABLED],
             source__in=[RuleSource.ISSUE],
             project__in=projects,
         )
+
+        if not features.has("organizations:performance-view", organization):
+            # Filter to only error alert rules
+            alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
+        else:
+            datasets = request.GET.getlist("dataset", [])
+            if len(datasets) > 0:
+                alert_rules = alert_rules.filter(snuba_query__dataset__in=datasets)
+                if Dataset.Events.value not in datasets:
+                    issue_rules = Rule.objects.none()
+
         name = request.GET.get("name", None)
         if name:
             alert_rules = alert_rules.filter(Q(name__icontains=name))
@@ -346,7 +354,7 @@ Metric alert rule trigger actions follow the following structure:
     queryType = serializers.ChoiceField(
         required=False,
         choices=((0, "event.type:error"), (1, "event.type:transaction"), (2, "None")),
-        help_text="The `SnubaQuery.Type` of the query. If no value is provided, `queryType` is set to the default for the specified `dataset.` See [Metric Alert Rule Types](#metric-alert-rule-types) for valid configurations.",
+        help_text="The type of query. If no value is provided, `queryType` is set to the default for the specified `dataset.` See [Metric Alert Rule Types](#metric-alert-rule-types) for valid configurations.",
     )
     eventTypes = serializers.ListField(
         child=serializers.CharField(),

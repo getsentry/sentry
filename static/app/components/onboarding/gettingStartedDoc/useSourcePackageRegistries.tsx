@@ -4,7 +4,7 @@ import {Organization} from 'sentry/types';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-type ReleaseRegistrySdk = Record<
+export type ReleaseRegistrySdk = Record<
   string,
   {
     canonical: string;

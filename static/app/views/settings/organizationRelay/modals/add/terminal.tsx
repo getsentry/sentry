@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {space} from 'sentry/styles/space';
 
 type Props = {
@@ -7,27 +8,18 @@ type Props = {
 };
 
 function Terminal({command}: Props) {
-  return (
-    <Wrapper>
-      <Prompt>{'\u0024'}</Prompt>
-      {command}
-    </Wrapper>
-  );
+  return <StyledCodeSnippet language="bash">{command}</StyledCodeSnippet>;
 }
 
 export default Terminal;
 
-const Wrapper = styled('div')`
-  background: ${p => p.theme.gray500};
-  padding: ${space(1.5)} ${space(3)};
-  font-family: ${p => p.theme.text.familyMono};
-  color: ${p => p.theme.white};
-  border-radius: ${p => p.theme.borderRadius};
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${space(0.75)};
-`;
-
-const Prompt = styled('div')`
-  color: ${p => p.theme.gray300};
+const StyledCodeSnippet = styled(CodeSnippet)`
+  padding-left: ${space(2)};
+  &:before {
+    content: '\u0024';
+    position: absolute;
+    padding-top: ${space(1)};
+    color: var(--prism-comment);
+    font-size: ${p => p.theme.codeFontSize};
+  }
 `;

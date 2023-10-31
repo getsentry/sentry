@@ -360,12 +360,12 @@ class User(BaseModel, AbstractBaseUser):
             # NOTE: This could, become calls to identity_service.delete_ide
             for ai in AuthIdentity.objects.filter(
                 user=from_user,
-                auth_provider__organization_id__in=AuthIdentity.objects.filter(user=to_user).values(
-                    "auth_provider__organization_id"
-                ),
+                auth_provider__organization_id__in=AuthIdentity.objects.filter(
+                    user_id=to_user.id
+                ).values("auth_provider__organization_id"),
             ):
                 ai.delete()
-            for ai in AuthIdentity.objects.filter(user=from_user):
+            for ai in AuthIdentity.objects.filter(user_id=from_user.id):
                 ai.update(user=to_user)
 
     def set_password(self, raw_password):
@@ -403,22 +403,29 @@ class User(BaseModel, AbstractBaseUser):
         if old_pk is None:
             return None
 
-        # New users are always unclaimed.
-        self.is_unclaimed = True
-
-        # Give the user a cryptographically secure random password. The purpose here is to have a
-        # password that NO ONE knows - the only way to log into this account is to use the "claim
-        # your account" flow to create a new password (or to click "lost password" and end up there
-        # anyway), at which point we'll detect the user's `is_unclaimed`` status and prompt them to
-        # change their `username` as well.
-        self.set_password(
-            "".join(secrets.choice(RANDOM_PASSWORD_ALPHABET) for _ in range(RANDOM_PASSWORD_LENGTH))
-        )
-
+        # Importing in any scope besides `Global` (which does a naive, blanket restore of all data)
+        # and `Config` (which is explicitly meant to import admin accounts) should strip all
+        # incoming users of their admin privileges.
         if scope not in {ImportScope.Config, ImportScope.Global}:
             self.is_staff = False
             self.is_superuser = False
             self.is_managed = False
+
+        # No need to mark users newly "unclaimed" when doing a global backup/restore.
+        if scope != ImportScope.Global or self.is_unclaimed:
+            # New users are marked unclaimed.
+            self.is_unclaimed = True
+
+            # Give the user a cryptographically secure random password. The purpose here is to have
+            # a password that NO ONE knows - the only way to log into this account is to use the
+            # "claim your account" flow to create a new password (or to click "lost password" and
+            # end up there anyway), at which point we'll detect the user's `is_unclaimed` status and
+            # prompt them to change their `username` as well.
+            self.set_password(
+                "".join(
+                    secrets.choice(RANDOM_PASSWORD_ALPHABET) for _ in range(RANDOM_PASSWORD_LENGTH)
+                )
+            )
 
         return old_pk
 
@@ -445,14 +452,14 @@ class User(BaseModel, AbstractBaseUser):
 
             self.save(force_insert=True)
 
-            # TODO(getsentry/team-ospo#190): the following is an RPC call which could fail for
-            # transient reasons (network etc). How do we handle that?
-            lost_password_hash_service.get_or_create(user_id=self.id)
+            if scope != ImportScope.Global:
+                # TODO(getsentry/team-ospo#190): the following is an RPC call which could fail for
+                # transient reasons (network etc). How do we handle that?
+                lost_password_hash_service.get_or_create(user_id=self.id)
 
             # TODO(getsentry/team-ospo#191): we need to send an email informing the user of their
             # new account with a resettable password - we'll need to figure out where in the process
             # that actually goes, and how to prevent it from happening during the validation pass.
-
             return (self.pk, ImportKind.Inserted)
 
         # If there is no existing user with this `username`, no special renaming or merging

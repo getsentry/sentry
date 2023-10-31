@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
+import VisualMap from 'sentry/components/charts/components/visualMap';
 import {
   LineChart as EchartsLineChart,
   LineChartProps,
@@ -15,14 +16,7 @@ import {
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import useRouter from 'sentry/utils/useRouter';
 import {transformEventStats} from 'sentry/views/performance/trends/chart';
-import {
-  NormalizedTrendsTransaction,
-  TrendChangeType,
-} from 'sentry/views/performance/trends/types';
-import {
-  transformEventStatsSmoothed,
-  trendToColor,
-} from 'sentry/views/performance/trends/utils';
+import {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 import {getIntervalLine} from 'sentry/views/performance/utils';
 
 interface ChartProps {
@@ -37,48 +31,19 @@ function LineChart({statsData, evidenceData, start, end, chartLabel}: ChartProps
   const theme = useTheme();
   const router = useRouter();
 
-  const results = transformEventStats(statsData, chartLabel);
-  const {smoothedResults, minValue, maxValue} = transformEventStatsSmoothed(
-    results,
-    chartLabel
-  );
-
-  const yMax = Math.max(
-    maxValue,
-    evidenceData?.aggregate_range_2 || 0,
-    evidenceData?.aggregate_range_1 || 0
-  );
-  const yMin = Math.min(
-    minValue,
-    evidenceData?.aggregate_range_1 || Number.MAX_SAFE_INTEGER,
-    evidenceData?.aggregate_range_2 || Number.MAX_SAFE_INTEGER
-  );
-
-  const smoothedSeries = smoothedResults
-    ? smoothedResults.map(values => {
-        return {
-          ...values,
-          color: trendToColor[TrendChangeType.REGRESSION].default,
-          lineStyle: {
-            opacity: 1,
-          },
-        };
-      })
-    : [];
+  const resultSeries = transformEventStats(statsData, chartLabel);
 
   const needsLabel = true;
   const intervalSeries = getIntervalLine(
     theme,
-    smoothedResults || [],
+    resultSeries || [],
     0.5,
     needsLabel,
     evidenceData,
     true
   );
 
-  const yDiff = yMax - yMin;
-  const yMargin = yDiff * 0.1;
-  const series = [...smoothedSeries, ...intervalSeries];
+  const series = [...resultSeries, ...intervalSeries];
 
   const durationUnit = getDurationUnit(series);
 
@@ -89,8 +54,6 @@ function LineChart({statsData, evidenceData, start, end, chartLabel}: ChartProps
       },
     },
     yAxis: {
-      min: Math.max(0, yMin - yMargin),
-      max: yMax + yMargin,
       minInterval: durationUnit,
       axisLabel: {
         color: theme.chartLabel,
@@ -117,8 +80,30 @@ function LineChart({statsData, evidenceData, start, end, chartLabel}: ChartProps
             grid={{
               left: '10px',
               right: '10px',
-              top: '40px',
+              top: '20px',
               bottom: '0px',
+            }}
+            options={{
+              visualMap: VisualMap({
+                show: false,
+                type: 'piecewise',
+                selectedMode: false,
+                dimension: 0,
+                pieces: [
+                  {
+                    gte: 0,
+                    lt: evidenceData?.breakpoint ? evidenceData.breakpoint * 1000 : 0,
+                    color: theme.gray500,
+                  },
+                  {
+                    gte: evidenceData?.breakpoint ? evidenceData.breakpoint * 1000 : 0,
+                    color: theme.red300,
+                  },
+                ],
+              }),
+            }}
+            xAxis={{
+              type: 'time',
             }}
           />
         );
