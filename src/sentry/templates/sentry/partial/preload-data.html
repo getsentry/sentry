@@ -1,11 +1,18 @@
+{% load sentry_assets %}
+
+{% script %}
 <script type="text/javascript">
-  try {
+  function __preloadData() {
+    if (!window.__initialData.user) {
+      // Don't send requests if there is no logged in user.
+      return;
+    }
     var slug = window.__initialData.lastOrganization;
     if (!slug && window.__initialData.customerDomain) {
       slug = window.__initialData.customerDomain.subdomain;
     }
     var host = '';
-    if (window.__initialData.links && window.__initialData.links.regionUrl) {
+    if (window.__initialData.links && window.__initialData.links.regionUrl !== window.__initialData.links.sentryUrl) {
       var host = window.__initialData.links.regionUrl;
     }
 
@@ -41,5 +48,10 @@
       makeUrl('/projects/?all_projects=1&collapse=latestDeploys')
     );
     preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
+  }
+
+  try {
+    __preloadData();
   } catch (_) {}
 </script>
+{% endscript %}

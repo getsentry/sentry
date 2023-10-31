@@ -61,13 +61,17 @@ function promiseRequest(url: string): Promise<any> {
 }
 
 function preloadOrganizationData(config: Config) {
+  if (!config.user) {
+    // Don't send requests if there is no logged in user.
+    return;
+  }
   let slug = config.lastOrganization;
   if (!slug && config.customerDomain) {
     slug = config.customerDomain.subdomain;
   }
 
   let host = '';
-  if (config.links?.regionUrl) {
+  if (config.links?.regionUrl && config.links?.regionUrl !== config.links?.sentryUrl) {
     host = config.links.regionUrl;
   }
   // When running in 'dev-ui' mode we need to use /region/$region instead of
