@@ -33,6 +33,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   similarIssues: {enabled: false},
   tags: {enabled: true},
   userFeedback: {enabled: false},
+  discover: {enabled: true},
   evidence: {title: t('Evidence')},
   resources: null,
   usesIssuePlatform: true,
