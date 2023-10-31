@@ -1453,6 +1453,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:profiling-beta": False,
     # Enables production profiling in sentry browser application
     "organizations:profiling-browser": False,
+    # Enables differential flamegraph in profiling
+    "organizations:profiling-differential-flamegraph": False,
     # Enable stacktrace linking of multiple frames in profiles
     "organizations:profiling-stacktrace-links": False,
     # Enable global suspect functions in profiling
