@@ -164,7 +164,10 @@ function ReleaseThresholdList({}: Props) {
           router={router}
           hasV2ReleaseUIEnabled
           newThresholdAction={createNewThresholdGroup}
-          newThresholdDisabled={selection.projects.length !== 1}
+          newThresholdDisabled={
+            selection.projects.length !== 1 ||
+            selection.projects.includes(ALL_ACCESS_PROJECTS)
+          }
         />
         <Layout.Body>
           <Layout.Main fullWidth>

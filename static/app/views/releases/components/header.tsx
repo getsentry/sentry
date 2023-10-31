@@ -85,8 +85,9 @@ function Header({
               priority="primary"
               onClick={newThresholdAction}
               disabled={newThresholdDisabled}
+              icon={<IconAdd isCircled />}
             >
-              <IconAdd isCircled /> &nbsp; {t('New Threshold')}
+              {t('New Threshold')}
             </Button>
           </Tooltip>
         </Layout.HeaderActions>
