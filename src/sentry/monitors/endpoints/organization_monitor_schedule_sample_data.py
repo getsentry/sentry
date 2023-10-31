@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime
+from typing import cast
 
 from croniter import croniter
 from dateutil import rrule
@@ -12,6 +15,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.monitors.schedule import SCHEDULE_INTERVAL_MAP
+from sentry.monitors.types import IntervalUnit
 
 
 @region_silo_endpoint
@@ -45,7 +49,7 @@ class OrganizationMonitorScheduleSampleDataEndpoint(OrganizationEndpoint):
                 return Response(ticks, status=400)
 
             rule = rrule.rrule(
-                freq=SCHEDULE_INTERVAL_MAP[unit],
+                freq=SCHEDULE_INTERVAL_MAP[cast(IntervalUnit, unit)],
                 interval=interval,
                 dtstart=reference_ts,
                 count=num_ticks,
