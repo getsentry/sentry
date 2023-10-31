@@ -160,7 +160,6 @@ function useCreateInvestigationRuleMutation(vars: CreateCustomRuleVariables) {
 }
 
 const InvestigationInProgressNotification = styled('span')`
-  margin: ${space(1.5)};
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.subText};
   font-weight: 600;
@@ -236,7 +235,7 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
             }
           )}
         >
-          <IconQuestion size="xs" color="subText" />
+          <StyledIconQuestion size="sm" color="subText" />
         </Tooltip>
       </InvestigationInProgressNotification>
     );
@@ -274,3 +273,8 @@ export function InvestigationRuleCreation(props: Props) {
     </Feature>
   );
 }
+
+const StyledIconQuestion = styled(IconQuestion)`
+  position: relative;
+  top: 2px;
+`;
