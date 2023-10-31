@@ -23,6 +23,7 @@ import {EventFunctionRegressionEvidence} from 'sentry/components/events/eventSta
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
 import RegressionMessage from 'sentry/components/events/eventStatisticalDetector/regressionMessage';
 import EventSpanOpBreakdown from 'sentry/components/events/eventStatisticalDetector/spanOpBreakdown';
+import TransactionFrequencyChart from 'sentry/components/events/eventStatisticalDetector/transactionFrequencyChart';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
@@ -199,6 +200,9 @@ function PerformanceDurationRegressionIssueDetailsContent({
         <RegressionMessage event={event} group={group} />
         <ErrorBoundary mini>
           <EventBreakpointChart event={event} />
+        </ErrorBoundary>
+        <ErrorBoundary mini>
+          <TransactionFrequencyChart event={event} />
         </ErrorBoundary>
         <ErrorBoundary mini>
           <EventSpanOpBreakdown event={event} />
