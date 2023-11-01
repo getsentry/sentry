@@ -3771,6 +3771,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
                 date_from=self.base_datetime,
                 date_to=self.base_datetime + timedelta(days=10),
             )
+            assert group_info is not None
             assert list(results) == [group_info.group]
 
 
