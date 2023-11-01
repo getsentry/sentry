@@ -198,15 +198,14 @@ export function PagePerformanceTable() {
     return <NoOverflow>{row[key]}</NoOverflow>;
   }
 
+  const handleSearch = query => {
+    setSearch(query === '' ? undefined : `*${query}*`);
+  };
+
   return (
     <span>
       <SearchBarContainer>
-        <SearchBar
-          placeholder={t('Search for Pages')}
-          onSearch={query => {
-            setSearch(query === '' ? undefined : `*${query}*`);
-          }}
-        />
+        <SearchBar placeholder={t('Search for Pages')} onSearch={handleSearch} />
       </SearchBarContainer>
       <GridContainer>
         <GridEditable
