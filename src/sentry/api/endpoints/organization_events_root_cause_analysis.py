@@ -53,7 +53,7 @@ def init_query_builder(params, transaction, regression_breakpoint, limit, span_s
         params=params,
         selected_columns=selected_columns,
         equations=[],
-        query=f"event.type:transaction transaction:{transaction}",
+        query=f'event.type:transaction transaction:"{transaction}"',
         limit=limit,
         config=QueryBuilderConfig(
             auto_aggregations=True,
