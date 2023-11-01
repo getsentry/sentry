@@ -24,10 +24,10 @@ import useUrlParams from 'sentry/utils/useUrlParams';
 
 interface Props {
   checked: string[];
-  toggleChecked: (id: string) => void;
+  uncheckAll: (ids: string[]) => void;
 }
 
-export default function FeedbackListHeader({checked, toggleChecked}: Props) {
+export default function FeedbackListHeader({checked, uncheckAll}: Props) {
   const {mailbox} = useLocationQuery({
     fields: {
       mailbox: decodeMailbox,
@@ -40,11 +40,11 @@ export default function FeedbackListHeader({checked, toggleChecked}: Props) {
       <Checkbox
         checked={checked.length ? 'indeterminate' : false}
         onChange={() => {
-          checked.length ? checked.forEach(c => toggleChecked(c)) : null;
+          checked.length ? uncheckAll(checked) : null;
         }}
       />
       {checked.length ? (
-        <HasSelection checked={checked} mailbox={mailbox} />
+        <HasSelection checked={checked} mailbox={mailbox} uncheckAll={uncheckAll} />
       ) : (
         <MailboxPicker value={mailbox} onChange={setMailbox} />
       )}
@@ -52,7 +52,7 @@ export default function FeedbackListHeader({checked, toggleChecked}: Props) {
   );
 }
 
-function HasSelection({checked, mailbox}) {
+function HasSelection({checked, mailbox, uncheckAll}) {
   const organization = useOrganization();
   const {markAsRead, resolve} = useMutateFeedback({
     feedbackIds: checked,
@@ -81,6 +81,7 @@ function HasSelection({checked, mailbox}) {
               const newStatus =
                 mailbox === 'resolved' ? GroupStatus.UNRESOLVED : GroupStatus.RESOLVED;
               resolve(newStatus, mutationOptions);
+              uncheckAll(checked);
             }}
           >
             {mailbox === 'resolved' ? t('Unresolve') : t('Resolve')}

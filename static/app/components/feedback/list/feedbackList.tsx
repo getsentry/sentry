@@ -43,7 +43,7 @@ export default function FeedbackList() {
   const {setParamValue} = useUrlParams('query');
   const clearSearchTerm = () => setParamValue('');
 
-  const {checked, toggleChecked} = useListItemCheckboxState();
+  const {checked, uncheckAll, toggleChecked} = useListItemCheckboxState();
 
   const listRef = useRef<ReactVirtualizedList>(null);
 
@@ -87,7 +87,7 @@ export default function FeedbackList() {
 
   return (
     <Fragment>
-      <FeedbackListHeader checked={checked} toggleChecked={toggleChecked} />
+      <FeedbackListHeader checked={checked} uncheckAll={uncheckAll} />
       <OverflowPanelItem noPadding>
         <InfiniteLoader
           isRowLoaded={isRowLoaded}
