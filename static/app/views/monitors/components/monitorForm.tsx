@@ -28,7 +28,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {crontabAsText} from 'sentry/views/monitors/utils';
+import {crontabAsText, getScheduleIntervals} from 'sentry/views/monitors/utils';
 
 import {
   IntervalConfig,
@@ -60,15 +60,6 @@ export const DEFAULT_CHECKIN_MARGIN = 1;
 const CHECKIN_MARGIN_MINIMUM = 1;
 const TIMEOUT_MINIMUM = 1;
 
-export const getIntervals = (n: number): SelectValue<string>[] => [
-  {value: 'minute', label: tn('minute', 'minutes', n)},
-  {value: 'hour', label: tn('hour', 'hours', n)},
-  {value: 'day', label: tn('day', 'days', n)},
-  {value: 'week', label: tn('week', 'weeks', n)},
-  {value: 'month', label: tn('month', 'months', n)},
-  {value: 'year', label: tn('year', 'years', n)},
-];
-
 type Props = {
   apiEndpoint: string;
   apiMethod: FormProps['apiMethod'];
@@ -85,7 +76,7 @@ interface TransformedData extends Partial<Omit<Monitor, 'config' | 'alertRule'>>
 /**
  * Transform sub-fields for what the API expects
  */
-export function transformData(_data: Record<string, any>, model: FormModel) {
+export function transformMonitorFormData(_data: Record<string, any>, model: FormModel) {
   const schedType = model.getValue('config.schedule_type');
   // Remove interval fields if the monitor schedule is crontab
   const filteredFields = model.fields
@@ -158,7 +149,7 @@ export function transformData(_data: Record<string, any>, model: FormModel) {
 /**
  * Transform config field errors from the error response
  */
-export function mapFormErrors(responseJson?: any) {
+export function mapMonitorFormErrors(responseJson?: any) {
   if (responseJson.config === undefined) {
     return responseJson;
   }
@@ -179,7 +170,12 @@ function MonitorForm({
   apiMethod,
   onSubmitSuccess,
 }: Props) {
-  const form = useRef(new FormModel({transformData, mapFormErrors}));
+  const form = useRef(
+    new FormModel({
+      transformData: transformMonitorFormData,
+      mapFormErrors: mapMonitorFormErrors,
+    })
+  );
   const organization = useOrganization();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
@@ -368,7 +364,7 @@ function MonitorForm({
                     />
                     <StyledSelectField
                       name="config.schedule.interval"
-                      options={getIntervals(
+                      options={getScheduleIntervals(
                         Number(form.current.getValue('config.schedule.frequency') ?? 1)
                       )}
                       defaultValue="day"

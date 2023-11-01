@@ -24,19 +24,23 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
   DEFAULT_CRONTAB,
   DEFAULT_MONITOR_TYPE,
-  getIntervals,
-  mapFormErrors,
-  transformData,
+  mapMonitorFormErrors,
+  transformMonitorFormData,
 } from 'sentry/views/monitors/components/monitorForm';
 import {Monitor, ScheduleType} from 'sentry/views/monitors/types';
-import {crontabAsText} from 'sentry/views/monitors/utils';
+import {crontabAsText, getScheduleIntervals} from 'sentry/views/monitors/utils';
 
 export default function MonitorCreateForm() {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
 
-  const form = useRef(new FormModel({transformData, mapFormErrors}));
+  const form = useRef(
+    new FormModel({
+      transformData: transformMonitorFormData,
+      mapFormErrors: mapMonitorFormErrors,
+    })
+  );
 
   const selectedProjectId = selection.projects[0];
   const selectedProject = selectedProjectId
@@ -105,7 +109,7 @@ export default function MonitorCreateForm() {
                     onClick={() => changeScheduleType(ScheduleType.CRONTAB)}
                   >
                     <PanelBody withPadding>
-                      <ScheduleLabel>Crontab Schedule</ScheduleLabel>
+                      <ScheduleLabel>{t('Crontab Schedule')}</ScheduleLabel>
                       <MultiColumnInput columns="1fr 1fr">
                         <StyledTextField
                           name="config.schedule"
@@ -133,7 +137,7 @@ export default function MonitorCreateForm() {
                     onClick={() => changeScheduleType(ScheduleType.INTERVAL)}
                   >
                     <PanelBody withPadding>
-                      <ScheduleLabel>Interval Schedule</ScheduleLabel>
+                      <ScheduleLabel>{t('Interval Schedule')}</ScheduleLabel>
                       <MultiColumnInput columns="auto 1fr 2fr">
                         <Label>{t('Every')}</Label>
                         <StyledNumberField
@@ -146,7 +150,7 @@ export default function MonitorCreateForm() {
                         />
                         <StyledSelectField
                           name="config.schedule.interval"
-                          options={getIntervals(
+                          options={getScheduleIntervals(
                             Number(
                               form.current.getValue('config.schedule.frequency') ?? 1
                             )
