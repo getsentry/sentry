@@ -11,7 +11,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import MailboxPicker from 'sentry/components/feedback/list/mailboxPicker';
-import useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
+import type useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
@@ -26,26 +26,22 @@ import useUrlParams from 'sentry/utils/useUrlParams';
 interface Props
   extends Pick<
     ReturnType<typeof useListItemCheckboxState>,
-    'checkAll' | 'state' | 'uncheckAll'
+    | 'countSelected'
+    | 'deselectAll'
+    | 'isAllSelected'
+    | 'isAnySelected'
+    | 'selectAll'
+    | 'selectedIds'
   > {}
 
-function checkboxStateToChecked(
-  state: ReturnType<typeof useListItemCheckboxState>['state']
-) {
-  if ('all' in state) {
-    return true;
-  }
-
-  if (state.ids.size === 0) {
-    return false;
-  }
-  if (state.ids.size === state.total) {
-    return true;
-  }
-  return 'indeterminate';
-}
-
-export default function FeedbackListHeader({checkAll, state, uncheckAll}: Props) {
+export default function FeedbackListHeader({
+  countSelected,
+  deselectAll,
+  isAllSelected,
+  isAnySelected,
+  selectAll,
+  selectedIds,
+}: Props) {
   const {mailbox} = useLocationQuery({
     fields: {
       mailbox: decodeMailbox,
@@ -53,21 +49,25 @@ export default function FeedbackListHeader({checkAll, state, uncheckAll}: Props)
   });
   const {setParamValue: setMailbox} = useUrlParams('mailbox');
 
-  const checked = checkboxStateToChecked(state);
   return (
     <HeaderPanelItem>
       <Checkbox
-        checked={checked}
+        checked={isAllSelected}
         onChange={() => {
-          if (checked === true) {
-            uncheckAll();
+          if (isAllSelected === true) {
+            deselectAll();
           } else {
-            checkAll();
+            selectAll();
           }
         }}
       />
-      {'all' in state || state.ids.size ? (
-        <HasSelection mailbox={mailbox} state={state} uncheckAll={uncheckAll} />
+      {isAnySelected ? (
+        <HasSelection
+          mailbox={mailbox}
+          countSelected={countSelected}
+          selectedIds={selectedIds}
+          deselectAll={deselectAll}
+        />
       ) : (
         <MailboxPicker value={mailbox} onChange={setMailbox} />
       )}
@@ -75,15 +75,23 @@ export default function FeedbackListHeader({checkAll, state, uncheckAll}: Props)
   );
 }
 
-interface SelectionProps
-  extends Pick<ReturnType<typeof useListItemCheckboxState>, 'state' | 'uncheckAll'> {
+interface HasSelectionProps
+  extends Pick<
+    ReturnType<typeof useListItemCheckboxState>,
+    'countSelected' | 'selectedIds' | 'deselectAll'
+  > {
   mailbox: ReturnType<typeof decodeMailbox>;
 }
 
-function HasSelection({mailbox, state, uncheckAll}: SelectionProps) {
+function HasSelection({
+  mailbox,
+  countSelected,
+  selectedIds,
+  deselectAll,
+}: HasSelectionProps) {
   const organization = useOrganization();
   const {markAsRead, resolve} = useMutateFeedback({
-    feedbackIds: 'all' in state ? 'all' : Array.from(state.ids),
+    feedbackIds: selectedIds,
     organization,
   });
 
@@ -100,8 +108,8 @@ function HasSelection({mailbox, state, uncheckAll}: SelectionProps) {
     <Flex gap={space(1)} align="center" justify="space-between" style={{flexGrow: 1}}>
       <span>
         <strong>
-          {tct('[count] Selected', {
-            count: 'all' in state ? state.total : state.ids.size,
+          {tct('[countSelected] Selected', {
+            countSelected,
           })}
         </strong>
       </span>
@@ -113,7 +121,7 @@ function HasSelection({mailbox, state, uncheckAll}: SelectionProps) {
               const newStatus =
                 mailbox === 'resolved' ? GroupStatus.UNRESOLVED : GroupStatus.RESOLVED;
               resolve(newStatus, mutationOptions);
-              uncheckAll();
+              deselectAll();
             }}
           >
             {mailbox === 'resolved' ? t('Unresolve') : t('Resolve')}

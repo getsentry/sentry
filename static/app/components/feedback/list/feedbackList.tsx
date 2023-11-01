@@ -44,8 +44,10 @@ export default function FeedbackList() {
   const {setParamValue} = useUrlParams('query');
   const clearSearchTerm = () => setParamValue('');
 
-  const {checkAll, isChecked, state, toggleChecked, uncheckAll} =
-    useListItemCheckboxState({hits, knownIds: issues.map(issue => issue.id)});
+  const checkboxState = useListItemCheckboxState({
+    hits,
+    knownIds: issues.map(issue => issue.id),
+  });
 
   const listRef = useRef<ReactVirtualizedList>(null);
 
@@ -77,11 +79,11 @@ export default function FeedbackList() {
       >
         <FeedbackListItem
           feedbackItem={item}
-          style={style}
-          isChecked={'all' in state ? 'all-checked' : isChecked(item.id)}
-          onChecked={() => {
-            toggleChecked(item.id);
+          isSelected={checkboxState.isSelected(item.id)}
+          onSelect={() => {
+            checkboxState.toggleSelected(item.id);
           }}
+          style={style}
         />
       </CellMeasurer>
     );
@@ -89,7 +91,7 @@ export default function FeedbackList() {
 
   return (
     <Fragment>
-      <FeedbackListHeader checkAll={checkAll} state={state} uncheckAll={uncheckAll} />
+      <FeedbackListHeader {...checkboxState} />
       <OverflowPanelItem noPadding>
         <InfiniteLoader
           isRowLoaded={isRowLoaded}
