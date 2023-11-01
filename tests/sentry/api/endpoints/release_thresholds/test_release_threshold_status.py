@@ -43,6 +43,10 @@ class ReleaseThresholdStatusTest(APITestCase):
         self.release2 = Release.objects.create(version="v2", organization=self.organization)
         self.release2.add_project(self.project1)
 
+        # release created for proj3
+        self.release3 = Release.objects.create(version="v3", organization=self.organization)
+        self.release3.add_project(self.project3)
+
         # Not sure what Release Environments are for...
         # project superfluous/deprecated in ReleaseEnvironment
         # probably attaches the release to a particular environment?
@@ -116,6 +120,15 @@ class ReleaseThresholdStatusTest(APITestCase):
             project=self.project2,
             environment=self.canary_environment,
         )
+        # threshold for project3 with no environment
+        # NOTE: project 3 is also the only project for which a release was created with NO environment
+        ReleaseThreshold.objects.create(
+            threshold_type=ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            trigger_type=1,
+            value=100,
+            window_in_seconds=100,
+            project=self.project3,
+        )
 
         self.login_as(user=self.user)
 
@@ -124,17 +137,19 @@ class ReleaseThresholdStatusTest(APITestCase):
         Tests fetching all thresholds (env+project agnostic) within the past 24hrs.
 
         Set up creates
-        - 2 releases
+        - 3 releases
             - release1 - canary # env only matters for how we filter releases
                 - r1-proj1-canary # NOTE: is it possible to have a ReleaseProjectEnvironment without a corresponding ReleaseEnvironment??
                 - r1-proj2-canary
             - release2 - prod # env only matters for how we filter releases
                 - r2-proj1-prod
+            - release3 - None
         - 4 thresholds
             - project1 canary error_counts
             - project1 canary new_issues
             - project1 prod error_counts
             - project2 canary error_counts
+            - project3 no environment error_counts
 
         so response should look like
         {
@@ -143,6 +158,7 @@ class ReleaseThresholdStatusTest(APITestCase):
             {p2.id}-{canary}-{release1.version}: [threshold]
             {p1.id}-{prod}-{release2.version}: [threshold, threshold]
             {p1.id}-{prod}-{release2.version}: [threshold]
+            {p1.id}-None-{release3.version}: [threshold]
         }
         """
         now = str(datetime.now())
@@ -154,7 +170,7 @@ class ReleaseThresholdStatusTest(APITestCase):
 
         response = self.get_success_response(self.organization.slug, start=yesterday, end=now)
 
-        assert len(response.data.keys()) == 5
+        assert len(response.data.keys()) == 6
         for key in response.data.keys():
             # NOTE: special characters *can* be included in release versions or environment names
             assert release_old.version not in key  # old release is filtered out of response
@@ -180,6 +196,12 @@ class ReleaseThresholdStatusTest(APITestCase):
         assert len(data[temp_key]) == 2
         temp_key = f"{self.project1.id}-{self.production_environment.name}-{self.release2.version}"
         assert temp_key in r2_keys
+        assert len(data[temp_key]) == 1
+        # release3
+        r3_keys = [k for k, v in data.items() if k.split("-")[2] == self.release3.version]
+        assert len(r3_keys) == 1  # 1 key produced in release 3 (p1-None)
+        temp_key = f"{self.project3.id}-None-{self.release3.version}"
+        assert temp_key in r3_keys
         assert len(data[temp_key]) == 1
 
     def test_get_success_environment_filter(self):
@@ -225,9 +247,9 @@ class ReleaseThresholdStatusTest(APITestCase):
         assert temp_key in r1_keys
         assert len(data[temp_key]) == 1
 
-    def test_get_success_release_id_filter(self):
+    def test_get_success_release_filter(self):
         """
-        Tests fetching thresholds within the past 24hrs filtered on release_id's
+        Tests fetching thresholds within the past 24hrs filtered on release versions
 
         Set up creates
         - 2 releases
@@ -252,7 +274,7 @@ class ReleaseThresholdStatusTest(APITestCase):
         now = str(datetime.now())
         yesterday = str(datetime.now() - timedelta(hours=24))
         response = self.get_success_response(
-            self.organization.slug, start=yesterday, end=now, release_id=[self.release1.id]
+            self.organization.slug, start=yesterday, end=now, release=[self.release1.version]
         )
 
         assert len(response.data.keys()) == 3
