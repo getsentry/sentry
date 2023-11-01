@@ -47,13 +47,14 @@ type Column = GridColumnHeader<keyof Row>;
 
 type Props = {
   sort: ValidSort;
+  defaultResourceTypes?: string[];
 };
 
-function ResourceTable({sort}: Props) {
+function ResourceTable({sort, defaultResourceTypes}: Props) {
   const location = useLocation();
   const {data, isLoading, pageLinks} = useResourcesQuery({
     sort,
-    defaultResourceTypes: ['resource.script', 'resource.css'],
+    defaultResourceTypes,
   });
 
   const columnOrder: GridColumnOrder<keyof Row>[] = [

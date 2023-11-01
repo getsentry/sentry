@@ -20,6 +20,7 @@ export const EMPTY_INFINITE_LIST_DATA: ReturnType<
   isRowLoaded: () => false,
   issues: [],
   loadMoreRows: () => Promise.resolve(),
+  hits: 0,
 };
 
 export default function useFetchFeedbackInfiniteListData() {
@@ -57,6 +58,12 @@ export default function useFetchFeedbackInfiniteListData() {
     [hasNextPage, isFetching, fetchNextPage]
   );
 
+  const hits = useMemo(
+    () =>
+      data?.pages.map(([, , resp]) => Number(resp?.getResponseHeader('X-Hits'))) ?? [],
+    [data]
+  );
+
   return {
     error,
     hasNextPage,
@@ -70,5 +77,6 @@ export default function useFetchFeedbackInfiniteListData() {
     isRowLoaded,
     issues,
     loadMoreRows,
+    hits: Math.max(...hits),
   };
 }
