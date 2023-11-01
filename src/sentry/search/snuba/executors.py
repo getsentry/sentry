@@ -337,7 +337,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 orderby=orderby,
             ),
         )
-
         strategy = get_search_strategies(referrer)[group_category]
         snuba_query_params = strategy(
             pinned_query_partial,
@@ -380,7 +379,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             * the count of total results (rows) available for this query.
         """
         filters = {"project_id": project_ids}
-
         environments = None
         if environment_ids is not None:
             filters["environment"] = environment_ids

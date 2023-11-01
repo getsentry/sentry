@@ -220,7 +220,6 @@ def _query_params_for_generic(
         if categories is None:
             logging.error("Category is required in _query_params_for_generic")
             return None
-
         category_ids = {gc.value for gc in categories}
         if referrer != "api.feedback_index":
             category_ids.discard(GroupCategory.FEEDBACK.value)
