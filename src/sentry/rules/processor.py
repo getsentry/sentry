@@ -66,7 +66,10 @@ class RuleProcessor:
         has_reappeared: bool,
     ) -> None:
         self.event = event
-        self.group = event.group
+        if event.group:
+            self.group = event.group
+        else:
+            raise Exception("Group not found on event")
         self.project = event.project
 
         self.is_new = is_new
@@ -310,7 +313,7 @@ class RuleProcessor:
         self,
     ) -> Collection[Tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], List[RuleFuture]]]:
         # we should only apply rules on unresolved issues
-        if not self.event.group.is_unresolved():
+        if self.event.group and not self.event.group.is_unresolved():
             return {}.values()
 
         self.grouped_futures.clear()

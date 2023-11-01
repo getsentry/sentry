@@ -68,7 +68,7 @@ class GroupOwner(Model):
         )
     )
     context: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
-    user_id: models.Field[Optional[int]] = HybridCloudForeignKey(
+    user_id: models.Field[Optional[int], Optional[int]] = HybridCloudForeignKey(
         settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True
     )
     team = FlexibleForeignKey("sentry.Team", null=True)

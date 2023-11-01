@@ -729,7 +729,7 @@ def update_event_groups(event: Event, group_states: Optional[GroupStates] = None
     from sentry.models.group import get_group_with_redirect
 
     # event.group_id can be None in the case of transaction events
-    if event.group_id is not None and event.group:
+    if event.group_id is not None:
         # deprecated event.group and event.group_id usage, kept here for backwards compatibility
         event.group, _ = get_group_with_redirect(event.group_id)
         if event.group:
