@@ -7,6 +7,7 @@ import {Event} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
+import {transformEventStats} from 'sentry/views/performance/trends/chart';
 import {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 
 type EventFunctionBreakpointChartProps = {
@@ -52,7 +53,7 @@ type EventFunctionBreakpointChartInnerProps = {
   fingerprint: number;
 };
 
-const SERIES = 'p95()';
+const SERIES = ['p95()', 'count()'];
 
 function EventFunctionBreakpointChartInner({
   breakpoint,
@@ -69,17 +70,57 @@ function EventFunctionBreakpointChartInner({
     datetime,
     query: `fingerprint:${fingerprint}`,
     referrer: 'api.profiling.functions.regression.stats',
-    yAxes: [SERIES],
+    yAxes: SERIES,
   });
 
-  const series = useMemo(() => {
-    const rawData = functionStats?.data?.data?.find(({axis}) => axis === SERIES);
+  const p95Series = useMemo(() => {
+    const rawData = functionStats?.data?.data?.find(({axis}) => axis === 'p95()');
     const timestamps = functionStats?.data?.timestamps;
-    if (!rawData || !timestamps) {
+    if (!timestamps) {
       return [];
     }
+    return transformEventStats(
+      timestamps.map((timestamp, i) => [timestamp, [{count: rawData.values[i]}]]),
+      'p95()'
+    );
+  }, [functionStats]);
 
-    return timestamps.map((timestamp, i) => [timestamp, [{count: rawData.values[i]}]]);
+  const throughputSeries = useMemo(() => {
+    const rawData = functionStats?.data?.data?.find(({axis}) => axis === 'count()');
+    const timestamps = functionStats?.data?.timestamps;
+    if (!timestamps) {
+      return undefined;
+    }
+
+    const bucketSize = 12 * 60 * 60;
+
+    const bucketedData = timestamps.reduce((acc, timestamp, idx) => {
+      const bucket = Math.floor(timestamp / bucketSize) * bucketSize;
+      const prev = acc[acc.length - 1];
+      const value = rawData.values[idx];
+
+      if (prev?.bucket === bucket) {
+        prev.value += value;
+        prev.end = timestamp;
+        prev.count += 1;
+      } else {
+        acc.push({bucket, value, start: timestamp, end: timestamp, count: 1});
+      }
+      return acc;
+    }, []);
+
+    return transformEventStats(
+      bucketedData.map(data => [
+        data.bucket,
+        [
+          {
+            count:
+              data.value / (((data.end - data.start) / (data.count - 1)) * data.count),
+          },
+        ],
+      ]),
+      'throughput()'
+    )[0];
   }, [functionStats]);
 
   const normalizedOccurrenceEvent = {
@@ -91,11 +132,11 @@ function EventFunctionBreakpointChartInner({
   return (
     <DataSection>
       <Chart
-        statsData={series}
+        percentileSeries={p95Series}
+        throughputSeries={throughputSeries}
         evidenceData={normalizedOccurrenceEvent}
         start={(datetime.start as Date).toISOString()}
         end={(datetime.end as Date).toISOString()}
-        chartLabel={SERIES}
       />
     </DataSection>
   );
