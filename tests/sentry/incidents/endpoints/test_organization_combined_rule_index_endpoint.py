@@ -905,6 +905,10 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             self.assert_alert_rule_serialized(
                 transaction_rule, transactions_res.data[0], skip_dates=True
             )
+            events_res = self.get_success_response(
+                self.organization.slug, dataset=[Dataset.Events.value]
+            )
+            self.assert_alert_rule_serialized(events_rule, events_res.data[0], skip_dates=True)
 
         with self.feature("organizations:incidents"):
             # without performance-view, we should only see events rules

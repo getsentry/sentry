@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from datetime import datetime, timedelta
 from time import time
 from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union
@@ -31,7 +32,7 @@ from sentry.utils.locking.manager import LockManager
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
-from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig
+from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig, SdkName
 from sentry.utils.services import build_instance_from_options
 
 if TYPE_CHECKING:
@@ -891,6 +892,12 @@ def process_replay_link(job: PostProcessJob) -> None:
     if not replay_id:
         return
 
+    # Validate the UUID.
+    try:
+        uuid.UUID(replay_id)
+    except (ValueError, TypeError):
+        return None
+
     metrics.incr("post_process.process_replay_link.id_exists")
 
     publisher = initialize_replays_publisher(is_async=True)
@@ -1186,7 +1193,7 @@ def sdk_crash_monitoring(job: PostProcessJob):
         return None
 
     cocoa_config = SDKCrashDetectionConfig(
-        sdk_name="cocoa", project_id=cocoa_project_id, sample_rate=cocoa_sample_rate
+        sdk_name=SdkName.Cocoa, project_id=cocoa_project_id, sample_rate=cocoa_sample_rate
     )
 
     with metrics.timer("post_process.sdk_crash_monitoring.duration"):

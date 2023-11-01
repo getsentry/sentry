@@ -7,6 +7,8 @@ import GridEditable, {
   GridColumnHeader,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
+import Pagination from 'sentry/components/pagination';
+import {t} from 'sentry/locale';
 import {RateUnits} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
@@ -15,6 +17,7 @@ import {useResourceSummarySort} from 'sentry/views/performance/browser/resources
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
+import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
 type Row = {
   'avg(http.response_content_length)': number;
@@ -29,24 +32,24 @@ function ResourceSummaryTable() {
   const location = useLocation();
   const {groupId} = useParams();
   const sort = useResourceSummarySort();
-  const {data, isLoading} = useResourcePagesQuery(groupId, {sort});
+  const {data, isLoading, pageLinks} = useResourcePagesQuery(groupId, {sort});
 
   const columnOrder: GridColumnOrder<keyof Row>[] = [
     {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Found on page'},
     {
       key: 'spm()',
       width: COL_WIDTH_UNDEFINED,
-      name: 'Throughput',
+      name: getThroughputTitle('http'),
     },
     {
       key: 'avg(span.self_time)',
       width: COL_WIDTH_UNDEFINED,
-      name: 'Avg Duration',
+      name: t('Avg Duration'),
     },
     {
       key: 'avg(http.response_content_length)',
       width: COL_WIDTH_UNDEFINED,
-      name: 'Avg Resource Size',
+      name: DataTitles['avg(http.response_content_length)'],
     },
   ];
 
@@ -102,6 +105,7 @@ function ResourceSummaryTable() {
         }}
         location={location}
       />
+      <Pagination pageLinks={pageLinks} />
     </Fragment>
   );
 }
