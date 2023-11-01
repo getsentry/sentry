@@ -23,8 +23,8 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 interface Props {
   feedbackItem: FeedbackIssue;
-  isChecked: boolean;
-  onChecked: (isChecked: boolean) => void;
+  isSelected: 'all-selected' | boolean;
+  onSelect: (isSelected: boolean) => void;
   className?: string;
   style?: CSSProperties;
 }
@@ -38,15 +38,15 @@ function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssue}) {
 }
 
 const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
-  ({className, feedbackItem, isChecked, onChecked, style}: Props, ref) => {
+  ({className, feedbackItem, isSelected, onSelect, style}: Props, ref) => {
     const organization = useOrganization();
-    const isSelected = useIsSelectedFeedback({feedbackItem});
+    const isOpen = useIsSelectedFeedback({feedbackItem});
     const hasReplayId = useFeedbackHasReplayId({feedbackId: feedbackItem.id});
 
     return (
       <CardSpacing className={className} style={style} ref={ref}>
         <LinkedFeedbackCard
-          data-selected={isSelected}
+          data-selected={isOpen}
           to={() => {
             const location = browserHistory.getCurrentLocation();
             return {
@@ -65,8 +65,9 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
           <InteractionStateLayer />
           <Flex column style={{gridArea: 'checkbox'}}>
             <Checkbox
-              checked={isChecked}
-              onChange={e => onChecked(e.target.checked)}
+              disabled={isSelected === 'all-selected'}
+              checked={isSelected !== false}
+              onChange={e => onSelect(e.target.checked)}
               onClick={e => e.stopPropagation()}
             />
           </Flex>
@@ -83,7 +84,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
           </span>
           <Flex justify="center" style={{gridArea: 'unread'}}>
             {feedbackItem.hasSeen ? null : (
-              <IconCircleFill size="xs" color={isSelected ? 'white' : 'purple400'} />
+              <IconCircleFill size="xs" color={isOpen ? 'white' : 'purple400'} />
             )}
           </Flex>
           <div style={{gridArea: 'message'}}>
