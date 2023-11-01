@@ -44,6 +44,7 @@ function promiseRequest(url: string): Promise<any> {
   return new Promise(function (resolve, reject) {
     const xhr = new XMLHttpRequest();
     xhr.open('GET', url);
+    xhr.withCredentials = true;
     xhr.onload = function () {
       try {
         this.status >= 200 && this.status < 300
