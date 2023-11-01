@@ -106,9 +106,7 @@ function SpanSummaryPage({params}: Props) {
   useSynchronizeCharts([!areSpanMetricsSeriesLoading]);
 
   const spanMetricsThroughputSeries = {
-    seriesName: span?.[SpanMetricsField.SPAN_OP]?.startsWith('db')
-      ? 'Queries'
-      : 'Requests',
+    seriesName: t('Queries'),
     data: spanMetricsSeriesData?.['spm()'].data,
   };
 
