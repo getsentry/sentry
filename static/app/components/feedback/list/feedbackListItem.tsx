@@ -93,7 +93,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
           </div>
           <div style={{gridArea: 'assigned', display: 'flex', justifyContent: 'end'}}>
             {feedbackItem.assignedTo ? (
-              <ActorAvatar actor={feedbackItem.assignedTo} />
+              <ActorAvatar actor={feedbackItem.assignedTo} size={16} />
             ) : null}
           </div>
           <Flex style={{gridArea: 'icons'}} gap={space(1)} align="center">
