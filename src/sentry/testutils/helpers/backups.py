@@ -550,7 +550,10 @@ class BackupTestCase(TransactionTestCase):
         # Api*
         ApiAuthorization.objects.create(application=app.application, user=owner)
         ApiToken.objects.create(
-            application=app.application, user=owner, token=uuid4().hex, expires_at=None
+            application=app.application,
+            user=owner,
+            expires_at=None,
+            name="create_exhaustive_sentry_app",
         )
         ApiGrant.objects.create(
             user=owner,
@@ -583,7 +586,9 @@ class BackupTestCase(TransactionTestCase):
         self.create_exhaustive_global_configs_regional()
         ControlOption.objects.create(key="bar", value="b")
         ApiAuthorization.objects.create(user=owner)
-        ApiToken.objects.create(user=owner, token=uuid4().hex, expires_at=None)
+        ApiToken.objects.create(
+            user=owner, expires_at=None, name="create_exhaustive_global_configs"
+        )
 
     @assume_test_silo_mode(SiloMode.REGION)
     def create_exhaustive_global_configs_regional(self):

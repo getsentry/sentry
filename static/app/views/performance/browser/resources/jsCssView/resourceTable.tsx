@@ -1,7 +1,5 @@
 import {Fragment} from 'react';
-import {Link} from 'react-router';
 
-import FileSize from 'sentry/components/fileSize';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
@@ -11,15 +9,24 @@ import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {RateUnits} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import ResourceSize from 'sentry/views/performance/browser/resources/shared/resourceSize';
 import {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {useResourcesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
+import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
+import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
-const {SPAN_DESCRIPTION, SPAN_OP, SPAN_SELF_TIME, HTTP_RESPONSE_CONTENT_LENGTH} =
-  SpanMetricsField;
+const {
+  SPAN_DESCRIPTION,
+  SPAN_OP,
+  SPAN_SELF_TIME,
+  HTTP_RESPONSE_CONTENT_LENGTH,
+  PROJECT_ID,
+  SPAN_GROUP,
+} = SpanMetricsField;
 
 const {SPM} = SpanFunction;
 
@@ -27,6 +34,7 @@ type Row = {
   'avg(http.response_content_length)': number;
   'avg(span.self_time)': number;
   'http.decoded_response_content_length': number;
+  'project.id': number;
   'resource.render_blocking_status': string;
   'span.description': string;
   'span.domain': string;
@@ -39,28 +47,29 @@ type Column = GridColumnHeader<keyof Row>;
 
 type Props = {
   sort: ValidSort;
+  defaultResourceTypes?: string[];
 };
 
-function ResourceTable({sort}: Props) {
+function ResourceTable({sort, defaultResourceTypes}: Props) {
   const location = useLocation();
   const {data, isLoading, pageLinks} = useResourcesQuery({
     sort,
-    defaultResourceTypes: ['resource.script', 'resource.css'],
+    defaultResourceTypes,
   });
 
   const columnOrder: GridColumnOrder<keyof Row>[] = [
-    {key: SPAN_DESCRIPTION, width: COL_WIDTH_UNDEFINED, name: 'Resource name'},
-    {key: SPAN_OP, width: COL_WIDTH_UNDEFINED, name: 'Type'},
-    {key: `avg(${SPAN_SELF_TIME})`, width: COL_WIDTH_UNDEFINED, name: 'Avg Duration'},
+    {key: SPAN_DESCRIPTION, width: COL_WIDTH_UNDEFINED, name: t('Resource Description')},
+    {key: SPAN_OP, width: COL_WIDTH_UNDEFINED, name: t('Type')},
+    {key: `avg(${SPAN_SELF_TIME})`, width: COL_WIDTH_UNDEFINED, name: DataTitles.avg},
     {
       key: `${SPM}()`,
       width: COL_WIDTH_UNDEFINED,
-      name: t('Throughput'),
+      name: getThroughputTitle('http'),
     },
     {
       key: `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
       width: COL_WIDTH_UNDEFINED,
-      name: t('Avg Resource size'),
+      name: DataTitles['avg(http.response_content_length)'],
     },
   ];
   const tableData: Row[] = data.length
@@ -76,16 +85,19 @@ function ResourceTable({sort}: Props) {
     const {key} = col;
     if (key === SPAN_DESCRIPTION) {
       return (
-        <Link to={`/performance/browser/resources/resource/${row['span.group']}`}>
-          {row[key]}
-        </Link>
+        <SpanDescriptionCell
+          moduleName={ModuleName.HTTP}
+          projectId={row[PROJECT_ID]}
+          description={row[SPAN_DESCRIPTION]}
+          group={row[SPAN_GROUP]}
+        />
       );
     }
     if (key === 'spm()') {
       return <ThroughputCell rate={row[key] * 60} unit={RateUnits.PER_SECOND} />;
     }
     if (key === 'avg(http.response_content_length)') {
-      return <FileSize bytes={row[key]} />;
+      return <ResourceSize bytes={row[key]} />;
     }
     if (key === `avg(span.self_time)`) {
       return <DurationCell milliseconds={row[key]} />;
@@ -138,14 +150,5 @@ function ResourceTable({sort}: Props) {
     </Fragment>
   );
 }
-
-export const getActionName = (transactionOp: string) => {
-  switch (transactionOp) {
-    case 'ui.action.click':
-      return 'Click';
-    default:
-      return transactionOp;
-  }
-};
 
 export default ResourceTable;

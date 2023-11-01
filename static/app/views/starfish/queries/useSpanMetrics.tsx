@@ -13,6 +13,7 @@ import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 const {SPAN_GROUP} = SpanMetricsField;
 
 export type SpanSummaryQueryFilters = {
+  release?: string;
   'transaction.method'?: string;
   transactionName?: string;
 };
@@ -65,7 +66,7 @@ function getEventView(
         queryFilters?.['transaction.method']
           ? ` transaction.method:${queryFilters?.['transaction.method']}`
           : ''
-      }`,
+      }${queryFilters?.release ? ` release:${queryFilters?.release}` : ''}`,
       fields,
       dataset: DiscoverDatasets.SPANS_METRICS,
       version: 2,

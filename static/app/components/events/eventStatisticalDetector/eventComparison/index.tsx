@@ -5,7 +5,7 @@ import moment from 'moment';
 import {EventDisplay} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, Project} from 'sentry/types';
+import {Event, Project} from 'sentry/types';
 
 import {DataSection} from '../../styles';
 
@@ -15,7 +15,6 @@ const COMPARISON_DESCRIPTION = t(
 
 type EventComparisonProps = {
   event: Event;
-  group: Group;
   project: Project;
 };
 

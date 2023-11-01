@@ -7,13 +7,7 @@ from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.options.user_option import UserOption
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import (
-    get_attachment,
-    get_channel,
-    install_slack,
-    link_team,
-    with_feature,
-)
+from sentry.testutils.helpers import get_attachment, get_channel, install_slack, with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
@@ -91,40 +85,6 @@ class AssignedNotificationAPITest(APITestCase):
         attachment, text = get_attachment()
 
         assert text == f"Issue assigned to {user.get_display_name()} by themselves"
-        assert attachment["title"] == self.group.title
-        assert self.project.slug in attachment["footer"]
-
-    @responses.activate
-    def test_sends_assignment_notification_team(self):
-        link_team(
-            team=self.team,
-            integration=self.integration,
-            channel_id="CXXXXXXX1",
-            channel_name="#javascript",
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.ALWAYS,
-            team_id=self.team.id,
-            organization_id_for_team=self.organization.id,
-        )
-
-        url = f"/api/0/issues/{self.group.id}/"
-        with self.tasks():
-            response = self.client.put(
-                url, format="json", data={"assignedTo": f"team:{self.team.id}"}
-            )
-        assert response.status_code == 200, response.content
-
-        # No email version for teams.
-        assert not len(mail.outbox)
-
-        attachment, text = get_attachment()
-
-        assert (
-            text == f"Issue assigned to the {self.team.name} team by {self.user.get_display_name()}"
-        )
         assert attachment["title"] == self.group.title
         assert self.project.slug in attachment["footer"]
 

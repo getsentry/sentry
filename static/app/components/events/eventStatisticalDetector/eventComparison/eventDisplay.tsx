@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -31,7 +31,6 @@ import {getShortEventId} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {NavButtons, StyledNavButton} from 'sentry/views/issueDetails/groupEventCarousel';
 
 const BUTTON_ICON_SIZE = 'sm';
 const BUTTON_SIZE = 'sm';
@@ -354,4 +353,32 @@ const EmptyStateWrapper = styled('div')`
 
 const SelectionTextWrapper = styled('span')`
   font-weight: normal;
+`;
+
+const StyledNavButton = styled(Button)`
+  border-radius: 0;
+`;
+
+const NavButtons = styled('div')`
+  display: flex;
+
+  > * {
+    &:not(:last-child) {
+      ${StyledNavButton} {
+        border-right: none;
+      }
+    }
+
+    &:first-child {
+      ${StyledNavButton} {
+        border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+      }
+    }
+
+    &:last-child {
+      ${StyledNavButton} {
+        border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+      }
+    }
+  }
 `;
