@@ -118,15 +118,12 @@ class SetupWizardView(BaseView):
         filled_projects = []
 
         for project in region_data["projects"]:
-            # TODO(Leander) check if this is safe to replace with rpc project
-            enriched_project = serialize(project)
             enriched_project = {
                 "slug": project.slug,
                 "id": project.id,
                 "status": STATUS_LABELS.get(project.status, "unknown"),
             }
-            # The wizard only reads the `slug` field so serializing the mapping should work fine
-            # Maybe security concerns though?
+            # The wizard only reads the a few fields so serializing the mapping should work fine
             enriched_project["organization"] = org_mappings_map[project.organization_id]
             enriched_project["keys"] = keys_map[project.id]
             filled_projects.append(enriched_project)

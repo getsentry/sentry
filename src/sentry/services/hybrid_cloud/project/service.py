@@ -37,7 +37,11 @@ class ProjectService(RpcService):
     @regional_rpc_method(resolve=ByRegionName())
     @abstractmethod
     def get_many_by_organizations(
-        self, *, region_name: str, organization_ids: List[int]
+        self,
+        *,
+        region_name: str,
+        organization_ids: List[int],
+        limit: int = 100,
     ) -> List[RpcProject]:
         pass
 

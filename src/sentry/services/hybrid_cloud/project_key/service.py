@@ -46,7 +46,12 @@ class ProjectKeyService(RpcService):
     @regional_rpc_method(resolve=ByRegionName())
     @abstractmethod
     def get_project_keys_by_region(
-        self, *, region_name: str, project_ids: List[str], role: ProjectKeyRole
+        self,
+        *,
+        region_name: str,
+        project_ids: List[str],
+        role: ProjectKeyRole,
+        limit: int = 100,
     ) -> List[RpcProjectKey]:
         pass
 

@@ -36,12 +36,16 @@ class DatabaseBackedProjectService(ProjectService):
         return None
 
     def get_many_by_organizations(
-        self, *, region_name: str, organization_ids: List[int]
+        self,
+        *,
+        region_name: str,
+        organization_ids: List[int],
+        limit: int = 100,
     ) -> List[RpcProject]:
         projects = Project.objects.filter(
             organization__in=organization_ids,
             status=ObjectStatus.ACTIVE,
-        )
+        ).order_by("-date_added")[:limit]
         return [serialize_project(p) for p in projects]
 
     def get_option(self, *, project: RpcProject, key: str) -> RpcProjectOptionValue:

@@ -49,11 +49,16 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
         return self._get_project_key(project_id=project_id, role=role)
 
     def get_project_keys_by_region(
-        self, *, region_name: str, project_ids: List[str], role: ProjectKeyRole
+        self,
+        *,
+        region_name: str,
+        project_ids: List[str],
+        role: ProjectKeyRole,
+        limit: int = 100,
     ) -> List[RpcProjectKey]:
         project_keys = ProjectKey.objects.filter(
             project__in=project_ids,
             roles=F("roles").bitor(role.as_orm_role()),
             status=ProjectKeyStatus.ACTIVE,
-        )
+        ).order_by("-date_added")[:limit]
         return [serialize_project_key(pk) for pk in project_keys]
