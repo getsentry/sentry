@@ -268,6 +268,12 @@ def _process_message(
                 return None, GroupInfo(group=group, is_new=False, is_regression=False)
             elif payload_type == PayloadType.OCCURRENCE.value:
                 return process_occurrence_message(message, txn)
+            else:
+                metrics.incr(
+                    "occurrence_consumer._process_message.dropped_invalid_payload_type",
+                    sample_rate=1.0,
+                    tags={"payload_type": payload_type},
+                )
         except (ValueError, KeyError) as e:
             txn.set_tag("result", "error")
             raise InvalidEventPayloadError(e)
