@@ -96,18 +96,16 @@ def build_query_params_from_request(
         )
         selected_search_id = request.GET.get("searchId", None)
         if selected_search_id:
-            selected_search = saved_searches.filter(id=int(selected_search_id))
-            if selected_search.exists():
-                search = selected_search.first()
-                query_kwargs["sort_by"] = search.sort
-                query = search.query
-
+            # saved search requested by the id
+            saved_search = saved_searches.filter(id=int(selected_search_id))
         else:
-            pinned_search = saved_searches.filter(visibility=Visibility.OWNER_PINNED)
-            if pinned_search.exists():
-                search = pinned_search.first()
-                query_kwargs["sort_by"] = search.sort
-                query = search.query
+            # pinned saved search
+            saved_search = saved_searches.filter(visibility=Visibility.OWNER_PINNED)
+
+        if saved_search.exists():
+            search = saved_search.first()
+            query_kwargs["sort_by"] = search.sort
+            query = search.query
 
     sentry_sdk.set_tag("search.query", query)
     sentry_sdk.set_tag("search.sort", query)
