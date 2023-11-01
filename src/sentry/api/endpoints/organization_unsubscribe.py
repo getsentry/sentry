@@ -53,6 +53,12 @@ class OrganizationUnsubscribeBase(Endpoint, Generic[T]):
         view_url = ""
         if hasattr(instance, "get_absolute_url"):
             view_url = str(instance.get_absolute_url())
+
+        display_name = ""
+        user = request.user
+        if hasattr(user, "get_display_name"):
+            display_name = str(user.get_display_name())
+
         data = {
             "viewUrl": view_url,
             "type": self.object_type,

@@ -200,6 +200,14 @@ function buildRoutes() {
         component={make(() => import('sentry/views/sharedGroupDetails'))}
       />
       <Route
+        path="/organizations/:orgId/unsubscribe/project/:id/"
+        component={make(() => import('sentry/views/unsubscribe/project'))}
+      />
+      <Route
+        path="/organizations/:orgId/unsubscribe/issue/:id/"
+        component={make(() => import('sentry/views/unsubscribe/issue'))}
+      />
+      <Route
         path="/organizations/new/"
         component={make(() => import('sentry/views/organizationCreate'))}
       />
