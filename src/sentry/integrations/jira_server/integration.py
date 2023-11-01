@@ -977,6 +977,10 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             # above clean method.)
             cleaned_data["issuetype"] = {"id": issue_type}
 
+        # sometimes the project is missing as well and we need to add it
+        if "project" not in cleaned_data:
+            cleaned_data["project"] = {"id": jira_project}
+
         try:
             logger.info(
                 "jira_server.create_issue",
