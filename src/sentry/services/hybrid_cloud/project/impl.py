@@ -129,7 +129,8 @@ class DatabaseBackedProjectService(ProjectService):
             name=project_name,
             platform=platform,
             status=ObjectStatus.ACTIVE,
-        )
+        ).order_by("date_added")
+
         if project_query.exists():
             return serialize_project(project_query[0])
 
