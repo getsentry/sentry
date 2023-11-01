@@ -207,7 +207,7 @@ def handle_remaining_events(
             to_timestamp=to_timestamp,
         )
 
-        buffer_incr(Group, {"times_seen": len(event_ids)}, {"id": new_group_id})
+        buffer_incr(Group, {"times_seen": len(event_ids)}, {"pk": new_group_id})
     else:
         raise ValueError(f"Invalid value for remaining_events: {remaining_events}")
 
