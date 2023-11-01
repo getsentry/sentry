@@ -43,6 +43,7 @@ from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
+DEFAULT_REFERRER = "search.group_index"
 allowed_inbox_search_terms = frozenset(["date", "status", "for_review", "assigned_or_suggested"])
 
 
@@ -237,7 +238,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :qparam list collapse: an optional list of strings to opt out of certain pieces of data. Supports `stats`, `lifetime`, `base`, `unhandled`
         """
         stats_period = request.GET.get("groupStatsPeriod")
-        referrer = request.GET.get("referrer", "search.group_index")
+        referrer = request.GET.get("referrer", DEFAULT_REFERRER)
         try:
             start, end = get_date_range_from_stats_period(request.GET)
         except InvalidParams as e:
@@ -445,6 +446,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         """
         projects = self.get_projects(request, organization)
         is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
+        referrer = request.GET.get("referrer", DEFAULT_REFERRER)
 
         if (
             len(projects) > 1
@@ -461,6 +463,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             organization,
             projects,
             self.get_environments(request, organization),
+            referrer,
         )
 
         return update_groups(
@@ -491,7 +494,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :auth: required
         """
         projects = self.get_projects(request, organization)
-
+        referrer = request.GET.get("referrer", DEFAULT_REFERRER)
         is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
 
         if (
@@ -509,6 +512,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             organization,
             projects,
             self.get_environments(request, organization),
+            referrer,
         )
 
         return delete_groups(request, projects, organization.id, search_fn)
