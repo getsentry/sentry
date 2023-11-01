@@ -2,9 +2,9 @@ import random
 from typing import Any, Optional
 
 from sentry_kafka_schemas.codecs import Codec
+from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
 
 from sentry import options
-from sentry.sentry_metrics.consumers.indexer.parsed_message import ParsedMessage
 
 
 class MetricsSchemaValidator:
@@ -39,7 +39,7 @@ class MetricsSchemaValidator:
         else:
             self.schema_validation_rules = {}
 
-    def validate(self, use_case_id: str, message: ParsedMessage) -> None:
+    def validate(self, use_case_id: str, message: IngestMetric) -> None:
         if not self.input_codec:
             return None
 
