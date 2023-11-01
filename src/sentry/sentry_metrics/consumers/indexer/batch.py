@@ -157,8 +157,18 @@ class IndexerBatch:
                 exc_info=True,
             )
             raise
+
+        if "name" not in parsed_payload:
+            logger.error(
+                "process_messages.missing_name",
+                extra={"payload_value": str(msg.payload.value)},
+            )
+            raise ValueError("Missing metric name")
+
+        parsed_payload["use_case_id"] = use_case_id = extract_use_case_id(parsed_payload["name"])
+
         try:
-            self.schema_validator(parsed_payload)
+            self.schema_validator(use_case_id, parsed_payload)
         except ValidationError:
             if settings.SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS:
                 raise
@@ -167,7 +177,6 @@ class IndexerBatch:
                 extra={"payload_value": str(msg.payload.value)},
                 exc_info=True,
             )
-        parsed_payload["use_case_id"] = use_case_id = extract_use_case_id(parsed_payload["name"])
 
         self.__message_count[use_case_id] += 1
         self.__message_size_max[use_case_id] = max(
