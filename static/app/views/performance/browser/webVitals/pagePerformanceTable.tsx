@@ -206,6 +206,7 @@ export function PagePerformanceTable() {
       query: {
         ...location.query,
         query: newQuery === '' ? undefined : `*${newQuery}*`,
+        cursor: undefined,
       },
     });
   };
