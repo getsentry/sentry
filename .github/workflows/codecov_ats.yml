@@ -63,7 +63,7 @@ jobs:
             pg-version: 14
         - name: Download Codecov CLI
           run: |
-            pip install --extra-index-url https://pypi.org/simple --no-cache-dir codecov-cli>=0.4.0
+            pip install --extra-index-url https://pypi.org/simple --no-cache-dir codecov-cli>=0.4.1
         # Creates the commit and report objects in codecov
         - name: Codecov startup
           run: |
@@ -100,12 +100,19 @@ jobs:
               testcount() { jq <<< $output ".$1 | length"; }
               run_count=$(testcount ats_tests_to_run)
               skip_count=$(testcount ats_tests_to_skip)
-              tee <<< "Selected $run_count / $(($run_count + $skip_count)) tests to run" "$GITHUB_STEP_SUMMARY"
-              # Once codecov/engineering-team#711 is done we can starting adding error codes here
-              # And also change 'ats_success' to the actual value (fallback to all tests is not considered success)
-              tee <<< '{"ats_success": true, "error": null,}' "$GITHUB_STEP_SUMMARY" ".artifacts/ats_result.json"
+              # Parse any potential errors that made ATS fallback to running all tests
+              # And surface them
+              ats_fallback_reason=$(jq <<< "$output" '.ats_fallback_reason')
+              if [ "$ats_fallback_reason" == "null" ]; then
+                ats_success=true
+              else
+                ats_success=false
+              fi
+              tee <<< \
+                "{\"ats_success\": $ats_success, \"error\": $ats_fallback_reason, \"tests_to_run\": $run_count, \"tests_analyzed\": $((run_count+skip_count))}" \
+                "$GITHUB_STEP_SUMMARY" \
+                ".artifacts/codecov_ats_result.json"
             else
-              tee <<< "ATS failed. Can't get list of tests to run." "$GITHUB_STEP_SUMMARY"
               # We need not forget to add the search options in the fallback command, otherwise pytest might run more tests than expected
               # These search options match what's defined in codecov.yml:105
               jq '@json' --raw-output <<< '[
@@ -121,7 +128,7 @@ jobs:
               ]' > .artifacts/codecov_ats_tests_to_skip.json
               echo '[]' > .artifacts/codecov_ats_tests_to_run.json
               # If we reached this point it means that ATS failed with some error
-              tee <<< '{"ats_success": false, "error": "exception_raised"}' "$GITHUB_STEP_SUMMARY" ".artifacts/ats_result.json"
+              tee <<< '{"ats_success": false, "error": "exception_raised"}' "$GITHUB_STEP_SUMMARY" ".artifacts/codecov_ats_result.json"
             fi
           env:
             CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
