@@ -17,8 +17,16 @@ export default function useListItemCheckboxState() {
     });
   }, []);
 
+  const uncheckAll = useCallback(
+    (ids: string[]) => {
+      ids.forEach(toggleChecked);
+    },
+    [toggleChecked]
+  );
+
   return {
     checked,
     toggleChecked,
+    uncheckAll,
   };
 }
