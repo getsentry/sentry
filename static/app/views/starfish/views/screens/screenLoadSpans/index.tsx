@@ -24,8 +24,8 @@ import {
   ScreenCharts,
   YAxis,
 } from 'sentry/views/starfish/views/screens/screenLoadSpans/charts';
+import {ScreenLoadSpansSidebar} from 'sentry/views/starfish/views/screens/screenLoadSpans/sidebar';
 import {ScreenLoadSpansTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/table';
-import {ScreenMetricsRibbon} from 'sentry/views/starfish/views/screens/screenMetricsRibbon';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 
 type Query = {
@@ -82,7 +82,7 @@ function ScreenLoadSpans() {
             </Layout.HeaderContent>
           </Layout.Header>
           <Layout.Body>
-            <Layout.Main fullWidth>
+            <Layout.Main>
               <PageErrorAlert />
               <StarfishPageFiltersContainer>
                 <Container>
@@ -92,9 +92,6 @@ function ScreenLoadSpans() {
                   <ReleaseComparisonSelector />
                 </Container>
               </StarfishPageFiltersContainer>
-              <ScreenMetricsRibbon
-                additionalFilters={[`transaction:${transactionName}`]}
-              />
               <ScreenCharts
                 yAxes={[YAxis.TTID, YAxis.TTFD]}
                 additionalFilters={[`transaction:${transactionName}`]}
@@ -123,6 +120,9 @@ function ScreenLoadSpans() {
                 />
               )}
             </Layout.Main>
+            <Layout.Side>
+              <ScreenLoadSpansSidebar transaction={transactionName} />
+            </Layout.Side>
           </Layout.Body>
         </PageErrorProvider>
       </Layout.Page>

@@ -47,7 +47,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
 import {RELEASE_LEVEL as WEBVITALS_RELEASE_LEVEL} from 'sentry/views/performance/browser/webVitals/settings';
-import {RELEASE_LEVEL} from 'sentry/views/performance/database/settings';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
 
@@ -239,9 +238,6 @@ function Sidebar({location, organization}: Props) {
               >
                 <SidebarItem
                   {...sidebarItemProps}
-                  isAlpha={RELEASE_LEVEL === 'alpha'}
-                  isBeta={RELEASE_LEVEL === 'beta'}
-                  isNew={RELEASE_LEVEL === 'new'}
                   label={
                     <GuideAnchor target="performance-database">
                       {t('Queries')}
@@ -269,6 +265,15 @@ function Sidebar({location, organization}: Props) {
                   to={`/organizations/${organization.slug}/performance/browser/pageloads/`}
                   id="performance-webvitals"
                   icon={<SubitemDot collapsed={collapsed} />}
+                />
+              </Feature>
+              <Feature features={['starfish-browser-resource-module-ui']}>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
+                  to={`/organizations/${organization.slug}/performance/browser/resources`}
+                  id="performance-browser-resources"
+                  icon={<IconFile />}
                 />
               </Feature>
             </SidebarAccordion>
@@ -317,13 +322,6 @@ function Sidebar({location, organization}: Props) {
           to={`/organizations/${organization.slug}/performance/browser/interactions`}
           id="performance-browser-interactions"
           icon={<SubitemDot collapsed={collapsed} />}
-        />
-        <SidebarItem
-          {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/performance/browser/resources`}
-          id="performance-browser-resources"
-          icon={<IconFile />}
         />
         <SidebarItem
           {...sidebarItemProps}

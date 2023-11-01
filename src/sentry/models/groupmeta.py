@@ -1,4 +1,5 @@
 import threading
+from typing import ClassVar
 
 from celery.signals import task_postrun
 from django.core.signals import request_finished
@@ -12,7 +13,7 @@ from sentry.exceptions import CacheNotPopulated
 ERR_CACHE_MISSING = "Cache not populated for instance id=%s"
 
 
-class GroupMetaManager(BaseManager):
+class GroupMetaManager(BaseManager["GroupMeta"]):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__local_cache = threading.local()
@@ -98,7 +99,7 @@ class GroupMeta(Model):
     key = models.CharField(max_length=64)
     value = models.TextField()
 
-    objects = GroupMetaManager()
+    objects: ClassVar[GroupMetaManager] = GroupMetaManager()
 
     class Meta:
         app_label = "sentry"

@@ -10,7 +10,7 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.cocoa_sdk_crash_detector import CocoaSDKCrashDetector
 from sentry.utils.sdk_crashes.event_stripper import strip_event_data
-from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig
+from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig, SdkName
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
 
@@ -37,7 +37,7 @@ class SDKCrashDetection:
     def __init__(
         self,
         sdk_crash_reporter: SDKCrashReporter,
-        sdk_crash_detectors: Mapping[str, SDKCrashDetector],
+        sdk_crash_detectors: Mapping[SdkName, SDKCrashDetector],
     ):
         """
         Initializes the SDK crash detection.
@@ -127,4 +127,4 @@ class SDKCrashDetection:
 _crash_reporter = SDKCrashReporter()
 _cocoa_sdk_crash_detector = CocoaSDKCrashDetector()
 
-sdk_crash_detection = SDKCrashDetection(_crash_reporter, {"cocoa": _cocoa_sdk_crash_detector})
+sdk_crash_detection = SDKCrashDetection(_crash_reporter, {SdkName.Cocoa: _cocoa_sdk_crash_detector})

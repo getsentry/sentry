@@ -24,6 +24,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
+import {Recommendations} from 'sentry/views/performance/browser/webVitals/components/recommendations';
 import {WebVitalDetailHeader} from 'sentry/views/performance/browser/webVitals/components/webVitalDescription';
 import {
   calculatePerformanceScore,
@@ -135,6 +136,12 @@ export function PageOverviewWebVitalsDetailPanel({
     (a, b) => a[`${webVital}Score`] - b[`${webVital}Score`]
   );
 
+  const getProjectSlug = (row: TransactionSampleRowWithScore): string => {
+    return project && !Array.isArray(location.query.project)
+      ? project.slug
+      : row.projectSlug;
+  };
+
   const renderHeadCell = (col: Column) => {
     if (col.key === 'transaction') {
       return <NoOverflow>{col.name}</NoOverflow>;
@@ -144,6 +151,9 @@ export function PageOverviewWebVitalsDetailPanel({
     }
     if (col.key === 'score') {
       return <AlignCenter>{`${webVital} ${col.name}`}</AlignCenter>;
+    }
+    if (col.key === 'replayId' || col.key === 'profile.id') {
+      return <AlignCenter>{col.name}</AlignCenter>;
     }
     return <NoOverflow>{col.name}</NoOverflow>;
   };
@@ -160,6 +170,7 @@ export function PageOverviewWebVitalsDetailPanel({
 
   const renderBodyCell = (col: Column, row: TransactionSampleRowWithScore) => {
     const {key} = col;
+    const projectSlug = getProjectSlug(row);
     if (key === 'score') {
       if (row[`measurements.${webVital}`] !== null) {
         return (
@@ -180,13 +191,11 @@ export function PageOverviewWebVitalsDetailPanel({
       return <AlignRight>{formattedValue}</AlignRight>;
     }
     if (key === 'id') {
-      const eventSlug = generateEventSlug({...row, project: row.projectSlug});
+      const eventSlug = generateEventSlug({...row, project: projectSlug});
       const eventTarget = getTransactionDetailsUrl(organization.slug, eventSlug);
       return (
         <NoOverflow>
-          <Link to={eventTarget} onClick={onClose}>
-            {getShortEventId(row.id)}
-          </Link>
+          <Link to={eventTarget}>{getShortEventId(row.id)}</Link>
         </NoOverflow>
       );
     }
@@ -204,30 +213,28 @@ export function PageOverviewWebVitalsDetailPanel({
           undefined
         );
 
-      return (
-        <NoOverflow>
-          {row.replayId && replayTarget && (
-            <Link to={replayTarget}>{getShortEventId(row.replayId)}</Link>
-          )}
-        </NoOverflow>
+      return row.replayId && replayTarget ? (
+        <AlignCenter>
+          <Link to={replayTarget}>{getShortEventId(row.replayId)}</Link>
+        </AlignCenter>
+      ) : (
+        <AlignCenter>{' \u2014 '}</AlignCenter>
       );
     }
     if (key === 'profile.id') {
       if (!defined(project) || !defined(row['profile.id'])) {
-        return null;
+        return <AlignCenter>{' \u2014 '}</AlignCenter>;
       }
       const target = generateProfileFlamechartRoute({
         orgSlug: organization.slug,
-        projectSlug: project.slug,
+        projectSlug,
         profileId: String(row['profile.id']),
       });
 
       return (
-        <NoOverflow>
-          <Link to={target} onClick={onClose}>
-            {getShortEventId(row['profile.id'])}
-          </Link>
-        </NoOverflow>
+        <AlignCenter>
+          <Link to={target}>{getShortEventId(row['profile.id'])}</Link>
+        </AlignCenter>
       );
     }
     return <AlignRight>{row[key]}</AlignRight>;
@@ -253,6 +260,9 @@ export function PageOverviewWebVitalsDetailPanel({
             webVital={webVital}
             score={projectScore[`${webVital}Score`]}
           />
+        )}
+        {transaction && webVital && (
+          <Recommendations transaction={transaction} webVital={webVital} />
         )}
         <GridEditable
           data={tableData}

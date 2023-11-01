@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import ClassVar, Optional
 
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.utils.encoding import force_str
+from typing_extensions import Self
 
 from sentry.backup.dependencies import PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
@@ -57,7 +58,7 @@ class OrgAuthToken(ReplicatedControlModel):
     )
     date_deactivated = models.DateTimeField(null=True, blank=True)
 
-    objects = BaseManager(cache_fields=("token_hashed",))
+    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("token_hashed",))
 
     class Meta:
         app_label = "sentry"
