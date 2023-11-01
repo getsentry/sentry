@@ -191,6 +191,7 @@ def test_feedbacks_spawn_save_event_feedback(
         save_event_feedback.delay.call_args[1]["data"]["contexts"]["feedback"]
         == event["contexts"]["feedback"]
     )
+    assert save_event_feedback.delay.call_args[1]["data"]["type"] == "feedback"
 
 
 @django_db_all
