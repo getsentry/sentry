@@ -21,7 +21,11 @@ from sentry.eventstore.processing import event_processing_store
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo
 from sentry.issues.escalating import manage_issue_states
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
+from sentry.issues.grouptype import (
+    PerformanceDurationRegressionGroupType,
+    PerformanceNPlusOneGroupType,
+    ProfileFileIOGroupType,
+)
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.group import Group, GroupStatus
@@ -1502,6 +1506,86 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         )
 
 
+class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
+    @with_feature("organizations:escalating-issues")
+    @patch("sentry.signals.issue_escalating.send_robust")
+    @patch("sentry.signals.issue_unignored.send_robust")
+    @patch("sentry.rules.processor.RuleProcessor")
+    @with_feature("organizations:issue-platform-api-crons-sd")
+    def test_invalidates_snooze_ff_on(
+        self, mock_processor, mock_send_unignored_robust, mock_send_escalating_robust
+    ):
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        group = event.group
+        can_generate_escalating_forecasts = group.issue_type.can_generate_escalating_forecasts(
+            self.project.organization
+        )
+
+        # Check for has_reappeared=False if is_new=True
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        assert GroupInbox.objects.filter(group=group, reason=GroupInboxReason.NEW.value).exists()
+        GroupInbox.objects.filter(group=group).delete()  # Delete so it creates the UNIGNORED entry.
+        Activity.objects.filter(group=group).delete()
+        mock_processor.assert_called_with(EventMatcher(event), True, False, True, False)
+
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        group.status = GroupStatus.IGNORED
+        group.substatus = GroupSubStatus.UNTIL_CONDITION_MET
+        group.save(update_fields=["status", "substatus"])
+        snooze = GroupSnooze.objects.create(
+            group=group, until=django_timezone.now() - timedelta(hours=1)
+        )
+
+        # Check for has_reappeared=True if is_new=False
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_processor.assert_called_with(EventMatcher(event), False, False, True, True)
+        if can_generate_escalating_forecasts:
+            mock_send_escalating_robust.assert_called_once_with(
+                project=group.project,
+                group=group,
+                event=EventMatcher(event),
+                sender=manage_issue_states,
+                was_until_escalating=False,
+            )
+            assert not GroupSnooze.objects.filter(id=snooze.id).exists()
+        else:
+            mock_send_escalating_robust.assert_not_called()
+            assert GroupSnooze.objects.filter(id=snooze.id).exists()
+        group = Group.objects.get(id=group.id)
+        if can_generate_escalating_forecasts:
+            assert group.status == GroupStatus.UNRESOLVED
+            assert group.substatus == GroupSubStatus.ESCALATING
+            assert GroupInbox.objects.filter(
+                group=group, reason=GroupInboxReason.ESCALATING.value
+            ).exists()
+            assert Activity.objects.filter(
+                group=group, project=group.project, type=ActivityType.SET_ESCALATING.value
+            ).exists()
+            assert mock_send_unignored_robust.called
+        else:
+            assert group.status == GroupStatus.IGNORED
+            assert group.substatus == GroupSubStatus.UNTIL_CONDITION_MET
+            assert not GroupInbox.objects.filter(
+                group=group, reason=GroupInboxReason.ESCALATING.value
+            ).exists()
+            assert not Activity.objects.filter(
+                group=group, project=group.project, type=ActivityType.SET_ESCALATING.value
+            ).exists()
+            assert not mock_send_unignored_robust.called
+
+
 class SnoozeTestMixin(BasePostProgressGroupMixin):
     @with_feature("organizations:escalating-issues")
     @patch("sentry.signals.issue_escalating.send_robust")
@@ -1803,6 +1887,7 @@ class PostProcessGroupErrorTest(
     RuleProcessorTestMixin,
     ServiceHooksTestMixin,
     SnoozeTestMixin,
+    SnoozeTestSkipSnoozeMixin,
     SDKCrashMonitoringTestMixin,
     ReplayLinkageTestMixin,
 ):
@@ -1865,6 +1950,7 @@ class PostProcessGroupPerformanceTest(
     InboxTestMixin,
     RuleProcessorTestMixin,
     SnoozeTestMixin,
+    SnoozeTestSkipSnoozeMixin,
     PerformanceIssueTestCase,
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
@@ -1990,6 +2076,57 @@ class PostProcessGroupPerformanceTest(
             mock_handle_auto_assignment,
             mock_process_rules,
         ]
+
+
+@region_silo_test
+class PostProcessGroupAggregateEventTest(
+    TestCase,
+    SnubaTestCase,
+    PerfIssueTransactionTestMixin,
+    CorePostProcessGroupTestMixin,
+    SnoozeTestSkipSnoozeMixin,
+    PerformanceIssueTestCase,
+):
+    def create_event(self, data, project_id):
+        group = self.create_group(
+            type=PerformanceDurationRegressionGroupType.type_id,
+        )
+
+        event = self.store_event(data=data, project_id=project_id)
+        event.group = group
+        event = event.for_group(group)
+
+        return event
+
+    def call_post_process_group(
+        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
+    ):
+        group_states = (
+            [
+                {
+                    "id": event.group_id,
+                    "is_new": is_new,
+                    "is_regression": is_regression,
+                    "is_new_group_environment": is_new_group_environment,
+                }
+            ]
+            if event.group_id
+            else None
+        )
+        if cache_key is None:
+            cache_key = write_event_to_cache(event)
+        with self.feature(
+            PerformanceDurationRegressionGroupType.build_post_process_group_feature_name()
+        ):
+            post_process_group(
+                is_new=is_new,
+                is_regression=is_regression,
+                is_new_group_environment=is_new_group_environment,
+                cache_key=cache_key,
+                group_states=group_states,
+                project_id=event.project_id,
+            )
+        return cache_key
 
 
 class TransactionClustererTestCase(TestCase, SnubaTestCase):

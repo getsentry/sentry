@@ -123,7 +123,7 @@ class GroupType:
     # Allow automatic resolution of an issue type, using the project-level option.
     enable_auto_resolve: bool = True
     # Allow escalation forecasts and detection
-    generate_escalating_forecasts = True
+    generate_escalating_forecasts: bool = True
     creation_quota: Quota = Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
 
     def __init_subclass__(cls: Type[GroupType], **kwargs: Any) -> None:
@@ -160,6 +160,12 @@ class GroupType:
             return True
 
         return features.has(cls.build_post_process_group_feature_name(), organization)
+
+    @classmethod
+    def can_generate_escalating_forecasts(cls, organization: Organization) -> bool:
+        if not features.has("organizations:issue-platform-api-crons-sd", organization):
+            return True
+        return cls.generate_escalating_forecasts
 
     @classmethod
     def build_feature_name_slug(cls) -> str:
