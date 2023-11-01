@@ -56,14 +56,13 @@ def save_issue_occurrence(
         release = None
     group_info = save_issue_from_occurrence(occurrence, event, release)
     if group_info:
-        send_issue_occurrence_to_eventstream(event, occurrence, group_info)
         environment = event.get_environment()
         _get_or_create_group_environment(environment, release, [group_info])
         _increment_release_associated_counts(
             group_info.group.project, environment, release, [group_info]
         )
         _get_or_create_group_release(environment, release, event, [group_info])
-
+        send_issue_occurrence_to_eventstream(event, occurrence, group_info)
     return occurrence, group_info
 
 
