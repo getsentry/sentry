@@ -3,7 +3,7 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 from abc import abstractmethod
-from typing import List, Mapping, MutableMapping, Optional, Sequence, Set, Tuple
+from typing import Iterable, List, Mapping, MutableMapping, Optional, Sequence, Set, Tuple
 
 from sentry.notifications.types import (
     NotificationSettingEnum,
@@ -168,10 +168,10 @@ class NotificationsService(RpcService):
     def get_notification_recipients(
         self,
         *,
-        recipients: List[RpcActor],
+        recipients: Iterable[RpcActor],
         type: NotificationSettingEnum,
-        project_ids: Optional[List[int]] = None,
         organization_id: Optional[int] = None,
+        project_ids: Optional[List[int]] = None,
         actor_type: Optional[ActorType] = None,
     ) -> Mapping[str, Set[RpcActor]]:
         pass
