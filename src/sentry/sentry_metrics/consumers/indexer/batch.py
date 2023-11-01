@@ -91,6 +91,13 @@ class IndexerBatch:
         self.filtered_msg_meta: Set[BrokerMeta] = set()
         self.parsed_payloads_by_meta: MutableMapping[BrokerMeta, ParsedMessage] = {}
 
+        broker_metas = [
+            BrokerMeta(msg.value.partition, msg.value.offset) for msg in self.outer_message.payload
+        ]
+
+        if len(broker_metas) != len(set(broker_metas)):
+            print(f"!!! Got duplicate broker metas {broker_metas}")  # noqa
+
         self._extract_messages()
 
     @metrics.wraps("process_messages.extract_messages")

@@ -1,5 +1,6 @@
 import logging
 import random
+import time
 from typing import Any, Callable, Mapping
 
 import sentry_kafka_schemas
@@ -101,6 +102,8 @@ class MessageProcessor:
         4. Take a mapping of string -> int (indexed strings), and replace all of
            the messages strings into ints
         """
+        print(f"Started processing, got batch of {len(outer_message.payload)}")  # noqa
+
         should_index_tag_values = self._config.should_index_tag_values
         is_output_sliced = self._config.is_output_sliced or False
 
@@ -111,6 +114,8 @@ class MessageProcessor:
             input_codec=_INGEST_CODEC,
             tags_validator=self.__get_tags_validator(),
         )
+
+        time.sleep(10)
 
         sdk.set_measurement("indexer_batch.payloads.len", len(batch.parsed_payloads_by_meta))
 
@@ -146,5 +151,7 @@ class MessageProcessor:
         ):
             # TODO: move to separate thread
             cardinality_limiter.apply_cardinality_limits(cardinality_limiter_state)
+
+        print("Done")  # noqa
 
         return results
