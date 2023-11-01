@@ -426,7 +426,7 @@ class SignedRequestAuthentication(BaseAuthentication):
         if not user:
             return (None, None)
 
-        request.user_from_signed_request = True
+        setattr(request, "user_from_signed_request", True)
         return (user, None)
 
 
