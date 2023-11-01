@@ -97,6 +97,10 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             activity_type=activity_type,
         )
     else:
+        logger.error(
+            "group.update_status.unsupported_status",
+            extra={**log_extra},
+        )
         raise NotImplementedError(
             f"Unsupported status: {status_change['new_status']} {status_change['new_substatus']}"
         )
