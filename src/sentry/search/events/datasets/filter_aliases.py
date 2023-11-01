@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import reduce
 from typing import List, Mapping, Optional
 
-from snuba_sdk import Condition, Op
+from snuba_sdk import Column, Condition, Op
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
@@ -110,6 +110,17 @@ def project_slug_converter(
             return converted_filter
 
     return None
+
+
+def span_is_segment_converter(search_filter: SearchFilter) -> Optional[WhereType]:
+    """Convert the search filter from a string to a boolean
+    and unalias the filter key.
+    """
+    return Condition(
+        Column("is_segment"),
+        Op.NEQ if search_filter.operator == "!=" else Op.EQ,
+        int(search_filter.value.raw_value),
+    )
 
 
 def release_stage_filter_converter(
