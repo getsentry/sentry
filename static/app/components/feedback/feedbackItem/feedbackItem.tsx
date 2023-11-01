@@ -90,6 +90,10 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
             </ErrorBoundary>
 
             <ErrorBoundary mini>
+              <FeedbackViewers feedbackItem={feedbackItem} />
+            </ErrorBoundary>
+
+            <ErrorBoundary mini>
               <Button
                 onClick={() => {
                   addLoadingMessage(t('Updating feedback...'));
@@ -127,10 +131,6 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           <ErrorBoundary mini>
             <TextCopyInput size="sm">{url?.value ?? t('URL not found')}</TextCopyInput>
           </ErrorBoundary>
-        </Section>
-
-        <Section title={t('Viewers')}>
-          <FeedbackViewers feedbackItem={feedbackItem} />
         </Section>
 
         {hasReplayId && replayId ? (

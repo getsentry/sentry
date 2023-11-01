@@ -5,6 +5,7 @@ import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {AssigneeSelectorDropdown} from 'sentry/components/assigneeSelectorDropdown';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Button} from 'sentry/components/button';
+import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import {
   EventOwners,
   getAssignedToDisplayName,
@@ -70,6 +71,11 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
     };
   }, [api, feedbackEvent, organization, project.slug]);
 
+  const {assign} = useMutateFeedback({
+    feedbackIds: [feedbackIssue.id],
+    organization,
+  });
+
   const owners = getOwnerList(
     data?.committers ?? [],
     eventOwners,
@@ -82,13 +88,18 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
       disabled={false}
       id={feedbackIssue.id}
       assignedTo={feedbackIssue.assignedTo}
-      onAssign={() => {}}
+      onAssign={() => {
+        assign(feedbackIssue.assignedTo);
+      }}
+      onClear={() => {
+        assign(null);
+      }}
       owners={owners}
     >
-      {({loading, isOpen, getActorProps}) => (
+      {({isOpen, getActorProps}) => (
         <Button size="xs" aria-label={t('Assigned dropdown')} {...getActorProps({})}>
           <ActorWrapper>
-            {loading || !feedbackIssue.assignedTo ? (
+            {!feedbackIssue.assignedTo ? (
               <IconUser size="sm" />
             ) : (
               <ActorAvatar

@@ -11,7 +11,6 @@ import {userDisplayName} from 'sentry/utils/formatters';
 interface Props {
   feedbackItem: FeedbackIssue;
 }
-
 export default function FeedbackViewers({feedbackItem}: Props) {
   const displayUsers = feedbackItem.seenBy;
 
@@ -19,7 +18,7 @@ export default function FeedbackViewers({feedbackItem}: Props) {
     <StyledAvatarList
       users={displayUsers}
       avatarSize={28}
-      maxVisibleAvatars={13}
+      maxVisibleAvatars={3}
       tooltipOptions={{position: 'top'}}
       renderTooltip={user => (
         <Fragment>
@@ -33,6 +32,6 @@ export default function FeedbackViewers({feedbackItem}: Props) {
 }
 
 const StyledAvatarList = styled(AvatarList)`
-  flex-direction: row;
+  flex-direction: end;
   margin-left: ${space(0.75)};
 `;
