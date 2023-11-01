@@ -3,7 +3,9 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import Version from 'sentry/components/version';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {
@@ -39,6 +41,8 @@ export function ScreenLoadSampleContainer({
     undefined
   );
 
+  const organization = useOrganization();
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debounceSetHighlightedSpanId = useCallback(
     debounce(id => {
@@ -68,8 +72,12 @@ export function ScreenLoadSampleContainer({
 
   return (
     <Fragment>
-      {sectionTitle && <SectionTitle>{sectionTitle}</SectionTitle>}
-      {release && <SectionSubtitle>{release}</SectionSubtitle>}
+      <PaddedTitle>
+        {sectionTitle && <SectionTitle>{sectionTitle}</SectionTitle>}
+        {release && (
+          <Version organization={organization} version={release} tooltipRawVersion />
+        )}
+      </PaddedTitle>
       <Block title={DataTitles.avg} alignment="left">
         <DurationCell
           containerProps={{
@@ -128,6 +136,6 @@ const SectionTitle = styled('div')`
   ${p => p.theme.text.cardTitle}
 `;
 
-const SectionSubtitle = styled('div')`
+const PaddedTitle = styled('div')`
   margin-bottom: ${space(1)};
 `;
