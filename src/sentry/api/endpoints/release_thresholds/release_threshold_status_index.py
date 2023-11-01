@@ -64,12 +64,23 @@ class ReleaseThresholdStatusIndexSerializer(serializers.Serializer):
         required=True,
     )
     environment = serializers.ListField(
-        required=False, allow_empty=True, child=serializers.CharField()
+        required=False,
+        allow_empty=True,
+        child=serializers.CharField(),
+        help_text=("Provide a list of environment names to filter your results by"),
     )
     project = serializers.ListField(
-        required=False, allow_empty=True, child=serializers.IntegerField()
+        required=False,
+        allow_empty=True,
+        child=serializers.IntegerField(),
+        help_text=("Provide a list of project ids to filter your results by"),
     )
-    release = serializers.ListField(required=False, allow_empty=True, child=serializers.CharField())
+    release = serializers.ListField(
+        required=False,
+        allow_empty=True,
+        child=serializers.CharField(),
+        help_text=("Provide a list of release versions to filter your results by"),
+    )
 
     def validate(self, data):
         if data["start"] >= data["end"]:
