@@ -1462,7 +1462,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
                     "get_blame_for_files.extract_commits_from_blame.invalid_commit_response",
                     extra={
                         "provider": "github",
-                        "organization_integration_id": 35,
+                        "organization_integration_id": self.github_client.org_integration_id,
                         "file_lineno": file1.lineno,
                         "file_path": file1.path,
                         "branch_name": file1.ref,
@@ -1474,7 +1474,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
                     "get_blame_for_files.extract_commits_from_blame.invalid_commit_response",
                     extra={
                         "provider": "github",
-                        "organization_integration_id": 35,
+                        "organization_integration_id": self.github_client.org_integration_id,
                         "file_lineno": file2.lineno,
                         "file_path": file2.path,
                         "branch_name": file2.ref,
