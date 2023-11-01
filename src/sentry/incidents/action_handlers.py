@@ -134,8 +134,9 @@ class EmailActionHandler(ActionHandler):
             users = None
             if should_use_notifications_v2(self.project.organization):
                 out = get_notification_recipients_v2(
-                    recipients=RpcActor.many_from_object(
-                        list(RpcUser(id=member.user_id) for member in target.member_set)
+                    recipients=list(
+                        RpcActor(id=member.user_id, actor_type=ActorType.USER)
+                        for member in target.member_set
                     ),
                     type=NotificationSettingEnum.ISSUE_ALERTS,
                     organization_id=self.project.organization_id,
