@@ -584,7 +584,7 @@ def get_notification_recipients_v2(
         project_ids=project_ids,
         actor_type=actor_type,
     )
-    # ensure we use a defaultdict here in case someone tries to access a
+    # ensure we use a defaultdict here in case someone tries to access a provider that has no recipients
     out = defaultdict(set)
     for provider, actors in recipients_by_provider.items():
         key = get_provider_enum_from_string(provider)
