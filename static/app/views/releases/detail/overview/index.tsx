@@ -14,8 +14,8 @@ import PerformanceCardTable from 'sentry/components/discover/performanceCardTabl
 import TransactionsList, {
   DropdownOption,
 } from 'sentry/components/discover/transactionsList';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';

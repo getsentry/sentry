@@ -292,6 +292,7 @@ MIGRATED_CONDITIONS = frozenset(
 TICKET_ACTIONS = frozenset(
     [
         "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+        "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
         "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
     ]
 )
@@ -694,12 +695,14 @@ DS_DENYLIST = frozenset(
 # Also it covers: livez, readyz
 HEALTH_CHECK_GLOBS = [
     "*healthcheck*",
-    "*healthy*",
-    "*live*",
-    "*ready*",
     "*heartbeat*",
     "*/health",
+    "*/healthy",
     "*/healthz",
+    "*/live",
+    "*/livez",
+    "*/ready",
+    "*/readyz",
     "*/ping",
 ]
 

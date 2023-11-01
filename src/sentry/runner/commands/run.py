@@ -201,34 +201,6 @@ def web(bind, workers, upgrade, with_lock, noinput):
         SentryHTTPServer(host=bind[0], port=bind[1], workers=workers).run()
 
 
-@run.command()
-@click.option(
-    "--bind",
-    "-b",
-    default=None,
-    help="Bind address.",
-    metavar="ADDRESS",
-    callback=_address_validate,
-)
-@click.option("--upgrade", default=False, is_flag=True, help="Upgrade before starting.")
-@click.option(
-    "--noinput", default=False, is_flag=True, help="Do not prompt the user for input of any kind."
-)
-@configuration
-def smtp(bind, upgrade, noinput):
-    "Run inbound email service."
-    if upgrade:
-        click.echo("Performing upgrade before service startup...")
-        from sentry.runner import call_command
-
-        call_command("sentry.runner.commands.upgrade.upgrade", verbosity=0, noinput=noinput)
-
-    from sentry.services.smtp import SentrySMTPServer
-
-    with managed_bgtasks(role="smtp"):
-        SentrySMTPServer(host=bind[0], port=bind[1]).run()
-
-
 def run_worker(**options):
     """
     This is the inner function to actually start worker.
@@ -624,21 +596,6 @@ def metrics_parallel_consumer(**options):
     run_processor_with_signals(streamer)
 
 
-@run.command("billing-metrics-consumer")
-@log_options()
-@kafka_options("billing-metrics-consumer")
-@strict_offset_reset_option()
-@configuration
-def metrics_billing_consumer(**options):
-    from sentry.consumers import print_deprecation_warning
-
-    print_deprecation_warning("billing-metrics-consumer", options["group_id"])
-    from sentry.ingest.billing_metrics_consumer import get_metrics_billing_consumer
-
-    consumer = get_metrics_billing_consumer(**options)
-    run_processor_with_signals(consumer)
-
-
 @run.command("ingest-profiles")
 @log_options()
 @click.option("--topic", default="profiles", help="Topic to get profiles data from.")
@@ -704,6 +661,12 @@ def profiles_consumer(**options):
 @click.option(
     "--healthcheck-file-path",
     help="A file to touch roughly every second to indicate that the consumer is still alive. See https://getsentry.github.io/arroyo/strategies/healthcheck.html for more information.",
+)
+@click.option(
+    "--enable-dlq",
+    help="Enable dlq to route invalid messages to. See https://getsentry.github.io/arroyo/dlqs.html#arroyo.dlq.DlqPolicy for more information.",
+    is_flag=True,
+    default=False,
 )
 @click.option(
     "--log-level",
@@ -776,6 +739,7 @@ def dev_consumer(consumer_names):
             max_poll_interval_ms=None,
             synchronize_commit_group=None,
             synchronize_commit_log_topic=None,
+            enable_dlq=False,
             healthcheck_file_path=None,
             validate_schema=True,
         )

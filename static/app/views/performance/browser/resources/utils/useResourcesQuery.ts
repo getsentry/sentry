@@ -15,26 +15,46 @@ const {
   SPAN_OP,
   SPAN_SELF_TIME,
   RESOURCE_RENDER_BLOCKING_STATUS,
+  HTTP_RESPONSE_CONTENT_LENGTH,
+  PROJECT_ID,
 } = SpanMetricsField;
 
-export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
+type Props = {
+  sort: ValidSort;
+  defaultResourceTypes?: string[];
+  limit?: number;
+  query?: string;
+};
+
+export const DEFAULT_RESOURCE_FILTERS = ['!span.description:"browser-extension://*"'];
+
+export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Props) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
   const resourceFilters = useResourceModuleFilters();
   const {slug: orgSlug} = useOrganization();
+
   const queryConditions = [
-    `${SPAN_OP}:${resourceFilters.type || 'resource.*'}`,
-    ...(resourceFilters.transaction
-      ? [`transaction:"${resourceFilters.transaction}"`]
-      : []),
-    ...(resourceFilters[SPAN_DOMAIN]
-      ? [`${SPAN_DOMAIN}:${resourceFilters[SPAN_DOMAIN]}`]
-      : []),
-    ...(resourceFilters['resource.render_blocking_status']
+    `${SPAN_OP}:${
+      resourceFilters[SPAN_OP] || `[${defaultResourceTypes?.join(',')}]` || 'resource.*'
+    }`,
+    ...(!query
       ? [
-          `resource.render_blocking_status:${resourceFilters['resource.render_blocking_status']}`,
+          ...DEFAULT_RESOURCE_FILTERS,
+          ...(resourceFilters.transaction
+            ? [`transaction:"${resourceFilters.transaction}"`]
+            : []),
+          ...(resourceFilters[SPAN_DOMAIN]
+            ? [`${SPAN_DOMAIN}:${resourceFilters[SPAN_DOMAIN]}`]
+            : []),
+          ...(resourceFilters['resource.render_blocking_status']
+            ? [
+                `resource.render_blocking_status:${resourceFilters['resource.render_blocking_status']}`,
+              ]
+            : [`!resource.render_blocking_status:blocking`]),
         ]
       : []),
+    query,
   ];
 
   // TODO - we should be using metrics data here
@@ -47,8 +67,9 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
         `avg(${SPAN_SELF_TIME})`,
         'spm()',
         SPAN_GROUP,
-        RESOURCE_RENDER_BLOCKING_STATUS,
         SPAN_DOMAIN,
+        `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
+        'project.id',
       ],
       name: 'Resource module - resource table',
       query: queryConditions.join(' '),
@@ -63,7 +84,15 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
     eventView.sorts = [sort];
   }
 
-  const result = useDiscoverQuery({eventView, limit: 100, location, orgSlug});
+  const result = useDiscoverQuery({
+    eventView,
+    limit: limit ?? 100,
+    location,
+    orgSlug,
+    options: {
+      refetchOnWindowFocus: false,
+    },
+  });
 
   const data = result?.data?.data.map(row => ({
     [SPAN_OP]: row[SPAN_OP].toString() as `resource.${string}`,
@@ -77,6 +106,11 @@ export const useResourcesQuery = ({sort}: {sort: ValidSort}) => {
       | 'non-blocking'
       | 'blocking',
     [SPAN_DOMAIN]: row[SPAN_DOMAIN][0]?.toString(),
+    [PROJECT_ID]: row[PROJECT_ID] as number,
+    [`avg(http.response_content_length)`]: row[
+      `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`
+    ] as number,
+    ['count_unique(transaction)']: row['count_unique(transaction)'] as number,
   }));
 
   return {...result, data: data || []};

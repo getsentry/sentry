@@ -54,6 +54,90 @@
     "table_name": "hybridcloud_apikeyreplica",
     "uniques": []
   },
+  "hybridcloud.apitokenreplica": {
+    "dangling": false,
+    "foreign_keys": {
+      "apitoken_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.apitoken",
+        "nullable": false
+      },
+      "application_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.apiapplication",
+        "nullable": true
+      },
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.organization",
+        "nullable": true
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": false
+      }
+    },
+    "model": "hybridcloud.apitokenreplica",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "hybridcloud_apitokenreplica",
+    "uniques": []
+  },
+  "hybridcloud.externalactorreplica": {
+    "dangling": false,
+    "foreign_keys": {
+      "externalactor_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.externalactor",
+        "nullable": false
+      },
+      "integration": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.integration",
+        "nullable": false
+      },
+      "organization_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.organization",
+        "nullable": false
+      },
+      "team_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.team",
+        "nullable": true
+      },
+      "user": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      }
+    },
+    "model": "hybridcloud.externalactorreplica",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Control"
+    ],
+    "table_name": "hybridcloud_externalactorreplica",
+    "uniques": [
+      [
+        "external_name",
+        "organization_id",
+        "provider",
+        "team_id"
+      ],
+      [
+        "external_name",
+        "organization_id",
+        "provider",
+        "user_id"
+      ]
+    ]
+  },
   "hybridcloud.organizationslugreservationreplica": {
     "dangling": false,
     "foreign_keys": {
@@ -92,6 +176,34 @@
         "slug"
       ]
     ]
+  },
+  "hybridcloud.orgauthtokenreplica": {
+    "dangling": false,
+    "foreign_keys": {
+      "created_by_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      },
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.organization",
+        "nullable": false
+      },
+      "orgauthtoken_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.orgauthtoken",
+        "nullable": false
+      }
+    },
+    "model": "hybridcloud.orgauthtokenreplica",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "hybridcloud_orgauthtokenreplica",
+    "uniques": []
   },
   "hybridcloud.regioncacheversion": {
     "dangling": false,
@@ -229,6 +341,16 @@
       "snuba_query": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.snubaquery",
+        "nullable": true
+      },
+      "team": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.team",
+        "nullable": true
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
         "nullable": true
       }
     },
@@ -1103,6 +1225,11 @@
   "sentry.customdynamicsamplingrule": {
     "dangling": false,
     "foreign_keys": {
+      "created_by_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      },
       "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.organization",
@@ -5850,38 +5977,6 @@
     ],
     "table_name": "sentry_userrole_users",
     "uniques": []
-  },
-  "sessions.session": {
-    "dangling": false,
-    "foreign_keys": {},
-    "model": "sessions.session",
-    "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Monolith"
-    ],
-    "table_name": "django_session",
-    "uniques": [
-      [
-        "session_key"
-      ]
-    ]
-  },
-  "sites.site": {
-    "dangling": false,
-    "foreign_keys": {},
-    "model": "sites.site",
-    "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Monolith"
-    ],
-    "table_name": "django_site",
-    "uniques": [
-      [
-        "domain"
-      ]
-    ]
   },
   "social_auth.usersocialauth": {
     "dangling": false,

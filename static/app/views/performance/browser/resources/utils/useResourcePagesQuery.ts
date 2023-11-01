@@ -5,6 +5,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
+import {DEFAULT_RESOURCE_FILTERS} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 
 const {SPAN_DOMAIN, SPAN_OP} = SpanMetricsField;
@@ -22,7 +23,8 @@ export const useResourcePagesQuery = () => {
   const fields = ['transaction', 'count()']; // count() is only here because an aggregation is required for the query to work
 
   const queryConditions = [
-    `${SPAN_OP}:${resourceFilters.type || 'resource.*'}`,
+    ...DEFAULT_RESOURCE_FILTERS,
+    `${SPAN_OP}:${resourceFilters[SPAN_OP] || 'resource.*'}`,
     ...(spanDomain ? [`${SPAN_DOMAIN}:${spanDomain}`] : []),
   ]; // TODO: We will need to consider other ops
 

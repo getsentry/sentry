@@ -1,45 +1,58 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
+import Button from 'sentry/components/actions/button';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
-import ResolveButton from 'sentry/components/feedback/feedbackItem/resolveButton';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
-import useDeleteFeedback from 'sentry/components/feedback/feedbackItem/useDeleteFeedback';
-import ObjectInspector from 'sentry/components/objectInspector';
+import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
+import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {IconChevron, IconEllipsis, IconJson, IconLink} from 'sentry/icons';
+import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {getShortEventId} from 'sentry/utils/events';
-import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
+import type {Event} from 'sentry/types';
+import {GroupStatus} from 'sentry/types';
+import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 
 interface Props {
-  feedbackItem: HydratedFeedbackItem;
+  eventData: Event | undefined;
+  feedbackItem: FeedbackIssue;
+  tags: Record<string, string>;
 }
 
-export default function FeedbackItem({feedbackItem}: Props) {
+export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const organization = useOrganization();
-  const {projects} = useProjects();
-  const {onDelete} = useDeleteFeedback({
-    feedbackItem,
+  const hasReplayId = useFeedbackHasReplayId({feedbackId: feedbackItem.id});
+  const {markAsRead, resolve} = useMutateFeedback({
+    feedbackIds: [feedbackItem.id],
+    organization,
   });
 
-  const project = projects.find(p => p.id === String(feedbackItem.project_id));
-  if (!project) {
-    return null;
-  }
-  const slug = project?.slug;
+  const url = eventData?.tags.find(tag => tag.key === 'url');
+  const replayId = eventData?.contexts?.feedback?.replay_id;
+
+  const mutationOptions = {
+    onError: () => {
+      addErrorMessage(t('An error occurred while updating the feedback.'));
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Updated feedback'));
+    },
+  };
 
   return (
     <Fragment>
@@ -47,22 +60,23 @@ export default function FeedbackItem({feedbackItem}: Props) {
         <Flex gap={space(2)} justify="space-between">
           <Flex column>
             <Flex align="center" gap={space(0.5)}>
-              <FeedbackItemUsername feedbackItem={feedbackItem} detailDisplay />
-              {feedbackItem.contact_email ? (
+              <FeedbackItemUsername feedbackIssue={feedbackItem} detailDisplay />
+              {feedbackItem.metadata.contact_email ? (
                 <CopyToClipboardButton
                   size="xs"
                   iconSize="xs"
-                  text={feedbackItem.contact_email}
+                  text={feedbackItem.metadata.contact_email}
                 />
               ) : null}
             </Flex>
             <Flex gap={space(1)}>
               <Flex align="center" gap={space(0.5)}>
-                <ProjectAvatar project={project} size={12} title={slug} /> {slug}
-              </Flex>
-              <Flex align="center" gap={space(1)}>
-                <IconChevron direction="right" size="xs" />
-                <Flex>{getShortEventId(feedbackItem.feedback_id)}</Flex>
+                <ProjectAvatar
+                  project={feedbackItem.project}
+                  size={12}
+                  title={feedbackItem.project.slug}
+                />
+                {feedbackItem.project.slug}
               </Flex>
             </Flex>
           </Flex>
@@ -71,35 +85,28 @@ export default function FeedbackItem({feedbackItem}: Props) {
               <FeedbackViewers feedbackItem={feedbackItem} />
             </ErrorBoundary>
             <ErrorBoundary mini>
-              <ResolveButton feedbackItem={feedbackItem} />
+              <Button
+                onClick={() => {
+                  addLoadingMessage(t('Updating feedback...'));
+                  const newStatus =
+                    feedbackItem.status === 'resolved'
+                      ? GroupStatus.UNRESOLVED
+                      : GroupStatus.RESOLVED;
+                  resolve(newStatus, mutationOptions);
+                }}
+              >
+                {feedbackItem.status === 'resolved' ? t('Unresolve') : t('Resolve')}
+              </Button>
             </ErrorBoundary>
             <ErrorBoundary mini>
-              <DropdownMenu
-                position="bottom-end"
-                triggerProps={{
-                  'aria-label': t('Feedback Actions Menu'),
-                  icon: <IconEllipsis size="xs" />,
-                  showChevron: false,
-                  size: 'xs',
+              <Button
+                onClick={() => {
+                  addLoadingMessage(t('Updating feedback...'));
+                  markAsRead(!feedbackItem.hasSeen, mutationOptions);
                 }}
-                items={[
-                  {
-                    key: 'mark read',
-                    label: t('Mark as read'),
-                    onAction: () => {},
-                  },
-                  {
-                    key: 'mark unread',
-                    label: t('Mark as unread'),
-                    onAction: () => {},
-                  },
-                  {
-                    key: 'delete',
-                    label: t('Delete'),
-                    onAction: onDelete,
-                  },
-                ]}
-              />
+              >
+                {feedbackItem.hasSeen ? t('Mark Unread') : t('Mark Read')}
+              </Button>
             </ErrorBoundary>
           </Flex>
         </Flex>
@@ -107,32 +114,25 @@ export default function FeedbackItem({feedbackItem}: Props) {
       <OverflowPanelItem>
         <Section title={t('Description')}>
           <Blockquote>
-            <pre>{feedbackItem.message}</pre>
+            <pre>{feedbackItem.metadata.message}</pre>
           </Blockquote>
         </Section>
 
         <Section icon={<IconLink size="xs" />} title={t('Url')}>
           <ErrorBoundary mini>
-            <TextCopyInput size="sm">{feedbackItem.url}</TextCopyInput>
+            <TextCopyInput size="sm">{url?.value ?? t('URL not found')}</TextCopyInput>
           </ErrorBoundary>
         </Section>
 
-        {feedbackItem.replay_id ? (
-          <ReplaySection organization={organization} replayId={feedbackItem.replay_id} />
+        {hasReplayId && replayId ? (
+          <ReplaySection
+            eventTimestampMs={new Date(feedbackItem.firstSeen).getTime()}
+            organization={organization}
+            replayId={replayId}
+          />
         ) : null}
 
-        <TagsSection tags={feedbackItem.tags} />
-
-        <Section icon={<IconJson size="xs" />} title={t('Raw')}>
-          <ObjectInspector
-            data={feedbackItem}
-            expandLevel={3}
-            theme={{
-              TREENODE_FONT_SIZE: '0.7rem',
-              ARROW_FONT_SIZE: '0.5rem',
-            }}
-          />
-        </Section>
+        <TagsSection tags={tags} />
       </OverflowPanelItem>
     </Fragment>
   );

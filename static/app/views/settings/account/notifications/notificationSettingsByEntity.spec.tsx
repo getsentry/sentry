@@ -35,6 +35,7 @@ describe('NotificationSettingsByEntity', function () {
         notificationOptions={[]}
         handleRemoveNotificationOption={jest.fn()}
         handleAddNotificationOption={jest.fn()}
+        handleEditNotificationOption={jest.fn()}
         entityType={'project' as const}
       />
     );

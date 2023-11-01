@@ -20,7 +20,7 @@ import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {
   IconCheckmark,
   IconEllipsis,
@@ -94,10 +94,9 @@ export function Actions(props: Props) {
   const hasDeleteAccess = organization.access.includes('event:admin');
 
   const {
-    delete: deleteCap,
-    deleteAndDiscard: deleteDiscardCap,
-    share: shareCap,
-  } = getConfigForIssueType(group).actions;
+    actions: {delete: deleteCap, deleteAndDiscard: deleteDiscardCap, share: shareCap},
+    discover: discoverCap,
+  } = getConfigForIssueType(group);
 
   const getDiscoverUrl = () => {
     const {title, type, shortId} = group;
@@ -468,23 +467,25 @@ export function Actions(props: Props) {
         size="sm"
       />
       <div className="hidden-xs">
-        <EnvironmentPageFilter alignDropdown="right" size="sm" />
+        <EnvironmentPageFilter position="bottom-end" size="sm" />
       </div>
-      <Feature
-        hookName="feature-disabled:open-in-discover"
-        features={['discover-basic']}
-        organization={organization}
-      >
-        <ActionButton
-          className="hidden-xs"
-          disabled={disabled}
-          to={disabled ? '' : getDiscoverUrl()}
-          onClick={() => trackIssueAction('open_in_discover')}
-          size="sm"
+      {discoverCap.enabled && (
+        <Feature
+          hookName="feature-disabled:open-in-discover"
+          features={['discover-basic']}
+          organization={organization}
         >
-          <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
-        </ActionButton>
-      </Feature>
+          <ActionButton
+            className="hidden-xs"
+            disabled={disabled}
+            to={disabled ? '' : getDiscoverUrl()}
+            onClick={() => trackIssueAction('open_in_discover')}
+            size="sm"
+          >
+            <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
+          </ActionButton>
+        </Feature>
+      )}
       {isResolved || isIgnored ? (
         <ActionButton
           priority="primary"

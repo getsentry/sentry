@@ -18,6 +18,7 @@ import {
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
+import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -159,7 +160,6 @@ function useCreateInvestigationRuleMutation(vars: CreateCustomRuleVariables) {
 }
 
 const InvestigationInProgressNotification = styled('span')`
-  margin: ${space(1.5)};
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.subText};
   font-weight: 600;
@@ -167,6 +167,23 @@ const InvestigationInProgressNotification = styled('span')`
   align-items: center;
   gap: ${space(0.5)};
 `;
+
+function handleRequestError(error: RequestError) {
+  // check why it failed (if it is due to the fact that the query is not supported (e.g. non transaction query)
+  // do nothing we just don't show the button
+  if (error.responseJSON?.query) {
+    const query = error.responseJSON.query;
+    if (Array.isArray(query)) {
+      for (const reason of query) {
+        if (reason === 'not_transaction_query') {
+          return; // this is not an error we just don't show the button
+        }
+      }
+    }
+  }
+  const errorResponse = t('Unable to fetch investigation rule');
+  addErrorMessage(errorResponse);
+}
 
 function InvestigationRuleCreationInternal(props: PropsInternal) {
   const projects = [...props.eventView.project];
@@ -190,8 +207,7 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
     return null;
   }
   if (request.isError) {
-    const errorResponse = t('Unable to fetch investigation rule');
-    addErrorMessage(errorResponse);
+    handleRequestError(request.error);
     return null;
   }
 
@@ -219,7 +235,7 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
             }
           )}
         >
-          <IconQuestion size="xs" color="subText" />
+          <StyledIconQuestion size="sm" color="subText" />
         </Tooltip>
       </InvestigationInProgressNotification>
     );
@@ -238,6 +254,7 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
       )}
     >
       <Button
+        priority="primary"
         {...props.buttonProps}
         onClick={() => createInvestigationRule({organization, period, projects, query})}
         icon={<IconStack size="xs" />}
@@ -256,3 +273,8 @@ export function InvestigationRuleCreation(props: Props) {
     </Feature>
   );
 }
+
+const StyledIconQuestion = styled(IconQuestion)`
+  position: relative;
+  top: 2px;
+`;

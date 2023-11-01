@@ -8,10 +8,10 @@ import {
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 
-import {useInfiniteFeedbackListData} from 'sentry/components/feedback/feedbackDataContext';
 import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
 import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
 import useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
+import useFetchFeedbackInfiniteListData from 'sentry/components/feedback/useFetchFeedbackInfiniteListData';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -29,25 +29,26 @@ const cellMeasurer = {
 
 export default function FeedbackList() {
   const {
-    countLoadedRows,
+    hasNextPage,
+    isFetching, // If the network is active
+    isFetchingNextPage,
+    isFetchingPreviousPage,
+    isLoading, // If anything is loaded yet
     getRow,
-    isFetchingNext,
-    isFetchingPrev,
     isRowLoaded,
+    issues,
     loadMoreRows,
-    queryView,
-    totalHits,
-  } = useInfiniteFeedbackListData();
+  } = useFetchFeedbackInfiniteListData();
 
   const {setParamValue} = useUrlParams('query');
   const clearSearchTerm = () => setParamValue('');
 
-  const {checked, toggleChecked} = useListItemCheckboxState();
+  const {checked, uncheckAll, toggleChecked} = useListItemCheckboxState();
 
   const listRef = useRef<ReactVirtualizedList>(null);
 
-  const hasRows = totalHits === undefined ? true : totalHits > 0;
-  const deps = useMemo(() => [queryView, hasRows], [queryView, hasRows]);
+  const hasRows = !isLoading;
+  const deps = useMemo(() => [hasRows], [hasRows]);
   const {cache, updateList} = useVirtualizedList({
     cellMeasurer,
     ref: listRef,
@@ -56,7 +57,7 @@ export default function FeedbackList() {
 
   useEffect(() => {
     updateList();
-  }, [updateList, countLoadedRows]);
+  }, [updateList, issues.length]);
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
     const item = getRow({index});
@@ -75,9 +76,9 @@ export default function FeedbackList() {
         <FeedbackListItem
           feedbackItem={item}
           style={style}
-          isChecked={checked.includes(item.feedback_id)}
+          isChecked={checked.includes(item.id)}
           onChecked={() => {
-            toggleChecked(item.feedback_id);
+            toggleChecked(item.id);
           }}
         />
       </CellMeasurer>
@@ -86,12 +87,12 @@ export default function FeedbackList() {
 
   return (
     <Fragment>
-      <FeedbackListHeader checked={checked} />
+      <FeedbackListHeader checked={checked} uncheckAll={uncheckAll} />
       <OverflowPanelItem noPadding>
         <InfiniteLoader
           isRowLoaded={isRowLoaded}
           loadMoreRows={loadMoreRows}
-          rowCount={totalHits}
+          rowCount={hasNextPage ? issues.length + 1 : issues.length}
         >
           {({onRowsRendered, registerChild}) => (
             <AutoSizer onResize={updateList}>
@@ -100,11 +101,11 @@ export default function FeedbackList() {
                   deferredMeasurementCache={cache}
                   height={height}
                   noRowsRenderer={() =>
-                    isFetchingNext || isFetchingPrev ? (
+                    isFetching ? (
                       <LoadingIndicator />
                     ) : (
                       <NoRowRenderer
-                        unfilteredItems={totalHits === undefined ? [undefined] : []}
+                        unfilteredItems={issues}
                         clearSearchTerm={clearSearchTerm}
                       >
                         {t('No feedback received')}
@@ -113,10 +114,8 @@ export default function FeedbackList() {
                   }
                   onRowsRendered={onRowsRendered}
                   overscanRowCount={5}
-                  ref={e => {
-                    registerChild(e);
-                  }}
-                  rowCount={totalHits === undefined ? 1 : totalHits}
+                  ref={registerChild}
+                  rowCount={issues.length}
                   rowHeight={cache.rowHeight}
                   rowRenderer={renderRow}
                   width={width}
@@ -126,14 +125,14 @@ export default function FeedbackList() {
           )}
         </InfiniteLoader>
         <FloatingContainer style={{top: '2px'}}>
-          {isFetchingPrev ? (
+          {isFetchingPreviousPage ? (
             <Tooltip title={t('Loading more feedback...')}>
               <LoadingIndicator mini />
             </Tooltip>
           ) : null}
         </FloatingContainer>
         <FloatingContainer style={{bottom: '2px'}}>
-          {isFetchingNext ? (
+          {isFetchingNextPage ? (
             <Tooltip title={t('Loading more feedback...')}>
               <LoadingIndicator mini />
             </Tooltip>

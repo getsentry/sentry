@@ -3,7 +3,7 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 from abc import abstractmethod
-from typing import Optional, cast
+from typing import Optional, Set, Tuple
 
 from sentry.hybridcloud.rpc_services.control_organization_provisioning.model import (
     RpcOrganizationSlugReservation,
@@ -78,6 +78,22 @@ class ControlOrganizationProvisioningRpcService(RpcService):
         """
         pass
 
+    @abstractmethod
+    @rpc_method
+    def bulk_create_organization_slug_reservations(
+        self, *, region_name: str, organization_ids_and_slugs: Set[Tuple[int, str]]
+    ) -> None:
+        """
+        Only really intended for bulk organization import usage. Creates unique organization slug
+        reservations for the given list of IDs and slug bases for organizations already provisioned
+        in the provided region.
+
+        :param region_name: The region where the imported organization exist
+        :param organization_ids_and_slugs: A set of ID and base slug tuples to reserve slugs for
+        :return:
+        """
+        pass
+
     @classmethod
     def get_local_implementation(cls) -> RpcService:
         from sentry.hybridcloud.rpc_services.control_organization_provisioning.impl import (
@@ -87,7 +103,6 @@ class ControlOrganizationProvisioningRpcService(RpcService):
         return DatabaseBackedControlOrganizationProvisioningService()
 
 
-control_organization_provisioning_rpc_service: ControlOrganizationProvisioningRpcService = cast(
-    ControlOrganizationProvisioningRpcService,
-    ControlOrganizationProvisioningRpcService.create_delegation(),
+control_organization_provisioning_rpc_service = (
+    ControlOrganizationProvisioningRpcService.create_delegation()
 )

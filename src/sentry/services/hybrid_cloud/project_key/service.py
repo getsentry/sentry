@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Optional, cast
+from typing import Optional
 
 from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, RpcProjectKey
 from sentry.services.hybrid_cloud.region import ByOrganizationId, ByRegionName
@@ -44,6 +44,4 @@ class ProjectKeyService(RpcService):
         pass
 
 
-project_key_service: ProjectKeyService = cast(
-    ProjectKeyService, ProjectKeyService.create_delegation()
-)
+project_key_service = ProjectKeyService.create_delegation()

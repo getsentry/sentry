@@ -99,9 +99,6 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
             rpc_org_slug=rpc_org_slug, user_id=self.provision_user.id
         )
 
-    # TODO(Gabe): Re-enable this in the cutover PR after removing
-    #  slug reservation writes on org mapping create
-    @pytest.mark.skip
     def test_organization_already_provisioned_for_different_user(self):
         user = self.create_user()
         conflicting_slug = self.provisioning_args.provision_options.slug
@@ -111,6 +108,14 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
             region_only_organization = self.create_organization(
                 name="conflicting_org", slug=conflicting_slug, owner=owner_of_conflicting_org
             )
+
+        # De-register the conflicting organization to create the collision
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_context(
+            transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
+        ):
+            OrganizationSlugReservation.objects.filter(
+                organization_id=region_only_organization.id
+            ).delete()
 
         if SiloMode.get_current_mode() == SiloMode.REGION:
             with pytest.raises(RpcRemoteException):
@@ -147,8 +152,6 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
 
 
 @all_silo_test(stable=True)
-# TODO(Gabe): Re-enable and fix tests in the cutover PR
-@pytest.mark.skip
 class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProvisioningBase):
     def test_updates_exact_slug(self):
         org_slug_res = self.provision_organization()
@@ -323,3 +326,25 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
         ), f"Expected only a single slug reservation, received: {slug_reservations}"
         assert slug_reservations[0].slug == desired_primary_slug
         assert slug_reservations[0].reservation_type == OrganizationSlugReservationType.PRIMARY
+
+    def test_swap_with_same_slug(self):
+        desired_slug = "santry"
+        org = self.create_organization(slug=desired_slug, owner=self.create_user())
+        control_organization_provisioning_rpc_service.update_organization_slug(
+            organization_id=org.id,
+            desired_slug=desired_slug,
+            require_exact=True,
+            region_name=self.region_name,
+        )
+
+        slug_reservations = self.get_slug_reservations_for_organization(organization_id=org.id)
+
+        assert (
+            len(slug_reservations) == 1
+        ), f"Expected only a single slug reservation, received: {slug_reservations}"
+        assert slug_reservations[0].slug == desired_slug
+        assert slug_reservations[0].reservation_type == OrganizationSlugReservationType.PRIMARY
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            org.refresh_from_db()
+            assert org.slug == desired_slug

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from datetime import datetime, timedelta
 from time import time
 from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union
@@ -11,7 +12,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
-from sentry import features
+from sentry import features, options
 from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -31,6 +32,7 @@ from sentry.utils.locking.manager import LockManager
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
+from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig, SdkName
 from sentry.utils.services import build_instance_from_options
 
 if TYPE_CHECKING:
@@ -638,6 +640,7 @@ def post_process_group(
 def run_post_process_job(job: PostProcessJob):
     group_event = job["event"]
     issue_category = group_event.group.issue_category
+    issue_category_metric = issue_category.name.lower() if issue_category else None
 
     if not group_event.group.issue_type.allow_post_process_group(group_event.group.organization):
         return
@@ -654,14 +657,24 @@ def run_post_process_job(job: PostProcessJob):
             with sentry_sdk.start_span(op=f"tasks.post_process_group.{pipeline_step.__name__}"):
                 pipeline_step(job)
         except Exception:
-            issue_category_metric = issue_category.name.lower() if issue_category else None
             metrics.incr(
                 "sentry.tasks.post_process.post_process_group.exception",
-                tags={"issue_category": issue_category_metric},
+                tags={
+                    "issue_category": issue_category_metric,
+                    "pipeline": pipeline_step.__name__,
+                },
             )
             logger.exception(
                 f"Failed to process pipeline step {pipeline_step.__name__}",
                 extra={"event": group_event, "group": group_event.group},
+            )
+        else:
+            metrics.incr(
+                "sentry.tasks.post_process.post_process_group.completed",
+                tags={
+                    "issue_category": issue_category_metric,
+                    "pipeline": pipeline_step.__name__,
+                },
             )
 
 
@@ -879,6 +892,12 @@ def process_replay_link(job: PostProcessJob) -> None:
     if not replay_id:
         return
 
+    # Validate the UUID.
+    try:
+        uuid.UUID(replay_id)
+    except (ValueError, TypeError):
+        return None
+
     metrics.incr("post_process.process_replay_link.id_exists")
 
     publisher = initialize_replays_publisher(is_async=True)
@@ -1015,6 +1034,14 @@ def process_commits(job: PostProcessJob) -> None:
                     features.has("organizations:commit-context", event.project.organization)
                     and has_integrations
                 ):
+                    if (
+                        features.has(
+                            "organizations:suspect-commits-all-frames", event.project.organization
+                        )
+                        and not job["group_state"]["is_new"]
+                    ):
+                        return
+
                     cache_key = DEBOUNCE_CACHE_KEY(event.group_id)
                     if cache.get(cache_key):
                         metrics.incr("sentry.tasks.process_commit_context.debounce")
@@ -1153,18 +1180,27 @@ def sdk_crash_monitoring(job: PostProcessJob):
     if not features.has("organizations:sdk-crash-detection", event.project.organization):
         return
 
-    if settings.SDK_CRASH_DETECTION_PROJECT_ID is None:
-        logger.warning(
-            "SDK crash detection is enabled but SDK_CRASH_DETECTION_PROJECT_ID is not set."
-        )
+    cocoa_project_id = options.get(
+        "issues.sdk_crash_detection.cocoa.project_id",
+    )
+    if not cocoa_project_id or cocoa_project_id == 0:
+        sentry_sdk.capture_message("Cocoa project_id is not set.")
         return None
+
+    cocoa_sample_rate = options.get("issues.sdk_crash_detection.cocoa.sample_rate")
+    # When the sample rate is 0, we can skip the sdk crash detection.
+    if not cocoa_sample_rate or cocoa_sample_rate == 0:
+        return None
+
+    cocoa_config = SDKCrashDetectionConfig(
+        sdk_name=SdkName.Cocoa, project_id=cocoa_project_id, sample_rate=cocoa_sample_rate
+    )
 
     with metrics.timer("post_process.sdk_crash_monitoring.duration"):
         with sentry_sdk.start_span(op="tasks.post_process_group.sdk_crash_monitoring"):
             sdk_crash_detection.detect_sdk_crash(
                 event=event,
-                event_project_id=settings.SDK_CRASH_DETECTION_PROJECT_ID,
-                sample_rate=settings.SDK_CRASH_DETECTION_SAMPLE_RATE,
+                configs=[cocoa_config],
             )
 
 

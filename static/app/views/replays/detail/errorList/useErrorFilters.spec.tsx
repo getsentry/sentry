@@ -1,5 +1,7 @@
 import {browserHistory} from 'react-router';
 import type {Location} from 'history';
+import {RawReplayErrorFixture} from 'sentry-fixture/replay/error';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -17,9 +19,9 @@ const mockUseLocation = jest.mocked(useLocation);
 
 const [ERROR_1_JS_RANGEERROR, ERROR_2_NEXTJS_TYPEERROR, ERROR_3_JS_UNDEFINED] =
   hydrateErrors(
-    TestStubs.ReplayRecord({started_at: new Date('2023-06-09T12:00:00+00:00')}),
+    ReplayRecordFixture({started_at: new Date('2023-06-09T12:00:00+00:00')}),
     [
-      TestStubs.Replay.RawReplayError({
+      RawReplayErrorFixture({
         'error.type': ['RangeError'],
         timestamp: new Date('2023-06-09T12:00:00+00:00'),
         id: '415ecb5c85ac43b19f1886bb41ddab96',
@@ -28,7 +30,7 @@ const [ERROR_1_JS_RANGEERROR, ERROR_2_NEXTJS_TYPEERROR, ERROR_3_JS_UNDEFINED] =
         title: 'Invalid time value',
         'project.name': 'javascript',
       }),
-      TestStubs.Replay.RawReplayError({
+      RawReplayErrorFixture({
         'error.type': ['TypeError'],
         timestamp: new Date('2023-06-09T12:10:00+00:00'),
         id: 'ac43b19f1886bb41ddab96415ecb5c85',
@@ -37,7 +39,7 @@ const [ERROR_1_JS_RANGEERROR, ERROR_2_NEXTJS_TYPEERROR, ERROR_3_JS_UNDEFINED] =
         title: `undefined is not an object (evaluating 'e.apply').`,
         'project.name': 'next-js',
       }),
-      TestStubs.Replay.RawReplayError({
+      RawReplayErrorFixture({
         'error.type': ['TypeError'],
         timestamp: new Date('2023-06-09T12:20:00+00:00'),
         id: '9f1886bb41ddab96415ecb5c85ac43b1',
