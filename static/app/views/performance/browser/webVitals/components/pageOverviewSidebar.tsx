@@ -5,14 +5,14 @@ import styled from '@emotion/styled';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart, LineChartSeries} from 'sentry/components/charts/lineChart';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {getDuration} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {MiniAggregateWaterfall} from 'sentry/views/performance/browser/webVitals/components/miniAggregateWaterfall';
+import PerformanceScoreRingWithTooltips from 'sentry/views/performance/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
-import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
 import {useProjectWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsValuesTimeseriesQuery';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -29,70 +29,37 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
   const pageFilters = usePageFilters();
   const {period, start, end, utc} = pageFilters.selection.datetime;
 
-  const {data: pageData} = useProjectWebVitalsQuery({transaction});
+  const {data, isLoading: isLoading} = useProjectWebVitalsValuesTimeseriesQuery({
+    transaction,
+  });
 
-  const {data: seriesData, isLoading: isLoadingSeries} =
-    useProjectWebVitalsValuesTimeseriesQuery({transaction});
+  let seriesData = !isLoading
+    ? data?.eps.map(({name, value}) => ({
+        name,
+        value,
+      }))
+    : [];
+
+  // Trim off last data point since it's incomplete
+  if (seriesData.length > 0 && period && !start && !end) {
+    seriesData = seriesData.slice(0, -1);
+  }
 
   const throughtputData: LineChartSeries[] = [
     {
-      data: !isLoadingSeries
-        ? seriesData.eps.map(({name, value}) => ({
-            name,
-            value,
-          }))
-        : [],
-      seriesName: 'Throughput',
+      data: seriesData,
+      seriesName: 'Page Loads',
     },
   ];
 
-  const durationData: LineChartSeries[] = [
-    {
-      data: !isLoadingSeries
-        ? seriesData.duration.map(({name, value}) => ({
-            name,
-            value,
-          }))
-        : [],
-      seriesName: 'Duration',
-    },
-  ];
-
-  const errorData: LineChartSeries[] = [
-    {
-      data: !isLoadingSeries
-        ? seriesData.errors.map(({name, value}) => ({
-            name,
-            value,
-          }))
-        : [],
-      seriesName: '5XX Responses',
-    },
-  ];
-
-  const epsDiff = !isLoadingSeries
-    ? seriesData.eps[seriesData.eps.length - 1].value / seriesData.eps[0].value
+  const epsDiff = !isLoading
+    ? seriesData[seriesData.length - 1].value / seriesData[0].value
     : undefined;
-  const initialEps = !isLoadingSeries
-    ? `${Math.round(seriesData.eps[0].value * 100) / 100}/s`
+  const initialEps = !isLoading
+    ? `${Math.round(seriesData[0].value * 100) / 100}/s`
     : undefined;
-  const currentEps = !isLoadingSeries
-    ? `${Math.round(seriesData.eps[seriesData.eps.length - 1].value * 100) / 100}/s`
-    : undefined;
-
-  const durationDiff = !isLoadingSeries
-    ? seriesData.duration[seriesData.duration.length - 1].value /
-      seriesData.duration[0].value
-    : undefined;
-  const initialDuration = !isLoadingSeries
-    ? getDuration(seriesData.duration[0].value / 1000, 2, true)
-    : undefined;
-  const currentDuration = !isLoadingSeries
-    ? getDuration(
-        seriesData.duration[seriesData.duration.length - 1].value / 1000,
-        2,
-        true
-      )
+  const currentEps = !isLoading
+    ? `${Math.round(seriesData[seriesData.length - 1].value * 100) / 100}/s`
     : undefined;
 
   const diffToColor = (diff?: number, reverse?: boolean) => {
@@ -114,18 +81,32 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
     return undefined;
   };
 
+  const ringSegmentColors = theme.charts.getColorPalette(3);
+  const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
+  const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
+
   return (
     <Fragment>
       <SectionHeading>
         {t('Performance Score')}
         <QuestionTooltip size="sm" title={undefined} />
       </SectionHeading>
-      <SidebarPerformanceScoreValue>
-        {projectScore?.totalScore ?? '-'}
-      </SidebarPerformanceScoreValue>
+      <PerformanceScoreSubText>{performanceScoreSubtext}</PerformanceScoreSubText>
+      <SidebarPerformanceScoreRingContainer>
+        {projectScore && (
+          <PerformanceScoreRingWithTooltips
+            projectScore={projectScore}
+            text={projectScore.totalScore}
+            width={220}
+            height={160}
+            ringBackgroundColors={ringBackgroundColors}
+            ringSegmentColors={ringSegmentColors}
+          />
+        )}
+      </SidebarPerformanceScoreRingContainer>
       <SidebarSpacer />
       <SectionHeading>
-        {t('Throughput')}
+        {t('Page Loads')}
         {/* TODO: Add a proper tooltip */}
         <QuestionTooltip size="sm" title={undefined} />
       </SectionHeading>
@@ -153,57 +134,6 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
       </ChartZoom>
       <SidebarSpacer />
       <SectionHeading>
-        {t('Duration (P75)')}
-        {/* TODO: Add a proper tooltip */}
-        <QuestionTooltip size="sm" title={undefined} />
-      </SectionHeading>
-      <ChartValue>{currentDuration}</ChartValue>
-      <ChartSubText color={diffToColor(durationDiff, true)}>
-        {getChartSubText(durationDiff, initialDuration, currentDuration)}
-      </ChartSubText>
-      <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
-        {zoomRenderProps => (
-          <LineChart
-            {...zoomRenderProps}
-            height={CHART_HEIGHTS}
-            series={durationData}
-            xAxis={{show: false}}
-            grid={{
-              left: 0,
-              right: 15,
-              top: 10,
-              bottom: -10,
-            }}
-            yAxis={{axisLabel: {formatter: getAxisLabelFormattedDuration}}}
-            tooltip={{valueFormatter: getFormattedDuration}}
-          />
-        )}
-      </ChartZoom>
-      <SidebarSpacer />
-      <SectionHeading>
-        {t('5XX Responses')}
-        {/* TODO: Add a proper tooltip */}
-        <QuestionTooltip size="sm" title={undefined} />
-      </SectionHeading>
-      <ChartValue>{pageData?.data[0]['failure_count()']}</ChartValue>
-      <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
-        {zoomRenderProps => (
-          <LineChart
-            {...zoomRenderProps}
-            height={CHART_HEIGHTS}
-            series={errorData}
-            xAxis={{show: false}}
-            grid={{
-              left: 0,
-              right: 15,
-              top: 10,
-              bottom: -10,
-            }}
-          />
-        )}
-      </ChartZoom>
-      <SidebarSpacer />
-      <SectionHeading>
         {t('Aggregate Spans')}
         {/* TODO: Add a proper tooltip */}
         <QuestionTooltip size="sm" title={undefined} />
@@ -214,17 +144,6 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
     </Fragment>
   );
 }
-
-const getFormattedDuration = (value: number) => {
-  if (value < 1000) {
-    return getDuration(value / 1000, 0, true);
-  }
-  return getDuration(value / 1000, 2, true);
-};
-
-const getAxisLabelFormattedDuration = (value: number) => {
-  return getDuration(value / 1000, 0, true);
-};
 
 const getChartSubText = (
   diff?: number,
@@ -248,9 +167,11 @@ const getChartSubText = (
   return t('No Change');
 };
 
-const SidebarPerformanceScoreValue = styled('div')`
-  font-weight: bold;
-  font-size: 32px;
+const SidebarPerformanceScoreRingContainer = styled('div')`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: ${space(1)};
 `;
 
 const ChartValue = styled('div')`
@@ -274,5 +195,12 @@ const SectionHeading = styled('h4')`
 
 const MiniAggregateWaterfallContainer = styled('div')`
   margin-top: ${space(1)};
+  margin-bottom: ${space(1)};
+`;
+
+const PerformanceScoreSubText = styled('div')`
+  width: 100%;
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray300};
   margin-bottom: ${space(1)};
 `;
