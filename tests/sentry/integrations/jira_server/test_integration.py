@@ -686,20 +686,61 @@ class JiraServerIntegrationTest(APITestCase):
             },
         ]
 
+    def test_create_issue_no_project(self):
+        with mock.patch.object(StubJiraApiClient, "get_issue_fields") as mock_get_issue_fields:
+            mock_issue_fields = StubService.get_stub_data("jira", "issue_fields_response.json")
+            mock_issue_fields["values"] = list(
+                filter(lambda x: x["fieldId"] != "project", mock_issue_fields["values"])
+            )
+            mock_get_issue_fields.return_value = mock_issue_fields
+            with mock.patch.object(StubJiraApiClient, "create_issue") as mock_create_issue:
+                mock_create_issue.return_value = {"key": "APP-123"}
+                with mock.patch.object(self.installation, "get_client", get_client):
+                    assert self.installation.create_issue(
+                        {
+                            "title": "example summary",
+                            "description": "example bug report",
+                            "issuetype": "1",
+                            "project": "10000",
+                        }
+                    ) == {
+                        "title": "example summary",
+                        "description": "example bug report",
+                        "key": "APP-123",
+                    }
+                    mock_create_issue.assert_called_once_with(
+                        {
+                            "description": "example bug report",
+                            "issuetype": {"id": "1"},
+                            "project": {"id": "10000"},
+                            "summary": "example summary",
+                        }
+                    )
+
     def test_create_issue(self):
-        with mock.patch.object(self.installation, "get_client", get_client):
-            assert self.installation.create_issue(
-                {
+        with mock.patch.object(StubJiraApiClient, "create_issue") as mock_create_issue:
+            mock_create_issue.return_value = {"key": "APP-123"}
+            with mock.patch.object(self.installation, "get_client", get_client):
+                assert self.installation.create_issue(
+                    {
+                        "title": "example summary",
+                        "description": "example bug report",
+                        "issuetype": "1",
+                        "project": "10000",
+                    }
+                ) == {
                     "title": "example summary",
                     "description": "example bug report",
-                    "issuetype": "1",
-                    "project": "10000",
+                    "key": "APP-123",
                 }
-            ) == {
-                "title": "example summary",
-                "description": "example bug report",
-                "key": "APP-123",
-            }
+                mock_create_issue.assert_called_once_with(
+                    {
+                        "description": "example bug report",
+                        "issuetype": {"id": "1"},
+                        "project": {"id": "10000"},
+                        "summary": "example summary",
+                    }
+                )
 
     @responses.activate
     def test_create_issue_labels_and_option(self):
