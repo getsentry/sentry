@@ -384,9 +384,7 @@ def handle_group_owners(
 
             for key in new_owners.keys():
                 if key not in keeping_owners:
-                    owner_type: RpcUser | Team
                     owner_id: int
-                    owner_source: OwnerRuleType
                     owner_type, owner_id, owner_source = key
                     rules = new_owners[key]
                     group_owner_type = (
