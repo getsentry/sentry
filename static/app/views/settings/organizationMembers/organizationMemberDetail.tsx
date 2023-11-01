@@ -286,7 +286,7 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
 
     const {access, orgRoleList} = organization;
     const canEdit = access.includes('org:write') && !this.memberDeactivated;
-    const isPartnershipUser = member.flags['partnership:restricted'];
+    const isPartnershipUser = !!member.flags['partnership:restricted'];
 
     const {email, expired, pending} = member;
     const canResend = !expired;
