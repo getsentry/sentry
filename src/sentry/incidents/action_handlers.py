@@ -26,7 +26,7 @@ from sentry.models.user import User
 from sentry.notifications.helpers import should_use_notifications_v2
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.notifications.utils.participants import get_notification_recipients_v2
-from sentry.services.hybrid_cloud.actor import ActorType
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import RpcUserOption, user_option_service
@@ -134,7 +134,9 @@ class EmailActionHandler(ActionHandler):
             users = None
             if should_use_notifications_v2(self.project.organization):
                 out = get_notification_recipients_v2(
-                    recipients={RpcUser(id=member.user_id) for member in target.member_set},
+                    recipients=RpcActor.many_from_object(
+                        list(RpcUser(id=member.user_id) for member in target.member_set)
+                    ),
                     type=NotificationSettingEnum.ISSUE_ALERTS,
                     organization_id=self.project.organization_id,
                     project_ids=[self.project.id],

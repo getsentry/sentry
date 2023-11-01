@@ -578,7 +578,7 @@ def get_notification_recipients_v2(
     actor_type: Optional[ActorType] = None,
 ) -> Mapping[ExternalProviders, set[RpcActor]]:
     recipients_by_provider = notifications_service.get_notification_recipients(
-        recipients=recipients,
+        recipients=list(recipients),
         type=type,
         organization_id=organization_id,
         project_ids=project_ids,
