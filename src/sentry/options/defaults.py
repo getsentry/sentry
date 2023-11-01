@@ -1007,6 +1007,22 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Option to control sampling percentage of schema validation on the generic metrics pipeline
+# based on namespace.
+register(
+    "sentry-metrics.indexer.generic-metrics.schema-validation-rules",
+    default={},  # empty dict means validate schema for all use cases
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Option to control sampling percentage of schema validation on the release health metrics
+# pipeline based on namespace.
+register(
+    "sentry-metrics.indexer.release-health.schema-validation-rules",
+    default={},  # empty dict means validate schema for all use cases
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {
