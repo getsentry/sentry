@@ -117,11 +117,11 @@ export const getDomainFilter = (selectedDomain: string | undefined) => {
   if (!selectedDomain) {
     return [];
   }
- 
+
   if (selectedDomain === EMPTY_OPTION_VALUE) {
     return [`!has:${SPAN_DOMAIN}`];
   }
-  
+
   return [`${SPAN_DOMAIN}:${selectedDomain}`];
 };
 
