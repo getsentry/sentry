@@ -1641,8 +1641,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register("metric_alerts.rate_limit", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
 # SDK Crash Detection
 #
 # The project ID belongs to the sentry organization: https://sentry.sentry.io/projects/cocoa-sdk-crashes/?project=4505469596663808.

@@ -1822,6 +1822,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:on-demand-metrics-prefill": False,
     # Enable source maps debugger
     "organizations:source-maps-debugger-blue-thunder-edition": False,
+    # Enable metric alert rate limiting
+    "organizations:metric-alert-rate-limiting": False,
     # Enable the new suspect commits calculation that uses all frames in the stack trace
     "organizations:suspect-commits-all-frames": False,
     # Enable data forwarding functionality for projects.
