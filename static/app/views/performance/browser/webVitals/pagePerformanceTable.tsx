@@ -9,6 +9,7 @@ import GridEditable, {
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
+import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -69,8 +70,11 @@ export function PagePerformanceTable() {
     fid: projectData?.data[0]['p75(measurements.fid)'] as number,
   });
 
-  const {data, isLoading: isTransactionWebVitalsQueryLoading} =
-    useTransactionWebVitalsQuery({limit: 10, transaction: search});
+  const {
+    data,
+    pageLinks,
+    isLoading: isTransactionWebVitalsQueryLoading,
+  } = useTransactionWebVitalsQuery({limit: 10, transaction: search});
 
   const count = projectData?.data[0]['count()'] as number;
 
@@ -217,6 +221,7 @@ export function PagePerformanceTable() {
           location={location}
         />
       </GridContainer>
+      <Pagination pageLinks={pageLinks} />
     </span>
   );
 }
