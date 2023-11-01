@@ -19,7 +19,7 @@ from arroyo.backends.kafka.configuration import build_kafka_consumer_configurati
 from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
-from arroyo.types import Message, Value
+from arroyo.types import BrokerValue, Message, Value
 
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -164,6 +164,18 @@ class BatchMessages(ProcessingStep[KafkaPayload]):
 
         try:
             self.__next_step.submit(new_message)
+
+            unique_messages_seen = set()
+
+            # Submission was successful, validate the batch has no duplicates
+            for msg in new_message.payload:
+                assert isinstance(msg.value, BrokerValue)
+                meta = (msg.value.partition, msg.value.offset)
+                if meta in unique_messages_seen:
+                    raise Exception("Duplicate found")
+                else:
+                    unique_messages_seen.add(meta)
+
             if self.__apply_backpressure is True:
                 self.__apply_backpressure = False
             self.__batch_start = None
