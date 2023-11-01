@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0583_add_early_adopter_to_organization_mapping"),
+        ("sentry", "0584_apitoken_add_name_and_last_chars"),
     ]
 
     operations = [
