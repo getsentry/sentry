@@ -2,20 +2,15 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {FeedbackEvent, FeedbackIssue} from 'sentry/utils/feedback/types';
+import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 
 interface Props {
   detailDisplay: boolean;
   feedbackIssue: FeedbackIssue;
-  feedbackEvent?: FeedbackEvent | undefined;
 }
 
-export default function FeedbackItemUsername({
-  feedbackIssue,
-  feedbackEvent,
-  detailDisplay,
-}: Props) {
-  const name = feedbackEvent?.contexts?.feedback?.name;
+export default function FeedbackItemUsername({feedbackIssue, detailDisplay}: Props) {
+  const name = feedbackIssue.metadata.name;
   const email = feedbackIssue.metadata.contact_email;
 
   if (!email && !name) {
@@ -32,7 +27,7 @@ export default function FeedbackItemUsername({
     );
   }
 
-  return <strong>{email}</strong>;
+  return <strong>{name ?? email}</strong>;
 }
 
 const Purple = styled('span')`

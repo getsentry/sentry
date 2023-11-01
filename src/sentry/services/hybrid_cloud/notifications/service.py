@@ -170,8 +170,8 @@ class NotificationsService(RpcService):
         *,
         recipients: List[RpcActor],
         type: NotificationSettingEnum,
-        project_ids: Optional[List[int]] = None,
         organization_id: Optional[int] = None,
+        project_ids: Optional[List[int]] = None,
         actor_type: Optional[ActorType] = None,
     ) -> Mapping[str, Set[RpcActor]]:
         pass

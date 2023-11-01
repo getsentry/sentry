@@ -57,10 +57,16 @@ class ProfileFunctionsTimeseriesQueryBuilder(
             column: get_function_alias(function_details.field)
             for column, function_details in self.function_alias_map.items()
         }
+        self.function_alias_map = {
+            alias_mappings.get(column, column): function_details
+            for column, function_details in self.function_alias_map.items()
+        }
         result["data"] = [
             {alias_mappings.get(k, k): v for k, v in item.items()}
             for item in result.get("data", [])
         ]
+        for item in result.get("meta", []):
+            item["name"] = alias_mappings.get(item["name"], item["name"])
         return result
 
     @property

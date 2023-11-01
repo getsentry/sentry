@@ -24,9 +24,9 @@ from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.user import User
 from sentry.notifications.helpers import should_use_notifications_v2
-from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import NotificationSettingEnum
-from sentry.services.hybrid_cloud.actor import ActorType
+from sentry.notifications.utils.participants import get_notification_recipients_v2
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import RpcUserOption, user_option_service
@@ -133,15 +133,16 @@ class EmailActionHandler(ActionHandler):
         elif self.action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
             users = None
             if should_use_notifications_v2(self.project.organization):
-                controller = NotificationController(
-                    recipients={RpcUser(id=member.user_id) for member in target.member_set},
-                    project_ids=[self.project.id],
+                out = get_notification_recipients_v2(
+                    recipients=RpcActor.many_from_object(
+                        list(RpcUser(id=member.user_id) for member in target.member_set)
+                    ),
+                    type=NotificationSettingEnum.ISSUE_ALERTS,
                     organization_id=self.project.organization_id,
+                    project_ids=[self.project.id],
+                    actor_type=ActorType.USER,
                 )
-
-                users = controller.get_notification_recipients(
-                    type=NotificationSettingEnum.ISSUE_ALERTS, actor_type=ActorType.USER
-                )[ExternalProviders.EMAIL]
+                users = out[ExternalProviders.EMAIL]
             else:
                 users = NotificationSetting.objects.filter_to_accepting_recipients(
                     self.project,
