@@ -81,17 +81,11 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
           <span style={{gridArea: 'time'}}>
             <TimeSince date={feedbackItem.firstSeen} />
           </span>
-          {feedbackItem.hasSeen ? null : (
-            <span
-              style={{
-                gridArea: 'unread',
-                display: 'flex',
-                justifyContent: 'center',
-              }}
-            >
-              <IconCircleFill size="xs" color="purple300" />
-            </span>
-          )}
+          <Flex justify="center" style={{gridArea: 'unread'}}>
+            {feedbackItem.hasSeen ? null : (
+              <IconCircleFill size="xs" color={isSelected ? 'white' : 'purple400'} />
+            )}
+          </Flex>
           <div style={{gridArea: 'message'}}>
             <TextOverflow>{feedbackItem.metadata.message}</TextOverflow>
           </div>

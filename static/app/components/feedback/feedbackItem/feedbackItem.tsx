@@ -1,6 +1,11 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/actions/button';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
@@ -12,54 +17,42 @@ import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
 import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
-import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {IconJson, IconLink} from 'sentry/icons';
+import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, GroupStatus} from 'sentry/types';
+import type {Event} from 'sentry/types';
+import {GroupStatus} from 'sentry/types';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   eventData: Event | undefined;
   feedbackItem: FeedbackIssue;
-  refetchIssue: () => void;
   tags: Record<string, string>;
 }
 
-export default function FeedbackItem({
-  feedbackItem,
-  eventData,
-  refetchIssue,
-  tags,
-}: Props) {
+export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const organization = useOrganization();
   const hasReplayId = useFeedbackHasReplayId({feedbackId: feedbackItem.id});
   const {markAsRead, resolve} = useMutateFeedback({
-    feedbackId: feedbackItem.id,
+    feedbackIds: [feedbackItem.id],
     organization,
-    refetchIssue,
   });
-  const api = useApi();
-
-  const markReadUrl = `/organizations/${organization.slug}/issues/${feedbackItem.id}/`;
-
-  useEffect(() => {
-    (async () => {
-      await api.requestPromise(markReadUrl, {
-        method: 'PUT',
-        data: {hasSeen: true},
-      });
-      refetchIssue();
-    })();
-  }, []); // eslint-disable-line
 
   const url = eventData?.tags.find(tag => tag.key === 'url');
   const replayId = eventData?.contexts?.feedback?.replay_id;
+
+  const mutationOptions = {
+    onError: () => {
+      addErrorMessage(t('An error occurred while updating the feedback.'));
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Updated feedback'));
+    },
+  };
 
   return (
     <Fragment>
@@ -67,11 +60,7 @@ export default function FeedbackItem({
         <Flex gap={space(2)} justify="space-between">
           <Flex column>
             <Flex align="center" gap={space(0.5)}>
-              <FeedbackItemUsername
-                feedbackIssue={feedbackItem}
-                feedbackEvent={eventData}
-                detailDisplay
-              />
+              <FeedbackItemUsername feedbackIssue={feedbackItem} detailDisplay />
               {feedbackItem.metadata.contact_email ? (
                 <CopyToClipboardButton
                   size="xs"
@@ -98,9 +87,12 @@ export default function FeedbackItem({
             <ErrorBoundary mini>
               <Button
                 onClick={() => {
-                  feedbackItem.status === 'resolved'
-                    ? resolve(GroupStatus.UNRESOLVED)
-                    : resolve(GroupStatus.RESOLVED);
+                  addLoadingMessage(t('Updating feedback...'));
+                  const newStatus =
+                    feedbackItem.status === 'resolved'
+                      ? GroupStatus.UNRESOLVED
+                      : GroupStatus.RESOLVED;
+                  resolve(newStatus, mutationOptions);
                 }}
               >
                 {feedbackItem.status === 'resolved' ? t('Unresolve') : t('Resolve')}
@@ -109,7 +101,8 @@ export default function FeedbackItem({
             <ErrorBoundary mini>
               <Button
                 onClick={() => {
-                  feedbackItem.hasSeen ? markAsRead(false) : markAsRead(true);
+                  addLoadingMessage(t('Updating feedback...'));
+                  markAsRead(!feedbackItem.hasSeen, mutationOptions);
                 }}
               >
                 {feedbackItem.hasSeen ? t('Mark Unread') : t('Mark Read')}
@@ -140,27 +133,6 @@ export default function FeedbackItem({
         ) : null}
 
         <TagsSection tags={tags} />
-
-        <Section icon={<IconJson size="xs" />} title={t('Raw Issue Data')}>
-          <ObjectInspector
-            data={feedbackItem}
-            expandLevel={3}
-            theme={{
-              TREENODE_FONT_SIZE: '0.7rem',
-              ARROW_FONT_SIZE: '0.5rem',
-            }}
-          />
-        </Section>
-        <Section icon={<IconJson size="xs" />} title={t('Raw Event Data')}>
-          <ObjectInspector
-            data={eventData}
-            expandLevel={3}
-            theme={{
-              TREENODE_FONT_SIZE: '0.7rem',
-              ARROW_FONT_SIZE: '0.5rem',
-            }}
-          />
-        </Section>
       </OverflowPanelItem>
     </Fragment>
   );
