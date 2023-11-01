@@ -3720,7 +3720,11 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
                     "received": before_now(minutes=1).isoformat(),
                 },
             )
-            results = self.make_query(search_filter_query="issue.category:feedback")
+            results = self.make_query(
+                search_filter_query="issue.category:feedback",
+                date_from=self.base_datetime,
+                date_to=self.base_datetime + timedelta(days=10),
+            )
             assert set(results) == set()
 
     def test_feedback_category_show_when_referrer_set(self):
@@ -3762,7 +3766,10 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
                 },
             )
             results = self.make_query(
-                search_filter_query="issue.category:feedback", referrer="api.feedback_index"
+                search_filter_query="issue.category:feedback",
+                referrer="api.feedback_index",
+                date_from=self.base_datetime,
+                date_to=self.base_datetime + timedelta(days=10),
             )
             assert list(results) == [group_info.group]
 
