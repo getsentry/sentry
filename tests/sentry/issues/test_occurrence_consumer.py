@@ -279,7 +279,7 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
             )
 
     def test_valid_nan_exception_log(self) -> None:
-        # NaN is invalid in new event schema, but valid in legacy schema, so it emits only one of the metrics
+        # NaN is invalid in new event schema, but valid in legacy schema, so it emits logging, but doesn't raise
         message = deepcopy(get_test_message(self.project.id))
         message["event"]["tags"]["nan-tag"] = float("nan")
         with self.assertLogs("sentry.issues.occurrence_consumer", logging.ERROR) as cm:
