@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, List, Mapping, Optional, Union, cast
+from typing import Any, Iterable, List, Mapping, Optional, Union
 
 from django.db import IntegrityError, models, router, transaction
 from django.db.models.expressions import F
@@ -256,7 +256,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             org = Organization.objects.get_from_cache(slug=slug)
             if only_visible and org.status != OrganizationStatus.ACTIVE:
                 raise Organization.DoesNotExist
-            return cast(int, org.id)
+            return org.id
         except Organization.DoesNotExist:
             logger.info("Organization by slug [%s] not found", slug)
 
@@ -364,6 +364,29 @@ class DatabaseBackedOrganizationService(OrganizationService):
         OrganizationMemberTeam.objects.create(
             team_id=team_id, organizationmember_id=organization_member_id
         )
+        # It might be nice to return an RpcTeamMember to represent what we just
+        # created, but doing so would require a list of project IDs. We can implement
+        # that if a return value is needed in the future.
+
+    def get_or_create_team_member(
+        self,
+        *,
+        organization_id: int,
+        team_id: int,
+        organization_member_id: int,
+        role: Optional[str] = "contributor",
+    ) -> None:
+        team_member_query = OrganizationMemberTeam.objects.filter(
+            team_id=team_id, organizationmember_id=organization_member_id
+        )
+        if team_member_query.exists():
+            team_member = team_member_query[0]
+            if role and team_member.role != role:
+                team_member.update(role=role)
+        else:
+            team_member = OrganizationMemberTeam.objects.create(
+                team_id=team_id, organizationmember_id=organization_member_id, role=role
+            )
         # It might be nice to return an RpcTeamMember to represent what we just
         # created, but doing so would require a list of project IDs. We can implement
         # that if a return value is needed in the future.
@@ -563,6 +586,12 @@ class DatabaseBackedOrganizationService(OrganizationService):
         args: Mapping[str, str | int | None],
     ) -> None:
         signal.signal.send_robust(None, organization_id=organization_id, **args)
+
+    def get_organization_owner_members(self, organization_id: int) -> List[RpcOrganizationMember]:
+        org: Organization = Organization.objects.get(id=organization_id)
+        owner_members = org.get_members_with_org_roles(roles=[roles.get_top_dog().id])
+
+        return list(map(serialize_member, owner_members))
 
 
 class OutboxBackedOrganizationSignalService(OrganizationSignalService):

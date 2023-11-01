@@ -1,9 +1,13 @@
 import logging
+import random
 from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional, Sequence, Set, Tuple, TypedDict, Union
 
+import sentry_sdk
+
 from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
+from sentry.api.utils import get_date_range_from_params
 from sentry.incidents.models import AlertRule, AlertRuleStatus
 from sentry.models.dashboard_widget import DashboardWidgetQuery, DashboardWidgetTypes
 from sentry.models.organization import Organization
@@ -13,6 +17,8 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
+from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     MetricSpec,
@@ -21,7 +27,9 @@ from sentry.snuba.metrics.extraction import (
     should_use_on_demand_metrics,
 )
 from sentry.snuba.models import SnubaQuery
+from sentry.snuba.referrer import Referrer
 from sentry.utils import metrics
+from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +43,14 @@ _METRIC_EXTRACTION_VERSION = 1
 _MAX_ON_DEMAND_ALERTS = 50
 _MAX_ON_DEMAND_WIDGETS = 100
 
+# TTL for cardinality check
+_WIDGET_QUERY_CARDINALITY_TTL = 3600 * 24  # 24h
+
 HashedMetricSpec = Tuple[str, MetricSpec]
+
+
+class HighCardinalityWidgetException(Exception):
+    pass
 
 
 class MetricExtractionConfig(TypedDict):
@@ -209,8 +224,14 @@ def _convert_snuba_query_to_metric(
     If the passed snuba_query is a valid query for on-demand metric extraction,
     returns a tuple of (hash, MetricSpec) for the query. Otherwise, returns None.
     """
+    environment = snuba_query.environment.name if snuba_query.environment is not None else None
     return _convert_aggregate_and_query_to_metric(
-        project, snuba_query.dataset, snuba_query.aggregate, snuba_query.query, prefilling
+        project,
+        snuba_query.dataset,
+        snuba_query.aggregate,
+        snuba_query.query,
+        environment,
+        prefilling,
     )
 
 
@@ -226,6 +247,10 @@ def _convert_widget_query_to_metric(
     if not widget_query.aggregates:
         return metrics_specs
 
+    if not _is_widget_query_low_cardinality(widget_query, project):
+        # High cardinality widgets don't have metrics specs created
+        return metrics_specs
+
     for aggregate in widget_query.aggregates:
         metrics.incr(
             "on_demand_metrics.before_widget_spec_generation",
@@ -233,12 +258,14 @@ def _convert_widget_query_to_metric(
         )
         if result := _convert_aggregate_and_query_to_metric(
             project,
-            # there is an internal check to make sure we extract metrics oly for performance dataset
+            # there is an internal check to make sure we extract metrics only for performance dataset
             # however widgets do not have a dataset field, so we need to pass it explicitly
             Dataset.PerformanceMetrics.value,
             aggregate,
             widget_query.conditions,
+            None,
             prefilling,
+            groupbys=widget_query.columns,
         ):
             _log_on_demand_metric_spec(
                 project_id=project.id,
@@ -258,19 +285,101 @@ def _convert_widget_query_to_metric(
     return metrics_specs
 
 
+def _get_widget_cardinality_query_ttl():
+    # Add ttl + 25% jitter to query so queries aren't all made at once.
+    return int(random.uniform(_WIDGET_QUERY_CARDINALITY_TTL, _WIDGET_QUERY_CARDINALITY_TTL * 1.5))
+
+
+def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project: Project):
+    """
+    Checks cardinality of existing widget queries before allowing the metric spec, so that
+    group by clauses with high-cardinality tags are not added to the on_demand metric.
+
+    New queries will be checked upon creation and not allowed at that time.
+    """
+    params: Dict[str, Any] = {
+        "statsPeriod": "1d",
+        "project_objects": [project],
+        "organization_id": project.organization_id,  # Organization id has to be specified to not violate allocation policy.
+    }
+    start, end = get_date_range_from_params(params)
+    params["start"] = start
+    params["end"] = end
+
+    query_killswitch = options.get("on_demand.max_widget_cardinality.killswitch")
+    if query_killswitch:
+        return False
+
+    if not widget_query.columns:
+        # No columns means no high-cardinality tags.
+        return True
+
+    max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.count")
+    cache_key = f"check-widget-query-cardinality:{widget_query.id}"
+    cardinality_allowed = cache.get(cache_key)
+
+    if cardinality_allowed is not None:
+        return cardinality_allowed
+
+    unique_columns = [f"count_unique({column})" for column in widget_query.columns]
+
+    query_builder = QueryBuilder(
+        dataset=Dataset.Discover,
+        params=params,
+        selected_columns=unique_columns,
+        config=QueryBuilderConfig(
+            transform_alias_to_input_format=True,
+        ),
+    )
+
+    try:
+        results = query_builder.run_query(Referrer.METRIC_EXTRACTION_CARDINALITY_CHECK.value)
+        processed_results = query_builder.process_results(results)
+    except Exception as error:
+        sentry_sdk.capture_exception(error)
+        cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
+        return False
+
+    try:
+        for index, column in enumerate(widget_query.columns):
+            count = processed_results["data"][0][unique_columns[index]]
+            if count > max_cardinality_allowed:
+                cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
+                raise HighCardinalityWidgetException(
+                    f"Cardinality exceeded for dashboard_widget_query:{widget_query.id} with count:{count} and column:{column}"
+                )
+    except HighCardinalityWidgetException as error:
+        sentry_sdk.capture_exception(error)
+        return False
+
+    cache.set(cache_key, True)
+    return True
+
+
 def _convert_aggregate_and_query_to_metric(
-    project: Project, dataset: str, aggregate: str, query: str, prefilling: bool
+    project: Project,
+    dataset: str,
+    aggregate: str,
+    query: str,
+    environment: Optional[str],
+    prefilling: bool,
+    groupbys: Optional[Sequence[str]] = None,
 ) -> Optional[HashedMetricSpec]:
     """
     Converts an aggregate and a query to a metric spec with its hash value.
     """
     try:
-        if not should_use_on_demand_metrics(dataset, aggregate, query, prefilling):
+        # We can avoid injection of the environment in the query, since it's supported by standard, thus it won't change
+        # the supported state of a query, since if it's standard, and we added environment it will still be standard
+        # and if it's on demand, it will always be on demand irrespectively of what we add.
+        if not should_use_on_demand_metrics(dataset, aggregate, query, groupbys, prefilling):
             return None
 
         on_demand_spec = OnDemandMetricSpec(
             field=aggregate,
             query=query,
+            environment=environment,
+            groupbys=groupbys,
         )
 
         return on_demand_spec.query_hash, on_demand_spec.to_metric_spec(project)

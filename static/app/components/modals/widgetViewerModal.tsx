@@ -91,6 +91,8 @@ import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
+import {Tooltip} from '../tooltip';
+
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 import {
   renderDiscoverGridHeaderCell,
@@ -1013,7 +1015,15 @@ function WidgetViewerModal(props: Props) {
                           getColoredWidgetIndicator(widget.thresholds, tableData)}
                       </WidgetTitleRow>
                       {widget.description && (
-                        <WidgetDescription>{widget.description}</WidgetDescription>
+                        <Tooltip
+                          title={widget.description}
+                          containerDisplayMode="grid"
+                          showOnlyOnOverflow
+                          isHoverable
+                          position="bottom"
+                        >
+                          <WidgetDescription>{widget.description}</WidgetDescription>
+                        </Tooltip>
                       )}
                       <DashboardsMEPConsumer>
                         {({}) => {

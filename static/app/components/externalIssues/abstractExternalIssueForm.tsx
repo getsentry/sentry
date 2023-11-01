@@ -336,9 +336,7 @@ export default class AbstractExternalIssueForm<
   ) => {
     const initialData: {[key: string]: any} = (formFields || []).reduce(
       (accumulator, field: FormField) => {
-        accumulator[field.name] =
-          // Passing an empty array breaks MultiSelect.
-          field.multiple && field.default.length === 0 ? '' : field.default;
+        accumulator[field.name] = field.default;
         return accumulator;
       },
       {}

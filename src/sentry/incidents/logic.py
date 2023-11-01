@@ -545,6 +545,8 @@ def create_alert_rule(
             include_all_projects=include_all_projects,
             owner=actor,
             comparison_delta=comparison_delta,
+            user_id=actor.user_id if actor else None,
+            team_id=actor.team_id if actor else None,
         )
 
         if user:
@@ -594,6 +596,9 @@ def snapshot_alert_rule(alert_rule, user=None):
         alert_rule_snapshot.id = None
         alert_rule_snapshot.status = AlertRuleStatus.SNAPSHOT.value
         alert_rule_snapshot.snuba_query = snuba_query_snapshot
+        if alert_rule.owner:
+            alert_rule_snapshot.user_id = alert_rule.owner.user_id
+            alert_rule_snapshot.team_id = alert_rule.owner.team_id
         alert_rule_snapshot.save()
         AlertRuleActivity.objects.create(
             alert_rule=alert_rule_snapshot,
@@ -702,6 +707,8 @@ def update_alert_rule(
         if owner is not None and not isinstance(owner, Actor):
             owner = owner.resolve_to_actor()
         updated_fields["owner"] = owner
+        updated_fields["team_id"] = owner.team_id if owner else None
+        updated_fields["user_id"] = owner.user_id if owner else None
     if comparison_delta is not NOT_SET:
         resolution = DEFAULT_ALERT_RULE_RESOLUTION
         if comparison_delta is not None:
@@ -1345,11 +1352,8 @@ def get_alert_rule_trigger_action_discord_channel_id(
             integration_id=integration.id,
             guild_name=integration.name,
         )
-    except ValidationError:
-        raise InvalidTriggerActionError(
-            "Could not find channel %s. Channel may not exist, may be formatted incorrectly, or Sentry may not "
-            "have been granted permission to access it" % name
-        )
+    except ValidationError as e:
+        raise InvalidTriggerActionError(e.message)
     except IntegrationError:
         raise InvalidTriggerActionError("Bad response from Discord channel lookup")
     except ApiTimeoutError:
@@ -1648,7 +1652,11 @@ def schedule_update_project_config(alert_rule: AlertRule, projects: Sequence[Pro
 
     alert_snuba_query = alert_rule.snuba_query
     should_use_on_demand = should_use_on_demand_metrics(
-        alert_snuba_query.dataset, alert_snuba_query.aggregate, alert_snuba_query.query, prefilling
+        alert_snuba_query.dataset,
+        alert_snuba_query.aggregate,
+        alert_snuba_query.query,
+        None,
+        prefilling,
     )
     if should_use_on_demand:
         for project in projects:

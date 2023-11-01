@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from typing import Any, Dict, Mapping, Optional, Tuple
 from uuid import UUID
@@ -5,6 +7,7 @@ from uuid import UUID
 import jsonschema
 import sentry_sdk
 from django.utils import timezone
+from sentry_sdk.tracing import NoOpSpan, Transaction
 
 from sentry import nodestore
 from sentry.event_manager import GroupInfo
@@ -12,7 +15,9 @@ from sentry.eventstore.models import Event
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueOccurrence, IssueOccurrenceData
-from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
+from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
+from sentry.issues.producer import PayloadType
+from sentry.issues.status_change_consumer import process_status_change_message
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils import metrics
@@ -32,7 +37,6 @@ def save_event_from_occurrence(
     data: Dict[str, Any],
     **kwargs: Any,
 ) -> Event:
-
     from sentry.event_manager import EventManager
 
     data["type"] = "generic"
@@ -169,7 +173,15 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                         sample_rate=1.0,
                         tags={"occurrence_type": occurrence_data["type"]},
                     )
-                    raise
+                    try:
+                        jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
+                    except jsonschema.exceptions.ValidationError:
+                        metrics.incr(
+                            "occurrence_ingest.legacy_event_payload_invalid",
+                            sample_rate=1.0,
+                            tags={"occurrence_type": occurrence_data["type"]},
+                        )
+                        raise
 
                 event_data["metadata"] = {
                     # This allows us to show the title consistently in discover
@@ -189,6 +201,53 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
         raise InvalidEventPayloadError(e)
 
 
+def process_occurrence_message(
+    message: Mapping[str, Any], txn: Transaction | NoOpSpan
+) -> Tuple[IssueOccurrence, Optional[GroupInfo]]:
+    with metrics.timer("occurrence_consumer._process_message._get_kwargs"):
+        kwargs = _get_kwargs(message)
+    occurrence_data = kwargs["occurrence_data"]
+    metrics.incr(
+        "occurrence_ingest.messages",
+        sample_rate=1.0,
+        tags={"occurrence_type": occurrence_data["type"]},
+    )
+    txn.set_tag("occurrence_type", occurrence_data["type"])
+
+    project = Project.objects.get_from_cache(id=occurrence_data["project_id"])
+    organization = Organization.objects.get_from_cache(id=project.organization_id)
+
+    txn.set_tag("organization_id", organization.id)
+    txn.set_tag("organization_slug", organization.slug)
+    txn.set_tag("project_id", project.id)
+    txn.set_tag("project_slug", project.slug)
+
+    group_type = get_group_type_by_type_id(occurrence_data["type"])
+    if not group_type.allow_ingest(organization):
+        metrics.incr(
+            "occurrence_ingest.dropped_feature_disabled",
+            sample_rate=1.0,
+            tags={"occurrence_type": occurrence_data["type"]},
+        )
+        txn.set_tag("result", "dropped_feature_disabled")
+        return None
+
+    if "event_data" in kwargs:
+        txn.set_tag("result", "success")
+        with metrics.timer(
+            "occurrence_consumer._process_message.process_event_and_issue_occurrence"
+        ):
+            return process_event_and_issue_occurrence(
+                kwargs["occurrence_data"], kwargs["event_data"]
+            )
+    else:
+        txn.set_tag("result", "success")
+        with metrics.timer(
+            "occurrence_consumer._process_message.lookup_event_and_process_issue_occurrence"
+        ):
+            return lookup_event_and_process_issue_occurrence(kwargs["occurrence_data"])
+
+
 def _process_message(
     message: Mapping[str, Any]
 ) -> Optional[Tuple[IssueOccurrence, Optional[GroupInfo]]]:
@@ -202,48 +261,20 @@ def _process_message(
         sampled=True,
     ) as txn:
         try:
-            with metrics.timer("occurrence_consumer._process_message._get_kwargs"):
-                kwargs = _get_kwargs(message)
-            occurrence_data = kwargs["occurrence_data"]
-            metrics.incr(
-                "occurrence_ingest.messages",
-                sample_rate=1.0,
-                tags={"occurrence_type": occurrence_data["type"]},
-            )
-            txn.set_tag("occurrence_type", occurrence_data["type"])
-
-            project = Project.objects.get_from_cache(id=occurrence_data["project_id"])
-            organization = Organization.objects.get_from_cache(id=project.organization_id)
-
-            txn.set_tag("organization_id", organization.id)
-            txn.set_tag("organization_slug", organization.slug)
-            txn.set_tag("project_id", project.id)
-            txn.set_tag("project_slug", project.slug)
-
-            group_type = get_group_type_by_type_id(occurrence_data["type"])
-            if not group_type.allow_ingest(organization):
-                metrics.incr(
-                    "occurrence_ingest.dropped_feature_disabled",
-                    sample_rate=1.0,
-                    tags={"occurrence_type": occurrence_data["type"]},
-                )
-                txn.set_tag("result", "dropped_feature_disabled")
-                return None
-
-            if "event_data" in kwargs:
-                txn.set_tag("result", "success")
-                with metrics.timer(
-                    "occurrence_consumer._process_message.process_event_and_issue_occurrence"
-                ):
-                    return process_event_and_issue_occurrence(
-                        kwargs["occurrence_data"], kwargs["event_data"]
-                    )
+            # Assume messaged without a payload type are of type OCCURRENCE
+            payload_type = message.get("payload_type", PayloadType.OCCURRENCE.value)
+            if payload_type == PayloadType.STATUS_CHANGE.value:
+                group = process_status_change_message(message, txn)
+                return None, GroupInfo(group=group, is_new=False, is_regression=False)
+            elif payload_type == PayloadType.OCCURRENCE.value:
+                return process_occurrence_message(message, txn)
             else:
-                txn.set_tag("result", "success")
-                with metrics.timer(
-                    "occurrence_consumer._process_message.lookup_event_and_process_issue_occurrence"
-                ):
-                    return lookup_event_and_process_issue_occurrence(kwargs["occurrence_data"])
+                metrics.incr(
+                    "occurrence_consumer._process_message.dropped_invalid_payload_type",
+                    sample_rate=1.0,
+                    tags={"payload_type": payload_type},
+                )
         except (ValueError, KeyError) as e:
             txn.set_tag("result", "error")
             raise InvalidEventPayloadError(e)
+    return

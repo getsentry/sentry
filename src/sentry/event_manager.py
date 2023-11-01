@@ -423,7 +423,12 @@ class EventManager:
 
         projects = {project.id: project}
 
-        job = {"data": self._data, "project_id": project.id, "raw": raw, "start_time": start_time}
+        job: dict[str, Any] = {
+            "data": self._data,
+            "project_id": project.id,
+            "raw": raw,
+            "start_time": start_time,
+        }
 
         # After calling _pull_out_data we get some keys in the job like the platform
         with sentry_sdk.start_span(op="event_manager.save.pull_out_data"):

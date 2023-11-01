@@ -357,3 +357,10 @@ class GroupSubscriptionStatus:
     is_disabled: bool
     is_active: bool
     has_only_inactive_subscriptions: bool
+
+
+@dataclass
+class UnsubscribeContext:
+    resource_id: int
+    key: str
+    referrer: str | None = None

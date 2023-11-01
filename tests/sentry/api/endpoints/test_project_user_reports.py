@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 from uuid import uuid4
 
 from django.utils import timezone
@@ -378,3 +379,83 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
             UserReport.objects.get(event_id=self.event.event_id).environment_id
             == self.environment.id
         )
+
+    @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
+    def test_simple_shim_to_feedback(self, mock_produce_occurrence_to_kafka):
+        replay_id = "b" * 32
+        event_with_replay = self.store_event(
+            data={
+                "contexts": {"replay": {"replay_id": replay_id}},
+                "event_id": "a" * 32,
+                "timestamp": self.min_ago,
+                "environment": self.environment.name,
+            },
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+
+        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
+
+        with self.feature("organizations:user-feedback-ingest"):
+            response = self.client.post(
+                url,
+                data={
+                    "event_id": event_with_replay.event_id,
+                    "email": "foo@example.com",
+                    "name": "Foo Bar",
+                    "comments": "It broke!",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+
+        report = UserReport.objects.get(id=response.data["id"])
+        assert report.project_id == self.project.id
+        assert report.group_id == event_with_replay.group.id
+        assert report.email == "foo@example.com"
+        assert report.name == "Foo Bar"
+        assert report.comments == "It broke!"
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
+        mock_event_data = mock_produce_occurrence_to_kafka.call_args_list[0][1]["event_data"]
+
+        assert mock_event_data["contexts"]["feedback"]["contact_email"] == "foo@example.com"
+        assert mock_event_data["contexts"]["feedback"]["message"] == "It broke!"
+        assert mock_event_data["contexts"]["feedback"]["name"] == "Foo Bar"
+        assert mock_event_data["contexts"]["feedback"]["replay_id"] == replay_id
+        assert mock_event_data["contexts"]["replay"]["replay_id"] == replay_id
+        assert mock_event_data["platform"] == "other"
+        assert mock_event_data["contexts"]["feedback"]["crash_report_event_id"]
+
+    @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
+    def test_simple_shim_to_feedback_no_event(self, mock_produce_occurrence_to_kafka):
+        self.login_as(user=self.user)
+
+        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
+
+        with self.feature("organizations:user-feedback-ingest"):
+            response = self.client.post(
+                url,
+                data={
+                    "event_id": uuid4().hex,
+                    "email": "foo@example.com",
+                    "name": "Foo Bar",
+                    "comments": "It broke!",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+
+        report = UserReport.objects.get(id=response.data["id"])
+        assert report.project_id == self.project.id
+        assert report.email == "foo@example.com"
+        assert report.name == "Foo Bar"
+        assert report.comments == "It broke!"
+
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
+        mock_event_data = mock_produce_occurrence_to_kafka.call_args_list[0][1]["event_data"]
+
+        assert mock_event_data["contexts"]["feedback"]["contact_email"] == "foo@example.com"
+        assert mock_event_data["contexts"]["feedback"]["message"] == "It broke!"
+        assert mock_event_data["contexts"]["feedback"]["name"] == "Foo Bar"
+        assert mock_event_data["platform"] == "other"
+        assert not mock_event_data["contexts"]["feedback"].get("crash_report_event_id")
