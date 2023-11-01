@@ -55,27 +55,24 @@ function UserAvatar({
 
   const avatarData = isActor(user)
     ? {
-        uploadId: '',
         gravatarId: '',
         letterId: user.name,
         title: user.name,
+        uploadUrl: '',
       }
     : {
-        uploadId: user.avatar?.avatarUuid ?? '',
+        uploadUrl: user.avatar?.avatarUrl ?? '',
         gravatarId: user.email?.toLowerCase(),
         letterId: user.email || user.username || user.id || user.ip_address,
         title: user.name || user.email || user.username || '',
       };
-  const {sentryUrl} = window.__initialData?.links ?? {};
 
   return (
     <BaseAvatar
       round
       {...props}
       type={type}
-      uploadPath="avatar"
-      uploadId={avatarData.uploadId}
-      uploadDomain={sentryUrl}
+      uploadUrl={avatarData.uploadUrl}
       gravatarId={avatarData.gravatarId}
       letterId={avatarData.letterId}
       title={avatarData.title}

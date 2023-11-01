@@ -41,10 +41,6 @@ const defaultProps: DefaultProps = {
    */
   type: 'letter_avatar',
   /**
-   * Path to uploaded avatar (differs based on model type)
-   */
-  uploadPath: 'avatar',
-  /**
    * Should avatar be round instead of a square
    */
   round: false,
@@ -65,16 +61,6 @@ type DefaultProps = {
    * The type of avatar being rendered.
    */
   type?: Avatar['avatarType'];
-  /**
-   * Path to uploaded avatar (differs based on model type)
-   */
-  uploadPath?:
-    | 'avatar'
-    | 'team-avatar'
-    | 'organization-avatar'
-    | 'project-avatar'
-    | 'sentry-app-avatar'
-    | 'doc-integration-avatar';
 };
 
 type BaseProps = DefaultProps & {
@@ -102,13 +88,9 @@ type BaseProps = DefaultProps & {
    */
   tooltipOptions?: Omit<TooltipProps, 'children' | 'title'>;
   /**
-   * The region domain that organization avatars are on
+   * Full URL to the uploaded avatar's image.
    */
-  uploadDomain?: string;
-  /**
-   * The uuid for the uploaded avatar.
-   */
-  uploadId?: string | null | undefined;
+  uploadUrl?: string | null | undefined;
 };
 
 type Props = BaseProps;
@@ -145,11 +127,12 @@ class BaseAvatar extends Component<Props, State> {
   }
 
   buildUploadUrl() {
-    const {uploadDomain, uploadPath, uploadId} = this.props;
+    const {uploadUrl} = this.props;
+    if (!uploadUrl) {
+      return '';
+    }
 
-    return `${uploadDomain || ''}/${uploadPath || 'avatar'}/${uploadId}/?${qs.stringify({
-      s: DEFAULT_REMOTE_SIZE,
-    })}`;
+    return `${uploadUrl}?${qs.stringify({s: DEFAULT_REMOTE_SIZE})}`;
   }
 
   handleLoad = () => {

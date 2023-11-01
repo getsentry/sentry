@@ -21,14 +21,11 @@ function SentryAppAvatar({isColor = true, sentryApp, isDefault, ...props}: Props
   if (isDefault || !avatarDetails || avatarDetails.avatarType === 'default') {
     return defaultSentryAppAvatar;
   }
-  const {sentryUrl} = window.__initialData?.links ?? {};
   return (
     <BaseAvatar
       {...props}
       type="upload"
-      uploadPath="sentry-app-avatar"
-      uploadId={avatarDetails?.avatarUuid}
-      uploadDomain={sentryUrl}
+      uploadUrl={avatarDetails?.avatarUrl}
       title={sentryApp?.name}
       backupAvatar={defaultSentryAppAvatar}
     />
