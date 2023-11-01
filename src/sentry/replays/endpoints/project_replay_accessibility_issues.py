@@ -86,10 +86,18 @@ class ReplayAccessibilityPaginator:
 
 def request_accessibility_issues(filenames: list[str]) -> Any:
     try:
-        return requests.post(
+        response = requests.post(
             f"{options.get('replay.analyzer_service_url')}/api/0/analyze/accessibility",
             json={"data": {"filenames": filenames}},
-        ).json()
+        )
+
+        content = response.content
+        status_code = response.status_code
+
+        if status_code == 201:
+            return response.json()
+        else:
+            raise ParseError(f"An error occurred: {content}")
     except Exception:
         logger.exception("replay accessibility analysis failed")
         raise ParseError("Could not analyze accessibility issues at this time.")
