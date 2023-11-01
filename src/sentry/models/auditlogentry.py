@@ -5,6 +5,7 @@ from typing import Any, Mapping
 
 from django.db import models
 from django.utils import timezone
+from sentry_sdk import capture_exception
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -82,15 +83,21 @@ class AuditLogEntry(Model):
 
     def _apply_actor_label(self):
         if not self.actor_label:
-            assert self.actor_id or self.actor_key
+            assert self.actor_id or self.actor_key or self.ip_address
             if self.actor_id:
                 # Fetch user by RPC service as
                 # Audit logs are often created in regions.
                 user = user_service.get_user(self.actor_id)
                 self.actor_label = user.username
-            else:
+            elif self.actor_key:
                 # TODO(hybridcloud) This requires an RPC service.
                 self.actor_label = self.actor_key.key
+            else:
+                capture_exception(
+                    Exception("Expected there to be a user or actor key for audit logging")
+                )
+                # Fallback to IP address if user or actor label not available
+                self.actor_label = self.ip_address
 
     def as_event(self) -> AuditLogEvent:
         """
