@@ -22,7 +22,7 @@ export default function FeedbackSetupBanner({style}: Props) {
       href="https://github.com/getsentry/sentry-javascript/blob/develop/packages/feedback/README.md"
       priority="primary"
     >
-      Set Up Now
+      {t('Set Up Now')}
     </LinkButton>
   );
 
