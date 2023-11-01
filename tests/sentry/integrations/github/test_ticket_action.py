@@ -7,6 +7,7 @@ from rest_framework.test import APITestCase as BaseAPITestCase
 
 from sentry.eventstore.models import Event
 from sentry.integrations.github import GitHubCreateTicketAction, client
+from sentry.integrations.github.integration import GitHubIntegration
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.rule import Rule
 from sentry.testutils.cases import RuleTestCase
@@ -35,7 +36,9 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             },
         )
 
-        self.installation = self.integration.get_installation(self.organization.id)
+        self.installation: GitHubIntegration = self.integration.get_installation(
+            self.organization.id
+        )  # type: ignore[assignment]
 
         self.login_as(user=self.user)
         responses.add(

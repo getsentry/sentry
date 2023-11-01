@@ -6,6 +6,7 @@ from django.urls import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase
 
 from sentry.eventstore.models import Event
+from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.github_enterprise import GitHubEnterpriseCreateTicketAction, client
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.rule import Rule
@@ -41,7 +42,7 @@ class GitHubEnterpriseEnterpriseTicketRulesTestCase(RuleTestCase, BaseAPITestCas
             },
         )
 
-        self.installation = self.integration.get_installation(self.organization.id)
+        self.installation: GitHubIntegration = self.integration.get_installation(self.organization.id)  # type: ignore[assignment]
 
         self.login_as(user=self.user)
         responses.add(
