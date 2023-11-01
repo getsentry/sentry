@@ -24,6 +24,7 @@ from sentry.models.activity import Activity
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.integrations.integration import Integration
 from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
@@ -448,11 +449,13 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         event = event_manager.save(self.project.id)
         group = event.group
 
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
+        NotificationSettingProvider.objects.create(
             user_id=self.user.id,
+            scope_type="user",
+            scope_identifier=self.user.id,
+            provider="slack",
+            type="alerts",
+            value="never",
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
@@ -490,11 +493,13 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             user=user, key="mail:email", value="foo@bar.dodo", project_id=self.project.id
         )
         # disable slack
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
+        NotificationSettingProvider.objects.create(
             user_id=user.id,
+            scope_type="user",
+            scope_identifier=user.id,
+            provider="slack",
+            type="alerts",
+            value="never",
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
@@ -542,11 +547,13 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         event_data["metadata"] = event_type.get_metadata(event_data)
 
         # disable slack
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
+        NotificationSettingProvider.objects.create(
             user_id=self.user.id,
+            scope_type="user",
+            scope_identifier=self.user.id,
+            provider="slack",
+            type="alerts",
+            value="never",
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
@@ -888,13 +895,14 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         with assume_test_silo_mode(SiloMode.CONTROL):
             for u in [user, user2, user3, user4, user5]:
                 # disable slack
-                NotificationSetting.objects.update_settings(
-                    ExternalProviders.SLACK,
-                    NotificationSettingTypes.ISSUE_ALERTS,
-                    NotificationSettingOptionValues.NEVER,
+                NotificationSettingProvider.objects.create(
                     user_id=u.id,
+                    scope_type="user",
+                    scope_identifier=u.id,
+                    provider="slack",
+                    type="alerts",
+                    value="never",
                 )
-
         with self.feature("organizations:notification-all-recipients"):
             self.create_assert_delete_projectownership(
                 project,
@@ -950,11 +958,13 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             for u in [user, user2, user3, user4, user5]:
-                NotificationSetting.objects.update_settings(
-                    ExternalProviders.SLACK,
-                    NotificationSettingTypes.ISSUE_ALERTS,
-                    NotificationSettingOptionValues.NEVER,
+                NotificationSettingProvider.objects.create(
                     user_id=u.id,
+                    scope_type="user",
+                    scope_identifier=u.id,
+                    provider="slack",
+                    type="alerts",
+                    value="never",
                 )
 
         with self.feature("organizations:notification-all-recipients"):
@@ -1101,11 +1111,13 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
             self.create_member(user=u, organization=organization, teams=[team])
         with assume_test_silo_mode(SiloMode.CONTROL):
             for u in users:
-                NotificationSetting.objects.update_settings(
-                    ExternalProviders.SLACK,
-                    NotificationSettingTypes.ISSUE_ALERTS,
-                    NotificationSettingOptionValues.NEVER,
-                    user_id=u.id,
+                NotificationSettingProvider.objects.create(
+                    user_id=self.user.id,
+                    scope_type="user",
+                    scope_identifier=self.user.id,
+                    provider="slack",
+                    type="alerts",
+                    value="never",
                 )
 
         """
