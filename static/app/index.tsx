@@ -30,7 +30,7 @@
 //
 // 3. App initialization does the following...
 //
-//   a. Initialize the ConfigStore with client-config data.
+//   a. Initialize the ConfigStore with clinet-config data.
 //
 //   b. Initialize the Sentry SDK. This includes setting up integrations for
 //      routing and tracing.
