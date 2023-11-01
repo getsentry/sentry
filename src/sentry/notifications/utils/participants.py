@@ -9,13 +9,13 @@ from typing import (
     List,
     Mapping,
     MutableMapping,
+    Optional,
     Sequence,
     Tuple,
     Union,
 )
 
 from django.db.models import Q
-from pyparsing import Optional
 
 from sentry import features
 from sentry.models.actor import ActorTuple
