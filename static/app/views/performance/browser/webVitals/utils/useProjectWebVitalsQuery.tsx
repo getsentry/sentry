@@ -46,6 +46,7 @@ export const useProjectWebVitalsQuery = ({transaction, tag}: Props = {}) => {
     limit: 50,
     location,
     orgSlug: organization.slug,
+    cursor: '',
     options: {
       enabled: pageFilters.isReady,
       refetchOnWindowFocus: false,
