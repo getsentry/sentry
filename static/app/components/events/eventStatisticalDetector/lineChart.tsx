@@ -114,7 +114,7 @@ function LineChart({
         axisLabel: {
           color: theme.chartLabel,
           formatter: (value: number) =>
-            axisLabelFormatter(value, 'rate', true, undefined, RateUnits.PER_MINUTE),
+            axisLabelFormatter(value, 'rate', true, undefined, RateUnits.PER_SECOND),
         },
       });
     }
