@@ -1582,6 +1582,16 @@ register(
     default=100,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "on_demand.max_widget_cardinality.count",
+    default=10000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "on_demand.max_widget_cardinality.killswitch",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "delightful_metrics.minimetrics_sample_rate",
