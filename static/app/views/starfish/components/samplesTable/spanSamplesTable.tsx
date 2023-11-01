@@ -16,13 +16,14 @@ import {SpanSample} from 'sentry/views/starfish/queries/useSpanSamples';
 
 type Keys =
   | 'transaction_id'
+  | 'profile_id'
   | 'timestamp'
   | 'duration'
   | 'p95_comparison'
   | 'avg_comparison';
-type TableColumnHeader = GridColumnHeader<Keys>;
+export type SamplesTableColumnHeader = GridColumnHeader<Keys>;
 
-const COLUMN_ORDER: TableColumnHeader[] = [
+const DEFAULT_COLUMN_ORDER: SamplesTableColumnHeader[] = [
   {
     key: 'transaction_id',
     name: 'Event ID',
@@ -54,6 +55,7 @@ type Props = {
   avg: number;
   data: SpanTableRow[];
   isLoading: boolean;
+  columnOrder?: SamplesTableColumnHeader[];
   highlightedSpanId?: string;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
@@ -66,6 +68,7 @@ export function SpanSamplesTable({
   highlightedSpanId,
   onMouseLeaveSample,
   onMouseOverSample,
+  columnOrder,
 }: Props) {
   const location = useLocation();
 
@@ -116,6 +119,19 @@ export function SpanSamplesTable({
       );
     }
 
+    if (column.key === 'profile_id') {
+      return row.profile_id ? (
+        <Link
+          {...commonProps}
+          to={`/profiling/profile/${row['project.name']}/${row.profile_id}/flamechart/`}
+        >
+          {row.profile_id.slice(0, 8)}
+        </Link>
+      ) : (
+        <div {...commonProps}>(no value)</div>
+      );
+    }
+
     if (column.key === 'duration') {
       return (
         <DurationCell containerProps={commonProps} milliseconds={row['span.self_time']} />
@@ -140,7 +156,7 @@ export function SpanSamplesTable({
       <GridEditable
         isLoading={isLoading}
         data={data}
-        columnOrder={COLUMN_ORDER}
+        columnOrder={columnOrder ?? DEFAULT_COLUMN_ORDER}
         columnSortBy={[]}
         grid={{
           renderHeadCell,

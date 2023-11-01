@@ -89,7 +89,10 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
     <Fragment>
       <SectionHeading>
         {t('Performance Score')}
-        <QuestionTooltip size="sm" title={undefined} />
+        <QuestionTooltip
+          size="sm"
+          title={t('Overall performance rating of your application')}
+        />
       </SectionHeading>
       <PerformanceScoreSubText>{performanceScoreSubtext}</PerformanceScoreSubText>
       <SidebarPerformanceScoreRingContainer>
@@ -107,8 +110,10 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
       <SidebarSpacer />
       <SectionHeading>
         {t('Page Loads')}
-        {/* TODO: Add a proper tooltip */}
-        <QuestionTooltip size="sm" title={undefined} />
+        <QuestionTooltip
+          size="sm"
+          title={t('The number of transactions per unit time')}
+        />
       </SectionHeading>
       <ChartValue>{currentEps}</ChartValue>
       <ChartSubText color={diffToColor(epsDiff)}>
@@ -135,8 +140,10 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
       <SidebarSpacer />
       <SectionHeading>
         {t('Aggregate Spans')}
-        {/* TODO: Add a proper tooltip */}
-        <QuestionTooltip size="sm" title={undefined} />
+        <QuestionTooltip
+          size="sm"
+          title={t('Waterfall view displaying common span paths that the page may take')}
+        />
       </SectionHeading>
       <MiniAggregateWaterfallContainer>
         <MiniAggregateWaterfall transaction={transaction} />

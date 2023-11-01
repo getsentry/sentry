@@ -3,13 +3,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import (
-    BaseManager,
-    FlexibleForeignKey,
-    Model,
-    region_silo_only_model,
-    sane_repr,
-)
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.project import Project
 
@@ -25,8 +19,6 @@ class ProjectBookmark(Model):
     project = FlexibleForeignKey(Project, blank=True, null=True, db_constraint=False)
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE")
     date_added = models.DateTimeField(default=timezone.now, null=True)
-
-    objects = BaseManager()
 
     class Meta:
         app_label = "sentry"

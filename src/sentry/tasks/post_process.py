@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from datetime import datetime, timedelta
 from time import time
 from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union
@@ -890,6 +891,12 @@ def process_replay_link(job: PostProcessJob) -> None:
     replay_id = _get_replay_id(group_event)
     if not replay_id:
         return
+
+    # Validate the UUID.
+    try:
+        uuid.UUID(replay_id)
+    except (ValueError, TypeError):
+        return None
 
     metrics.incr("post_process.process_replay_link.id_exists")
 

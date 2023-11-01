@@ -1,8 +1,10 @@
 import secrets
+from typing import ClassVar
 
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from typing_extensions import Self
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -41,7 +43,7 @@ class ApiKey(ReplicatedControlModel, HasApiScopes):
     date_added = models.DateTimeField(default=timezone.now)
     allowed_origins = models.TextField(blank=True, null=True)
 
-    objects = BaseManager(cache_fields=("key",))
+    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("key",))
 
     class Meta:
         app_label = "sentry"
