@@ -29,7 +29,6 @@ import EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -43,12 +42,7 @@ type Props = {
   showDropdownFilters?: boolean;
 };
 
-export type ReferrerTableType =
-  | 'main'
-  | 'dead-table'
-  | 'errors-table'
-  | 'rage-table'
-  | 'selector-widget';
+export type ReferrerTableType = 'main' | 'selector-widget';
 
 type EditType = 'set' | 'remove';
 
@@ -310,15 +304,6 @@ export function ReplayCell({
     },
   };
 
-  const replayDetailsErrorTab = {
-    pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
-    query: {
-      referrer,
-      ...eventView.generateQueryStringObject(),
-      t_main: TabKey.ERRORS,
-    },
-  };
-
   const replayDetailsDeadRage = {
     pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
     query: {
@@ -330,10 +315,6 @@ export function ReplayCell({
 
   const detailsTab = () => {
     switch (referrer_table) {
-      case 'errors-table':
-        return replayDetailsErrorTab;
-      case 'dead-table':
-      case 'rage-table':
       case 'selector-widget':
         return replayDetailsDeadRage;
       default:
@@ -537,7 +518,7 @@ export function RageClickCountCell({replay, showDropdownFilters}: Props) {
       <Container>
         {replay.count_rage_clicks ? (
           <RageClickCount>
-            <IconCursorArrow size="sm" />
+            <IconCursorArrow size="sm" color="red300" />
             {replay.count_rage_clicks}
           </RageClickCount>
         ) : (
@@ -563,7 +544,7 @@ export function DeadClickCountCell({replay, showDropdownFilters}: Props) {
       <Container>
         {replay.count_dead_clicks ? (
           <DeadClickCount>
-            <IconCursorArrow size="sm" />
+            <IconCursorArrow size="sm" color="yellow300" />
             {replay.count_dead_clicks}
           </DeadClickCount>
         ) : (
@@ -589,7 +570,7 @@ export function ErrorCountCell({replay, showDropdownFilters}: Props) {
       <Container>
         {replay.count_errors ? (
           <ErrorCount>
-            <IconFire />
+            <IconFire color="red300" />
             {replay.count_errors}
           </ErrorCount>
         ) : (
@@ -653,21 +634,18 @@ const DeadClickCount = styled(Count)`
   display: flex;
   width: 40px;
   gap: ${space(0.5)};
-  color: ${p => p.theme.yellow300};
 `;
 
 const RageClickCount = styled(Count)`
   display: flex;
   width: 40px;
   gap: ${space(0.5)};
-  color: ${p => p.theme.red300};
 `;
 
 const ErrorCount = styled(Count)`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  color: ${p => p.theme.red400};
 `;
 
 const Time = styled('span')`

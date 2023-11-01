@@ -82,37 +82,41 @@ class JiraRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_get_response_invalid(self):
-        # Invalid path
-        request = self.factory.post(path="/new-route/for/no/reason/")
-        parser = JiraRequestParser(request, self.get_response)
-        with patch.object(
-            parser, "get_response_from_outbox_creation"
-        ) as get_response_from_outbox_creation, patch.object(
-            parser, "get_response_from_control_silo"
-        ) as mock_from_control:
-            parser.get_response()
-            assert mock_from_control.called
-            assert not get_response_from_outbox_creation.called
+        with patch(
+            "sentry.middleware.integrations.parsers.jira.parse_integration_from_request"
+        ) as mock_parse:
+            mock_parse.return_value = self.integration
+            # Invalid path
+            request = self.factory.post(path="/new-route/for/no/reason/")
+            parser = JiraRequestParser(request, self.get_response)
+            with patch.object(
+                parser, "get_response_from_outbox_creation"
+            ) as get_response_from_outbox_creation, patch.object(
+                parser, "get_response_from_control_silo"
+            ) as mock_from_control:
+                parser.get_response()
+                assert mock_from_control.called
+                assert not get_response_from_outbox_creation.called
 
-        # Too many regions
-        request = self.factory.post(path="/issue/LR-123/")
-        parser = JiraRequestParser(request, self.get_response)
-        with patch.object(
-            parser, "get_response_from_outbox_creation"
-        ) as get_response_from_outbox_creation, patch.object(
-            parser, "get_response_from_control_silo"
-        ) as mock_from_control, patch.object(
-            parser,
-            "get_regions_from_organizations",
-            return_value=[
-                Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT),
-                Region("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT),
-            ],
-        ) as mock_get_regions:
-            parser.get_response()
-            assert mock_from_control.called
-            assert mock_get_regions.called
-            assert not get_response_from_outbox_creation.called
+            # Too many regions
+            request = self.factory.post(path="/issue/LR-123/")
+            parser = JiraRequestParser(request, self.get_response)
+            with patch.object(
+                parser, "get_response_from_outbox_creation"
+            ) as get_response_from_outbox_creation, patch.object(
+                parser, "get_response_from_control_silo"
+            ) as mock_from_control, patch.object(
+                parser,
+                "get_regions_from_organizations",
+                return_value=[
+                    Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT),
+                    Region("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT),
+                ],
+            ) as mock_get_regions:
+                parser.get_response()
+                assert mock_from_control.called
+                assert mock_get_regions.called
+                assert not get_response_from_outbox_creation.called
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_webhook_outbox_creation(self):

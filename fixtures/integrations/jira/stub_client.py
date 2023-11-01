@@ -17,7 +17,7 @@ class StubJiraApiClient(StubService):
     def get_issue_types(self, project_id):
         return self._get_stub_data("issue_types_response.json")
 
-    def get_priorities(self):
+    def get_priorities(self, project_id):
         return self._get_stub_data("priorities_response.json")
 
     def get_versions(self, project_id):

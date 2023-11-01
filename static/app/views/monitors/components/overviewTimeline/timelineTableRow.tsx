@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
@@ -54,6 +55,7 @@ export function TimelineTableRow({
         {environments.map(({name, status}) => {
           const envStatus =
             monitor.status === MonitorStatus.DISABLED ? MonitorStatus.DISABLED : status;
+          const {label, icon} = statusIconColorMap[envStatus];
           return (
             <EnvWithStatus key={name}>
               {onDeleteEnvironment && (
@@ -88,7 +90,9 @@ export function TimelineTableRow({
                 />
               )}
               <MonitorEnvLabel status={envStatus}>{name}</MonitorEnvLabel>
-              {statusIconColorMap[envStatus].icon}
+              <Tooltip title={label} skipWrapper>
+                {icon}
+              </Tooltip>
             </EnvWithStatus>
           );
         })}

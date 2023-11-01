@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional, Sequence, Tuple, Union
 from uuid import uuid4
 
 import jsonschema
@@ -12,6 +12,7 @@ from django.db import models
 from django.db.models.signals import post_delete, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
+from typing_extensions import Self
 
 from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
@@ -205,20 +206,47 @@ class ScheduleType:
 class Monitor(Model):
     __relocation_scope__ = RelocationScope.Organization
 
-    guid = UUIDField(unique=True, auto_add=True)
-    slug = models.SlugField()
+    date_added = models.DateTimeField(default=timezone.now)
     organization_id = BoundedBigIntegerField(db_index=True)
     project_id = BoundedBigIntegerField(db_index=True)
+
+    guid = UUIDField(unique=True, auto_add=True)
+    """
+    Globally unique identifier for the monitor. Mostly legacy, used in legacy
+    API endpoints.
+    """
+
+    slug = models.SlugField()
+    """
+    Organization unique slug of the monitor. Used to identify the monitor in
+    check-in payloads. The slug can be changed.
+    """
+
     name = models.CharField(max_length=128)
+    """
+    Human readible name of the monitor. Used for display purposes.
+    """
+
     status = BoundedPositiveIntegerField(
         default=MonitorObjectStatus.ACTIVE, choices=MonitorObjectStatus.as_choices()
     )
+    """
+    Active status of the monitor. This is similar to most other ObjectStatus's
+    within the app. Used to mark monitors as disabled and pending deletions
+    """
+
     type = BoundedPositiveIntegerField(
         default=MonitorType.UNKNOWN,
         choices=[(k, str(v)) for k, v in MonitorType.as_choices()],
     )
+    """
+    Type of monitor. Currently there are only CRON_JOB monitors.
+    """
+
     config: models.Field[dict[str, Any], dict[str, Any]] = JSONField(default=dict)
-    date_added = models.DateTimeField(default=timezone.now)
+    """
+    Stores the monitor configuration. See MONITOR_CONFIG for the schema.
+    """
 
     class Meta:
         app_label = "sentry"
@@ -445,15 +473,23 @@ class MonitorCheckIn(Model):
     attachment_id = BoundedBigIntegerField(null=True)
     config = JSONField(default=dict)
 
-    objects = BaseManager(cache_fields=("guid",))
+    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("guid",))
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitorcheckin"
         indexes = [
+            # used for endpoints for monitor stats + list check-ins
             models.Index(fields=["monitor", "date_added", "status"]),
+            # used for latest in monitor consumer
+            models.Index(fields=["monitor", "status", "date_added"]),
+            # used for has_newer_result + thresholds
             models.Index(fields=["monitor_environment", "date_added", "status"]),
+            # used for latest on api endpoints
+            models.Index(fields=["monitor_environment", "status", "date_added"]),
+            # used for timeout task
             models.Index(fields=["status", "timeout_at"]),
+            # used for check-in list
             models.Index(fields=["trace_id"]),
         ]
 
@@ -489,7 +525,7 @@ class MonitorLocation(Model):
     guid = UUIDField(unique=True, auto_add=True)
     name = models.CharField(max_length=128)
     date_added = models.DateTimeField(default=timezone.now)
-    objects = BaseManager(cache_fields=("guid",))
+    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("guid",))
 
     class Meta:
         app_label = "sentry"
@@ -498,7 +534,7 @@ class MonitorLocation(Model):
     __repr__ = sane_repr("guid", "name")
 
 
-class MonitorEnvironmentManager(BaseManager):
+class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
     """
     A manager that consolidates logic for monitor environment updates
     """
@@ -561,7 +597,7 @@ class MonitorEnvironment(Model):
     The last time that the monitor changed state. Used for issue fingerprinting.
     """
 
-    objects = MonitorEnvironmentManager()
+    objects: ClassVar[MonitorEnvironmentManager] = MonitorEnvironmentManager()
 
     class Meta:
         app_label = "sentry"

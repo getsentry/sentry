@@ -9,11 +9,11 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {getFormattedDate} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   useReleases,
   useReleaseSelection,
-  useReleaseStats,
 } from 'sentry/views/starfish/queries/useReleases';
 
 type Props = {
@@ -25,14 +25,28 @@ type Props = {
 export function ReleaseSelector({selectorName, selectorKey, selectorValue}: Props) {
   const [searchTerm, setSearchTerm] = useState<string | undefined>(undefined);
   const {data, isLoading} = useReleases(searchTerm);
-  const {data: releaseStats} = useReleaseStats();
   const location = useLocation();
 
   const options: SelectOption<string>[] = [];
   if (defined(selectorValue)) {
+    const index = data?.findIndex(({version}) => version === selectorValue);
+    const selectedRelease = defined(index) ? data?.[index] : undefined;
+    let selectedReleaseSessionCount: number | undefined = undefined;
+    let selectedReleaseDateCreated: string | undefined = undefined;
+    if (defined(selectedRelease)) {
+      selectedReleaseSessionCount = selectedRelease['sum(session)'];
+      selectedReleaseDateCreated = selectedRelease.dateCreated;
+    }
+
     options.push({
       value: selectorValue,
       label: selectorValue,
+      details: (
+        <LabelDetails
+          sessionCount={selectedReleaseSessionCount}
+          dateCreated={selectedReleaseDateCreated}
+        />
+      ),
     });
   }
   data
@@ -42,7 +56,10 @@ export function ReleaseSelector({selectorName, selectorKey, selectorValue}: Prop
         value: release.version,
         label: release.version,
         details: (
-          <LabelDetails sessionCount={releaseStats[release.version]?.['sum(session)']} />
+          <LabelDetails
+            sessionCount={release['sum(session)']}
+            dateCreated={release.dateCreated}
+          />
         ),
       };
 
@@ -61,7 +78,7 @@ export function ReleaseSelector({selectorName, selectorKey, selectorValue}: Prop
       options={[
         {
           value: '_releases',
-          label: t('Sorted by date created'),
+          label: t('Sorted by session count'),
           options,
         },
       ]}
@@ -85,6 +102,7 @@ export function ReleaseSelector({selectorName, selectorKey, selectorValue}: Prop
 }
 
 type LabelDetailsProps = {
+  dateCreated?: string;
   sessionCount?: number;
 };
 
@@ -94,7 +112,12 @@ function LabelDetails(props: LabelDetailsProps) {
       <div>
         {defined(props.sessionCount)
           ? tn('%s session', '%s sessions', props.sessionCount)
-          : '-'}
+          : t('No sessions')}
+      </div>
+      <div>
+        {defined(props.dateCreated)
+          ? getFormattedDate(props.dateCreated, 'MMM D, YYYY')
+          : null}
       </div>
     </DetailsContainer>
   );
@@ -104,11 +127,17 @@ export function ReleaseComparisonSelector() {
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
   return (
     <PageFilterBar condensed>
-      <ReleaseSelector selectorKey="primaryRelease" selectorValue={primaryRelease} />
+      <ReleaseSelector
+        selectorKey="primaryRelease"
+        selectorValue={primaryRelease}
+        selectorName={t('Release 1')}
+        key="primaryRelease"
+      />
       <ReleaseSelector
         selectorKey="secondaryRelease"
-        selectorName={t('Compared To')}
+        selectorName={t('Release 2')}
         selectorValue={secondaryRelease}
+        key="secondaryRelease"
       />
     </PageFilterBar>
   );
