@@ -124,6 +124,7 @@ SPAN_COLUMN_MAP = {
     "transaction.id": "transaction_id",
     "transaction.op": "transaction_op",
     "user": "user",
+    "profile_id": "profile_id",
 }
 
 SESSIONS_FIELD_LIST = [
