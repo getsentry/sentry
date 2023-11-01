@@ -188,11 +188,12 @@ class BaseAvatar extends Component<Props, State> {
 
   renderLetterAvatar() {
     const {title, letterId, round, suggested} = this.props;
+    const modifiedTitle = title === '[Filtered]' ? '?' : title;
 
     return (
       <LetterAvatar
         round={round}
-        displayName={title}
+        displayName={modifiedTitle}
         identifier={letterId}
         suggested={suggested}
       />
