@@ -88,11 +88,6 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
                 feedbackEvent={eventData}
               />
             </ErrorBoundary>
-
-            <ErrorBoundary mini>
-              <FeedbackViewers feedbackItem={feedbackItem} />
-            </ErrorBoundary>
-
             <ErrorBoundary mini>
               <Button
                 onClick={() => {
@@ -121,7 +116,10 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
         </Flex>
       </HeaderPanelItem>
       <OverflowPanelItem>
-        <Section title={t('Description')}>
+        <Section
+          title={t('Description')}
+          contentRight={<FeedbackViewers feedbackItem={feedbackItem} />}
+        >
           <Blockquote>
             <pre>{feedbackItem.metadata.message}</pre>
           </Blockquote>
