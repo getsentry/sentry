@@ -549,7 +549,7 @@ class ProjectSerializer(Serializer):
             "hasMonitors": bool(obj.flags.has_cron_monitors),
             "hasProfiles": bool(obj.flags.has_profiles),
             "hasReplays": bool(obj.flags.has_replays),
-            "hasFeedbacks": bool(obj.flags.hasFeedbacks),
+            "hasFeedbacks": bool(obj.flags.has_feedbacks),
             "hasSessions": bool(obj.flags.has_sessions),
             "isInternal": obj.is_internal_project(),
             "isPublic": obj.public,
