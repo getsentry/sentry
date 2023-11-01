@@ -23,6 +23,10 @@ from sentry.api.endpoints.organization_projects_experiment import (
 )
 from sentry.api.endpoints.organization_spans_aggregation import OrganizationSpansAggregationEndpoint
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
+from sentry.api.endpoints.organization_unsubscribe import (
+    OrganizationUnsubscribeIssue,
+    OrganizationUnsubscribeProject,
+)
 from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThresholdEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold_details import (
     ReleaseThresholdDetailsEndpoint,
@@ -1944,6 +1948,17 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^/]+)/grouping-configs/$",
         GroupingConfigsEndpoint.as_view(),
         name="sentry-api-0-organization-grouping-configs",
+    ),
+    # Unsubscribe from organization notifications
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/unsubscribe/project/(?P<id>\d+)/$",
+        OrganizationUnsubscribeProject.as_view(),
+        name="sentry-api-0-organization-unsubscribe-project",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/unsubscribe/issue/(?P<id>\d+)/$",
+        OrganizationUnsubscribeIssue.as_view(),
+        name="sentry-api-0-organization-unsubscribe-issue",
     ),
 ]
 

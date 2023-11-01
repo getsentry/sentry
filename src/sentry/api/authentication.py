@@ -33,6 +33,7 @@ from sentry.services.hybrid_cloud.rpc import compare_signature
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloLimit, SiloMode
+from sentry.utils.linksign import process_signature
 from sentry.utils.sdk import configure_scope
 from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
 
@@ -414,6 +415,17 @@ class DSNAuthentication(StandardAuthentication):
             scope.set_tag("api_project_key", key.id)
 
         return (AnonymousUser(), key)
+
+
+@AuthenticationSiloLimit(SiloMode.REGION)
+class SignedRequestAuthentication(BaseAuthentication):
+    def authenticate(self, request: Request) -> tuple[Any, Any]:
+        user = process_signature(request)
+        if not user:
+            return (AnonymousUser(), None)
+
+        setattr(request, "user_from_signed_request", True)
+        return (user, None)
 
 
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
