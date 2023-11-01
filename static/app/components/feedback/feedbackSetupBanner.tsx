@@ -1,11 +1,12 @@
 import {CSSProperties} from 'react';
+import styled from '@emotion/styled';
 
 import replaysDeadRageBackground from 'sentry-images/spot/replay-dead-rage-changelog.svg';
 
 import {LinkButton} from 'sentry/components/button';
 import PageBanner from 'sentry/components/replays/pageBanner';
 import {IconBroadcast} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 interface Props {
@@ -32,13 +33,18 @@ export default function FeedbackSetupBanner({style}: Props) {
       style={style}
       button={docsButton}
       description={t(
-        'Set up our feedback widget on your site to receive reports from your users.'
+        "Users can submit feedback anytime on issues they're experiencing on your app via our feedback widget."
       )}
       heading={t('Introducing the New User Feedback')}
       icon={<IconBroadcast size="sm" />}
       image={replaysDeadRageBackground}
-      title={t('User Feedback')}
+      title={tct("[blue:What's New]", {blue: <Blue />})}
       onDismiss={dismiss}
     />
   );
 }
+
+const Blue = styled('span')`
+  color: ${p => p.theme.blue400};
+  font-weight: bold;
+`;
