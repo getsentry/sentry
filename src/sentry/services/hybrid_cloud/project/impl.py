@@ -5,6 +5,7 @@ from typing import List, Optional
 from django.db import router, transaction
 
 from sentry.api.serializers import ProjectSerializer
+from sentry.constants import ObjectStatus
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
@@ -127,6 +128,7 @@ class DatabaseBackedProjectService(ProjectService):
             organization_id=organization_id,
             name=project_name,
             platform=platform,
+            status=ObjectStatus.ACTIVE,
         )
         if project_query.exists():
             return serialize_project(project_query[0])
