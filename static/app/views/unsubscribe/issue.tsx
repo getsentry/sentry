@@ -86,6 +86,9 @@ function UnsubscribeBody({orgSlug, issueId, signature}: BodyProps) {
         apiMethod="POST"
         submitLabel={t('Unsubscribe')}
         cancelLabel={t('Cancel')}
+        onCancel={() => {
+          browserHistory.push('/auth/login/');
+        }}
         onSubmitSuccess={() => {
           browserHistory.push('/auth/login/');
         }}

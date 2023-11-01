@@ -365,11 +365,18 @@ urlpatterns += [
                     SetupWizardView.as_view(),
                     name="sentry-project-wizard-fetch",
                 ),
-                # compatibility
+                # Notification unsubscribe
                 re_path(
-                    r"^settings/notifications/unsubscribe/(?P<project_id>\d+)/$",
-                    accounts.email_unsubscribe_project,
+                    r"^unsubscribe/(?P<organization_slug>\w+)/project/(?P<project_id>\d+)/$",
+                    generic_react_page_view,
+                    name="sentry-account-org-unsubscribe-project",
                 ),
+                re_path(
+                    r"^unsubscribe/(?P<organization_slug>\w+)/issue/(?P<issue_id>\d+)/$",
+                    generic_react_page_view,
+                    name="sentry-account-org-unsubscribe-issue",
+                ),
+                # Compatibility
                 re_path(
                     r"^settings/notifications/",
                     RedirectView.as_view(
@@ -378,6 +385,10 @@ urlpatterns += [
                 ),
                 # TODO(hybridcloud) These routes can be removed in Jan 2024 as all valid links
                 # will have been generated with hybrid-cloud compatible URLs.
+                re_path(
+                    r"^settings/notifications/unsubscribe/(?P<project_id>\d+)/$",
+                    accounts.email_unsubscribe_project,
+                ),
                 re_path(
                     r"^notifications/unsubscribe/(?P<project_id>\d+)/$",
                     accounts.email_unsubscribe_project,
