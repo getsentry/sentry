@@ -118,7 +118,11 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
       <OverflowPanelItem>
         <Section
           title={t('Description')}
-          contentRight={<FeedbackViewers feedbackItem={feedbackItem} />}
+          contentRight={
+            <ErrorBoundary>
+              <FeedbackViewers feedbackItem={feedbackItem} />
+            </ErrorBoundary>
+          }
         >
           <Blockquote>
             <pre>{feedbackItem.metadata.message}</pre>
