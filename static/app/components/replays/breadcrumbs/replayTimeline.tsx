@@ -47,18 +47,29 @@ function ReplayTimeline({}: Props) {
   const chapterFrames = replay.getChapterFrames();
   const networkFrames = replay.getNetworkFrames();
 
-  // start of the timeline is in the middle
+  // timeline is in the middle
   const initialTranslate = 0.5 / timelineScale;
+  const percentComplete = divide(currentTime, durationMs);
 
-  const translate =
-    initialTranslate - (currentTime > durationMs ? 1 : divide(currentTime, durationMs));
+  const starting = percentComplete < initialTranslate;
+  const ending = percentComplete + initialTranslate > 1;
+
+  const translate = () => {
+    if (starting) {
+      return 0;
+    }
+    if (ending) {
+      return initialTranslate - (1 - initialTranslate);
+    }
+    return initialTranslate - (currentTime > durationMs ? 1 : percentComplete);
+  };
 
   return hasNewTimeline ? (
     <VisiblePanel ref={panelRef} {...mouseTrackingProps}>
       <Stacked
         style={{
           width: `${toPercent(timelineScale)}`,
-          transform: `translate(${toPercent(translate)}, 0%)`,
+          transform: `translate(${toPercent(translate())}, 0%)`,
         }}
         ref={stackedRef}
       >
