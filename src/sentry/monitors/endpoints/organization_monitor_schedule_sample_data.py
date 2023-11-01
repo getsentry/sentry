@@ -34,7 +34,7 @@ class OrganizationMonitorScheduleSampleDataEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization) -> Response:
         # Convert query params to a form the validator can use
-        config_data = {}
+        config_data: dict[str, list | str] = {}
         for key, val in request.GET.lists():
             if key == "schedule" and len(val) > 1:
                 config_data[key] = [int(val[0]), val[1]]
