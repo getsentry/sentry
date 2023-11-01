@@ -17,7 +17,7 @@ from snuba_sdk import (
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_weak, string_to_use_case_id
-from sentry.snuba.dataset import EntityKey
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import parse_mri
 from sentry.snuba.metrics.utils import to_intervals
@@ -73,6 +73,12 @@ def run_query(request: Request) -> Mapping[str, Any]:
         resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query)
         request.query = resolved_metrics_query
         request.tenant_ids["use_case_id"] = resolved_metrics_query.scope.use_case_id
+        # Release health AKA sessions uses a separate Dataset. Change the dataset based on the use case id.
+        # This is necessary here because the product code that uses this isn't aware of which feature is
+        # using it.
+        if resolved_metrics_query.scope.use_case_id == UseCaseID.SESSIONS.value:
+            request.dataset = Dataset.Metrics.value
+
     except Exception as e:
         metrics.incr(
             "metrics_layer.query",
