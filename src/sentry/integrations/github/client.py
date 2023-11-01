@@ -715,17 +715,26 @@ class GitHubClientMixin(GithubProxyClient):
             raise GitHubApproachingRateLimit()
 
         file_path_mapping = generate_file_path_mapping(files)
-
-        try:
-            response = self.post_cached(
-                path="/graphql",
-                data={"query": create_blame_query(file_path_mapping, extra=log_info)},
-                allow_text=False,
-                cache_time=60,
+        data = create_blame_query(file_path_mapping)
+        cache_key = self.get_cache_key("/graphql", data)
+        response = self.check_cache(cache_key)
+        if response:
+            logger.info(
+                "sentry.integrations.github.get_blame_for_files.got_cached",
+                extra=log_info,
             )
-        except ValueError as e:
-            logger.exception(e, log_info)
-            return []
+        if not response:
+            try:
+                response = self.post(
+                    path="/graphql",
+                    data={"query": create_blame_query(file_path_mapping, extra=log_info)},
+                    allow_text=False,
+                )
+            except ValueError as e:
+                logger.exception(e, log_info)
+                return []
+            else:
+                self.set_cache(cache_key, response, 60)
 
         if not isinstance(response, MappingApiResponse):
             raise ApiError("Response is not JSON")

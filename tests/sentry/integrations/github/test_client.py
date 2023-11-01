@@ -12,6 +12,7 @@ from requests import Request
 from responses import matchers
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.github.blame import create_blame_query, generate_file_path_mapping
 from sentry.integrations.github.client import GitHubApproachingRateLimit, GitHubAppsClient
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
@@ -1319,8 +1320,10 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
             },
             content_type="application/json",
         )
-        cache_key = "integration.github.client:c5f94e3edae168469aeb9736536817c5"
-        assert cache.get(cache_key) is None
+
+        data = create_blame_query(generate_file_path_mapping([self.file1, self.file2, self.file3]))
+        cache_key = self.github_client.get_cache_key("/graphql", data)
+        assert self.github_client.check_cache(cache_key) is None
         response = self.github_client.get_blame_for_files([self.file1, self.file2, self.file3])
         self.assertEqual(
             response,
@@ -1347,14 +1350,14 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
                 ),
             ],
         )
-        assert cache.get(cache_key)["data"] == self.data
+        assert self.github_client.check_cache(cache_key)["data"] == self.data
         # Calling a second time should work
         response = self.github_client.get_blame_for_files([self.file1, self.file2, self.file3])
-        assert cache.get(cache_key)["data"] == self.data
+        assert self.github_client.check_cache(cache_key)["data"] == self.data
         # Calling again after the cache has been cleared should still work
         cache.delete(cache_key)
         response = self.github_client.get_blame_for_files([self.file1, self.file2, self.file3])
-        assert cache.get(cache_key)["data"] == self.data
+        assert self.github_client.check_cache(cache_key)["data"] == self.data
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
