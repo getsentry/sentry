@@ -77,6 +77,9 @@ class FeedbackIngestTest(MonitorIngestTestCase):
 
             assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
 
+            self.project.refresh_from_db()
+            assert self.project.flags.has_feedbacks
+
     def test_no_feature_enabled(self):
         # Feature disabled should lead to unsuccessful save
         with self.feature({"organizations:user-feedback-ingest": False}):
