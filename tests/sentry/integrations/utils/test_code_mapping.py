@@ -1,4 +1,3 @@
-import os
 from unittest.mock import patch
 
 import pytest
@@ -16,12 +15,18 @@ from sentry.integrations.utils.code_mapping import (
     stacktrace_buckets,
 )
 from sentry.testutils.cases import TestCase
-from sentry.utils import json
 
-with open(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures/sentry_files.json")
-) as fd:
-    sentry_files = json.load(fd)
+sentry_files = [
+    "bin/__init__.py",
+    "bin/example1.py",
+    "bin/example2.py",
+    "docs-ui/.eslintrc.js",
+    "src/sentry/identity/oauth2.py",
+    "src/sentry/integrations/slack/client.py",
+    "src/sentry/web/urls.py",
+    "src/sentry/wsgi.py",
+    "src/sentry_plugins/slack/client.py",
+]
 
 
 UNSUPPORTED_FRAME_FILENAMES = [
