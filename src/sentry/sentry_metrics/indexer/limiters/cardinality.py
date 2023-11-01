@@ -55,6 +55,7 @@ def _construct_quotas(use_case_id: UseCaseID) -> Optional[Quota]:
         quota_args = options.get(
             "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org"
         )
+    quota_args[0]["limit"] = 5000000
 
     if not quota_args:
         raise ValueError("quotas cannot be empty")
