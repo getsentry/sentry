@@ -125,7 +125,7 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   speed: number;
 
   /**
-   * Scale of the timeline width, starts from 1x and increases by 0.5x
+   * Scale of the timeline width, starts from 1x and increases by 1x
    */
   timelineScale: number;
 
