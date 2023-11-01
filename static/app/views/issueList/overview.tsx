@@ -93,6 +93,7 @@ type Props = {
   savedSearch: SavedSearch;
   savedSearchLoading: boolean;
   savedSearches: SavedSearch[];
+  selectedSearchId: string | null;
   selection: PageFilters;
   tags: TagCollection;
 } & RouteComponentProps<{searchId?: string}, {}> &
@@ -180,7 +181,10 @@ class IssueListOverview extends Component<Props, State> {
     // Wait for saved searches to load so if the user is on a saved search
     // or they have a pinned search we load the correct data the first time.
     // But if searches are already there, we can go right to fetching issues
-    if (!this.props.savedSearchLoading) {
+    if (
+      !this.props.savedSearchLoading ||
+      this.props.organization.features.includes('issue-stream-performance')
+    ) {
       this.fetchData();
     }
     this.fetchTags();
@@ -210,7 +214,19 @@ class IssueListOverview extends Component<Props, State> {
     if (this.props.savedSearchLoading) {
       return;
     }
-    if (prevProps.savedSearchLoading) {
+
+    if (
+      prevProps.savedSearchLoading &&
+      !this.props.savedSearchLoading &&
+      this.props.organization.features.includes('issue-stream-performance')
+    ) {
+      return;
+    }
+
+    if (
+      prevProps.savedSearchLoading &&
+      !this.props.organization.features.includes('issue-stream-performance')
+    ) {
       this.fetchData();
       return;
     }
@@ -527,6 +543,14 @@ class IssueListOverview extends Component<Props, State> {
       ...this.getEndpointParams(),
       limit: MAX_ITEMS,
       shortIdLookup: 1,
+      savedSearch: this.props.organization.features.includes('issue-stream-performance')
+        ? this.props.savedSearchLoading
+          ? 0
+          : 1
+        : 1,
+      searchId: this.props.organization.features.includes('issue-stream-performance')
+        ? this.props.selectedSearchId ?? null
+        : null,
     };
 
     const currentQuery = this.props.location.query || {};
@@ -1113,7 +1137,10 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   render() {
-    if (this.props.savedSearchLoading) {
+    if (
+      this.props.savedSearchLoading &&
+      !this.props.organization.features.includes('issue-stream-performance')
+    ) {
       return this.renderLoading();
     }
 
