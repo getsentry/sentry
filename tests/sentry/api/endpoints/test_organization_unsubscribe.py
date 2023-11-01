@@ -24,6 +24,7 @@ class OrganizationUnsubscribeProjectTest(APITestCase):
         assert resp.status_code == 200
         assert resp.data["viewUrl"] == project.get_absolute_url()
         assert resp.data["type"] == "project"
+        assert resp.data["displayName"] == self.user.get_display_name()
         assert resp.data["slug"] == project.slug
 
     def test_get_non_member(self):
@@ -105,6 +106,7 @@ class OrganizationUnsubscribeIssueTest(APITestCase):
         assert resp.status_code == 200
         assert resp.data["viewUrl"] == group.get_absolute_url()
         assert resp.data["type"] == "issue"
+        assert resp.data["displayName"] == self.user.get_display_name()
         assert "slug" not in resp.data
 
     def test_get_non_member(self):
