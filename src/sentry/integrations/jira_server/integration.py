@@ -835,15 +835,9 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
 
         for field in fields:
             if field["name"] == "priority":
-                # The default project may be deleted and not in the list of
-                # available projects. In that case, set project_key to None and
-                # fetching priorities will fail silently, returning all priorities.
-                filtered_projects = [proj for proj in jira_projects if proj["id"] == project_id]
-                project_key = filtered_projects[0]["key"] if filtered_projects else None
-
                 # whenever priorities are available, put the available ones in the list.
                 # allowedValues for some reason doesn't pass enough info.
-                field["choices"] = self.make_choices(client.get_priorities(project_key))
+                field["choices"] = self.make_choices(client.get_priorities(project_id))
                 field["default"] = defaults.get("priority", "")
             elif field["name"] == "fixVersions":
                 field["choices"] = self.make_choices(client.get_versions(project_id))
