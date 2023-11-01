@@ -153,7 +153,7 @@ class OfflineTimeseriesCardinalityLimiter:
             self._windows[(use_case_id, org_id)] = TimeseriesCardinalityWindow(
                 window_size=window_config["window_seconds"],
                 granularity=window_config["granularity_seconds"],
-                limit=window_config["limit"],
+                limit=5000000,
             )
         return self._windows[(use_case_id, org_id)]
 
