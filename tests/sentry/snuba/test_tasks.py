@@ -290,7 +290,12 @@ class BuildSnqlQueryTest(TestCase):
                 "count_unique(user)": lambda org_id: [
                     Function(
                         function="uniq",
-                        parameters=[Column(name="tags[sentry:user]")],
+                        parameters=[
+                            Column(
+                                name="tags[sentry:user]",
+                                entity=Entity(Dataset.Events.value, alias=Dataset.Events.value),
+                            )
+                        ],
                         alias="count_unique_user",
                     )
                 ]
@@ -589,8 +594,12 @@ class BuildSnqlQueryTest(TestCase):
             )
         # Select order seems to be unstable, so just arbitrarily sort by name, alias so that it's consistent
         snql_query.query.select.sort(key=lambda q: (q.function, q.alias))
+        entity_name = get_entity_key_from_query_builder(query_builder).value
+        entity_args = {"name": entity_name}
+        if dataset == Dataset.Events:
+            entity_args["alias"] = entity_name
         expected_query = Query(
-            match=Entity(get_entity_key_from_query_builder(query_builder).value),
+            match=Entity(**entity_args),
             select=select,
             where=expected_conditions,
             groupby=None if use_none_clauses else [],
@@ -611,14 +620,15 @@ class BuildSnqlQueryTest(TestCase):
         )
 
     def test_simple_events(self):
+        entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         self.run_test(
             SnubaQuery.Type.ERROR,
             Dataset.Events,
             "count_unique(user)",
             "",
             [
-                Condition(Column(name="type"), Op.EQ, "error"),
-                Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+                Condition(Column(name="type", entity=entity), Op.EQ, "error"),
+                Condition(Column(name="project_id", entity=entity), Op.IN, [self.project.id]),
             ],
         )
 
@@ -654,21 +664,22 @@ class BuildSnqlQueryTest(TestCase):
 
     def test_aliased_query_events(self):
         self.create_release(self.project, version="something")
+        entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         expected_conditions = [
             And(
                 conditions=[
-                    Condition(Column(name="type"), Op.EQ, "error"),
+                    Condition(Column(name="type", entity=entity), Op.EQ, "error"),
                     Condition(
                         Function(
                             function="ifNull",
-                            parameters=[Column(name="tags[sentry:release]"), ""],
+                            parameters=[Column(name="tags[sentry:release]", entity=entity), ""],
                         ),
                         Op.IN,
                         ["something"],
                     ),
                 ]
             ),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+            Condition(Column(name="project_id", entity=entity), Op.IN, [self.project.id]),
         ]
         self.run_test(
             SnubaQuery.Type.ERROR,
@@ -727,21 +738,22 @@ class BuildSnqlQueryTest(TestCase):
             )
 
     def test_user_query(self):
+        entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         expected_conditions = [
             And(
                 conditions=[
-                    Condition(Column(name="type"), Op.EQ, "error"),
+                    Condition(Column(name="type", entity=entity), Op.EQ, "error"),
                     Condition(
                         Function(
                             function="ifNull",
-                            parameters=[Column(name="tags[sentry:user]"), ""],
+                            parameters=[Column(name="tags[sentry:user]", entity=entity), ""],
                         ),
                         Op.EQ,
                         "anengineer@work.io",
                     ),
                 ]
             ),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+            Condition(Column(name="project_id", entity=entity), Op.IN, [self.project.id]),
         ]
         self.run_test(
             SnubaQuery.Type.ERROR,
@@ -801,22 +813,31 @@ class BuildSnqlQueryTest(TestCase):
 
     def test_boolean_query(self):
         self.create_release(self.project, version="something")
+        entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         expected_conditions = [
             And(
                 [
-                    Condition(Column(name="type"), Op.EQ, "error"),
+                    Condition(Column(name="type", entity=entity), Op.EQ, "error"),
                     Or(
                         [
                             Condition(
                                 Function(
-                                    "ifNull", parameters=[Column(name="tags[sentry:release]"), ""]
+                                    "ifNull",
+                                    parameters=[
+                                        Column(name="tags[sentry:release]", entity=entity),
+                                        "",
+                                    ],
                                 ),
                                 Op.IN,
                                 ["something"],
                             ),
                             Condition(
                                 Function(
-                                    "ifNull", parameters=[Column(name="tags[sentry:release]"), ""]
+                                    "ifNull",
+                                    parameters=[
+                                        Column(name="tags[sentry:release]", entity=entity),
+                                        "",
+                                    ],
                                 ),
                                 Op.IN,
                                 ["123"],
@@ -825,7 +846,7 @@ class BuildSnqlQueryTest(TestCase):
                     ),
                 ]
             ),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+            Condition(Column(name="project_id", entity=entity), Op.IN, [self.project.id]),
         ]
         self.run_test(
             SnubaQuery.Type.ERROR,
@@ -837,27 +858,36 @@ class BuildSnqlQueryTest(TestCase):
 
     def test_event_types(self):
         self.create_release(self.project, version="something")
+        entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         expected_conditions = [
             And(
                 [
                     Or(
                         [
-                            Condition(Column(name="type"), Op.EQ, "error"),
-                            Condition(Column(name="type"), Op.EQ, "default"),
+                            Condition(Column(name="type", entity=entity), Op.EQ, "error"),
+                            Condition(Column(name="type", entity=entity), Op.EQ, "default"),
                         ]
                     ),
                     Or(
                         [
                             Condition(
                                 Function(
-                                    "ifNull", parameters=[Column(name="tags[sentry:release]"), ""]
+                                    "ifNull",
+                                    parameters=[
+                                        Column(name="tags[sentry:release]", entity=entity),
+                                        "",
+                                    ],
                                 ),
                                 Op.IN,
                                 ["something"],
                             ),
                             Condition(
                                 Function(
-                                    "ifNull", parameters=[Column(name="tags[sentry:release]"), ""]
+                                    "ifNull",
+                                    parameters=[
+                                        Column(name="tags[sentry:release]", entity=entity),
+                                        "",
+                                    ],
                                 ),
                                 Op.IN,
                                 ["123"],
@@ -866,7 +896,7 @@ class BuildSnqlQueryTest(TestCase):
                     ),
                 ]
             ),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+            Condition(Column(name="project_id", entity=entity), Op.IN, [self.project.id]),
         ]
         self.run_test(
             SnubaQuery.Type.ERROR,
@@ -883,18 +913,19 @@ class BuildSnqlQueryTest(TestCase):
         )
 
     def test_issue_id_snql(self):
+        entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         expected_conditions = [
             And(
                 [
-                    Condition(Column(name="type"), Op.EQ, "error"),
+                    Condition(Column(name="type", entity=entity), Op.EQ, "error"),
                     Condition(
-                        Column(name="group_id"),
+                        Column(name="group_id", entity=entity),
                         Op.IN,
                         [self.group.id, 2],
                     ),
                 ]
             ),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+            Condition(Column(name="project_id", entity=entity), Op.IN, [self.project.id]),
         ]
         self.run_test(
             SnubaQuery.Type.ERROR,
