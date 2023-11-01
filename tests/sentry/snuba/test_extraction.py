@@ -170,6 +170,16 @@ def test_spec_simple_query_with_environment():
     }
 
 
+def test_spec_simple_query_with_environment_only():
+    # We use apdex, since it's the only metric which is on demand also without a query.
+    spec = OnDemandMetricSpec("apdex(0.8)", "", "production")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "on_demand_apdex"
+    assert spec.condition == {"name": "event.environment", "op": "eq", "value": "production"}
+
+
 def test_spec_query_with_parentheses_and_environment():
     spec = OnDemandMetricSpec(
         "count()", "(transaction.duration:>1s OR http.status_code:200)", "dev"
@@ -187,6 +197,28 @@ def test_spec_query_with_parentheses_and_environment():
                     {"name": "event.contexts.response.status_code", "op": "eq", "value": "200"},
                 ],
                 "op": "or",
+            },
+        ],
+        "op": "and",
+    }
+
+
+def test_spec_count_if_query_with_environment():
+    spec = OnDemandMetricSpec(
+        "count_if(transaction.duration,equals,300)", "http.method:GET", "production"
+    )
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "sum"
+    assert spec.condition == {
+        "inner": [
+            {"name": "event.environment", "op": "eq", "value": "production"},
+            {"name": "event.request.method", "op": "eq", "value": "GET"},
+            {
+                "name": "event.duration",
+                "op": "eq",
+                "value": 300.0,
             },
         ],
         "op": "and",

@@ -116,7 +116,7 @@ const MeterBarContainer = styled('div')`
   position: relative;
   padding: 0;
   cursor: pointer;
-  min-width: 180px;
+  min-width: 140px;
 `;
 
 const MeterBarBody = styled('div')`
@@ -127,11 +127,9 @@ const MeterBarBody = styled('div')`
 `;
 
 const MeterHeader = styled('div')`
-  font-size: 13px;
+  font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.textColor};
-  font-weight: bold;
   display: inline-block;
-  white-space: nowrap;
   text-align: center;
   width: 100%;
 `;
