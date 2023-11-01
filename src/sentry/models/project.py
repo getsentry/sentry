@@ -257,6 +257,9 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         # This Project has sent replays
         has_replays: bool
 
+        # This project has sent feedbacks
+        has_feedbacks: bool
+
         # spike_protection_error_currently_active
         spike_protection_error_currently_active: bool
 
