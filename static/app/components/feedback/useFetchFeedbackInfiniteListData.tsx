@@ -1,12 +1,9 @@
 import {useCallback, useMemo} from 'react';
 import {Index, IndexRange} from 'react-virtualized';
 
+import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import {FeedbackIssueList} from 'sentry/utils/feedback/types';
-import {ApiQueryKey, useInfiniteApiQuery} from 'sentry/utils/queryClient';
-
-interface Params {
-  queryKey: ApiQueryKey;
-}
+import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 
 export const EMPTY_INFINITE_LIST_DATA: ReturnType<
   typeof useFetchFeedbackInfiniteListData
@@ -23,10 +20,11 @@ export const EMPTY_INFINITE_LIST_DATA: ReturnType<
   isRowLoaded: () => false,
   issues: [],
   loadMoreRows: () => Promise.resolve(),
-  setFeedback: () => undefined,
 };
 
-export default function useFetchFeedbackInfiniteListData({queryKey}: Params) {
+export default function useFetchFeedbackInfiniteListData() {
+  const {getListQueryKey} = useFeedbackQueryKeys();
+  const queryKey = getListQueryKey();
   const {
     data,
     error,
@@ -55,15 +53,8 @@ export default function useFetchFeedbackInfiniteListData({queryKey}: Params) {
 
   const loadMoreRows = useCallback(
     ({startIndex: _1, stopIndex: _2}: IndexRange) =>
-      // isFetchingloaderRef.current?.fetchNext(stopIndex - startIndex) ?? Promise.resolve(),
       hasNextPage && !isFetching ? fetchNextPage() : Promise.resolve(),
     [hasNextPage, isFetching, fetchNextPage]
-  );
-
-  const setFeedback = useCallback(
-    (_feedbackId: string, _feedback: undefined | FeedbackIssueList) => {},
-    // loaderRef.current?.setFeedback(feedbackId, feedback),
-    []
   );
 
   return {
@@ -79,6 +70,5 @@ export default function useFetchFeedbackInfiniteListData({queryKey}: Params) {
     isRowLoaded,
     issues,
     loadMoreRows,
-    setFeedback,
   };
 }
