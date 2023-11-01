@@ -62,7 +62,7 @@ function ResourceInfo(props: Props) {
   return (
     <Fragment>
       <BlockContainer>
-        <Block title={t('Avg encoded size')}>
+        <Block title={DataTitles['avg(http.response_content_length)']}>
           <Tooltip
             isHoverable
             title={tooltips.avgContentLength}
@@ -72,7 +72,7 @@ function ResourceInfo(props: Props) {
             <ResourceSize bytes={avgContentLength} />
           </Tooltip>
         </Block>
-        <Block title={t('Avg decoded size')}>
+        <Block title={DataTitles['avg(http.decoded_response_content_length)']}>
           <Tooltip
             isHoverable
             title={tooltips.avgDecodedContentLength}
@@ -82,7 +82,7 @@ function ResourceInfo(props: Props) {
             <ResourceSize bytes={avgDecodedContentLength} />
           </Tooltip>
         </Block>
-        <Block title={t('Avg transfer size')}>
+        <Block title={DataTitles['avg(http.transfer_size)']}>
           <Tooltip
             isHoverable
             title={tooltips.avgTransferSize}
