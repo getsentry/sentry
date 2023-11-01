@@ -34,7 +34,7 @@ export default function FeedbackSetupBanner({style}: Props) {
       heading={t('Introducing the New User Feedback')}
       icon={<IconBroadcast size="sm" />}
       image={replaysDeadRageBackground}
-      title="User Feedback"
+      title={t('User Feedback')}
       onDismiss={dismiss}
     />
   );
