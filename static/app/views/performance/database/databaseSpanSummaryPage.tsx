@@ -1,8 +1,9 @@
-import {RouteComponentProps} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -13,10 +14,16 @@ import {space} from 'sentry/styles/space';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {RateUnits} from 'sentry/utils/discover/fields';
 import {formatRate} from 'sentry/utils/formatters';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
+import {
+  AVAILABLE_DURATION_AGGREGATE_OPTIONS,
+  DEFAULT_DURATION_AGGREGATE,
+  DURATION_AGGREGATE_LABELS,
+} from 'sentry/views/performance/database/settings';
 import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
@@ -29,10 +36,7 @@ import {
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {
-  getDurationChartTitle,
-  getThroughputChartTitle,
-} from 'sentry/views/starfish/views/spans/types';
+import {getThroughputChartTitle} from 'sentry/views/starfish/views/spans/types';
 import {useModuleSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
@@ -45,6 +49,7 @@ type Query = {
   transaction: string;
   transactionMethod: string;
   [QueryParameterNames.SPANS_SORT]: string;
+  aggregate?: string;
 };
 
 type Props = {
@@ -54,6 +59,32 @@ type Props = {
 function SpanSummaryPage({params}: Props) {
   const organization = useOrganization();
   const location = useLocation<Query>();
+
+  const arePercentilesEnabled = organization.features?.includes(
+    'performance-database-view-percentiles'
+  );
+
+  let durationAggregate = arePercentilesEnabled
+    ? decodeScalar(location.query.aggregate, DEFAULT_DURATION_AGGREGATE)
+    : DEFAULT_DURATION_AGGREGATE;
+
+  if (
+    !AVAILABLE_DURATION_AGGREGATE_OPTIONS.map(option => option.value).includes(
+      durationAggregate
+    )
+  ) {
+    durationAggregate = DEFAULT_DURATION_AGGREGATE;
+  }
+
+  const handleDurationFunctionChange = option => {
+    browserHistory.push({
+      ...location,
+      query: {
+        ...location.query,
+        aggregate: option.value,
+      },
+    });
+  };
 
   const {groupId} = params;
   const {transaction, transactionMethod, endpoint, endpointMethod} = location.query;
@@ -99,7 +130,7 @@ function SpanSummaryPage({params}: Props) {
     useSpanMetricsSeries(
       groupId,
       queryFilter,
-      [`avg(${SpanMetricsField.SPAN_SELF_TIME})`, 'spm()'],
+      [`${durationAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`, 'spm()'],
       'api.starfish.span-summary-page-metrics-chart'
     );
 
@@ -108,6 +139,13 @@ function SpanSummaryPage({params}: Props) {
   const spanMetricsThroughputSeries = {
     seriesName: t('Queries'),
     data: spanMetricsSeriesData?.['spm()'].data,
+  };
+
+  const spanMetricsDurationSeries = {
+    seriesName: DURATION_AGGREGATE_LABELS[durationAggregate],
+    data: spanMetricsSeriesData?.[
+      `${durationAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`
+    ].data,
   };
 
   return (
@@ -189,12 +227,24 @@ function SpanSummaryPage({params}: Props) {
             </Block>
 
             <Block>
-              <ChartPanel title={getDurationChartTitle(span?.[SpanMetricsField.SPAN_OP])}>
+              <ChartPanel
+                title={
+                  arePercentilesEnabled ? (
+                    <StyledCompactSelect
+                      size="md"
+                      options={AVAILABLE_DURATION_AGGREGATE_OPTIONS}
+                      value={durationAggregate}
+                      onChange={handleDurationFunctionChange}
+                      triggerProps={{borderless: true, size: 'zero'}}
+                    />
+                  ) : (
+                    t('Average Duration')
+                  )
+                }
+              >
                 <Chart
                   height={CHART_HEIGHT}
-                  data={[
-                    spanMetricsSeriesData?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
-                  ]}
+                  data={[spanMetricsDurationSeries]}
                   loading={areSpanMetricsSeriesLoading}
                   utc={false}
                   chartColors={[AVG_COLOR]}
@@ -247,6 +297,20 @@ const DescriptionContainer = styled('div')`
   margin-bottom: ${space(2)};
   font-size: 1rem;
   line-height: 1.2;
+`;
+
+// TODO: Talk to UI folks about making this a built-in dropdown size if we end
+// up using this element
+const StyledCompactSelect = styled(CompactSelect)`
+  text-align: left;
+  font-weight: normal;
+  margin: -${space(0.5)} -${space(1)} -${space(0.25)};
+  min-width: 0;
+
+  button {
+    padding: ${space(0.5)} ${space(1)};
+    font-size: ${p => p.theme.fontSizeLarge};
+  }
 `;
 
 export default SpanSummaryPage;
