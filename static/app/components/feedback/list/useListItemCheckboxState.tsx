@@ -17,8 +17,13 @@ export default function useListItemCheckboxState() {
     });
   }, []);
 
+  const uncheckAll = useCallback(() => {
+    setState({});
+  }, []);
+
   return {
     checked,
     toggleChecked,
+    uncheckAll,
   };
 }

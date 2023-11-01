@@ -11,6 +11,7 @@ describe('Avatar', function () {
   const avatar: Avatar = {
     avatarType: 'gravatar',
     avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
+    avatarUrl: 'https://sentry.io/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/',
   };
 
   const user = {
@@ -159,6 +160,7 @@ describe('Avatar', function () {
         avatar: {
           avatarType: 'upload',
           avatarUuid: 'abc123def',
+          avatarUrl: 'https://us.sentry.io/organization-avatar/abc123def/',
         },
       });
 
@@ -213,10 +215,16 @@ describe('Avatar', function () {
     });
 
     it('renders the correct SentryApp depending on its props', async function () {
-      const colorAvatar = {avatarUuid: 'abc', avatarType: 'upload' as const, color: true};
+      const colorAvatar = {
+        avatarUuid: 'abc',
+        avatarType: 'upload' as const,
+        avatarUrl: 'https://sentry.io/sentry-app-avatar/abc/',
+        color: true,
+      };
       const simpleAvatar = {
         avatarUuid: 'def',
         avatarType: 'upload' as const,
+        avatarUrl: 'https://sentry.io/sentry-app-avatar/def/',
         color: false,
       };
 
@@ -243,7 +251,12 @@ describe('Avatar', function () {
     });
 
     it('renders the correct fallbacks for SentryAppAvatars', async function () {
-      const colorAvatar = {avatarUuid: 'abc', avatarType: 'upload' as const, color: true};
+      const colorAvatar = {
+        avatarUuid: 'abc',
+        avatarType: 'upload' as const,
+        avatarUrl: 'https://sentry.io/sentry-app-avatar/abc/',
+        color: true,
+      };
       const sentryApp = SentryApp({avatars: []});
 
       // No existing avatars
