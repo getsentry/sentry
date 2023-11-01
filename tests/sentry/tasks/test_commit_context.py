@@ -4,10 +4,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 import responses
-from celery.exceptions import MaxRetriesExceededError
+from celery.exceptions import MaxRetriesExceededError, Retry
 from django.utils import timezone
 
-from sentry.integrations.github.client import GitHubApproachingRateLimit
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.models.commit import Commit
@@ -1001,26 +1000,54 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
             },
         )
 
-    @patch("sentry.integrations.utils.commit_context.logger.exception")
     @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
-        side_effect=ApiError(text="failure_message"),
+        side_effect=ApiError("Unknown API error"),
     )
     @with_feature("organizations:suspect-commits-all-frames")
-    def test_failure_api_error(
-        self,
-        mock_get_commit_context,
-        mock_process_suspect_commits,
-        mock_logger_exception,
-    ):
+    def test_retry_on_api_error(self, mock_get_commit_context, mock_process_suspect_commits):
         """
-        A failure case where the integration returned an API error.
-        The error should be recorded and we should fall back to the release-based suspect commits.
+        A failure case where the integration hits an unknown API error.
+        The task should be retried.
         """
         with self.tasks():
             assert not GroupOwner.objects.filter(group=self.event.group).exists()
             event_frames = get_frame_paths(self.event)
+            with pytest.raises(Retry):
+                process_commit_context(
+                    event_id=self.event.event_id,
+                    event_platform=self.event.platform,
+                    event_frames=event_frames,
+                    group_id=self.event.group_id,
+                    project_id=self.event.project_id,
+                    sdk_name="sentry.python",
+                )
+
+        assert not GroupOwner.objects.filter(group=self.event.group).exists()
+        assert not mock_process_suspect_commits.called
+
+    @patch("celery.app.task.Task.request")
+    @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
+        side_effect=ApiError("Unknown API error"),
+    )
+    @with_feature("organizations:suspect-commits-all-frames")
+    def test_falls_back_on_max_retries(
+        self, mock_get_commit_context, mock_process_suspect_commits, mock_request
+    ):
+        """
+        A failure case where the integration hits an unknown API error a fifth time.
+        After 5 retries, the task should fall back to the release-based suspect commits.
+        """
+        mock_request.called_directly = False
+        mock_request.retries = 5
+
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            event_frames = get_frame_paths(self.event)
+
             process_commit_context(
                 event_id=self.event.event_id,
                 event_platform=self.event.platform,
@@ -1031,77 +1058,7 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
             )
 
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
-        mock_process_suspect_commits.assert_called_once_with(
-            event_id=self.event.event_id,
-            event_platform=self.event.platform,
-            event_frames=event_frames,
-            group_id=self.event.group_id,
-            project_id=self.event.project_id,
-            sdk_name="sentry.python",
-        )
-
-        mock_logger_exception.assert_any_call(
-            "process_commit_context.get_commit_context_all_frames.api_error",
-            extra={
-                "organization": self.organization.id,
-                "group": self.event.group_id,
-                "event": self.event.event_id,
-                "project_id": self.project.id,
-                "integration_id": self.integration.id,
-                "provider": "github",
-            },
-        )
-
-    @patch("sentry.integrations.utils.commit_context.logger.exception")
-    @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
-    @patch(
-        "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
-        side_effect=GitHubApproachingRateLimit(),
-    )
-    @with_feature("organizations:suspect-commits-all-frames")
-    def test_failure_rate_limit(
-        self,
-        mock_get_commit_context,
-        mock_process_suspect_commits,
-        mock_logger_exception,
-    ):
-        """
-        A failure case where the integration returned an API error.
-        The error should be recorded and we should fall back to the release-based suspect commits.
-        """
-        with self.tasks():
-            assert not GroupOwner.objects.filter(group=self.event.group).exists()
-            event_frames = get_frame_paths(self.event)
-            process_commit_context(
-                event_id=self.event.event_id,
-                event_platform=self.event.platform,
-                event_frames=event_frames,
-                group_id=self.event.group_id,
-                project_id=self.event.project_id,
-                sdk_name="sentry.python",
-            )
-
-        assert not GroupOwner.objects.filter(group=self.event.group).exists()
-        mock_process_suspect_commits.assert_called_once_with(
-            event_id=self.event.event_id,
-            event_platform=self.event.platform,
-            event_frames=event_frames,
-            group_id=self.event.group_id,
-            project_id=self.event.project_id,
-            sdk_name="sentry.python",
-        )
-
-        mock_logger_exception.assert_any_call(
-            "process_commit_context.get_commit_context_all_frames.rate_limit",
-            extra={
-                "organization": self.organization.id,
-                "group": self.event.group_id,
-                "event": self.event.event_id,
-                "project_id": self.project.id,
-                "integration_id": self.integration.id,
-                "provider": "github",
-            },
-        )
+        mock_process_suspect_commits.assert_called_once()
 
     @patch("sentry.integrations.utils.commit_context.logger.exception")
     @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
