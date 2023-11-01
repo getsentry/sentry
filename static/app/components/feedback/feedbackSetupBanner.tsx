@@ -30,8 +30,8 @@ export default function FeedbackSetupBanner({style}: Props) {
     <PageBanner
       style={style}
       button={docsButton}
-      description="Set up our feedback widget on your site to receive reports from your users."
-      heading="Introducing the New User Feedback"
+      description={t('Set up our feedback widget on your site to receive reports from your users.')}
+      heading={t('Introducing the New User Feedback')}
       icon={<IconBroadcast size="sm" />}
       image={replaysDeadRageBackground}
       title="User Feedback"
