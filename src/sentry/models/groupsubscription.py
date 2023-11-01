@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Iterable, Optional, Sequence, Union
+from typing import TYPE_CHECKING, ClassVar, Iterable, List, Mapping, Optional, Sequence, Union
 
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
@@ -39,7 +39,7 @@ if TYPE_CHECKING:
     from sentry.notifications.utils.participants import ParticipantMap
 
 
-class GroupSubscriptionManager(BaseManager):
+class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
     def subscribe(
         self,
         group: Group,
@@ -171,35 +171,50 @@ class GroupSubscriptionManager(BaseManager):
         Identify all users who are participating with a given issue.
         :param group: Group object
         """
+        from sentry import features
         from sentry.notifications.utils.participants import ParticipantMap
 
-        all_possible_users = RpcActor.many_from_object(group.project.get_members_as_rpc_users())
+        all_possible_actors = RpcActor.many_from_object(group.project.get_members_as_rpc_users())
         active_and_disabled_subscriptions = self.filter(
-            group=group, user_id__in=[u.id for u in all_possible_users]
+            group=group, user_id__in=[u.id for u in all_possible_actors]
         )
         subscriptions_by_user_id = {
             subscription.user_id: subscription for subscription in active_and_disabled_subscriptions
         }
 
+        has_team_workflow = features.has(
+            "organizations:team-workflow-notifications", group.project.organization
+        )
+
+        if should_use_notifications_v2(group.project.organization) and has_team_workflow:
+            possible_team_actors = self.get_possible_team_actors(group)
+            all_possible_actors += possible_team_actors
+            subscriptions_by_team_id = self.get_subscriptions_by_team_id(
+                group, possible_team_actors
+            )
+
         if should_use_notifications_v2(group.project.organization):
-            if not all_possible_users:  # no users, no notifications
+            if not all_possible_actors:  # no actors, no notifications
                 return ParticipantMap()
 
             providers_by_recipient = notifications_service.get_participants(
-                recipients=all_possible_users,
+                recipients=all_possible_actors,
                 project_ids=[group.project_id],
                 organization_id=group.organization.id,
                 type=NotificationSettingEnum.WORKFLOW,
             )
             result = ParticipantMap()
-            for user in all_possible_users:
-                subscription_option = subscriptions_by_user_id.get(user.id, {})
+            for user in all_possible_actors:
                 if user.id not in providers_by_recipient:
                     continue
 
+                subscription_option = subscriptions_by_user_id.get(user.id, {})
+                if not subscription_option and has_team_workflow:
+                    subscription_option = subscriptions_by_team_id.get(user.id, {})
+
                 for provider_str, val in providers_by_recipient[user.id].items():
                     value = NotificationSettingsOptionEnum(val)
-                    is_subcribed = (
+                    is_subscribed = (
                         subscription_option
                         and subscription_option.is_active
                         and value
@@ -211,7 +226,7 @@ class GroupSubscriptionManager(BaseManager):
                     is_implicit = (
                         not subscription_option and value == NotificationSettingsOptionEnum.ALWAYS
                     )
-                    if is_subcribed or is_implicit:
+                    if is_subscribed or is_implicit:
                         reason = (
                             subscription_option
                             and subscription_option.reason
@@ -223,15 +238,15 @@ class GroupSubscriptionManager(BaseManager):
 
         notification_settings = notifications_service.get_settings_for_recipient_by_parent(
             type=NotificationSettingTypes.WORKFLOW,
-            recipients=all_possible_users,
+            recipients=all_possible_actors,
             parent_id=group.project_id,
         )
         notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
-            notification_settings, all_possible_users
+            notification_settings, all_possible_actors
         )
 
         result = ParticipantMap()
-        for user in all_possible_users:
+        for user in all_possible_actors:
             subscription_option = subscriptions_by_user_id.get(user.id)
             providers = where_should_be_participating(
                 user,
@@ -247,6 +262,23 @@ class GroupSubscriptionManager(BaseManager):
                 result.add(provider, user, reason)
 
         return result
+
+    def get_possible_team_actors(self, group: Group) -> List[RpcActor]:
+        from sentry.models.team import Team
+
+        possible_teams_ids = Team.objects.filter(id__in=self.get_participating_team_ids(group))
+        return RpcActor.many_from_object(possible_teams_ids)
+
+    def get_subscriptions_by_team_id(
+        self, group: Group, possible_team_actors: List[RpcActor]
+    ) -> Mapping[int, int]:
+        active_and_disabled_team_subscriptions = self.filter(
+            group=group, team_id__in=[t.id for t in possible_team_actors]
+        )
+        return {
+            subscription.team_id: subscription
+            for subscription in active_and_disabled_team_subscriptions
+        }
 
     @staticmethod
     def get_participating_user_ids(group: Group) -> Sequence[int]:
@@ -285,7 +317,7 @@ class GroupSubscription(Model):
     reason = BoundedPositiveIntegerField(default=GroupSubscriptionReason.unknown)
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
-    objects = GroupSubscriptionManager()
+    objects: ClassVar[GroupSubscriptionManager] = GroupSubscriptionManager()
 
     class Meta:
         app_label = "sentry"

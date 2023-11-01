@@ -1,89 +1,72 @@
 import {useCallback} from 'react';
+import first from 'lodash/first';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
-import useFeedbackItemQueryKey from 'sentry/components/feedback/useFeedbackItemQueryKey';
-import {t} from 'sentry/locale';
-import {GroupStatus, Organization} from 'sentry/types';
-import {FeedbackIssue} from 'sentry/utils/feedback/types';
-import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
+import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
+import type {GroupStatus, Organization} from 'sentry/types';
+import {fetchMutation, MutateOptions, useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
-interface Props {
-  feedbackId: string;
-  organization: Organization;
-  refetchIssue: () => void;
-}
-
-type QueryKeyEndpointOptions = {
-  headers?: Record<string, string>;
-  query?: Record<string, any>;
-};
-type ApiMutationVariables =
-  | ['PUT' | 'POST' | 'DELETE', string]
-  | ['PUT' | 'POST' | 'DELETE', string, QueryKeyEndpointOptions]
-  | ['PUT' | 'POST', string, QueryKeyEndpointOptions, Record<string, unknown>];
+type TFeedbackIds = 'all' | string[];
+type TPayload = {hasSeen: boolean} | {status: GroupStatus};
 type TData = unknown;
 type TError = unknown;
-type TVariables = ApiMutationVariables;
+type TVariables = [TFeedbackIds, TPayload];
 type TContext = unknown;
 
-export default function useFeedbackItem({feedbackId, organization, refetchIssue}: Props) {
-  const api = useApi();
-  const queryClient = useQueryClient();
+interface Props {
+  feedbackIds: TFeedbackIds;
+  organization: Organization;
+}
 
-  const {issueQueryKey} = useFeedbackItemQueryKey({organization});
+export default function useMutateFeedback({feedbackIds, organization}: Props) {
+  const api = useApi({
+    persistInFlight: false,
+  });
+  const {getListQueryKey} = useFeedbackQueryKeys();
+  const {updateCached, invalidateCached} = useFeedbackCache();
 
   const mutation = useMutation<TData, TError, TVariables, TContext>({
-    onMutate: (variables: TVariables) => {
-      addLoadingMessage(t('Updating feedback...'));
+    onMutate: ([ids, payload]) => {
+      updateCached(ids, payload);
+    },
+    mutationFn: ([ids, payload]) => {
+      const isSingleId = ids !== 'all' && ids.length === 1;
+      const url = isSingleId
+        ? `/organizations/${organization.slug}/issues/${first(ids)}/`
+        : `/organizations/${organization.slug}/issues/`;
 
-      if (issueQueryKey) {
-        const [, , , data] = variables;
-        setApiQueryData(queryClient, issueQueryKey, (feedbackIssue: FeedbackIssue) => ({
-          ...feedbackIssue,
-          ...data,
-        }));
-      }
+      // TODO: it would be excellent if `PUT /issues/` could return the same data
+      // as `GET /issues/` when query params are set. IE: it should expand inbox & owners
+      // Then we could push new data into the cache instead of re-fetching it again
+      const options = isSingleId
+        ? {}
+        : ids === 'all'
+        ? getListQueryKey()[1]!
+        : {query: {id: ids}};
+      return fetchMutation(api)(['PUT', url, options, payload]);
     },
-    mutationFn: async (variables: ApiMutationVariables) => {
-      const [method, url, opts, data] = variables;
-      return await api.requestPromise(url, {
-        method,
-        query: opts?.query,
-        headers: opts?.headers,
-        data,
-      });
-    },
-    onError: () => {
-      addErrorMessage(t('An error occurred while updating the feedback.'));
-    },
-    onSuccess: () => {
-      addSuccessMessage(t('Updated feedback'));
-    },
-    onSettled: () => {
-      refetchIssue();
+    onSettled: (_resp, _error, [ids, _payload]) => {
+      invalidateCached(ids);
     },
     cacheTime: 0,
   });
 
-  const url = `/organizations/${organization.slug}/issues/${feedbackId}/`;
-
   const markAsRead = useCallback(
-    (hasSeen: boolean) => {
-      mutation.mutate(['PUT', url, {}, {hasSeen}]);
+    (hasSeen: boolean, options?: MutateOptions<TData, TError, TVariables, TContext>) => {
+      mutation.mutate([feedbackIds, {hasSeen}], options);
     },
-    [mutation, url]
+    [mutation, feedbackIds]
   );
 
   const resolve = useCallback(
-    (status: GroupStatus) => {
-      mutation.mutate(['PUT', url, {}, {status}]);
+    (
+      status: GroupStatus,
+      options?: MutateOptions<TData, TError, TVariables, TContext>
+    ) => {
+      mutation.mutate([feedbackIds, {status}], options);
     },
-    [mutation, url]
+    [mutation, feedbackIds]
   );
 
   return {

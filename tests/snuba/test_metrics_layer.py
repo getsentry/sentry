@@ -17,7 +17,7 @@ from snuba_sdk import (
 
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.metrics.naming_layer import TransactionMRI
+from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
 from sentry.snuba.metrics_layer.query import run_query
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 
@@ -29,7 +29,7 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
         return int(dt.timestamp())
 
     def setUp(self) -> None:
-        super().setUp()
+        super().setUp()  # type: ignore
 
         self.metrics: Mapping[str, Literal["counter", "set", "distribution", "gauge"]] = {
             TransactionMRI.DURATION.value: "distribution",
@@ -376,6 +376,35 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
         # # TODO(evanh): There's a flaky off by one error that comes from the interval rounding I don't care to fix right now, hence the 31 option.
         assert len(result["data"]) in [30, 31]
 
+    def test_automatic_dataset(self) -> None:
+        query = MetricsQuery(
+            query=Timeseries(
+                metric=Metric(
+                    None,
+                    SessionMRI.RAW_DURATION.value,
+                ),
+                aggregate="max",
+            ),
+            start=self.hour_ago,
+            end=self.now,
+            rollup=Rollup(interval=60, granularity=60),
+            scope=MetricsScope(
+                org_ids=[self.org_id],
+                project_ids=[self.project.id],
+                use_case_id=UseCaseID.SESSIONS.value,
+            ),
+        )
+
+        request = Request(
+            dataset="generic_metrics",
+            app_id="tests",
+            query=query,
+            tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
+        )
+        result = run_query(request)
+        assert request.dataset == "metrics"
+        assert len(result["data"]) == 0
+
     def test_gauges(self) -> None:
         query = MetricsQuery(
             query=Timeseries(
@@ -401,5 +430,6 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
             tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
         )
         result = run_query(request)
+
         assert len(result["data"]) == 54
         assert result["totals"]["aggregate_value"] == 59

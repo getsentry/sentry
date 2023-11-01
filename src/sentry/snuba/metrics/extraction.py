@@ -76,6 +76,8 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "geo.subdivision": "user.geo.subdivision",
     "http.method": "request.method",
     "http.url": "request.url",
+    # url is a tag extracted by Sentry itself, on Relay it's received as `request.url`
+    "url": "request.url",
     "sdk.name": "sdk.name",
     "sdk.version": "sdk.version",
     # Subset of context fields
@@ -312,9 +314,11 @@ def should_use_on_demand_metrics(
     dataset: Optional[Union[str, Dataset]],
     aggregate: str,
     query: Optional[str],
+    groupbys: Optional[Sequence[str]] = None,
     prefilling: bool = False,
 ) -> bool:
     """On-demand metrics are used if the aggregate and query are supported by on-demand metrics but not standard"""
+    groupbys = groupbys or []
     supported_datasets = [Dataset.PerformanceMetrics]
     # In case we are running a prefill, we want to support also transactions, since our goal is to start extracting
     # metrics that will be needed after a query is converted from using transactions to metrics.
@@ -326,8 +330,11 @@ def should_use_on_demand_metrics(
 
     aggregate_supported_by = _get_aggregate_supported_by(aggregate)
     query_supported_by = _get_query_supported_by(query)
+    groupbys_supported_by = _get_groupbys_support(groupbys)
 
-    supported_by = SupportedBy.combine(aggregate_supported_by, query_supported_by)
+    supported_by = SupportedBy.combine(
+        aggregate_supported_by, query_supported_by, groupbys_supported_by
+    )
 
     return not supported_by.standard_metrics and supported_by.on_demand_metrics
 
@@ -344,7 +351,7 @@ def _get_aggregate_supported_by(aggregate: str) -> SupportedBy:
 
         function, _, args, _ = query_builder.parse_function(match)
         function_support = _get_function_support(function, args)
-        args_support = _get_args_support(function, args)
+        args_support = _get_args_support(args, function)
 
         return SupportedBy.combine(function_support, args_support)
     except InvalidSearchQuery:
@@ -397,20 +404,29 @@ def _get_percentile_op(args: Sequence[str]) -> Optional[MetricOperationType]:
     return None
 
 
-def _get_args_support(function: str, args: Sequence[str]) -> SupportedBy:
-    if len(args) == 0:
+def _get_field_support(field: str) -> SupportedBy:
+    standard_metrics = _is_standard_metrics_field(field)
+    on_demand_metrics = _is_on_demand_supported_field(field)
+    return SupportedBy(standard_metrics=standard_metrics, on_demand_metrics=on_demand_metrics)
+
+
+def _get_args_support(fields: Sequence[str], used_in_function: Optional[str] = None) -> SupportedBy:
+    if len(fields) == 0:
         return SupportedBy.both()
 
-    # apdex can have two variations, either apdex() or apdex(value).
-    if function == "apdex":
+    if used_in_function == "apdex":
+        # apdex can have two variations, either apdex() or apdex(value).
         return SupportedBy(on_demand_metrics=True, standard_metrics=False)
 
-    arg = args[0]
+    arg = fields[0]
+    return _get_field_support(arg)
 
-    standard_metrics = _is_standard_metrics_field(arg)
-    on_demand_metrics = _is_on_demand_supported_field(arg)
 
-    return SupportedBy(standard_metrics=standard_metrics, on_demand_metrics=on_demand_metrics)
+def _get_groupbys_support(groupbys: Sequence[str]) -> SupportedBy:
+    if len(groupbys) == 0:
+        return SupportedBy.both()
+
+    return SupportedBy.combine(*[_get_field_support(groupby) for groupby in groupbys])
 
 
 def _get_query_supported_by(query: Optional[str]) -> SupportedBy:
@@ -817,6 +833,7 @@ class OnDemandMetricSpec:
     # Base fields from outside.
     field: str
     query: str
+    groupbys: Sequence[str]
 
     # Public fields.
     op: MetricOperationType
@@ -825,9 +842,17 @@ class OnDemandMetricSpec:
     _metric_type: str
     _arguments: Sequence[str]
 
-    def __init__(self, field: str, query: str, environment: Optional[str] = None):
+    def __init__(
+        self,
+        field: str,
+        query: str,
+        environment: Optional[str] = None,
+        groupbys: Optional[Sequence[str]] = None,
+    ):
         self.field = field
         self.query = query
+        # Removes field if passed in selected_columns
+        self.groupbys = [groupby for groupby in groupbys or () if groupby != field]
         # For now, we just support the environment as extra, but in the future we might need more complex ways to
         # combine extra values that are outside the query string.
         self.environment = environment
@@ -860,9 +885,18 @@ class OnDemandMetricSpec:
         return f"{self._metric_type}:{CUSTOM_ALERT_METRIC_NAME}@none"
 
     @cached_property
-    def query_hash(self) -> str:
+    def _query_str_for_hash(self) -> str:
         """Returns a hash of the query and field to be used as a unique identifier for the on-demand metric."""
         str_to_hash = f"{self._field_for_hash()};{self._query_for_hash()}"
+        if self.groupbys:
+            # For compatibility with existing deployed metrics, leave existing hash untouched unless conditions are now
+            # included in the spec.
+            return f"{str_to_hash};{self._groupbys_for_hash()}"
+        return str_to_hash
+
+    @cached_property
+    def query_hash(self) -> str:
+        str_to_hash = self._query_str_for_hash
         return hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
 
     def _field_for_hash(self) -> Optional[str]:
@@ -899,6 +933,10 @@ class OnDemandMetricSpec:
         # In case we have `None` condition, we will use `None` string for hashing, so it's a sentinel value.
         return str(_deep_sorted(self.condition))
 
+    def _groupbys_for_hash(self):
+        # A sorted list of group-bys for the hash, since groupbys will be unique per on_demand metric.
+        return str(sorted(self.groupbys))
+
     @cached_property
     def condition(self) -> Optional[RuleCondition]:
         """Returns a parent condition containing a list of other conditions which determine whether of not the metric
@@ -913,11 +951,27 @@ class OnDemandMetricSpec:
 
         return tags_specs_generator(project, self._arguments)
 
+    def _tag_for_groupby(self, groupby: str) -> TagSpec:
+        """Returns a TagSpec for a groupby"""
+        field = _map_field_name(groupby)
+
+        return {
+            "key": groupby,
+            "field": field,
+        }
+
+    def tags_groupbys(self, groupbys: Sequence[str]) -> List[TagSpec]:
+        """Returns a list of tag specs generate for added groupbys, as they need to be stored separately for queries to work."""
+        return [self._tag_for_groupby(groupby) for groupby in groupbys]
+
     def to_metric_spec(self, project: Project) -> MetricSpec:
         """Converts the OndemandMetricSpec into a MetricSpec that Relay can understand."""
         # Tag conditions are always computed based on the project.
         extended_tags_conditions = self.tags_conditions(project).copy()
         extended_tags_conditions.append({"key": QUERY_HASH_KEY, "value": self.query_hash})
+
+        tag_from_groupbys = self.tags_groupbys(self.groupbys)
+        extended_tags_conditions.extend(tag_from_groupbys)
 
         metric_spec: MetricSpec = {
             "category": DataCategory.TRANSACTION.api_name(),
@@ -1050,7 +1104,11 @@ class OnDemandMetricSpec:
                 raise InvalidSearchQuery(f"Invalid characters in field {value}")
 
             function, _, arguments, alias = query_builder.parse_function(match)
-            return FieldParsingResult(function=function, arguments=arguments, alias=alias)
+
+            if function:
+                return FieldParsingResult(function=function, arguments=arguments, alias=alias)
+            column = query_builder.resolve_column(value)
+            return column
         except InvalidSearchQuery as e:
             raise Exception(f"Unable to parse the field '{value}' in on demand spec: {e}")
 
