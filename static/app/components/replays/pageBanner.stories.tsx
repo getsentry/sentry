@@ -8,6 +8,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import PageBanner from 'sentry/components/replays/pageBanner';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import {IconBroadcast} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import storyBook from 'sentry/stories/storyBook';
 
 export default storyBook(PageBanner, story => {
@@ -17,7 +18,7 @@ export default storyBook(PageBanner, story => {
       href="https://sentry.io/orgredirect/organizations/:orgslug/stories"
       priority="primary"
     >
-      View Stories
+      {t('View Stories')}
     </LinkButton>
   );
 
@@ -26,11 +27,13 @@ export default storyBook(PageBanner, story => {
       <p>Here's an example Banner announcing this UI Component Library:</p>
       <PageBanner
         button={storiesButton}
-        description="Build new products faster by exploring reusable the UI components available inside Sentry."
-        heading="Introducing the UI Component Library"
+        description={t(
+          'Build new products faster by exploring reusable the UI components available inside Sentry.'
+        )}
+        heading={t('Introducing the UI Component Library')}
         icon={<IconBroadcast size="sm" />}
         image={replaysDeadRageBackground}
-        title="UI Library Available"
+        title={t('UI Library Available')}
       />
     </Fragment>
   ));
@@ -49,16 +52,18 @@ export default storyBook(PageBanner, story => {
         </p>
         {isDismissed ? (
           <Button size="sm" onClick={() => setIsDismissed(false)}>
-            Show banner
+            {t('Show banner')}
           </Button>
         ) : (
           <PageBanner
             button={storiesButton}
-            description="Build new products faster by exploring reusable the UI components available inside Sentry."
-            heading="Introducing the UI Component Library"
+            description={t(
+              'Build new products faster by exploring reusable the UI components available inside Sentry.'
+            )}
+            heading={t('Introducing the UI Component Library')}
             icon={<IconBroadcast size="sm" />}
             image={replaysDeadRageBackground}
-            title="UI Library Available"
+            title={t('UI Library Available')}
             onDismiss={() => setIsDismissed(true)}
           />
         )}
@@ -76,18 +81,20 @@ export default storyBook(PageBanner, story => {
         </p>
         <p>
           <Button size="sm" onClick={() => setFlexGrow(!flexGrow)}>
-            flexGrow: <var>{flexGrow ? 1 : 0}</var>
+            {tct('flexGrow: [flexGlow]', {flexGrow: <var>{flexGrow ? 1 : 0}</var>})}
           </Button>
         </p>
         <SizingWindow>
           <PageBanner
             style={{flexGrow: flexGrow ? 1 : 0}}
             button={storiesButton}
-            description="Build new products faster by exploring reusable the UI components available inside Sentry."
-            heading="Introducing the UI Component Library"
+            description={t(
+              'Build new products faster by exploring reusable the UI components available inside Sentry.'
+            )}
+            heading={t('Introducing the UI Component Library')}
             icon={<IconBroadcast size="sm" />}
             image={replaysDeadRageBackground}
-            title="UI Library Available"
+            title={t('UI Library Available')}
           />
         </SizingWindow>
       </Fragment>
@@ -101,21 +108,24 @@ export default storyBook(PageBanner, story => {
         button={storiesButton}
         description={
           <Fragment>
-            Build new products faster by exploring reusable the UI components available
-            inside Sentry.{' '}
-            <ExternalLink href="https://sentry.io/orgredirect/organizations/:orgslug/stories">
-              See stories
-            </ExternalLink>
+            {tct(
+              'Build new products faster by exploring reusable the UI components available inside Sentry. [link]',
+              {
+                link: (
+                  <ExternalLink href="https://sentry.io/orgredirect/organizations/:orgslug/stories">
+                    {t('See stories.')}
+                  </ExternalLink>
+                ),
+              }
+            )}
           </Fragment>
         }
-        heading="Introducing the UI Component Library"
+        heading={t('Introducing the UI Component Library')}
         icon={<IconBroadcast size="sm" />}
         image={replaysDeadRageBackground}
-        title={
-          <Fragment>
-            UI Library Available at <Green>https://sentry.io/stories</Green>
-          </Fragment>
-        }
+        title={tct('UI Library Available at [green]', {
+          green: <Green>https://sentry.io/stories</Green>,
+        })}
       />
     </Fragment>
   ));
