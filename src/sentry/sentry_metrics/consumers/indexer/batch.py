@@ -22,6 +22,7 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message
 from django.conf import settings
 from sentry_kafka_schemas.codecs import ValidationError
+from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 from sentry_kafka_schemas.schema_types.snuba_metrics_v1 import Metric
 
@@ -72,7 +73,7 @@ class IndexerBatch:
         should_index_tag_values: bool,
         is_output_sliced: bool,
         tags_validator: Callable[[Mapping[str, str]], bool],
-        schema_validator: Callable[[ParsedMessage], None],
+        schema_validator: Callable[[str, IngestMetric], None],
     ) -> None:
         self.outer_message = outer_message
         self.__should_index_tag_values = should_index_tag_values
