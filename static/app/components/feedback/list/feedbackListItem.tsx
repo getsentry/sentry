@@ -23,7 +23,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 interface Props {
   feedbackItem: FeedbackIssue;
-  isChecked: boolean;
+  isChecked: 'all-checked' | boolean;
   onChecked: (isChecked: boolean) => void;
   className?: string;
   style?: CSSProperties;
@@ -65,7 +65,8 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
           <InteractionStateLayer />
           <Flex column style={{gridArea: 'checkbox'}}>
             <Checkbox
-              checked={isChecked}
+              disabled={isChecked === 'all-checked'}
+              checked={isChecked !== false}
               onChange={e => onChecked(e.target.checked)}
               onClick={e => e.stopPropagation()}
             />
