@@ -44,6 +44,8 @@ class OrganizationUnsubscribeBase(Endpoint, Generic[T]):
         return data
 
     def get(self, request: Request, organization_slug: str, id: int, **kwargs) -> Response:
+        if not request.user_from_signed_request:
+            raise NotFound()
         instance = self.fetch_instance(request, organization_slug, id)
         view_url = ""
         if hasattr(instance, "get_absolute_url"):
@@ -55,6 +57,8 @@ class OrganizationUnsubscribeBase(Endpoint, Generic[T]):
         return Response(self.add_instance_data(data, instance), 200)
 
     def post(self, request: Request, organization_slug: str, id: int, **kwargs) -> Response:
+        if not request.user_from_signed_request:
+            raise NotFound()
         instance = self.fetch_instance(request, organization_slug, id)
 
         if request.data.get("cancel"):
@@ -67,9 +71,6 @@ class OrganizationUnsubscribeProject(OrganizationUnsubscribeBase[Project]):
     object_type = "project"
 
     def fetch_instance(self, request: Request, organization_slug: str, id: int) -> Project:
-        # For now we only support getting here from the signed link.
-        if not request.user_from_signed_request:
-            raise NotFound()
         try:
             project = Project.objects.select_related("organization").get(id=id)
         except Project.DoesNotExist:
@@ -102,8 +103,6 @@ class OrganizationUnsubscribeIssue(OrganizationUnsubscribeBase[Group]):
     object_type = "issue"
 
     def fetch_instance(self, request: Request, organization_slug: str, issue_id: int) -> Group:
-        if not request.user_from_signed_request:
-            raise NotFound()
         try:
             issue = Group.objects.get_from_cache(id=issue_id)
         except Group.DoesNotExist:

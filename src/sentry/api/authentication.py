@@ -422,7 +422,7 @@ class SignedRequestAuthentication(BaseAuthentication):
     def authenticate(self, request: Request) -> tuple[Any, Any]:
         user = process_signature(request)
         if not user:
-            return (None, None)
+            return (AnonymousUser(), None)
 
         setattr(request, "user_from_signed_request", True)
         return (user, None)

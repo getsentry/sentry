@@ -1,3 +1,5 @@
+from django.urls import reverse
+
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.notificationsetting import NotificationSetting
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
@@ -41,6 +43,13 @@ class OrganizationUnsubscribeProjectTest(APITestCase):
         resp = self.client.get(path)
         assert resp.status_code == 404
 
+    def test_get_no_signature(self):
+        project = self.create_project(organization=self.organization)
+        path = reverse(self.endpoint, args=[self.organization.slug, project.id])
+
+        resp = self.client.get(path)
+        assert resp.status_code == 404
+
     def test_post_non_member(self):
         # Users cannot unsubscribe once they are not a member anymore.
         non_member = self.create_user(email="other@example.com")
@@ -56,6 +65,13 @@ class OrganizationUnsubscribeProjectTest(APITestCase):
             user=self.user, viewname=self.endpoint, args=[self.organization.slug, 987654321]
         )
         resp = self.client.post(path)
+        assert resp.status_code == 404
+
+    def test_post_no_signature(self):
+        project = self.create_project(organization=self.organization)
+        path = reverse(self.endpoint, args=[self.organization.slug, project.id])
+
+        resp = self.client.get(path)
         assert resp.status_code == 404
 
     def test_post_success(self):
